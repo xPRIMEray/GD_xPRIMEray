@@ -79,6 +79,36 @@ public partial class RayBeamRenderer : Node3D
 
 	private int _dbgRejectPrints = 0;
 
+	// Shared sample buffers (no per-ray allocation)
+	private Vector3[] _samplePos = Array.Empty<Vector3>();
+	private Color[] _sampleCol = Array.Empty<Color>();
+
+	// Per-ray metadata
+	private RayMeta[] _rayMeta = Array.Empty<RayMeta>();
+	private HitPayload[] _hitPayload = Array.Empty<HitPayload>();
+
+	private int _sampleWriteHead;
+	private int _rayWriteHead;
+
+	private struct RayMeta {
+		public int SampleStart;
+		public int SampleCount;
+		public int RenderCount; // Apply TerminateTrailOnHit logic here
+		public bool HadHit;
+		public int HitPayloadIndex; // -1 if none
+	}
+
+	private struct HitPayload {
+		public bool Valid;
+		public Vector3 Position;
+		public ulong ColliderId;
+		public string ColliderName;
+	}
+
+
+	///
+	/////////////////////////
+	/////////////////////////
 	public override async void _Ready()
 	{
 		_mm = new MultiMesh();
@@ -233,6 +263,21 @@ public partial class RayBeamRenderer : Node3D
 				}
 			}
 
+			///
+			////////////////////
+			int raysTotal = 0;
+			foreach (var e in emitterList)
+				raysTotal += Math.Max(1, e.Rays);
+
+			int maxSamplesPerRay = ComputeMaxSamplesPerRay();
+			int maxTotalSamples = raysTotal * maxSamplesPerRay;
+
+			EnsureCapacity(raysTotal, maxTotalSamples);
+			_sampleWriteHead = 0;
+			_rayWriteHead = 0;
+			//////////
+			///
+
 			_mm.InstanceCount = total;
 			_mm.VisibleInstanceCount = total; // default: show all until we decide otherwise
 			GD.Print($"RayBeamRenderer: total instances target = {total}");
@@ -268,23 +313,11 @@ public partial class RayBeamRenderer : Node3D
 
 				for (int r = 0; r < rays; r++)
 				{
-					bool rayHit = false;
 					rayOrdinal++;
 
 					if (rayOrdinal == 1) _dbgRejectPrints = 0;
 
 					bool debugThisRay = DebugRender && (rayOrdinal % Mathf.Max(1, DebugEveryNRays) == 0);
-
-					bool hadHit = false;
-					Vector3 hitPos = Vector3.Zero;
-
-					// ✅ NEW: how many samples we will render for this ray
-					int trailStopCount = int.MaxValue;
-
-					var samplePositions = new List<Vector3>();
-					var sampleColors = new List<Color>();
-
-					//int cutoffSampleCount = int.MaxValue; // render samples up to this count
 
 					if (debugThisRay)
 						GD.Print($"[DBG] Ray#{rayOrdinal} start RequireHitToRender={RequireHitToRender} StopOnHit={StopOnHit}");
@@ -315,147 +348,40 @@ public partial class RayBeamRenderer : Node3D
 					Vector2 d2n = d2.Length() > 1e-6f ? d2 / d2.Length() : Vector2.Right;
 					Vector3 bendDir = (camRight * d2n.X + camUp * -d2n.Y).Normalized();
 
-					Vector3 p = origin;
-					Vector3 v = dir;
-					float traveled = 0.0f;
+					// --- NEW PATH: simulate into shared buffers, then render from arrays ---
+					HitPayload hit;
+					RayMeta meta = SimulateRay(
+						space,
+						e,
+						origin,
+						dir,
+						bendDir,
+						center,
+						beta,
+						gamma,
+						fieldSources,
+						hasSources,
+						CollisionMask,
+						out hit
+					);
 
-					int every = Mathf.Max(1, RenderEveryNSteps);
-					int ce = Mathf.Max(1, CollisionEveryNSteps);
+					if (meta.HadHit) hitCount++;
 
-					for (int s = 0; s <= StepsPerRay; s++)
+					if (debugThisRay && meta.HadHit)
+						GD.Print($"[DBG] HIT collider='{hit.ColliderName}' id={hit.ColliderId} pos={hit.Position}");
+
+					if (debugThisRay)
+						GD.Print($"[DBG] Ray#{rayOrdinal} meta.HadHit={meta.HadHit} meta.RenderCount={meta.RenderCount}");
+
+					_rayMeta[_rayWriteHead] = meta;
+					_hitPayload[_rayWriteHead] = hit;
+
+					if (!RequireHitToRender || meta.HadHit)
 					{
-						Vector3 a = Vector3.Zero;
-						Vector3 next = p;
+						if (debugThisRay)
+							GD.Print($"Ray#{rayOrdinal} hadHit={meta.HadHit} samples={meta.SampleCount} renderCount={meta.RenderCount}");
 
-						if (UseIntegratedField)
-						{
-							if (hasSources)
-								a = ComputeAccelerationAtPoint(p, fieldSources, beta, gamma);
-							else
-							{
-								Vector3 rvec = p - center;
-								float rr = Mathf.Max(0.001f, rvec.Length());
-								a = (-rvec / rr) * (beta * Mathf.Pow(rr, gamma) * BendScale * FieldStrength);
-							}
-
-							float aLen = a.Length();
-
-							if (!float.IsFinite(aLen))
-							{
-								a = Vector3.Zero;
-								aLen = 0.0f;
-							}
-							else if (aLen > 50.0f)
-							{
-								a = a * (50.0f / aLen);
-								aLen = 50.0f;
-							}
-
-							float step = Mathf.Clamp(StepLength / (1.0f + aLen * StepAdaptGain), minStep, maxStep);
-							v = SafeNormalized(v + a * step, v);
-							next = p + v * step;
-
-							traveled += (next - p).Length();
-							if (traveled > maxDist)
-								break;
-						}
-						else
-						{
-							float t = s * StepLength;
-							float bend = beta * Mathf.Pow(t, gamma) * BendScale;
-							next = origin + dir * t + bendDir * bend;
-						}
-
-						float step01 = (StepsPerRay <= 0) ? 0f : (float)s / StepsPerRay;
-						float fade = 1.0f - step01;
-						fade *= fade;
-						float alpha = Alpha * e.Intensity * fade;
-
-						Color c = baseC;
-						if (ColorByField)
-						{
-							float heat = Mathf.Clamp(a.Length() * FieldColorGain, 0f, 1f);
-							c = c.Lerp(HotColor, heat);
-						}
-						c.A = Mathf.Clamp(alpha, 0.0f, 1.0f);
-
-						// ✅ Store samples until the frozen stop count (TerminateTrailOnHit)
-						// Always allow samples BEFORE a hit is detected; after a hit, stop collecting.
-						if ((s % every) == 0)
-						{
-							if (!TerminateTrailOnHit || samplePositions.Count < trailStopCount)
-							{
-								samplePositions.Add(p);
-								sampleColors.Add(c);
-							}
-						}
-
-						// --- Collision check (only if StopOnHit OR forced collision debug) ---
-						if ((StopOnHit || CheckCollisionsEvenIfNotStopping) && s > 0 && (s % ce) == 0)
-						{
-							Vector3 segA = p;
-							Vector3 segB = next;
-							float segLen = (segB - segA).Length();
-
-							if (UseInsightPlaneFilter && _hasInsightPlane)
-							{
-								if (!SegmentCrossesPlane(segA, segB, _insightPlane, CollisionRadius))
-									goto SkipCollision;
-							}
-
-							bool didHit = false;
-							Vector3 hp = Vector3.Zero;
-
-							if (segLen > 1e-6f)
-							{
-								if (UseSphereSweepCollision)
-									didHit = SweepSegmentHit(space, segA, segB, CollisionMask, CollisionRadius, out hp);
-								else
-								{
-									int sub = 1;
-									if (segLen > CollisionRaySubdivideThreshold)
-										sub = Mathf.CeilToInt(segLen / CollisionRaySubdivideThreshold);
-									sub = Mathf.Clamp(sub, 1, MaxCollisionSubsteps);
-
-									didHit = SubdividedRayHit(space, segA, segB, CollisionMask, sub, out hp);
-								}
-							}
-
-							if (didHit && !rayHit)
-							{
-								rayHit = true;
-								hadHit = true;
-								hitPos = hp;
-
-								hitCount++;
-								GD.Print("Beam hit at ", hp);
-
-								// ✅ Freeze drawable trail here (count is already how many samples were stored)
-								if (TerminateTrailOnHit) {
-									trailStopCount = samplePositions.Count;
-									GD.Print("trailStopCount:", trailStopCount);
-								}
-
-								if (StopOnHit)
-									GD.Print("StopOnHit true = break removed... ", trailStopCount);
-									//break;
-							}
-
-						SkipCollision:;
-						}
-
-						p = next;
-					}
-
-					// Render this ray if we either don't require hits OR we got a hit
-					if (!RequireHitToRender || hadHit)
-					{
-						//int renderCount = Mathf.Min(samplePositions.Count, cutoffSampleCount);
-						int renderCount = Mathf.Min(samplePositions.Count, trailStopCount);
-						GD.Print($"Ray#{rayOrdinal} hadHit={hadHit} rayHit={rayHit} samples={samplePositions.Count} trailStopCount={trailStopCount} renderCount={renderCount}");
-
-
-						for (int i = 0; i < renderCount; i++)
+						for (int i = 0; i < meta.RenderCount; i++)
 						{
 							if (idx >= _mm.InstanceCount)
 							{
@@ -463,28 +389,19 @@ public partial class RayBeamRenderer : Node3D
 								break;
 							}
 
-							if (idx == 0)
-								GD.Print("RayBeamRenderer: first instance placed at ", samplePositions[i]);
-
-							//SetBillboardInstance(idx++, samplePositions[i], camRight, camUp, camForward, sampleColors[i]);
-							SetBillboardInstance(idx++, capacity, samplePositions[i], camRight, camUp, camForward, sampleColors[i]);
+							int si = meta.SampleStart + i;
+							SetBillboardInstance(idx++, capacity, _samplePos[si], camRight, camUp, camForward, _sampleCol[si]);
 						}
 
-						// ✅ Stamp the hit marker AFTER the trail (optional, but you want it)
-						if (hadHit && idx < _mm.InstanceCount)
+						if (DrawHitMarker && meta.HadHit && idx < _mm.InstanceCount)
 						{
-							var hitColor = new Color(1, 0, 0, 1);
-							//SetBillboardInstance(idx++, hitPos, camRight, camUp, camForward, hitColor);
-							SetBillboardInstance(idx++, capacity, hitPos, camRight, camUp, camForward, hitColor);
+							SetBillboardInstance(idx++, capacity, hit.Position, camRight, camUp, camForward, HitMarkerColor);
 						}
 					}
-				}
-			}
 
-			if (DebugRender)
-			{
-				//GD.Print($"[DBG] Rebuild summary: totalTarget={total} idxWritten={idx} instanceCount(beforeTrim)={_mm.InstanceCount} hits={hitCount}");
-				GD.Print($"[DBG] Rebuild summary: totalTarget={total} idxWritten={idx} InstanceCount={_mm.InstanceCount} VisibleCount={_mm.VisibleInstanceCount} hits={hitCount}");
+					_rayWriteHead++;
+				}
+
 			}
 
 			// ✅ Always trim to what we actually wrote (prevents stale transforms/colors)
@@ -492,6 +409,10 @@ public partial class RayBeamRenderer : Node3D
 			//_mm.VisibleInstanceCount = idx; 
 			_mm.VisibleInstanceCount = Mathf.Max(0, idx); // ✅ show only the instances we wrote
 
+			if (DebugRender)
+			{
+				GD.Print($"[DBG] Rebuild summary: totalTarget={total} idxWritten={idx} InstanceCount={_mm.InstanceCount} VisibleCount={_mm.VisibleInstanceCount} hits={hitCount}");
+			}
 
 		}
 		finally
@@ -715,9 +636,12 @@ public partial class RayBeamRenderer : Node3D
 		return false;
 	}
 
-	private static bool SubdividedRayHit(PhysicsDirectSpaceState3D space, Vector3 a, Vector3 b, uint mask, int maxSubsteps, out Vector3 hitPos)
+	//private static bool SubdividedRayHit(PhysicsDirectSpaceState3D space, Vector3 a, Vector3 b, uint mask, int maxSubsteps, out Vector3 hitPos)
+	private static bool SubdividedRayHit(PhysicsDirectSpaceState3D space, Vector3 a, Vector3 b, uint mask, int maxSubsteps, out Vector3 hitPos, out ulong colliderId, out string colliderName)
 	{
 		hitPos = Vector3.Zero;
+		colliderId = 0;
+		colliderName = "<none>";
 
 		Vector3 d = b - a;
 		float len = d.Length();
@@ -740,6 +664,9 @@ public partial class RayBeamRenderer : Node3D
 			if (hit.Count > 0)
 			{
 				hitPos = (Vector3)hit["position"];
+				colliderId = (ulong)hit["collider_id"];
+				var colliderObj = hit["collider"].AsGodotObject();
+				colliderName = colliderObj != null ? colliderObj.ToString() : "<null>";
 				return true;
 			}
 
@@ -760,4 +687,219 @@ public partial class RayBeamRenderer : Node3D
 	{
 		return float.IsFinite(v.X) && float.IsFinite(v.Y) && float.IsFinite(v.Z);
 	}
+
+	private void EnsureCapacity(int raysTotal, int samplesTotal)
+	{
+		if (_rayMeta.Length < raysTotal) Array.Resize(ref _rayMeta, raysTotal);
+		if (_hitPayload.Length < raysTotal) Array.Resize(ref _hitPayload, raysTotal); // 1 payload per ray for now
+
+		if (_samplePos.Length < samplesTotal) Array.Resize(ref _samplePos, samplesTotal);
+		if (_sampleCol.Length < samplesTotal) Array.Resize(ref _sampleCol, samplesTotal);
+
+	}
+
+	private RayMeta SimulateRay(
+		PhysicsDirectSpaceState3D space,
+		RayEmitter3D e,
+		Vector3 origin,
+		Vector3 dir,
+		Vector3 bendDir,
+		Vector3 center,
+		float beta,
+		float gamma,
+		Godot.Collections.Array<Node> fieldSources,
+		bool hasSources,
+		uint collisionMask,
+		out HitPayload hitOut
+	)
+	{
+		bool rayHit = false;
+		bool hadHit = false;
+		Vector3 hitPos = Vector3.Zero;
+		ulong hitColliderId = 0;
+		string hitColliderName = "<none>";
+		int trailStopCount = int.MaxValue;
+
+		int sampleStart = _sampleWriteHead;
+		int sampleCount = 0;
+
+		Vector3 p = origin;
+		Vector3 v = dir;
+		float traveled = 0.0f;
+
+		int every = Mathf.Max(1, RenderEveryNSteps);
+		int ce = Mathf.Max(1, CollisionEveryNSteps);
+
+		float minStep = Mathf.Min(MinStepLength, MaxStepLength);
+		float maxStep = Mathf.Max(MinStepLength, MaxStepLength);
+		minStep = Mathf.Max(0.0001f, minStep);
+
+		for (int s = 0; s <= StepsPerRay; s++)
+		{
+			Vector3 a = Vector3.Zero;
+			Vector3 next = p;
+
+			if (UseIntegratedField)
+			{
+				if (hasSources)
+					a = ComputeAccelerationAtPoint(p, fieldSources, beta, gamma);
+				else
+				{
+					Vector3 rvec = p - center;
+					float rr = Mathf.Max(0.001f, rvec.Length());
+					a = (-rvec / rr) * (beta * Mathf.Pow(rr, gamma) * BendScale * FieldStrength);
+				}
+
+				float aLen = a.Length();
+
+				if (!float.IsFinite(aLen))
+				{
+					a = Vector3.Zero;
+					aLen = 0.0f;
+				}
+				else if (aLen > 50.0f)
+				{
+					a = a * (50.0f / aLen);
+					aLen = 50.0f;
+				}
+
+				float step = Mathf.Clamp(StepLength / (1.0f + aLen * StepAdaptGain), minStep, maxStep);
+				v = SafeNormalized(v + a * step, v);
+				next = p + v * step;
+
+				traveled += (next - p).Length();
+				if (traveled > e.MaxDistance)
+					break;
+			}
+			else
+			{
+				float t = s * StepLength;
+				float bend = beta * Mathf.Pow(t, gamma) * BendScale;
+				next = origin + dir * t + bendDir * bend;
+			}
+
+			float step01 = (StepsPerRay <= 0) ? 0f : (float)s / StepsPerRay;
+			float fade = 1.0f - step01;
+			fade *= fade;
+			float alpha = Alpha * e.Intensity * fade;
+
+			Color c = e.RayColor;
+			if (ColorByField)
+			{
+				float heat = Mathf.Clamp(a.Length() * FieldColorGain, 0f, 1f);
+				c = c.Lerp(HotColor, heat);
+			}
+			c.A = Mathf.Clamp(alpha, 0.0f, 1.0f);
+
+			// Store samples (array-backed)
+			if ((s % every) == 0)
+			{
+				if (!TerminateTrailOnHit || sampleCount < trailStopCount)
+				{
+					int wi = sampleStart + sampleCount;
+					if (wi < _samplePos.Length)
+					{
+						_samplePos[wi] = p;
+						_sampleCol[wi] = c;
+						sampleCount++;
+					}
+					else
+					{
+						// Out of capacity (shouldn't happen if EnsureCapacity is correct)
+						break;
+					}
+				}
+			}
+
+			// Collision check
+			if ((StopOnHit || CheckCollisionsEvenIfNotStopping) && s > 0 && (s % ce) == 0)
+			{
+				Vector3 segA = p;
+				Vector3 segB = next;
+				float segLen = (segB - segA).Length();
+
+				bool allowCollision = true;
+
+				if (UseInsightPlaneFilter && _hasInsightPlane)
+				{
+					if (!SegmentCrossesPlane(segA, segB, _insightPlane, CollisionRadius))
+						allowCollision = false;
+				}
+
+				if (allowCollision)
+				{
+					bool didHit = false;
+					Vector3 hp = Vector3.Zero;
+					ulong cid = 0;
+					string cname = "<none>";
+
+					if (segLen > 1e-6f)
+					{
+						if (UseSphereSweepCollision)
+							didHit = SweepSegmentHit(space, segA, segB, collisionMask, CollisionRadius, out hp);
+						else
+						{
+							int sub = 1;
+							if (segLen > CollisionRaySubdivideThreshold)
+								sub = Mathf.CeilToInt(segLen / CollisionRaySubdivideThreshold);
+							sub = Mathf.Clamp(sub, 1, MaxCollisionSubsteps);
+
+							//didHit = SubdividedRayHit(space, segA, segB, collisionMask, sub, out hp);
+							didHit = SubdividedRayHit(space, segA, segB, collisionMask, sub, out hp, out cid, out cname);
+						}
+					}
+
+					if (didHit && !rayHit)
+					{
+						rayHit = true;
+						hadHit = true;
+						hitPos = hp;
+
+						hitColliderId = cid;
+						hitColliderName = cname;
+
+						if (TerminateTrailOnHit)
+							trailStopCount = sampleCount;
+
+						if (StopOnHit)
+							break;
+					}
+				}
+			}
+			p = next;
+		}
+
+		// Update write head
+		_sampleWriteHead = sampleStart + sampleCount;
+
+		int renderCount = Mathf.Min(sampleCount, Mathf.Max(0, trailStopCount));
+
+		hitOut = new HitPayload
+		{
+			Valid = hadHit,
+			Position = hitPos,
+			ColliderId = hitColliderId,
+			ColliderName = hitColliderName
+		};
+
+		return new RayMeta
+		{
+			SampleStart = sampleStart,
+			SampleCount = sampleCount,
+			RenderCount = renderCount,
+			HadHit = hadHit,
+			HitPayloadIndex = hadHit ? _rayWriteHead : -1
+		};
+	}
+
+
+	private int ComputeMaxSamplesPerRay()
+	{
+		int every = Mathf.Max(1, RenderEveryNSteps);
+		// steps include s=0..StepsPerRay inclusive → StepsPerRay+1 "step indices"
+		int samples = (StepsPerRay / every) + 2; // conservative pad
+		if (DrawHitMarker) samples += 1;
+		return Mathf.Max(4, samples);
+	}
+
 }

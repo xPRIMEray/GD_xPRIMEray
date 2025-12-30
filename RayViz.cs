@@ -81,25 +81,25 @@ public partial class RayViz : MeshInstance3D
 		Vector2 center = size * 0.5f;
 
 		// Default 9-point pattern: corners, edge mids, center
-        Vector2[] uv = new Vector2[]
-        {
-            new(0.05f, 0.05f),
-            new(0.95f, 0.05f),
-            new(0.05f, 0.95f),
-            new(0.95f, 0.95f),
-            new(0.50f, 0.05f),
-            new(0.50f, 0.95f),
-            new(0.05f, 0.50f),
-            new(0.95f, 0.50f),
-            new(0.50f, 0.50f),
-        };
-        Vector2[] samples = new Vector2[uv.Length];
-        for (int i = 0; i < uv.Length; i++)
-            samples[i] = new Vector2(uv[i].X * size.X, uv[i].Y * size.Y);
+		Vector2[] uv = new Vector2[]
+		{
+			new(0.05f, 0.05f),
+			new(0.95f, 0.05f),
+			new(0.05f, 0.95f),
+			new(0.95f, 0.95f),
+			new(0.50f, 0.05f),
+			new(0.50f, 0.95f),
+			new(0.05f, 0.50f),
+			new(0.95f, 0.50f),
+			new(0.50f, 0.50f),
+		};
+		Vector2[] samples = new Vector2[uv.Length];
+		for (int i = 0; i < uv.Length; i++)
+			samples[i] = new Vector2(uv[i].X * size.X, uv[i].Y * size.Y);
 
 		// If RayCount != 9, we’ll just use the first N of this list (or clamp).
 		//int n = Mathf.Clamp(RayCount, 1, samples.Length);
-        int n = 9;
+		int n = 9;
 
 		// Camera basis vectors for “screen plane” directions
 		Vector3 right = cam.GlobalTransform.Basis.X.Normalized();
@@ -110,8 +110,8 @@ public partial class RayViz : MeshInstance3D
 		{
 			Vector2 sp = samples[i];
 			Vector3 origin = cam.ProjectRayOrigin(sp);
-            Vector3 forward = -cam.GlobalTransform.Basis.Z.Normalized();
-            origin += forward * (0.01f * i);
+			Vector3 forward = -cam.GlobalTransform.Basis.Z.Normalized();
+			origin += forward * (0.01f * i);
 
 			Vector3 dir = cam.ProjectRayNormal(sp).Normalized();
 
@@ -127,12 +127,12 @@ public partial class RayViz : MeshInstance3D
 			Color c = Color.FromHsv((float)i / Mathf.Max(1, n), 0.9f, 1.0f);
 
 			_im.SurfaceBegin(Mesh.PrimitiveType.LineStrip, _mat);
-            float m = 0.05f; // marker size
-            _im.SurfaceSetColor(c);
-            _im.SurfaceAddVertex(origin - right * m);
-            _im.SurfaceAddVertex(origin + right * m);
-            _im.SurfaceAddVertex(origin - up * m);
-            _im.SurfaceAddVertex(origin + up * m);
+			float m = 0.05f; // marker size
+			_im.SurfaceSetColor(c);
+			_im.SurfaceAddVertex(origin - right * m);
+			_im.SurfaceAddVertex(origin + right * m);
+			_im.SurfaceAddVertex(origin - up * m);
+			_im.SurfaceAddVertex(origin + up * m);
 
 			for (int s = 0; s <= StepsPerRay; s++)
 			{
