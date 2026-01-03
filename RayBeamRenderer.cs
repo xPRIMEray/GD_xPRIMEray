@@ -90,19 +90,22 @@ public partial class RayBeamRenderer : Node3D
 	private int _sampleWriteHead;
 	private int _rayWriteHead;
 
-	private struct RayMeta {
+	public struct RayMeta {
 		public int SampleStart;
 		public int SampleCount;
-		public int RenderCount; // Apply TerminateTrailOnHit logic here
+		public int RenderCount;
 		public bool HadHit;
 		public int HitPayloadIndex; // -1 if none
 	}
 
-	private struct HitPayload {
+	public struct HitPayload {
 		public bool Valid;
 		public Vector3 Position;
 		public ulong ColliderId;
 		public string ColliderName;
+		public float Distance;     // path length to hit
+		public Vector3 Normal;     // (optional for v0)
+		public Color Albedo;       // (optional; can be constant for v0)
 	}
 
 
@@ -600,7 +603,9 @@ public partial class RayBeamRenderer : Node3D
 		_hasInsightPlane = true;
 	}
 
-	private static bool SweepSegmentHit(PhysicsDirectSpaceState3D space, Vector3 a, Vector3 b, uint mask, float radius, out Vector3 hitPos)
+	private static bool SweepSegmentHit(PhysicsDirectSpaceState3D space,
+							Vector3 a, Vector3 b, uint mask, float radius,
+							out Vector3 hitPos)
 	{
 		hitPos = Vector3.Zero;
 
@@ -636,8 +641,19 @@ public partial class RayBeamRenderer : Node3D
 		return false;
 	}
 
-	//private static bool SubdividedRayHit(PhysicsDirectSpaceState3D space, Vector3 a, Vector3 b, uint mask, int maxSubsteps, out Vector3 hitPos)
-	private static bool SubdividedRayHit(PhysicsDirectSpaceState3D space, Vector3 a, Vector3 b, uint mask, int maxSubsteps, out Vector3 hitPos, out ulong colliderId, out string colliderName)
+	private static bool SubdividedRayHit(PhysicsDirectSpaceState3D space,
+										Vector3 a, Vector3 b, uint mask,
+										int maxSubsteps, out Vector3 hitPos)
+	{
+		ulong cid;
+		string cname;
+		return SubdividedRayHit(space, a, b, mask, maxSubsteps, out hitPos, out cid, out cname);
+	}
+	
+	private static bool SubdividedRayHit(PhysicsDirectSpaceState3D space,
+							Vector3 a, Vector3 b, uint mask, int maxSubsteps,
+							out Vector3 hitPos, out ulong colliderId,
+							out string colliderName)
 	{
 		hitPos = Vector3.Zero;
 		colliderId = 0;
@@ -698,20 +714,13 @@ public partial class RayBeamRenderer : Node3D
 
 	}
 
-	private RayMeta SimulateRay(
-		PhysicsDirectSpaceState3D space,
-		RayEmitter3D e,
-		Vector3 origin,
-		Vector3 dir,
-		Vector3 bendDir,
-		Vector3 center,
-		float beta,
-		float gamma,
-		Godot.Collections.Array<Node> fieldSources,
-		bool hasSources,
-		uint collisionMask,
-		out HitPayload hitOut
-	)
+	// Initial version testing
+	private RayMeta SimulateRay(PhysicsDirectSpaceState3D space, RayEmitter3D e,
+							Vector3 origin,	Vector3 dir, Vector3 bendDir,
+							Vector3 center, float beta, float gamma,
+							Godot.Collections.Array<Node> fieldSources,
+							bool hasSources, uint collisionMask,
+							out HitPayload hitOut)
 	{
 		bool rayHit = false;
 		bool hadHit = false;
@@ -844,8 +853,13 @@ public partial class RayBeamRenderer : Node3D
 								sub = Mathf.CeilToInt(segLen / CollisionRaySubdivideThreshold);
 							sub = Mathf.Clamp(sub, 1, MaxCollisionSubsteps);
 
-							//didHit = SubdividedRayHit(space, segA, segB, collisionMask, sub, out hp);
 							didHit = SubdividedRayHit(space, segA, segB, collisionMask, sub, out hp, out cid, out cname);
+							if (didHit)
+							{
+								hitColliderId = cid;
+								hitColliderName = cname;
+							}
+
 						}
 					}
 
@@ -879,7 +893,11 @@ public partial class RayBeamRenderer : Node3D
 			Valid = hadHit,
 			Position = hitPos,
 			ColliderId = hitColliderId,
-			ColliderName = hitColliderName
+			ColliderName = hitColliderName,
+			// NEW (important)
+			Distance = traveled,              // ← this is the key one
+			Normal = Vector3.Zero,             // v0 placeholder
+			Albedo = Colors.White              // v0 placeholder
 		};
 
 		return new RayMeta
@@ -889,6 +907,152 @@ public partial class RayBeamRenderer : Node3D
 			RenderCount = renderCount,
 			HadHit = hadHit,
 			HitPayloadIndex = hadHit ? _rayWriteHead : -1
+		};
+	}
+
+
+	// Camera Film Version
+	// Camera Film Version (hit-only, no sample buffer writes)
+	public RayMeta SimulateRayCamera(
+		PhysicsDirectSpaceState3D space,
+		Vector3 origin, Vector3 dir, Vector3 bendDir,
+		Vector3 center, float beta, float gamma,
+		Godot.Collections.Array<Node> fieldSources,
+		bool hasSources, uint collisionMask,
+		float maxDistance, out HitPayload hitOut)
+	{
+		bool hadHit = false;
+		Vector3 hitPos = Vector3.Zero;
+		ulong colliderId = 0;
+		string colliderName = "<none>";
+		float traveled = 0.0f;
+		float hitDistance = 0f;
+
+		Vector3 p = origin;
+		Vector3 v = dir;
+
+		int ce = Mathf.Max(1, CollisionEveryNSteps);
+
+		float minStep = Mathf.Min(MinStepLength, MaxStepLength);
+		float maxStep = Mathf.Max(MinStepLength, MaxStepLength);
+		minStep = Mathf.Max(0.0001f, minStep);
+
+		for (int s = 0; s <= StepsPerRay; s++)
+		{
+			Vector3 next = p;
+
+			if (UseIntegratedField)
+			{
+				Vector3 a = Vector3.Zero;
+
+				if (hasSources)
+					a = ComputeAccelerationAtPoint(p, fieldSources, beta, gamma);
+				else
+				{
+					Vector3 rvec = p - center;
+					float rr = Mathf.Max(0.001f, rvec.Length());
+					a = (-rvec / rr) * (beta * Mathf.Pow(rr, gamma) * BendScale * FieldStrength);
+				}
+
+				float aLen = a.Length();
+				if (!float.IsFinite(aLen)) { a = Vector3.Zero; aLen = 0f; }
+				else if (aLen > 50f) { a = a * (50f / aLen); aLen = 50f; }
+
+				float step = Mathf.Clamp(StepLength / (1.0f + aLen * StepAdaptGain), minStep, maxStep);
+
+				v = SafeNormalized(v + a * step, v);
+				next = p + v * step;
+
+				float segLenStep = (next - p).Length();
+				traveled += segLenStep;
+
+				if (traveled > maxDistance) break;
+			}
+			else
+			{
+				float t = s * StepLength;
+				float bend = beta * Mathf.Pow(t, gamma) * BendScale;
+				next = origin + dir * t + bendDir * bend;
+
+				traveled = t;
+				if (traveled > maxDistance) break;
+			}
+
+			// Collision every N steps (ALWAYS for film)
+			if (s > 0 && (s % ce) == 0)
+			{
+				Vector3 segA = p;
+				Vector3 segB = next;
+				float segLen = (segB - segA).Length();
+
+				bool allowCollision = true;
+				if (UseInsightPlaneFilter && _hasInsightPlane)
+				{
+					if (!SegmentCrossesPlane(segA, segB, _insightPlane, CollisionRadius))
+						allowCollision = false;
+				}
+
+				if (allowCollision && segLen > 1e-6f)
+				{
+					Vector3 hp;
+					ulong cid;
+					string cname;
+
+					bool didHit = false;
+
+					if (UseSphereSweepCollision)
+					{
+						didHit = SweepSegmentHit(space, segA, segB, collisionMask, CollisionRadius, out hp);
+						// sphere sweep doesn't return collider id/name (ok for v0)
+					}
+					else
+					{
+						int sub = 1;
+						if (segLen > CollisionRaySubdivideThreshold)
+							sub = Mathf.CeilToInt(segLen / CollisionRaySubdivideThreshold);
+						sub = Mathf.Clamp(sub, 1, MaxCollisionSubsteps);
+
+						didHit = SubdividedRayHit(space, segA, segB, collisionMask, sub, out hp, out cid, out cname);
+						if (didHit)
+						{
+							colliderId = cid;
+							colliderName = cname;
+						}
+					}
+
+					if (didHit)
+					{
+						hadHit = true;
+						hitPos = hp;
+
+						// more accurate path-length to hit within the segment
+						hitDistance = traveled - segLen + (hp - segA).Length();
+						break; // film wants first hit
+					}
+				}
+			}
+
+			p = next;
+		}
+
+		hitOut = new HitPayload
+		{
+			Valid = hadHit,
+			Position = hitPos,
+			ColliderId = colliderId,
+			ColliderName = colliderName,
+			Distance = hitDistance,
+			Normal = Vector3.Zero,
+			Albedo = Colors.White
+		};
+
+		return new RayMeta
+		{
+			SampleStart = 0,
+			SampleCount = 0,
+			RenderCount = 0,
+			HadHit = hadHit,
+			HitPayloadIndex = -1
 		};
 	}
 

@@ -1,8 +1,9 @@
 res://RayBeamRenderer.cs
-res://RayViz.cs
+res://GrinFilmCamera.cs
 res://RayEmitter3D.cs
 res://FieldSource3D.cs
 res://CurvedCamera.cs
+res://RayViz.cs
 res://test.tscn
 res://curved_view.gdshader
 res://curved_ray_postprocess.gdshader

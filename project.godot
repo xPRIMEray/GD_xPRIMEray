@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="Physical Light and Camera Units"
+config/name="GRIN Physical Ray Tracing"
 config/description="This demo showcases a physical light and camera units setup.
 This allows you to use real world units for lights (lumen, lux, Kelvin)
 and cameras (shutter speed, aperture, ISO sensitivity)."

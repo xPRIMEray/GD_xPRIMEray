@@ -1,9 +1,10 @@
+TextureRect
+CanvasLayer
+Node3D
 MeshInstance3D
 CollisionShape3D
 StaticBody3D
-Node3D
 ColorRect
-CanvasLayer
 Node
 HSlider
 Label

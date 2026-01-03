@@ -1,8 +1,9 @@
-[gd_scene load_steps=17 format=3 uid="uid://0yko6oxwl0n7"]
+[gd_scene load_steps=18 format=3 uid="uid://0yko6oxwl0n7"]
 
 [ext_resource type="Script" uid="uid://cmss07txb211i" path="res://world_environment.gd" id="1_6uqi0"]
 [ext_resource type="Script" uid="uid://qebxtmehy4vg" path="res://options.gd" id="2_hjhvo"]
 [ext_resource type="Script" uid="uid://chuvuh6fkc2ux" path="res://CurvedCamera.cs" id="2_ppyta"]
+[ext_resource type="Script" uid="uid://b3y1shfx51f53" path="res://GrinFilmCamera.cs" id="3_77dp3"]
 [ext_resource type="Script" uid="uid://26voemlp0vg4" path="res://RayViz.cs" id="3_rayviz"]
 [ext_resource type="PackedScene" uid="uid://bnmjiwr2ptb5w" path="res://living_room.glb" id="3_xersf"]
 [ext_resource type="PackedScene" uid="uid://cfrsfdrw017ic" path="res://test_physics_room.tscn" id="4_00tp4"]
@@ -66,6 +67,9 @@ attributes = SubResource("CameraAttributesPhysical_drxnu")
 current = true
 script = ExtResource("2_ppyta")
 
+[node name="GrinField3D" type="Node3D" parent="."]
+script = ExtResource("3_77dp3")
+
 [node name="living_room" parent="." instance=ExtResource("3_xersf")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.025899887, -0.00739336, 0.021672606)
 
@@ -87,6 +91,7 @@ light_size = 0.1
 shadow_enabled = true
 
 [node name="CurvedLayer" type="CanvasLayer" parent="."]
+visible = false
 
 [node name="CurvedOverlay" type="ColorRect" parent="CurvedLayer"]
 visible = false
@@ -97,6 +102,16 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="FilmView" type="TextureRect" parent="CanvasLayer"]
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 0
+grow_vertical = 2
 
 [node name="RayViz" type="MeshInstance3D" parent="."]
 visible = false
@@ -118,7 +133,6 @@ CollisionRadius = 0.05
 UseSphereSweepCollision = true
 UseInsightPlaneFilter = true
 CollisionRaySubdivideThreshold = 0.05
-RequireHitToRender = true
 DebugRender = true
 DebugSetBillboardRejects = true
 CheckCollisionsEvenIfNotStopping = true

@@ -1,0 +1,209 @@
+using Godot;
+using System;
+
+public partial class GrinFilmCamera : Node
+{
+    [Export] public NodePath RayBeamRendererPath;
+
+    [Export] public int Width = 160;
+    [Export] public int Height = 90;
+
+    [Export] public int RowsPerFrame = 8;           // progressive scan: keep this small for responsiveness
+    [Export] public bool UpdateEveryFrame = true;   // set false if you only want rebuild on input
+    [Export] public float MaxDistance = 50f;        // normalize depth map
+    [Export] public Color SkyColor = new Color(0, 0, 0, 1);
+
+    [Export] public bool UseCameraPropsBetaGamma = true; // read Beta/Gamma off camera like your renderer does
+
+    private Image _img;
+    private ImageTexture _tex;
+    private TextureRect _rect;
+
+    private int _rowCursor = 0;
+
+    private Camera3D _cam;
+    private RayBeamRenderer _rbr;
+
+    [Export] public NodePath FilmViewPath;
+    private TextureRect _filmView;
+
+    /// 
+    /// End Globals
+    /// ////////////////////////////// 
+    
+    public override void _Ready()
+    {
+        GD.Print("✅ GrinFilmCamera READY: ", GetPath());
+        _filmView = GetNodeOrNull<TextureRect>(FilmViewPath);
+        GD.Print("FilmView found? ", _filmView != null);
+        _rbr = GetNodeOrNull<RayBeamRenderer>(RayBeamRendererPath);
+        GD.Print("RayBeamRenderer found? ", _rbr != null);
+
+        _cam = GetViewport().GetCamera3D();
+        _rbr = GetNodeOrNull<RayBeamRenderer>(RayBeamRendererPath);
+        if (_rbr == null)
+        {
+            GD.PushError("GrinFilmCamera: RayBeamRendererPath missing or invalid.");
+            return;
+        }
+
+        // Create image + texture
+        _img = Image.CreateEmpty(Width, Height, false, Image.Format.Rgba8);
+        _img.Fill(SkyColor);
+        _tex = ImageTexture.CreateFromImage(_img);
+
+        _filmView.Texture = _tex;
+
+        // Create a simple UI overlay to display the film
+        var layer = new CanvasLayer();
+        AddChild(layer);
+
+        _rect = new TextureRect();
+        _rect.Texture = _tex;
+        _rect.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+        _rect.StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered;
+
+        _rect.AnchorLeft = 0;
+        _rect.AnchorTop = 0;
+        _rect.AnchorRight = 1;
+        _rect.AnchorBottom = 1;
+        _rect.OffsetLeft = 0;
+        _rect.OffsetTop = 0;
+        _rect.OffsetRight = 0;
+        _rect.OffsetBottom = 0;
+
+        // Optional: pixel look (nearest). Godot 4: set texture filter via CanvasItem:
+        _rect.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
+
+        layer.AddChild(_rect);
+
+        GD.Print("GrinFilmCamera ready. Rendering film to UI overlay.");
+    }
+
+    public override void _Process(double delta)
+    {
+        if (!UpdateEveryFrame) return;
+        RenderStep();
+    }
+
+    public void RenderStep()
+    {
+        if (_rbr == null) return;
+
+        _cam ??= GetViewport().GetCamera3D();
+        if (_cam == null) return;
+
+        // Space state
+        var space = _cam.GetWorld3D().DirectSpaceState;
+
+        // Field sources
+        var fieldSources = GetTree().GetNodesInGroup("field_sources");
+        bool hasSources = fieldSources.Count > 0;
+
+        // Beta/Gamma: either read from camera props (like you do) or use renderer’s last values
+        float beta = 0f;
+        float gamma = 2f;
+
+        if (UseCameraPropsBetaGamma)
+        {
+            beta = ReadFloat(_cam, "Beta", 0f);
+            gamma = ReadFloat(_cam, "Gamma", 2f);
+        }
+
+        // Center point for fallback field (if no sources)
+        Vector3 center = _rbr.FieldCenterIsCamera ? _cam.GlobalPosition : _rbr.FieldCenter;
+
+        // Camera basis for ray directions
+        var basis = _cam.GlobalTransform.Basis;
+
+        // Projection constants
+        float fovRad = Mathf.DegToRad(_cam.Fov);
+        float tanHalf = Mathf.Tan(fovRad * 0.5f);
+        float aspect = (float)Width / Mathf.Max(1f, Height);
+
+        // Progressive scan: draw a band of rows each call
+        int yStart = _rowCursor;
+        int yEnd = Mathf.Min(Height, _rowCursor + Mathf.Max(1, RowsPerFrame));
+
+        //_img.Lock();    // obsolete godot 3.x style
+
+        for (int y = yStart; y < yEnd; y++)
+        {
+            float v = ( (y + 0.5f) / Height ) * 2f - 1f; // -1..1
+            v = -v; // flip so up is positive in screen space
+
+            for (int x = 0; x < Width; x++)
+            {
+                float u = ( (x + 0.5f) / Width ) * 2f - 1f; // -1..1
+
+                // Camera ray in camera-local space (like a pinhole camera)
+                Vector3 dirCam = new Vector3(
+                    u * tanHalf * aspect,
+                    v * tanHalf,
+                    -1f
+                ).Normalized();
+
+                // Convert to world
+                Vector3 dirWorld = (basis * dirCam).Normalized();
+
+                // bendDir not used in integrated-field mode; give stable fallback anyway
+                Vector3 bendDir = basis.X; // camera right
+
+                // Use a tiny “fake emitter” by passing null-ish fields from camera:
+                // We only need e.MaxDistance and e.Intensity and e.RayColor in your SimulateRay.
+                // So: easiest = add a lightweight overload OR let GrinFilmCamera pass a real emitter reference.
+                //
+                // QUICK SOLUTION (recommended): create one RayEmitter3D in scene tagged "ray_emitters"
+                // and export its NodePath here. But if you prefer NO emitter dependency, see note below.
+
+                // For now, we’ll fabricate minimal: call SimulateRay but using a real emitter isn’t possible.
+                // So: we require you to add ONE helper overload in RayBeamRenderer:
+                //   SimulateRayCamera(space, origin, dir, center, beta, gamma, fieldSources, hasSources, mask, maxDist, out hit)
+                //
+                // Until that exists, we can’t compile cleanly.
+                //
+                // -> After you add that overload (tiny), this will work.
+
+                RayBeamRenderer.HitPayload hit;
+                
+                var meta = _rbr.SimulateRayCamera(
+                                    space, _cam.GlobalPosition, dirWorld,
+                                    bendDir, center, beta, gamma, fieldSources,
+                                    hasSources, _rbr.CollisionMask, MaxDistance,
+                                    out hit);
+
+                Color col = SkyColor;
+
+                if (hit.Valid)
+                {
+                    float t = Mathf.Clamp(hit.Distance / Mathf.Max(0.001f, MaxDistance), 0f, 1f);
+                    float shade = 1f - t; // near = bright
+                    col = new Color(shade, shade, shade, 1f);
+                }
+
+                _img.SetPixel(x, y, col);
+            }
+        }
+
+        //_img.Unlock();  // obsolete godot 3.x style
+
+        // Upload to GPU once per band
+        _tex.Update(_img);
+
+        // advance cursor
+        _rowCursor = yEnd;
+        if (_rowCursor >= Height) _rowCursor = 0;
+    }
+
+    private static float ReadFloat(Node obj, StringName prop, float fallback)
+    {
+        if (obj == null) return fallback;
+        Variant v = obj.Get(prop);
+        return v.VariantType switch
+        {
+            Variant.Type.Float => (float)v,
+            Variant.Type.Int => (int)v,
+            _ => fallback
+        };
+    }
+}
