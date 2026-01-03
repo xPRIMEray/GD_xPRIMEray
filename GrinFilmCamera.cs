@@ -98,6 +98,9 @@ public partial class GrinFilmCamera : Node
 
     public void RenderStep()
     {
+        if ((_rowCursor % Height) == 0)
+            GD.Print($"🎥 Film RenderStep running. rowCursor={_rowCursor} cam={( _cam != null ? _cam.GetPath() : "<null>")}");
+
         if (_rbr == null || _cam == null) return;
 
         var space = _cam.GetWorld3D().DirectSpaceState;
@@ -122,6 +125,8 @@ public partial class GrinFilmCamera : Node
 
         int yStart = _rowCursor;
         int yEnd = Mathf.Min(Height, _rowCursor + Mathf.Max(1, RowsPerFrame));
+        
+        int bandHits = 0;
 
         for (int y = yStart; y < yEnd; y++)
         {
@@ -142,34 +147,27 @@ public partial class GrinFilmCamera : Node
                 Vector3 bendDir = basis.X;
 
                 RayBeamRenderer.HitPayload hit;
-                _rbr.SimulateRayCamera(
-                    space,
-                    _cam.GlobalPosition,
-                    dirWorld,
-                    bendDir,
-                    center,
-                    beta,
-                    gamma,
-                    fieldSources,
-                    hasSources,
-                    _rbr.CollisionMask,
-                    MaxDistance,
-                    out hit
-                );
+                //_rbr.SimulateRayCamera(space, _cam.GlobalPosition, dirWorld, bendDir, center, beta, gamma, fieldSources, hasSources, _rbr.CollisionMask, MaxDistance, out hit);
+                _rbr.SimulateRayCamera(space, _cam.GlobalPosition, dirWorld, bendDir, center, beta, gamma, fieldSources, hasSources, 0xFFFFFFFF, MaxDistance, out hit);
 
                 Color col = SkyColor;
 
                 if (hit.Valid)
                 {
+                    if (hit.Valid) bandHits++;
                     float t = Mathf.Clamp(hit.Distance / Mathf.Max(0.001f, MaxDistance), 0f, 1f);
                     float shade = 1f - t;
                     col = new Color(shade, shade, shade, 1f);
+
+                    if (hit.Valid && x == Width/2 && y == (yStart + (RowsPerFrame/2)))
+                        GD.Print($"🎯 Film hit: dist={hit.Distance:0.000} name={hit.ColliderName}");
                 }
 
                 _img.SetPixel(x, y, col);
             }
         }
 
+        GD.Print($"🎞️ Film band y=[{yStart},{yEnd}) hits={bandHits}");
         _tex.Update(_img);
 
         _rowCursor = yEnd;

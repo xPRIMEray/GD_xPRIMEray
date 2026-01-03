@@ -62,13 +62,16 @@ directional_shadow_fade_start = 1.0
 directional_shadow_max_distance = 15.0
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(-0.8270377, 0.025046067, -0.5615884, -4.560512e-09, 0.99900705, 0.044554338, 0.5621468, 0.036848113, -0.82621634, -0.8523715, 2.436, -1.895)
+transform = Transform3D(-0.7325622, 0.030328147, -0.6800243, -4.00683e-09, 0.99900717, 0.044554338, 0.68070036, 0.032638818, -0.73183465, -0.8523715, 2.436, -1.895)
 attributes = SubResource("CameraAttributesPhysical_drxnu")
 current = true
 script = ExtResource("2_ppyta")
 
 [node name="GrinField3D" type="Node3D" parent="."]
 script = ExtResource("3_77dp3")
+RayBeamRendererPath = NodePath("../RayBeamRenderer")
+FilmViewPath = NodePath("../CanvasLayer/FilmView")
+SkyColor = Color(1, 0.56133336, 0.060000002, 0.58431375)
 
 [node name="living_room" parent="." instance=ExtResource("3_xersf")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.025899887, -0.00739336, 0.021672606)
@@ -106,10 +109,12 @@ mouse_filter = 2
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
 [node name="FilmView" type="TextureRect" parent="CanvasLayer"]
+show_behind_parent = true
 anchors_preset = 11
 anchor_left = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = -698.0
 grow_horizontal = 0
 grow_vertical = 2
 
