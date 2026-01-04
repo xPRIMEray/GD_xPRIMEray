@@ -964,8 +964,9 @@ public partial class RayBeamRenderer : Node3D
 				v = SafeNormalized(v + a * step, v);
 				next = p + v * step;
 
-				float segLenStep = (next - p).Length();
-				traveled += segLenStep;
+				//float segLenStep = (next - p).Length();
+				//traveled += segLenStep;
+				traveled += step;
 
 				if (traveled > maxDistance) break;
 			}

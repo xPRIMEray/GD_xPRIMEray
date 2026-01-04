@@ -16,6 +16,27 @@ public partial class GrinFilmCamera : Node
 
 	[Export] public bool UseCameraPropsBetaGamma = true;
 
+	// --- Auto range depth ---
+	[Export] public bool AutoRangeDepth = true;
+
+	// clamp limits (protect against nonsense)
+	[Export] public float AutoRangeMin = 0.25f;
+	[Export] public float AutoRangeMax = 200f;
+
+	// smoothing (0.05 = slow, 0.2 = snappy)
+	[Export] public float AutoRangeSmoothing = 0.15f;
+
+	// "robust far plane" is approx max of recent hits * multiplier
+	[Export] public float AutoRangeSafety = 1.15f;
+
+	// how many frames worth of depth to track
+	[Export] public int DepthHistoryFrames = 30;
+
+	private float _rangeFar = 5f; // dynamic far distance used for mapping
+	private int _depthHistWrite = 0;
+	private float[] _depthHistory = Array.Empty<float>();
+
+
 	private Image _img;
 	private ImageTexture _tex;
 
@@ -137,7 +158,10 @@ public partial class GrinFilmCamera : Node
 
 		int yStart = _rowCursor;
 		int yEnd = Mathf.Min(Height, _rowCursor + Mathf.Max(1, RowsPerFrame));
-		
+
+		EnsureDepthHistory();
+		float frameMaxHit = 0f; // track deepest hit this RenderStep band
+
 		int bandHits = 0;
 
 		int bandH = yEnd - yStart;
@@ -204,12 +228,14 @@ public partial class GrinFilmCamera : Node
 					Vector3 bendDir = basisLocal.X;
 
 					int segOffset = pi * maxSeg;
+					
+					float farForSim = AutoRangeDepth ? _rangeFar : MaxDistance;
 
 					int count = _rbr.BuildRaySegmentsCamera(
 						camPos, dirWorld, bendDir,
 						center, beta, gamma,
 						fieldSources, hasSources,
-						MaxDistance,
+						farForSim,
 						_segBuf, segOffset, maxSeg,
 						insightPlane, useInsightPlane, insightEps
 					);
@@ -284,7 +310,12 @@ public partial class GrinFilmCamera : Node
 				if (hadHit)
 				{
 					bandHits++;
-					float d = Mathf.Clamp(hitDistance / MaxDistance, 0f, 1f);
+
+					// track farthest hit seen
+					if (hitDistance > frameMaxHit) frameMaxHit = hitDistance;
+					// use dynamic range for coloring (NOT MaxDistance)
+					float far = AutoRangeDepth ? _rangeFar : MaxDistance;
+					float d = Mathf.Clamp(hitDistance / Mathf.Max(0.001f, far), 0f, 1f);
 					col = Color.FromHsv(0.66f * (1f - d), 1f, 1f);
 
 					if (x == Width / 2 && y == (yStart + (bandH / 2)))
@@ -294,6 +325,26 @@ public partial class GrinFilmCamera : Node
 				_img.SetPixel(x, y, col);
 			}
 		}
+
+		if (AutoRangeDepth && frameMaxHit > 0.0001f)
+		{
+			// write one sample per RenderStep call (band-based)
+			_depthHistory[_depthHistWrite] = frameMaxHit;
+			_depthHistWrite = (_depthHistWrite + 1) % _depthHistory.Length;
+
+			// robust far plane estimate + safety multiplier
+			float robust = RobustFarEstimate_Fallback(); // use fallback for reliability
+			float targetFar = robust * AutoRangeSafety;
+
+			// clamp
+			targetFar = Mathf.Clamp(targetFar, AutoRangeMin, AutoRangeMax);
+
+			// smooth
+			_rangeFar = Mathf.Lerp(_rangeFar, targetFar, AutoRangeSmoothing);
+		}
+		if (_rowCursor == 0 && AutoRangeDepth)
+			GD.Print($"📏 AutoRange Far={_rangeFar:0.###}  (MaxDistance export={MaxDistance:0.###})");
+
 
 		GD.Print($"🎞️ Film band y=[{yStart},{yEnd}) hits={bandHits}");
 		_tex.Update(_img);
@@ -313,4 +364,35 @@ public partial class GrinFilmCamera : Node
 			_ => fallback
 		};
 	}
+
+	private void EnsureDepthHistory()
+	{
+		if (_depthHistory.Length != DepthHistoryFrames)
+		{
+			_depthHistory = new float[Mathf.Max(4, DepthHistoryFrames)];
+			for (int i = 0; i < _depthHistory.Length; i++) _depthHistory[i] = 0f;
+			_depthHistWrite = 0;
+		}
+	}
+
+	// robust estimate: take the 80th percentile of frame-max values
+	private float RobustFarEstimate_Fallback()
+	{
+		var list = new System.Collections.Generic.List<float>(_depthHistory.Length);
+		for (int i = 0; i < _depthHistory.Length; i++)
+		{
+			float d = _depthHistory[i];
+			if (d > 0.0001f && float.IsFinite(d)) list.Add(d);
+		}
+
+		if (list.Count == 0) return _rangeFar;
+
+		list.Sort();
+
+		int idx = (int)Mathf.Floor((list.Count - 1) * 0.80f);
+		idx = Mathf.Clamp(idx, 0, list.Count - 1);
+
+		return list[idx];
+	}
+
 }
