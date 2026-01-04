@@ -58,6 +58,8 @@ public partial class RayBeamRenderer : Node3D
 	// ✅ NEW: draw a hit marker billboard
 	[Export] public bool DrawHitMarker = true;
 	[Export] public Color HitMarkerColor = new Color(1, 0, 0, 1);
+	
+	[Export] public bool AllowRebuild = true;
 
 	private MultiMeshInstance3D _mmi;
 	private MultiMesh _mm;
@@ -150,6 +152,7 @@ public partial class RayBeamRenderer : Node3D
 	public override void _Process(double delta)
 	{
 		if (!UpdateEveryFrame) return;
+		if (!AllowRebuild) return;
 
 		var cam = GetCamera();
 		if (cam == null) return;
@@ -603,7 +606,7 @@ public partial class RayBeamRenderer : Node3D
 		_hasInsightPlane = true;
 	}
 
-	private static bool SweepSegmentHit(PhysicsDirectSpaceState3D space,
+	public static bool SweepSegmentHit(PhysicsDirectSpaceState3D space,
 							Vector3 a, Vector3 b, uint mask, float radius,
 							out Vector3 hitPos)
 	{
@@ -641,7 +644,7 @@ public partial class RayBeamRenderer : Node3D
 		return false;
 	}
 
-	private static bool SubdividedRayHit(PhysicsDirectSpaceState3D space,
+	public static bool SubdividedRayHit(PhysicsDirectSpaceState3D space,
 										Vector3 a, Vector3 b, uint mask,
 										int maxSubsteps, out Vector3 hitPos)
 	{
@@ -650,7 +653,7 @@ public partial class RayBeamRenderer : Node3D
 		return SubdividedRayHit(space, a, b, mask, maxSubsteps, out hitPos, out cid, out cname);
 	}
 	
-	private static bool SubdividedRayHit(PhysicsDirectSpaceState3D space,
+	public static bool SubdividedRayHit(PhysicsDirectSpaceState3D space,
 							Vector3 a, Vector3 b, uint mask, int maxSubsteps,
 							out Vector3 hitPos, out ulong colliderId,
 							out string colliderName)
@@ -910,8 +913,6 @@ public partial class RayBeamRenderer : Node3D
 		};
 	}
 
-
-	// Camera Film Version
 	// Camera Film Version (hit-only, no sample buffer writes)
 	public RayMeta SimulateRayCamera(
 		PhysicsDirectSpaceState3D space,
@@ -1065,5 +1066,110 @@ public partial class RayBeamRenderer : Node3D
 		if (DrawHitMarker) samples += 1;
 		return Mathf.Max(4, samples);
 	}
+
+	public struct RaySeg
+	{
+		public Vector3 A;
+		public Vector3 B;
+		public float TraveledB; // path length at end of segment (at B)
+	}
+
+	// Build segments at collision cadence (ce). No physics calls here.
+	public int BuildRaySegmentsCamera(
+		Vector3 origin, Vector3 dir, Vector3 bendDir,
+		Vector3 center, float beta, float gamma,
+		Godot.Collections.Array<Node> fieldSources, bool hasSources,
+		float maxDistance,
+		RaySeg[] outSegs, int outOffset, int outCapacity,
+		Plane insightPlane, bool useInsightPlane, float insightEps)
+	{
+		Vector3 p = origin;
+		Vector3 v = dir;
+
+		float traveled = 0f;
+		int ce = Mathf.Max(1, CollisionEveryNSteps);
+
+		float minStep = Mathf.Min(MinStepLength, MaxStepLength);
+		float maxStep = Mathf.Max(MinStepLength, MaxStepLength);
+		minStep = Mathf.Max(0.0001f, minStep);
+
+		int written = 0;
+
+		for (int s = 0; s <= StepsPerRay; s++)
+		{
+			Vector3 next = p;
+
+			if (UseIntegratedField)
+			{
+				Vector3 a = Vector3.Zero;
+
+				if (hasSources)
+					a = ComputeAccelerationAtPoint(p, fieldSources, beta, gamma);
+				else
+				{
+					Vector3 rvec = p - center;
+					float rr = Mathf.Max(0.001f, rvec.Length());
+					a = (-rvec / rr) * (beta * Mathf.Pow(rr, gamma) * BendScale * FieldStrength);
+				}
+
+				float aLen = a.Length();
+				if (!float.IsFinite(aLen)) { a = Vector3.Zero; aLen = 0f; }
+				else if (aLen > 50f) { a = a * (50f / aLen); aLen = 50f; }
+
+				float step = Mathf.Clamp(StepLength / (1.0f + aLen * StepAdaptGain), minStep, maxStep);
+
+				v = SafeNormalized(v + a * step, v);
+				next = p + v * step;
+
+				float segLenStep = (next - p).Length();
+				traveled += segLenStep;
+
+				if (traveled > maxDistance) break;
+			}
+			else
+			{
+				float t = s * StepLength;
+				float bend = beta * Mathf.Pow(t, gamma) * BendScale;
+				next = origin + dir * t + bendDir * bend;
+
+				traveled = t;
+				if (traveled > maxDistance) break;
+			}
+
+			// Only emit segments at collision cadence
+			if (s > 0 && (s % ce) == 0)
+			{
+				// Optional INSIGHT filter: only keep segments that cross plane slab
+				if (useInsightPlane)
+				{
+					if (!SegmentCrossesPlane(p, next, insightPlane, insightEps))
+					{
+						p = next;
+						continue;
+					}
+				}
+
+				if (written < outCapacity)
+				{
+					outSegs[outOffset + written] = new RaySeg
+					{
+						A = p,
+						B = next,
+						TraveledB = traveled
+					};
+					written++;
+				}
+				else
+				{
+					break;
+				}
+			}
+
+			p = next;
+		}
+
+		return written;
+	}
+
 
 }

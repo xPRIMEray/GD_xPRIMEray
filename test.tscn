@@ -68,10 +68,69 @@ current = true
 script = ExtResource("2_ppyta")
 
 [node name="GrinField3D" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.86010253, 2.303526, -2.0074396)
 script = ExtResource("3_77dp3")
 RayBeamRendererPath = NodePath("../RayBeamRenderer")
 FilmViewPath = NodePath("../CanvasLayer/FilmView")
-SkyColor = Color(1, 0.56133336, 0.060000002, 0.58431375)
+MaxDistance = 4.0
+SkyColor = Color(1, 0.56133336, 0.060000002, 0.34901962)
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="FilmView" type="TextureRect" parent="CanvasLayer"]
+show_behind_parent = true
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_behavior_recursive = 1
+
+[node name="RayBeamRenderer" type="Node3D" parent="."]
+script = ExtResource("4_raybeam")
+UpdateEveryFrame = false
+StepsPerRay = 40
+StepLength = 0.1
+BendScale = 1.0
+Alpha = 0.565
+StopOnHit = true
+FieldCenter = Vector3(0, 1.5, 0)
+FieldCenterIsCamera = false
+StepAdaptGain = 0.15
+CollisionRadius = 0.05
+UseSphereSweepCollision = true
+UseInsightPlaneFilter = true
+CollisionRaySubdivideThreshold = 0.05
+RequireHitToRender = true
+DebugRender = true
+DebugSetBillboardRejects = true
+CheckCollisionsEvenIfNotStopping = true
+
+[node name="FieldSource3D" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.34824347, 1.7382352, 0.43196726)
+script = ExtResource("8_xersf")
+Strength = 0.005
+Softening = 2.115
+
+[node name="FieldA" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -0.5)
+script = ExtResource("8_xersf")
+Enabled = false
+Strength = 0.795
+Softening = 0.625
+Profile = 1
+
+[node name="FieldB" type="Node3D" parent="."]
+script = ExtResource("8_xersf")
+Enabled = false
+
+[node name="Emitter1" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
+script = ExtResource("5_emitter")
+Rays = 17
+SpreadDegrees = 59.975
+MaxDistance = 50.0
+FanYawDegrees = 360.0
 
 [node name="living_room" parent="." instance=ExtResource("3_xersf")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.025899887, -0.00739336, 0.021672606)
@@ -106,67 +165,9 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="CanvasLayer" type="CanvasLayer" parent="."]
-
-[node name="FilmView" type="TextureRect" parent="CanvasLayer"]
-show_behind_parent = true
-anchors_preset = 11
-anchor_left = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -698.0
-grow_horizontal = 0
-grow_vertical = 2
-
 [node name="RayViz" type="MeshInstance3D" parent="."]
 visible = false
 script = ExtResource("3_rayviz")
-
-[node name="RayBeamRenderer" type="Node3D" parent="."]
-script = ExtResource("4_raybeam")
-StepsPerRay = 50
-StepLength = 0.1
-BendScale = 1.0
-Alpha = 0.565
-StopOnHit = true
-FieldCenter = Vector3(0, 1.5, 0)
-FieldCenterIsCamera = false
-MinStepLength = 0.001
-MaxStepLength = 0.2
-StepAdaptGain = 0.1
-CollisionRadius = 0.05
-UseSphereSweepCollision = true
-UseInsightPlaneFilter = true
-CollisionRaySubdivideThreshold = 0.05
-DebugRender = true
-DebugSetBillboardRejects = true
-CheckCollisionsEvenIfNotStopping = true
-
-[node name="Emitter1" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
-script = ExtResource("5_emitter")
-Rays = 17
-SpreadDegrees = 59.975
-MaxDistance = 50.0
-FanYawDegrees = 360.0
-
-[node name="FieldSource3D" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.34824347, 1.7382352, 0.43196726)
-script = ExtResource("8_xersf")
-Strength = 0.005
-Softening = 2.115
-
-[node name="FieldA" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -0.5)
-script = ExtResource("8_xersf")
-Enabled = false
-Strength = 0.795
-Softening = 0.625
-Profile = 1
-
-[node name="FieldB" type="Node3D" parent="."]
-script = ExtResource("8_xersf")
-Enabled = false
 
 [node name="Options" type="Control" parent="." node_paths=PackedStringArray("sun", "lightbulb_1", "lightbulb_2", "world_environment", "curved_overlay")]
 layout_mode = 3
