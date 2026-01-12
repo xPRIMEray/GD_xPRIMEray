@@ -73,8 +73,9 @@ script = ExtResource("3_77dp3")
 RayBeamRendererPath = NodePath("../RayBeamRenderer")
 FilmViewPath = NodePath("../CanvasLayer/FilmView")
 UpdateEveryFrame = false
-MaxDistance = 4.0
+MaxDistance = 5.0
 SkyColor = Color(1, 0.56133336, 0.060000002, 0.34901962)
+AutoRangeSafety = 1.1
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
@@ -90,7 +91,7 @@ mouse_behavior_recursive = 1
 [node name="RayBeamRenderer" type="Node3D" parent="."]
 script = ExtResource("4_raybeam")
 UpdateEveryFrame = false
-StepsPerRay = 40
+StepsPerRay = 48
 StepLength = 0.1
 BendScale = 1.0
 Alpha = 0.565
@@ -100,7 +101,8 @@ FieldCenterIsCamera = false
 StepAdaptGain = 0.15
 CollisionRadius = 0.05
 UseInsightPlaneFilter = true
-CollisionRaySubdivideThreshold = 0.05
+CollisionRaySubdivideThreshold = 0.3
+MaxCollisionSubsteps = 3
 RequireHitToRender = true
 DebugRender = true
 DebugSetBillboardRejects = true
@@ -136,7 +138,7 @@ FanYawDegrees = 360.0
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.025899887, -0.00739336, 0.021672606)
 
 [node name="TestPhysicsRoom" parent="." instance=ExtResource("4_00tp4")]
-transform = Transform3D(5, 0, 0, 0, 0.2, 0, 0, 0, 5, 0.8464689, 1.7868664, -0.131)
+transform = Transform3D(0.6029268, -0.008606688, -4.958848, 0.6254773, 0.19835092, -0.13911456, 4.923946, -0.024142154, 0.62487245, 0.8464689, 1.7868664, -0.131)
 
 [node name="Lightbulb1" type="OmniLight3D" parent="."]
 transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, 2, 3.19673, 0)

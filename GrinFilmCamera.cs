@@ -32,22 +32,28 @@ public partial class GrinFilmCamera : Node
 	// how many frames worth of depth to track
 	[Export] public int DepthHistoryFrames = 30;
 
+
+	[Export] public bool UseBroadphaseQuickRay = true;     // cheapest broadphase
+	[Export] public bool UseBroadphaseOverlap = false;     // optional 2nd tier
+	[Export] public float BroadphaseMargin = 0.03f;
+	[Export] public int BroadphaseMaxResults = 8;
+
+	[Export] public bool UseInsightPlanePass2 = true;      // PASS2 plane slab reject
+	[Export] public float InsightPlaneEps = 0.10f;         // slab thickness in meters-ish
+
+	[Export] public bool NearestHitOnly = true;
+
+
 	private float _rangeFar = 5f; // dynamic far distance used for mapping
 	private int _depthHistWrite = 0;
 	private float[] _depthHistory = Array.Empty<float>();
-
-
 	private Image _img;
 	private ImageTexture _tex;
-
 	private TextureRect _filmView;   // if user supplies FilmViewPath
 	private TextureRect _overlayRect; // auto-created fallback
-
 	private int _rowCursor = 0;
-
 	private Camera3D _cam;
 	private RayBeamRenderer _rbr;
-
 	private RayBeamRenderer.RaySeg[] _segBuf;
 	private int[] _segCountPerPixel;
 
@@ -131,6 +137,8 @@ public partial class GrinFilmCamera : Node
 
 	public void RenderStep()
 	{
+		ulong t0 = Time.GetTicksUsec();
+
 		if ((_rowCursor % Height) == 0)
 			GD.Print($"🎥 Film RenderStep running. rowCursor={_rowCursor} cam={( _cam != null ? _cam.GetPath() : "<null>")}");
 
@@ -139,7 +147,12 @@ public partial class GrinFilmCamera : Node
 		var space = _cam.GetWorld3D().DirectSpaceState;
 
 		var fieldSources = GetTree().GetNodesInGroup("field_sources");
-		bool hasSources = fieldSources.Count > 0;
+		var fieldSnaps = _rbr.SnapshotFieldSources(fieldSources);
+		bool hasSources = fieldSnaps.Length > 0;
+
+		if ((_rowCursor % Height) == 0)
+			GD.Print($"🧲 fieldSnaps={fieldSnaps.Length} hasSources={hasSources}");
+
 
 		float beta = 0f;
 		float gamma = 2f;
@@ -182,6 +195,13 @@ public partial class GrinFilmCamera : Node
 		bool useInsightPlane = false;
 		float insightEps = _rbr.CollisionRadius;
 
+		if (UseInsightPlanePass2 && _rbr.UseInsightPlaneFilter)
+		{
+			// easiest v0: rebuild plane here from a NodePath you expose, OR if _rbr has the plane cached, add a getter.
+			// For now (if you don't have a getter), just leave this false until we wire it.
+			// useInsightPlane = true; insightPlane = ...;
+		}
+
 		if (_rbr.UseInsightPlaneFilter)
 		{
 			// RayBeamRenderer already computed plane in rebuild, but for film we can just disable
@@ -199,6 +219,8 @@ public partial class GrinFilmCamera : Node
 		Vector3 camPos = _cam.GlobalPosition;
 
 		var tasks = new System.Threading.Tasks.Task[jobs];
+
+		ulong a0 = Time.GetTicksUsec(); // before Task.Run loop
 
 		for (int j = 0; j < jobs; j++)
 		{
@@ -228,13 +250,13 @@ public partial class GrinFilmCamera : Node
 					Vector3 bendDir = basisLocal.X;
 
 					int segOffset = pi * maxSeg;
-					
+
 					float farForSim = AutoRangeDepth ? _rangeFar : MaxDistance;
 
 					int count = _rbr.BuildRaySegmentsCamera(
 						camPos, dirWorld, bendDir,
 						center, beta, gamma,
-						fieldSources, hasSources,
+						fieldSnaps, hasSources,
 						farForSim,
 						_segBuf, segOffset, maxSeg,
 						insightPlane, useInsightPlane, insightEps
@@ -246,6 +268,7 @@ public partial class GrinFilmCamera : Node
 		}
 
 		System.Threading.Tasks.Task.WaitAll(tasks);
+		ulong a1 = Time.GetTicksUsec(); // after wait
 
 		// ---- PASS 2 (main thread): collisions + shading ----
 		bandHits = 0;
@@ -261,6 +284,7 @@ public partial class GrinFilmCamera : Node
 				bool hadHit = false;
 				float hitDistance = 0f;
 				string hitName = "<none>";
+				float bestHit = float.PositiveInfinity;
 
 				int segCount = _segCountPerPixel[pi];
 				int segOffset = pi * maxSeg;
@@ -274,35 +298,101 @@ public partial class GrinFilmCamera : Node
 
 					if (segLen <= 1e-6f) continue;
 
-					Vector3 hp;
-					ulong cid;
-					string cname;
-
+					/////////////////////////////////
+					ulong cid = 0;
+					string cname = "<none>";
+					Vector3 hp = Vector3.Zero;
 					bool didHit = false;
+					/////////////////////////////////
 
 					if (_rbr.UseSphereSweepCollision)
 					{
 						didHit = RayBeamRenderer.SweepSegmentHit(space, segA, segB, _rbr.CollisionMask, _rbr.CollisionRadius, out hp);
-					}
+						// cname stays "<none>" for sphere sweep (unless you add a separate lookup)
+					}					
 					else
 					{
+						// Decision A
+						if (useInsightPlane)
+						{
+							//if (!SegmentCrossesPlane(segA, segB, insightPlane, insightEps))
+							if (!RayBeamRenderer.SegmentCrossesPlane(segA, segB, insightPlane, insightEps))
+								continue;
+						}
+
+
+						// Decision B
+						// ---- PASS2 cheap reject 2: optional overlap ----
+						if (UseBroadphaseOverlap)
+						{
+							Vector3 mid = (segA + segB) * 0.5f;
+
+							var sphere = new SphereShape3D { Radius = _rbr.CollisionRadius + BroadphaseMargin };
+							var qp = new PhysicsShapeQueryParameters3D
+							{
+								Shape = sphere,
+								Transform = new Transform3D(Basis.Identity, mid),
+								CollisionMask = _rbr.CollisionMask,
+								CollideWithBodies = true,
+								CollideWithAreas = true
+							};
+
+							var overlaps = space.IntersectShape(qp, BroadphaseMaxResults);
+							if (overlaps.Count == 0)
+								continue;
+						}
+
+						// Decision C
+						// ---- PASS2 cheap reject 1: quick ray probe ----
+						if (UseBroadphaseQuickRay)
+						{
+							var rq0 = PhysicsRayQueryParameters3D.Create(segA, segB, _rbr.CollisionMask);
+							rq0.CollideWithBodies = true;
+							rq0.CollideWithAreas = true;
+							rq0.HitFromInside = false;
+
+							var hit0 = space.IntersectRay(rq0);
+							if (hit0.Count == 0)
+								continue;
+						}
+
+						// ---- accurate subdivided ray ----
 						int sub = 1;
 						if (segLen > _rbr.CollisionRaySubdivideThreshold)
 							sub = Mathf.CeilToInt(segLen / _rbr.CollisionRaySubdivideThreshold);
 						sub = Mathf.Clamp(sub, 1, _rbr.MaxCollisionSubsteps);
 
-						didHit = RayBeamRenderer.SubdividedRayHit(space, segA, segB, _rbr.CollisionMask, sub, out hp, out cid, out cname);
-						if (didHit) hitName = cname;
+						didHit = RayBeamRenderer.SubdividedRayHit(
+											space, segA, segB,
+											_rbr.CollisionMask,
+											sub,
+											out hp, out cid, out cname);
+
+						if (didHit)
+							hitName = cname;
 					}
 
+					////////////
 					if (didHit)
 					{
-						hadHit = true;
+						float d = seg.TraveledB - segLen + (hp - segA).Length();
 
-						// distance along curved path up to hit point inside this segment
-						hitDistance = seg.TraveledB - segLen + (hp - segA).Length();
+						if (d < bestHit)
+						{
+							bestHit = d;
+							hitDistance = d;
+							hadHit = true;
+						    hitName = cname;
+						}
+
+						// If you only want the nearest hit, keep scanning segments
+						if (NearestHitOnly)
+							continue;
+						
+						// Otherwise, first hit wins
 						break;
 					}
+					//////////////////
 				}
 
 				Color col = SkyColor;
@@ -325,6 +415,7 @@ public partial class GrinFilmCamera : Node
 				_img.SetPixel(x, y, col);
 			}
 		}
+		ulong b1 = Time.GetTicksUsec(); // after PASS 2
 
 		if (AutoRangeDepth && frameMaxHit > 0.0001f)
 		{
@@ -351,6 +442,10 @@ public partial class GrinFilmCamera : Node
 
 		_rowCursor = yEnd;
 		if (_rowCursor >= Height) _rowCursor = 0;
+
+		ulong t1 = Time.GetTicksUsec();
+		GD.Print($"⏱️ RenderStep {(t1 - t0)/1000.0:0.00} ms  rows={RowsPerFrame}  jobs={jobs}  hits={bandHits}");
+		GD.Print($"⏱️ pass1={(a1-a0)/1000.0:0.00}ms  pass2={(b1-a1)/1000.0:0.00}ms  total={(b1-a0)/1000.0:0.00}ms");
 	}
 
 	private static float ReadFloat(Node obj, StringName prop, float fallback)

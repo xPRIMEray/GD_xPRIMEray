@@ -61,6 +61,14 @@ public partial class RayBeamRenderer : Node3D
 	
 	[Export] public bool AllowRebuild = true;
 
+	// 🎯 Screen-space driven collision cadence
+	[Export] public bool UseScreenSpaceCollisionCadence = true;
+	[Export] public float CollisionMaxErrorPixels = 0.75f; // target max sagitta error in pixels
+	[Export] public float MinDepthForError = 0.10f;        // avoid divide-by-zero near camera
+	[Export] public int MinCollisionEveryNSteps = 1;       // hard lower bound
+
+
+
 	private MultiMeshInstance3D _mmi;
 	private MultiMesh _mm;
 	private StandardMaterial3D _mat;
@@ -109,6 +117,41 @@ public partial class RayBeamRenderer : Node3D
 		public Vector3 Normal;     // (optional for v0)
 		public Color Albedo;       // (optional; can be constant for v0)
 	}
+
+	public struct RaySeg
+	{
+		public Vector3 A;
+		public Vector3 B;
+		public float TraveledB; // path length at end of segment (at B)
+	}
+
+	public struct FieldSourceSnap
+	{
+		public bool Enabled;
+		public bool Attract;
+
+		public Vector3 Center;
+
+		public float Softening;
+		public float MinRadius;
+		public float MaxRadius;
+
+		public bool OverrideGamma;
+		public float Gamma;
+
+		public bool OverrideBetaScale;
+		public float BetaScale;
+
+		public float Strength;
+
+		public int Profile; // FieldSource3D.ProfileType cast to int (0..3)
+		public float Sigma;
+
+		public float InnerRadius;
+		public float OuterRadius;
+		public float EdgeSoftness;
+	}
+
 
 
 	///
@@ -579,7 +622,7 @@ public partial class RayBeamRenderer : Node3D
 		return new Vector3(x, y, z).Normalized();
 	}
 
-	private static bool SegmentCrossesPlane(Vector3 p, Vector3 q, Plane plane, float eps = 0.001f)
+	public static bool SegmentCrossesPlane(Vector3 p, Vector3 q, Plane plane, float eps = 0.001f)
 	{
 		float dp = plane.DistanceTo(p);
 		float dq = plane.DistanceTo(q);
@@ -740,11 +783,22 @@ public partial class RayBeamRenderer : Node3D
 		float traveled = 0.0f;
 
 		int every = Mathf.Max(1, RenderEveryNSteps);
-		int ce = Mathf.Max(1, CollisionEveryNSteps);
+
+		//////////////  SCREEN-SPACE COLLISION CADENCE (SIMULATE)  //////////////
+		int ceBase = Mathf.Max(1, CollisionEveryNSteps);
+		int ceCurrent = ceBase;              // ✅ must persist across loop
+		int stepsSinceCollision = 0;
+
+		var cam = GetCamera();
+		float pxPerRad = (UseScreenSpaceCollisionCadence && cam != null) ? GetPixelsPerRadian(cam) : 0f;
+		Vector3 camPos = (cam != null) ? cam.GlobalPosition : Vector3.Zero;
+		/////////////////////////////////////////////////////////////////////////
 
 		float minStep = Mathf.Min(MinStepLength, MaxStepLength);
 		float maxStep = Mathf.Max(MinStepLength, MaxStepLength);
 		minStep = Mathf.Max(0.0001f, minStep);
+
+		float hitDist = 0.0f;
 
 		for (int s = 0; s <= StepsPerRay; s++)
 		{
@@ -779,7 +833,24 @@ public partial class RayBeamRenderer : Node3D
 				v = SafeNormalized(v + a * step, v);
 				next = p + v * step;
 
-				traveled += (next - p).Length();
+				float remaining = e.MaxDistance - traveled;
+				if (step > remaining) step = remaining;
+
+				///////////////////////////
+				///////////////////////////
+				// Update collision cadence for this step (screen-space error model)
+				ceCurrent = ceBase;
+
+				if (UseScreenSpaceCollisionCadence && cam != null)
+				{
+					float aPerp = PerpAccelLen(a, v); // v normalized after SafeNormalized
+					float depth = (p - camPos).Length();
+					ceCurrent = ComputeCeFromScreenError(ceBase, step, aPerp, depth, pxPerRad, CollisionMaxErrorPixels);
+				}
+				///////////////////////////
+				///////////////////////////
+
+				traveled += step;
 				if (traveled > e.MaxDistance)
 					break;
 			}
@@ -824,8 +895,10 @@ public partial class RayBeamRenderer : Node3D
 			}
 
 			// Collision check
-			if ((StopOnHit || CheckCollisionsEvenIfNotStopping) && s > 0 && (s % ce) == 0)
+			stepsSinceCollision++;
+			if ((StopOnHit || CheckCollisionsEvenIfNotStopping) && s > 0 && stepsSinceCollision >= ceCurrent)
 			{
+				stepsSinceCollision = 0;
 				Vector3 segA = p;
 				Vector3 segB = next;
 				float segLen = (segB - segA).Length();
@@ -874,6 +947,8 @@ public partial class RayBeamRenderer : Node3D
 
 						hitColliderId = cid;
 						hitColliderName = cname;
+						
+						hitDist = traveled - segLen + (hitPos - segA).Length();
 
 						if (TerminateTrailOnHit)
 							trailStopCount = sampleCount;
@@ -898,7 +973,7 @@ public partial class RayBeamRenderer : Node3D
 			ColliderId = hitColliderId,
 			ColliderName = hitColliderName,
 			// NEW (important)
-			Distance = traveled,              // ← this is the key one
+			Distance = hitDist,              // ← this is the key one
 			Normal = Vector3.Zero,             // v0 placeholder
 			Albedo = Colors.White              // v0 placeholder
 		};
@@ -1028,7 +1103,7 @@ public partial class RayBeamRenderer : Node3D
 						hitPos = hp;
 
 						// more accurate path-length to hit within the segment
-						hitDistance = traveled - segLen + (hp - segA).Length();
+						hitDistance = traveled - segLen + (hitPos - segA).Length();
 						break; // film wants first hit
 					}
 				}
@@ -1068,33 +1143,44 @@ public partial class RayBeamRenderer : Node3D
 		return Mathf.Max(4, samples);
 	}
 
-	public struct RaySeg
-	{
-		public Vector3 A;
-		public Vector3 B;
-		public float TraveledB; // path length at end of segment (at B)
-	}
-
 	// Build segments at collision cadence (ce). No physics calls here.
 	public int BuildRaySegmentsCamera(
 		Vector3 origin, Vector3 dir, Vector3 bendDir,
 		Vector3 center, float beta, float gamma,
-		Godot.Collections.Array<Node> fieldSources, bool hasSources,
+		FieldSourceSnap[] fieldSnaps, bool hasSources,
 		float maxDistance,
 		RaySeg[] outSegs, int outOffset, int outCapacity,
 		Plane insightPlane, bool useInsightPlane, float insightEps)
 	{
+		/// 
+		/////////////////////////
 		Vector3 p = origin;
-		Vector3 v = dir;
+		Vector3 v = dir; // assumed normalized
 
 		float traveled = 0f;
-		int ce = Mathf.Max(1, CollisionEveryNSteps);
 
-		float minStep = Mathf.Min(MinStepLength, MaxStepLength);
+		int ceBase = Mathf.Max(1, CollisionEveryNSteps);
+		int ce = ceBase;
+		int stepsSinceEmit = 0;
+
+		// camera data for screen-space cadence
+		Camera3D cam = GetCamera();
+		float pxPerRad = (UseScreenSpaceCollisionCadence && cam != null) ? GetPixelsPerRadian(cam) : 0f;
+		Vector3 camPos = (cam != null) ? cam.GlobalPosition : Vector3.Zero;
+
+		float minStep = Mathf.Max(0.0001f, Mathf.Min(MinStepLength, MaxStepLength));
 		float maxStep = Mathf.Max(MinStepLength, MaxStepLength);
-		minStep = Mathf.Max(0.0001f, minStep);
 
 		int written = 0;
+
+		// Precompute for non-integrated mode
+		float bendScale = BendScale;
+		float fieldStrength = FieldStrength;
+		float stepLength = StepLength;
+		float stepAdaptGain = StepAdaptGain;
+		/////////////////////////
+		/// 
+
 
 		for (int s = 0; s <= StepsPerRay; s++)
 		{
@@ -1102,68 +1188,92 @@ public partial class RayBeamRenderer : Node3D
 
 			if (UseIntegratedField)
 			{
-				Vector3 a = Vector3.Zero;
+				// Early-out if we are already at/over max distance
+				float remaining = maxDistance - traveled;
+				if (remaining <= 0f) break;
+
+				Vector3 a;
 
 				if (hasSources)
-					a = ComputeAccelerationAtPoint(p, fieldSources, beta, gamma);
+					a = ComputeAccelerationAtPointSnap(p, fieldSnaps, beta, gamma, bendScale, fieldStrength);
 				else
 				{
 					Vector3 rvec = p - center;
 					float rr = Mathf.Max(0.001f, rvec.Length());
-					a = (-rvec / rr) * (beta * Mathf.Pow(rr, gamma) * BendScale * FieldStrength);
+					a = (-rvec / rr) * (beta * Mathf.Pow(rr, gamma) * bendScale * fieldStrength);
 				}
 
+				////////////
+				////////////////
+				///////////////////////////////////
 				float aLen = a.Length();
 				if (!float.IsFinite(aLen)) { a = Vector3.Zero; aLen = 0f; }
-				else if (aLen > 50f) { a = a * (50f / aLen); aLen = 50f; }
+				else if (aLen > 50f) { a *= (50f / aLen); aLen = 50f; }
 
-				float step = Mathf.Clamp(StepLength / (1.0f + aLen * StepAdaptGain), minStep, maxStep);
+				// Compute step FIRST
+				float step = stepLength / (1.0f + aLen * stepAdaptGain);
+				step = Mathf.Clamp(step, minStep, maxStep);
+
+				// Clamp to remaining distance so we don't overshoot maxDistance
+				if (step > remaining) step = remaining;
+
+				//////////////////////////////
+				/// ////////////
+				/// /////////
+				// Update segment cadence AFTER step exists
+				if (UseScreenSpaceCollisionCadence && cam != null)
+				{
+					float aPerp = PerpAccelLen(a, v);   // v from previous iteration; ok
+					float depth = (p - camPos).Length();
+					ce = ComputeCeFromScreenError(ceBase, step, aPerp, depth, pxPerRad, CollisionMaxErrorPixels);
+				}
+				////////
+				/// ///////////////
+				/// //////////////////////////
+				else
+				{
+					ce = ceBase;
+				}
 
 				v = SafeNormalized(v + a * step, v);
 				next = p + v * step;
 
-				float segLenStep = (next - p).Length();
-				traveled += segLenStep;
-
-				if (traveled > maxDistance) break;
+				// traveled increment is ~step (v is normalized)
+				traveled += step;
+				///////////////////////////////////
+				/////////////////
+				///////////
 			}
 			else
 			{
-				float t = s * StepLength;
-				float bend = beta * Mathf.Pow(t, gamma) * BendScale;
-				next = origin + dir * t + bendDir * bend;
+				float t = s * stepLength;
+				if (t > maxDistance) break;
 
+				float bend = beta * Mathf.Pow(t, gamma) * bendScale;
+				next = origin + dir * t + bendDir * bend;
 				traveled = t;
-				if (traveled > maxDistance) break;
 			}
 
-			// Only emit segments at collision cadence
-			if (s > 0 && (s % ce) == 0)
+			// Only emit segments at adaptive cadence
+			stepsSinceEmit++;
+			if (s > 0 && stepsSinceEmit >= ce)
 			{
-				// Optional INSIGHT filter: only keep segments that cross plane slab
-				if (useInsightPlane)
+				stepsSinceEmit = 0;
+				if (useInsightPlane && !SegmentCrossesPlane(p, next, insightPlane, insightEps))
 				{
-					if (!SegmentCrossesPlane(p, next, insightPlane, insightEps))
-					{
-						p = next;
-						continue;
-					}
+					p = next;
+					continue;
 				}
 
-				if (written < outCapacity)
+				if (written >= outCapacity) break;
+
+				outSegs[outOffset + written] = new RaySeg
 				{
-					outSegs[outOffset + written] = new RaySeg
-					{
-						A = p,
-						B = next,
-						TraveledB = traveled
-					};
-					written++;
-				}
-				else
-				{
-					break;
-				}
+					A = p,
+					B = next,
+					TraveledB = traveled
+				};
+				written++;
 			}
 
 			p = next;
@@ -1172,5 +1282,164 @@ public partial class RayBeamRenderer : Node3D
 		return written;
 	}
 
+	public FieldSourceSnap[] SnapshotFieldSources(Godot.Collections.Array<Node> nodes)
+	{
+		if (nodes == null || nodes.Count == 0) return Array.Empty<FieldSourceSnap>();
+
+		var list = new List<FieldSourceSnap>(nodes.Count);
+
+		foreach (var n in nodes)
+		{
+			if (n is not FieldSource3D fs) continue;
+
+			list.Add(new FieldSourceSnap
+			{
+				Enabled = fs.Enabled,
+				Attract = fs.Attract,
+				Center = fs.GlobalPosition,
+
+				Softening = fs.Softening,
+				MinRadius = fs.MinRadius,
+				MaxRadius = fs.MaxRadius,
+
+				OverrideGamma = fs.OverrideGamma,
+				Gamma = fs.Gamma,
+
+				OverrideBetaScale = fs.OverrideBetaScale,
+				BetaScale = fs.BetaScale,
+
+				Strength = fs.Strength,
+
+				Profile = (int)fs.Profile,
+				Sigma = fs.Sigma,
+
+				InnerRadius = fs.InnerRadius,
+				OuterRadius = fs.OuterRadius,
+				EdgeSoftness = fs.EdgeSoftness
+			});
+		}
+
+		return list.ToArray();
+	}
+
+	public static Vector3 ComputeAccelerationAtPointSnap(
+		Vector3 p,
+		FieldSourceSnap[] sources,
+		float globalBeta, float globalGamma,
+		float bendScale, float fieldStrength)
+	{
+		Vector3 aSum = Vector3.Zero;
+
+		for (int i = 0; i < sources.Length; i++)
+		{
+			ref readonly var fs = ref sources[i];
+			if (!fs.Enabled) continue;
+
+			Vector3 rvec = p - fs.Center;
+
+			float rRaw = rvec.Length();
+			float soft = Mathf.Max(0.00001f, fs.Softening);
+			float r = Mathf.Sqrt(rRaw * rRaw + soft * soft);
+
+			if (fs.MinRadius > 0.0f && r < fs.MinRadius) continue;
+			if (fs.MaxRadius > 0.0f && r > fs.MaxRadius) continue;
+
+			Vector3 dir = (-rvec / r);
+			if (!fs.Attract) dir = -dir;
+
+			float gamma = fs.OverrideGamma ? fs.Gamma : globalGamma;
+			float betaScale = fs.OverrideBetaScale ? fs.BetaScale : 1.0f;
+
+			float amp = globalBeta * betaScale * bendScale * fieldStrength * fs.Strength;
+			float mag = 0.0f;
+
+			switch (fs.Profile)
+			{
+				case 0: // Power
+					mag = amp * Mathf.Pow(r, gamma);
+					break;
+
+				case 1: // InversePower
+					mag = amp / Mathf.Pow(r, Mathf.Max(0.0001f, gamma));
+					break;
+
+				case 2: // Gaussian
+				{
+					float sigma = Mathf.Max(0.0001f, fs.Sigma);
+					float x = r / sigma;
+					mag = amp * Mathf.Exp(-x * x);
+				}
+				break;
+
+				case 3: // Shell
+				{
+					float inner = Mathf.Max(0.0f, fs.InnerRadius);
+					float outer = Mathf.Max(inner + 0.0001f, fs.OuterRadius);
+					float edge = Mathf.Max(0.0001f, fs.EdgeSoftness);
+
+					float wIn = SmoothStep(inner - edge, inner + edge, r);
+					float wOut = 1.0f - SmoothStep(outer - edge, outer + edge, r);
+					float w = Mathf.Clamp(wIn * wOut, 0.0f, 1.0f);
+
+					mag = amp * w * Mathf.Pow(r, gamma);
+				}
+				break;
+			}
+
+			aSum += dir * mag;
+		}
+
+		return aSum;
+	}
+
+	private float GetPixelsPerRadian(Camera3D cam)
+	{
+		if (cam == null) return 1000f;
+
+		// vertical FOV in radians (Godot 4 uses Degrees for Fov)
+		float fovY = Mathf.DegToRad(cam.Fov);
+
+		// viewport height in pixels
+		var vp = cam.GetViewport();
+		float h = vp != null ? vp.GetVisibleRect().Size.Y : 720f;
+		h = Mathf.Max(1f, h);
+
+		// px per radian for vertical axis:
+		// tan(theta/2) = (h/2)/f  =>  f = (h/2)/tan(theta/2)
+		// angle small: pixels ~ angle * f
+		float f = (h * 0.5f) / Mathf.Max(1e-6f, Mathf.Tan(fovY * 0.5f));
+		return f;
+	}
+
+	private static float PerpAccelLen(Vector3 a, Vector3 vNorm)
+	{
+		// a_perp = a - v*(a·v)
+		Vector3 aPar = vNorm * a.Dot(vNorm);
+		Vector3 aPerp = a - aPar;
+		return aPerp.Length();
+	}
+
+	private int ComputeCeFromScreenError(
+		int ceBase,
+		float stepLen,
+		float aPerpLen,
+		float depth,
+		float pxPerRad,
+		float maxErrPx)
+	{
+		ceBase = Mathf.Max(1, ceBase);
+		if (aPerpLen <= 1e-8f) return ceBase;
+
+		depth = Mathf.Max(MinDepthForError, depth);
+		pxPerRad = Mathf.Max(1e-3f, pxPerRad);
+		maxErrPx = Mathf.Max(1e-3f, maxErrPx);
+
+		// LsegMax = sqrt( 2*maxErrPx*depth / (aPerpLen*pxPerRad) )
+		float LsegMax = Mathf.Sqrt((2f * maxErrPx * depth) / (aPerpLen * pxPerRad));
+
+		int ce = (int)Mathf.Floor(LsegMax / Mathf.Max(1e-6f, stepLen));
+		ce = Mathf.Clamp(ce, MinCollisionEveryNSteps, ceBase);
+		return ce;
+	}
 
 }
