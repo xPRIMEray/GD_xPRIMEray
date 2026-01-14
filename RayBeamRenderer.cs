@@ -67,6 +67,25 @@ public partial class RayBeamRenderer : Node3D
 	[Export] public float MinDepthForError = 0.10f;        // avoid divide-by-zero near camera
 	[Export] public int MinCollisionEveryNSteps = 1;       // hard lower bound
 
+	// =======================
+	// Debug Controls (RayBeamRenderer)
+	// =======================
+	public enum DebugDrawMode
+	{
+		Off = 0,
+		RaysOnly = 1,
+		RaysAndNormals = 2
+	}
+
+	[Export] public DebugDrawMode DebugMode = DebugDrawMode.RaysAndNormals;
+
+	// Keep segment count modest for performance.
+	// If your pass-1 already has segments, use those directly.
+	[Export] public int DebugMaxRays = 256;          // cap drawn rays
+	[Export] public int DebugMaxSegmentsPerRay = 64; // cap drawn segments
+	[Export] public float DebugNormalLen = 0.25f;    // world units
+	[Export] public bool DebugDrawOnlyHits = false;  // show only rays that hit
+
 
 
 	private MultiMeshInstance3D _mmi;
@@ -99,6 +118,18 @@ public partial class RayBeamRenderer : Node3D
 
 	private int _sampleWriteHead;
 	private int _rayWriteHead;
+
+	// =======================
+	// Debug Render Objects
+	// =======================
+	private MeshInstance3D _dbgMeshInstance;
+	private ImmediateMesh _dbgImmediate;
+	private StandardMaterial3D _dbgMaterial;
+
+	// Reuse buffers to avoid GC churn
+	private readonly System.Collections.Generic.List<Vector3> _dbgLinePoints = new();
+	private readonly System.Collections.Generic.List<Color> _dbgLineColors = new();
+
 
 	public struct RayMeta {
 		public int SampleStart;
@@ -190,6 +221,25 @@ public partial class RayBeamRenderer : Node3D
 		AddChild(_mmi);
 		await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 		Rebuild();
+
+		// --- Debug mesh setup ---
+		_dbgImmediate = new ImmediateMesh();
+		_dbgMaterial = new StandardMaterial3D
+		{
+			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+			VertexColorUseAsAlbedo = true,
+			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+			NoDepthTest = true
+		};
+
+		_dbgMeshInstance = new MeshInstance3D
+		{
+			Mesh = _dbgImmediate,
+			MaterialOverride = _dbgMaterial,
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
+		};
+
+		AddChild(_dbgMeshInstance);
 	}
 
 	public override void _Process(double delta)
@@ -231,6 +281,23 @@ public partial class RayBeamRenderer : Node3D
 		_lastGamma = gamma;
 
 		RequestRebuild();
+	}
+
+	public override void _UnhandledInput(InputEvent e)
+	{
+		if (e is InputEventKey k && k.Pressed && !k.Echo)
+		{
+			if (k.Keycode == Key.F1)
+			{
+				DebugMode = DebugMode == DebugDrawMode.Off ? DebugDrawMode.RaysAndNormals : DebugDrawMode.Off;
+				GD.Print($"[RayBeamRenderer] DebugMode = {DebugMode}");
+			}
+			if (k.Keycode == Key.F2)
+			{
+				DebugDrawOnlyHits = !DebugDrawOnlyHits;
+				GD.Print($"[RayBeamRenderer] DebugDrawOnlyHits = {DebugDrawOnlyHits}");
+			}
+		}
 	}
 
 	private void RequestRebuild()
@@ -462,6 +529,11 @@ public partial class RayBeamRenderer : Node3D
 			{
 				GD.Print($"[DBG] Rebuild summary: totalTarget={total} idxWritten={idx} InstanceCount={_mm.InstanceCount} VisibleCount={_mm.VisibleInstanceCount} hits={hitCount}");
 			}
+
+			// =======================
+			// Debug overlay draw (ImmediateMesh)
+			// =======================
+			UpdateDebugOverlay(cam, _rayWriteHead);
 
 		}
 		finally
@@ -1492,6 +1564,112 @@ public partial class RayBeamRenderer : Node3D
 		int ce = (int)Mathf.Floor(LsegMax / Mathf.Max(1e-6f, stepLen));
 		ce = Mathf.Clamp(ce, MinCollisionEveryNSteps, ceBase);
 		return ce;
+	}
+
+	// =======================
+	// Debug Overlay Builder (uses _rayMeta + _samplePos + _hitPayload)
+	// =======================
+	private void UpdateDebugOverlay(Camera3D cam, int raysWritten)
+	{
+		if (_dbgMeshInstance == null || _dbgImmediate == null) return;
+
+		// If debug is off, hide and clear.
+		if (DebugMode == DebugDrawMode.Off)
+		{
+			_dbgMeshInstance.Visible = false;
+			_dbgImmediate.ClearSurfaces();
+			return;
+		}
+
+		_dbgMeshInstance.Visible = true;
+		DbgClearLines();
+
+		int drawn = 0;
+		int rayLimit = Mathf.Min(DebugMaxRays, raysWritten);
+
+		for (int r = 0; r < rayLimit; r++)
+		{
+			ref RayMeta meta = ref _rayMeta[r];
+
+			if (DebugDrawOnlyHits && !meta.HadHit)
+				continue;
+
+			int count = Mathf.Max(0, meta.RenderCount); // RenderCount already respects TerminateTrailOnHit
+			if (count < 2)
+				continue;
+
+			int segMax = Mathf.Min(DebugMaxSegmentsPerRay, count - 1);
+
+			int start = meta.SampleStart;
+
+			// --- Draw ray polyline from samples ---
+			for (int i = 0; i < segMax; i++)
+			{
+				Vector3 a = _samplePos[start + i];
+				Vector3 b = _samplePos[start + i + 1];
+
+				// Fade alpha along the ray for readability
+				float t = segMax <= 1 ? 1f : (float)i / (segMax - 1);
+				Color c = new Color(1f, 1f, 1f, 0.25f + 0.75f * t);
+
+				DbgAddLine(a, b, c);
+			}
+
+			// --- Draw hit normal as RGB (abs normal) ---
+			if (DebugMode == DebugDrawMode.RaysAndNormals && meta.HadHit)
+			{
+				HitPayload hp = _hitPayload[r];
+				if (hp.Valid)
+				{
+					Vector3 p = hp.Position;
+					Vector3 n = hp.Normal;
+
+					if (n.LengthSquared() > 1e-10f)
+					{
+						n = n.Normalized();
+						Color nc = new Color(Mathf.Abs(n.X), Mathf.Abs(n.Y), Mathf.Abs(n.Z), 1f);
+						DbgAddLine(p, p + n * DebugNormalLen, nc);
+					}
+				}
+			}
+
+			drawn++;
+		}
+
+		DbgFlushLines();
+
+		// Optional: quick sanity print
+		// GD.Print($"[DBG] Overlay rays drawn={drawn} raysWritten={raysWritten} mode={DebugMode}");
+	}
+
+	private void DbgClearLines()
+	{
+		_dbgLinePoints.Clear();
+		_dbgLineColors.Clear();
+	}
+
+	private void DbgAddLine(Vector3 a, Vector3 b, Color c)
+	{
+		_dbgLinePoints.Add(a);
+		_dbgLinePoints.Add(b);
+		_dbgLineColors.Add(c);
+		_dbgLineColors.Add(c);
+	}
+
+	private void DbgFlushLines()
+	{
+		_dbgImmediate.ClearSurfaces();
+		if (_dbgLinePoints.Count < 2) return;
+
+		_dbgImmediate.SurfaceBegin(Mesh.PrimitiveType.Lines, _dbgMaterial);
+
+		for (int i = 0; i < _dbgLinePoints.Count; i++)
+		{
+			_dbgImmediate.SurfaceSetColor(_dbgLineColors[i]);
+			_dbgImmediate.SurfaceAddVertex(_dbgLinePoints[i]);
+		}
+
+		_dbgImmediate.SurfaceEnd();
 	}
 
 }

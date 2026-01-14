@@ -61,7 +61,6 @@ public partial class GrinFilmCamera : Node
 	}
 
 
-
 	private float _rangeFar = 5f; // dynamic far distance used for mapping
 	private int _depthHistWrite = 0;
 	private float[] _depthHistory = Array.Empty<float>();
@@ -79,6 +78,7 @@ public partial class GrinFilmCamera : Node
 	private int MaxSegPerRay => (_rbr != null)
 		? (Mathf.Max(1, _rbr.StepsPerRay / Mathf.Max(1, _rbr.CollisionEveryNSteps)) + 2)
 		: 64;
+
 
 
 	public override void _Ready()
@@ -460,6 +460,7 @@ public partial class GrinFilmCamera : Node
 							col = ShadeNdotV(n, v);
 							break;
 						}
+
 					}
 
 					if (x == Width / 2 && y == (yStart + (bandH / 2)))
