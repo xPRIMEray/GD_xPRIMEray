@@ -687,6 +687,7 @@ public partial class RayBeamRenderer : Node3D
 		return false;
 	}
 
+	// Baseline method
 	public static bool SubdividedRayHit(PhysicsDirectSpaceState3D space,
 										Vector3 a, Vector3 b, uint mask,
 										int maxSubsteps, out Vector3 hitPos)
@@ -696,6 +697,8 @@ public partial class RayBeamRenderer : Node3D
 		return SubdividedRayHit(space, a, b, mask, maxSubsteps, out hitPos, out cid, out cname);
 	}
 	
+	/// 
+	/// Method Overload 1
 	public static bool SubdividedRayHit(PhysicsDirectSpaceState3D space,
 							Vector3 a, Vector3 b, uint mask, int maxSubsteps,
 							out Vector3 hitPos, out ulong colliderId,
@@ -737,6 +740,55 @@ public partial class RayBeamRenderer : Node3D
 
 		return false;
 	}
+
+	/// Method Overload 2
+	// ✅ ADD: normal-aware overload (no extra work; Godot gives "normal" already)
+	public static bool SubdividedRayHit(PhysicsDirectSpaceState3D space,
+		Vector3 a, Vector3 b, uint mask, int maxSubsteps,
+		out Vector3 hitPos, out Vector3 hitNormal,
+		out ulong colliderId, out string colliderName)
+	{
+		hitPos = Vector3.Zero;
+		hitNormal = Vector3.Up;
+		colliderId = 0;
+		colliderName = "<none>";
+
+		Vector3 d = b - a;
+		float len = d.Length();
+		if (len <= 1e-6f) return false;
+
+		int steps = Mathf.Clamp(maxSubsteps, 1, 64);
+		Vector3 prev = a;
+
+		for (int i = 1; i <= steps; i++)
+		{
+			float t = (float)i / steps;
+			Vector3 cur = a + d * t;
+
+			var rq = PhysicsRayQueryParameters3D.Create(prev, cur, mask);
+			rq.CollideWithBodies = true;
+			rq.CollideWithAreas = true;
+			rq.HitFromInside = false;
+
+			var hit = space.IntersectRay(rq);
+			if (hit.Count > 0)
+			{
+				hitPos = (Vector3)hit["position"];
+				if (hit.TryGetValue("normal", out var nObj))
+					hitNormal = ((Vector3)nObj).Normalized();
+
+				colliderId = (ulong)hit["collider_id"];
+				var colliderObj = hit["collider"].AsGodotObject();
+				colliderName = colliderObj != null ? colliderObj.ToString() : "<null>";
+				return true;
+			}
+
+			prev = cur;
+		}
+
+		return false;
+	}
+
 
 	private static Vector3 SafeNormalized(Vector3 v, Vector3 fallback)
 	{

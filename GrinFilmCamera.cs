@@ -43,6 +43,24 @@ public partial class GrinFilmCamera : Node
 
 	[Export] public bool NearestHitOnly = true;
 
+	// ✅ ADD inside GrinFilmCamera class (with your other [Export]s)
+	[Export] public FilmShadingMode ShadingMode = FilmShadingMode.DepthHeatmap;
+
+	// If true, flip normals so they face the camera for consistent film debug
+	[Export] public bool FlipNormalToCamera = true;
+
+	// Optional: if you later add smooth normals / mesh cache, this becomes your master switch
+	[Export] public bool UseSmoothNormals = false;
+
+	// ✅ ADD near top of GrinFilmCamera.cs (outside the class)
+	public enum FilmShadingMode
+	{
+		DepthHeatmap = 0,   // your current behavior
+		NormalRGB = 1,      // (N*0.5 + 0.5)
+		NdotV = 2,          // grayscale: saturate(dot(N, V))
+	}
+
+
 
 	private float _rangeFar = 5f; // dynamic far distance used for mapping
 	private int _depthHistWrite = 0;
@@ -285,6 +303,8 @@ public partial class GrinFilmCamera : Node
 				float hitDistance = 0f;
 				string hitName = "<none>";
 				float bestHit = float.PositiveInfinity;
+				Vector3 bestHp = Vector3.Zero;
+				Vector3 bestHn = Vector3.Up;
 
 				int segCount = _segCountPerPixel[pi];
 				int segOffset = pi * maxSeg;
@@ -302,9 +322,10 @@ public partial class GrinFilmCamera : Node
 					ulong cid = 0;
 					string cname = "<none>";
 					Vector3 hp = Vector3.Zero;
+					Vector3 hn = Vector3.Up; // ✅ NEW: hit normal
 					bool didHit = false;
 					/////////////////////////////////
-
+					
 					if (_rbr.UseSphereSweepCollision)
 					{
 						didHit = RayBeamRenderer.SweepSegmentHit(space, segA, segB, _rbr.CollisionMask, _rbr.CollisionRadius, out hp);
@@ -363,11 +384,11 @@ public partial class GrinFilmCamera : Node
 						sub = Mathf.Clamp(sub, 1, _rbr.MaxCollisionSubsteps);
 
 						didHit = RayBeamRenderer.SubdividedRayHit(
-											space, segA, segB,
-											_rbr.CollisionMask,
-											sub,
-											out hp, out cid, out cname);
-
+									space, segA, segB,
+									_rbr.CollisionMask,
+									sub,
+									out hp, out hn, out cid, out cname);
+						
 						if (didHit)
 							hitName = cname;
 					}
@@ -383,6 +404,8 @@ public partial class GrinFilmCamera : Node
 							hitDistance = d;
 							hadHit = true;
 						    hitName = cname;
+							bestHp = hp;      // ✅ ADD
+							bestHn = hn;      // ✅ ADD
 						}
 
 						// If you only want the nearest hit, keep scanning segments
@@ -395,24 +418,58 @@ public partial class GrinFilmCamera : Node
 					//////////////////
 				}
 
+				////
+				////////////////////////
 				Color col = SkyColor;
-
 				if (hadHit)
 				{
 					bandHits++;
 
 					// track farthest hit seen
 					if (hitDistance > frameMaxHit) frameMaxHit = hitDistance;
-					// use dynamic range for coloring (NOT MaxDistance)
-					float far = AutoRangeDepth ? _rangeFar : MaxDistance;
-					float d = Mathf.Clamp(hitDistance / Mathf.Max(0.001f, far), 0f, 1f);
-					col = Color.FromHsv(0.66f * (1f - d), 1f, 1f);
+
+					switch (ShadingMode)
+					{
+						default:
+						case FilmShadingMode.DepthHeatmap:
+						{
+							float far = AutoRangeDepth ? _rangeFar : MaxDistance;
+							float d = Mathf.Clamp(hitDistance / Mathf.Max(0.001f, far), 0f, 1f);
+							col = Color.FromHsv(0.66f * (1f - d), 1f, 1f);
+							break;
+						}
+
+						case FilmShadingMode.NormalRGB:
+						{
+							// hn was captured from the nearest hit segment (see note below)
+							Vector3 n = bestHn;
+							if (FlipNormalToCamera)
+							{
+								Vector3 v = (_cam.GlobalPosition - bestHp).Normalized();
+								if (n.Dot(v) < 0f) n = -n;
+							}
+							col = ShadeNormalRGB(n);
+							break;
+						}
+
+						case FilmShadingMode.NdotV:
+						{
+							Vector3 v = (_cam.GlobalPosition - bestHp).Normalized();
+							Vector3 n = bestHn;
+							if (FlipNormalToCamera && n.Dot(v) < 0f) n = -n;
+							col = ShadeNdotV(n, v);
+							break;
+						}
+					}
 
 					if (x == Width / 2 && y == (yStart + (bandH / 2)))
-						GD.Print($"🎯 Film hit: dist={hitDistance:0.000} name={hitName}");
+						GD.Print($"🎯 Film hit: dist={hitDistance:0.000} name={hitName} mode={ShadingMode}");
 				}
 
 				_img.SetPixel(x, y, col);
+				////////////////////////////
+				/// 
+
 			}
 		}
 		ulong b1 = Time.GetTicksUsec(); // after PASS 2
@@ -488,6 +545,21 @@ public partial class GrinFilmCamera : Node
 		idx = Mathf.Clamp(idx, 0, list.Count - 1);
 
 		return list[idx];
+	}
+
+	// ✅ ADD inside GrinFilmCamera class (helpers)
+	private static Color ShadeNormalRGB(Vector3 n)
+	{
+		n = n.Normalized();
+		return new Color(n.X * 0.5f + 0.5f, n.Y * 0.5f + 0.5f, n.Z * 0.5f + 0.5f, 1f);
+	}
+
+	private static Color ShadeNdotV(Vector3 n, Vector3 v)
+	{
+		n = n.Normalized();
+		v = v.Normalized();
+		float ndv = Mathf.Clamp(n.Dot(v), 0f, 1f);
+		return new Color(ndv, ndv, ndv, 1f);
 	}
 
 }

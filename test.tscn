@@ -75,7 +75,7 @@ FilmViewPath = NodePath("../CanvasLayer/FilmView")
 UpdateEveryFrame = false
 MaxDistance = 5.0
 SkyColor = Color(1, 0.56133336, 0.060000002, 0.34901962)
-AutoRangeSafety = 1.1
+AutoRangeSafety = 1.02
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
@@ -100,6 +100,7 @@ FieldCenter = Vector3(0, 1.5, 0)
 FieldCenterIsCamera = false
 StepAdaptGain = 0.15
 CollisionRadius = 0.05
+UseSphereSweepCollision = true
 UseInsightPlaneFilter = true
 CollisionRaySubdivideThreshold = 0.3
 MaxCollisionSubsteps = 3
@@ -109,7 +110,7 @@ DebugSetBillboardRejects = true
 CheckCollisionsEvenIfNotStopping = true
 
 [node name="FieldSource3D" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.34824347, 1.7382352, 0.43196726)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6464071, 2.706158, -0.12691808)
 script = ExtResource("8_xersf")
 Strength = 0.005
 Softening = 2.115
