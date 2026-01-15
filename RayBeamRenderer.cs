@@ -246,18 +246,18 @@ public partial class RayBeamRenderer : Node3D
 			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
 			NoDepthTest = true
 		};
-		_dbgMeshInstance = new MeshInstance3D
-		{
-			Mesh = _dbgImmediate,
-			MaterialOverride = _dbgMaterial,
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
-		};
-		//AddChild(_dbgMeshInstance);
+		_dbgMeshInstance = new MeshInstance3D();
+		_dbgMeshInstance.Mesh = _dbgImmediate;
+		_dbgMeshInstance.MaterialOverride = _dbgMaterial;
+		_dbgMeshInstance.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
 		_dbgMeshInstance.GlobalTransform = Transform3D.Identity;
 		_dbgMeshInstance.Visible = true;
 		_dbgMeshInstance.Layers = 1; // default 3D layer
-		_dbgMeshInstance.TopLevel = true;
+		_dbgMeshInstance.TopLevel = false;
+
+		AddChild(_dbgMeshInstance);
 		GetTree().CurrentScene.AddChild(_dbgMeshInstance);
+		_dbgMeshInstance.Owner = Owner; // if you ever want it visible in editor ownership
 
 
 		GD.Print($"[DBG] dbgMesh inTree={_dbgMeshInstance.IsInsideTree()} parent={_dbgMeshInstance.GetParent()?.Name} world={_dbgMeshInstance.GlobalTransform.Origin}");
@@ -1825,7 +1825,7 @@ public partial class RayBeamRenderer : Node3D
 				AddLine(a, b, rayC);
 			}
 
-			GD.Print($"[DBG] hitNrm.LengthSquared={hitNrm.LengthSquared}");
+			GD.Print($"[DBG] hitNrm.LengthSquared={hitNrm.LengthSquared()}");
 			// Draw hit normal (red)
 			if (DebugMode == DebugDrawMode.RaysAndNormals && hadHit && hitNrm.LengthSquared() > 1e-10f)
 			{

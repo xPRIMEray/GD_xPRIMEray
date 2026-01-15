@@ -67,6 +67,19 @@ attributes = SubResource("CameraAttributesPhysical_drxnu")
 current = true
 script = ExtResource("2_ppyta")
 
+[node name="GrinField3D" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.86010253, 2.303526, -2.0074396)
+script = ExtResource("3_77dp3")
+RayBeamRendererPath = NodePath("../RayBeamRenderer")
+FilmViewPath = NodePath("../CanvasLayer/FilmView")
+UpdateEveryFrame = false
+MaxDistance = 15.0
+SkyColor = Color(1, 0.56133336, 0.060000002, 0.1254902)
+AutoRangeSmoothing = 0.05
+AutoRangeSafety = 1.02
+ShadingMode = 1
+UseSmoothNormals = true
+
 [node name="CanvasLayerUI" type="CanvasLayer" parent="."]
 layer = 0
 
@@ -501,19 +514,6 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_behavior_recursive = 1
 metadata/_edit_use_anchors_ = true
-
-[node name="GrinField3D" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.86010253, 2.303526, -2.0074396)
-script = ExtResource("3_77dp3")
-RayBeamRendererPath = NodePath("../RayBeamRenderer")
-FilmViewPath = NodePath("../CanvasLayer/FilmView")
-UpdateEveryFrame = false
-MaxDistance = 15.0
-SkyColor = Color(1, 0.56133336, 0.060000002, 0.1254902)
-AutoRangeSmoothing = 0.05
-AutoRangeSafety = 1.02
-ShadingMode = 1
-UseSmoothNormals = true
 
 [node name="RayBeamRenderer" type="Node3D" parent="."]
 script = ExtResource("4_raybeam")
