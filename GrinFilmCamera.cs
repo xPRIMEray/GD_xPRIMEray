@@ -225,7 +225,9 @@ public partial class GrinFilmCamera : Node
 		_dbgPtWrite = 0;
 
 		// Only build debug overlay if enabled
-		bool wantDbg = (_rbr != null && _rbr.DebugMode != RayBeamRenderer.DebugDrawMode.Off);
+		bool wantDbg = (_rbr != null
+			&& _rbr.DebugMode != RayBeamRenderer.DebugDrawMode.Off
+			&& _rbr.DebugOverlayOwnedByFilm);
 
 		// Rough upper bounds for this band (for capacity planning)
 		// We’ll only sample 1 out of DebugEveryNPixels pixels.

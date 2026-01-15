@@ -68,7 +68,7 @@ current = true
 script = ExtResource("2_ppyta")
 
 [node name="CanvasLayerUI" type="CanvasLayer" parent="."]
-layer = 10
+layer = 0
 
 [node name="Options" type="Control" parent="CanvasLayerUI" node_paths=PackedStringArray("sun", "lightbulb_1", "lightbulb_2", "world_environment")]
 layout_mode = 3
@@ -491,6 +491,7 @@ theme_override_constants/outline_size = 4
 text = "2.0"
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
+layer = -1
 
 [node name="FilmView" type="TextureRect" parent="CanvasLayer"]
 anchors_preset = 15
@@ -506,16 +507,17 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.86010253, 2.303526, -2.007
 script = ExtResource("3_77dp3")
 RayBeamRendererPath = NodePath("../RayBeamRenderer")
 FilmViewPath = NodePath("../CanvasLayer/FilmView")
+UpdateEveryFrame = false
 MaxDistance = 15.0
 SkyColor = Color(1, 0.56133336, 0.060000002, 0.1254902)
 AutoRangeSmoothing = 0.05
 AutoRangeSafety = 1.02
 ShadingMode = 1
 UseSmoothNormals = true
-DebugEveryNPixels = 1
 
 [node name="RayBeamRenderer" type="Node3D" parent="."]
 script = ExtResource("4_raybeam")
+CameraPath = NodePath("../Camera3D")
 StepsPerRay = 48
 StepLength = 0.1
 BendScale = 1.0
@@ -532,6 +534,7 @@ RequireHitToRender = true
 DebugRender = true
 DebugSetBillboardRejects = true
 CheckCollisionsEvenIfNotStopping = true
+DebugNormalLen = 0.295
 
 [node name="FieldSource3D" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.11073613, 1.9950955, -0.6214657)
