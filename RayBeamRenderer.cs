@@ -130,6 +130,10 @@ public partial class RayBeamRenderer : Node3D
 	private readonly System.Collections.Generic.List<Vector3> _dbgLinePoints = new();
 	private readonly System.Collections.Generic.List<Color> _dbgLineColors = new();
 
+	// Debug bundle backing arrays (derived from _rayMeta, no extra point storage)
+	private int[] _dbgRayOffsets = Array.Empty<int>();
+	private int[] _dbgRayCounts  = Array.Empty<int>();
+
 
 	public struct RayMeta {
 		public int SampleStart;
@@ -183,27 +187,41 @@ public partial class RayBeamRenderer : Node3D
 		public float EdgeSoftness;
 	}
 
+	public readonly struct DebugRayBundle
+	{
+		public readonly Vector3[] Points;     // concatenated polyline points (world)
+		public readonly int[] Offsets;        // per-ray start index into Points
+		public readonly int[] Counts;         // per-ray point count
+		public readonly HitPayload[] Hits;    // per-ray hit payloads
+		public readonly int RayCount;         // how many rays are valid this frame
 
+		public DebugRayBundle(Vector3[] points, int[] offsets, int[] counts, HitPayload[] hits, int rayCount)
+		{
+			Points = points;
+			Offsets = offsets;
+			Counts = counts;
+			Hits = hits;
+			RayCount = rayCount;
+		}
+	}
 
 	///
 	/////////////////////////
 	/////////////////////////
 	public override async void _Ready()
 	{
+		// 1. Multimesh Instance
 		_mm = new MultiMesh();
 		_mm.TransformFormat = MultiMesh.TransformFormatEnum.Transform3D;
 		_mm.UseColors = true;
 		_mm.UseCustomData = false;
-
 		_mmi = new MultiMeshInstance3D
 		{
 			Multimesh = _mm
 		};
-
 		// Simple quad for each sample
 		var quad = new QuadMesh { Size = new Vector2(1, 1) };
 		_mm.Mesh = quad;
-
 		_mat = new StandardMaterial3D
 		{
 			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
@@ -215,14 +233,11 @@ public partial class RayBeamRenderer : Node3D
 			Emission = new Color(1, 1, 1, 1),
 			EmissionEnergyMultiplier = 2.0f
 		};
-
 		_mmi.MaterialOverride = _mat;
-
 		AddChild(_mmi);
-		await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-		Rebuild();
 
-		// --- Debug mesh setup ---
+
+		// 2. Debug mesh setup
 		_dbgImmediate = new ImmediateMesh();
 		_dbgMaterial = new StandardMaterial3D
 		{
@@ -231,15 +246,24 @@ public partial class RayBeamRenderer : Node3D
 			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
 			NoDepthTest = true
 		};
-
 		_dbgMeshInstance = new MeshInstance3D
 		{
 			Mesh = _dbgImmediate,
 			MaterialOverride = _dbgMaterial,
 			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
 		};
+		//AddChild(_dbgMeshInstance);
+		GetTree().CurrentScene.AddChild(_dbgMeshInstance);
+		_dbgMeshInstance.GlobalTransform = Transform3D.Identity;
+		_dbgMeshInstance.Visible = true;
+		_dbgMeshInstance.Layers = 1; // default 3D layer
+		_dbgMeshInstance.TopLevel = true;
 
-		AddChild(_dbgMeshInstance);
+		// 3. Await Frame
+		await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+
+		// 4. Rebuild
+		Rebuild();
 	}
 
 	public override void _Process(double delta)
@@ -882,6 +906,8 @@ public partial class RayBeamRenderer : Node3D
 		if (_samplePos.Length < samplesTotal) Array.Resize(ref _samplePos, samplesTotal);
 		if (_sampleCol.Length < samplesTotal) Array.Resize(ref _sampleCol, samplesTotal);
 
+		if (_dbgRayOffsets.Length < raysTotal) Array.Resize(ref _dbgRayOffsets, raysTotal);
+		if (_dbgRayCounts.Length  < raysTotal) Array.Resize(ref _dbgRayCounts,  raysTotal);
 	}
 
 	// Initial version testing
@@ -1053,13 +1079,16 @@ public partial class RayBeamRenderer : Node3D
 								sub = Mathf.CeilToInt(segLen / CollisionRaySubdivideThreshold);
 							sub = Mathf.Clamp(sub, 1, MaxCollisionSubsteps);
 
-							didHit = SubdividedRayHit(space, segA, segB, collisionMask, sub, out hp, out cid, out cname);
+							//didHit = SubdividedRayHit(space, segA, segB, collisionMask, sub, out hp, out cid, out cname);
+							Vector3 hn;
+							didHit = SubdividedRayHit(space, segA, segB, collisionMask, sub, out hp, out hn, out cid, out cname);
 							if (didHit)
 							{
 								hitColliderId = cid;
 								hitColliderName = cname;
+								// store normal:
+								// (stash hn somewhere for hitOut later)
 							}
-
 						}
 					}
 
@@ -1571,6 +1600,18 @@ public partial class RayBeamRenderer : Node3D
 	// =======================
 	private void UpdateDebugOverlay(Camera3D cam, int raysWritten)
 	{
+		GD.Print($"[DBG] Overlay call: mode={DebugMode} raysWritten={raysWritten} dbgMeshNull={_dbgMeshInstance==null}");
+
+		// --- CAN'T-MISS sanity line (1m in front of camera) ---
+		var camXform = cam.GlobalTransform;
+		Vector3 p0 = camXform.Origin + (-camXform.Basis.Z) * 0.5f; // forward in Godot is -Z
+		Vector3 p1 = camXform.Origin + (-camXform.Basis.Z) * 2.5f;
+		DbgAddLine(p0, p1, new Color(1, 0, 0, 1));
+
+		if (Engine.GetFramesDrawn() % 60 == 0)
+			GD.Print($"[DBG] UpdateDebugOverlay called. mode={DebugMode}");
+
+
 		if (_dbgMeshInstance == null || _dbgImmediate == null) return;
 
 		// If debug is off, hide and clear.
@@ -1583,6 +1624,9 @@ public partial class RayBeamRenderer : Node3D
 
 		_dbgMeshInstance.Visible = true;
 		DbgClearLines();
+		DbgAddLine(Vector3.Zero, Vector3.Forward * 5f, Colors.Red);
+		DbgFlushLines();
+		//return;
 
 		int drawn = 0;
 		int rayLimit = Mathf.Min(DebugMaxRays, raysWritten);
@@ -1671,5 +1715,160 @@ public partial class RayBeamRenderer : Node3D
 
 		_dbgImmediate.SurfaceEnd();
 	}
+
+	// ============================================================================
+	// Film-driven debug overlay (call this from GrinFilmCamera pass2 / main thread)
+	// ============================================================================
+
+	public void UpdateDebugOverlayFromFilm(
+		Camera3D cam,
+		ReadOnlySpan<Vector3> rayPointsWorld,   // polyline points: p0,p1,p2... per ray (concatenated)
+		ReadOnlySpan<int> rayOffsets,           // start index per ray into rayPointsWorld (length = rayCount)
+		ReadOnlySpan<int> rayCounts,            // point count per ray (length = rayCount)
+		ReadOnlySpan<HitPayload> hits,          // length = rayCount (or 0 if none)
+		int everyNRays = 1,                     // stride for performance
+		float normalLen = 0.15f                 // how long to draw hit normals
+	)
+	{
+		// Fast bail-outs
+		if (DebugMode == DebugDrawMode.Off)
+		{
+			if (_dbgMeshInstance != null) _dbgMeshInstance.Visible = false;
+			return;
+		}
+
+		if (_dbgImmediate == null || _dbgMeshInstance == null)
+			return;
+
+		if (cam == null)
+			return;
+
+		_dbgMeshInstance.Visible = true;
+
+		// Optional: keep overlay "always visible"
+		// (NoDepthTest already handles depth; these help order if needed)
+		if (_dbgMaterial is BaseMaterial3D bm)
+			bm.RenderPriority = 127;
+
+		// ---- Build ImmediateMesh lines ----
+		_dbgImmediate.ClearSurfaces();
+		_dbgImmediate.SurfaceBegin(Mesh.PrimitiveType.Lines, _dbgMaterial);
+
+		// 1) Camera axes (super helpful for grounding)
+		AddCamAxes(cam, 0.35f);
+
+		// 2) Rays + hit normals
+		int rayCount = rayOffsets.Length;
+		int stride = Math.Max(1, everyNRays);
+
+		for (int r = 0; r < rayCount; r += stride)
+		{
+			int start = rayOffsets[r];
+			int count = rayCounts[r];
+
+			// Need at least 2 points to draw a polyline
+			if (count < 2)
+				continue;
+
+			// Pull hit (if provided)
+			bool hadHit = false;
+			Vector3 hitPos = default;
+			Vector3 hitNrm = default;
+
+			if (r < hits.Length)
+			{
+				// ADAPT THESE FIELD NAMES if your HitPayload differs
+				hadHit = HitIsValid(hits[r]);
+				hitPos = hits[r].Position;
+				hitNrm = hits[r].Normal;
+			}
+
+			if (DebugDrawOnlyHits && !hadHit)
+				continue;
+
+			// Ray color
+			// - green for non-hit rays, yellow for hit rays (easy to read)
+			Color rayC = hadHit ? new Color(1f, 1f, 0f, 1f) : new Color(0f, 1f, 0f, 1f);
+
+			// Draw segments
+			for (int i = 0; i < count - 1; i++)
+			{
+				Vector3 a = rayPointsWorld[start + i];
+				Vector3 b = rayPointsWorld[start + i + 1];
+				AddLine(a, b, rayC);
+			}
+
+			// Draw hit normal (red)
+			if (DebugMode == DebugDrawMode.RaysAndNormals && hadHit && hitNrm.LengthSquared() > 1e-10f)
+			{
+				Vector3 n0 = hitPos;
+				Vector3 n1 = hitPos + hitNrm.Normalized() * normalLen;
+				AddLine(n0, n1, new Color(1f, 0f, 0f, 1f));
+			}
+		}
+
+		_dbgImmediate.SurfaceEnd();
+	}
+
+	// ---------------------------------------------------------------------------
+	// Helpers (ImmediateMesh line + camera axes)
+	// ---------------------------------------------------------------------------
+
+	private void AddLine(Vector3 a, Vector3 b, Color c)
+	{
+		_dbgImmediate.SurfaceSetColor(c);
+		_dbgImmediate.SurfaceAddVertex(a);
+		_dbgImmediate.SurfaceSetColor(c);
+		_dbgImmediate.SurfaceAddVertex(b);
+	}
+
+	private void AddCamAxes(Camera3D cam, float len)
+	{
+		// Godot 4: Basis.X = right, Basis.Y = up, -Basis.Z = forward
+		Transform3D t = cam.GlobalTransform;
+		Vector3 o = t.Origin;
+		Vector3 right = t.Basis.X.Normalized();
+		Vector3 up = t.Basis.Y.Normalized();
+		Vector3 fwd = (-t.Basis.Z).Normalized();
+
+		// X=red, Y=green, Z=blue-ish (forward)
+		AddLine(o, o + right * len, new Color(1f, 0.2f, 0.2f, 1f));
+		AddLine(o, o + up * len, new Color(0.2f, 1f, 0.2f, 1f));
+		AddLine(o, o + fwd * len, new Color(0.35f, 0.6f, 1f, 1f));
+	}
+
+	private static bool HitIsValid(in HitPayload h)
+	{
+		return h.Valid;
+	}
+
+
+	/// Returns arrays that are valid until next render step/rebuild.
+	/// Intended for GrinFilmCamera to drive debug overlay.
+	public DebugRayBundle GetDebugRayBundle()
+	{
+		// Build offsets/counts from _rayMeta (no allocations if arrays already sized)
+		int rayCount = _rayWriteHead;
+
+		// Clamp to capacity to be extra safe
+		rayCount = Mathf.Clamp(rayCount, 0, _rayMeta.Length);
+
+		for (int r = 0; r < rayCount; r++)
+		{
+			_dbgRayOffsets[r] = _rayMeta[r].SampleStart;
+			_dbgRayCounts[r]  = Mathf.Max(0, _rayMeta[r].RenderCount); // respects TerminateTrailOnHit
+		}
+
+		// Points are the shared sample buffer
+		return new DebugRayBundle(
+			_samplePos,
+			_dbgRayOffsets,
+			_dbgRayCounts,
+			_hitPayload,
+			rayCount
+		);
+	}
+
+
 
 }

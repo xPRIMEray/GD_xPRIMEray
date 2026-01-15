@@ -79,6 +79,17 @@ public partial class GrinFilmCamera : Node
 		? (Mathf.Max(1, _rbr.StepsPerRay / Mathf.Max(1, _rbr.CollisionEveryNSteps)) + 2)
 		: 64;
 
+	// Debug overlay buffers (reused, no GC)
+	private Vector3[] _dbgPts = Array.Empty<Vector3>(); // concatenated polyline points
+	private int[] _dbgOff = Array.Empty<int>();         // offsets per ray
+	private int[] _dbgCnt = Array.Empty<int>();         // counts per ray
+	private RayBeamRenderer.HitPayload[] _dbgHits = Array.Empty<RayBeamRenderer.HitPayload>();
+	private int _dbgRayCount = 0;
+	private int _dbgPtWrite = 0;
+
+	[Export] public int DebugEveryNPixels = 8;   // sample density (perf knob)
+	[Export] public int DebugMaxFilmRays = 2048; // cap per band
+
 
 
 	public override void _Ready()
@@ -194,7 +205,6 @@ public partial class GrinFilmCamera : Node
 		float frameMaxHit = 0f; // track deepest hit this RenderStep band
 
 		int bandHits = 0;
-
 		int bandH = yEnd - yStart;
 		int pixelCount = bandH * Width;
 
@@ -207,6 +217,31 @@ public partial class GrinFilmCamera : Node
 
 		_segCountPerPixel ??= new int[pixelCount];
 		if (_segCountPerPixel.Length < pixelCount) _segCountPerPixel = new int[pixelCount];
+
+		//////////////
+		///  Debug code block drop
+		/////////////////////////////
+		_dbgRayCount = 0;
+		_dbgPtWrite = 0;
+
+		// Only build debug overlay if enabled
+		bool wantDbg = (_rbr != null && _rbr.DebugMode != RayBeamRenderer.DebugDrawMode.Off);
+
+		// Rough upper bounds for this band (for capacity planning)
+		// We’ll only sample 1 out of DebugEveryNPixels pixels.
+		if (wantDbg)
+		{
+			int pxStride = Math.Max(1, DebugEveryNPixels);
+			int sampledPixels = (Width / pxStride) * (bandH / pxStride);
+			sampledPixels = Math.Min(sampledPixels, DebugMaxFilmRays);
+
+			// Each sampled pixel stores up to segCount+1 points; we’ll cap segments too
+			int maxPtsPerRay = maxSeg + 1;
+			EnsureFilmDebugCapacity(sampledPixels, sampledPixels * maxPtsPerRay);
+		}
+		/////////////////////////
+		/// 
+
 
 		// snapshot plane filter state (value types -> thread friendly)
 		Plane insightPlane = default;
@@ -471,9 +506,79 @@ public partial class GrinFilmCamera : Node
 				////////////////////////////
 				/// 
 
+				////////////////////////
+				/// Debug Block Addition
+				///////////
+				if (wantDbg)
+				{
+					int pxStride = Math.Max(1, DebugEveryNPixels);
+
+					// Sample a sparse grid (keeps overlay readable + fast)
+					if ((x % pxStride) == 0 && (localY % pxStride) == 0 && _dbgRayCount < DebugMaxFilmRays)
+					{
+						int rayIndex = _dbgRayCount++;
+
+						_dbgOff[rayIndex] = _dbgPtWrite;
+
+						// Build polyline points from the segments we already have
+						// We want: p0, p1, p2, ... so: seg0.A, seg0.B, seg1.B, ...
+						int w0 = _dbgPtWrite;
+
+						if (segCount > 0)
+						{
+							// first point
+							_dbgPts[_dbgPtWrite++] = _segBuf[segOffset + 0].A;
+
+							// subsequent points
+							int writeSegs = Math.Min(segCount, maxSeg);
+							for (int si2 = 0; si2 < writeSegs; si2++)
+							{
+								_dbgPts[_dbgPtWrite++] = _segBuf[segOffset + si2].B;
+							}
+						}
+						else
+						{
+							// no segments: still place a tiny stub so we can see "empty" rays if desired
+							_dbgPts[_dbgPtWrite++] = _cam.GlobalPosition;
+							_dbgPts[_dbgPtWrite++] = _cam.GlobalPosition + (-_cam.GlobalTransform.Basis.Z) * 0.25f;
+						}
+
+						_dbgCnt[rayIndex] = _dbgPtWrite - w0;
+
+						// Hit payload for this pixel ray
+						_dbgHits[rayIndex] = new RayBeamRenderer.HitPayload
+						{
+							Valid = hadHit,
+							Position = bestHp,
+							Normal = bestHn,
+							Distance = hitDistance,
+							ColliderId = 0,
+							ColliderName = hitName ?? "<none>",
+							Albedo = Colors.White
+						};
+					}
+				}
+				///////////
+				////////////////////////
+
 			}
 		}
 		ulong b1 = Time.GetTicksUsec(); // after PASS 2
+
+		// ---- Debug overlay draw ONCE per band ----
+		if (wantDbg)
+		{
+			var camDbg = GetViewport().GetCamera3D();
+			_rbr.UpdateDebugOverlayFromFilm(
+				camDbg,
+				_dbgPts.AsSpan(0, _dbgPtWrite),
+				_dbgOff.AsSpan(0, _dbgRayCount),
+				_dbgCnt.AsSpan(0, _dbgRayCount),
+				_dbgHits.AsSpan(0, _dbgRayCount),
+				everyNRays: 1,
+				normalLen: _rbr.DebugNormalLen
+			);
+		}
 
 		if (AutoRangeDepth && frameMaxHit > 0.0001f)
 		{
@@ -561,6 +666,14 @@ public partial class GrinFilmCamera : Node
 		v = v.Normalized();
 		float ndv = Mathf.Clamp(n.Dot(v), 0f, 1f);
 		return new Color(ndv, ndv, ndv, 1f);
+	}
+
+	private void EnsureFilmDebugCapacity(int rays, int pts)
+	{
+		if (_dbgOff.Length < rays) Array.Resize(ref _dbgOff, rays);
+		if (_dbgCnt.Length < rays) Array.Resize(ref _dbgCnt, rays);
+		if (_dbgHits.Length < rays) Array.Resize(ref _dbgHits, rays);
+		if (_dbgPts.Length < pts) Array.Resize(ref _dbgPts, pts);
 	}
 
 }
