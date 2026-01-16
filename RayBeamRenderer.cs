@@ -1737,7 +1737,7 @@ public partial class RayBeamRenderer : Node3D
 		float normalLen = 0.15f                 // how long to draw hit normals
 	)
 	{
-		GD.Print($"[DBG] Entry to UpdateDebugOverlayFromFile");
+		//GD.Print($"[DBG] Entry to UpdateDebugOverlayFromFile");
 
 		// Fast bail-outs
 		if (DebugMode == DebugDrawMode.Off)
@@ -1752,7 +1752,7 @@ public partial class RayBeamRenderer : Node3D
 			return;
 		}
 
-		GD.Print($"[DBG] Inside UpdateDebugOverlayFromFile. cam = {cam}");
+		//GD.Print($"[DBG] Inside UpdateDebugOverlayFromFile. cam = {cam}");
 		if (cam == null)
 		{
 			GD.Print($"[DBG] Cam is Null");
@@ -1766,12 +1766,12 @@ public partial class RayBeamRenderer : Node3D
 		if (_dbgMaterial is BaseMaterial3D bm)
 			bm.RenderPriority = 127;
 
-		GD.Print($"[DBG] ClearSurfaces/SurfaceBegin calls");
+		//GD.Print($"[DBG] ClearSurfaces/SurfaceBegin calls");
 		// ---- Build ImmediateMesh lines ----
 		_dbgImmediate.ClearSurfaces();
 		_dbgImmediate.SurfaceBegin(Mesh.PrimitiveType.Lines, _dbgMaterial);
 		
-		GD.Print($"[DBG] AddCamAxes call");
+		//GD.Print($"[DBG] AddCamAxes call");
 		// 1) Camera axes (super helpful for grounding)
 		AddCamAxes(cam, 0.35f);
 
@@ -1783,7 +1783,7 @@ public partial class RayBeamRenderer : Node3D
 		{
 			int start = rayOffsets[r];
 			int count = rayCounts[r];
-			GD.Print($"[DBG] ray r={r} / start = {start} / count = {count}");
+			//GD.Print($"[DBG] ray r={r} / start = {start} / count = {count}");
 
 			if (start < 0 || count < 2) continue;
 			if (start + count > rayPointsWorld.Length) continue;
@@ -1799,13 +1799,13 @@ public partial class RayBeamRenderer : Node3D
 			if (r < hits.Length)
 			{
 				hadHit = HitIsValid(hits[r]);
-				GD.Print($"[DBG] ray r={r} / hadHit= {hadHit}");
+				//GD.Print($"[DBG] ray r={r} / hadHit= {hadHit}");
 
 				if (hadHit)
 				{
 					hitPos = hits[r].Position;
 					hitNrm = hits[r].Normal;
-					GD.Print($"[DBG] ray r={r} / hitPos= {hitPos} / hitNrm= {hitNrm}");
+					//GD.Print($"[DBG] ray r={r} / hitPos= {hitPos} / hitNrm= {hitNrm}");
 				}
 			}
 
@@ -1821,17 +1821,17 @@ public partial class RayBeamRenderer : Node3D
 			{
 				Vector3 a = rayPointsWorld[start + i];
 				Vector3 b = rayPointsWorld[start + i + 1];
-				GD.Print($"[DBG] Addline a={a} / b= {b} / rayC= {rayC}");
+				//GD.Print($"[DBG] Addline a={a} / b= {b} / rayC= {rayC}");
 				AddLine(a, b, rayC);
 			}
 
-			GD.Print($"[DBG] hitNrm.LengthSquared={hitNrm.LengthSquared()}");
+			//GD.Print($"[DBG] hitNrm.LengthSquared={hitNrm.LengthSquared()}");
 			// Draw hit normal (red)
 			if (DebugMode == DebugDrawMode.RaysAndNormals && hadHit && hitNrm.LengthSquared() > 1e-10f)
 			{
 				Vector3 n0 = hitPos;
 				Vector3 n1 = hitPos + hitNrm.Normalized() * normalLen;
-				GD.Print($"[DBG] Addline n0={n0} / n1={n1}");
+				//GD.Print($"[DBG] Addline n0={n0} / n1={n1}");
 				AddLine(n0, n1, new Color(1f, 0f, 0f, 1f));
 			}
 		}

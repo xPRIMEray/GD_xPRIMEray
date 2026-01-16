@@ -60,6 +60,8 @@ public partial class GrinFilmCamera : Node
 		NdotV = 2,          // grayscale: saturate(dot(N, V))
 	}
 
+	[Export] public float FilmOpacity = 0.7f;
+
 
 	private float _rangeFar = 5f; // dynamic far distance used for mapping
 	private int _depthHistWrite = 0;
@@ -154,6 +156,7 @@ public partial class GrinFilmCamera : Node
 
 			GD.Print("GrinFilmCamera: No FilmViewPath set, created overlay TextureRect.");
 		}
+		UpdateFilmOpacity();
 
 		GD.Print("✅ GrinFilmCamera ready. Rendering film.");
 	}
@@ -162,6 +165,7 @@ public partial class GrinFilmCamera : Node
 	{
 		if (!UpdateEveryFrame) return;
 		RenderStep();
+		//UpdateFilmOpacity();
 	}
 
 	public void RenderStep()
@@ -676,6 +680,11 @@ public partial class GrinFilmCamera : Node
 		if (_dbgCnt.Length < rays) Array.Resize(ref _dbgCnt, rays);
 		if (_dbgHits.Length < rays) Array.Resize(ref _dbgHits, rays);
 		if (_dbgPts.Length < pts) Array.Resize(ref _dbgPts, pts);
+	}
+
+	void UpdateFilmOpacity()
+	{
+		_filmView.Modulate = new Color(1,1,1,FilmOpacity);
 	}
 
 }
