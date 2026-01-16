@@ -638,29 +638,27 @@ public partial class GrinFilmCamera : Node
 		// ---- Debug overlay draw ONCE per band ----
 		if (wantDbg && _filmOverlay != null)
 		{
-			// Convert your payload type to FilmOverlay2D.Hit
-			// (Or change FilmOverlay2D.Hit to use your existing HitPayload type.)
-			var hits = new FilmOverlay2D.Hit[_dbgRayCount];
-			for (int i = 0; i < _dbgRayCount; i++)
-			{
-				var h = _dbgHits[i];
-				hits[i] = new FilmOverlay2D.Hit
-				{
-					Valid = h.Valid,
-					Position = h.Position,
-					Normal = h.Normal,
-					Distance = h.Distance,
-					ColliderName = h.ColliderName
-				};
-			}
+			ulong dbgOverlayStart = 0;
+			if (EnableProfiling) dbgOverlayStart = Time.GetTicksUsec();
 
-			_filmOverlay.SetOverlayData(
-				_cam, // or GetViewport().GetCamera3D(), but _cam is correct for film
+			_filmOverlay.SetData(
+				_cam,
 				_dbgPts.AsSpan(0, _dbgPtWrite),
 				_dbgOff.AsSpan(0, _dbgRayCount),
 				_dbgCnt.AsSpan(0, _dbgRayCount),
-				hits
+				_dbgHits.AsSpan(0, _dbgRayCount),
+				_rbr.DebugNormalLen
 			);
+
+			if (EnableProfiling)
+			{
+				ulong dbgOverlayEnd = Time.GetTicksUsec();
+				_perfDbgOverlayUsec += (dbgOverlayEnd - dbgOverlayStart);
+			}
+		}
+		else if (_filmOverlay != null && _rbr != null && _rbr.DebugOverlayOwnedByFilm)
+		{
+			_filmOverlay.ClearOverlay();
 		}
 
 
@@ -789,7 +787,9 @@ public partial class GrinFilmCamera : Node
 
 	void UpdateFilmOpacity()
 	{
-		_filmView.Modulate = new Color(1,1,1,FilmOpacity);
+		var target = _filmView ?? _overlayRect;
+		if (target == null) return;
+		target.Modulate = new Color(1, 1, 1, FilmOpacity);
 	}
 
 }

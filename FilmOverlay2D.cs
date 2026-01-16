@@ -1,149 +1,153 @@
 using Godot;
 using System;
-using System.Collections.Generic;
 
 public partial class FilmOverlay2D : TextureRect
 {
-    [Export] public NodePath CameraPath;
-    [Export] public bool DrawRays = true;
-    [Export] public bool DrawHitNormals = true;
+	[Export] public NodePath CameraPath;
+	[Export] public bool DrawRays = true;
+	[Export] public bool DrawHitNormals = true;
 
-    [Export] public float RayWidth = 1.0f;
-    [Export] public float NormalWidth = 2.0f;
-    [Export] public float NormalLenWorld = 0.25f;
+	[Export] public float RayWidth = 1.0f;
+	[Export] public float NormalWidth = 2.0f;
+	[Export] public float NormalLenWorld = 0.25f;
 
-    [Export] public Color RayColor = new Color(0.6f, 1.0f, 0.6f, 0.9f);
-    [Export] public Color HitRayColor = new Color(1.0f, 0.9f, 0.2f, 1.0f);
-    [Export] public Color NormalColor = new Color(1.0f, 0.2f, 0.2f, 1.0f);
+	[Export] public Color RayColor = new Color(0.6f, 1.0f, 0.6f, 0.9f);
+	[Export] public Color HitRayColor = new Color(1.0f, 0.9f, 0.2f, 1.0f);
+	[Export] public Color NormalColor = new Color(1.0f, 0.2f, 0.2f, 1.0f);
 
-    private Camera3D _cam;
+	private Camera3D _cam;
 
-    // Polyline list: each ray is a list of WORLD points
-    private readonly List<Vector3[]> _rayWorldPts = new();
-    private readonly List<bool> _rayHadHit = new();
+	private Vector3[] _pts = Array.Empty<Vector3>();
+	private int[] _offsets = Array.Empty<int>();
+	private int[] _counts = Array.Empty<int>();
+	private RayBeamRenderer.HitPayload[] _hits = Array.Empty<RayBeamRenderer.HitPayload>();
+	private int _rayCount;
+	private int _ptCount;
+	private float _normalLenWorld;
 
-    // Hit payloads in WORLD space
-    public struct Hit
-    {
-        public bool Valid;
-        public Vector3 Position;
-        public Vector3 Normal;
-        public float Distance;
-        public string ColliderName;
-    }
+	public override void _Ready()
+	{
+		_cam = GetNodeOrNull<Camera3D>(CameraPath);
+		MouseFilter = MouseFilterEnum.Ignore;
+		ClipContents = false;
+	}
 
-    private readonly List<Hit> _hits = new();
+	public void ClearOverlay()
+	{
+		_rayCount = 0;
+		_ptCount = 0;
+		QueueRedraw();
+	}
 
-    public override void _Ready()
-    {
-        _cam = GetNodeOrNull<Camera3D>(CameraPath);
-        // Ensure this node draws over the film and is not clipping unexpectedly
-        MouseFilter = MouseFilterEnum.Ignore;
-        ClipContents = false;
-    }
+	public void SetData(
+		Camera3D cam,
+		ReadOnlySpan<Vector3> pts,
+		ReadOnlySpan<int> offsets,
+		ReadOnlySpan<int> counts,
+		ReadOnlySpan<RayBeamRenderer.HitPayload> hits,
+		float normalLen)
+	{
+		_cam = cam ?? _cam;
+		_normalLenWorld = normalLen > 0f ? normalLen : NormalLenWorld;
 
-    public void ClearOverlay()
-    {
-        _rayWorldPts.Clear();
-        _rayHadHit.Clear();
-        _hits.Clear();
-        QueueRedraw();
-    }
+		int rayCount = Math.Min(offsets.Length, counts.Length);
+		rayCount = Math.Min(rayCount, hits.Length);
 
-    /// <summary>
-    /// Fast path: pass spans/arrays from Film each band.
-    /// pts = concatenated point buffer, offs/cnts define each polyline in pts.
-    /// hits aligned to ray index.
-    /// </summary>
-    public void SetOverlayData(
-        Camera3D cam,
-        ReadOnlySpan<Vector3> pts,
-        ReadOnlySpan<int> offs,
-        ReadOnlySpan<int> cnts,
-        ReadOnlySpan<Hit> hits)
-    {
-        _cam = cam ?? _cam;
+		if (rayCount <= 0 || pts.Length <= 0)
+		{
+			_rayCount = 0;
+			_ptCount = 0;
+			QueueRedraw();
+			return;
+		}
 
-        _rayWorldPts.Clear();
-        _rayHadHit.Clear();
-        _hits.Clear();
+		EnsureCapacity(rayCount, pts.Length);
 
-        int rayCount = Math.Min(offs.Length, cnts.Length);
-        rayCount = Math.Min(rayCount, hits.Length);
+		pts.CopyTo(_pts.AsSpan(0, pts.Length));
+		offsets.Slice(0, rayCount).CopyTo(_offsets.AsSpan(0, rayCount));
+		counts.Slice(0, rayCount).CopyTo(_counts.AsSpan(0, rayCount));
+		hits.Slice(0, rayCount).CopyTo(_hits.AsSpan(0, rayCount));
 
-        for (int r = 0; r < rayCount; r++)
-        {
-            int o = offs[r];
-            int c = cnts[r];
-            if (c <= 0) continue;
+		_rayCount = rayCount;
+		_ptCount = pts.Length;
+		QueueRedraw();
+	}
 
-            // Copy this ray's points into an array
-            var arr = new Vector3[c];
-            for (int i = 0; i < c; i++)
-            {
-                int idx = o + i;
-                if ((uint)idx >= (uint)pts.Length) break;
-                arr[i] = pts[idx];
-            }
+	private Vector2 ScreenToLocal(Vector2 screen)
+	{
+		return GetGlobalTransformWithCanvas().AffineInverse() * screen;
+	}
+	
+	public override void _Draw()
+	{
+		if (_cam == null || !IsInstanceValid(_cam)) return;
+		if (_rayCount <= 0 || _ptCount <= 0) return;
 
-            _rayWorldPts.Add(arr);
-            _rayHadHit.Add(hits[r].Valid);
-            _hits.Add(hits[r]);
-        }
+		if (DrawRays)
+		{
+			for (int r = 0; r < _rayCount; r++)
+			{
+				int start = _offsets[r];
+				int count = _counts[r];
+				if (count < 2) continue;
+				if (start < 0 || (start + count) > _ptCount) continue;
 
-        QueueRedraw();
-    }
+				bool hadHit = r < _hits.Length && _hits[r].Valid;
+				Color c = hadHit ? HitRayColor : GetRayColor(r);
 
-    public override void _Draw()
-    {
-        if (_cam == null || !IsInstanceValid(_cam))
-            return;
+				Vector3 prevW = _pts[start];
+				for (int i = 1; i < count; i++)
+				{
+					Vector3 curW = _pts[start + i];
 
-        // We'll draw in the overlay's local rect coordinates.
-        // If FilmView and FilmOverlay2D share the same anchors/size, this matches 1:1.
+					bool prevBehind = _cam.IsPositionBehind(prevW);
+					bool curBehind  = _cam.IsPositionBehind(curW);
 
-        if (DrawRays)
-        {
-            for (int r = 0; r < _rayWorldPts.Count; r++)
-            {
-                var wpts = _rayWorldPts[r];
-                if (wpts == null || wpts.Length < 2)
-                    continue;
+					if (!(prevBehind && curBehind))
+					{
+						Vector2 prev = ScreenToLocal(_cam.UnprojectPosition(prevW));
+						Vector2 cur  = ScreenToLocal(_cam.UnprojectPosition(curW));
+						DrawLine(prev, cur, c, RayWidth);
+					}
 
-                Color c = _rayHadHit[r] ? HitRayColor : RayColor;
+					prevW = curW;
+				}
+			}
+		}
 
-                // Convert world polyline to screen polyline (Vector2)
-                Vector2 prev = _cam.UnprojectPosition(wpts[0]);
+		if (DrawHitNormals)
+		{
+			int n = Mathf.Min(_rayCount, _hits.Length);
+			for (int i = 0; i < n; i++)
+			{
+				var h = _hits[i];
+				if (!h.Valid) continue;
 
-                for (int i = 1; i < wpts.Length; i++)
-                {
-                    Vector2 cur = _cam.UnprojectPosition(wpts[i]);
+				Vector3 p0w = h.Position;
+				Vector3 p1w = h.Position + h.Normal * _normalLenWorld;
 
-                    // Optional: skip giant jumps (usually behind camera / projection flips)
-                    if (prev.DistanceTo(cur) < 5000f)
-                        DrawLine(prev, cur, c, RayWidth);
+				Vector2 p0 = ScreenToLocal(_cam.UnprojectPosition(p0w));
+				Vector2 p1 = ScreenToLocal(_cam.UnprojectPosition(p1w));
 
-                    prev = cur;
-                }
-            }
-        }
+				DrawLine(p0, p1, NormalColor, NormalWidth);
+			}
+		}
+	}
 
-        if (DrawHitNormals)
-        {
-            for (int i = 0; i < _hits.Count; i++)
-            {
-                var h = _hits[i];
-                if (!h.Valid)
-                    continue;
 
-                Vector3 p0w = h.Position;
-                Vector3 p1w = h.Position + h.Normal * NormalLenWorld;
+	private void EnsureCapacity(int rays, int pts)
+	{
+		if (_offsets.Length < rays) _offsets = new int[rays];
+		if (_counts.Length < rays) _counts = new int[rays];
+		if (_hits.Length < rays) _hits = new RayBeamRenderer.HitPayload[rays];
+		if (_pts.Length < pts) _pts = new Vector3[pts];
+	}
 
-                Vector2 p0 = _cam.UnprojectPosition(p0w);
-                Vector2 p1 = _cam.UnprojectPosition(p1w);
-
-                DrawLine(p0, p1, NormalColor, NormalWidth);
-            }
-        }
-    }
+	private Color GetRayColor(int rayIndex)
+	{
+		float h = (rayIndex * 0.6180339f) % 1f;
+		Color c = Color.FromHsv(h, 0.65f, 1.0f);
+		c.A = RayColor.A;
+		return c;
+	}
 }
