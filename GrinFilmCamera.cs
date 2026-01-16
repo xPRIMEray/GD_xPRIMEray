@@ -61,8 +61,9 @@ public partial class GrinFilmCamera : Node
 	}
 
 	[Export] public float FilmOpacity = 0.7f;
-
-
+	[Export] public NodePath FilmOverlayPath;
+	
+	private FilmOverlay2D _filmOverlay;
 	private float _rangeFar = 5f; // dynamic far distance used for mapping
 	private int _depthHistWrite = 0;
 	private float[] _depthHistory = Array.Empty<float>();
@@ -172,6 +173,8 @@ public partial class GrinFilmCamera : Node
 			GD.Print("GrinFilmCamera: No FilmViewPath set, created overlay TextureRect.");
 		}
 		UpdateFilmOpacity();
+
+		_filmOverlay = GetNodeOrNull<FilmOverlay2D>(FilmOverlayPath);
 
 		GD.Print("✅ GrinFilmCamera ready. Rendering film.");
 	}
@@ -631,26 +634,33 @@ public partial class GrinFilmCamera : Node
 		if (EnableProfiling) _perfHits += bandHits;
 
 		// ---- Debug overlay draw ONCE per band ----
-		if (wantDbg)
+		if (wantDbg && _filmOverlay != null)
 		{
-			ulong dbgOverlayStart = 0;
-			if (EnableProfiling) dbgOverlayStart = Time.GetTicksUsec();
-			var camDbg = GetViewport().GetCamera3D();
-			_rbr.UpdateDebugOverlayFromFilm(
-				camDbg,
+			// Convert your payload type to FilmOverlay2D.Hit
+			// (Or change FilmOverlay2D.Hit to use your existing HitPayload type.)
+			var hits = new FilmOverlay2D.Hit[_dbgRayCount];
+			for (int i = 0; i < _dbgRayCount; i++)
+			{
+				var h = _dbgHits[i];
+				hits[i] = new FilmOverlay2D.Hit
+				{
+					Valid = h.Valid,
+					Position = h.Position,
+					Normal = h.Normal,
+					Distance = h.Distance,
+					ColliderName = h.ColliderName
+				};
+			}
+
+			_filmOverlay.SetOverlayData(
+				_cam, // or GetViewport().GetCamera3D(), but _cam is correct for film
 				_dbgPts.AsSpan(0, _dbgPtWrite),
 				_dbgOff.AsSpan(0, _dbgRayCount),
 				_dbgCnt.AsSpan(0, _dbgRayCount),
-				_dbgHits.AsSpan(0, _dbgRayCount),
-				everyNRays: 1,
-				normalLen: _rbr.DebugNormalLen
+				hits
 			);
-			if (EnableProfiling)
-			{
-				ulong dbgOverlayEnd = Time.GetTicksUsec();
-				_perfDbgOverlayUsec += (dbgOverlayEnd - dbgOverlayStart);
-			}
 		}
+
 
 		if (AutoRangeDepth && frameMaxHit > 0.0001f)
 		{

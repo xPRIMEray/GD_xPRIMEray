@@ -62,7 +62,7 @@ directional_shadow_fade_start = 1.0
 directional_shadow_max_distance = 15.0
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(-0.7325621, 0.030328136, -0.6800243, -4.0068295e-09, 0.9990069, 0.04455433, 0.6807003, 0.03263881, -0.73183465, -0.8523715, 2.436, -1.895)
+transform = Transform3D(-0.7325621, 0.030328136, -0.6800243, -4.0068295e-09, 0.9990069, 0.04455433, 0.6807003, 0.03263881, -0.73183465, -0.4534495, 2.436, -1.895)
 attributes = SubResource("CameraAttributesPhysical_drxnu")
 current = true
 script = ExtResource("2_ppyta")
@@ -501,6 +501,15 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_behavior_recursive = 1
 metadata/_edit_use_anchors_ = true
+
+[node name="FilmOverlay2D" type="TextureRect" parent="CanvasLayer"]
+modulate = Color(1, 1, 1, 0.56078434)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_behavior_recursive = 1
 
 [node name="RayBeamRenderer" type="Node3D" parent="."]
 script = ExtResource("4_raybeam")

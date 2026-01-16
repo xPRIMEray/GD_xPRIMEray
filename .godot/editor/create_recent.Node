@@ -1,5 +1,5 @@
-CanvasLayer
 TextureRect
+CanvasLayer
 Node3D
 MeshInstance3D
 CollisionShape3D
