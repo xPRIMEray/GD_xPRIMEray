@@ -535,7 +535,7 @@ AutoRangeSmoothing = 0.05
 AutoRangeSafety = 1.02
 ShadingMode = 2
 UseSmoothNormals = true
-FilmOpacity = 0.74
+FilmOpacity = 0.88
 
 [node name="FieldSource3D" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.11073613, 1.9950955, -0.6214657)

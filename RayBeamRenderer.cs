@@ -851,10 +851,28 @@ public partial class RayBeamRenderer : Node3D
 		out Vector3 hitPos, out Vector3 hitNormal,
 		out ulong colliderId, out string colliderName)
 	{
+		return SubdividedRayHit(
+			space, a, b, mask, maxSubsteps,
+			out hitPos, out hitNormal,
+			out colliderId, out colliderName,
+			out _,
+			includeColliderName: true
+		);
+	}
+
+	// ✅ ADD: normal-aware overload with optional collider name + query count
+	public static bool SubdividedRayHit(PhysicsDirectSpaceState3D space,
+		Vector3 a, Vector3 b, uint mask, int maxSubsteps,
+		out Vector3 hitPos, out Vector3 hitNormal,
+		out ulong colliderId, out string colliderName,
+		out int rayQueryCount,
+		bool includeColliderName)
+	{
 		hitPos = Vector3.Zero;
 		hitNormal = Vector3.Up;
 		colliderId = 0;
 		colliderName = "<none>";
+		rayQueryCount = 0;
 
 		Vector3 d = b - a;
 		float len = d.Length();
@@ -873,6 +891,7 @@ public partial class RayBeamRenderer : Node3D
 			rq.CollideWithAreas = true;
 			rq.HitFromInside = false;
 
+			rayQueryCount++;
 			var hit = space.IntersectRay(rq);
 			if (hit.Count > 0)
 			{
@@ -881,8 +900,11 @@ public partial class RayBeamRenderer : Node3D
 					hitNormal = ((Vector3)nObj).Normalized();
 
 				colliderId = (ulong)hit["collider_id"];
-				var colliderObj = hit["collider"].AsGodotObject();
-				colliderName = colliderObj != null ? colliderObj.ToString() : "<null>";
+				if (includeColliderName)
+				{
+					var colliderObj = hit["collider"].AsGodotObject();
+					colliderName = colliderObj != null ? colliderObj.ToString() : "<null>";
+				}
 				return true;
 			}
 

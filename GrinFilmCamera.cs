@@ -75,6 +75,20 @@ public partial class GrinFilmCamera : Node
 	private RayBeamRenderer _rbr;
 	private RayBeamRenderer.RaySeg[] _segBuf;
 	private int[] _segCountPerPixel;
+	private PhysicsRayQueryParameters3D _quickRayParams;
+	private PhysicsShapeQueryParameters3D _overlapQuery;
+	private SphereShape3D _overlapSphere;
+
+	// perf stats (per full frame)
+	private ulong _perfPass1Usec;
+	private ulong _perfPass2PhysUsec;
+	private ulong _perfPass2ShadeUsec;
+	private ulong _perfDbgBuildUsec;
+	private ulong _perfDbgOverlayUsec;
+	private int _perfPixels;
+	private int _perfSegs;
+	private int _perfHits;
+	private int _perfQueries;
 
 	// conservative: max segments per ray = StepsPerRay / CollisionEveryNSteps + 2
 	private int MaxSegPerRay => (_rbr != null)
@@ -91,6 +105,7 @@ public partial class GrinFilmCamera : Node
 
 	[Export] public int DebugEveryNPixels = 8;   // sample density (perf knob)
 	[Export] public int DebugMaxFilmRays = 2048; // cap per band
+	[Export] public bool EnableProfiling = true;
 
 
 
@@ -204,15 +219,15 @@ public partial class GrinFilmCamera : Node
 
 		int yStart = _rowCursor;
 		int yEnd = Mathf.Min(Height, _rowCursor + Mathf.Max(1, RowsPerFrame));
+		int bandH = yEnd - yStart;
+		int pixelCount = bandH * Width;
 
 		EnsureDepthHistory();
 		float frameMaxHit = 0f; // track deepest hit this RenderStep band
 
 		int bandHits = 0;
-		int bandH = yEnd - yStart;
-		int pixelCount = bandH * Width;
-
 		int maxSeg = MaxSegPerRay;
+		float farForSim = AutoRangeDepth ? _rangeFar : MaxDistance;
 
 		// allocate / reuse buffers
 		int segTotal = pixelCount * maxSeg;
@@ -271,66 +286,81 @@ public partial class GrinFilmCamera : Node
 
 		// ---- PASS 1 (workers): build segments for each pixel ----
 		//int jobs = Mathf.Clamp(OS.GetProcessorCount(), 2, 16);
-        int jobs = Mathf.Clamp(OS.GetProcessorCount() / 2, 2, 8);
-		int chunk = Mathf.CeilToInt((float)pixelCount / jobs);
+		int jobs = Mathf.Clamp(OS.GetProcessorCount() / 2, 2, 8);
 
 		var basisLocal = basis; // capture for lambda
 		Vector3 camPos = _cam.GlobalPosition;
 
-		var tasks = new System.Threading.Tasks.Task[jobs];
+		ulong a0 = Time.GetTicksUsec(); // before Parallel.For
 
-		ulong a0 = Time.GetTicksUsec(); // before Task.Run loop
-
-		for (int j = 0; j < jobs; j++)
-		{
-			int start = j * chunk;
-			int end = Mathf.Min(pixelCount, start + chunk);
-			if (start >= end) { tasks[j] = System.Threading.Tasks.Task.CompletedTask; continue; }
-
-			tasks[j] = System.Threading.Tasks.Task.Run(() =>
+		System.Threading.Tasks.Parallel.For(
+			0,
+			pixelCount,
+			new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = jobs },
+			pi =>
 			{
-				for (int pi = start; pi < end; pi++)
-				{
-					int localY = pi / Width;   // 0..bandH-1
-					int x = pi - localY * Width;
-					int y = yStart + localY;
+				int localY = pi / Width;   // 0..bandH-1
+				int x = pi - localY * Width;
+				int y = yStart + localY;
 
-					float v = ((y + 0.5f) / Height) * 2f - 1f;
-					v = -v;
-					float u = ((x + 0.5f) / Width) * 2f - 1f;
+				float v = ((y + 0.5f) / Height) * 2f - 1f;
+				v = -v;
+				float u = ((x + 0.5f) / Width) * 2f - 1f;
 
-					Vector3 dirCam = new Vector3(
-						u * tanHalf * aspect,
-						v * tanHalf,
-						-1f
-					).Normalized();
+				Vector3 dirCam = new Vector3(
+					u * tanHalf * aspect,
+					v * tanHalf,
+					-1f
+				).Normalized();
 
-					Vector3 dirWorld = (basisLocal * dirCam).Normalized();
-					Vector3 bendDir = basisLocal.X;
+				Vector3 dirWorld = (basisLocal * dirCam).Normalized();
+				Vector3 bendDir = basisLocal.X;
 
-					int segOffset = pi * maxSeg;
+				int segOffset = pi * maxSeg;
 
-					float farForSim = AutoRangeDepth ? _rangeFar : MaxDistance;
+				int count = _rbr.BuildRaySegmentsCamera(
+					camPos, dirWorld, bendDir,
+					center, beta, gamma,
+					fieldSnaps, hasSources,
+					farForSim,
+					_segBuf, segOffset, maxSeg,
+					insightPlane, useInsightPlane, insightEps
+				);
 
-					int count = _rbr.BuildRaySegmentsCamera(
-						camPos, dirWorld, bendDir,
-						center, beta, gamma,
-						fieldSnaps, hasSources,
-						farForSim,
-						_segBuf, segOffset, maxSeg,
-						insightPlane, useInsightPlane, insightEps
-					);
-
-					_segCountPerPixel[pi] = count;
-				}
+				_segCountPerPixel[pi] = count;
 			});
-		}
 
-		System.Threading.Tasks.Task.WaitAll(tasks);
 		ulong a1 = Time.GetTicksUsec(); // after wait
+
+		if (EnableProfiling)
+		{
+			_perfPass1Usec += (a1 - a0);
+			_perfPixels += pixelCount;
+		}
 
 		// ---- PASS 2 (main thread): collisions + shading ----
 		bandHits = 0;
+
+		Vector3 camPosPass2 = camPos;
+		if (UseBroadphaseOverlap)
+		{
+			_overlapSphere ??= new SphereShape3D();
+			_overlapQuery ??= new PhysicsShapeQueryParameters3D();
+			_overlapSphere.Radius = _rbr.CollisionRadius + BroadphaseMargin;
+			_overlapQuery.Shape = _overlapSphere;
+			_overlapQuery.CollisionMask = _rbr.CollisionMask;
+			_overlapQuery.CollideWithBodies = true;
+			_overlapQuery.CollideWithAreas = true;
+		}
+
+		if (UseBroadphaseQuickRay)
+		{
+			_quickRayParams ??= new PhysicsRayQueryParameters3D();
+			_quickRayParams.CollisionMask = _rbr.CollisionMask;
+			_quickRayParams.CollideWithBodies = true;
+			_quickRayParams.CollideWithAreas = true;
+			_quickRayParams.HitFromInside = false;
+		}
 
 		for (int localY = 0; localY < bandH; localY++)
 		{
@@ -350,6 +380,14 @@ public partial class GrinFilmCamera : Node
 				int segCount = _segCountPerPixel[pi];
 				int segOffset = pi * maxSeg;
 
+				if (EnableProfiling) _perfSegs += segCount;
+
+				bool isCenterSample = (x == Width / 2 && y == (yStart + (bandH / 2)));
+				bool needHitName = wantDbg || isCenterSample;
+
+				ulong physStart = 0;
+				if (EnableProfiling) physStart = Time.GetTicksUsec();
+
 				for (int si = 0; si < segCount; si++)
 				{
 					var seg = _segBuf[segOffset + si];
@@ -358,6 +396,12 @@ public partial class GrinFilmCamera : Node
 					float segLen = (segB - segA).Length();
 
 					if (segLen <= 1e-6f) continue;
+					if (hadHit && bestHit < float.PositiveInfinity)
+					{
+						float segStartDist = seg.TraveledB - segLen;
+						if (segStartDist >= bestHit)
+							continue;
+					}
 
 					/////////////////////////////////
 					ulong cid = 0;
@@ -370,6 +414,7 @@ public partial class GrinFilmCamera : Node
 					if (_rbr.UseSphereSweepCollision)
 					{
 						didHit = RayBeamRenderer.SweepSegmentHit(space, segA, segB, _rbr.CollisionMask, _rbr.CollisionRadius, out hp);
+						if (EnableProfiling) _perfQueries++;
 						// cname stays "<none>" for sphere sweep (unless you add a separate lookup)
 					}					
 					else
@@ -389,17 +434,9 @@ public partial class GrinFilmCamera : Node
 						{
 							Vector3 mid = (segA + segB) * 0.5f;
 
-							var sphere = new SphereShape3D { Radius = _rbr.CollisionRadius + BroadphaseMargin };
-							var qp = new PhysicsShapeQueryParameters3D
-							{
-								Shape = sphere,
-								Transform = new Transform3D(Basis.Identity, mid),
-								CollisionMask = _rbr.CollisionMask,
-								CollideWithBodies = true,
-								CollideWithAreas = true
-							};
-
-							var overlaps = space.IntersectShape(qp, BroadphaseMaxResults);
+							_overlapQuery.Transform = new Transform3D(Basis.Identity, mid);
+							var overlaps = space.IntersectShape(_overlapQuery, BroadphaseMaxResults);
+							if (EnableProfiling) _perfQueries++;
 							if (overlaps.Count == 0)
 								continue;
 						}
@@ -408,12 +445,10 @@ public partial class GrinFilmCamera : Node
 						// ---- PASS2 cheap reject 1: quick ray probe ----
 						if (UseBroadphaseQuickRay)
 						{
-							var rq0 = PhysicsRayQueryParameters3D.Create(segA, segB, _rbr.CollisionMask);
-							rq0.CollideWithBodies = true;
-							rq0.CollideWithAreas = true;
-							rq0.HitFromInside = false;
-
-							var hit0 = space.IntersectRay(rq0);
+							_quickRayParams.From = segA;
+							_quickRayParams.To = segB;
+							var hit0 = space.IntersectRay(_quickRayParams);
+							if (EnableProfiling) _perfQueries++;
 							if (hit0.Count == 0)
 								continue;
 						}
@@ -428,9 +463,12 @@ public partial class GrinFilmCamera : Node
 									space, segA, segB,
 									_rbr.CollisionMask,
 									sub,
-									out hp, out hn, out cid, out cname);
+									out hp, out hn, out cid, out cname,
+									out int rayQueries,
+									includeColliderName: needHitName);
+						if (EnableProfiling) _perfQueries += rayQueries;
 						
-						if (didHit)
+						if (didHit && needHitName)
 							hitName = cname;
 					}
 
@@ -444,7 +482,7 @@ public partial class GrinFilmCamera : Node
 							bestHit = d;
 							hitDistance = d;
 							hadHit = true;
-						    hitName = cname;
+							if (needHitName) hitName = cname;
 							bestHp = hp;      // ✅ ADD
 							bestHn = hn;      // ✅ ADD
 						}
@@ -459,8 +497,16 @@ public partial class GrinFilmCamera : Node
 					//////////////////
 				}
 
+				if (EnableProfiling)
+				{
+					ulong physEnd = Time.GetTicksUsec();
+					_perfPass2PhysUsec += (physEnd - physStart);
+				}
+
 				////
 				////////////////////////
+				ulong shadeStart = 0;
+				if (EnableProfiling) shadeStart = Time.GetTicksUsec();
 				Color col = SkyColor;
 				if (hadHit)
 				{
@@ -486,7 +532,7 @@ public partial class GrinFilmCamera : Node
 							Vector3 n = bestHn;
 							if (FlipNormalToCamera)
 							{
-								Vector3 v = (_cam.GlobalPosition - bestHp).Normalized();
+								Vector3 v = (camPosPass2 - bestHp).Normalized();
 								if (n.Dot(v) < 0f) n = -n;
 							}
 							col = ShadeNormalRGB(n);
@@ -495,7 +541,7 @@ public partial class GrinFilmCamera : Node
 
 						case FilmShadingMode.NdotV:
 						{
-							Vector3 v = (_cam.GlobalPosition - bestHp).Normalized();
+							Vector3 v = (camPosPass2 - bestHp).Normalized();
 							Vector3 n = bestHn;
 							if (FlipNormalToCamera && n.Dot(v) < 0f) n = -n;
 							col = ShadeNdotV(n, v);
@@ -504,11 +550,16 @@ public partial class GrinFilmCamera : Node
 
 					}
 
-					if (x == Width / 2 && y == (yStart + (bandH / 2)))
+					if (isCenterSample)
 						GD.Print($"🎯 Film hit: dist={hitDistance:0.000} name={hitName} mode={ShadingMode}");
 				}
 
 				_img.SetPixel(x, y, col);
+				if (EnableProfiling)
+				{
+					ulong shadeEnd = Time.GetTicksUsec();
+					_perfPass2ShadeUsec += (shadeEnd - shadeStart);
+				}
 				////////////////////////////
 				/// 
 
@@ -517,6 +568,8 @@ public partial class GrinFilmCamera : Node
 				///////////
 				if (wantDbg)
 				{
+					ulong dbgStart = 0;
+					if (EnableProfiling) dbgStart = Time.GetTicksUsec();
 					int pxStride = Math.Max(1, DebugEveryNPixels);
 
 					// Sample a sparse grid (keeps overlay readable + fast)
@@ -559,9 +612,14 @@ public partial class GrinFilmCamera : Node
 							Normal = bestHn,
 							Distance = hitDistance,
 							ColliderId = 0,
-							ColliderName = hitName ?? "<none>",
+							ColliderName = needHitName ? hitName : "<none>",
 							Albedo = Colors.White
 						};
+					}
+					if (EnableProfiling)
+					{
+						ulong dbgEnd = Time.GetTicksUsec();
+						_perfDbgBuildUsec += (dbgEnd - dbgStart);
 					}
 				}
 				///////////
@@ -570,10 +628,13 @@ public partial class GrinFilmCamera : Node
 			}
 		}
 		ulong b1 = Time.GetTicksUsec(); // after PASS 2
+		if (EnableProfiling) _perfHits += bandHits;
 
 		// ---- Debug overlay draw ONCE per band ----
 		if (wantDbg)
 		{
+			ulong dbgOverlayStart = 0;
+			if (EnableProfiling) dbgOverlayStart = Time.GetTicksUsec();
 			var camDbg = GetViewport().GetCamera3D();
 			_rbr.UpdateDebugOverlayFromFilm(
 				camDbg,
@@ -584,6 +645,11 @@ public partial class GrinFilmCamera : Node
 				everyNRays: 1,
 				normalLen: _rbr.DebugNormalLen
 			);
+			if (EnableProfiling)
+			{
+				ulong dbgOverlayEnd = Time.GetTicksUsec();
+				_perfDbgOverlayUsec += (dbgOverlayEnd - dbgOverlayStart);
+			}
 		}
 
 		if (AutoRangeDepth && frameMaxHit > 0.0001f)
@@ -615,6 +681,11 @@ public partial class GrinFilmCamera : Node
 		ulong t1 = Time.GetTicksUsec();
 		GD.Print($"⏱️ RenderStep {(t1 - t0)/1000.0:0.00} ms  rows={RowsPerFrame}  jobs={jobs}  hits={bandHits}");
 		GD.Print($"⏱️ pass1={(a1-a0)/1000.0:0.00}ms  pass2={(b1-a1)/1000.0:0.00}ms  total={(b1-a0)/1000.0:0.00}ms");
+		
+		if (EnableProfiling && _rowCursor == 0)
+		{
+			PrintAndResetPerfFrameStats();
+		}
 	}
 
 	private static float ReadFloat(Node obj, StringName prop, float fallback)
@@ -680,6 +751,28 @@ public partial class GrinFilmCamera : Node
 		if (_dbgCnt.Length < rays) Array.Resize(ref _dbgCnt, rays);
 		if (_dbgHits.Length < rays) Array.Resize(ref _dbgHits, rays);
 		if (_dbgPts.Length < pts) Array.Resize(ref _dbgPts, pts);
+	}
+
+	private void PrintAndResetPerfFrameStats()
+	{
+		double pass1Ms = _perfPass1Usec / 1000.0;
+		double pass2PhysMs = _perfPass2PhysUsec / 1000.0;
+		double pass2ShadeMs = _perfPass2ShadeUsec / 1000.0;
+		double dbgBuildMs = _perfDbgBuildUsec / 1000.0;
+		double dbgOverlayMs = _perfDbgOverlayUsec / 1000.0;
+
+		GD.Print($"📊 Film frame stats: pixels={_perfPixels} segs={_perfSegs} hits={_perfHits} queries={_perfQueries}");
+		GD.Print($"📊 Film timings: pass1={pass1Ms:0.00}ms pass2.physics={pass2PhysMs:0.00}ms pass2.shading={pass2ShadeMs:0.00}ms dbg.build={dbgBuildMs:0.00}ms dbg.overlay={dbgOverlayMs:0.00}ms");
+
+		_perfPass1Usec = 0;
+		_perfPass2PhysUsec = 0;
+		_perfPass2ShadeUsec = 0;
+		_perfDbgBuildUsec = 0;
+		_perfDbgOverlayUsec = 0;
+		_perfPixels = 0;
+		_perfSegs = 0;
+		_perfHits = 0;
+		_perfQueries = 0;
 	}
 
 	void UpdateFilmOpacity()
