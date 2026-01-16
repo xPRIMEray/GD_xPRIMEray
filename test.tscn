@@ -11,6 +11,7 @@
 [ext_resource type="Shader" uid="uid://gu1m7wtw117i" path="res://curved_view.gdshader" id="4_ykrsh"]
 [ext_resource type="Script" uid="uid://713wqufxods5" path="res://RayEmitter3D.cs" id="5_emitter"]
 [ext_resource type="Script" uid="uid://vmh5vusla1nv" path="res://FieldSource3D.cs" id="8_xersf"]
+[ext_resource type="Script" uid="uid://c0nlk0rn3oilh" path="res://FilmOverlay2D.cs" id="6_filmoverlay"]
 
 [sub_resource type="PhysicalSkyMaterial" id="PhysicalSkyMaterial_6cd1w"]
 use_debanding = false
@@ -510,6 +511,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_behavior_recursive = 1
+script = ExtResource("6_filmoverlay")
 
 [node name="RayBeamRenderer" type="Node3D" parent="."]
 script = ExtResource("4_raybeam")
@@ -537,6 +539,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.86010253, 2.303526, -2.007
 script = ExtResource("3_77dp3")
 RayBeamRendererPath = NodePath("../RayBeamRenderer")
 FilmViewPath = NodePath("../CanvasLayer/FilmView")
+FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
 UpdateEveryFrame = false
 MaxDistance = 15.0
 SkyColor = Color(1, 0.56133336, 0.060000002, 0.1254902)

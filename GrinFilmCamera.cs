@@ -256,7 +256,9 @@ public partial class GrinFilmCamera : Node
 		if (wantDbg)
 		{
 			int pxStride = Math.Max(1, DebugEveryNPixels);
-			int sampledPixels = (Width / pxStride) * (bandH / pxStride);
+			int sampledW = (Width + pxStride - 1) / pxStride;
+			int sampledH = (bandH + pxStride - 1) / pxStride;
+			int sampledPixels = sampledW * sampledH;
 			sampledPixels = Math.Min(sampledPixels, DebugMaxFilmRays);
 
 			// Each sampled pixel stores up to segCount+1 points; we’ll cap segments too
