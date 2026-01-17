@@ -24,6 +24,11 @@ public struct PerfFrameReport
 	public double OverlayEnqueueMs;
 
 	public int Pixels;
+	public int TracedPixels;
+	public int FilledPixels;
+	public int EffectiveStride;
+	public int EffectiveWidth;
+	public int EffectiveHeight;
 	public int Segs;
 	public int SegsTested;
 	public int Hits;
@@ -87,6 +92,8 @@ public sealed class PerfStats
 		public double OverlayBuildMs;
 		public double OverlayEnqueueMs;
 		public long Pixels;
+		public long TracedPixels;
+		public long FilledPixels;
 		public long Segs;
 		public long SegsTested;
 		public long Hits;
@@ -144,6 +151,8 @@ public sealed class PerfStats
 		_sum.OverlayBuildMs += frame.OverlayBuildMs * sign;
 		_sum.OverlayEnqueueMs += frame.OverlayEnqueueMs * sign;
 		_sum.Pixels += frame.Pixels * sign;
+		_sum.TracedPixels += frame.TracedPixels * sign;
+		_sum.FilledPixels += frame.FilledPixels * sign;
 		_sum.Segs += frame.Segs * sign;
 		_sum.SegsTested += frame.SegsTested * sign;
 		_sum.Hits += frame.Hits * sign;
@@ -172,35 +181,40 @@ public sealed class PerfStats
 		double avgOverlayEnqueue = _sum.OverlayEnqueueMs * inv;
 
 		double avgPixels = _sum.Pixels * inv;
+		double avgTracedPixels = _sum.TracedPixels * inv;
+		double avgFilledPixels = _sum.FilledPixels * inv;
 		double avgSegs = _sum.Segs * inv;
 		double avgSegsTested = _sum.SegsTested * inv;
 		double avgHits = _sum.Hits * inv;
 		double avgSubRayCalls = _sum.SubdividedRayCalls * inv;
 		double avgSubRaySubsteps = _sum.SubdividedRaySubsteps * inv;
 
-		double avgSegPerPixel = frame.Pixels > 0 ? (double)frame.Segs / frame.Pixels : 0.0;
-		double avgSegsTestedPerPixel = frame.Pixels > 0 ? (double)frame.SegsTested / frame.Pixels : 0.0;
+		int tracedPixels = frame.TracedPixels > 0 ? frame.TracedPixels : frame.Pixels;
+		double avgSegPerPixel = tracedPixels > 0 ? (double)frame.Segs / tracedPixels : 0.0;
+		double avgSegsTestedPerPixel = tracedPixels > 0 ? (double)frame.SegsTested / tracedPixels : 0.0;
 		double avgSubsteps = frame.SubdividedRayCalls > 0 ? (double)frame.SubdividedRaySubsteps / frame.SubdividedRayCalls : 0.0;
-		double hitPct = frame.Pixels > 0 ? (frame.Hits * 100.0) / frame.Pixels : 0.0;
+		double hitPct = tracedPixels > 0 ? (frame.Hits * 100.0) / tracedPixels : 0.0;
 
-		double avgSegPerPixelRoll = avgPixels > 0 ? avgSegs / avgPixels : 0.0;
-		double avgSegsTestedPerPixelRoll = avgPixels > 0 ? avgSegsTested / avgPixels : 0.0;
+		double avgSegPerPixelRoll = avgTracedPixels > 0 ? avgSegs / avgTracedPixels : 0.0;
+		double avgSegsTestedPerPixelRoll = avgTracedPixels > 0 ? avgSegsTested / avgTracedPixels : 0.0;
 		double avgSubstepsRoll = avgSubRayCalls > 0 ? avgSubRaySubsteps / avgSubRayCalls : 0.0;
-		double hitPctRoll = avgPixels > 0 ? (avgHits * 100.0) / avgPixels : 0.0;
+		double hitPctRoll = avgTracedPixels > 0 ? (avgHits * 100.0) / avgTracedPixels : 0.0;
 
 		if (verbose)
 		{
-			GD.Print($"Film frame stats: pixels={frame.Pixels} segs={frame.Segs} segsTested={frame.SegsTested} hits={frame.Hits} qRay={frame.IntersectRayCalls} overlap={frame.IntersectShapeCalls} subRayCalls={frame.SubdividedRayCalls} subRayQueries={frame.SubdividedRayQueries} subRaySkipped={frame.SubdividedRaySkipped}");
+			GD.Print($"Film frame stats: pixels={frame.Pixels} traced={frame.TracedPixels} filled={frame.FilledPixels} segs={frame.Segs} segsTested={frame.SegsTested} hits={frame.Hits} qRay={frame.IntersectRayCalls} overlap={frame.IntersectShapeCalls} subRayCalls={frame.SubdividedRayCalls} subRayQueries={frame.SubdividedRayQueries} subRaySkipped={frame.SubdividedRaySkipped}");
 			string statFlags = FormatReasonFlags(frame.ReasonFlags);
 			GD.Print($"Film physics summary: avgSegPerPixel={avgSegPerPixel:0.00} avgSegsTestedPerPixel={avgSegsTestedPerPixel:0.00} avgSubsteps={avgSubsteps:0.00} hitPct={hitPct:0.00}%{(statFlags.Length > 0 ? " " + statFlags : string.Empty)}");
 			GD.Print($"Film timings(ms): pass1={frame.Pass1Ms:0.00} pass2.physics={frame.Pass2PhysMs:0.00} pass2.shading={frame.Pass2ShadeMs:0.00} film.update={frame.FilmUpdateMs:0.00} overlay.build={frame.OverlayBuildMs:0.00} overlay.enqueue={frame.OverlayEnqueueMs:0.00}");
 			GD.Print($"Film avg(ms): pass1={avgPass1:0.00} pass2.physics={avgPass2Phys:0.00} pass2.shading={avgPass2Shade:0.00} film.update={avgFilmUpdate:0.00} overlay.build={avgOverlayBuild:0.00} overlay.enqueue={avgOverlayEnqueue:0.00}");
-			GD.Print($"Film avg summary: avgSegPerPixel={avgSegPerPixelRoll:0.00} avgSegsTestedPerPixel={avgSegsTestedPerPixelRoll:0.00} avgSubsteps={avgSubstepsRoll:0.00} hitPct={hitPctRoll:0.00}%");
+			GD.Print($"Film avg summary: avgSegPerPixel={avgSegPerPixelRoll:0.00} avgSegsTestedPerPixel={avgSegsTestedPerPixelRoll:0.00} avgSubsteps={avgSubstepsRoll:0.00} hitPct={hitPctRoll:0.00}% avgTracedPixels={avgTracedPixels:0.00} avgFilledPixels={avgFilledPixels:0.00}");
 			return;
 		}
 
 		_sb.Clear();
 		_sb.Append("Film perf: px=").Append(frame.Pixels)
+			.Append(" tpx=").Append(frame.TracedPixels)
+			.Append(" fpx=").Append(frame.FilledPixels)
 			.Append(" segs=").Append(frame.Segs)
 			.Append(" tested=").Append(frame.SegsTested)
 			.Append(" hits=").Append(frame.Hits)
@@ -208,6 +222,8 @@ public sealed class PerfStats
 			.Append("% avgSeg=").Append(avgSegPerPixel.ToString("0.00"))
 			.Append(" avgTested=").Append(avgSegsTestedPerPixel.ToString("0.00"))
 			.Append(" avgSub=").Append(avgSubsteps.ToString("0.00"))
+			.Append(" stride=").Append(frame.EffectiveStride)
+			.Append(" eff=").Append(frame.EffectiveWidth).Append("x").Append(frame.EffectiveHeight)
 			.Append(" ms p1=").Append(frame.Pass1Ms.ToString("0.00"))
 			.Append(" p2p=").Append(frame.Pass2PhysMs.ToString("0.00"))
 			.Append(" p2s=").Append(frame.Pass2ShadeMs.ToString("0.00"))
@@ -248,7 +264,7 @@ public sealed class PerfStats
 			GD.PushWarning($"[PerfStats] Invariant: subRaySkipped ({frame.SubdividedRaySkipped}) > segsTested ({frame.SegsTested}). Expected: skipped sub-rays imply a tested segment.");
 		}
 
-		if (!_warnedShadingSkip && frame.RequireHitToRender && frame.ShadingSkippedNoHits == false && frame.Hits == 0 && frame.Pixels > 0)
+		if (!_warnedShadingSkip && frame.RequireHitToRender && frame.ShadingSkippedNoHits == false && frame.Hits == 0 && frame.TracedPixels > 0)
 		{
 			_warnedShadingSkip = true;
 			GD.PushWarning("[PerfStats] RequireHitToRender is enabled and hits==0, but shading did not short-circuit.");

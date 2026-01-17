@@ -63,7 +63,7 @@ directional_shadow_fade_start = 1.0
 directional_shadow_max_distance = 15.0
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(-0.7325459, 0.023684418, -0.6803056, -0.00487129, 0.9991866, 0.040031422, 0.6807003, 0.032638814, -0.73183465, -0.9489119, 2.436, -1.883879)
+transform = Transform3D(-0.7325459, 0.023684418, -0.6803056, -0.00487129, 0.9991866, 0.040031422, 0.6807003, 0.032638814, -0.73183465, -0.8547745, 2.436, -1.2277682)
 attributes = SubResource("CameraAttributesPhysical_drxnu")
 current = true
 script = ExtResource("2_ppyta")
@@ -515,13 +515,14 @@ script = ExtResource("6_filmoverlay")
 [node name="RayBeamRenderer" type="Node3D" parent="."]
 script = ExtResource("4_raybeam")
 CameraPath = NodePath("../Camera3D")
-StepsPerRay = 48
+UpdateEveryFrame = false
 StepLength = 0.1
 BendScale = 1.0
-Alpha = 0.565
+Alpha = 1.0
 StopOnHit = true
 FieldCenter = Vector3(0, 1.5, 0)
 FieldCenterIsCamera = false
+MinStepLength = 0.02
 StepAdaptGain = 0.15
 CollisionRadius = 0.05
 UseInsightPlaneFilter = true
@@ -531,6 +532,7 @@ RequireHitToRender = true
 DebugRender = true
 DebugSetBillboardRejects = true
 CheckCollisionsEvenIfNotStopping = true
+DebugMode = 0
 DebugNormalLen = 0.295
 
 [node name="GrinField3D" type="Node3D" parent="."]
@@ -538,18 +540,24 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.86010253, 2.303526, -2.007
 script = ExtResource("3_77dp3")
 RayBeamRendererPath = NodePath("../RayBeamRenderer")
 FilmViewPath = NodePath("../CanvasLayer/FilmView")
+RowsPerFrame = 12
 MaxDistance = 15.0
 SkyColor = Color(1, 0.56133336, 0.060000002, 0.1254902)
+AutoRangeMin = 0.1
 AutoRangeSmoothing = 0.05
-AutoRangeSafety = 1.02
+AutoRangeSafety = 1.01
+UseFieldSourceCache = true
+UseBroadphasePolicy = true
+BroadphasePolicy = 3
 UseAdaptiveSubsteps = true
 UseSingleProbeThenSubdivide = true
 UseBandHitSkip = true
 BandSkipHitThreshold = 0.0
 ShadingMode = 2
 UseSmoothNormals = true
-FilmOpacity = 0.405
+FilmOpacity = 0.8
 FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
+EnableProfiling = false
 
 [node name="FieldSource3D" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9546801, 1.8735187, -1.3253045)
@@ -571,6 +579,7 @@ Enabled = false
 
 [node name="Emitter1" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
+visible = false
 script = ExtResource("5_emitter")
 Rays = 17
 SpreadDegrees = 59.975
@@ -581,10 +590,10 @@ FanYawDegrees = 360.0
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.011308312, -0.00152421, 0.021672606)
 
 [node name="TestPhysicsRoom" parent="." instance=ExtResource("4_00tp4")]
-transform = Transform3D(1.66995, -0.040571965, -5.150157, 2.0064397, 0.13614416, -0.03516897, 2.953654, -0.069545016, 2.9357088, 0.9892533, 2.449511, 0.40109158)
+transform = Transform3D(1.66995, -0.040571965, -5.150157, 2.0064397, 0.13614416, -0.03516897, 2.953654, -0.069545016, 2.9357088, 1.2962317, 2.0819187, 0.40109158)
 
 [node name="TestPhysicsRoom2" parent="." instance=ExtResource("4_00tp4")]
-transform = Transform3D(0.15018934, -0.009743014, -5.127716, 0.15580668, 0.22453885, -0.14385195, 1.2265571, -0.0273296, 0.6461518, 0.9307282, 1.4322524, -0.28077465)
+transform = Transform3D(-0.103048146, 0.054882545, -4.9977884, 0.2824248, 0.21488212, 1.1302289, 1.2086738, -0.045531273, -0.6901921, 0.9307282, 1.4322524, -0.28077465)
 
 [node name="CurvedLayer" type="CanvasLayer" parent="."]
 visible = false

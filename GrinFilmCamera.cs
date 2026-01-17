@@ -9,6 +9,13 @@ public partial class GrinFilmCamera : Node
 	[Export] public int Width = 160;
 	[Export] public int Height = 90;
 
+	/*
+	 * FilmResolutionScale reduces the internal film image/texture size (spatial resolution).
+	 * PixelStride reduces sampling density by tracing only every Nth pixel, then filling an N×N block.
+	 */
+	[Export(PropertyHint.Range, "0.25,1.0,0.01")] public float FilmResolutionScale = 1.0f;
+	[Export(PropertyHint.Range, "1,8,1")] public int PixelStride = 1;
+
 	[Export] public int RowsPerFrame = 8;
 	[Export] public bool UpdateEveryFrame = true;
 	[Export] public float MaxDistance = 50f;
@@ -99,6 +106,8 @@ public partial class GrinFilmCamera : Node
 	private float[] _depthHistory = Array.Empty<float>();
 	private Image _img;
 	private ImageTexture _tex;
+	private int _filmWidth;
+	private int _filmHeight;
 	private TextureRect _filmView;   // if user supplies FilmViewPath
 	private TextureRect _overlayRect; // auto-created fallback
 	private int _rowCursor = 0;
@@ -188,9 +197,7 @@ public partial class GrinFilmCamera : Node
 		GD.Print("FilmView found? ", _filmView != null);
 
 		// Create image + texture
-		_img = Image.CreateEmpty(Width, Height, false, Image.Format.Rgba8);
-		_img.Fill(SkyColor);
-		_tex = ImageTexture.CreateFromImage(_img);
+		EnsureFilmImageSize();
 
 		// If FilmViewPath is set, use it.
 		if (_filmView != null)
@@ -242,6 +249,10 @@ public partial class GrinFilmCamera : Node
 	{
 		ulong t0 = Time.GetTicksUsec();
 		bool perfEnabled = EnableProfiling || VerbosePerfLogs;
+		EnsureFilmImageSize();
+		int filmW = _filmWidth;
+		int filmH = _filmHeight;
+		int stride = Mathf.Clamp(PixelStride, 1, 8);
 
 		if (_rowCursor == 0)
 		{
@@ -250,9 +261,12 @@ public partial class GrinFilmCamera : Node
 			{
 				_perfFrame.Reset();
 				_perfFrame.RequireHitToRender = _rbr != null && _rbr.RequireHitToRender;
+				_perfFrame.EffectiveStride = stride;
+				_perfFrame.EffectiveWidth = filmW;
+				_perfFrame.EffectiveHeight = filmH;
 			}
 		}
-		if (VerbosePerfLogs && (_rowCursor % Height) == 0)
+		if (VerbosePerfLogs && (_rowCursor % filmH) == 0)
 			GD.Print($"Film RenderStep running. rowCursor={_rowCursor} cam={(_cam != null ? _cam.GetPath() : "<null>")}");
 
 		if (_rbr == null || _cam == null) return;
@@ -262,7 +276,7 @@ public partial class GrinFilmCamera : Node
 
 		var fieldSnaps = GetFieldSourceSnaps(_frameIndex, out bool hasSources);
 
-		if (VerbosePerfLogs && (_rowCursor % Height) == 0)
+		if (VerbosePerfLogs && (_rowCursor % filmH) == 0)
 			GD.Print($"fieldSnaps={fieldSnaps.Length} hasSources={hasSources}");
 
 
@@ -279,13 +293,13 @@ public partial class GrinFilmCamera : Node
 
 		float fovRad = Mathf.DegToRad(_cam.Fov);
 		float tanHalf = Mathf.Tan(fovRad * 0.5f);
-		float aspect = (float)Width / Mathf.Max(1f, Height);
+		float aspect = (float)filmW / Mathf.Max(1f, filmH);
 
 		int yStart = _rowCursor;
-		int rowsPerFrame = Mathf.Max(1, RowsPerFrame);
-		int yEnd = Mathf.Min(Height, _rowCursor + rowsPerFrame);
+		int rowsPerFrame = Mathf.Clamp(RowsPerFrame, 1, filmH);
+		int yEnd = Mathf.Min(filmH, _rowCursor + rowsPerFrame);
 		int bandH = yEnd - yStart;
-		int pixelCount = bandH * Width;
+		int pixelCount = bandH * filmW;
 
 		EnsureDepthHistory();
 		float frameMaxHit = 0f; // track deepest hit this RenderStep band
@@ -297,7 +311,7 @@ public partial class GrinFilmCamera : Node
 		int bandIndex = 0;
 		if (UseBandHitSkip)
 		{
-			EnsureBandHitHistory(rowsPerFrame);
+			EnsureBandHitHistory(filmH, rowsPerFrame);
 			bandIndex = yStart / rowsPerFrame;
 
 			if (CheckAndUpdateBandInvalidation(_cam.GlobalTransform, farForSim))
@@ -334,7 +348,7 @@ public partial class GrinFilmCamera : Node
 		if (wantDbg)
 		{
 			int pxStride = Math.Max(1, DebugEveryNPixels);
-			int sampledW = (Width + pxStride - 1) / pxStride;
+			int sampledW = (filmW + pxStride - 1) / pxStride;
 			int sampledH = (bandH + pxStride - 1) / pxStride;
 			int sampledPixels = sampledW * sampledH;
 			sampledPixels = Math.Min(sampledPixels, DebugMaxFilmRays);
@@ -382,13 +396,18 @@ public partial class GrinFilmCamera : Node
 			new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = jobs },
 			pi =>
 			{
-				int localY = pi / Width;   // 0..bandH-1
-				int x = pi - localY * Width;
+				int localY = pi / filmW;   // 0..bandH-1
+				int x = pi - localY * filmW;
 				int y = yStart + localY;
+				if ((x % stride) != 0 || (y % stride) != 0)
+				{
+					_segCountPerPixel[pi] = 0;
+					return;
+				}
 
-				float v = ((y + 0.5f) / Height) * 2f - 1f;
+				float v = ((y + 0.5f) / filmH) * 2f - 1f;
 				v = -v;
-				float u = ((x + 0.5f) / Width) * 2f - 1f;
+				float u = ((x + 0.5f) / filmW) * 2f - 1f;
 
 				Vector3 dirCam = new Vector3(
 					u * tanHalf * aspect,
@@ -423,6 +442,7 @@ public partial class GrinFilmCamera : Node
 
 		// ---- PASS 2 (main thread): collisions + shading ----
 		bandHits = 0;
+		int bandTracedPixels = 0;
 
 		Vector3 camPosPass2 = camPos;
 		bool useOverlap = UseBroadphaseOverlap;
@@ -475,18 +495,22 @@ public partial class GrinFilmCamera : Node
 			ulong shadeStart = 0;
 			if (perfEnabled) shadeStart = Time.GetTicksUsec();
 
-			for (int localY = 0; localY < bandH; localY++)
+			int yAlignedStart = yStart + ((stride - (yStart % stride)) % stride);
+			for (int y = yAlignedStart; y < yEnd; y += stride)
 			{
-				int y = yStart + localY;
-				for (int x = 0; x < Width; x++)
+				int localY = y - yStart;
+				for (int x = 0; x < filmW; x += stride)
 				{
 					if (perfEnabled)
 					{
-						int pi = localY * Width + x;
+						int pi = localY * filmW + x;
 						_perfFrame.Segs += _segCountPerPixel[pi];
 						if (_rbr != null && _rbr.RequireHitToRender) _perfFrame.ShadingSkippedPixels++;
+						_perfFrame.TracedPixels++;
 					}
-					_img.SetPixel(x, y, SkyColor);
+					bandTracedPixels++;
+					int filled = FillPixelBlock(x, y, stride, SkyColor, filmW, filmH);
+					if (perfEnabled) _perfFrame.FilledPixels += filled;
 				}
 			}
 
@@ -495,340 +519,343 @@ public partial class GrinFilmCamera : Node
 		}
 		else
 		{
-			for (int localY = 0; localY < bandH; localY++)
+			int yAlignedStart = yStart + ((stride - (yStart % stride)) % stride);
+			for (int y = yAlignedStart; y < yEnd; y += stride)
 			{
-				int y = yStart + localY;
-
-				for (int x = 0; x < Width; x++)
+				int localY = y - yStart;
+				for (int x = 0; x < filmW; x += stride)
 				{
-					int pi = localY * Width + x;
+					int pi = localY * filmW + x;
+					if (perfEnabled) _perfFrame.TracedPixels++;
+					bandTracedPixels++;
 
-				bool hadHit = false;
-				float hitDistance = 0f;
-				string hitName = "<none>";
-				float bestHit = float.PositiveInfinity;
-				Vector3 bestHp = Vector3.Zero;
-				Vector3 bestHn = Vector3.Up;
+					bool hadHit = false;
+					float hitDistance = 0f;
+					string hitName = "<none>";
+					float bestHit = float.PositiveInfinity;
+					Vector3 bestHp = Vector3.Zero;
+					Vector3 bestHn = Vector3.Up;
 
-				int segCount = _segCountPerPixel[pi];
-				int segOffset = pi * maxSeg;
+					int segCount = _segCountPerPixel[pi];
+					int segOffset = pi * maxSeg;
 
-				if (perfEnabled) _perfFrame.Segs += segCount;
+					if (perfEnabled) _perfFrame.Segs += segCount;
 
-				bool isCenterSample = (x == Width / 2 && y == (yStart + (bandH / 2)));
-				bool logCenterSample = VerbosePerfLogs && isCenterSample;
-				bool needHitName = NeedColliderNames || logCenterSample;
+					bool isCenterSample = (x == filmW / 2 && y == (yStart + (bandH / 2)));
+					bool logCenterSample = VerbosePerfLogs && isCenterSample;
+					bool needHitName = NeedColliderNames || logCenterSample;
 
-				ulong physStart = 0;
-				if (perfEnabled) physStart = Time.GetTicksUsec();
+					ulong physStart = 0;
+					if (perfEnabled) physStart = Time.GetTicksUsec();
 
-				for (int si = 0; si < segCount; si++)
-				{
-					var seg = _segBuf[segOffset + si];
-					Vector3 segA = seg.A;
-					Vector3 segB = seg.B;
-					float segLen = (segB - segA).Length();
-
-					if (segLen <= 1e-6f) continue;
-					if (TinySegmentSkipLen > 0f && segLen < TinySegmentSkipLen) continue;
-					if (hadHit && bestHit < float.PositiveInfinity)
+					for (int si = 0; si < segCount; si++)
 					{
-						float segStartDist = seg.TraveledB - segLen;
-						if (segStartDist >= bestHit)
-							continue;
-					}
+						var seg = _segBuf[segOffset + si];
+						Vector3 segA = seg.A;
+						Vector3 segB = seg.B;
+						float segLen = (segB - segA).Length();
 
-					/////////////////////////////////
-					bool segCounted = false;
-					ulong cid = 0;
-					string cname = "<none>";
-					Vector3 hp = Vector3.Zero;
-					Vector3 hn = Vector3.Up; // hit normal (world-space collider)
-					bool didHit = false;
-					/////////////////////////////////
-					
-					if (_rbr.UseSphereSweepCollision)
-					{
-						didHit = RayBeamRenderer.SweepSegmentHit(space, segA, segB, _rbr.CollisionMask, _rbr.CollisionRadius, out hp);
-						if (perfEnabled && !segCounted)
+						if (segLen <= 1e-6f) continue;
+						if (TinySegmentSkipLen > 0f && segLen < TinySegmentSkipLen) continue;
+						if (hadHit && bestHit < float.PositiveInfinity)
 						{
-							_perfFrame.SegsTested++;
-							segCounted = true;
-						}
-						// cname stays "<none>" for sphere sweep (unless you add a separate lookup)
-					}					
-					else
-					{
-						// Decision A
-						if (useInsightPlane)
-						{
-							//if (!SegmentCrossesPlane(segA, segB, insightPlane, insightEps))
-							if (!RayBeamRenderer.SegmentCrossesPlane(segA, segB, insightPlane, insightEps))
+							float segStartDist = seg.TraveledB - segLen;
+							if (segStartDist >= bestHit)
 								continue;
 						}
 
-
-						// Decision B
-						// ---- PASS2 cheap reject 2: optional overlap ----
-						if (useOverlap)
-						{
-							Vector3 mid = (segA + segB) * 0.5f;
-
-							_overlapQuery.Transform = new Transform3D(Basis.Identity, mid);
-							var overlaps = space.IntersectShape(_overlapQuery, BroadphaseMaxResults);
-							if (perfEnabled) _perfFrame.IntersectShapeCalls++;
-							if (perfEnabled && !segCounted)
-							{
-								_perfFrame.SegsTested++;
-								segCounted = true;
-							}
-							if (overlaps.Count == 0)
-								continue;
-						}
-
-						// Decision C
-						// ---- PASS2 cheap reject 1: quick ray probe ----
-						if (useQuickRay)
-						{
-							_quickRayParams.From = segA;
-							_quickRayParams.To = segB;
-							var hit0 = space.IntersectRay(_quickRayParams);
-							if (perfEnabled) _perfFrame.IntersectRayCalls++;
-							if (perfEnabled && !segCounted)
-							{
-								_perfFrame.SegsTested++;
-								segCounted = true;
-							}
-							if (hit0.Count == 0)
-							{
-								if (UseSingleProbeThenSubdivide)
-									_perfFrame.SubdividedRaySkipped++;
-								continue;
-							}
-						}
-
-						if (UseSingleProbeThenSubdivide && !useQuickRay)
-						{
-							_quickRayParams.From = segA;
-							_quickRayParams.To = segB;
-							var hit0 = space.IntersectRay(_quickRayParams);
-							if (perfEnabled) _perfFrame.IntersectRayCalls++;
-							if (perfEnabled && !segCounted)
-							{
-								_perfFrame.SegsTested++;
-								segCounted = true;
-							}
-							if (hit0.Count == 0)
-							{
-								_perfFrame.SubdividedRaySkipped++;
-								continue;
-							}
-						}
-
-						// ---- accurate subdivided ray ----
-						int sub = 1;
-						if (segLen > _rbr.CollisionRaySubdivideThreshold)
-							sub = Mathf.CeilToInt(segLen / _rbr.CollisionRaySubdivideThreshold);
-						sub = Mathf.Clamp(sub, 1, _rbr.MaxCollisionSubsteps);
-
-						if (UseAdaptiveSubsteps)
-						{
-							float far = AutoRangeDepth ? _rangeFar : MaxDistance;
-							float t = Mathf.Clamp(seg.TraveledB / Mathf.Max(0.001f, far), 0f, 1f);
-							float minSub = Mathf.Max(1f, sub * 0.25f);
-							float scaled = Mathf.Lerp(sub, minSub, t);
-							sub = Mathf.Clamp(Mathf.RoundToInt(scaled), 1, _rbr.MaxCollisionSubsteps);
-						}
-
-						didHit = RayBeamRenderer.SubdividedRayHit(
-									space, segA, segB,
-									_rbr.CollisionMask,
-									sub,
-									out hp, out hn, out cid, out cname,
-									out int rayQueries,
-									includeColliderName: needHitName);
-						if (perfEnabled)
-						{
-							_perfFrame.SubdividedRayCalls++;
-							_perfFrame.SubdividedRayQueries += rayQueries;
-							_perfFrame.SubdividedRaySubsteps += sub;
-						}
-						if (perfEnabled && !segCounted)
-						{
-							_perfFrame.SegsTested++;
-							segCounted = true;
-						}
+						/////////////////////////////////
+						bool segCounted = false;
+						ulong cid = 0;
+						string cname = "<none>";
+						Vector3 hp = Vector3.Zero;
+						Vector3 hn = Vector3.Up; // hit normal (world-space collider)
+						bool didHit = false;
+						/////////////////////////////////
 						
-						if (didHit && needHitName)
-							hitName = cname;
-					}
-
-					////////////
-					if (didHit)
-					{
-						float d = seg.TraveledB - segLen + (hp - segA).Length();
-
-						if (d < bestHit)
+						if (_rbr.UseSphereSweepCollision)
 						{
-							bestHit = d;
-							hitDistance = d;
-							hadHit = true;
-							if (needHitName) hitName = cname;
-							bestHp = hp;      // ✅ ADD
-							bestHn = hn;      // ✅ ADD
-						}
-
-						// If you only want the nearest hit, keep scanning segments
-						if (NearestHitOnly)
-						{
-							if (EarlyOutDistanceEps > 0f && bestHit <= EarlyOutDistanceEps)
-								break;
-							continue;
-						}
-						
-						// Otherwise, first hit wins
-						break;
-					}
-					//////////////////
-				}
-
-				if (perfEnabled)
-				{
-					ulong physEnd = Time.GetTicksUsec();
-					_perfFrame.AddPass2PhysUsec(physEnd - physStart);
-				}
-
-				////
-				////////////////////////
-				ulong shadeStart = 0;
-				if (perfEnabled) shadeStart = Time.GetTicksUsec();
-				Color col = SkyColor;
-				bool skipShading = _rbr != null && _rbr.RequireHitToRender && !hadHit;
-				if (skipShading)
-				{
-					if (perfEnabled) _perfFrame.ShadingSkippedPixels++;
-				}
-				else if (hadHit)
-				{
-					bandHits++;
-
-					// track farthest hit seen
-					if (hitDistance > frameMaxHit) frameMaxHit = hitDistance;
-
-					// bestHn is a world-space collision normal; film distortion does not change collider geometry.
-					switch (ShadingMode)
-					{
-						default:
-						case FilmShadingMode.DepthHeatmap:
-						{
-							float far = AutoRangeDepth ? _rangeFar : MaxDistance;
-							float d = Mathf.Clamp(hitDistance / Mathf.Max(0.001f, far), 0f, 1f);
-							col = Color.FromHsv(0.66f * (1f - d), 1f, 1f);
-							break;
-						}
-
-						case FilmShadingMode.NormalRGB:
-						{
-							// hn is the physics collision normal for the nearest hit.
-							Vector3 n = bestHn;
-							if (FlipNormalToCamera)
+							didHit = RayBeamRenderer.SweepSegmentHit(space, segA, segB, _rbr.CollisionMask, _rbr.CollisionRadius, out hp);
+							if (perfEnabled && !segCounted)
 							{
-								Vector3 v = (camPosPass2 - bestHp).Normalized();
-								if (n.Dot(v) < 0f) n = -n;
+								_perfFrame.SegsTested++;
+								segCounted = true;
 							}
-							col = ShadeNormalRGB(n);
-							break;
-						}
-
-						case FilmShadingMode.NdotV:
-						{
-							Vector3 v = (camPosPass2 - bestHp).Normalized();
-							Vector3 n = bestHn;
-							if (FlipNormalToCamera && n.Dot(v) < 0f) n = -n;
-							col = ShadeNdotV(n, v);
-							break;
-						}
-
-					}
-
-					if (logCenterSample)
-						GD.Print($"Film hit: dist={hitDistance:0.000} name={hitName} mode={ShadingMode}");
-				}
-
-				_img.SetPixel(x, y, col);
-				if (perfEnabled)
-				{
-					ulong shadeEnd = Time.GetTicksUsec();
-					_perfFrame.AddPass2ShadeUsec(shadeEnd - shadeStart);
-				}
-				////////////////////////////
-				/// 
-
-				////////////////////////
-				/// Debug Block Addition
-				///////////
-				if (wantDbg)
-				{
-					ulong dbgStart = 0;
-					if (perfEnabled) dbgStart = Time.GetTicksUsec();
-					int pxStride = Math.Max(1, DebugEveryNPixels);
-
-					// Sample a sparse grid (keeps overlay readable + fast)
-					if ((x % pxStride) == 0 && (localY % pxStride) == 0 && _dbgRayCount < DebugMaxFilmRays)
-					{
-						int rayIndex = _dbgRayCount++;
-
-						_dbgOff[rayIndex] = _dbgPtWrite;
-
-						// Build polyline points from the segments we already have
-						// We want: p0, p1, p2, ... so: seg0.A, seg0.B, seg1.B, ...
-						int w0 = _dbgPtWrite;
-
-						if (segCount > 0)
-						{
-							// first point
-							_dbgPts[_dbgPtWrite++] = _segBuf[segOffset + 0].A;
-
-							// subsequent points
-							int writeSegs = Math.Min(segCount, maxSeg);
-							for (int si2 = 0; si2 < writeSegs; si2++)
-							{
-								_dbgPts[_dbgPtWrite++] = _segBuf[segOffset + si2].B;
-							}
-						}
+							// cname stays "<none>" for sphere sweep (unless you add a separate lookup)
+						}					
 						else
 						{
-							// no segments: still place a tiny stub so we can see "empty" rays if desired
-							_dbgPts[_dbgPtWrite++] = _cam.GlobalPosition;
-							_dbgPts[_dbgPtWrite++] = _cam.GlobalPosition + (-_cam.GlobalTransform.Basis.Z) * 0.25f;
+							// Decision A
+							if (useInsightPlane)
+							{
+								//if (!SegmentCrossesPlane(segA, segB, insightPlane, insightEps))
+								if (!RayBeamRenderer.SegmentCrossesPlane(segA, segB, insightPlane, insightEps))
+									continue;
+							}
+
+
+							// Decision B
+							// ---- PASS2 cheap reject 2: optional overlap ----
+							if (useOverlap)
+							{
+								Vector3 mid = (segA + segB) * 0.5f;
+
+								_overlapQuery.Transform = new Transform3D(Basis.Identity, mid);
+								var overlaps = space.IntersectShape(_overlapQuery, BroadphaseMaxResults);
+								if (perfEnabled) _perfFrame.IntersectShapeCalls++;
+								if (perfEnabled && !segCounted)
+								{
+									_perfFrame.SegsTested++;
+									segCounted = true;
+								}
+								if (overlaps.Count == 0)
+									continue;
+							}
+
+							// Decision C
+							// ---- PASS2 cheap reject 1: quick ray probe ----
+							if (useQuickRay)
+							{
+								_quickRayParams.From = segA;
+								_quickRayParams.To = segB;
+								var hit0 = space.IntersectRay(_quickRayParams);
+								if (perfEnabled) _perfFrame.IntersectRayCalls++;
+								if (perfEnabled && !segCounted)
+								{
+									_perfFrame.SegsTested++;
+									segCounted = true;
+								}
+								if (hit0.Count == 0)
+								{
+									if (UseSingleProbeThenSubdivide)
+										_perfFrame.SubdividedRaySkipped++;
+									continue;
+								}
+							}
+
+							if (UseSingleProbeThenSubdivide && !useQuickRay)
+							{
+								_quickRayParams.From = segA;
+								_quickRayParams.To = segB;
+								var hit0 = space.IntersectRay(_quickRayParams);
+								if (perfEnabled) _perfFrame.IntersectRayCalls++;
+								if (perfEnabled && !segCounted)
+								{
+									_perfFrame.SegsTested++;
+									segCounted = true;
+								}
+								if (hit0.Count == 0)
+								{
+									_perfFrame.SubdividedRaySkipped++;
+									continue;
+								}
+							}
+
+							// ---- accurate subdivided ray ----
+							int sub = 1;
+							if (segLen > _rbr.CollisionRaySubdivideThreshold)
+								sub = Mathf.CeilToInt(segLen / _rbr.CollisionRaySubdivideThreshold);
+							sub = Mathf.Clamp(sub, 1, _rbr.MaxCollisionSubsteps);
+
+							if (UseAdaptiveSubsteps)
+							{
+								float far = AutoRangeDepth ? _rangeFar : MaxDistance;
+								float t = Mathf.Clamp(seg.TraveledB / Mathf.Max(0.001f, far), 0f, 1f);
+								float minSub = Mathf.Max(1f, sub * 0.25f);
+								float scaled = Mathf.Lerp(sub, minSub, t);
+								sub = Mathf.Clamp(Mathf.RoundToInt(scaled), 1, _rbr.MaxCollisionSubsteps);
+							}
+
+							didHit = RayBeamRenderer.SubdividedRayHit(
+										space, segA, segB,
+										_rbr.CollisionMask,
+										sub,
+										out hp, out hn, out cid, out cname,
+										out int rayQueries,
+										includeColliderName: needHitName);
+							if (perfEnabled)
+							{
+								_perfFrame.SubdividedRayCalls++;
+								_perfFrame.SubdividedRayQueries += rayQueries;
+								_perfFrame.SubdividedRaySubsteps += sub;
+							}
+							if (perfEnabled && !segCounted)
+							{
+								_perfFrame.SegsTested++;
+								segCounted = true;
+							}
+							
+							if (didHit && needHitName)
+								hitName = cname;
 						}
 
-						_dbgCnt[rayIndex] = _dbgPtWrite - w0;
+						////////////
+						if (didHit)
+						{
+							float d = seg.TraveledB - segLen + (hp - segA).Length();
 
-						// Hit payload for this pixel ray
-						_dbgHits[rayIndex] = new RayBeamRenderer.HitPayload
-						{
-							Valid = hadHit,
-							Position = bestHp,
-							Normal = bestHn,
-							Distance = hitDistance,
-							ColliderId = 0,
-							ColliderName = needHitName ? hitName : "<none>",
-							Albedo = Colors.White
-						};
-						if (VerbosePerfLogs && _dbgHits[rayIndex].Valid != hadHit)
-						{
-							GD.Print($"Debug hit validity mismatch at rayIndex={rayIndex}");
+							if (d < bestHit)
+							{
+								bestHit = d;
+								hitDistance = d;
+								hadHit = true;
+								if (needHitName) hitName = cname;
+								bestHp = hp;      // ✅ ADD
+								bestHn = hn;      // ✅ ADD
+							}
+
+							// If you only want the nearest hit, keep scanning segments
+							if (NearestHitOnly)
+							{
+								if (EarlyOutDistanceEps > 0f && bestHit <= EarlyOutDistanceEps)
+									break;
+								continue;
+							}
+							
+							// Otherwise, first hit wins
+							break;
 						}
+						//////////////////
 					}
+
 					if (perfEnabled)
 					{
-						ulong dbgEnd = Time.GetTicksUsec();
-						_perfFrame.AddOverlayBuildUsec(dbgEnd - dbgStart);
+						ulong physEnd = Time.GetTicksUsec();
+						_perfFrame.AddPass2PhysUsec(physEnd - physStart);
 					}
-				}
-				///////////
-				////////////////////////
+
+					////
+					////////////////////////
+					ulong shadeStart = 0;
+					if (perfEnabled) shadeStart = Time.GetTicksUsec();
+					Color col = SkyColor;
+					bool skipShading = _rbr != null && _rbr.RequireHitToRender && !hadHit;
+					if (skipShading)
+					{
+						if (perfEnabled) _perfFrame.ShadingSkippedPixels++;
+					}
+					else if (hadHit)
+					{
+						bandHits++;
+
+						// track farthest hit seen
+						if (hitDistance > frameMaxHit) frameMaxHit = hitDistance;
+
+						// bestHn is a world-space collision normal; film distortion does not change collider geometry.
+						switch (ShadingMode)
+						{
+							default:
+							case FilmShadingMode.DepthHeatmap:
+							{
+								float far = AutoRangeDepth ? _rangeFar : MaxDistance;
+								float d = Mathf.Clamp(hitDistance / Mathf.Max(0.001f, far), 0f, 1f);
+								col = Color.FromHsv(0.66f * (1f - d), 1f, 1f);
+								break;
+							}
+
+							case FilmShadingMode.NormalRGB:
+							{
+								// hn is the physics collision normal for the nearest hit.
+								Vector3 n = bestHn;
+								if (FlipNormalToCamera)
+								{
+									Vector3 v = (camPosPass2 - bestHp).Normalized();
+									if (n.Dot(v) < 0f) n = -n;
+								}
+								col = ShadeNormalRGB(n);
+								break;
+							}
+
+							case FilmShadingMode.NdotV:
+							{
+								Vector3 v = (camPosPass2 - bestHp).Normalized();
+								Vector3 n = bestHn;
+								if (FlipNormalToCamera && n.Dot(v) < 0f) n = -n;
+								col = ShadeNdotV(n, v);
+								break;
+							}
+
+						}
+
+						if (logCenterSample)
+							GD.Print($"Film hit: dist={hitDistance:0.000} name={hitName} mode={ShadingMode}");
+					}
+
+					int filled = FillPixelBlock(x, y, stride, col, filmW, filmH);
+					if (perfEnabled) _perfFrame.FilledPixels += filled;
+					if (perfEnabled)
+					{
+						ulong shadeEnd = Time.GetTicksUsec();
+						_perfFrame.AddPass2ShadeUsec(shadeEnd - shadeStart);
+					}
+					////////////////////////////
+					/// 
+
+					////////////////////////
+					/// Debug Block Addition
+					///////////
+					if (wantDbg)
+					{
+						ulong dbgStart = 0;
+						if (perfEnabled) dbgStart = Time.GetTicksUsec();
+						int pxStride = Math.Max(1, DebugEveryNPixels);
+
+						// Sample a sparse grid (keeps overlay readable + fast)
+						if ((x % pxStride) == 0 && (y % pxStride) == 0 && _dbgRayCount < DebugMaxFilmRays)
+						{
+							int rayIndex = _dbgRayCount++;
+
+							_dbgOff[rayIndex] = _dbgPtWrite;
+
+							// Build polyline points from the segments we already have
+							// We want: p0, p1, p2, ... so: seg0.A, seg0.B, seg1.B, ...
+							int w0 = _dbgPtWrite;
+
+							if (segCount > 0)
+							{
+								// first point
+								_dbgPts[_dbgPtWrite++] = _segBuf[segOffset + 0].A;
+
+								// subsequent points
+								int writeSegs = Math.Min(segCount, maxSeg);
+								for (int si2 = 0; si2 < writeSegs; si2++)
+								{
+									_dbgPts[_dbgPtWrite++] = _segBuf[segOffset + si2].B;
+								}
+							}
+							else
+							{
+								// no segments: still place a tiny stub so we can see "empty" rays if desired
+								_dbgPts[_dbgPtWrite++] = _cam.GlobalPosition;
+								_dbgPts[_dbgPtWrite++] = _cam.GlobalPosition + (-_cam.GlobalTransform.Basis.Z) * 0.25f;
+							}
+
+							_dbgCnt[rayIndex] = _dbgPtWrite - w0;
+
+							// Hit payload for this pixel ray
+							_dbgHits[rayIndex] = new RayBeamRenderer.HitPayload
+							{
+								Valid = hadHit,
+								Position = bestHp,
+								Normal = bestHn,
+								Distance = hitDistance,
+								ColliderId = 0,
+								ColliderName = needHitName ? hitName : "<none>",
+								Albedo = Colors.White
+							};
+							if (VerbosePerfLogs && _dbgHits[rayIndex].Valid != hadHit)
+							{
+								GD.Print($"Debug hit validity mismatch at rayIndex={rayIndex}");
+							}
+						}
+						if (perfEnabled)
+						{
+							ulong dbgEnd = Time.GetTicksUsec();
+							_perfFrame.AddOverlayBuildUsec(dbgEnd - dbgStart);
+						}
+					}
+					///////////
+					////////////////////////
 
 				}
 			}
@@ -837,7 +864,7 @@ public partial class GrinFilmCamera : Node
 		if (perfEnabled) _perfFrame.Hits += bandHits;
 		if (UseBandHitSkip && bandIndex >= 0 && bandIndex < _bandHitRate.Length)
 		{
-			float hitRate = pixelCount > 0 ? (float)bandHits / pixelCount : 0f;
+			float hitRate = bandTracedPixels > 0 ? (float)bandHits / bandTracedPixels : 0f;
 			_bandHitRate[bandIndex] = hitRate;
 			if (hitRate < BandSkipHitThreshold)
 				_bandLowHitFrames[bandIndex]++;
@@ -862,8 +889,8 @@ public partial class GrinFilmCamera : Node
 				_dbgHits.AsSpan(0, _dbgRayCount),
 				_rbr.DebugNormalLen,
 				_img,
-				Width,
-				Height,
+				filmW,
+				filmH,
 				DebugEveryNPixels
 			);
 
@@ -879,7 +906,7 @@ public partial class GrinFilmCamera : Node
 		}
 		if (!wantDbg && _filmOverlay != null && _filmOverlay.DrawFilmGradientNormals)
 		{
-			_filmOverlay.SetFilmImage(_img, Width, Height, DebugEveryNPixels);
+			_filmOverlay.SetFilmImage(_img, filmW, filmH, DebugEveryNPixels);
 		}
 
 
@@ -912,7 +939,7 @@ public partial class GrinFilmCamera : Node
 		if (perfEnabled) _perfFrame.AddFilmUpdateUsec(Time.GetTicksUsec() - updateStart);
 
 		_rowCursor = yEnd;
-		if (_rowCursor >= Height) _rowCursor = 0;
+		if (_rowCursor >= filmH) _rowCursor = 0;
 
 		ulong t1 = Time.GetTicksUsec();
 		if (VerbosePerfLogs)
@@ -925,8 +952,8 @@ public partial class GrinFilmCamera : Node
 		{
 			_perfFrame.ShadingSkippedNoHits = _perfFrame.RequireHitToRender
 				&& _perfFrame.Hits == 0
-				&& _perfFrame.Pixels > 0
-				&& _perfFrame.ShadingSkippedPixels >= _perfFrame.Pixels;
+				&& _perfFrame.TracedPixels > 0
+				&& _perfFrame.ShadingSkippedPixels >= _perfFrame.TracedPixels;
 			_perfStats.FinalizeAndPrint(ref _perfFrame, VerbosePerfLogs);
 		}
 	}
@@ -1029,9 +1056,9 @@ public partial class GrinFilmCamera : Node
 		return a.Basis.IsEqualApprox(b.Basis) && a.Origin.IsEqualApprox(b.Origin);
 	}
 
-	private void EnsureBandHitHistory(int rowsPerFrame)
+	private void EnsureBandHitHistory(int filmHeight, int rowsPerFrame)
 	{
-		int bandCount = (Height + rowsPerFrame - 1) / rowsPerFrame;
+		int bandCount = (filmHeight + rowsPerFrame - 1) / rowsPerFrame;
 		if (_bandHitRate.Length != bandCount)
 		{
 			_bandHitRate = new float[bandCount];
@@ -1121,6 +1148,41 @@ public partial class GrinFilmCamera : Node
 		v = v.Normalized();
 		float ndv = Mathf.Clamp(n.Dot(v), 0f, 1f);
 		return new Color(ndv, ndv, ndv, 1f);
+	}
+
+	private int FillPixelBlock(int x, int y, int stride, Color col, int filmW, int filmH)
+	{
+		int filled = 0;
+		int yMax = Math.Min(filmH, y + stride);
+		int xMax = Math.Min(filmW, x + stride);
+		for (int yy = y; yy < yMax; yy++)
+		{
+			for (int xx = x; xx < xMax; xx++)
+			{
+				_img.SetPixel(xx, yy, col);
+				filled++;
+			}
+		}
+		return filled;
+	}
+
+	private void EnsureFilmImageSize()
+	{
+		float scale = Mathf.Clamp(FilmResolutionScale, 0.25f, 1.0f);
+		int targetW = Mathf.Max(1, Mathf.RoundToInt(Width * scale));
+		int targetH = Mathf.Max(1, Mathf.RoundToInt(Height * scale));
+		if (_img != null && _filmWidth == targetW && _filmHeight == targetH) return;
+
+		_filmWidth = targetW;
+		_filmHeight = targetH;
+		_img = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
+		_img.Fill(SkyColor);
+		_tex = ImageTexture.CreateFromImage(_img);
+
+		if (_filmView != null) _filmView.Texture = _tex;
+		if (_overlayRect != null) _overlayRect.Texture = _tex;
+
+		if (_rowCursor >= _filmHeight) _rowCursor = 0;
 	}
 
 	private void EnsureFilmDebugCapacity(int rays, int pts)
