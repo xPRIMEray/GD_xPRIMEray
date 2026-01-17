@@ -63,7 +63,7 @@ directional_shadow_fade_start = 1.0
 directional_shadow_max_distance = 15.0
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(-0.7325459, 0.023684418, -0.6803056, -0.00487129, 0.9991866, 0.040031422, 0.6807003, 0.032638814, -0.73183465, 0.54195404, 2.436, -1.895)
+transform = Transform3D(-0.7325459, 0.023684418, -0.6803056, -0.00487129, 0.9991866, 0.040031422, 0.6807003, 0.032638814, -0.73183465, -0.6755173, 2.436, -1.895)
 attributes = SubResource("CameraAttributesPhysical_drxnu")
 current = true
 script = ExtResource("2_ppyta")
@@ -543,6 +543,10 @@ MaxDistance = 15.0
 SkyColor = Color(1, 0.56133336, 0.060000002, 0.1254902)
 AutoRangeSmoothing = 0.05
 AutoRangeSafety = 1.02
+UseAdaptiveSubsteps = true
+UseSingleProbeThenSubdivide = true
+UseBandHitSkip = true
+BandSkipHitThreshold = 0.0
 ShadingMode = 2
 UseSmoothNormals = true
 FilmOpacity = 0.88

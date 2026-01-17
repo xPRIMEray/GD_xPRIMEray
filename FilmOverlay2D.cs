@@ -6,10 +6,12 @@ public partial class FilmOverlay2D : TextureRect
 	[Export] public NodePath CameraPath;
 	[Export] public bool DrawRays = true;
 	[Export] public bool DrawHitNormals = true;
+	[Export] public bool DrawFilmGradientNormals = false;
 
 	[Export] public float RayWidth = 1.0f;
 	[Export] public float NormalWidth = 2.0f;
 	[Export] public float NormalLenWorld = 0.25f;
+	[Export] public float FilmGradientScale = 6.0f;
 
 	[Export] public Color RayColor = new Color(0.6f, 1.0f, 0.6f, 0.9f);
 	[Export] public Color HitRayColor = new Color(1.0f, 0.9f, 0.2f, 1.0f);
@@ -24,6 +26,10 @@ public partial class FilmOverlay2D : TextureRect
 	private int _rayCount;
 	private int _ptCount;
 	private float _normalLenWorld;
+	private Image _filmImage;
+	private int _filmWidth;
+	private int _filmHeight;
+	private int _filmSampleStride = 1;
 
 	public override void _Ready()
 	{
@@ -45,10 +51,18 @@ public partial class FilmOverlay2D : TextureRect
 		ReadOnlySpan<int> offsets,
 		ReadOnlySpan<int> counts,
 		ReadOnlySpan<RayBeamRenderer.HitPayload> hits,
-		float normalLen)
+		float normalLen,
+		Image filmImage,
+		int filmWidth,
+		int filmHeight,
+		int filmSampleStride)
 	{
 		_cam = cam ?? _cam;
 		_normalLenWorld = normalLen > 0f ? normalLen : NormalLenWorld;
+		_filmImage = filmImage;
+		_filmWidth = filmWidth;
+		_filmHeight = filmHeight;
+		_filmSampleStride = Math.Max(1, filmSampleStride);
 
 		int rayCount = Math.Min(offsets.Length, counts.Length);
 		rayCount = Math.Min(rayCount, hits.Length);
@@ -73,6 +87,15 @@ public partial class FilmOverlay2D : TextureRect
 		QueueRedraw();
 	}
 
+	public void SetFilmImage(Image filmImage, int filmWidth, int filmHeight, int filmSampleStride)
+	{
+		_filmImage = filmImage;
+		_filmWidth = filmWidth;
+		_filmHeight = filmHeight;
+		_filmSampleStride = Math.Max(1, filmSampleStride);
+		QueueRedraw();
+	}
+
 	private Vector2 ScreenToLocal(Vector2 screen)
 	{
 		return GetGlobalTransformWithCanvas().AffineInverse() * screen;
@@ -80,10 +103,12 @@ public partial class FilmOverlay2D : TextureRect
 	
 	public override void _Draw()
 	{
-		if (_cam == null || !IsInstanceValid(_cam)) return;
-		if (_rayCount <= 0 || _ptCount <= 0) return;
+		bool hasCam = _cam != null && IsInstanceValid(_cam);
+		bool hasRayData = hasCam && _rayCount > 0 && _ptCount > 0;
+		bool drawFilmGradient = DrawFilmGradientNormals && _filmImage != null && _filmWidth > 2 && _filmHeight > 2;
+		if (!hasRayData && !drawFilmGradient) return;
 
-		if (DrawRays)
+		if (hasRayData && DrawRays)
 		{
 			for (int r = 0; r < _rayCount; r++)
 			{
@@ -115,7 +140,9 @@ public partial class FilmOverlay2D : TextureRect
 			}
 		}
 
-		if (DrawHitNormals)
+		// Hit normals are world-space collision normals from physics, not film-space distortion.
+		// Film-surface normals require a screen-space gradient (DrawFilmGradientNormals) or ray-space curvature; physics will not provide them.
+		if (hasRayData && DrawHitNormals)
 		{
 			int n = Mathf.Min(_rayCount, _hits.Length);
 			for (int i = 0; i < n; i++)
@@ -130,6 +157,40 @@ public partial class FilmOverlay2D : TextureRect
 				Vector2 p1 = ScreenToLocal(_cam.UnprojectPosition(p1w));
 
 				DrawLine(p0, p1, NormalColor, NormalWidth);
+			}
+		}
+
+		// Film gradient normals are a 2D visualization derived from the film image.
+		if (drawFilmGradient)
+		{
+			int stride = Math.Max(1, _filmSampleStride);
+			//float scaleX = RectSize.X / Mathf.Max(1, _filmWidth);
+			//float scaleY = RectSize.Y / Mathf.Max(1, _filmHeight);
+			Vector2 sz = GetRect().Size;
+			float scaleX = sz.X / Mathf.Max(1, _filmWidth);
+			float scaleY = sz.Y / Mathf.Max(1, _filmHeight);
+
+			float lineScale = FilmGradientScale;
+
+			for (int y = 1; y < _filmHeight - 1; y += stride)
+			{
+				for (int x = 1; x < _filmWidth - 1; x += stride)
+				{
+					float dL = Luma(_filmImage.GetPixel(x - 1, y));
+					float dR = Luma(_filmImage.GetPixel(x + 1, y));
+					float dU = Luma(_filmImage.GetPixel(x, y - 1));
+					float dD = Luma(_filmImage.GetPixel(x, y + 1));
+
+					float nx = dR - dL;
+					float ny = dD - dU;
+					Vector2 dir = new Vector2(nx, ny);
+					if (dir.LengthSquared() < 1e-6f) continue;
+
+					dir = dir.Normalized();
+					Vector2 p0 = new Vector2((x + 0.5f) * scaleX, (y + 0.5f) * scaleY);
+					Vector2 p1 = p0 + dir * lineScale;
+					DrawLine(p0, p1, NormalColor, NormalWidth);
+				}
 			}
 		}
 	}
@@ -149,5 +210,10 @@ public partial class FilmOverlay2D : TextureRect
 		Color c = Color.FromHsv(h, 0.65f, 1.0f);
 		c.A = RayColor.A;
 		return c;
+	}
+
+	private static float Luma(Color c)
+	{
+		return (c.R * 0.2126f) + (c.G * 0.7152f) + (c.B * 0.0722f);
 	}
 }

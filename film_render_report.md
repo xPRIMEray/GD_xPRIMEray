@@ -12,6 +12,16 @@
 - Added safe, opt-in optimizations (field source cache, broadphase policy, tiny segment skip, early-out, collider name gating).
 - Added debug overlay assertions for capacity/bounds consistency.
 - Added perf preset helpers for quick A/B setups.
+- Added physics work summary (avg segs/pixel, segs tested, avg substeps, hit %) and opt-in pass2 reductions (single-probe subdivide, adaptive substeps, band hit skip).
+- Clarified world-collision normals vs film-image normals and added optional film gradient normal overlay.
+
+## Physics hotspot (baseline)
+- Dominant query: `SubdividedRayHit` (highest call/query volume in pass2 in typical scenes).
+- Reduction: `UseSingleProbeThenSubdivide` skips subdivided rays on probe misses; `UseAdaptiveSubsteps` reduces per-call substeps; `UseBandHitSkip` avoids physics in low-hit bands.
+
+## Normal meaning
+- World normals = physics collision normals from the world mesh (what the overlay draws).
+- Film normals = a 2D screen-space gradient derived from the film image (pure visualization, not collider geometry).
 
 ## Optimization toggles (default false)
 1) **UseFieldSourceCache** + **FieldSourceRefreshIntervalFrames**  
