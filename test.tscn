@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://0yko6oxwl0n7"]
+[gd_scene load_steps=19 format=3 uid="uid://0yko6oxwl0n7"]
 
 [ext_resource type="Script" uid="uid://cmss07txb211i" path="res://world_environment.gd" id="1_6uqi0"]
 [ext_resource type="Script" uid="uid://qebxtmehy4vg" path="res://options.gd" id="2_hjhvo"]
@@ -10,8 +10,8 @@
 [ext_resource type="Script" uid="uid://dg2asfleehqsw" path="res://RayBeamRenderer.cs" id="4_raybeam"]
 [ext_resource type="Shader" uid="uid://gu1m7wtw117i" path="res://curved_view.gdshader" id="4_ykrsh"]
 [ext_resource type="Script" uid="uid://713wqufxods5" path="res://RayEmitter3D.cs" id="5_emitter"]
-[ext_resource type="Script" uid="uid://vmh5vusla1nv" path="res://FieldSource3D.cs" id="8_xersf"]
 [ext_resource type="Script" uid="uid://c0nlk0rn3oilh" path="res://FilmOverlay2D.cs" id="6_filmoverlay"]
+[ext_resource type="Script" uid="uid://vmh5vusla1nv" path="res://FieldSource3D.cs" id="8_xersf"]
 
 [sub_resource type="PhysicalSkyMaterial" id="PhysicalSkyMaterial_6cd1w"]
 use_debanding = false
@@ -63,7 +63,7 @@ directional_shadow_fade_start = 1.0
 directional_shadow_max_distance = 15.0
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(-0.7325621, 0.030328136, -0.6800243, -4.0068295e-09, 0.9990069, 0.04455433, 0.6807003, 0.03263881, -0.73183465, -0.4534495, 2.436, -1.895)
+transform = Transform3D(-0.7325459, 0.023684418, -0.6803056, -0.00487129, 0.9991866, 0.040031422, 0.6807003, 0.032638814, -0.73183465, 0.54195404, 2.436, -1.895)
 attributes = SubResource("CameraAttributesPhysical_drxnu")
 current = true
 script = ExtResource("2_ppyta")
@@ -80,8 +80,8 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("2_hjhvo")
 sun = NodePath("../../DirectionalLight3D")
-lightbulb_1 = NodePath("../../Lightbulb1")
-lightbulb_2 = NodePath("../../Lightbulb2")
+lightbulb_1 = NodePath("")
+lightbulb_2 = NodePath("")
 world_environment = NodePath("../../WorldEnvironment")
 
 [node name="Light" type="VBoxContainer" parent="CanvasLayerUI/Options"]
@@ -539,8 +539,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.86010253, 2.303526, -2.007
 script = ExtResource("3_77dp3")
 RayBeamRendererPath = NodePath("../RayBeamRenderer")
 FilmViewPath = NodePath("../CanvasLayer/FilmView")
-FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
-UpdateEveryFrame = false
 MaxDistance = 15.0
 SkyColor = Color(1, 0.56133336, 0.060000002, 0.1254902)
 AutoRangeSmoothing = 0.05
@@ -548,9 +546,10 @@ AutoRangeSafety = 1.02
 ShadingMode = 2
 UseSmoothNormals = true
 FilmOpacity = 0.88
+FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
 
 [node name="FieldSource3D" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.11073613, 1.9950955, -0.6214657)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4257181, 2.410283, 0.10350156)
 script = ExtResource("8_xersf")
 Strength = 0.005
 Softening = 2.115
@@ -579,21 +578,7 @@ FanYawDegrees = 360.0
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.025899887, -0.00739336, 0.021672606)
 
 [node name="TestPhysicsRoom" parent="." instance=ExtResource("4_00tp4")]
-transform = Transform3D(0.6029268, -0.008606688, -4.958848, 0.6254773, 0.19835092, -0.13911456, 4.923946, -0.024142154, 0.62487245, 0.8464689, 1.7868664, -0.131)
-
-[node name="Lightbulb1" type="OmniLight3D" parent="."]
-transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, 2, 3.19673, 0)
-light_intensity_lumens = 800.0
-light_temperature = 5000.0
-light_size = 0.1
-shadow_enabled = true
-
-[node name="Lightbulb2" type="OmniLight3D" parent="."]
-transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, -2, 3.197, 0)
-light_intensity_lumens = 800.0
-light_temperature = 5000.0
-light_size = 0.1
-shadow_enabled = true
+transform = Transform3D(0.6029268, -0.008606688, -4.958848, 0.6254773, 0.19835092, -0.13911456, 4.923946, -0.024142154, 0.62487245, 1.0595983, 1.8784027, -0.131)
 
 [node name="CurvedLayer" type="CanvasLayer" parent="."]
 visible = false

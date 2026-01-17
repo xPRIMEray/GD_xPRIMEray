@@ -38,6 +38,24 @@ public partial class GrinFilmCamera : Node
 	[Export] public float BroadphaseMargin = 0.03f;
 	[Export] public int BroadphaseMaxResults = 8;
 
+	public enum BroadphaseMode
+	{
+		None = 0,
+		QuickRayOnly = 1,
+		OverlapOnly = 2,
+		Both = 3
+	}
+
+	// Optimization toggles (default false)
+	[Export] public bool UseFieldSourceCache = false;
+	[Export] public int FieldSourceRefreshIntervalFrames = 30;
+	[Export] public bool UseBroadphasePolicy = false;
+	[Export] public BroadphaseMode BroadphasePolicy = BroadphaseMode.QuickRayOnly;
+	[Export] public float TinySegmentSkipLen = 0.0f;
+	[Export] public float EarlyOutDistanceEps = 0.0f;
+	[Export] public bool NeedColliderNames = false;
+	[Export] public bool VerbosePerfLogs = false;
+
 	[Export] public bool UseInsightPlanePass2 = true;      // PASS2 plane slab reject
 	[Export] public float InsightPlaneEps = 0.10f;         // slab thickness in meters-ish
 
@@ -80,16 +98,102 @@ public partial class GrinFilmCamera : Node
 	private PhysicsShapeQueryParameters3D _overlapQuery;
 	private SphereShape3D _overlapSphere;
 
+	private struct PerfFrameStats
+	{
+		public double Pass1Ms;
+		public double Pass2PhysMs;
+		public double Pass2ShadeMs;
+		public double FilmUpdateMs;
+		public double OverlayBuildMs;
+		public double OverlayEnqueueMs;
+		public int Pixels;
+		public int Segs;
+		public int IntersectRayCalls;
+		public int IntersectShapeCalls;
+		public int SubdividedRayCalls;
+		public int SubdividedRayQueries;
+	}
+
+	private struct PerfRollingAverages
+	{
+		public bool HasValue;
+		public double Pass1Ms;
+		public double Pass2PhysMs;
+		public double Pass2ShadeMs;
+		public double FilmUpdateMs;
+		public double OverlayBuildMs;
+		public double OverlayEnqueueMs;
+		public double Pixels;
+		public double Segs;
+		public double IntersectRayCalls;
+		public double IntersectShapeCalls;
+		public double SubdividedRayCalls;
+		public double SubdividedRayQueries;
+
+		public void Update(in PerfFrameStats frame, double alpha)
+		{
+			if (!HasValue)
+			{
+				Pass1Ms = frame.Pass1Ms;
+				Pass2PhysMs = frame.Pass2PhysMs;
+				Pass2ShadeMs = frame.Pass2ShadeMs;
+				FilmUpdateMs = frame.FilmUpdateMs;
+				OverlayBuildMs = frame.OverlayBuildMs;
+				OverlayEnqueueMs = frame.OverlayEnqueueMs;
+				Pixels = frame.Pixels;
+				Segs = frame.Segs;
+				IntersectRayCalls = frame.IntersectRayCalls;
+				IntersectShapeCalls = frame.IntersectShapeCalls;
+				SubdividedRayCalls = frame.SubdividedRayCalls;
+				SubdividedRayQueries = frame.SubdividedRayQueries;
+				HasValue = true;
+				return;
+			}
+
+			Pass1Ms = Lerp(Pass1Ms, frame.Pass1Ms, alpha);
+			Pass2PhysMs = Lerp(Pass2PhysMs, frame.Pass2PhysMs, alpha);
+			Pass2ShadeMs = Lerp(Pass2ShadeMs, frame.Pass2ShadeMs, alpha);
+			FilmUpdateMs = Lerp(FilmUpdateMs, frame.FilmUpdateMs, alpha);
+			OverlayBuildMs = Lerp(OverlayBuildMs, frame.OverlayBuildMs, alpha);
+			OverlayEnqueueMs = Lerp(OverlayEnqueueMs, frame.OverlayEnqueueMs, alpha);
+			Pixels = Lerp(Pixels, frame.Pixels, alpha);
+			Segs = Lerp(Segs, frame.Segs, alpha);
+			IntersectRayCalls = Lerp(IntersectRayCalls, frame.IntersectRayCalls, alpha);
+			IntersectShapeCalls = Lerp(IntersectShapeCalls, frame.IntersectShapeCalls, alpha);
+			SubdividedRayCalls = Lerp(SubdividedRayCalls, frame.SubdividedRayCalls, alpha);
+			SubdividedRayQueries = Lerp(SubdividedRayQueries, frame.SubdividedRayQueries, alpha);
+		}
+
+		private static double Lerp(double a, double b, double t)
+		{
+			return a + (b - a) * t;
+		}
+	}
+
 	// perf stats (per full frame)
 	private ulong _perfPass1Usec;
 	private ulong _perfPass2PhysUsec;
 	private ulong _perfPass2ShadeUsec;
-	private ulong _perfDbgBuildUsec;
-	private ulong _perfDbgOverlayUsec;
+	private ulong _perfFilmUpdateUsec;
+	private ulong _perfOverlayBuildUsec;
+	private ulong _perfOverlayEnqueueUsec;
 	private int _perfPixels;
 	private int _perfSegs;
 	private int _perfHits;
-	private int _perfQueries;
+	private int _perfIntersectRayCalls;
+	private int _perfIntersectShapeCalls;
+	private int _perfSubdividedRayCalls;
+	private int _perfSubdividedRayQueries;
+	private PerfRollingAverages _perfAvg;
+
+	// field source cache
+	private int _frameIndex = 0;
+	private int _fieldSourceLastRefreshFrame = -100000;
+	private Node[] _fieldSourceNodes = Array.Empty<Node>();
+	private Transform3D[] _fieldSourceXforms = Array.Empty<Transform3D>();
+	private ulong[] _fieldSourceIds = Array.Empty<ulong>();
+	private int _fieldSourceCount = 0;
+	private RayBeamRenderer.FieldSourceSnap[] _fieldSourceSnaps = Array.Empty<RayBeamRenderer.FieldSourceSnap>();
 
 	// conservative: max segments per ray = StepsPerRay / CollisionEveryNSteps + 2
 	private int MaxSegPerRay => (_rbr != null)
@@ -190,19 +294,18 @@ public partial class GrinFilmCamera : Node
 	{
 		ulong t0 = Time.GetTicksUsec();
 
-		if ((_rowCursor % Height) == 0)
-			GD.Print($"🎥 Film RenderStep running. rowCursor={_rowCursor} cam={( _cam != null ? _cam.GetPath() : "<null>")}");
+		if (_rowCursor == 0) _frameIndex++;
+		if (VerbosePerfLogs && (_rowCursor % Height) == 0)
+			GD.Print($"Film RenderStep running. rowCursor={_rowCursor} cam={(_cam != null ? _cam.GetPath() : "<null>")}");
 
 		if (_rbr == null || _cam == null) return;
 
 		var space = _cam.GetWorld3D().DirectSpaceState;
 
-		var fieldSources = GetTree().GetNodesInGroup("field_sources");
-		var fieldSnaps = _rbr.SnapshotFieldSources(fieldSources);
-		bool hasSources = fieldSnaps.Length > 0;
+		var fieldSnaps = GetFieldSourceSnaps(_frameIndex, out bool hasSources);
 
-		if ((_rowCursor % Height) == 0)
-			GD.Print($"🧲 fieldSnaps={fieldSnaps.Length} hasSources={hasSources}");
+		if (VerbosePerfLogs && (_rowCursor % Height) == 0)
+			GD.Print($"fieldSnaps={fieldSnaps.Length} hasSources={hasSources}");
 
 
 		float beta = 0f;
@@ -347,7 +450,32 @@ public partial class GrinFilmCamera : Node
 		bandHits = 0;
 
 		Vector3 camPosPass2 = camPos;
-		if (UseBroadphaseOverlap)
+		bool useOverlap = UseBroadphaseOverlap;
+		bool useQuickRay = UseBroadphaseQuickRay;
+		if (UseBroadphasePolicy)
+		{
+			switch (BroadphasePolicy)
+			{
+				case BroadphaseMode.None:
+					useOverlap = false;
+					useQuickRay = false;
+					break;
+				case BroadphaseMode.QuickRayOnly:
+					useOverlap = false;
+					useQuickRay = true;
+					break;
+				case BroadphaseMode.OverlapOnly:
+					useOverlap = true;
+					useQuickRay = false;
+					break;
+				case BroadphaseMode.Both:
+					useOverlap = true;
+					useQuickRay = true;
+					break;
+			}
+		}
+
+		if (useOverlap)
 		{
 			_overlapSphere ??= new SphereShape3D();
 			_overlapQuery ??= new PhysicsShapeQueryParameters3D();
@@ -358,7 +486,7 @@ public partial class GrinFilmCamera : Node
 			_overlapQuery.CollideWithAreas = true;
 		}
 
-		if (UseBroadphaseQuickRay)
+		if (useQuickRay)
 		{
 			_quickRayParams ??= new PhysicsRayQueryParameters3D();
 			_quickRayParams.CollisionMask = _rbr.CollisionMask;
@@ -388,7 +516,8 @@ public partial class GrinFilmCamera : Node
 				if (EnableProfiling) _perfSegs += segCount;
 
 				bool isCenterSample = (x == Width / 2 && y == (yStart + (bandH / 2)));
-				bool needHitName = wantDbg || isCenterSample;
+				bool logCenterSample = VerbosePerfLogs && isCenterSample;
+				bool needHitName = NeedColliderNames || logCenterSample;
 
 				ulong physStart = 0;
 				if (EnableProfiling) physStart = Time.GetTicksUsec();
@@ -401,6 +530,7 @@ public partial class GrinFilmCamera : Node
 					float segLen = (segB - segA).Length();
 
 					if (segLen <= 1e-6f) continue;
+					if (TinySegmentSkipLen > 0f && segLen < TinySegmentSkipLen) continue;
 					if (hadHit && bestHit < float.PositiveInfinity)
 					{
 						float segStartDist = seg.TraveledB - segLen;
@@ -419,7 +549,6 @@ public partial class GrinFilmCamera : Node
 					if (_rbr.UseSphereSweepCollision)
 					{
 						didHit = RayBeamRenderer.SweepSegmentHit(space, segA, segB, _rbr.CollisionMask, _rbr.CollisionRadius, out hp);
-						if (EnableProfiling) _perfQueries++;
 						// cname stays "<none>" for sphere sweep (unless you add a separate lookup)
 					}					
 					else
@@ -435,25 +564,25 @@ public partial class GrinFilmCamera : Node
 
 						// Decision B
 						// ---- PASS2 cheap reject 2: optional overlap ----
-						if (UseBroadphaseOverlap)
+						if (useOverlap)
 						{
 							Vector3 mid = (segA + segB) * 0.5f;
 
 							_overlapQuery.Transform = new Transform3D(Basis.Identity, mid);
 							var overlaps = space.IntersectShape(_overlapQuery, BroadphaseMaxResults);
-							if (EnableProfiling) _perfQueries++;
+							if (EnableProfiling) _perfIntersectShapeCalls++;
 							if (overlaps.Count == 0)
 								continue;
 						}
 
 						// Decision C
 						// ---- PASS2 cheap reject 1: quick ray probe ----
-						if (UseBroadphaseQuickRay)
+						if (useQuickRay)
 						{
 							_quickRayParams.From = segA;
 							_quickRayParams.To = segB;
 							var hit0 = space.IntersectRay(_quickRayParams);
-							if (EnableProfiling) _perfQueries++;
+							if (EnableProfiling) _perfIntersectRayCalls++;
 							if (hit0.Count == 0)
 								continue;
 						}
@@ -471,7 +600,11 @@ public partial class GrinFilmCamera : Node
 									out hp, out hn, out cid, out cname,
 									out int rayQueries,
 									includeColliderName: needHitName);
-						if (EnableProfiling) _perfQueries += rayQueries;
+						if (EnableProfiling)
+						{
+							_perfSubdividedRayCalls++;
+							_perfSubdividedRayQueries += rayQueries;
+						}
 						
 						if (didHit && needHitName)
 							hitName = cname;
@@ -494,7 +627,11 @@ public partial class GrinFilmCamera : Node
 
 						// If you only want the nearest hit, keep scanning segments
 						if (NearestHitOnly)
+						{
+							if (EarlyOutDistanceEps > 0f && bestHit <= EarlyOutDistanceEps)
+								break;
 							continue;
+						}
 						
 						// Otherwise, first hit wins
 						break;
@@ -555,8 +692,8 @@ public partial class GrinFilmCamera : Node
 
 					}
 
-					if (isCenterSample)
-						GD.Print($"🎯 Film hit: dist={hitDistance:0.000} name={hitName} mode={ShadingMode}");
+					if (logCenterSample)
+						GD.Print($"Film hit: dist={hitDistance:0.000} name={hitName} mode={ShadingMode}");
 				}
 
 				_img.SetPixel(x, y, col);
@@ -620,11 +757,15 @@ public partial class GrinFilmCamera : Node
 							ColliderName = needHitName ? hitName : "<none>",
 							Albedo = Colors.White
 						};
+						if (VerbosePerfLogs && _dbgHits[rayIndex].Valid != hadHit)
+						{
+							GD.Print($"Debug hit validity mismatch at rayIndex={rayIndex}");
+						}
 					}
 					if (EnableProfiling)
 					{
 						ulong dbgEnd = Time.GetTicksUsec();
-						_perfDbgBuildUsec += (dbgEnd - dbgStart);
+						_perfOverlayBuildUsec += (dbgEnd - dbgStart);
 					}
 				}
 				///////////
@@ -641,6 +782,9 @@ public partial class GrinFilmCamera : Node
 			ulong dbgOverlayStart = 0;
 			if (EnableProfiling) dbgOverlayStart = Time.GetTicksUsec();
 
+			if (VerbosePerfLogs)
+				ValidateDebugOverlayData();
+
 			_filmOverlay.SetData(
 				_cam,
 				_dbgPts.AsSpan(0, _dbgPtWrite),
@@ -653,7 +797,7 @@ public partial class GrinFilmCamera : Node
 			if (EnableProfiling)
 			{
 				ulong dbgOverlayEnd = Time.GetTicksUsec();
-				_perfDbgOverlayUsec += (dbgOverlayEnd - dbgOverlayStart);
+				_perfOverlayEnqueueUsec += (dbgOverlayEnd - dbgOverlayStart);
 			}
 		}
 		else if (_filmOverlay != null && _rbr != null && _rbr.DebugOverlayOwnedByFilm)
@@ -678,19 +822,27 @@ public partial class GrinFilmCamera : Node
 			// smooth
 			_rangeFar = Mathf.Lerp(_rangeFar, targetFar, AutoRangeSmoothing);
 		}
-		if (_rowCursor == 0 && AutoRangeDepth)
-			GD.Print($"📏 AutoRange Far={_rangeFar:0.###}  (MaxDistance export={MaxDistance:0.###})");
+		if (VerbosePerfLogs && _rowCursor == 0 && AutoRangeDepth)
+			GD.Print($"AutoRange Far={_rangeFar:0.###}  (MaxDistance export={MaxDistance:0.###})");
 
 
-		GD.Print($"🎞️ Film band y=[{yStart},{yEnd}) hits={bandHits}");
+		if (VerbosePerfLogs)
+			GD.Print($"Film band y=[{yStart},{yEnd}) hits={bandHits}");
+
+		ulong updateStart = 0;
+		if (EnableProfiling) updateStart = Time.GetTicksUsec();
 		_tex.Update(_img);
+		if (EnableProfiling) _perfFilmUpdateUsec += (Time.GetTicksUsec() - updateStart);
 
 		_rowCursor = yEnd;
 		if (_rowCursor >= Height) _rowCursor = 0;
 
 		ulong t1 = Time.GetTicksUsec();
-		GD.Print($"⏱️ RenderStep {(t1 - t0)/1000.0:0.00} ms  rows={RowsPerFrame}  jobs={jobs}  hits={bandHits}");
-		GD.Print($"⏱️ pass1={(a1-a0)/1000.0:0.00}ms  pass2={(b1-a1)/1000.0:0.00}ms  total={(b1-a0)/1000.0:0.00}ms");
+		if (VerbosePerfLogs)
+		{
+			GD.Print($"RenderStep {(t1 - t0)/1000.0:0.00} ms  rows={RowsPerFrame}  jobs={jobs}  hits={bandHits}");
+			GD.Print($"pass1={(a1-a0)/1000.0:0.00}ms  pass2={(b1-a1)/1000.0:0.00}ms  total={(b1-a0)/1000.0:0.00}ms");
+		}
 		
 		if (EnableProfiling && _rowCursor == 0)
 		{
@@ -708,6 +860,92 @@ public partial class GrinFilmCamera : Node
 			Variant.Type.Int => (int)v,
 			_ => fallback
 		};
+	}
+
+	private RayBeamRenderer.FieldSourceSnap[] GetFieldSourceSnaps(int frameIndex, out bool hasSources)
+	{
+		if (!UseFieldSourceCache)
+		{
+			var fieldSources = GetTree().GetNodesInGroup("field_sources");
+			var snaps = _rbr.SnapshotFieldSources(fieldSources);
+			hasSources = snaps.Length > 0;
+			return snaps;
+		}
+
+		bool needsRefresh = false;
+		int refreshInterval = Mathf.Max(1, FieldSourceRefreshIntervalFrames);
+		if (frameIndex - _fieldSourceLastRefreshFrame >= refreshInterval)
+			needsRefresh = true;
+
+		if (!needsRefresh && _fieldSourceCount > 0)
+		{
+			for (int i = 0; i < _fieldSourceCount; i++)
+			{
+				Node node = _fieldSourceNodes[i];
+				if (node == null || !IsInstanceValid(node))
+				{
+					needsRefresh = true;
+					break;
+				}
+
+				ulong id = node.GetInstanceId();
+				if (_fieldSourceIds[i] != id)
+				{
+					needsRefresh = true;
+					break;
+				}
+
+				if (node is Node3D n3)
+				{
+					Transform3D t = n3.GlobalTransform;
+					if (!TransformEqualApprox(t, _fieldSourceXforms[i]))
+					{
+						needsRefresh = true;
+						break;
+					}
+				}
+			}
+		}
+
+		if (needsRefresh)
+			RefreshFieldSourceCache(frameIndex);
+
+		hasSources = _fieldSourceSnaps.Length > 0;
+		return _fieldSourceSnaps;
+	}
+
+	private void RefreshFieldSourceCache(int frameIndex)
+	{
+		var fieldSources = GetTree().GetNodesInGroup("field_sources");
+		_fieldSourceSnaps = _rbr.SnapshotFieldSources(fieldSources);
+
+		EnsureFieldSourceCacheCapacity(_fieldSourceSnaps.Length);
+		_fieldSourceCount = 0;
+
+		foreach (var node in fieldSources)
+		{
+			if (node is not FieldSource3D fs) continue;
+			if (_fieldSourceCount >= _fieldSourceNodes.Length) break;
+
+			_fieldSourceNodes[_fieldSourceCount] = fs;
+			_fieldSourceXforms[_fieldSourceCount] = fs.GlobalTransform;
+			_fieldSourceIds[_fieldSourceCount] = fs.GetInstanceId();
+			_fieldSourceCount++;
+		}
+
+		_fieldSourceLastRefreshFrame = frameIndex;
+	}
+
+	private void EnsureFieldSourceCacheCapacity(int count)
+	{
+		if (_fieldSourceNodes.Length < count) Array.Resize(ref _fieldSourceNodes, count);
+		if (_fieldSourceXforms.Length < count) Array.Resize(ref _fieldSourceXforms, count);
+		if (_fieldSourceIds.Length < count) Array.Resize(ref _fieldSourceIds, count);
+	}
+
+	private static bool TransformEqualApprox(Transform3D a, Transform3D b)
+	{
+		return a.Basis.IsEqualApprox(b.Basis) && a.Origin.IsEqualApprox(b.Origin);
 	}
 
 	private void EnsureDepthHistory()
@@ -763,26 +1001,89 @@ public partial class GrinFilmCamera : Node
 		if (_dbgPts.Length < pts) Array.Resize(ref _dbgPts, pts);
 	}
 
+	private void ValidateDebugOverlayData()
+	{
+		if (_dbgRayCount > DebugMaxFilmRays)
+			GD.Print($"Debug overlay rayCount exceeded cap: {_dbgRayCount} > {DebugMaxFilmRays}");
+
+		if (_dbgRayCount > _dbgOff.Length || _dbgRayCount > _dbgCnt.Length || _dbgRayCount > _dbgHits.Length)
+			GD.Print("Debug overlay ray arrays are smaller than rayCount.");
+
+		if (_dbgPtWrite > _dbgPts.Length)
+			GD.Print($"Debug overlay point write exceeded capacity: {_dbgPtWrite} > {_dbgPts.Length}");
+
+		if (_dbgRayCount > 0 && _dbgPtWrite == 0)
+			GD.Print("Debug overlay has rays but zero points.");
+
+		int maxPt = _dbgPtWrite;
+		for (int i = 0; i < _dbgRayCount; i++)
+		{
+			int start = _dbgOff[i];
+			int count = _dbgCnt[i];
+			if (start < 0 || count < 0 || start + count > maxPt)
+			{
+				GD.Print($"Debug overlay bounds error at ray {i}: start={start} count={count} maxPt={maxPt}");
+				break;
+			}
+		}
+	}
+
 	private void PrintAndResetPerfFrameStats()
 	{
-		double pass1Ms = _perfPass1Usec / 1000.0;
-		double pass2PhysMs = _perfPass2PhysUsec / 1000.0;
-		double pass2ShadeMs = _perfPass2ShadeUsec / 1000.0;
-		double dbgBuildMs = _perfDbgBuildUsec / 1000.0;
-		double dbgOverlayMs = _perfDbgOverlayUsec / 1000.0;
+		PerfFrameStats frame = new PerfFrameStats
+		{
+			Pass1Ms = _perfPass1Usec / 1000.0,
+			Pass2PhysMs = _perfPass2PhysUsec / 1000.0,
+			Pass2ShadeMs = _perfPass2ShadeUsec / 1000.0,
+			FilmUpdateMs = _perfFilmUpdateUsec / 1000.0,
+			OverlayBuildMs = _perfOverlayBuildUsec / 1000.0,
+			OverlayEnqueueMs = _perfOverlayEnqueueUsec / 1000.0,
+			Pixels = _perfPixels,
+			Segs = _perfSegs,
+			IntersectRayCalls = _perfIntersectRayCalls,
+			IntersectShapeCalls = _perfIntersectShapeCalls,
+			SubdividedRayCalls = _perfSubdividedRayCalls,
+			SubdividedRayQueries = _perfSubdividedRayQueries
+		};
 
-		GD.Print($"📊 Film frame stats: pixels={_perfPixels} segs={_perfSegs} hits={_perfHits} queries={_perfQueries}");
-		GD.Print($"📊 Film timings: pass1={pass1Ms:0.00}ms pass2.physics={pass2PhysMs:0.00}ms pass2.shading={pass2ShadeMs:0.00}ms dbg.build={dbgBuildMs:0.00}ms dbg.overlay={dbgOverlayMs:0.00}ms");
+		_perfAvg.Update(frame, 0.20);
+
+		GD.Print($"Film frame stats: pixels={frame.Pixels} segs={frame.Segs} hits={_perfHits} qRay={frame.IntersectRayCalls} overlap={frame.IntersectShapeCalls} subRayCalls={frame.SubdividedRayCalls} subRayQueries={frame.SubdividedRayQueries}");
+		GD.Print($"Film timings(ms): pass1={frame.Pass1Ms:0.00} pass2.physics={frame.Pass2PhysMs:0.00} pass2.shading={frame.Pass2ShadeMs:0.00} film.update={frame.FilmUpdateMs:0.00} overlay.build={frame.OverlayBuildMs:0.00} overlay.enqueue={frame.OverlayEnqueueMs:0.00}");
+		GD.Print($"Film avg(ms): pass1={_perfAvg.Pass1Ms:0.00} pass2.physics={_perfAvg.Pass2PhysMs:0.00} pass2.shading={_perfAvg.Pass2ShadeMs:0.00} film.update={_perfAvg.FilmUpdateMs:0.00} overlay.build={_perfAvg.OverlayBuildMs:0.00} overlay.enqueue={_perfAvg.OverlayEnqueueMs:0.00}");
 
 		_perfPass1Usec = 0;
 		_perfPass2PhysUsec = 0;
 		_perfPass2ShadeUsec = 0;
-		_perfDbgBuildUsec = 0;
-		_perfDbgOverlayUsec = 0;
+		_perfFilmUpdateUsec = 0;
+		_perfOverlayBuildUsec = 0;
+		_perfOverlayEnqueueUsec = 0;
 		_perfPixels = 0;
 		_perfSegs = 0;
 		_perfHits = 0;
-		_perfQueries = 0;
+		_perfIntersectRayCalls = 0;
+		_perfIntersectShapeCalls = 0;
+		_perfSubdividedRayCalls = 0;
+		_perfSubdividedRayQueries = 0;
+	}
+
+	public void ApplyPerfPresetFastPreview()
+	{
+		UseFieldSourceCache = true;
+		UseBroadphasePolicy = true;
+		BroadphasePolicy = BroadphaseMode.QuickRayOnly;
+		TinySegmentSkipLen = 0.005f;
+		EarlyOutDistanceEps = 0.01f;
+		NeedColliderNames = false;
+	}
+
+	public void ApplyPerfPresetQuality()
+	{
+		UseFieldSourceCache = false;
+		UseBroadphasePolicy = false;
+		TinySegmentSkipLen = 0.0f;
+		EarlyOutDistanceEps = 0.0f;
+		NeedColliderNames = false;
 	}
 
 	void UpdateFilmOpacity()
