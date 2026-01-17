@@ -96,9 +96,19 @@ public partial class FilmOverlay2D : TextureRect
 		QueueRedraw();
 	}
 
-	private Vector2 ScreenToLocal(Vector2 screen)
+	private Transform2D GetCanvasToLocalTransform()
 	{
-		return GetGlobalTransformWithCanvas().AffineInverse() * screen;
+		return GetGlobalTransformWithCanvas().AffineInverse();
+	}
+
+	public Vector2 ScreenToLocal(Vector2 screen)
+	{
+		return GetCanvasToLocalTransform() * screen;
+	}
+
+	public Vector2 LocalToScreen(Vector2 local)
+	{
+		return GetCanvasToLocalTransform().AffineInverse() * local;
 	}
 	
 	public override void _Draw()

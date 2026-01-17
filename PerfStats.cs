@@ -11,7 +11,8 @@ public enum PerfReasonFlags
 	NoSegsTested = 1 << 2,
 	NoSubRayCalls = 1 << 3,
 	NoHits = 1 << 4,
-	ShadingSkippedNoHits = 1 << 5
+	ShadingSkippedNoHits = 1 << 5,
+	ResizedFilm = 1 << 6
 }
 
 public struct PerfFrameReport
@@ -29,6 +30,7 @@ public struct PerfFrameReport
 	public int EffectiveStride;
 	public int EffectiveWidth;
 	public int EffectiveHeight;
+	public int EffectiveRenderPixels;
 	public int Segs;
 	public int SegsTested;
 	public int Hits;
@@ -41,6 +43,7 @@ public struct PerfFrameReport
 	public int ShadingSkippedPixels;
 	public bool ShadingSkippedNoHits;
 	public bool RequireHitToRender;
+	public bool ResizedFilm;
 
 	public PerfReasonFlags ReasonFlags;
 
@@ -65,6 +68,7 @@ public struct PerfFrameReport
 		if (SubdividedRayCalls <= 0) flags |= PerfReasonFlags.NoSubRayCalls;
 		if (Hits <= 0) flags |= PerfReasonFlags.NoHits;
 		if (ShadingSkippedNoHits) flags |= PerfReasonFlags.ShadingSkippedNoHits;
+		if (ResizedFilm) flags |= PerfReasonFlags.ResizedFilm;
 		ReasonFlags = flags;
 	}
 }
@@ -94,6 +98,7 @@ public sealed class PerfStats
 		public long Pixels;
 		public long TracedPixels;
 		public long FilledPixels;
+		public long EffectiveRenderPixels;
 		public long Segs;
 		public long SegsTested;
 		public long Hits;
@@ -153,6 +158,7 @@ public sealed class PerfStats
 		_sum.Pixels += frame.Pixels * sign;
 		_sum.TracedPixels += frame.TracedPixels * sign;
 		_sum.FilledPixels += frame.FilledPixels * sign;
+		_sum.EffectiveRenderPixels += frame.EffectiveRenderPixels * sign;
 		_sum.Segs += frame.Segs * sign;
 		_sum.SegsTested += frame.SegsTested * sign;
 		_sum.Hits += frame.Hits * sign;
@@ -183,6 +189,7 @@ public sealed class PerfStats
 		double avgPixels = _sum.Pixels * inv;
 		double avgTracedPixels = _sum.TracedPixels * inv;
 		double avgFilledPixels = _sum.FilledPixels * inv;
+		double avgEffectiveRenderPixels = _sum.EffectiveRenderPixels * inv;
 		double avgSegs = _sum.Segs * inv;
 		double avgSegsTested = _sum.SegsTested * inv;
 		double avgHits = _sum.Hits * inv;
@@ -202,12 +209,12 @@ public sealed class PerfStats
 
 		if (verbose)
 		{
-			GD.Print($"Film frame stats: pixels={frame.Pixels} traced={frame.TracedPixels} filled={frame.FilledPixels} segs={frame.Segs} segsTested={frame.SegsTested} hits={frame.Hits} qRay={frame.IntersectRayCalls} overlap={frame.IntersectShapeCalls} subRayCalls={frame.SubdividedRayCalls} subRayQueries={frame.SubdividedRayQueries} subRaySkipped={frame.SubdividedRaySkipped}");
+			GD.Print($"Film frame stats: pixels={frame.Pixels} traced={frame.TracedPixels} filled={frame.FilledPixels} effPx={frame.EffectiveRenderPixels} segs={frame.Segs} segsTested={frame.SegsTested} hits={frame.Hits} qRay={frame.IntersectRayCalls} overlap={frame.IntersectShapeCalls} subRayCalls={frame.SubdividedRayCalls} subRayQueries={frame.SubdividedRayQueries} subRaySkipped={frame.SubdividedRaySkipped}");
 			string statFlags = FormatReasonFlags(frame.ReasonFlags);
 			GD.Print($"Film physics summary: avgSegPerPixel={avgSegPerPixel:0.00} avgSegsTestedPerPixel={avgSegsTestedPerPixel:0.00} avgSubsteps={avgSubsteps:0.00} hitPct={hitPct:0.00}%{(statFlags.Length > 0 ? " " + statFlags : string.Empty)}");
 			GD.Print($"Film timings(ms): pass1={frame.Pass1Ms:0.00} pass2.physics={frame.Pass2PhysMs:0.00} pass2.shading={frame.Pass2ShadeMs:0.00} film.update={frame.FilmUpdateMs:0.00} overlay.build={frame.OverlayBuildMs:0.00} overlay.enqueue={frame.OverlayEnqueueMs:0.00}");
 			GD.Print($"Film avg(ms): pass1={avgPass1:0.00} pass2.physics={avgPass2Phys:0.00} pass2.shading={avgPass2Shade:0.00} film.update={avgFilmUpdate:0.00} overlay.build={avgOverlayBuild:0.00} overlay.enqueue={avgOverlayEnqueue:0.00}");
-			GD.Print($"Film avg summary: avgSegPerPixel={avgSegPerPixelRoll:0.00} avgSegsTestedPerPixel={avgSegsTestedPerPixelRoll:0.00} avgSubsteps={avgSubstepsRoll:0.00} hitPct={hitPctRoll:0.00}% avgTracedPixels={avgTracedPixels:0.00} avgFilledPixels={avgFilledPixels:0.00}");
+			GD.Print($"Film avg summary: avgSegPerPixel={avgSegPerPixelRoll:0.00} avgSegsTestedPerPixel={avgSegsTestedPerPixelRoll:0.00} avgSubsteps={avgSubstepsRoll:0.00} hitPct={hitPctRoll:0.00}% avgTracedPixels={avgTracedPixels:0.00} avgFilledPixels={avgFilledPixels:0.00} avgEffPx={avgEffectiveRenderPixels:0.00}");
 			return;
 		}
 
@@ -215,6 +222,7 @@ public sealed class PerfStats
 		_sb.Append("Film perf: px=").Append(frame.Pixels)
 			.Append(" tpx=").Append(frame.TracedPixels)
 			.Append(" fpx=").Append(frame.FilledPixels)
+			.Append(" effPx=").Append(frame.EffectiveRenderPixels)
 			.Append(" segs=").Append(frame.Segs)
 			.Append(" tested=").Append(frame.SegsTested)
 			.Append(" hits=").Append(frame.Hits)

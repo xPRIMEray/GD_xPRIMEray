@@ -10,11 +10,21 @@ public partial class GrinFilmCamera : Node
 	[Export] public int Height = 90;
 
 	/*
-	 * FilmResolutionScale reduces the internal film image/texture size (spatial resolution).
-	 * PixelStride reduces sampling density by tracing only every Nth pixel, then filling an N×N block.
+	 * FilmResolutionScale changes the internal film texture resolution.
+	 * PixelStride reduces how many rays are traced and fills stride-sized blocks.
 	 */
 	[Export(PropertyHint.Range, "0.25,1.0,0.01")] public float FilmResolutionScale = 1.0f;
 	[Export(PropertyHint.Range, "1,8,1")] public int PixelStride = 1;
+
+	public enum PresetMode
+	{
+		Walk = 0,
+		Preview = 1,
+		Cinematic = 2
+	}
+
+	[Export] public PresetMode Preset = PresetMode.Preview;
+	[Export] public bool ApplyPresetOnReady = false;
 
 	[Export] public int RowsPerFrame = 8;
 	[Export] public bool UpdateEveryFrame = true;
@@ -190,6 +200,11 @@ public partial class GrinFilmCamera : Node
 			return;
 		}
 
+		if (ApplyPresetOnReady)
+		{
+			ApplyPreset(Preset);
+		}
+
     	// ⛔ Freeze beam rebuilds while film camera is active
 		_rbr.AllowRebuild = false;
 
@@ -249,7 +264,7 @@ public partial class GrinFilmCamera : Node
 	{
 		ulong t0 = Time.GetTicksUsec();
 		bool perfEnabled = EnableProfiling || VerbosePerfLogs;
-		EnsureFilmImageSize();
+		bool resizedFilm = EnsureFilmImageSize();
 		int filmW = _filmWidth;
 		int filmH = _filmHeight;
 		int stride = Mathf.Clamp(PixelStride, 1, 8);
@@ -264,7 +279,12 @@ public partial class GrinFilmCamera : Node
 				_perfFrame.EffectiveStride = stride;
 				_perfFrame.EffectiveWidth = filmW;
 				_perfFrame.EffectiveHeight = filmH;
+				_perfFrame.EffectiveRenderPixels = (filmW * filmH) / Math.Max(1, stride * stride);
 			}
+		}
+		if (perfEnabled && resizedFilm)
+		{
+			_perfFrame.ResizedFilm = true;
 		}
 		if (VerbosePerfLogs && (_rowCursor % filmH) == 0)
 			GD.Print($"Film RenderStep running. rowCursor={_rowCursor} cam={(_cam != null ? _cam.GetPath() : "<null>")}");
@@ -1152,6 +1172,16 @@ public partial class GrinFilmCamera : Node
 
 	private int FillPixelBlock(int x, int y, int stride, Color col, int filmW, int filmH)
 	{
+		if (stride <= 1)
+		{
+			if (x >= 0 && x < filmW && y >= 0 && y < filmH)
+			{
+				_img.SetPixel(x, y, col);
+				return 1;
+			}
+			return 0;
+		}
+
 		int filled = 0;
 		int yMax = Math.Min(filmH, y + stride);
 		int xMax = Math.Min(filmW, x + stride);
@@ -1166,12 +1196,25 @@ public partial class GrinFilmCamera : Node
 		return filled;
 	}
 
-	private void EnsureFilmImageSize()
+	private void UpdateFilmViewTexture()
+	{
+		if (_filmView != null && GodotObject.IsInstanceValid(_filmView))
+			_filmView.Texture = _tex;
+		else
+			_filmView = null;
+
+		if (_overlayRect != null && GodotObject.IsInstanceValid(_overlayRect))
+			_overlayRect.Texture = _tex;
+		else
+			_overlayRect = null;
+	}
+
+	private bool EnsureFilmImageSize()
 	{
 		float scale = Mathf.Clamp(FilmResolutionScale, 0.25f, 1.0f);
-		int targetW = Mathf.Max(1, Mathf.RoundToInt(Width * scale));
-		int targetH = Mathf.Max(1, Mathf.RoundToInt(Height * scale));
-		if (_img != null && _filmWidth == targetW && _filmHeight == targetH) return;
+		int targetW = Mathf.Max(8, Mathf.RoundToInt(Width * scale));
+		int targetH = Mathf.Max(8, Mathf.RoundToInt(Height * scale));
+		if (_img != null && _filmWidth == targetW && _filmHeight == targetH) return false;
 
 		_filmWidth = targetW;
 		_filmHeight = targetH;
@@ -1179,10 +1222,10 @@ public partial class GrinFilmCamera : Node
 		_img.Fill(SkyColor);
 		_tex = ImageTexture.CreateFromImage(_img);
 
-		if (_filmView != null) _filmView.Texture = _tex;
-		if (_overlayRect != null) _overlayRect.Texture = _tex;
+		UpdateFilmViewTexture();
 
 		if (_rowCursor >= _filmHeight) _rowCursor = 0;
+		return true;
 	}
 
 	private void EnsureFilmDebugCapacity(int rays, int pts)
@@ -1270,6 +1313,47 @@ public partial class GrinFilmCamera : Node
 		TinySegmentSkipLen = 0.005f;
 		EarlyOutDistanceEps = 0.01f;
 		NeedColliderNames = false;
+	}
+
+	public void ApplyPreset(PresetMode mode)
+	{
+		switch (mode)
+		{
+			case PresetMode.Walk:
+				FilmResolutionScale = 0.5f;
+				PixelStride = 2;
+				RowsPerFrame = 16;
+				DebugEveryNPixels = 16;
+				DebugMaxFilmRays = 512;
+				UseBroadphasePolicy = true;
+				BroadphasePolicy = BroadphaseMode.QuickRayOnly;
+				UseBroadphaseQuickRay = true;
+				UseBroadphaseOverlap = false;
+				break;
+			case PresetMode.Cinematic:
+				FilmResolutionScale = 1.0f;
+				PixelStride = 1;
+				RowsPerFrame = 4;
+				DebugEveryNPixels = 4;
+				DebugMaxFilmRays = 4096;
+				UseBroadphasePolicy = true;
+				BroadphasePolicy = BroadphaseMode.Both;
+				UseBroadphaseQuickRay = true;
+				UseBroadphaseOverlap = true;
+				break;
+			default:
+			case PresetMode.Preview:
+				FilmResolutionScale = 1.0f;
+				PixelStride = 1;
+				RowsPerFrame = 8;
+				DebugEveryNPixels = 8;
+				DebugMaxFilmRays = 2048;
+				UseBroadphasePolicy = true;
+				BroadphasePolicy = BroadphaseMode.QuickRayOnly;
+				UseBroadphaseQuickRay = true;
+				UseBroadphaseOverlap = false;
+				break;
+		}
 	}
 
 	public void ApplyPerfPresetQuality()

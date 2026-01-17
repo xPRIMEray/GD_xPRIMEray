@@ -532,7 +532,6 @@ RequireHitToRender = true
 DebugRender = true
 DebugSetBillboardRejects = true
 CheckCollisionsEvenIfNotStopping = true
-DebugMode = 0
 DebugNormalLen = 0.295
 
 [node name="GrinField3D" type="Node3D" parent="."]
@@ -540,7 +539,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.86010253, 2.303526, -2.007
 script = ExtResource("3_77dp3")
 RayBeamRendererPath = NodePath("../RayBeamRenderer")
 FilmViewPath = NodePath("../CanvasLayer/FilmView")
-RowsPerFrame = 12
+Preset = 0
+ApplyPresetOnReady = true
+RowsPerFrame = 10
+UpdateEveryFrame = false
 MaxDistance = 15.0
 SkyColor = Color(1, 0.56133336, 0.060000002, 0.1254902)
 AutoRangeMin = 0.1
@@ -557,7 +559,6 @@ ShadingMode = 2
 UseSmoothNormals = true
 FilmOpacity = 0.8
 FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
-EnableProfiling = false
 
 [node name="FieldSource3D" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9546801, 1.8735187, -1.3253045)
