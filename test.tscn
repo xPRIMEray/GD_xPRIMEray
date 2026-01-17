@@ -63,7 +63,7 @@ directional_shadow_fade_start = 1.0
 directional_shadow_max_distance = 15.0
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(-0.7325459, 0.023684418, -0.6803056, -0.00487129, 0.9991866, 0.040031422, 0.6807003, 0.032638814, -0.73183465, -0.6755173, 2.436, -1.895)
+transform = Transform3D(-0.7325459, 0.023684418, -0.6803056, -0.00487129, 0.9991866, 0.040031422, 0.6807003, 0.032638814, -0.73183465, -0.9489119, 2.436, -1.883879)
 attributes = SubResource("CameraAttributesPhysical_drxnu")
 current = true
 script = ExtResource("2_ppyta")
@@ -71,7 +71,7 @@ script = ExtResource("2_ppyta")
 [node name="CanvasLayerUI" type="CanvasLayer" parent="."]
 layer = 0
 
-[node name="Options" type="Control" parent="CanvasLayerUI" node_paths=PackedStringArray("sun", "lightbulb_1", "lightbulb_2", "world_environment")]
+[node name="Options" type="Control" parent="CanvasLayerUI" node_paths=PackedStringArray("sun", "world_environment")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -80,8 +80,6 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("2_hjhvo")
 sun = NodePath("../../DirectionalLight3D")
-lightbulb_1 = NodePath("")
-lightbulb_2 = NodePath("")
 world_environment = NodePath("../../WorldEnvironment")
 
 [node name="Light" type="VBoxContainer" parent="CanvasLayerUI/Options"]
@@ -495,6 +493,7 @@ text = "2.0"
 layer = -2
 
 [node name="FilmView" type="TextureRect" parent="CanvasLayer"]
+modulate = Color(1, 0.43, 0.43, 0.78431374)
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -549,11 +548,11 @@ UseBandHitSkip = true
 BandSkipHitThreshold = 0.0
 ShadingMode = 2
 UseSmoothNormals = true
-FilmOpacity = 0.88
+FilmOpacity = 0.405
 FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
 
 [node name="FieldSource3D" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4257181, 2.410283, 0.10350156)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9546801, 1.8735187, -1.3253045)
 script = ExtResource("8_xersf")
 Strength = 0.005
 Softening = 2.115
@@ -579,10 +578,13 @@ MaxDistance = 50.0
 FanYawDegrees = 360.0
 
 [node name="living_room" parent="." instance=ExtResource("3_xersf")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.025899887, -0.00739336, 0.021672606)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.011308312, -0.00152421, 0.021672606)
 
 [node name="TestPhysicsRoom" parent="." instance=ExtResource("4_00tp4")]
-transform = Transform3D(0.6029268, -0.008606688, -4.958848, 0.6254773, 0.19835092, -0.13911456, 4.923946, -0.024142154, 0.62487245, 1.0595983, 1.8784027, -0.131)
+transform = Transform3D(1.66995, -0.040571965, -5.150157, 2.0064397, 0.13614416, -0.03516897, 2.953654, -0.069545016, 2.9357088, 0.9892533, 2.449511, 0.40109158)
+
+[node name="TestPhysicsRoom2" parent="." instance=ExtResource("4_00tp4")]
+transform = Transform3D(0.15018934, -0.009743014, -5.127716, 0.15580668, 0.22453885, -0.14385195, 1.2265571, -0.0273296, 0.6461518, 0.9307282, 1.4322524, -0.28077465)
 
 [node name="CurvedLayer" type="CanvasLayer" parent="."]
 visible = false

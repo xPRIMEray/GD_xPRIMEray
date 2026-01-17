@@ -1,0 +1,258 @@
+using Godot;
+using System;
+using System.Text;
+
+[Flags]
+public enum PerfReasonFlags
+{
+	None = 0,
+	NoPixels = 1 << 0,
+	NoSegs = 1 << 1,
+	NoSegsTested = 1 << 2,
+	NoSubRayCalls = 1 << 3,
+	NoHits = 1 << 4,
+	ShadingSkippedNoHits = 1 << 5
+}
+
+public struct PerfFrameReport
+{
+	public double Pass1Ms;
+	public double Pass2PhysMs;
+	public double Pass2ShadeMs;
+	public double FilmUpdateMs;
+	public double OverlayBuildMs;
+	public double OverlayEnqueueMs;
+
+	public int Pixels;
+	public int Segs;
+	public int SegsTested;
+	public int Hits;
+	public int IntersectRayCalls;
+	public int IntersectShapeCalls;
+	public int SubdividedRayCalls;
+	public int SubdividedRayQueries;
+	public int SubdividedRaySkipped;
+	public int SubdividedRaySubsteps;
+	public int ShadingSkippedPixels;
+	public bool ShadingSkippedNoHits;
+	public bool RequireHitToRender;
+
+	public PerfReasonFlags ReasonFlags;
+
+	public void Reset()
+	{
+		this = default;
+	}
+
+	public void AddPass1Usec(ulong usec) => Pass1Ms += usec * 0.001;
+	public void AddPass2PhysUsec(ulong usec) => Pass2PhysMs += usec * 0.001;
+	public void AddPass2ShadeUsec(ulong usec) => Pass2ShadeMs += usec * 0.001;
+	public void AddFilmUpdateUsec(ulong usec) => FilmUpdateMs += usec * 0.001;
+	public void AddOverlayBuildUsec(ulong usec) => OverlayBuildMs += usec * 0.001;
+	public void AddOverlayEnqueueUsec(ulong usec) => OverlayEnqueueMs += usec * 0.001;
+
+	public void UpdateReasonFlags()
+	{
+		PerfReasonFlags flags = PerfReasonFlags.None;
+		if (Pixels <= 0) flags |= PerfReasonFlags.NoPixels;
+		if (Segs <= 0) flags |= PerfReasonFlags.NoSegs;
+		if (SegsTested <= 0) flags |= PerfReasonFlags.NoSegsTested;
+		if (SubdividedRayCalls <= 0) flags |= PerfReasonFlags.NoSubRayCalls;
+		if (Hits <= 0) flags |= PerfReasonFlags.NoHits;
+		if (ShadingSkippedNoHits) flags |= PerfReasonFlags.ShadingSkippedNoHits;
+		ReasonFlags = flags;
+	}
+}
+
+public sealed class PerfStats
+{
+	private readonly PerfFrameReport[] _frames;
+	private int _writeIndex;
+	private int _count;
+	private PerfFrameSums _sum;
+	private readonly StringBuilder _sb = new StringBuilder(512);
+
+#if DEBUG
+	private bool _warnedSegsTested;
+	private bool _warnedSubRaySkipped;
+	private bool _warnedShadingSkip;
+#endif
+
+	private struct PerfFrameSums
+	{
+		public double Pass1Ms;
+		public double Pass2PhysMs;
+		public double Pass2ShadeMs;
+		public double FilmUpdateMs;
+		public double OverlayBuildMs;
+		public double OverlayEnqueueMs;
+		public long Pixels;
+		public long Segs;
+		public long SegsTested;
+		public long Hits;
+		public long IntersectRayCalls;
+		public long IntersectShapeCalls;
+		public long SubdividedRayCalls;
+		public long SubdividedRayQueries;
+		public long SubdividedRaySkipped;
+		public long SubdividedRaySubsteps;
+		public long ShadingSkippedPixels;
+	}
+
+	public PerfStats(int windowSize = 60)
+	{
+		windowSize = Math.Max(1, windowSize);
+		_frames = new PerfFrameReport[windowSize];
+	}
+
+	public int WindowSize => _frames.Length;
+
+	public void FinalizeAndPrint(ref PerfFrameReport frame, bool verbose)
+	{
+		frame.UpdateReasonFlags();
+		AddFrame(in frame);
+		Print(in frame, verbose);
+#if DEBUG
+		CheckInvariants(in frame);
+#endif
+	}
+
+	private void AddFrame(in PerfFrameReport frame)
+	{
+		if (_count == _frames.Length)
+		{
+			RemoveFrame(in _frames[_writeIndex]);
+		}
+		else
+		{
+			_count++;
+		}
+
+		_frames[_writeIndex] = frame;
+		ApplyFrame(in frame, 1);
+
+		_writeIndex++;
+		if (_writeIndex >= _frames.Length) _writeIndex = 0;
+	}
+
+	private void ApplyFrame(in PerfFrameReport frame, int sign)
+	{
+		_sum.Pass1Ms += frame.Pass1Ms * sign;
+		_sum.Pass2PhysMs += frame.Pass2PhysMs * sign;
+		_sum.Pass2ShadeMs += frame.Pass2ShadeMs * sign;
+		_sum.FilmUpdateMs += frame.FilmUpdateMs * sign;
+		_sum.OverlayBuildMs += frame.OverlayBuildMs * sign;
+		_sum.OverlayEnqueueMs += frame.OverlayEnqueueMs * sign;
+		_sum.Pixels += frame.Pixels * sign;
+		_sum.Segs += frame.Segs * sign;
+		_sum.SegsTested += frame.SegsTested * sign;
+		_sum.Hits += frame.Hits * sign;
+		_sum.IntersectRayCalls += frame.IntersectRayCalls * sign;
+		_sum.IntersectShapeCalls += frame.IntersectShapeCalls * sign;
+		_sum.SubdividedRayCalls += frame.SubdividedRayCalls * sign;
+		_sum.SubdividedRayQueries += frame.SubdividedRayQueries * sign;
+		_sum.SubdividedRaySkipped += frame.SubdividedRaySkipped * sign;
+		_sum.SubdividedRaySubsteps += frame.SubdividedRaySubsteps * sign;
+		_sum.ShadingSkippedPixels += frame.ShadingSkippedPixels * sign;
+	}
+
+	private void RemoveFrame(in PerfFrameReport frame)
+	{
+		ApplyFrame(in frame, -1);
+	}
+
+	private void Print(in PerfFrameReport frame, bool verbose)
+	{
+		double inv = _count > 0 ? 1.0 / _count : 0.0;
+		double avgPass1 = _sum.Pass1Ms * inv;
+		double avgPass2Phys = _sum.Pass2PhysMs * inv;
+		double avgPass2Shade = _sum.Pass2ShadeMs * inv;
+		double avgFilmUpdate = _sum.FilmUpdateMs * inv;
+		double avgOverlayBuild = _sum.OverlayBuildMs * inv;
+		double avgOverlayEnqueue = _sum.OverlayEnqueueMs * inv;
+
+		double avgPixels = _sum.Pixels * inv;
+		double avgSegs = _sum.Segs * inv;
+		double avgSegsTested = _sum.SegsTested * inv;
+		double avgHits = _sum.Hits * inv;
+		double avgSubRayCalls = _sum.SubdividedRayCalls * inv;
+		double avgSubRaySubsteps = _sum.SubdividedRaySubsteps * inv;
+
+		double avgSegPerPixel = frame.Pixels > 0 ? (double)frame.Segs / frame.Pixels : 0.0;
+		double avgSegsTestedPerPixel = frame.Pixels > 0 ? (double)frame.SegsTested / frame.Pixels : 0.0;
+		double avgSubsteps = frame.SubdividedRayCalls > 0 ? (double)frame.SubdividedRaySubsteps / frame.SubdividedRayCalls : 0.0;
+		double hitPct = frame.Pixels > 0 ? (frame.Hits * 100.0) / frame.Pixels : 0.0;
+
+		double avgSegPerPixelRoll = avgPixels > 0 ? avgSegs / avgPixels : 0.0;
+		double avgSegsTestedPerPixelRoll = avgPixels > 0 ? avgSegsTested / avgPixels : 0.0;
+		double avgSubstepsRoll = avgSubRayCalls > 0 ? avgSubRaySubsteps / avgSubRayCalls : 0.0;
+		double hitPctRoll = avgPixels > 0 ? (avgHits * 100.0) / avgPixels : 0.0;
+
+		if (verbose)
+		{
+			GD.Print($"Film frame stats: pixels={frame.Pixels} segs={frame.Segs} segsTested={frame.SegsTested} hits={frame.Hits} qRay={frame.IntersectRayCalls} overlap={frame.IntersectShapeCalls} subRayCalls={frame.SubdividedRayCalls} subRayQueries={frame.SubdividedRayQueries} subRaySkipped={frame.SubdividedRaySkipped}");
+			string statFlags = FormatReasonFlags(frame.ReasonFlags);
+			GD.Print($"Film physics summary: avgSegPerPixel={avgSegPerPixel:0.00} avgSegsTestedPerPixel={avgSegsTestedPerPixel:0.00} avgSubsteps={avgSubsteps:0.00} hitPct={hitPct:0.00}%{(statFlags.Length > 0 ? " " + statFlags : string.Empty)}");
+			GD.Print($"Film timings(ms): pass1={frame.Pass1Ms:0.00} pass2.physics={frame.Pass2PhysMs:0.00} pass2.shading={frame.Pass2ShadeMs:0.00} film.update={frame.FilmUpdateMs:0.00} overlay.build={frame.OverlayBuildMs:0.00} overlay.enqueue={frame.OverlayEnqueueMs:0.00}");
+			GD.Print($"Film avg(ms): pass1={avgPass1:0.00} pass2.physics={avgPass2Phys:0.00} pass2.shading={avgPass2Shade:0.00} film.update={avgFilmUpdate:0.00} overlay.build={avgOverlayBuild:0.00} overlay.enqueue={avgOverlayEnqueue:0.00}");
+			GD.Print($"Film avg summary: avgSegPerPixel={avgSegPerPixelRoll:0.00} avgSegsTestedPerPixel={avgSegsTestedPerPixelRoll:0.00} avgSubsteps={avgSubstepsRoll:0.00} hitPct={hitPctRoll:0.00}%");
+			return;
+		}
+
+		_sb.Clear();
+		_sb.Append("Film perf: px=").Append(frame.Pixels)
+			.Append(" segs=").Append(frame.Segs)
+			.Append(" tested=").Append(frame.SegsTested)
+			.Append(" hits=").Append(frame.Hits)
+			.Append(" hitPct=").Append(hitPct.ToString("0.00"))
+			.Append("% avgSeg=").Append(avgSegPerPixel.ToString("0.00"))
+			.Append(" avgTested=").Append(avgSegsTestedPerPixel.ToString("0.00"))
+			.Append(" avgSub=").Append(avgSubsteps.ToString("0.00"))
+			.Append(" ms p1=").Append(frame.Pass1Ms.ToString("0.00"))
+			.Append(" p2p=").Append(frame.Pass2PhysMs.ToString("0.00"))
+			.Append(" p2s=").Append(frame.Pass2ShadeMs.ToString("0.00"))
+			.Append(" upd=").Append(frame.FilmUpdateMs.ToString("0.00"))
+			.Append(" ovB=").Append(frame.OverlayBuildMs.ToString("0.00"))
+			.Append(" ovE=").Append(frame.OverlayEnqueueMs.ToString("0.00"))
+			.Append(" avg(ms) p1=").Append(avgPass1.ToString("0.00"))
+			.Append(" p2p=").Append(avgPass2Phys.ToString("0.00"))
+			.Append(" p2s=").Append(avgPass2Shade.ToString("0.00"))
+			.Append(" upd=").Append(avgFilmUpdate.ToString("0.00"))
+			.Append(" ovB=").Append(avgOverlayBuild.ToString("0.00"))
+			.Append(" ovE=").Append(avgOverlayEnqueue.ToString("0.00"));
+
+		string flags = FormatReasonFlags(frame.ReasonFlags);
+		if (flags.Length > 0) _sb.Append(" ").Append(flags);
+
+		GD.Print(_sb.ToString());
+	}
+
+	private static string FormatReasonFlags(PerfReasonFlags flags)
+	{
+		if (flags == PerfReasonFlags.None) return string.Empty;
+		return $"flags={flags}";
+	}
+
+#if DEBUG
+	private void CheckInvariants(in PerfFrameReport frame)
+	{
+		if (!_warnedSegsTested && frame.SegsTested > frame.Segs)
+		{
+			_warnedSegsTested = true;
+			GD.PushWarning($"[PerfStats] Invariant: segsTested ({frame.SegsTested}) > segs ({frame.Segs}).");
+		}
+
+		if (!_warnedSubRaySkipped && frame.SubdividedRaySkipped > frame.SegsTested)
+		{
+			_warnedSubRaySkipped = true;
+			GD.PushWarning($"[PerfStats] Invariant: subRaySkipped ({frame.SubdividedRaySkipped}) > segsTested ({frame.SegsTested}). Expected: skipped sub-rays imply a tested segment.");
+		}
+
+		if (!_warnedShadingSkip && frame.RequireHitToRender && frame.ShadingSkippedNoHits == false && frame.Hits == 0 && frame.Pixels > 0)
+		{
+			_warnedShadingSkip = true;
+			GD.PushWarning("[PerfStats] RequireHitToRender is enabled and hits==0, but shading did not short-circuit.");
+		}
+	}
+#endif
+}
