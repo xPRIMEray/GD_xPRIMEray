@@ -518,6 +518,7 @@ FilmGradientScale = 30.0
 [node name="RayBeamRenderer" type="Node3D" parent="."]
 script = ExtResource("4_raybeam")
 CameraPath = NodePath("../Camera3D")
+UpdateEveryFrame = false
 StepsPerRay = 128
 StepLength = 0.1
 MinStepLength = 0.02
@@ -571,6 +572,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9546801, 1.8735187, -1.3253
 script = ExtResource("8_xersf")
 Strength = 0.005
 Softening = 2.115
+InnerRadius = 0.1
+OuterRadius = 2.0
+DebugDrawInGame = true
 
 [node name="FieldB" type="Node3D" parent="."]
 script = ExtResource("8_xersf")
@@ -578,7 +582,6 @@ Enabled = false
 
 [node name="Emitter1" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
-visible = false
 script = ExtResource("5_emitter")
 Rays = 17
 SpreadDegrees = 59.975
@@ -616,6 +619,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -0.5)
 
 [node name="FieldA" type="Node3D" parent="FieldGrp_A"]
 script = ExtResource("8_xersf")
+Enabled = false
 Strength = 0.795
 Softening = 0.625
 Profile = 1
