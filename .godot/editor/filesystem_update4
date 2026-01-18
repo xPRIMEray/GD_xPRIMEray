@@ -1,10 +1,9 @@
-res://RayViz.cs
-res://RayEmitter3D.cs
-res://FilmOverlay2D.cs
 res://FieldSource3D.cs
-res://GrinFilmCamera.cs
+res://addons/fieldsource_gizmo/FieldSourceNodeGizmo.cs
 res://RayBeamRenderer.cs
+res://GrinFilmCamera.cs
 res://CurvedCamera.cs
-res://test.tscn
-res://curved_view.gdshader
-res://curved_ray_postprocess.gdshader
+res://FilmOverlay2D.cs
+res://addons/fieldsource_gizmo/FieldSourceGizmoPlugin.cs
+res://RayEmitter3D.cs
+res://RayViz.cs

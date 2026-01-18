@@ -572,14 +572,6 @@ script = ExtResource("8_xersf")
 Strength = 0.005
 Softening = 2.115
 
-[node name="FieldA" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -0.5)
-script = ExtResource("8_xersf")
-Enabled = false
-Strength = 0.795
-Softening = 0.625
-Profile = 1
-
 [node name="FieldB" type="Node3D" parent="."]
 script = ExtResource("8_xersf")
 Enabled = false
@@ -618,6 +610,15 @@ mouse_filter = 2
 [node name="RayViz" type="MeshInstance3D" parent="."]
 visible = false
 script = ExtResource("3_rayviz")
+
+[node name="FieldGrp_A" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -0.5)
+
+[node name="FieldA" type="Node3D" parent="FieldGrp_A"]
+script = ExtResource("8_xersf")
+Strength = 0.795
+Softening = 0.625
+Profile = 1
 
 [connection signal="value_changed" from="CanvasLayerUI/Options/Light/TimeOfDay/HSlider" to="CanvasLayerUI/Options" method="_on_time_of_day_value_changed"]
 [connection signal="value_changed" from="CanvasLayerUI/Options/Light/SunIntensity/HSlider" to="CanvasLayerUI/Options" method="_on_sun_intensity_value_changed"]
