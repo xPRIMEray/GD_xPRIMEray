@@ -63,7 +63,7 @@ directional_shadow_fade_start = 1.0
 directional_shadow_max_distance = 15.0
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(-0.7325459, 0.023684418, -0.6803056, -0.00487129, 0.9991866, 0.040031422, 0.6807003, 0.032638814, -0.73183465, -0.8547745, 2.436, -1.2277682)
+transform = Transform3D(-0.7325459, 0.023684418, -0.6803056, -0.00487129, 0.9991866, 0.040031422, 0.6807003, 0.032638814, -0.73183465, -0.39948678, 2.436, -1.7723274)
 attributes = SubResource("CameraAttributesPhysical_drxnu")
 current = true
 script = ExtResource("2_ppyta")
@@ -532,6 +532,7 @@ RequireHitToRender = true
 DebugRender = true
 DebugSetBillboardRejects = true
 CheckCollisionsEvenIfNotStopping = true
+DebugMode = 0
 DebugNormalLen = 0.295
 
 [node name="GrinField3D" type="Node3D" parent="."]
@@ -539,10 +540,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.86010253, 2.303526, -2.007
 script = ExtResource("3_77dp3")
 RayBeamRendererPath = NodePath("../RayBeamRenderer")
 FilmViewPath = NodePath("../CanvasLayer/FilmView")
+Width = 640
+Height = 360
+FilmResolutionScale = 0.5
 Preset = 0
 ApplyPresetOnReady = true
 RowsPerFrame = 10
-UpdateEveryFrame = false
 MaxDistance = 15.0
 SkyColor = Color(1, 0.56133336, 0.060000002, 0.1254902)
 AutoRangeMin = 0.1
@@ -559,6 +562,7 @@ ShadingMode = 2
 UseSmoothNormals = true
 FilmOpacity = 0.8
 FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
+EnableProfiling = false
 
 [node name="FieldSource3D" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9546801, 1.8735187, -1.3253045)
