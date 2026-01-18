@@ -3,17 +3,23 @@ using System;
 
 public partial class GrinFilmCamera : Node
 {
+	[ExportCategory("Film Camera")]
+	[ExportGroup("References")]
+	/// <summary>NodePath to the RayBeamRenderer used for film segment generation.</summary>
 	[Export] public NodePath RayBeamRendererPath;
-	[Export] public NodePath FilmViewPath; // optional: a TextureRect in your UI
+	/// <summary>Optional TextureRect used to display the film texture.</summary>
+	[Export] public NodePath FilmViewPath;
+	/// <summary>Optional FilmOverlay2D for debug ray overlay.</summary>
+	[Export] public NodePath FilmOverlayPath;
 
+	[ExportGroup("Rendering / Film Output")]
+	/// <summary>Base film width in pixels before scaling.</summary>
 	[Export] public int Width = 160;
+	/// <summary>Base film height in pixels before scaling.</summary>
 	[Export] public int Height = 90;
-
-	/*
-	 * FilmResolutionScale changes the internal film texture resolution.
-	 * PixelStride reduces how many rays are traced and fills stride-sized blocks.
-	 */
+	/// <summary>Scales film resolution (0.25 to 1.0).</summary>
 	[Export(PropertyHint.Range, "0.25,1.0,0.01")] public float FilmResolutionScale = 1.0f;
+	/// <summary>Traces every Nth pixel and fills stride-sized blocks.</summary>
 	[Export(PropertyHint.Range, "1,8,1")] public int PixelStride = 1;
 
 	public enum PresetMode
@@ -23,36 +29,78 @@ public partial class GrinFilmCamera : Node
 		Cinematic = 2
 	}
 
+	[ExportGroup("Performance / Profiling")]
+	/// <summary>Preset selection for tuning.</summary>
 	[Export] public PresetMode Preset = PresetMode.Preview;
+	/// <summary>Apply the preset automatically in _Ready.</summary>
 	[Export] public bool ApplyPresetOnReady = false;
-
-	[Export] public int RowsPerFrame = 8;
+	/// <summary>Runs RenderStep every frame when enabled.</summary>
 	[Export] public bool UpdateEveryFrame = true;
+	/// <summary>Enables perf stats collection.</summary>
+	[Export] public bool EnableProfiling = true;
+	/// <summary>Prints verbose perf logs per band.</summary>
+	[Export] public bool VerbosePerfLogs = false;
+	/// <summary>Fetches collider names for debug output.</summary>
+	[Export] public bool NeedColliderNames = false;
+	/// <summary>Caches field source snapshots for faster updates.</summary>
+	[Export] public bool UseFieldSourceCache = false;
+	/// <summary>How often to refresh cached field sources.</summary>
+	[Export] public int FieldSourceRefreshIntervalFrames = 30;
+
+	[ExportGroup("Rendering / Film Output")]
+	/// <summary>Number of film rows rendered per frame.</summary>
+	[Export] public int RowsPerFrame = 8;
+	/// <summary>Max ray distance when auto-range is disabled.</summary>
 	[Export] public float MaxDistance = 50f;
+	/// <summary>Background color for no-hit pixels.</summary>
 	[Export] public Color SkyColor = new Color(0, 0, 0, 1);
+	/// <summary>Opacity applied to the film TextureRect.</summary>
+	[Export] public float FilmOpacity = 0.7f;
 
+	[ExportGroup("Ray March / Sampling")]
+	/// <summary>Reads Beta/Gamma from the active Camera3D.</summary>
 	[Export] public bool UseCameraPropsBetaGamma = true;
+	/// <summary>Skips collision checks for tiny segments.</summary>
+	[Export] public float TinySegmentSkipLen = 0.0f;
+	/// <summary>Early-out distance for nearest-hit search.</summary>
+	[Export] public float EarlyOutDistanceEps = 0.0f;
+	/// <summary>Refines collision checks by subdividing segments.</summary>
+	[Export] public bool UseAdaptiveSubsteps = false;
+	/// <summary>Skips physics for low-hit bands.</summary>
+	[Export] public bool UseBandHitSkip = false;
+	/// <summary>Hit rate threshold to enable skipping.</summary>
+	[Export] public float BandSkipHitThreshold = 0.001f;
+	/// <summary>Frames below threshold before skipping.</summary>
+	[Export] public int BandSkipFrames = 3;
+	/// <summary>Position delta that invalidates band skip history.</summary>
+	[Export] public float BandSkipInvalidatePosDelta = 0.05f;
+	/// <summary>Basis delta that invalidates band skip history.</summary>
+	[Export] public float BandSkipInvalidateBasisDelta = 0.02f;
+	/// <summary>Range delta that invalidates band skip history.</summary>
+	[Export] public float BandSkipInvalidateRangeDelta = 0.25f;
 
-	// --- Auto range depth ---
+	[ExportGroup("Auto Range / Depth")]
+	/// <summary>Auto-adjusts depth range based on recent hits.</summary>
 	[Export] public bool AutoRangeDepth = true;
-
-	// clamp limits (protect against nonsense)
+	/// <summary>Minimum allowed auto-range far distance.</summary>
 	[Export] public float AutoRangeMin = 0.25f;
+	/// <summary>Maximum allowed auto-range far distance.</summary>
 	[Export] public float AutoRangeMax = 200f;
-
-	// smoothing (0.05 = slow, 0.2 = snappy)
+	/// <summary>Lerp factor for auto-range updates.</summary>
 	[Export] public float AutoRangeSmoothing = 0.15f;
-
-	// "robust far plane" is approx max of recent hits * multiplier
+	/// <summary>Safety multiplier for robust far estimate.</summary>
 	[Export] public float AutoRangeSafety = 1.15f;
-
-	// how many frames worth of depth to track
+	/// <summary>Frames tracked for robust far estimate.</summary>
 	[Export] public int DepthHistoryFrames = 30;
 
-
-	[Export] public bool UseBroadphaseQuickRay = true;     // cheapest broadphase
-	[Export] public bool UseBroadphaseOverlap = false;     // optional 2nd tier
+	[ExportGroup("Physics / Collision")]
+	/// <summary>Enables a quick raycast broadphase test.</summary>
+	[Export] public bool UseBroadphaseQuickRay = true;
+	/// <summary>Enables a sphere overlap broadphase test.</summary>
+	[Export] public bool UseBroadphaseOverlap = false;
+	/// <summary>Extra radius for overlap broadphase.</summary>
 	[Export] public float BroadphaseMargin = 0.03f;
+	/// <summary>Max overlap results to consider.</summary>
 	[Export] public int BroadphaseMaxResults = 8;
 
 	public enum BroadphaseMode
@@ -63,43 +111,15 @@ public partial class GrinFilmCamera : Node
 		Both = 3
 	}
 
-	// Optimization toggles (default false)
-	[Export] public bool UseFieldSourceCache = false;
-	[Export] public int FieldSourceRefreshIntervalFrames = 30;
+	/// <summary>Overrides broadphase toggles using BroadphasePolicy.</summary>
 	[Export] public bool UseBroadphasePolicy = false;
+	/// <summary>Broadphase policy when UseBroadphasePolicy is true.</summary>
 	[Export] public BroadphaseMode BroadphasePolicy = BroadphaseMode.QuickRayOnly;
-	[Export] public float TinySegmentSkipLen = 0.0f;
-	[Export] public float EarlyOutDistanceEps = 0.0f;
-	[Export] public bool NeedColliderNames = false;
-	[Export] public bool VerbosePerfLogs = false;
-	[Export] public bool UseAdaptiveSubsteps = false;
+	/// <summary>Uses a quick probe, then subdivides if needed.</summary>
 	[Export] public bool UseSingleProbeThenSubdivide = false;
-
-	[Export] public bool UseBandHitSkip = false;
-	[Export] public float BandSkipHitThreshold = 0.001f;
-	[Export] public int BandSkipFrames = 3;
-	[Export] public float BandSkipInvalidatePosDelta = 0.05f;
-	[Export] public float BandSkipInvalidateBasisDelta = 0.02f;
-	[Export] public float BandSkipInvalidateRangeDelta = 0.25f;
-
-	[Export] public bool UseInsightPlanePass2 = true;      // PASS2 plane slab reject
-	[Export] public float InsightPlaneEps = 0.10f;         // slab thickness in meters-ish
-
+	/// <summary>If true, keeps scanning segments for the nearest hit.</summary>
 	[Export] public bool NearestHitOnly = true;
 
-	// ✅ ADD inside GrinFilmCamera class (with your other [Export]s)
-	[Export] public FilmShadingMode ShadingMode = FilmShadingMode.DepthHeatmap;
-	// Note: overlay normals are world-space collision normals (physics mesh).
-	// Film distortion is a visualization artifact and does not change collider geometry.
-	// For film-surface normals, use a screen-space gradient (see FilmOverlay2D) or a ray-space curvature normal; physics will not provide it.
-
-	// If true, flip normals so they face the camera for consistent film debug
-	[Export] public bool FlipNormalToCamera = true;
-
-	// Optional: if you later add smooth normals / mesh cache, this becomes your master switch
-	[Export] public bool UseSmoothNormals = false;
-
-	// ✅ ADD near top of GrinFilmCamera.cs (outside the class)
 	public enum FilmShadingMode
 	{
 		DepthHeatmap = 0,   // your current behavior
@@ -107,9 +127,32 @@ public partial class GrinFilmCamera : Node
 		NdotV = 2,          // grayscale: saturate(dot(N, V))
 	}
 
-	[Export] public float FilmOpacity = 0.7f;
-	[Export] public NodePath FilmOverlayPath;
-	
+	[ExportGroup("Rendering / Film Output")]
+	/// <summary>Film shading mode (depth, normal RGB, NdotV).</summary>
+	[Export] public FilmShadingMode ShadingMode = FilmShadingMode.DepthHeatmap;
+	// Note: overlay normals are world-space collision normals (physics mesh).
+	// Film distortion is a visualization artifact and does not change collider geometry.
+	// For film-surface normals, use a screen-space gradient (see FilmOverlay2D) or a ray-space curvature normal; physics will not provide it.
+	/// <summary>Flips hit normals to face the camera for shading.</summary>
+	[Export] public bool FlipNormalToCamera = true;
+
+	[ExportGroup("Debug Visualization")]
+	/// <summary>Debug ray sampling density for overlay.</summary>
+	[Export] public int DebugEveryNPixels = 8;
+	/// <summary>Cap on debug rays per band.</summary>
+	[Export] public int DebugMaxFilmRays = 2048;
+
+	[ExportGroup("Deprecated (No Effect)")]
+	/// <summary>Legacy pass-2 insight plane toggle (no effect).</summary>
+	[Obsolete("Deprecated: no effect in current film pass.")]
+	[Export] public bool UseInsightPlanePass2 = true;
+	/// <summary>Legacy insight plane slab thickness (no effect).</summary>
+	[Obsolete("Deprecated: no effect in current film pass.")]
+	[Export] public float InsightPlaneEps = 0.10f;
+	/// <summary>Placeholder for future normal smoothing (unused).</summary>
+	[Obsolete("Deprecated: reserved for future normal smoothing.")]
+	[Export] public bool UseSmoothNormals = false;
+
 	private FilmOverlay2D _filmOverlay;
 	private float _rangeFar = 5f; // dynamic far distance used for mapping
 	private int _depthHistWrite = 0;
@@ -152,10 +195,6 @@ public partial class GrinFilmCamera : Node
 	private RayBeamRenderer.HitPayload[] _dbgHits = Array.Empty<RayBeamRenderer.HitPayload>();
 	private int _dbgRayCount = 0;
 	private int _dbgPtWrite = 0;
-
-	[Export] public int DebugEveryNPixels = 8;   // sample density (perf knob)
-	[Export] public int DebugMaxFilmRays = 2048; // cap per band
-	[Export] public bool EnableProfiling = true;
 
 	private struct ToggleSnapshot
 	{

@@ -3,18 +3,33 @@ using System;
 
 public partial class FilmOverlay2D : TextureRect
 {
+	[ExportCategory("Film Overlay")]
+	[ExportGroup("References")]
+	/// <summary>Optional camera override for projection.</summary>
 	[Export] public NodePath CameraPath;
+
+	[ExportGroup("Debug Visualization")]
+	/// <summary>Draws ray polylines.</summary>
 	[Export] public bool DrawRays = true;
+	/// <summary>Draws physics hit normals.</summary>
 	[Export] public bool DrawHitNormals = true;
+	/// <summary>Draws film gradient normals from image.</summary>
 	[Export] public bool DrawFilmGradientNormals = false;
 
+	/// <summary>Line width for rays.</summary>
 	[Export] public float RayWidth = 1.0f;
+	/// <summary>Line width for normals.</summary>
 	[Export] public float NormalWidth = 2.0f;
+	/// <summary>World-space normal length.</summary>
 	[Export] public float NormalLenWorld = 0.25f;
+	/// <summary>Scale for film gradient normal lines.</summary>
 	[Export] public float FilmGradientScale = 6.0f;
 
+	/// <summary>Base ray color.</summary>
 	[Export] public Color RayColor = new Color(0.6f, 1.0f, 0.6f, 0.9f);
+	/// <summary>Color for rays that hit.</summary>
 	[Export] public Color HitRayColor = new Color(1.0f, 0.9f, 0.2f, 1.0f);
+	/// <summary>Color for normals and gradients.</summary>
 	[Export] public Color NormalColor = new Color(1.0f, 0.2f, 0.2f, 1.0f);
 
 	private Camera3D _cam;

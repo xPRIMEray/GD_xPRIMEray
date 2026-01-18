@@ -12,60 +12,90 @@ using System.Collections.Generic;
 
 public partial class RayBeamRenderer : Node3D
 {
+	[ExportCategory("Ray Beam Renderer")]
+	[ExportGroup("References")]
+	/// <summary>Optional camera override; uses viewport camera when empty.</summary>
 	[Export] public NodePath CameraPath;
-	[Export] public bool UpdateEveryFrame = true;     // set false later for “only when changed”
-	[Export] public int StepsPerRay = 64;
-	[Export] public float StepLength = 0.25f;         // distance per step
-	[Export] public float QuadSize = 0.04f;           // billboard size per sample
-	[Export] public float BendScale = 0.12f;          // visual bend strength
-	[Export] public float Alpha = 0.50f;              // base alpha
-	[Export] public bool StopOnHit = false;
-	[Export] public uint CollisionMask = 0xFFFFFFFF;
-	[Export] public bool UseIntegratedField = true;
-	[Export] public Vector3 FieldCenter = Vector3.Zero;
-	[Export] public bool FieldCenterIsCamera = true;
-	[Export] public float FieldStrength = 1.0f;       // extra multiplier
-	[Export] public bool ColorByField = true;
-	[Export] public float FieldColorGain = 0.15f;     // higher = gets “hot” faster
-	[Export] public Color HotColor = new Color(0.2f, 1.0f, 1.0f, 1.0f); // cyan-ish glow
-	[Export] public int RenderEveryNSteps = 1;        // 1 = every step, 2 = every other, etc.
-	[Export] public float MinStepLength = 0.05f;
-	[Export] public float MaxStepLength = 0.5f;
-	[Export] public float StepAdaptGain = 0.05f;      // how strongly acceleration shrinks step
 
-	// --- Collision robustness (INSIGHT-ish thick segment) ---
-	[Export] public int CollisionEveryNSteps = 1;     // 1 = every step, 2 = every other, etc.
-	[Export] public float CollisionRadius = 0.03f;    // thickness of beam for hit testing
-	[Export] public bool UseSphereSweepCollision = false; // switch between IntersectRay vs IntersectShape
-	[Export] public bool UseInsightPlaneFilter = false;
-	[Export] public NodePath InsightPlaneNode;        // drag your table body here
-	[Export] public float CollisionRaySubdivideThreshold = 0.25f; // meters per sub-ray
-	[Export] public int MaxCollisionSubsteps = 16;
-
-	// If true and StopOnHit=true, only render rays that actually hit something.
-	[Export] public bool RequireHitToRender = false;
-
-	// --- Debug ---
-	[Export] public bool DebugRender = false;
-	[Export] public int DebugEveryNRays = 25;           // print 1 line per N rays
-	[Export] public bool DebugSetBillboardRejects = false; // prints when SetBillboardInstance skips
-	[Export] public int DebugMaxRejectPrints = 10;      // cap reject spam
-	[Export] public bool CheckCollisionsEvenIfNotStopping = false;
-
-	// ✅ NEW: terminate *draw* trail at first hit (independent from StopOnHit simulation)
-	[Export] public bool TerminateTrailOnHit = true;
-
-	// ✅ NEW: draw a hit marker billboard
-	[Export] public bool DrawHitMarker = true;
-	[Export] public Color HitMarkerColor = new Color(1, 0, 0, 1);
-	
+	[ExportGroup("Performance / Profiling")]
+	/// <summary>Rebuilds rays when camera or field sources change.</summary>
+	[Export] public bool UpdateEveryFrame = true;
+	/// <summary>Allows Rebuild when UpdateEveryFrame is enabled.</summary>
 	[Export] public bool AllowRebuild = true;
 
-	// 🎯 Screen-space driven collision cadence
+	[ExportGroup("Ray March / Sampling")]
+	/// <summary>Number of integration steps per ray.</summary>
+	[Export] public int StepsPerRay = 64;
+	/// <summary>Base step length for integration.</summary>
+	[Export] public float StepLength = 0.25f;
+	/// <summary>Clamp minimum step length.</summary>
+	[Export] public float MinStepLength = 0.05f;
+	/// <summary>Clamp maximum step length.</summary>
+	[Export] public float MaxStepLength = 0.5f;
+	/// <summary>Adaptation strength for step sizing.</summary>
+	[Export] public float StepAdaptGain = 0.05f;
+	/// <summary>Integrates field acceleration instead of closed form.</summary>
+	[Export] public bool UseIntegratedField = true;
+	/// <summary>Base bend strength.</summary>
+	[Export] public float BendScale = 0.12f;
+	/// <summary>Extra multiplier for field strength.</summary>
+	[Export] public float FieldStrength = 1.0f;
+	/// <summary>World center for field when not using camera.</summary>
+	[Export] public Vector3 FieldCenter = Vector3.Zero;
+	/// <summary>Uses camera position as field center.</summary>
+	[Export] public bool FieldCenterIsCamera = true;
+
+	[ExportGroup("Rendering / Film Output")]
+	/// <summary>Billboard size for each sample.</summary>
+	[Export] public float QuadSize = 0.04f;
+	/// <summary>Base alpha for ray samples.</summary>
+	[Export] public float Alpha = 0.50f;
+	/// <summary>Samples every N steps for drawing.</summary>
+	[Export] public int RenderEveryNSteps = 1;
+	/// <summary>Colors rays based on field magnitude.</summary>
+	[Export] public bool ColorByField = true;
+	/// <summary>Strength of field-based color ramp.</summary>
+	[Export] public float FieldColorGain = 0.15f;
+	/// <summary>Color for maximum field heat.</summary>
+	[Export] public Color HotColor = new Color(0.2f, 1.0f, 1.0f, 1.0f);
+	/// <summary>Stops drawing samples after the first hit.</summary>
+	[Export] public bool TerminateTrailOnHit = true;
+	/// <summary>Draws a marker at hit position.</summary>
+	[Export] public bool DrawHitMarker = true;
+	/// <summary>Color of the hit marker.</summary>
+	[Export] public Color HitMarkerColor = new Color(1, 0, 0, 1);
+
+	[ExportGroup("Physics / Collision")]
+	/// <summary>Stops simulation on first hit.</summary>
+	[Export] public bool StopOnHit = false;
+	/// <summary>Collision mask for ray tests.</summary>
+	[Export] public uint CollisionMask = 0xFFFFFFFF;
+	/// <summary>Collision test cadence in steps.</summary>
+	[Export] public int CollisionEveryNSteps = 1;
+	/// <summary>Sphere radius for collision.</summary>
+	[Export] public float CollisionRadius = 0.03f;
+	/// <summary>Uses IntersectShape sphere sweep.</summary>
+	[Export] public bool UseSphereSweepCollision = false;
+	/// <summary>Rejects segments outside a plane slab.</summary>
+	[Export] public bool UseInsightPlaneFilter = false;
+	/// <summary>NodePath to plane source.</summary>
+	[Export] public NodePath InsightPlaneNode;
+	/// <summary>Segment length that triggers subdivision.</summary>
+	[Export] public float CollisionRaySubdivideThreshold = 0.25f;
+	/// <summary>Max sub-rays per segment.</summary>
+	[Export] public int MaxCollisionSubsteps = 16;
+	/// <summary>Only render rays that hit.</summary>
+	[Export] public bool RequireHitToRender = false;
+	/// <summary>Keeps collision checks even if StopOnHit is false.</summary>
+	[Export] public bool CheckCollisionsEvenIfNotStopping = false;
+	/// <summary>Adjusts collision cadence to limit screen error.</summary>
 	[Export] public bool UseScreenSpaceCollisionCadence = true;
-	[Export] public float CollisionMaxErrorPixels = 0.75f; // target max sagitta error in pixels
-	[Export] public float MinDepthForError = 0.10f;        // avoid divide-by-zero near camera
-	[Export] public int MinCollisionEveryNSteps = 1;       // hard lower bound
+	/// <summary>Target sagitta error in pixels.</summary>
+	[Export] public float CollisionMaxErrorPixels = 0.75f;
+	/// <summary>Min depth for screen error calculations.</summary>
+	[Export] public float MinDepthForError = 0.10f;
+	/// <summary>Lower bound on adaptive collision cadence.</summary>
+	[Export] public int MinCollisionEveryNSteps = 1;
 
 	// =======================
 	// Debug Controls (RayBeamRenderer)
@@ -77,16 +107,27 @@ public partial class RayBeamRenderer : Node3D
 		RaysAndNormals = 2
 	}
 
+	[ExportGroup("Debug Visualization")]
+	/// <summary>Enables per-ray debug logs.</summary>
+	[Export] public bool DebugRender = false;
+	/// <summary>Log every N rays during rebuild.</summary>
+	[Export] public int DebugEveryNRays = 25;
+	/// <summary>Logs billboard rejects (bounds or NaN).</summary>
+	[Export] public bool DebugSetBillboardRejects = false;
+	/// <summary>Max billboard reject logs per ray.</summary>
+	[Export] public int DebugMaxRejectPrints = 10;
+	/// <summary>Debug overlay mode (off/rays/normals).</summary>
 	[Export] public DebugDrawMode DebugMode = DebugDrawMode.RaysAndNormals;
-
-	// Keep segment count modest for performance.
-	// If your pass-1 already has segments, use those directly.
-	[Export] public int DebugMaxRays = 256;          // cap drawn rays
-	[Export] public int DebugMaxSegmentsPerRay = 64; // cap drawn segments
-	[Export] public float DebugNormalLen = 0.25f;    // world units
-	[Export] public bool DebugDrawOnlyHits = false;  // show only rays that hit
+	/// <summary>Cap on debug overlay rays.</summary>
+	[Export] public int DebugMaxRays = 256;
+	/// <summary>Cap on segments per debug ray.</summary>
+	[Export] public int DebugMaxSegmentsPerRay = 64;
+	/// <summary>Length of debug hit normals.</summary>
+	[Export] public float DebugNormalLen = 0.25f;
+	/// <summary>Draw only rays that hit.</summary>
+	[Export] public bool DebugDrawOnlyHits = false;
+	/// <summary>Film camera drives overlay drawing when true.</summary>
 	[Export] public bool DebugOverlayOwnedByFilm = true;
-
 
 	private MultiMeshInstance3D _mmi;
 	private MultiMesh _mm;
