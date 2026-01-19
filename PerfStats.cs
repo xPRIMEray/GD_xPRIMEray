@@ -41,6 +41,10 @@ public struct PerfFrameReport
 	public int SubdividedRaySkipped;
 	public int SubdividedRaySubsteps;
 	public int ShadingSkippedPixels;
+	public long SegsSkippedByPass2Stride;
+	public long SegsForcedTestByPass2Stride;
+	public long Pass2StrideSum;
+	public long Pass2StrideCount;
 	public bool ShadingSkippedNoHits;
 	public bool RequireHitToRender;
 	public bool ResizedFilm;
@@ -206,10 +210,11 @@ public sealed class PerfStats
 		double avgSegsTestedPerPixelRoll = avgTracedPixels > 0 ? avgSegsTested / avgTracedPixels : 0.0;
 		double avgSubstepsRoll = avgSubRayCalls > 0 ? avgSubRaySubsteps / avgSubRayCalls : 0.0;
 		double hitPctRoll = avgTracedPixels > 0 ? (avgHits * 100.0) / avgTracedPixels : 0.0;
+		double avgP2Stride = frame.Pass2StrideCount > 0 ? (double)frame.Pass2StrideSum / frame.Pass2StrideCount : 1.0;
 
 		if (verbose)
 		{
-			GD.Print($"Film frame stats: pixels={frame.Pixels} traced={frame.TracedPixels} filled={frame.FilledPixels} effPx={frame.EffectiveRenderPixels} segs={frame.Segs} segsTested={frame.SegsTested} hits={frame.Hits} qRay={frame.IntersectRayCalls} overlap={frame.IntersectShapeCalls} subRayCalls={frame.SubdividedRayCalls} subRayQueries={frame.SubdividedRayQueries} subRaySkipped={frame.SubdividedRaySkipped}");
+			GD.Print($"Film frame stats: pixels={frame.Pixels} traced={frame.TracedPixels} filled={frame.FilledPixels} effPx={frame.EffectiveRenderPixels} segs={frame.Segs} segsTested={frame.SegsTested} hits={frame.Hits} qRay={frame.IntersectRayCalls} overlap={frame.IntersectShapeCalls} subRayCalls={frame.SubdividedRayCalls} subRayQueries={frame.SubdividedRayQueries} subRaySkipped={frame.SubdividedRaySkipped} skipSegs={frame.SegsSkippedByPass2Stride} forceSegs={frame.SegsForcedTestByPass2Stride} avgP2Stride={avgP2Stride:0.00}");
 			string statFlags = FormatReasonFlags(frame.ReasonFlags);
 			GD.Print($"Film physics summary: avgSegPerPixel={avgSegPerPixel:0.00} avgSegsTestedPerPixel={avgSegsTestedPerPixel:0.00} avgSubsteps={avgSubsteps:0.00} hitPct={hitPct:0.00}%{(statFlags.Length > 0 ? " " + statFlags : string.Empty)}");
 			GD.Print($"Film timings(ms): pass1={frame.Pass1Ms:0.00} pass2.physics={frame.Pass2PhysMs:0.00} pass2.shading={frame.Pass2ShadeMs:0.00} film.update={frame.FilmUpdateMs:0.00} overlay.build={frame.OverlayBuildMs:0.00} overlay.enqueue={frame.OverlayEnqueueMs:0.00}");
@@ -230,7 +235,10 @@ public sealed class PerfStats
 			.Append("% avgSeg=").Append(avgSegPerPixel.ToString("0.00"))
 			.Append(" avgTested=").Append(avgSegsTestedPerPixel.ToString("0.00"))
 			.Append(" avgSub=").Append(avgSubsteps.ToString("0.00"))
-			.Append(" stride=").Append(frame.EffectiveStride)
+			.Append(" pxStride=").Append(frame.EffectiveStride)
+			.Append(" avgP2Stride=").Append(avgP2Stride.ToString("0.00"))
+			.Append(" skipSegs=").Append(frame.SegsSkippedByPass2Stride)
+			.Append(" forceSegs=").Append(frame.SegsForcedTestByPass2Stride)
 			.Append(" eff=").Append(frame.EffectiveWidth).Append("x").Append(frame.EffectiveHeight)
 			.Append(" ms p1=").Append(frame.Pass1Ms.ToString("0.00"))
 			.Append(" p2p=").Append(frame.Pass2PhysMs.ToString("0.00"))

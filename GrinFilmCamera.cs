@@ -102,6 +102,16 @@ public partial class GrinFilmCamera : Node
 	[Export] public float BroadphaseMargin = 0.03f;
 	/// <summary>Max overlap results to consider.</summary>
 	[Export] public int BroadphaseMaxResults = 8;
+	/// <summary>Skips some pass-2 collision checks based on distance.</summary>
+	[Export] public bool UsePass2CollisionStride = false;
+	/// <summary>Stride near the camera for pass-2 collision checks.</summary>
+	[Export(PropertyHint.Range, "1,8,1")] public int Pass2CollisionStrideNear = 1;
+	/// <summary>Stride at far distances for pass-2 collision checks.</summary>
+	[Export(PropertyHint.Range, "1,32,1")] public int Pass2CollisionStrideFar = 4;
+	/// <summary>Start t (0..1) where far stride begins in pass 2.</summary>
+	[Export(PropertyHint.Range, "0,1,0.01")] public float Pass2CollisionStrideFarStartT = 0.35f;
+	/// <summary>If >0, segments shorter than this length always run pass-2 collision tests.</summary>
+	[Export(PropertyHint.Range, "0,1,0.001")] public float MinSegLenForStrideSkip = 0f;
 
 	public enum BroadphaseMode
 	{
@@ -502,6 +512,10 @@ public partial class GrinFilmCamera : Node
 		// ---- PASS 2 (main thread): collisions + shading ----
 		bandHits = 0;
 		int bandTracedPixels = 0;
+		long segsSkippedByPass2Stride = 0;
+		long segsForcedTestByPass2Stride = 0;
+		long pass2StrideSum = 0;
+		long pass2StrideCount = 0;
 
 		Vector3 camPosPass2 = camPos;
 		bool useOverlap = UseBroadphaseOverlap;
@@ -607,12 +621,28 @@ public partial class GrinFilmCamera : Node
 					ulong physStart = 0;
 					if (perfEnabled) physStart = Time.GetTicksUsec();
 
+					int lastSi = Math.Max(0, segCount - 1);
 					for (int si = 0; si < segCount; si++)
 					{
 						var seg = _segBuf[segOffset + si];
 						Vector3 segA = seg.A;
 						Vector3 segB = seg.B;
 						float segLen = (segB - segA).Length();
+						int pass2Stride = ComputePass2CollisionStride(seg.TraveledB, farForSim);
+						pass2StrideSum += pass2Stride;
+						pass2StrideCount++;
+						if (pass2Stride > 1)
+						{
+							bool forceTest = si == 0 || si == lastSi
+								|| (MinSegLenForStrideSkip > 0f && segLen < MinSegLenForStrideSkip);
+							if (forceTest)
+								segsForcedTestByPass2Stride++;
+							else if ((si % pass2Stride) != 0)
+							{
+								segsSkippedByPass2Stride++;
+								continue;
+							}
+						}
 
 						if (segLen <= 1e-6f) continue;
 						if (TinySegmentSkipLen > 0f && segLen < TinySegmentSkipLen) continue;
@@ -1007,6 +1037,13 @@ public partial class GrinFilmCamera : Node
 			GD.Print($"pass1={(a1-a0)/1000.0:0.00}ms  pass2={(b1-a1)/1000.0:0.00}ms  total={(b1-a0)/1000.0:0.00}ms");
 		}
 		
+		if (perfEnabled)
+		{
+			_perfFrame.SegsSkippedByPass2Stride += segsSkippedByPass2Stride;
+			_perfFrame.SegsForcedTestByPass2Stride += segsForcedTestByPass2Stride;
+			_perfFrame.Pass2StrideSum += pass2StrideSum;
+			_perfFrame.Pass2StrideCount += pass2StrideCount;
+		}
 		if (perfEnabled && _rowCursor == 0)
 		{
 			_perfFrame.ShadingSkippedNoHits = _perfFrame.RequireHitToRender
@@ -1207,6 +1244,22 @@ public partial class GrinFilmCamera : Node
 		v = v.Normalized();
 		float ndv = Mathf.Clamp(n.Dot(v), 0f, 1f);
 		return new Color(ndv, ndv, ndv, 1f);
+	}
+
+	private int ComputePass2CollisionStride(float traveledB, float far)
+	{
+		if (!UsePass2CollisionStride) return 1;
+		int nearS = Mathf.Clamp(Pass2CollisionStrideNear, 1, 32);
+		int farS = Mathf.Clamp(Pass2CollisionStrideFar, 1, 32);
+		if (farS <= nearS) return nearS;
+
+		float t = traveledB / Mathf.Max(0.001f, far);
+		float startT = Mathf.Clamp(Pass2CollisionStrideFarStartT, 0f, 1f);
+		if (t <= startT) return nearS;
+
+		float a = (t - startT) / Mathf.Max(1e-6f, (1f - startT));
+		int s = Mathf.RoundToInt(Mathf.Lerp(nearS, farS, a));
+		return Mathf.Clamp(s, 1, farS);
 	}
 
 	private int FillPixelBlock(int x, int y, int stride, Color col, int filmW, int filmH)

@@ -18,10 +18,12 @@ public partial class FilmOverlay2D : TextureRect
 
 	/// <summary>Line width for rays.</summary>
 	[Export] public float RayWidth = 1.0f;
-	/// <summary>Line width for normals.</summary>
-	[Export] public float NormalWidth = 2.0f;
-	/// <summary>World-space normal length.</summary>
-	[Export] public float NormalLenWorld = 0.25f;
+	/// <summary>Line width for world hit normals.</summary>
+	[Export] public float WorldNormalWidth = 2.0f;
+	/// <summary>World-space normal length for hit normals.</summary>
+	[Export] public float WorldNormalLen = 0.25f;
+	/// <summary>Line width for film gradient normals.</summary>
+	[Export] public float FilmNormalWidth = 2.0f;
 	/// <summary>Scale for film gradient normal lines.</summary>
 	[Export] public float FilmGradientScale = 6.0f;
 
@@ -29,10 +31,22 @@ public partial class FilmOverlay2D : TextureRect
 	[Export] public Color RayColor = new Color(0.6f, 1.0f, 0.6f, 0.9f);
 	/// <summary>Color for rays that hit.</summary>
 	[Export] public Color HitRayColor = new Color(1.0f, 0.9f, 0.2f, 1.0f);
-	/// <summary>Color for normals and gradients.</summary>
+	/// <summary>Color for world hit normals.</summary>
+	[Export] public Color WorldNormalColor = new Color(1.0f, 0.2f, 0.2f, 1.0f);
+	/// <summary>Color for film gradient normals.</summary>
+	[Export] public Color FilmNormalColor = new Color(1.0f, 0.2f, 0.2f, 1.0f);
+	/// <summary>Legacy normal width (used as fallback).</summary>
+	[Export] public float NormalWidth = 2.0f;
+	/// <summary>Legacy world normal length (used as fallback).</summary>
+	[Export] public float NormalLenWorld = 0.25f;
+	/// <summary>Legacy normal color (used as fallback).</summary>
 	[Export] public Color NormalColor = new Color(1.0f, 0.2f, 0.2f, 1.0f);
 
 	private Camera3D _cam;
+
+	private static readonly Color DefaultNormalColor = new Color(1.0f, 0.2f, 0.2f, 1.0f);
+	private const float DefaultNormalWidth = 2.0f;
+	private const float DefaultNormalLenWorld = 0.25f;
 
 	private Vector3[] _pts = Array.Empty<Vector3>();
 	private int[] _offsets = Array.Empty<int>();
@@ -73,7 +87,7 @@ public partial class FilmOverlay2D : TextureRect
 		int filmSampleStride)
 	{
 		_cam = cam ?? _cam;
-		_normalLenWorld = normalLen > 0f ? normalLen : NormalLenWorld;
+		_normalLenWorld = normalLen > 0f ? normalLen : ResolveWorldNormalLen();
 		_filmImage = filmImage;
 		_filmWidth = filmWidth;
 		_filmHeight = filmHeight;
@@ -169,6 +183,9 @@ public partial class FilmOverlay2D : TextureRect
 		// Film-surface normals require a screen-space gradient (DrawFilmGradientNormals) or ray-space curvature; physics will not provide them.
 		if (hasRayData && DrawHitNormals)
 		{
+			Color worldColor = ResolveWorldNormalColor();
+			float worldWidth = ResolveWorldNormalWidth();
+			float worldLen = _normalLenWorld > 0f ? _normalLenWorld : ResolveWorldNormalLen();
 			int n = Mathf.Min(_rayCount, _hits.Length);
 			for (int i = 0; i < n; i++)
 			{
@@ -176,12 +193,12 @@ public partial class FilmOverlay2D : TextureRect
 				if (!h.Valid) continue;
 
 				Vector3 p0w = h.Position;
-				Vector3 p1w = h.Position + h.Normal * _normalLenWorld;
+				Vector3 p1w = h.Position + h.Normal * worldLen;
 
 				Vector2 p0 = ScreenToLocal(_cam.UnprojectPosition(p0w));
 				Vector2 p1 = ScreenToLocal(_cam.UnprojectPosition(p1w));
 
-				DrawLine(p0, p1, NormalColor, NormalWidth);
+				DrawLine(p0, p1, worldColor, worldWidth);
 			}
 		}
 
@@ -196,6 +213,8 @@ public partial class FilmOverlay2D : TextureRect
 			float scaleY = sz.Y / Mathf.Max(1, _filmHeight);
 
 			float lineScale = FilmGradientScale;
+			Color filmColor = ResolveFilmNormalColor();
+			float filmWidth = ResolveFilmNormalWidth();
 
 			for (int y = 1; y < _filmHeight - 1; y += stride)
 			{
@@ -214,7 +233,7 @@ public partial class FilmOverlay2D : TextureRect
 					dir = dir.Normalized();
 					Vector2 p0 = new Vector2((x + 0.5f) * scaleX, (y + 0.5f) * scaleY);
 					Vector2 p1 = p0 + dir * lineScale;
-					DrawLine(p0, p1, NormalColor, NormalWidth);
+					DrawLine(p0, p1, filmColor, filmWidth);
 				}
 			}
 		}
@@ -235,6 +254,41 @@ public partial class FilmOverlay2D : TextureRect
 		Color c = Color.FromHsv(h, 0.65f, 1.0f);
 		c.A = RayColor.A;
 		return c;
+	}
+
+	private Color ResolveWorldNormalColor()
+	{
+		if (WorldNormalColor == DefaultNormalColor && NormalColor != DefaultNormalColor)
+			return NormalColor;
+		return WorldNormalColor;
+	}
+
+	private float ResolveWorldNormalWidth()
+	{
+		if (Mathf.IsEqualApprox(WorldNormalWidth, DefaultNormalWidth) && !Mathf.IsEqualApprox(NormalWidth, DefaultNormalWidth))
+			return NormalWidth;
+		return WorldNormalWidth;
+	}
+
+	private float ResolveWorldNormalLen()
+	{
+		if (Mathf.IsEqualApprox(WorldNormalLen, DefaultNormalLenWorld) && !Mathf.IsEqualApprox(NormalLenWorld, DefaultNormalLenWorld))
+			return NormalLenWorld;
+		return WorldNormalLen;
+	}
+
+	private Color ResolveFilmNormalColor()
+	{
+		if (FilmNormalColor == DefaultNormalColor && NormalColor != DefaultNormalColor)
+			return NormalColor;
+		return FilmNormalColor;
+	}
+
+	private float ResolveFilmNormalWidth()
+	{
+		if (Mathf.IsEqualApprox(FilmNormalWidth, DefaultNormalWidth) && !Mathf.IsEqualApprox(NormalWidth, DefaultNormalWidth))
+			return NormalWidth;
+		return FilmNormalWidth;
 	}
 
 	private static float Luma(Color c)
