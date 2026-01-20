@@ -112,6 +112,10 @@ public partial class GrinFilmCamera : Node
 	[Export(PropertyHint.Range, "0,1,0.01")] public float Pass2CollisionStrideFarStartT = 0.35f;
 	/// <summary>If >0, segments shorter than this length always run pass-2 collision tests.</summary>
 	[Export(PropertyHint.Range, "0,1,0.001")] public float MinSegLenForStrideSkip = 0f;
+	/// <summary>Ray query option: include back-facing triangles in pass-2 checks.</summary>
+	[Export] public bool Pass2HitBackFaces = false;
+	/// <summary>Ray query option: detect hits when starting inside colliders.</summary>
+	[Export] public bool Pass2HitFromInside = true;
 
 	public enum BroadphaseMode
 	{
@@ -135,6 +139,7 @@ public partial class GrinFilmCamera : Node
 		DepthHeatmap = 0,   // your current behavior
 		NormalRGB = 1,      // (N*0.5 + 0.5)
 		NdotV = 2,          // grayscale: saturate(dot(N, V))
+		TwoSidedNdotV = 3,  // grayscale: saturate(abs(dot(N, V)))
 	}
 
 	[ExportGroup("Rendering / Film Output")]
@@ -512,8 +517,9 @@ public partial class GrinFilmCamera : Node
 		// ---- PASS 2 (main thread): collisions + shading ----
 		bandHits = 0;
 		int bandTracedPixels = 0;
-		long segsSkippedByPass2Stride = 0;
-		long segsForcedTestByPass2Stride = 0;
+		// Pass-2 stride counters track expensive subdivided tests, not whole segments.
+		long subRaysSkippedByPass2Stride = 0;
+		long subRaysForcedByPass2Stride = 0;
 		long pass2StrideSum = 0;
 		long pass2StrideCount = 0;
 
@@ -560,7 +566,8 @@ public partial class GrinFilmCamera : Node
 			_quickRayParams.CollisionMask = _rbr.CollisionMask;
 			_quickRayParams.CollideWithBodies = true;
 			_quickRayParams.CollideWithAreas = true;
-			_quickRayParams.HitFromInside = false;
+			_quickRayParams.HitFromInside = Pass2HitFromInside;
+			_quickRayParams.HitBackFaces = Pass2HitBackFaces;
 		}
 
 		if (skipBandPhysics)
@@ -617,194 +624,221 @@ public partial class GrinFilmCamera : Node
 					bool isCenterSample = (x == filmW / 2 && y == (yStart + (bandH / 2)));
 					bool logCenterSample = VerbosePerfLogs && isCenterSample;
 					bool needHitName = NeedColliderNames || logCenterSample;
+					bool sawCandidateThatRanSubdiv = false;
+					bool requireHitToRender = _rbr != null && _rbr.RequireHitToRender;
+					bool skippedAnyByStrideThisPixel = false;
 
 					ulong physStart = 0;
 					if (perfEnabled) physStart = Time.GetTicksUsec();
 
 					int lastSi = Math.Max(0, segCount - 1);
-					for (int si = 0; si < segCount; si++)
+					for (int pass = 0; pass < 2; pass++)
 					{
-						var seg = _segBuf[segOffset + si];
-						Vector3 segA = seg.A;
-						Vector3 segB = seg.B;
-						float segLen = (segB - segA).Length();
-						int pass2Stride = ComputePass2CollisionStride(seg.TraveledB, farForSim);
-						pass2StrideSum += pass2Stride;
-						pass2StrideCount++;
-						if (pass2Stride > 1)
+						bool forceStride1 = pass == 1;
+						if (forceStride1)
 						{
-							bool forceTest = si == 0 || si == lastSi
-								|| (MinSegLenForStrideSkip > 0f && segLen < MinSegLenForStrideSkip);
-							if (forceTest)
-								segsForcedTestByPass2Stride++;
-							else if ((si % pass2Stride) != 0)
-							{
-								segsSkippedByPass2Stride++;
-								continue;
-							}
+							if (hadHit)
+								break;
+							if (!UsePass2CollisionStride || requireHitToRender || !skippedAnyByStrideThisPixel || sawCandidateThatRanSubdiv)
+								break;
+							if (perfEnabled) _perfFrame.Pass2ForceStride1Pixels++;
 						}
 
-						if (segLen <= 1e-6f) continue;
-						if (TinySegmentSkipLen > 0f && segLen < TinySegmentSkipLen) continue;
-						if (hadHit && bestHit < float.PositiveInfinity)
+						for (int si = 0; si < segCount; si++)
 						{
-							float segStartDist = seg.TraveledB - segLen;
-							if (segStartDist >= bestHit)
-								continue;
-						}
+							var seg = _segBuf[segOffset + si];
+							Vector3 segA = seg.A;
+							Vector3 segB = seg.B;
+							float segLen = (segB - segA).Length();
+							int pass2Stride = forceStride1 ? 1 : ComputePass2CollisionStride(seg.TraveledB, farForSim);
 
-						/////////////////////////////////
-						bool segCounted = false;
-						ulong cid = 0;
-						string cname = "<none>";
-						Vector3 hp = Vector3.Zero;
-						Vector3 hn = Vector3.Up; // hit normal (world-space collider)
-						bool didHit = false;
-						/////////////////////////////////
-						
-						if (_rbr.UseSphereSweepCollision)
-						{
-							didHit = RayBeamRenderer.SweepSegmentHit(space, segA, segB, _rbr.CollisionMask, _rbr.CollisionRadius, out hp);
-							if (perfEnabled && !segCounted)
+							if (segLen <= 1e-6f) continue;
+							if (TinySegmentSkipLen > 0f && segLen < TinySegmentSkipLen) continue;
+							if (hadHit && bestHit < float.PositiveInfinity)
 							{
-								_perfFrame.SegsTested++;
-								segCounted = true;
-							}
-							// cname stays "<none>" for sphere sweep (unless you add a separate lookup)
-						}					
-						else
-						{
-							// Decision A
-							if (useInsightPlane)
-							{
-								//if (!SegmentCrossesPlane(segA, segB, insightPlane, insightEps))
-								if (!RayBeamRenderer.SegmentCrossesPlane(segA, segB, insightPlane, insightEps))
+								float segStartDist = seg.TraveledB - segLen;
+								if (segStartDist >= bestHit)
 									continue;
 							}
 
-
-							// Decision B
-							// ---- PASS2 cheap reject 2: optional overlap ----
-							if (useOverlap)
+							/////////////////////////////////
+							bool segCounted = false;
+							ulong cid = 0;
+							string cname = "<none>";
+							Vector3 hp = Vector3.Zero;
+							Vector3 hn = Vector3.Up; // hit normal (world-space collider)
+							bool didHit = false;
+							/////////////////////////////////
+							
+							if (_rbr.UseSphereSweepCollision)
 							{
-								Vector3 mid = (segA + segB) * 0.5f;
-
-								_overlapQuery.Transform = new Transform3D(Basis.Identity, mid);
-								var overlaps = space.IntersectShape(_overlapQuery, BroadphaseMaxResults);
-								if (perfEnabled) _perfFrame.IntersectShapeCalls++;
+								didHit = RayBeamRenderer.SweepSegmentHit(space, segA, segB, _rbr.CollisionMask, _rbr.CollisionRadius, out hp);
 								if (perfEnabled && !segCounted)
 								{
 									_perfFrame.SegsTested++;
 									segCounted = true;
 								}
-								if (overlaps.Count == 0)
-									continue;
-							}
-
-							// Decision C
-							// ---- PASS2 cheap reject 1: quick ray probe ----
-							if (useQuickRay)
+								// cname stays "<none>" for sphere sweep (unless you add a separate lookup)
+							}						
+							else
 							{
-								_quickRayParams.From = segA;
-								_quickRayParams.To = segB;
-								var hit0 = space.IntersectRay(_quickRayParams);
-								if (perfEnabled) _perfFrame.IntersectRayCalls++;
-								if (perfEnabled && !segCounted)
+								// Decision A
+								if (useInsightPlane)
 								{
-									_perfFrame.SegsTested++;
-									segCounted = true;
+									//if (!SegmentCrossesPlane(segA, segB, insightPlane, insightEps))
+									if (!RayBeamRenderer.SegmentCrossesPlane(segA, segB, insightPlane, insightEps))
+										continue;
 								}
-								if (hit0.Count == 0)
+
+
+								// Decision B
+								// ---- PASS2 cheap reject 2: optional overlap ----
+								if (useOverlap)
 								{
-									if (UseSingleProbeThenSubdivide)
+									Vector3 mid = (segA + segB) * 0.5f;
+
+									_overlapQuery.Transform = new Transform3D(Basis.Identity, mid);
+									var overlaps = space.IntersectShape(_overlapQuery, BroadphaseMaxResults);
+									if (perfEnabled) _perfFrame.IntersectShapeCalls++;
+									if (perfEnabled && !segCounted)
+									{
+										_perfFrame.SegsTested++;
+										segCounted = true;
+									}
+									if (overlaps.Count == 0)
+										continue;
+								}
+
+								// Decision C
+								// ---- PASS2 cheap reject 1: quick ray probe ----
+								if (useQuickRay)
+								{
+									_quickRayParams.From = segA;
+									_quickRayParams.To = segB;
+									var hit0 = space.IntersectRay(_quickRayParams);
+									if (perfEnabled) _perfFrame.IntersectRayCalls++;
+									if (perfEnabled && !segCounted)
+									{
+										_perfFrame.SegsTested++;
+										segCounted = true;
+									}
+									if (hit0.Count == 0)
+									{
+										if (UseSingleProbeThenSubdivide)
+											_perfFrame.SubdividedRaySkipped++;
+										continue;
+									}
+								}
+
+								if (UseSingleProbeThenSubdivide && !useQuickRay)
+								{
+									_quickRayParams.From = segA;
+									_quickRayParams.To = segB;
+									var hit0 = space.IntersectRay(_quickRayParams);
+									if (perfEnabled) _perfFrame.IntersectRayCalls++;
+									if (perfEnabled && !segCounted)
+									{
+										_perfFrame.SegsTested++;
+										segCounted = true;
+									}
+									if (hit0.Count == 0)
+									{
 										_perfFrame.SubdividedRaySkipped++;
-									continue;
+										continue;
+									}
 								}
-							}
 
-							if (UseSingleProbeThenSubdivide && !useQuickRay)
-							{
-								_quickRayParams.From = segA;
-								_quickRayParams.To = segB;
-								var hit0 = space.IntersectRay(_quickRayParams);
-								if (perfEnabled) _perfFrame.IntersectRayCalls++;
-								if (perfEnabled && !segCounted)
+								if (!forceStride1 && pass2Stride > 1)
 								{
-									_perfFrame.SegsTested++;
-									segCounted = true;
+									bool forceTest = si == 0 || si == lastSi
+										|| (MinSegLenForStrideSkip > 0f && segLen < MinSegLenForStrideSkip);
+									if (forceTest)
+										subRaysForcedByPass2Stride++;
+									else if ((si % pass2Stride) != 0)
+									{
+										subRaysSkippedByPass2Stride++;
+										skippedAnyByStrideThisPixel = true;
+										_perfFrame.SubRaySkippedByStride++;
+										continue;
+									}
 								}
-								if (hit0.Count == 0)
+								sawCandidateThatRanSubdiv = true;
+								if (!forceStride1)
 								{
-									_perfFrame.SubdividedRaySkipped++;
-									continue;
+									pass2StrideSum += pass2Stride;
+									pass2StrideCount++;
 								}
-							}
 
-							// ---- accurate subdivided ray ----
-							int sub = 1;
-							if (segLen > _rbr.CollisionRaySubdivideThreshold)
-								sub = Mathf.CeilToInt(segLen / _rbr.CollisionRaySubdivideThreshold);
-							sub = Mathf.Clamp(sub, 1, _rbr.MaxCollisionSubsteps);
+								// ---- accurate subdivided ray ----
+								int sub = 1;
+								if (segLen > _rbr.CollisionRaySubdivideThreshold)
+									sub = Mathf.CeilToInt(segLen / _rbr.CollisionRaySubdivideThreshold);
+								sub = Mathf.Clamp(sub, 1, _rbr.MaxCollisionSubsteps);
 
-							if (UseAdaptiveSubsteps)
-							{
-								float far = AutoRangeDepth ? _rangeFar : MaxDistance;
-								float t = Mathf.Clamp(seg.TraveledB / Mathf.Max(0.001f, far), 0f, 1f);
-								float minSub = Mathf.Max(1f, sub * 0.25f);
-								float scaled = Mathf.Lerp(sub, minSub, t);
-								sub = Mathf.Clamp(Mathf.RoundToInt(scaled), 1, _rbr.MaxCollisionSubsteps);
-							}
+								if (UseAdaptiveSubsteps)
+								{
+									float far = AutoRangeDepth ? _rangeFar : MaxDistance;
+									float t = Mathf.Clamp(seg.TraveledB / Mathf.Max(0.001f, far), 0f, 1f);
+									float minSub = Mathf.Max(1f, sub * 0.25f);
+									float scaled = Mathf.Lerp(sub, minSub, t);
+									sub = Mathf.Clamp(Mathf.RoundToInt(scaled), 1, _rbr.MaxCollisionSubsteps);
+								}
 
-							didHit = RayBeamRenderer.SubdividedRayHit(
+								didHit = RayBeamRenderer.SubdividedRayHit(
 										space, segA, segB,
 										_rbr.CollisionMask,
 										sub,
 										out hp, out hn, out cid, out cname,
 										out int rayQueries,
-										includeColliderName: needHitName);
-							if (perfEnabled)
-							{
-								_perfFrame.SubdividedRayCalls++;
-								_perfFrame.SubdividedRayQueries += rayQueries;
-								_perfFrame.SubdividedRaySubsteps += sub;
+										includeColliderName: needHitName,
+										hitBackFaces: Pass2HitBackFaces,
+										hitFromInside: Pass2HitFromInside);
+								if (perfEnabled)
+								{
+									_perfFrame.SubdividedRayCalls++;
+									_perfFrame.SubdividedRayQueries += rayQueries;
+									_perfFrame.SubdividedRaySubsteps += sub;
+								}
+								if (perfEnabled && !segCounted)
+								{
+									_perfFrame.SegsTested++;
+									segCounted = true;
+								}
+								
+								if (didHit && needHitName)
+									hitName = cname;
 							}
-							if (perfEnabled && !segCounted)
+
+							////////////
+							if (didHit)
 							{
-								_perfFrame.SegsTested++;
-								segCounted = true;
+								float d = seg.TraveledB - segLen + (hp - segA).Length();
+
+								if (d < bestHit)
+								{
+									bestHit = d;
+									hitDistance = d;
+									hadHit = true;
+									if (needHitName) hitName = cname;
+									bestHp = hp;      // ADD
+									bestHn = hn;      // ADD
+								}
+
+								// If you only want the nearest hit, keep scanning segments
+								if (NearestHitOnly)
+								{
+									if (EarlyOutDistanceEps > 0f && bestHit <= EarlyOutDistanceEps)
+										break;
+									continue;
+								}
+								
+								// Otherwise, first hit wins
+								break;
 							}
-							
-							if (didHit && needHitName)
-								hitName = cname;
+							//////////////////
 						}
-
-						////////////
-						if (didHit)
-						{
-							float d = seg.TraveledB - segLen + (hp - segA).Length();
-
-							if (d < bestHit)
-							{
-								bestHit = d;
-								hitDistance = d;
-								hadHit = true;
-								if (needHitName) hitName = cname;
-								bestHp = hp;      // ✅ ADD
-								bestHn = hn;      // ✅ ADD
-							}
-
-							// If you only want the nearest hit, keep scanning segments
-							if (NearestHitOnly)
-							{
-								if (EarlyOutDistanceEps > 0f && bestHit <= EarlyOutDistanceEps)
-									break;
-								continue;
-							}
-							
-							// Otherwise, first hit wins
+						if (hadHit)
 							break;
-						}
-						//////////////////
 					}
 
 					if (perfEnabled)
@@ -858,9 +892,24 @@ public partial class GrinFilmCamera : Node
 							case FilmShadingMode.NdotV:
 							{
 								Vector3 v = (camPosPass2 - bestHp).Normalized();
-								Vector3 n = bestHn;
-								if (FlipNormalToCamera && n.Dot(v) < 0f) n = -n;
-								col = ShadeNdotV(n, v);
+								Vector3 n = bestHn.Normalized();
+								float ndv = n.Dot(v);
+								if (perfEnabled && ndv < 0f) _perfFrame.BackfaceNdotVHits++;
+								if (FlipNormalToCamera && ndv < 0f)
+								{
+									n = -n;
+									ndv = -ndv;
+								}
+								col = ShadeNdotV(ndv);
+								break;
+							}
+
+							case FilmShadingMode.TwoSidedNdotV:
+							{
+								Vector3 v = (camPosPass2 - bestHp).Normalized();
+								Vector3 n = bestHn.Normalized();
+								float ndv = n.Dot(v);
+								col = ShadeNdotVAbs(ndv);
 								break;
 							}
 
@@ -1039,8 +1088,8 @@ public partial class GrinFilmCamera : Node
 		
 		if (perfEnabled)
 		{
-			_perfFrame.SegsSkippedByPass2Stride += segsSkippedByPass2Stride;
-			_perfFrame.SegsForcedTestByPass2Stride += segsForcedTestByPass2Stride;
+			_perfFrame.SegsSkippedByPass2Stride += subRaysSkippedByPass2Stride;
+			_perfFrame.SegsForcedTestByPass2Stride += subRaysForcedByPass2Stride;
 			_perfFrame.Pass2StrideSum += pass2StrideSum;
 			_perfFrame.Pass2StrideCount += pass2StrideCount;
 		}
@@ -1238,11 +1287,15 @@ public partial class GrinFilmCamera : Node
 		return new Color(n.X * 0.5f + 0.5f, n.Y * 0.5f + 0.5f, n.Z * 0.5f + 0.5f, 1f);
 	}
 
-	private static Color ShadeNdotV(Vector3 n, Vector3 v)
+	private static Color ShadeNdotV(float ndv)
 	{
-		n = n.Normalized();
-		v = v.Normalized();
-		float ndv = Mathf.Clamp(n.Dot(v), 0f, 1f);
+		ndv = Mathf.Clamp(ndv, 0f, 1f);
+		return new Color(ndv, ndv, ndv, 1f);
+	}
+
+	private static Color ShadeNdotVAbs(float ndv)
+	{
+		ndv = Mathf.Clamp(Mathf.Abs(ndv), 0f, 1f);
 		return new Color(ndv, ndv, ndv, 1f);
 	}
 

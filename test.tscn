@@ -70,6 +70,7 @@ script = ExtResource("2_ppyta")
 
 [node name="CanvasLayerUI" type="CanvasLayer" parent="."]
 layer = 0
+visible = false
 
 [node name="Options" type="Control" parent="CanvasLayerUI" node_paths=PackedStringArray("sun", "world_environment")]
 layout_mode = 3
@@ -565,6 +566,7 @@ AutoRangeSmoothing = 0.05
 AutoRangeSafety = 1.01
 UsePass2CollisionStride = true
 Pass2CollisionStrideFar = 6
+Pass2CollisionStrideFarStartT = 0.6
 MinSegLenForStrideSkip = 0.05
 UseBroadphasePolicy = true
 BroadphasePolicy = 3

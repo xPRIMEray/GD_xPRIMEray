@@ -907,7 +907,9 @@ public partial class RayBeamRenderer : Node3D
 		out Vector3 hitPos, out Vector3 hitNormal,
 		out ulong colliderId, out string colliderName,
 		out int rayQueryCount,
-		bool includeColliderName)
+		bool includeColliderName,
+		bool hitBackFaces = false,
+		bool hitFromInside = false)
 	{
 		hitPos = Vector3.Zero;
 		hitNormal = Vector3.Up;
@@ -930,7 +932,8 @@ public partial class RayBeamRenderer : Node3D
 			var rq = PhysicsRayQueryParameters3D.Create(prev, cur, mask);
 			rq.CollideWithBodies = true;
 			rq.CollideWithAreas = true;
-			rq.HitFromInside = false;
+			rq.HitBackFaces = hitBackFaces;
+			rq.HitFromInside = hitFromInside;
 
 			rayQueryCount++;
 			var hit = space.IntersectRay(rq);

@@ -39,10 +39,13 @@ public struct PerfFrameReport
 	public int SubdividedRayCalls;
 	public int SubdividedRayQueries;
 	public int SubdividedRaySkipped;
+	public int SubRaySkippedByStride;
 	public int SubdividedRaySubsteps;
 	public int ShadingSkippedPixels;
-	public long SegsSkippedByPass2Stride;
-	public long SegsForcedTestByPass2Stride;
+	public int Pass2ForceStride1Pixels;
+	public int BackfaceNdotVHits;
+	public long SegsSkippedByPass2Stride; // skipped expensive subdivided pass due to stride
+	public long SegsForcedTestByPass2Stride; // forced subdivided pass due to stride (first/last/short)
 	public long Pass2StrideSum;
 	public long Pass2StrideCount;
 	public bool ShadingSkippedNoHits;
@@ -111,8 +114,11 @@ public sealed class PerfStats
 		public long SubdividedRayCalls;
 		public long SubdividedRayQueries;
 		public long SubdividedRaySkipped;
+		public long SubRaySkippedByStride;
 		public long SubdividedRaySubsteps;
 		public long ShadingSkippedPixels;
+		public long Pass2ForceStride1Pixels;
+		public long BackfaceNdotVHits;
 	}
 
 	public PerfStats(int windowSize = 60)
@@ -171,8 +177,11 @@ public sealed class PerfStats
 		_sum.SubdividedRayCalls += frame.SubdividedRayCalls * sign;
 		_sum.SubdividedRayQueries += frame.SubdividedRayQueries * sign;
 		_sum.SubdividedRaySkipped += frame.SubdividedRaySkipped * sign;
+		_sum.SubRaySkippedByStride += frame.SubRaySkippedByStride * sign;
 		_sum.SubdividedRaySubsteps += frame.SubdividedRaySubsteps * sign;
 		_sum.ShadingSkippedPixels += frame.ShadingSkippedPixels * sign;
+		_sum.Pass2ForceStride1Pixels += frame.Pass2ForceStride1Pixels * sign;
+		_sum.BackfaceNdotVHits += frame.BackfaceNdotVHits * sign;
 	}
 
 	private void RemoveFrame(in PerfFrameReport frame)
@@ -214,7 +223,7 @@ public sealed class PerfStats
 
 		if (verbose)
 		{
-			GD.Print($"Film frame stats: pixels={frame.Pixels} traced={frame.TracedPixels} filled={frame.FilledPixels} effPx={frame.EffectiveRenderPixels} segs={frame.Segs} segsTested={frame.SegsTested} hits={frame.Hits} qRay={frame.IntersectRayCalls} overlap={frame.IntersectShapeCalls} subRayCalls={frame.SubdividedRayCalls} subRayQueries={frame.SubdividedRayQueries} subRaySkipped={frame.SubdividedRaySkipped} skipSegs={frame.SegsSkippedByPass2Stride} forceSegs={frame.SegsForcedTestByPass2Stride} avgP2Stride={avgP2Stride:0.00}");
+			GD.Print($"Film frame stats: pixels={frame.Pixels} traced={frame.TracedPixels} filled={frame.FilledPixels} effPx={frame.EffectiveRenderPixels} segs={frame.Segs} segsTested={frame.SegsTested} hits={frame.Hits} qRay={frame.IntersectRayCalls} overlap={frame.IntersectShapeCalls} subRayCalls={frame.SubdividedRayCalls} subRayQueries={frame.SubdividedRayQueries} subRaySkipped={frame.SubdividedRaySkipped} subRaySkipStride={frame.SubRaySkippedByStride} p2ForcePx={frame.Pass2ForceStride1Pixels} backfaceNdotV={frame.BackfaceNdotVHits} skipSegs={frame.SegsSkippedByPass2Stride} forceSegs={frame.SegsForcedTestByPass2Stride} avgP2Stride={avgP2Stride:0.00}");
 			string statFlags = FormatReasonFlags(frame.ReasonFlags);
 			GD.Print($"Film physics summary: avgSegPerPixel={avgSegPerPixel:0.00} avgSegsTestedPerPixel={avgSegsTestedPerPixel:0.00} avgSubsteps={avgSubsteps:0.00} hitPct={hitPct:0.00}%{(statFlags.Length > 0 ? " " + statFlags : string.Empty)}");
 			GD.Print($"Film timings(ms): pass1={frame.Pass1Ms:0.00} pass2.physics={frame.Pass2PhysMs:0.00} pass2.shading={frame.Pass2ShadeMs:0.00} film.update={frame.FilmUpdateMs:0.00} overlay.build={frame.OverlayBuildMs:0.00} overlay.enqueue={frame.OverlayEnqueueMs:0.00}");
@@ -237,6 +246,8 @@ public sealed class PerfStats
 			.Append(" avgSub=").Append(avgSubsteps.ToString("0.00"))
 			.Append(" pxStride=").Append(frame.EffectiveStride)
 			.Append(" avgP2Stride=").Append(avgP2Stride.ToString("0.00"))
+			.Append(" p2ForcePx=").Append(frame.Pass2ForceStride1Pixels)
+			.Append(" backfaceNdotV=").Append(frame.BackfaceNdotVHits)
 			.Append(" skipSegs=").Append(frame.SegsSkippedByPass2Stride)
 			.Append(" forceSegs=").Append(frame.SegsForcedTestByPass2Stride)
 			.Append(" eff=").Append(frame.EffectiveWidth).Append("x").Append(frame.EffectiveHeight)
