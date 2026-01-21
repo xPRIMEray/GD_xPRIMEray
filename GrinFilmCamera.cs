@@ -624,8 +624,7 @@ public partial class GrinFilmCamera : Node
 					bool isCenterSample = (x == filmW / 2 && y == (yStart + (bandH / 2)));
 					bool logCenterSample = VerbosePerfLogs && isCenterSample;
 					bool needHitName = NeedColliderNames || logCenterSample;
-					bool sawCandidateThatRanSubdiv = false;
-					bool requireHitToRender = _rbr != null && _rbr.RequireHitToRender;
+					bool testedAnyInPass0ThisPixel = false;
 					bool skippedAnyByStrideThisPixel = false;
 
 					ulong physStart = 0;
@@ -639,7 +638,7 @@ public partial class GrinFilmCamera : Node
 						{
 							if (hadHit)
 								break;
-							if (!UsePass2CollisionStride || requireHitToRender || !skippedAnyByStrideThisPixel || sawCandidateThatRanSubdiv)
+							if (!UsePass2CollisionStride || !skippedAnyByStrideThisPixel || testedAnyInPass0ThisPixel)
 								break;
 							if (perfEnabled) _perfFrame.Pass2ForceStride1Pixels++;
 						}
@@ -672,6 +671,12 @@ public partial class GrinFilmCamera : Node
 							
 							if (_rbr.UseSphereSweepCollision)
 							{
+								if (!forceStride1)
+								{
+									testedAnyInPass0ThisPixel = true;
+									pass2StrideSum += pass2Stride;
+									pass2StrideCount++;
+								}
 								didHit = RayBeamRenderer.SweepSegmentHit(space, segA, segB, _rbr.CollisionMask, _rbr.CollisionRadius, out hp);
 								if (perfEnabled && !segCounted)
 								{
@@ -762,9 +767,9 @@ public partial class GrinFilmCamera : Node
 										continue;
 									}
 								}
-								sawCandidateThatRanSubdiv = true;
 								if (!forceStride1)
 								{
+									testedAnyInPass0ThisPixel = true;
 									pass2StrideSum += pass2Stride;
 									pass2StrideCount++;
 								}
@@ -891,16 +896,16 @@ public partial class GrinFilmCamera : Node
 
 							case FilmShadingMode.NdotV:
 							{
-								Vector3 v = (camPosPass2 - bestHp).Normalized();
-								Vector3 n = bestHn.Normalized();
-								float ndv = n.Dot(v);
-								if (perfEnabled && ndv < 0f) _perfFrame.BackfaceNdotVHits++;
-								if (FlipNormalToCamera && ndv < 0f)
+								Vector3 v = camPosPass2 - bestHp;
+								Vector3 n = bestHn;
+								float rawDot;
+								col = ShadeNdotV(n, v, out rawDot);
+								if (perfEnabled && rawDot < 0f) _perfFrame.BackfaceNdotVHits++;
+								if (FlipNormalToCamera && rawDot < 0f)
 								{
 									n = -n;
-									ndv = -ndv;
+									col = ShadeNdotV(n, v, out _);
 								}
-								col = ShadeNdotV(ndv);
 								break;
 							}
 
@@ -1287,9 +1292,12 @@ public partial class GrinFilmCamera : Node
 		return new Color(n.X * 0.5f + 0.5f, n.Y * 0.5f + 0.5f, n.Z * 0.5f + 0.5f, 1f);
 	}
 
-	private static Color ShadeNdotV(float ndv)
+	private static Color ShadeNdotV(Vector3 n, Vector3 v, out float rawDot)
 	{
-		ndv = Mathf.Clamp(ndv, 0f, 1f);
+		n = n.Normalized();
+		v = v.Normalized();
+		rawDot = n.Dot(v);
+		float ndv = Mathf.Clamp(rawDot, 0f, 1f);
 		return new Color(ndv, ndv, ndv, 1f);
 	}
 

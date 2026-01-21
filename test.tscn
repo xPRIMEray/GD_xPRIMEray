@@ -63,14 +63,13 @@ directional_shadow_fade_start = 1.0
 directional_shadow_max_distance = 15.0
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(-0.7325459, 0.023684418, -0.6803056, -0.00487129, 0.9991866, 0.040031422, 0.6807003, 0.032638814, -0.73183465, -0.758883, 2.581778, -1.7723274)
+transform = Transform3D(-0.7325459, 0.023684418, -0.6803056, -0.00487129, 0.9991866, 0.040031422, 0.6807003, 0.032638814, -0.73183465, -0.8676652, 2.581778, -1.7723274)
 attributes = SubResource("CameraAttributesPhysical_drxnu")
 current = true
 script = ExtResource("2_ppyta")
 
 [node name="CanvasLayerUI" type="CanvasLayer" parent="."]
 layer = 0
-visible = false
 
 [node name="Options" type="Control" parent="CanvasLayerUI" node_paths=PackedStringArray("sun", "world_environment")]
 layout_mode = 3
@@ -552,7 +551,6 @@ Height = 720
 FilmResolutionScale = 0.5
 Preset = 0
 ApplyPresetOnReady = true
-UpdateEveryFrame = false
 UseFieldSourceCache = true
 RowsPerFrame = 10
 MaxDistance = 15.0
@@ -566,12 +564,13 @@ AutoRangeSmoothing = 0.05
 AutoRangeSafety = 1.01
 UsePass2CollisionStride = true
 Pass2CollisionStrideFar = 6
-Pass2CollisionStrideFarStartT = 0.6
-MinSegLenForStrideSkip = 0.05
+Pass2CollisionStrideFarStartT = 0.25
+MinSegLenForStrideSkip = 0.12
+Pass2HitFromInside = false
 UseBroadphasePolicy = true
 BroadphasePolicy = 3
 UseSingleProbeThenSubdivide = true
-ShadingMode = 2
+ShadingMode = 3
 FlipNormalToCamera = false
 UseSmoothNormals = true
 
@@ -603,7 +602,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.011308312, -0.00152421, 0.0
 transform = Transform3D(-2.9267077, 0.062589, -3.2043538, 0.25782096, 0.13378882, 3.1383374, 2.6280239, 0.056577086, -3.8764265, 1.3565156, 2.0819187, 0.6275604)
 
 [node name="TestPhysicsRoom2" parent="." instance=ExtResource("4_00tp4")]
-transform = Transform3D(-0.103048146, 0.054882545, -4.9977884, 0.2824248, 0.21488212, 1.1302289, 1.2086738, -0.045531273, -0.6901921, 0.9307282, 1.4322524, -0.28077465)
+transform = Transform3D(0.6296023, 0.022610143, 4.43106, 0.86875576, -0.1430808, -1.7463846, 0.6325666, 0.17400047, -2.0118413, 0.23612988, 2.0896692, -0.05849552)
 
 [node name="CurvedLayer" type="CanvasLayer" parent="."]
 visible = false
