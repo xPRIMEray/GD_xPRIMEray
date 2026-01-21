@@ -32,6 +32,10 @@ window/stretch/aspect="expand"
 
 project/assembly_name="Physical Light and Camera Units"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/fieldsource_gizmo/plugin.cfg", "res://addons/grin_inspector_help/plugin.cfg")
+
 [filesystem]
 
 import/blender/enabled=false
