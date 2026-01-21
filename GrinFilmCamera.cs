@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using XPrimeRay.Perf; // adjust namespace new PerfScope.cs
 
 public partial class GrinFilmCamera : Node
 {
@@ -168,6 +169,7 @@ public partial class GrinFilmCamera : Node
 	[Obsolete("Deprecated: reserved for future normal smoothing.")]
 	[Export] public bool UseSmoothNormals = false;
 
+
 	private FilmOverlay2D _filmOverlay;
 	private float _rangeFar = 5f; // dynamic far distance used for mapping
 	private int _depthHistWrite = 0;
@@ -233,6 +235,7 @@ public partial class GrinFilmCamera : Node
 	private float _lastRangeFar;
 	private bool _hasLastRangeFar;
 
+	private FramePerf _framePerf = new FramePerf();
 
 
 	public override void _Ready()
@@ -311,7 +314,6 @@ public partial class GrinFilmCamera : Node
 	{
 		if (!UpdateEveryFrame) return;
 		RenderStep();
-		//UpdateFilmOpacity();
 	}
 
 	public void RenderStep()
