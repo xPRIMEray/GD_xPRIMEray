@@ -243,6 +243,9 @@ public partial class GrinFilmCamera : Node
 	private bool _hasLastRangeFar;
 
 	private FramePerf _framePerf = new FramePerf();
+	private double _lastTestedSegsPerPixel = 0.0;
+	private long _lastPhysQ = 0;
+	private bool _hasPerfDeltaBaseline = false;
 
 
 	public override void _Ready()
@@ -558,6 +561,7 @@ public partial class GrinFilmCamera : Node
 		long subRaysForcedByPass2Stride = 0;
 		long pass2StrideSum = 0;
 		long pass2StrideCount = 0;
+		long bandFarEarlyOuts = 0;
 
 		Vector3 camPosPass2 = camPos;
 		bool useOverlap = UseBroadphaseOverlap;
@@ -663,6 +667,7 @@ public partial class GrinFilmCamera : Node
 					float hitDistance = 0f;
 					string hitName = "<none>";
 					float bestHit = float.PositiveInfinity;
+					float bestHitDistAlongRay = float.PositiveInfinity;
 					Vector3 bestHp = Vector3.Zero;
 					Vector3 bestHn = Vector3.Up;
 
@@ -677,6 +682,24 @@ public partial class GrinFilmCamera : Node
 					bool needHitName = NeedColliderNames || logCenterSample;
 					bool testedAnyInPass0ThisPixel = false;
 					bool skippedAnyByStrideThisPixel = false;
+					bool segmentsMonotonic = true;
+					if (segCount > 1)
+					{
+						float prevTraveledB = float.NegativeInfinity;
+						for (int si = 0; si < segCount; si++)
+						{
+							float traveledB = _segBuf[segOffset + si].TraveledB;
+							if (traveledB < prevTraveledB - 1e-6f)
+							{
+								segmentsMonotonic = false;
+								break;
+							}
+							prevTraveledB = traveledB;
+						}
+					}
+					bool allowFarEarlyOut = NearestHitOnly && segmentsMonotonic;
+					float farEarlyOutEps = Mathf.Max(0f, EarlyOutDistanceEps);
+					bool earlyOutFarThisPixel = false;
 
 					ulong physStart = 0;
 					if (statsEnabled) physStart = Time.GetTicksUsec();
@@ -704,11 +727,15 @@ public partial class GrinFilmCamera : Node
 
 							if (segLen <= 1e-6f) continue;
 							if (TinySegmentSkipLen > 0f && segLen < TinySegmentSkipLen) continue;
-							if (hadHit && bestHit < float.PositiveInfinity)
+							if (allowFarEarlyOut && bestHitDistAlongRay < float.PositiveInfinity)
 							{
 								float segStartDist = seg.TraveledB - segLen;
-								if (segStartDist >= bestHit)
-									continue;
+								if (segStartDist > bestHitDistAlongRay + farEarlyOutEps)
+								{
+									earlyOutFarThisPixel = true;
+									bandFarEarlyOuts++;
+									break;
+								}
 							}
 
 							/////////////////////////////////
@@ -789,6 +816,10 @@ public partial class GrinFilmCamera : Node
 											_perfFrame.SubdividedRaySkipped++;
 										continue;
 									}
+									Vector3 hitPos = (Vector3)hit0["position"];
+									float d = seg.TraveledB - segLen + (hitPos - segA).Length();
+									if (d < bestHitDistAlongRay)
+										bestHitDistAlongRay = d;
 								}
 
 								if (UseSingleProbeThenSubdivide && !useQuickRay)
@@ -809,6 +840,10 @@ public partial class GrinFilmCamera : Node
 										_perfFrame.SubdividedRaySkipped++;
 										continue;
 									}
+									Vector3 hitPos = (Vector3)hit0["position"];
+									float d = seg.TraveledB - segLen + (hitPos - segA).Length();
+									if (d < bestHitDistAlongRay)
+										bestHitDistAlongRay = d;
 								}
 
 								if (!forceStride1 && pass2Stride > 1)
@@ -878,6 +913,8 @@ public partial class GrinFilmCamera : Node
 							if (didHit)
 							{
 								float d = seg.TraveledB - segLen + (hp - segA).Length();
+								if (d < bestHitDistAlongRay)
+									bestHitDistAlongRay = d;
 
 								if (d < bestHit)
 								{
@@ -902,6 +939,8 @@ public partial class GrinFilmCamera : Node
 							}
 							//////////////////
 						}
+						if (earlyOutFarThisPixel)
+							break;
 						if (hadHit)
 							break;
 					}
@@ -1077,6 +1116,7 @@ public partial class GrinFilmCamera : Node
 			_framePerf.SegmentsTested += bandSegsTested;
 			_framePerf.PhysicsQueries += bandPhysicsQueries;
 			_framePerf.Hits += bandHits;
+			_framePerf.EarlyOutFar += bandFarEarlyOuts;
 		}
 		if (UseBandHitSkip && bandIndex >= 0 && bandIndex < _bandHitRate.Length)
 		{
@@ -1190,8 +1230,28 @@ public partial class GrinFilmCamera : Node
 		if (framePerfEnabled && _rowCursor == 0)
 		{
 			int logEvery = Mathf.Max(1, FramePerfLogEveryNFrames);
-			if (FramePerfVerbose || (_frameIndex % logEvery) == 0)
+			bool shouldLogFramePerf = FramePerfVerbose || (_frameIndex % logEvery) == 0;
+			if (shouldLogFramePerf)
+			{
 				GD.Print("FramePerf: " + _framePerf.ToOneLineSummary());
+				double testedPerPixel = _framePerf.RaysTraced > 0
+					? (double)_framePerf.SegmentsTested / _framePerf.RaysTraced
+					: 0.0;
+				long physQ = _framePerf.PhysicsQueries;
+				if (_hasPerfDeltaBaseline)
+				{
+					string testedDelta = (testedPerPixel - _lastTestedSegsPerPixel).ToString("+0.###;-0.###;+0.###");
+					string physQDelta = (physQ - _lastPhysQ).ToString("+0;-0;0");
+					GD.Print($"FramePerf delta: tested/px={testedPerPixel:0.###} (d{testedDelta}) physQ={physQ} (d{physQDelta})");
+				}
+				else
+				{
+					GD.Print($"FramePerf delta: tested/px={testedPerPixel:0.###} physQ={physQ} (baseline)");
+					_hasPerfDeltaBaseline = true;
+				}
+				_lastTestedSegsPerPixel = testedPerPixel;
+				_lastPhysQ = physQ;
+			}
 		}
 	}
 	finally
