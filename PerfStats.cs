@@ -48,6 +48,9 @@ public struct PerfFrameReport
 	public long SegsForcedTestByPass2Stride; // forced subdivided pass due to stride (first/last/short)
 	public long Pass2StrideSum;
 	public long Pass2StrideCount;
+	public long BandSegsIntegrated;
+	public long BandSegsTested;
+	public long BandPhysicsQueries;
 	public bool ShadingSkippedNoHits;
 	public bool RequireHitToRender;
 	public bool ResizedFilm;

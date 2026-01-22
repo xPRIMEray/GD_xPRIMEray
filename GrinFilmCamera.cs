@@ -525,6 +525,8 @@ public partial class GrinFilmCamera : Node
 		long pass1EarlyStopPixels = 0;
 		long pass1StepsIntegrated = 0;
 		long pass1FieldEvals = 0;
+		bool collectPass1Perf = framePerfEnabled;
+		bool collectPass1Steps = framePerfEnabled || VerbosePerfLogs;
 
 		System.Threading.Tasks.Parallel.For(
 			0,
@@ -594,9 +596,13 @@ public partial class GrinFilmCamera : Node
 					out int fieldEvals
 				);
 
-				local.PhysQueries += count;
-				local.StepsIntegrated += stepsIntegrated;
-				local.FieldEvals += fieldEvals;
+				if (collectPass1Perf)
+				{
+					local.PhysQueries += count;
+					if (stoppedEarly) local.EarlyStopPixels++;
+				}
+				if (collectPass1Steps) local.StepsIntegrated += stepsIntegrated;
+				if (framePerfEnabled) local.FieldEvals += fieldEvals;
 
 				_segCountPerPixel[pi] = count;
 				_pass1HitFound[pi] = hitInfo.Found;
@@ -606,16 +612,17 @@ public partial class GrinFilmCamera : Node
 				_pass1HitPos[pi] = hitInfo.Position;
 				_pass1HitNormal[pi] = hitInfo.Normal;
 				_pass1HitColliderId[pi] = hitInfo.ColliderId;
-				if (stoppedEarly) local.EarlyStopPixels++;
-
 				return local;
 			},
 			local =>
 			{
-				Interlocked.Add(ref pass1PhysQueries, local.PhysQueries);
-				Interlocked.Add(ref pass1EarlyStopPixels, local.EarlyStopPixels);
-				Interlocked.Add(ref pass1StepsIntegrated, local.StepsIntegrated);
-				Interlocked.Add(ref pass1FieldEvals, local.FieldEvals);
+				if (collectPass1Perf)
+				{
+					Interlocked.Add(ref pass1PhysQueries, local.PhysQueries);
+					Interlocked.Add(ref pass1EarlyStopPixels, local.EarlyStopPixels);
+				}
+				if (collectPass1Steps) Interlocked.Add(ref pass1StepsIntegrated, local.StepsIntegrated);
+				if (framePerfEnabled) Interlocked.Add(ref pass1FieldEvals, local.FieldEvals);
 			});
 
 		if (framePerfEnabled) pass1Scope.Dispose();
@@ -642,6 +649,7 @@ public partial class GrinFilmCamera : Node
 		long bandSegsIntegrated = 0;
 		long bandSegsTested = 0;
 		long bandPhysicsQueries = 0;
+		bool bandCountersEnabled = statsEnabled || framePerfEnabled;
 		int bandFilledPixels = 0;
 		// Pass-2 stride counters track expensive subdivided tests, not whole segments.
 		long subRaysSkippedByPass2Stride = 0;
@@ -719,7 +727,7 @@ public partial class GrinFilmCamera : Node
 						if (_rbr != null && _rbr.RequireHitToRender) _perfFrame.ShadingSkippedPixels++;
 						_perfFrame.TracedPixels++;
 					}
-					if (framePerfEnabled)
+					if (bandCountersEnabled)
 					{
 						int pi = localY * filmW + x;
 						bandSegsIntegrated += _segCountPerPixel[pi];
@@ -771,7 +779,7 @@ public partial class GrinFilmCamera : Node
 					}
 
 					if (statsEnabled) _perfFrame.Segs += segCount;
-					if (framePerfEnabled) bandSegsIntegrated += segCount;
+					if (bandCountersEnabled) bandSegsIntegrated += segCount;
 
 					bool isCenterSample = (x == filmW / 2 && y == (yStart + (bandH / 2)));
 					bool logCenterSample = VerbosePerfLogs && isCenterSample;
@@ -857,7 +865,7 @@ public partial class GrinFilmCamera : Node
 								if ((statsEnabled || framePerfEnabled) && !segCounted)
 								{
 									if (statsEnabled) _perfFrame.SegsTested++;
-									if (framePerfEnabled) bandSegsTested++;
+									if (bandCountersEnabled) bandSegsTested++;
 									segCounted = true;
 								}
 								// cname stays "<none>" for sphere sweep (unless you add a separate lookup)
@@ -882,11 +890,11 @@ public partial class GrinFilmCamera : Node
 									_overlapQuery.Transform = new Transform3D(Basis.Identity, mid);
 									var overlaps = space.IntersectShape(_overlapQuery, BroadphaseMaxResults);
 									if (statsEnabled) _perfFrame.IntersectShapeCalls++;
-									if (framePerfEnabled) bandPhysicsQueries++;
+									if (bandCountersEnabled) bandPhysicsQueries++;
 									if ((statsEnabled || framePerfEnabled) && !segCounted)
 									{
 										if (statsEnabled) _perfFrame.SegsTested++;
-										if (framePerfEnabled) bandSegsTested++;
+										if (bandCountersEnabled) bandSegsTested++;
 										segCounted = true;
 									}
 									if (overlaps.Count == 0)
@@ -901,11 +909,11 @@ public partial class GrinFilmCamera : Node
 									_quickRayParams.To = segB;
 									var hit0 = space.IntersectRay(_quickRayParams);
 									if (statsEnabled) _perfFrame.IntersectRayCalls++;
-									if (framePerfEnabled) bandPhysicsQueries++;
+									if (bandCountersEnabled) bandPhysicsQueries++;
 									if ((statsEnabled || framePerfEnabled) && !segCounted)
 									{
 										if (statsEnabled) _perfFrame.SegsTested++;
-										if (framePerfEnabled) bandSegsTested++;
+										if (bandCountersEnabled) bandSegsTested++;
 										segCounted = true;
 									}
 									if (hit0.Count == 0)
@@ -926,11 +934,11 @@ public partial class GrinFilmCamera : Node
 									_quickRayParams.To = segB;
 									var hit0 = space.IntersectRay(_quickRayParams);
 									if (statsEnabled) _perfFrame.IntersectRayCalls++;
-									if (framePerfEnabled) bandPhysicsQueries++;
+									if (bandCountersEnabled) bandPhysicsQueries++;
 									if ((statsEnabled || framePerfEnabled) && !segCounted)
 									{
 										if (statsEnabled) _perfFrame.SegsTested++;
-										if (framePerfEnabled) bandSegsTested++;
+										if (bandCountersEnabled) bandSegsTested++;
 										segCounted = true;
 									}
 									if (hit0.Count == 0)
@@ -995,11 +1003,11 @@ public partial class GrinFilmCamera : Node
 									_perfFrame.SubdividedRayQueries += rayQueries;
 									_perfFrame.SubdividedRaySubsteps += sub;
 								}
-								if (framePerfEnabled) bandPhysicsQueries += rayQueries;
+								if (bandCountersEnabled) bandPhysicsQueries += rayQueries;
 								if ((statsEnabled || framePerfEnabled) && !segCounted)
 								{
 									if (statsEnabled) _perfFrame.SegsTested++;
-									if (framePerfEnabled) bandSegsTested++;
+									if (bandCountersEnabled) bandSegsTested++;
 									segCounted = true;
 								}
 								
@@ -1205,7 +1213,13 @@ public partial class GrinFilmCamera : Node
 		}
 		if (framePerfEnabled) pass2Scope.Dispose();
 		ulong b1 = Time.GetTicksUsec(); // after PASS 2
-		if (statsEnabled) _perfFrame.Hits += bandHits;
+		if (statsEnabled)
+		{
+			_perfFrame.Hits += bandHits;
+			_perfFrame.BandSegsIntegrated = bandSegsIntegrated;
+			_perfFrame.BandSegsTested = bandSegsTested;
+			_perfFrame.BandPhysicsQueries = bandPhysicsQueries;
+		}
 		if (framePerfEnabled)
 		{
 			_framePerf.RaysTraced += bandTracedPixels;
@@ -1285,7 +1299,12 @@ public partial class GrinFilmCamera : Node
 
 
 		if (VerbosePerfLogs)
-			GD.Print($"Film band y=[{yStart},{yEnd}) hits={bandHits}");
+		{
+			double avgStepsPerTracedPixel = bandTracedPixels > 0
+				? (double)pass1StepsIntegrated / bandTracedPixels
+				: 0.0;
+			GD.Print($"Film band y=[{yStart},{yEnd}) hits={bandHits} avgStepsPerTracedPx={avgStepsPerTracedPixel:0.00}");
+		}
 
 		ulong updateStart = 0;
 		if (statsEnabled) updateStart = Time.GetTicksUsec();
