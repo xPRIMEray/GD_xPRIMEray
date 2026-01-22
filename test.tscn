@@ -534,11 +534,8 @@ CollisionRaySubdivideThreshold = 0.3
 MaxCollisionSubsteps = 3
 RequireHitToRender = true
 CheckCollisionsEvenIfNotStopping = true
-DebugRender = true
-DebugSetBillboardRejects = true
 DebugMode = 0
 DebugNormalLen = 0.295
-DebugDrawOnlyHits = true
 
 [node name="GrinField3D" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3563714, 2.303526, -2.0074396)
@@ -555,7 +552,12 @@ UpdateEveryFrame = false
 FramePerfVerbose = true
 FramePerfLogEveryNFrames = 3
 UseFieldSourceCache = true
+FieldSourceRefreshIntervalFrames = 10
+UseFieldGrid = true
+FieldGridRebuildEveryNFrames = 30
+FieldGridBoundsPadding = 3.0
 RowsPerFrame = 10
+TargetMsPerFrame = 500
 MaxDistance = 15.0
 SkyColor = Color(1, 0.56133336, 0.060000002, 0.1254902)
 FilmOpacity = 0.8
@@ -567,8 +569,8 @@ AutoRangeSmoothing = 0.05
 AutoRangeSafety = 1.01
 UsePass2CollisionStride = true
 Pass2CollisionStrideFar = 6
-Pass2CollisionStrideFarStartT = 0.37
-MinSegLenForStrideSkip = 0.136
+Pass2CollisionStrideFarStartT = 0.34
+MinSegLenForStrideSkip = 0.098
 Pass2HitFromInside = false
 UseBroadphasePolicy = true
 BroadphasePolicy = 3
@@ -584,6 +586,14 @@ Strength = 0.005
 Softening = 2.115
 InnerRadius = 0.1
 OuterRadius = 2.0
+DebugDrawInGame = true
+
+[node name="FieldA" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -0.5)
+script = ExtResource("8_xersf")
+Strength = 0.795
+Softening = 0.625
+Profile = 1
 DebugDrawInGame = true
 
 [node name="FieldB" type="Node3D" parent="."]
@@ -626,13 +636,6 @@ script = ExtResource("3_rayviz")
 
 [node name="FieldGrp_A" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -0.5)
-
-[node name="FieldA" type="Node3D" parent="FieldGrp_A"]
-script = ExtResource("8_xersf")
-Enabled = false
-Strength = 0.795
-Softening = 0.625
-Profile = 1
 
 [connection signal="value_changed" from="CanvasLayerUI/Options/Light/TimeOfDay/HSlider" to="CanvasLayerUI/Options" method="_on_time_of_day_value_changed"]
 [connection signal="value_changed" from="CanvasLayerUI/Options/Light/SunIntensity/HSlider" to="CanvasLayerUI/Options" method="_on_sun_intensity_value_changed"]
