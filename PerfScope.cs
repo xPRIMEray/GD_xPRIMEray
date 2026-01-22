@@ -36,6 +36,23 @@ namespace XPrimeRay.Perf
         public long CacheHits;
         public long CacheMisses;
 
+        public void Reset()
+        {
+            FrameIndex = 0;
+            Array.Clear(_stageTicks, 0, _stageTicks.Length);
+            PixelsUpdated = 0;
+            RaysTraced = 0;
+            SegmentsIntegrated = 0;
+            SegmentsTested = 0;
+            FieldEvals = 0;
+            PhysicsQueries = 0;
+            Hits = 0;
+            EarlyOutAabb = 0;
+            EarlyOutFar = 0;
+            CacheHits = 0;
+            CacheMisses = 0;
+        }
+
         public void AddTicks(PerfStage stage, long ticks) => _stageTicks[(int)stage] += ticks;
 
         public double Ms(PerfStage stage)
