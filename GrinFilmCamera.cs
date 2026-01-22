@@ -56,9 +56,25 @@ public partial class GrinFilmCamera : Node
 	/// <summary>How often to refresh cached field sources.</summary>
 	[Export] public int FieldSourceRefreshIntervalFrames = 30;
 
+	[ExportGroup("Field Grid")]
+	/// <summary>Uses a cached 3D vector field grid for pass-1 sampling.</summary>
+	[Export] public bool UseFieldGrid = false;
+	/// <summary>Cell size for field grid sampling.</summary>
+	[Export] public float FieldGridCellSize = 0.25f;
+	/// <summary>Rebuild the field grid every N frames.</summary>
+	[Export] public int FieldGridRebuildEveryNFrames = 8;
+	/// <summary>Padding added to far distance for grid bounds.</summary>
+	[Export] public float FieldGridBoundsPadding = 5f;
+
 	[ExportGroup("Rendering / Film Output")]
 	/// <summary>Number of film rows rendered per frame.</summary>
 	[Export] public int RowsPerFrame = 8;
+	/// <summary>Target CPU time budget per RenderStep (ms). Set <=0 to disable adaptive rows.</summary>
+	[Export] public int TargetMsPerFrame = 16;
+	/// <summary>Minimum rows per frame when adaptive rows are enabled.</summary>
+	[Export] public int MinRowsPerFrame = 4;
+	/// <summary>Maximum rows per frame when adaptive rows are enabled.</summary>
+	[Export] public int MaxRowsPerFrameCap = 256;
 	/// <summary>Max ray distance when auto-range is disabled.</summary>
 	[Export] public float MaxDistance = 50f;
 	/// <summary>Background color for no-hit pixels.</summary>
@@ -214,6 +230,7 @@ public partial class GrinFilmCamera : Node
 	private ulong[] _fieldSourceIds = Array.Empty<ulong>();
 	private int _fieldSourceCount = 0;
 	private RayBeamRenderer.FieldSourceSnap[] _fieldSourceSnaps = Array.Empty<RayBeamRenderer.FieldSourceSnap>();
+	private FieldGrid3D _fieldGrid;
 
 	// conservative: max segments per ray = StepsPerRay / CollisionEveryNSteps + 2
 	private int MaxSegPerRay => (_rbr != null)
@@ -254,6 +271,7 @@ public partial class GrinFilmCamera : Node
 	private double _lastTestedSegsPerPixel = 0.0;
 	private long _lastPhysQ = 0;
 	private bool _hasPerfDeltaBaseline = false;
+	private int _adaptiveRowsPerFrame = 0;
 
 	private sealed class Pass1ThreadLocal
 	{
@@ -416,7 +434,13 @@ public partial class GrinFilmCamera : Node
 		float aspect = (float)filmW / Mathf.Max(1f, filmH);
 
 		int yStart = _rowCursor;
-		int rowsPerFrame = Mathf.Clamp(RowsPerFrame, 1, filmH);
+		int baseRowsPerFrame = Mathf.Clamp(RowsPerFrame, Mathf.Max(1, MinRowsPerFrame), filmH);
+		int maxRowsPerFrame = Mathf.Clamp(MaxRowsPerFrameCap, Mathf.Max(1, MinRowsPerFrame), filmH);
+		if (TargetMsPerFrame <= 0 || _adaptiveRowsPerFrame <= 0)
+			_adaptiveRowsPerFrame = baseRowsPerFrame;
+		int rowsPerFrame = Mathf.Clamp(_adaptiveRowsPerFrame, Mathf.Max(1, MinRowsPerFrame), maxRowsPerFrame);
+		if (rowsPerFrame != _adaptiveRowsPerFrame)
+			_adaptiveRowsPerFrame = rowsPerFrame;
 		int yEnd = Mathf.Min(filmH, _rowCursor + rowsPerFrame);
 		int bandH = yEnd - yStart;
 		int pixelCount = bandH * filmW;
@@ -427,6 +451,23 @@ public partial class GrinFilmCamera : Node
 		int bandHits = 0;
 		int maxSeg = MaxSegPerRay;
 		float farForSim = AutoRangeDepth ? _rangeFar : MaxDistance;
+		FieldGrid3D fieldGridForPass1 = null;
+		if (UseFieldGrid && _rbr.UseIntegratedField && hasSources)
+		{
+			int rebuildN = Mathf.Max(1, FieldGridRebuildEveryNFrames);
+			bool shouldRebuild = cacheRefreshed || _fieldGrid == null || (_frameIndex % rebuildN) == 0;
+			if (shouldRebuild)
+			{
+				float cellSize = Mathf.Max(0.001f, FieldGridCellSize);
+				float radius = Mathf.Max(0.01f, farForSim + FieldGridBoundsPadding);
+				Vector3 half = new Vector3(radius, radius, radius);
+				Vector3 origin = _cam.GlobalPosition - half;
+				Aabb bounds = new Aabb(origin, half * 2f);
+				_fieldGrid ??= new FieldGrid3D();
+				_fieldGrid.BuildFromSources(fieldSnaps, beta, gamma, _rbr.BendScale, _rbr.FieldStrength, bounds, cellSize);
+			}
+			fieldGridForPass1 = _fieldGrid;
+		}
 		bool skipBandPhysics = false;
 		int bandIndex = 0;
 		if (UseBandHitSkip)
@@ -593,7 +634,8 @@ public partial class GrinFilmCamera : Node
 					out bool stoppedEarly,
 					out int hitSegIndex,
 					out int stepsIntegrated,
-					out int fieldEvals
+					out int fieldEvals,
+					fieldGridForPass1
 				);
 
 				if (collectPass1Perf)
@@ -1213,6 +1255,18 @@ public partial class GrinFilmCamera : Node
 		}
 		if (framePerfEnabled) pass2Scope.Dispose();
 		ulong b1 = Time.GetTicksUsec(); // after PASS 2
+		if (TargetMsPerFrame > 0)
+		{
+			double elapsedMs = (b1 - a0) / 1000.0;
+			if (elapsedMs > 0.01)
+			{
+				double ratio = (double)TargetMsPerFrame / elapsedMs;
+				int currentRows = _adaptiveRowsPerFrame > 0 ? _adaptiveRowsPerFrame : rowsPerFrame;
+				int adjusted = Mathf.RoundToInt((float)(currentRows * ratio));
+				adjusted = Mathf.Clamp(adjusted, Mathf.Max(1, MinRowsPerFrame), maxRowsPerFrame);
+				_adaptiveRowsPerFrame = adjusted;
+			}
+		}
 		if (statsEnabled)
 		{
 			_perfFrame.Hits += bandHits;
@@ -1320,7 +1374,7 @@ public partial class GrinFilmCamera : Node
 		ulong t1 = Time.GetTicksUsec();
 		if (VerbosePerfLogs)
 		{
-			GD.Print($"RenderStep {(t1 - t0)/1000.0:0.00} ms  rows={RowsPerFrame}  jobs={jobs}  hits={bandHits}");
+			GD.Print($"RenderStep {(t1 - t0)/1000.0:0.00} ms  rows={bandH}  jobs={jobs}  hits={bandHits}");
 			GD.Print($"pass1={(a1-a0)/1000.0:0.00}ms  pass2={(b1-a1)/1000.0:0.00}ms  total={(b1-a0)/1000.0:0.00}ms");
 		}
 		

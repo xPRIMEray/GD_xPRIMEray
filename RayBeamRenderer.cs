@@ -34,6 +34,10 @@ public partial class RayBeamRenderer : Node3D
 	[Export] public float MaxStepLength = 0.5f;
 	/// <summary>Adaptation strength for step sizing.</summary>
 	[Export] public float StepAdaptGain = 0.05f;
+	/// <summary>Perpendicular acceleration threshold to consider path low curvature.</summary>
+	[Export] public float LowCurvaturePerpAccel = 0.05f;
+	/// <summary>Multiplier for step size when curvature is low.</summary>
+	[Export] public float LowCurvatureStepBoost = 2.0f;
 	/// <summary>Integrates field acceleration instead of closed form.</summary>
 	[Export] public bool UseIntegratedField = true;
 	/// <summary>Base bend strength.</summary>
@@ -1452,6 +1456,15 @@ public partial class RayBeamRenderer : Node3D
 				float step = stepLength / (1.0f + aLen * stepAdaptGain);
 				step = Mathf.Clamp(step, minStep, maxStep);
 
+				// Low-curvature boost based on perpendicular acceleration.
+				if (LowCurvatureStepBoost > 1.0f)
+				{
+					Vector3 aPerp = a - v * a.Dot(v);
+					float aPerpLen = aPerp.Length();
+					if (aPerpLen < LowCurvaturePerpAccel)
+						step = Mathf.Min(step * LowCurvatureStepBoost, maxStep);
+				}
+
 				// Clamp to remaining distance so we don't overshoot maxDistance
 				if (step > remaining) step = remaining;
 
@@ -1538,7 +1551,8 @@ public partial class RayBeamRenderer : Node3D
 		out bool stoppedEarly,
 		out int hitSegIndex,
 		out int stepsIntegrated,
-		out int fieldEvals)
+		out int fieldEvals,
+		FieldGrid3D fieldGrid = null)
 	{
 		Vector3 p = origin;
 		Vector3 v = dir; // assumed normalized
@@ -1591,7 +1605,11 @@ public partial class RayBeamRenderer : Node3D
 
 				Vector3 a;
 
-				if (hasSources)
+				if (fieldGrid != null && fieldGrid.TrySample(p, out a))
+				{
+					// grid sample used
+				}
+				else if (hasSources)
 					a = ComputeAccelerationAtPointSnap(p, fieldSnaps, beta, gamma, bendScale, fieldStrength);
 				else
 				{
@@ -1608,6 +1626,15 @@ public partial class RayBeamRenderer : Node3D
 				// Compute step FIRST
 				float step = stepLength / (1.0f + aLen * stepAdaptGain);
 				step = Mathf.Clamp(step, minStep, maxStep);
+
+				// Low-curvature boost based on perpendicular acceleration.
+				if (LowCurvatureStepBoost > 1.0f)
+				{
+					Vector3 aPerp = a - v * a.Dot(v);
+					float aPerpLen = aPerp.Length();
+					if (aPerpLen < LowCurvaturePerpAccel)
+						step = Mathf.Min(step * LowCurvatureStepBoost, maxStep);
+				}
 
 				// Clamp to remaining distance so we don't overshoot maxDistance
 				if (step > remaining) step = remaining;
