@@ -103,6 +103,12 @@ public partial class GrinFilmCamera : Node
 	[Export] public float BandSkipInvalidateBasisDelta = 0.02f;
 	/// <summary>Range delta that invalidates band skip history.</summary>
 	[Export] public float BandSkipInvalidateRangeDelta = 0.25f;
+	/// <summary>Enables pass-1 hit tests.</summary>
+	[Export] public bool Pass1DoHitTest = true;
+	/// <summary>Runs a pass-1 probe every N steps (0 disables; independent of segment emission cadence).</summary>
+	[Export] public int Pass1ProbeEveryNSegments = 4;
+	/// <summary>Minimum travel distance between pass-1 probes (<=0 disables).</summary>
+	[Export] public float Pass1ProbeMinTravelDelta = 0.25f;
 
 	[ExportGroup("Auto Range / Depth")]
 	/// <summary>Auto-adjusts depth range based on recent hits.</summary>
@@ -141,6 +147,18 @@ public partial class GrinFilmCamera : Node
 	[Export] public bool Pass2HitBackFaces = false;
 	/// <summary>Ray query option: detect hits when starting inside colliders.</summary>
 	[Export] public bool Pass2HitFromInside = true;
+	/// <summary>Forces a representative subdivided test when quick-ray misses all candidate segments.</summary>
+	[Export] public bool Pass2ForceOnInstability = false;
+	/// <summary>Only forces instability tests when the pixel hit in the previous frame.</summary>
+	[Export] public bool Pass2ForceIfPrevHitLost = false;
+	/// <summary>Logs quick-ray misses that later subdivide and hit (per frame).</summary>
+	[Export] public int Pass2LogQuickRayMissSamples = 0;
+	/// <summary>Allows occasional subdivide attempts on quick-ray misses.</summary>
+	[Export] public bool Pass2QuickRaySoftGate = false;
+	/// <summary>Allow one soft-gated subdivide every N segments (0 disables).</summary>
+	[Export(PropertyHint.Range, "0,64,1")] public int Pass2SoftGateEveryNSegments = 8;
+	/// <summary>Allow soft-gate only when segment length exceeds this value (<=0 disables).</summary>
+	[Export(PropertyHint.Range, "0,1,0.001")] public float MinSegLenForSoftGate = 0f;
 
 	public enum BroadphaseMode
 	{
@@ -216,6 +234,7 @@ public partial class GrinFilmCamera : Node
 	private Vector3[] _pass1HitPos = Array.Empty<Vector3>();
 	private Vector3[] _pass1HitNormal = Array.Empty<Vector3>();
 	private ulong[] _pass1HitColliderId = Array.Empty<ulong>();
+	private byte[] _pass2PrevHadHit = Array.Empty<byte>();
 	private PhysicsRayQueryParameters3D _quickRayParams;
 	private PhysicsShapeQueryParameters3D _overlapQuery;
 	private SphereShape3D _overlapSphere;
@@ -248,6 +267,12 @@ public partial class GrinFilmCamera : Node
 	private const int Pass2QuickRayCacheSize = 512;
 	private const float Pass2QuickRayCacheQuantize = 10f;
 
+	private struct Pass2HitFlags
+	{
+		public bool HitBackFaces;
+		public bool HitFromInside;
+	}
+
 	private struct Pass2QuickRayCacheEntry
 	{
 		public int Ax;
@@ -256,6 +281,7 @@ public partial class GrinFilmCamera : Node
 		public int Bx;
 		public int By;
 		public int Bz;
+		public int Flags;
 		public float HitDistAlongRay;
 		public bool DidHit;
 	}
@@ -299,6 +325,10 @@ public partial class GrinFilmCamera : Node
 		public long EarlyStopPixels;
 		public long StepsIntegrated;
 		public long FieldEvals;
+		public long Pass1Raycasts;
+		public long Pass1ProbeHits;
+		public long FieldGridHits;
+		public long FieldGridMisses;
 	}
 
 
@@ -585,6 +615,10 @@ public partial class GrinFilmCamera : Node
 		long pass1EarlyStopPixels = 0;
 		long pass1StepsIntegrated = 0;
 		long pass1FieldEvals = 0;
+		long pass1Raycasts = 0;
+		long pass1ProbeHits = 0;
+		long pass1FieldGridHits = 0;
+		long pass1FieldGridMisses = 0;
 		bool collectPass1Perf = framePerfEnabled;
 		bool collectPass1Steps = framePerfEnabled || VerbosePerfLogs;
 
@@ -649,21 +683,35 @@ public partial class GrinFilmCamera : Node
 					_segBuf, segOffset, maxSeg,
 					insightPlane, useInsightPlane, insightEps,
 					pass1StopOnHit,
+					Pass1DoHitTest,
+					Pass1ProbeEveryNSegments,
+					Pass1ProbeMinTravelDelta,
 					out RayBeamRenderer.Pass1HitInfo hitInfo,
 					out bool stoppedEarly,
 					out int hitSegIndex,
 					out int stepsIntegrated,
 					out int fieldEvals,
+					out int pass1RaycastsLocal,
+					out int pass1ProbeHitsLocal,
+					out int fieldGridHitsLocal,
+					out int fieldGridMissesLocal,
 					fieldGridForPass1
 				);
 
 				if (collectPass1Perf)
 				{
-					local.PhysQueries += count;
+					local.PhysQueries += pass1RaycastsLocal;
 					if (stoppedEarly) local.EarlyStopPixels++;
 				}
 				if (collectPass1Steps) local.StepsIntegrated += stepsIntegrated;
 				if (framePerfEnabled) local.FieldEvals += fieldEvals;
+				if (framePerfEnabled)
+				{
+					local.Pass1Raycasts += pass1RaycastsLocal;
+					local.Pass1ProbeHits += pass1ProbeHitsLocal;
+					local.FieldGridHits += fieldGridHitsLocal;
+					local.FieldGridMisses += fieldGridMissesLocal;
+				}
 
 				_segCountPerPixel[pi] = count;
 				_pass1HitFound[pi] = hitInfo.Found;
@@ -684,6 +732,13 @@ public partial class GrinFilmCamera : Node
 				}
 				if (collectPass1Steps) Interlocked.Add(ref pass1StepsIntegrated, local.StepsIntegrated);
 				if (framePerfEnabled) Interlocked.Add(ref pass1FieldEvals, local.FieldEvals);
+				if (framePerfEnabled)
+				{
+					Interlocked.Add(ref pass1Raycasts, local.Pass1Raycasts);
+					Interlocked.Add(ref pass1ProbeHits, local.Pass1ProbeHits);
+					Interlocked.Add(ref pass1FieldGridHits, local.FieldGridHits);
+					Interlocked.Add(ref pass1FieldGridMisses, local.FieldGridMisses);
+				}
 			});
 
 		if (framePerfEnabled) pass1Scope.Dispose();
@@ -701,6 +756,10 @@ public partial class GrinFilmCamera : Node
 			_framePerf.EarlyStopOnHitPixels += pass1EarlyStopPixels;
 			_framePerf.StepsIntegrated += pass1StepsIntegrated;
 			_framePerf.FieldEvals += pass1FieldEvals;
+			_framePerf.Pass1Raycasts += pass1Raycasts;
+			_framePerf.Pass1ProbeHits += pass1ProbeHits;
+			_framePerf.FieldGridHits += pass1FieldGridHits;
+			_framePerf.FieldGridMisses += pass1FieldGridMisses;
 		}
 
 		// ---- PASS 2 (main thread): collisions + shading ----
@@ -718,6 +777,15 @@ public partial class GrinFilmCamera : Node
 		long pass2StrideSum = 0;
 		long pass2StrideCount = 0;
 		long bandFarEarlyOuts = 0;
+		long p2SoftGateAttempts = 0;
+		long p2SoftGateHits = 0;
+		Pass2HitFlags pass2Flags = new Pass2HitFlags
+		{
+			HitBackFaces = Pass2HitBackFaces,
+			HitFromInside = Pass2HitFromInside
+		};
+		int pass2FlagsKey = (pass2Flags.HitBackFaces ? 1 : 0) | (pass2Flags.HitFromInside ? 2 : 0);
+		int pass2QuickRayMissLogRemaining = Pass2LogQuickRayMissSamples;
 
 		Vector3 camPosPass2 = camPos;
 		bool useOverlap = UseBroadphaseOverlap;
@@ -762,8 +830,8 @@ public partial class GrinFilmCamera : Node
 			_quickRayParams.CollisionMask = _rbr.CollisionMask;
 			_quickRayParams.CollideWithBodies = true;
 			_quickRayParams.CollideWithAreas = true;
-			_quickRayParams.HitFromInside = Pass2HitFromInside;
-			_quickRayParams.HitBackFaces = Pass2HitBackFaces;
+			_quickRayParams.HitFromInside = pass2Flags.HitFromInside;
+			_quickRayParams.HitBackFaces = pass2Flags.HitBackFaces;
 		}
 
 		if (useQuickRay || UseSingleProbeThenSubdivide)
@@ -822,8 +890,18 @@ public partial class GrinFilmCamera : Node
 				for (int x = 0; x < filmW; x += stride)
 				{
 					int pi = localY * filmW + x;
+					int globalPi = y * filmW + x;
 					if (statsEnabled) _perfFrame.TracedPixels++;
 					bandTracedPixels++;
+
+					bool prevHadHit = Pass2ForceOnInstability
+						&& _pass2PrevHadHit.Length > globalPi
+						&& _pass2PrevHadHit[globalPi] != 0;
+					bool quickRayTestedThisPixel = false;
+					bool quickRayHitThisPixel = false;
+					bool forceInstabilityThisPixel = false;
+					bool forcePrevHitLostThisPixel = false;
+					int forceRepSegIndex = -1;
 
 					bool hadHit = false;
 					float hitDistance = 0f;
@@ -879,15 +957,19 @@ public partial class GrinFilmCamera : Node
 					for (int pass = 0; pass < 2; pass++)
 					{
 						bool forceStride1 = pass1StoppedEarly || pass == 1;
-						if (pass1StoppedEarly && pass == 1)
+						bool allowInstabilityPass = pass == 1 && forceInstabilityThisPixel;
+						if (pass1StoppedEarly && pass == 1 && !forceInstabilityThisPixel)
 							break;
 						if (forceStride1 && !pass1StoppedEarly)
 						{
 							if (hadHit)
 								break;
-							if (!UsePass2CollisionStride || !skippedAnyByStrideThisPixel || testedAnyInPass0ThisPixel)
-								break;
-							if (statsEnabled) _perfFrame.Pass2ForceStride1Pixels++;
+							if (!allowInstabilityPass)
+							{
+								if (!UsePass2CollisionStride || !skippedAnyByStrideThisPixel || testedAnyInPass0ThisPixel)
+									break;
+								if (statsEnabled) _perfFrame.Pass2ForceStride1Pixels++;
+							}
 						}
 
 						for (int si = segStart; si <= segEnd; si++)
@@ -907,6 +989,7 @@ public partial class GrinFilmCamera : Node
 								{
 									earlyOutFarThisPixel = true;
 									bandFarEarlyOuts++;
+									if (framePerfEnabled) _framePerf.Pass2Skip_BestHitDist++;
 									break;
 								}
 							}
@@ -918,6 +1001,8 @@ public partial class GrinFilmCamera : Node
 							Vector3 hp = Vector3.Zero;
 							Vector3 hn = Vector3.Up; // hit normal (world-space collider)
 							bool didHit = false;
+							bool softGateAttempt = false;
+							bool quickRayMissCachedForSeg = false;
 							/////////////////////////////////
 							
 							if (_rbr.UseSphereSweepCollision)
@@ -944,7 +1029,10 @@ public partial class GrinFilmCamera : Node
 								{
 									//if (!SegmentCrossesPlane(segA, segB, insightPlane, insightEps))
 									if (!RayBeamRenderer.SegmentCrossesPlane(segA, segB, insightPlane, insightEps))
+									{
+										if (framePerfEnabled) _framePerf.Pass2Skip_InsightPlane++;
 										continue;
+									}
 								}
 
 
@@ -965,12 +1053,21 @@ public partial class GrinFilmCamera : Node
 										segCounted = true;
 									}
 									if (overlaps.Count == 0)
+									{
+										if (framePerfEnabled)
+										{
+											_framePerf.Pass2OverlapMisses++;
+											_framePerf.Pass2Skip_OverlapEmpty++;
+										}
 										continue;
+									}
+									if (framePerfEnabled) _framePerf.Pass2OverlapHits++;
 								}
 
 								// Decision C
 								// ---- PASS2 cheap reject 1: quick ray probe ----
-								if (useQuickRay)
+								bool bypassQuickRayForRepresentative = allowInstabilityPass && si == forceRepSegIndex;
+								if (useQuickRay && !bypassQuickRayForRepresentative)
 								{
 									int ax = QuantizePass2QuickRay(segA.X);
 									int ay = QuantizePass2QuickRay(segA.Y);
@@ -979,20 +1076,43 @@ public partial class GrinFilmCamera : Node
 									int by = QuantizePass2QuickRay(segB.Y);
 									int bz = QuantizePass2QuickRay(segB.Z);
 
-									if (TryGetPass2QuickRayCache(ax, ay, az, bx, by, bz, out bool cachedHit, out float cachedDist))
+									if (TryGetPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, out bool cachedHit, out float cachedDist))
 									{
+										if (pass == 0)
+										{
+											quickRayTestedThisPixel = true;
+											if (cachedHit) quickRayHitThisPixel = true;
+										}
 										if (framePerfEnabled) _framePerf.CacheHits++;
+										if (framePerfEnabled)
+										{
+											if (cachedHit) _framePerf.Pass2QuickRayHits++;
+											else _framePerf.Pass2QuickRayMisses++;
+										}
 										if (!cachedHit)
 										{
-											if (UseSingleProbeThenSubdivide)
-												_perfFrame.SubdividedRaySkipped++;
-											continue;
+											bool allowSoftGate = Pass2QuickRaySoftGate
+												&& ((Pass2SoftGateEveryNSegments > 0 && (si % Pass2SoftGateEveryNSegments) == 0)
+													|| (MinSegLenForSoftGate > 0f && segLen > MinSegLenForSoftGate));
+											if (allowSoftGate)
+											{
+												softGateAttempt = true;
+												p2SoftGateAttempts++;
+											}
+											else
+											{
+												if (UseSingleProbeThenSubdivide)
+													_perfFrame.SubdividedRaySkipped++;
+												if (framePerfEnabled) _framePerf.Pass2Skip_QuickRayMiss++;
+												continue;
+											}
 										}
 										if (cachedDist < bestHitDistAlongRay)
 											bestHitDistAlongRay = cachedDist;
 									}
 									else
 									{
+										if (pass == 0) quickRayTestedThisPixel = true;
 										if (framePerfEnabled) _framePerf.CacheMisses++;
 										_quickRayParams.From = segA;
 										_quickRayParams.To = segB;
@@ -1007,20 +1127,35 @@ public partial class GrinFilmCamera : Node
 										}
 										if (hit0.Count == 0)
 										{
-											AddPass2QuickRayCache(ax, ay, az, bx, by, bz, false, 0f);
-											if (UseSingleProbeThenSubdivide)
-												_perfFrame.SubdividedRaySkipped++;
-											continue;
+											AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, false, 0f);
+											if (framePerfEnabled) _framePerf.Pass2QuickRayMisses++;
+											bool allowSoftGate = Pass2QuickRaySoftGate
+												&& ((Pass2SoftGateEveryNSegments > 0 && (si % Pass2SoftGateEveryNSegments) == 0)
+													|| (MinSegLenForSoftGate > 0f && segLen > MinSegLenForSoftGate));
+											if (allowSoftGate)
+											{
+												softGateAttempt = true;
+												p2SoftGateAttempts++;
+											}
+											else
+											{
+												if (framePerfEnabled) _framePerf.Pass2Skip_QuickRayMiss++;
+												if (UseSingleProbeThenSubdivide)
+													_perfFrame.SubdividedRaySkipped++;
+												continue;
+											}
 										}
+										if (pass == 0) quickRayHitThisPixel = true;
+										if (framePerfEnabled) _framePerf.Pass2QuickRayHits++;
 										Vector3 hitPos = (Vector3)hit0["position"];
 										float d = seg.TraveledB - segLen + (hitPos - segA).Length();
-										AddPass2QuickRayCache(ax, ay, az, bx, by, bz, true, d);
+										AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, true, d);
 										if (d < bestHitDistAlongRay)
 											bestHitDistAlongRay = d;
 									}
 								}
 
-								if (UseSingleProbeThenSubdivide && !useQuickRay)
+								if (UseSingleProbeThenSubdivide && !useQuickRay && !bypassQuickRayForRepresentative)
 								{
 									int ax = QuantizePass2QuickRay(segA.X);
 									int ay = QuantizePass2QuickRay(segA.Y);
@@ -1029,19 +1164,42 @@ public partial class GrinFilmCamera : Node
 									int by = QuantizePass2QuickRay(segB.Y);
 									int bz = QuantizePass2QuickRay(segB.Z);
 
-									if (TryGetPass2QuickRayCache(ax, ay, az, bx, by, bz, out bool cachedHit, out float cachedDist))
+									if (TryGetPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, out bool cachedHit, out float cachedDist))
 									{
+										if (pass == 0)
+										{
+											quickRayTestedThisPixel = true;
+											if (cachedHit) quickRayHitThisPixel = true;
+										}
 										if (framePerfEnabled) _framePerf.CacheHits++;
+										if (framePerfEnabled)
+										{
+											if (cachedHit) _framePerf.Pass2QuickRayHits++;
+											else _framePerf.Pass2QuickRayMisses++;
+										}
 										if (!cachedHit)
 										{
-											_perfFrame.SubdividedRaySkipped++;
-											continue;
+											bool allowSoftGate = Pass2QuickRaySoftGate
+												&& ((Pass2SoftGateEveryNSegments > 0 && (si % Pass2SoftGateEveryNSegments) == 0)
+													|| (MinSegLenForSoftGate > 0f && segLen > MinSegLenForSoftGate));
+											if (allowSoftGate)
+											{
+												softGateAttempt = true;
+												p2SoftGateAttempts++;
+											}
+											else
+											{
+												_perfFrame.SubdividedRaySkipped++;
+												if (framePerfEnabled) _framePerf.Pass2Skip_SingleProbeMiss++;
+												continue;
+											}
 										}
 										if (cachedDist < bestHitDistAlongRay)
 											bestHitDistAlongRay = cachedDist;
 									}
 									else
 									{
+										if (pass == 0) quickRayTestedThisPixel = true;
 										if (framePerfEnabled) _framePerf.CacheMisses++;
 										_quickRayParams.From = segA;
 										_quickRayParams.To = segB;
@@ -1056,13 +1214,28 @@ public partial class GrinFilmCamera : Node
 										}
 										if (hit0.Count == 0)
 										{
-											AddPass2QuickRayCache(ax, ay, az, bx, by, bz, false, 0f);
-											_perfFrame.SubdividedRaySkipped++;
-											continue;
+											AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, false, 0f);
+											if (framePerfEnabled) _framePerf.Pass2QuickRayMisses++;
+											bool allowSoftGate = Pass2QuickRaySoftGate
+												&& ((Pass2SoftGateEveryNSegments > 0 && (si % Pass2SoftGateEveryNSegments) == 0)
+													|| (MinSegLenForSoftGate > 0f && segLen > MinSegLenForSoftGate));
+											if (allowSoftGate)
+											{
+												softGateAttempt = true;
+												p2SoftGateAttempts++;
+											}
+											else
+											{
+												if (framePerfEnabled) _framePerf.Pass2Skip_SingleProbeMiss++;
+												_perfFrame.SubdividedRaySkipped++;
+												continue;
+											}
 										}
+										if (pass == 0) quickRayHitThisPixel = true;
+										if (framePerfEnabled) _framePerf.Pass2QuickRayHits++;
 										Vector3 hitPos = (Vector3)hit0["position"];
 										float d = seg.TraveledB - segLen + (hitPos - segA).Length();
-										AddPass2QuickRayCache(ax, ay, az, bx, by, bz, true, d);
+										AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, true, d);
 										if (d < bestHitDistAlongRay)
 											bestHitDistAlongRay = d;
 									}
@@ -1079,6 +1252,7 @@ public partial class GrinFilmCamera : Node
 										subRaysSkippedByPass2Stride++;
 										skippedAnyByStrideThisPixel = true;
 										_perfFrame.SubRaySkippedByStride++;
+										if (framePerfEnabled) _framePerf.Pass2Skip_Stride++;
 										continue;
 									}
 								}
@@ -1087,6 +1261,18 @@ public partial class GrinFilmCamera : Node
 									testedAnyInPass0ThisPixel = true;
 									pass2StrideSum += pass2Stride;
 									pass2StrideCount++;
+								}
+
+								if (pass == 1 && pass2QuickRayMissLogRemaining > 0 && (useQuickRay || UseSingleProbeThenSubdivide))
+								{
+									int ax = QuantizePass2QuickRay(segA.X);
+									int ay = QuantizePass2QuickRay(segA.Y);
+									int az = QuantizePass2QuickRay(segA.Z);
+									int bx = QuantizePass2QuickRay(segB.X);
+									int by = QuantizePass2QuickRay(segB.Y);
+									int bz = QuantizePass2QuickRay(segB.Z);
+									if (TryGetPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, out bool cachedHit, out _))
+										quickRayMissCachedForSeg = !cachedHit;
 								}
 
 								// ---- accurate subdivided ray ----
@@ -1111,8 +1297,8 @@ public partial class GrinFilmCamera : Node
 										out hp, out hn, out cid, out cname,
 										out int rayQueries,
 										includeColliderName: needHitName,
-										hitBackFaces: Pass2HitBackFaces,
-										hitFromInside: Pass2HitFromInside);
+										hitBackFaces: pass2Flags.HitBackFaces,
+										hitFromInside: pass2Flags.HitFromInside);
 								if (statsEnabled)
 								{
 									_perfFrame.SubdividedRayCalls++;
@@ -1127,6 +1313,15 @@ public partial class GrinFilmCamera : Node
 									segCounted = true;
 								}
 								
+								if (didHit && quickRayMissCachedForSeg && pass2QuickRayMissLogRemaining > 0)
+								{
+									Vector3 rayDir = segLen > 0f ? (segB - segA) / segLen : Vector3.Zero;
+									GD.Print($"Pass2 QuickRay miss->subdivide hit: from={segA} to={segB} dir={rayDir} segLen={segLen} flags(HitFromInside={pass2Flags.HitFromInside}, HitBackFaces={pass2Flags.HitBackFaces}) colliderRid={cid}");
+									pass2QuickRayMissLogRemaining--;
+								}
+								if (didHit && softGateAttempt)
+									p2SoftGateHits++;
+
 								if (didHit && needHitName)
 									hitName = cname;
 							}
@@ -1160,6 +1355,26 @@ public partial class GrinFilmCamera : Node
 								break;
 							}
 							//////////////////
+						}
+						if (pass == 0)
+						{
+							bool quickRayAllMiss = quickRayTestedThisPixel && !quickRayHitThisPixel;
+							if (!hadHit && Pass2ForceOnInstability && quickRayAllMiss)
+							{
+								bool allowForce = !Pass2ForceIfPrevHitLost || prevHadHit;
+								if (allowForce && segCount > 0 && segStart <= segEnd)
+								{
+									forceInstabilityThisPixel = true;
+									forcePrevHitLostThisPixel = Pass2ForceIfPrevHitLost && prevHadHit;
+									forceRepSegIndex = segStart + ((segEnd - segStart) / 2);
+									if (statsEnabled)
+									{
+										_perfFrame.Pass2ForceInstabilityPixels++;
+										if (forcePrevHitLostThisPixel)
+											_perfFrame.Pass2ForcePrevHitLostPixels++;
+									}
+								}
+							}
 						}
 						if (earlyOutFarThisPixel)
 							break;
@@ -1255,6 +1470,8 @@ public partial class GrinFilmCamera : Node
 						if (statsEnabled) _perfFrame.AddPass2ShadeUsec(shadeUsec);
 						shadeUsecAccum += (long)shadeUsec;
 					}
+					if (_pass2PrevHadHit.Length > globalPi)
+						_pass2PrevHadHit[globalPi] = hadHit ? (byte)1 : (byte)0;
 					////////////////////////////
 					/// 
 
@@ -1347,6 +1564,8 @@ public partial class GrinFilmCamera : Node
 			_perfFrame.BandSegsIntegrated = bandSegsIntegrated;
 			_perfFrame.BandSegsTested = bandSegsTested;
 			_perfFrame.BandPhysicsQueries = bandPhysicsQueries;
+			_perfFrame.Pass2SoftGateAttempts += p2SoftGateAttempts;
+			_perfFrame.Pass2SoftGateHits += p2SoftGateHits;
 		}
 		if (framePerfEnabled)
 		{
@@ -1357,6 +1576,8 @@ public partial class GrinFilmCamera : Node
 			_framePerf.PhysicsQueries += bandPhysicsQueries;
 			_framePerf.Hits += bandHits;
 			_framePerf.EarlyOutFar += bandFarEarlyOuts;
+			_framePerf.Pass2SoftGateAttempts += p2SoftGateAttempts;
+			_framePerf.Pass2SoftGateHits += p2SoftGateHits;
 		}
 		if (UseBandHitSkip && bandIndex >= 0 && bandIndex < _bandHitRate.Length)
 		{
@@ -1741,7 +1962,7 @@ public partial class GrinFilmCamera : Node
 		return Mathf.FloorToInt(v * Pass2QuickRayCacheQuantize);
 	}
 
-	private bool TryGetPass2QuickRayCache(int ax, int ay, int az, int bx, int by, int bz, out bool didHit, out float hitDistAlongRay)
+	private bool TryGetPass2QuickRayCache(int ax, int ay, int az, int bx, int by, int bz, int flagsKey, out bool didHit, out float hitDistAlongRay)
 	{
 		int count = _pass2QuickRayCacheCount;
 		if (count == 0)
@@ -1755,7 +1976,7 @@ public partial class GrinFilmCamera : Node
 		for (int i = 0; i < scan; i++)
 		{
 			ref Pass2QuickRayCacheEntry e = ref _pass2QuickRayCache[i];
-			if (e.Ax == ax && e.Ay == ay && e.Az == az && e.Bx == bx && e.By == by && e.Bz == bz)
+			if (e.Ax == ax && e.Ay == ay && e.Az == az && e.Bx == bx && e.By == by && e.Bz == bz && e.Flags == flagsKey)
 			{
 				didHit = e.DidHit;
 				hitDistAlongRay = e.HitDistAlongRay;
@@ -1768,7 +1989,7 @@ public partial class GrinFilmCamera : Node
 		return false;
 	}
 
-	private void AddPass2QuickRayCache(int ax, int ay, int az, int bx, int by, int bz, bool didHit, float hitDistAlongRay)
+	private void AddPass2QuickRayCache(int ax, int ay, int az, int bx, int by, int bz, int flagsKey, bool didHit, float hitDistAlongRay)
 	{
 		int idx = _pass2QuickRayCacheWrite;
 		_pass2QuickRayCache[idx] = new Pass2QuickRayCacheEntry
@@ -1779,6 +2000,7 @@ public partial class GrinFilmCamera : Node
 			Bx = bx,
 			By = by,
 			Bz = bz,
+			Flags = flagsKey,
 			DidHit = didHit,
 			HitDistAlongRay = hitDistAlongRay
 		};
@@ -1831,13 +2053,20 @@ public partial class GrinFilmCamera : Node
 		float scale = Mathf.Clamp(FilmResolutionScale, 0.25f, 1.0f);
 		int targetW = Mathf.Max(8, Mathf.RoundToInt(Width * scale));
 		int targetH = Mathf.Max(8, Mathf.RoundToInt(Height * scale));
-		if (_img != null && _filmWidth == targetW && _filmHeight == targetH) return false;
+		int targetPixels = targetW * targetH;
+		if (_img != null && _filmWidth == targetW && _filmHeight == targetH)
+		{
+			if (_pass2PrevHadHit.Length != targetPixels)
+				_pass2PrevHadHit = new byte[targetPixels];
+			return false;
+		}
 
 		_filmWidth = targetW;
 		_filmHeight = targetH;
 		_img = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
 		_img.Fill(SkyColor);
 		_tex = ImageTexture.CreateFromImage(_img);
+		_pass2PrevHadHit = new byte[_filmWidth * _filmHeight];
 
 		UpdateFilmViewTexture();
 

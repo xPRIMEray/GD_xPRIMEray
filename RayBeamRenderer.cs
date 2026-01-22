@@ -1547,11 +1547,18 @@ public partial class RayBeamRenderer : Node3D
 		RaySeg[] outSegs, int outOffset, int outCapacity,
 		Plane insightPlane, bool useInsightPlane, float insightEps,
 		bool stopOnHit,
+		bool pass1DoHitTest,
+		int pass1ProbeEveryNSegments,
+		float pass1ProbeMinTravelDelta,
 		out Pass1HitInfo hitInfo,
 		out bool stoppedEarly,
 		out int hitSegIndex,
 		out int stepsIntegrated,
 		out int fieldEvals,
+		out int pass1Raycasts,
+		out int pass1ProbeHits,
+		out int fieldGridHits,
+		out int fieldGridMisses,
 		FieldGrid3D fieldGrid = null)
 	{
 		Vector3 p = origin;
@@ -1574,6 +1581,10 @@ public partial class RayBeamRenderer : Node3D
 		int written = 0;
 		stepsIntegrated = 0;
 		fieldEvals = 0;
+		pass1Raycasts = 0;
+		pass1ProbeHits = 0;
+		fieldGridHits = 0;
+		fieldGridMisses = 0;
 
 		hitInfo = new Pass1HitInfo
 		{
@@ -1591,10 +1602,17 @@ public partial class RayBeamRenderer : Node3D
 		float fieldStrength = FieldStrength;
 		float stepLength = StepLength;
 		float stepAdaptGain = StepAdaptGain;
+		int probeEvery = pass1ProbeEveryNSegments;
+		bool useProbeEvery = probeEvery > 0;
+		float probeMinTravelDelta = pass1ProbeMinTravelDelta;
+		bool useProbeMinTravel = probeMinTravelDelta > 0f;
+		int probeCountdown = useProbeEvery ? probeEvery : int.MaxValue;
+		float traveledSinceProbe = 0f;
 
 		for (int s = 0; s <= StepsPerRay; s++)
 		{
 			stepsIntegrated++;
+			float prevTraveled = traveled;
 			Vector3 next = p;
 
 			if (UseIntegratedField)
@@ -1604,10 +1622,15 @@ public partial class RayBeamRenderer : Node3D
 				if (remaining <= 0f) break;
 
 				Vector3 a;
+				a = Vector3.Zero;
 
 				if (fieldGrid != null && fieldGrid.TrySample(p, out a))
 				{
-					// grid sample used
+					fieldGridHits++;
+				}
+				else if (fieldGrid != null)
+				{
+					fieldGridMisses++;
 				}
 				else if (hasSources)
 					a = ComputeAccelerationAtPointSnap(p, fieldSnaps, beta, gamma, bendScale, fieldStrength);
@@ -1667,6 +1690,13 @@ public partial class RayBeamRenderer : Node3D
 				traveled = t;
 			}
 
+			float traveledDelta = traveled - prevTraveled;
+			if (traveledDelta > 0f)
+				traveledSinceProbe += traveledDelta;
+
+			if (useProbeEvery && probeCountdown > int.MinValue)
+				probeCountdown--;
+
 			// Only emit segments at adaptive cadence
 			stepsSinceEmit++;
 			if (s > 0 && stepsSinceEmit >= ce)
@@ -1690,31 +1720,43 @@ public partial class RayBeamRenderer : Node3D
 				outSegs[outOffset + written] = seg;
 				written++;
 
-				quickRayParams.From = seg.A;
-				quickRayParams.To = seg.B;
-				var hit0 = space.IntersectRay(quickRayParams);
-				if (hit0.Count > 0)
-				{
-					Vector3 hp = (Vector3)hit0["position"];
-					Vector3 hn = (Vector3)hit0["normal"];
-					float segLen = (seg.B - seg.A).Length();
-					float d = seg.TraveledB - segLen + (hp - seg.A).Length();
-					if (!hitInfo.Found || d < hitInfo.Distance)
-					{
-						hitInfo.Found = true;
-						hitInfo.Distance = d;
-						hitInfo.Position = hp;
-						hitInfo.Normal = hn;
-						if (hit0.ContainsKey("collider_id"))
-							hitInfo.ColliderId = (ulong)(long)hit0["collider_id"];
-					}
-					if (hitSegIndex < 0)
-						hitSegIndex = segIndex;
+				bool probeByTravel = useProbeMinTravel && (traveledSinceProbe >= probeMinTravelDelta);
+				bool probeByCountdown = useProbeEvery && (probeCountdown <= 0);
+				bool doProbe = pass1DoHitTest && (probeByTravel || probeByCountdown);
 
-					if (stopOnHit)
+				if (doProbe)
+				{
+					traveledSinceProbe = 0f;
+					if (useProbeEvery)
+						probeCountdown = probeEvery;
+					pass1Raycasts++;
+					quickRayParams.From = seg.A;
+					quickRayParams.To = seg.B;
+					var hit0 = space.IntersectRay(quickRayParams);
+					if (hit0.Count > 0)
 					{
-						stoppedEarly = true;
-						break;
+						pass1ProbeHits++;
+						Vector3 hp = (Vector3)hit0["position"];
+						Vector3 hn = (Vector3)hit0["normal"];
+						float segLen = (seg.B - seg.A).Length();
+						float d = seg.TraveledB - segLen + (hp - seg.A).Length();
+						if (!hitInfo.Found || d < hitInfo.Distance)
+						{
+							hitInfo.Found = true;
+							hitInfo.Distance = d;
+							hitInfo.Position = hp;
+							hitInfo.Normal = hn;
+							if (hit0.ContainsKey("collider_id"))
+								hitInfo.ColliderId = (ulong)(long)hit0["collider_id"];
+						}
+						if (hitSegIndex < 0)
+							hitSegIndex = segIndex;
+
+						if (stopOnHit)
+						{
+							stoppedEarly = true;
+							break;
+						}
 					}
 				}
 			}
