@@ -201,6 +201,8 @@ public partial class RayBeamRenderer : Node3D
 		public float TraveledB; // path length at end of segment (at B)
 	}
 
+	public delegate bool SegmentCallback(in RaySeg seg, int segIndex);
+
 	public struct FieldSourceSnap
 	{
 		public bool Enabled;
@@ -1376,7 +1378,8 @@ public partial class RayBeamRenderer : Node3D
 		FieldSourceSnap[] fieldSnaps, bool hasSources,
 		float maxDistance,
 		RaySeg[] outSegs, int outOffset, int outCapacity,
-		Plane insightPlane, bool useInsightPlane, float insightEps)
+		Plane insightPlane, bool useInsightPlane, float insightEps,
+		SegmentCallback onSegment = null)
 	{
 		/// 
 		/////////////////////////
@@ -1493,13 +1496,16 @@ public partial class RayBeamRenderer : Node3D
 
 				if (written >= outCapacity) break;
 
-				outSegs[outOffset + written] = new RaySeg
+				RaySeg seg = new RaySeg
 				{
 					A = p,
 					B = next,
 					TraveledB = traveled
 				};
+				outSegs[outOffset + written] = seg;
+				bool stop = onSegment != null && onSegment(seg, written);
 				written++;
+				if (stop) break;
 			}
 
 			p = next;

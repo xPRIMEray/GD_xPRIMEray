@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Diagnostics;
+using System.Threading;
 using XPrimeRay.Perf; // adjust namespace new PerfScope.cs
 
 public partial class GrinFilmCamera : Node
@@ -192,6 +193,13 @@ public partial class GrinFilmCamera : Node
 	private RayBeamRenderer _rbr;
 	private RayBeamRenderer.RaySeg[] _segBuf;
 	private int[] _segCountPerPixel;
+	private bool[] _pass1HitFound = Array.Empty<bool>();
+	private bool[] _pass1StoppedEarly = Array.Empty<bool>();
+	private int[] _pass1HitSegIndex = Array.Empty<int>();
+	private float[] _pass1HitDist = Array.Empty<float>();
+	private Vector3[] _pass1HitPos = Array.Empty<Vector3>();
+	private Vector3[] _pass1HitNormal = Array.Empty<Vector3>();
+	private ulong[] _pass1HitColliderId = Array.Empty<ulong>();
 	private PhysicsRayQueryParameters3D _quickRayParams;
 	private PhysicsShapeQueryParameters3D _overlapQuery;
 	private SphereShape3D _overlapSphere;
@@ -246,6 +254,22 @@ public partial class GrinFilmCamera : Node
 	private double _lastTestedSegsPerPixel = 0.0;
 	private long _lastPhysQ = 0;
 	private bool _hasPerfDeltaBaseline = false;
+
+	private struct Pass1HitInfo
+	{
+		public bool Found;
+		public float Distance;
+		public Vector3 Position;
+		public Vector3 Normal;
+		public ulong ColliderId;
+	}
+
+	private sealed class Pass1ThreadLocal
+	{
+		public PhysicsRayQueryParameters3D QuickRayParams;
+		public long PhysQueries;
+		public long EarlyStopPixels;
+	}
 
 
 	public override void _Ready()
@@ -434,6 +458,13 @@ public partial class GrinFilmCamera : Node
 
 		_segCountPerPixel ??= new int[pixelCount];
 		if (_segCountPerPixel.Length < pixelCount) _segCountPerPixel = new int[pixelCount];
+		if (_pass1HitFound.Length < pixelCount) _pass1HitFound = new bool[pixelCount];
+		if (_pass1StoppedEarly.Length < pixelCount) _pass1StoppedEarly = new bool[pixelCount];
+		if (_pass1HitSegIndex.Length < pixelCount) _pass1HitSegIndex = new int[pixelCount];
+		if (_pass1HitDist.Length < pixelCount) _pass1HitDist = new float[pixelCount];
+		if (_pass1HitPos.Length < pixelCount) _pass1HitPos = new Vector3[pixelCount];
+		if (_pass1HitNormal.Length < pixelCount) _pass1HitNormal = new Vector3[pixelCount];
+		if (_pass1HitColliderId.Length < pixelCount) _pass1HitColliderId = new ulong[pixelCount];
 
 		//////////////
 		///  Debug code block drop
@@ -496,11 +527,29 @@ public partial class GrinFilmCamera : Node
 		PerfScope pass1Scope = default;
 		if (framePerfEnabled) pass1Scope = new PerfScope(_framePerf, PerfStage.Pass1_Integrate);
 
+		bool pass1StopOnHit = _rbr.StopOnHit || _rbr.TerminateTrailOnHit || _rbr.RequireHitToRender;
+		long pass1PhysQueries = 0;
+		long pass1EarlyStopPixels = 0;
+
 		System.Threading.Tasks.Parallel.For(
 			0,
 			pixelCount,
 			new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = jobs },
-			pi =>
+			() =>
+			{
+				return new Pass1ThreadLocal
+				{
+					QuickRayParams = new PhysicsRayQueryParameters3D
+					{
+						CollisionMask = _rbr.CollisionMask,
+						CollideWithBodies = true,
+						CollideWithAreas = true,
+						HitFromInside = Pass2HitFromInside,
+						HitBackFaces = Pass2HitBackFaces
+					}
+				};
+			},
+			(pi, _, local) =>
 			{
 				int localY = pi / filmW;   // 0..bandH-1
 				int x = pi - localY * filmW;
@@ -508,7 +557,14 @@ public partial class GrinFilmCamera : Node
 				if ((x % stride) != 0 || (y % stride) != 0)
 				{
 					_segCountPerPixel[pi] = 0;
-					return;
+					_pass1HitFound[pi] = false;
+					_pass1StoppedEarly[pi] = false;
+					_pass1HitSegIndex[pi] = -1;
+					_pass1HitDist[pi] = float.PositiveInfinity;
+					_pass1HitPos[pi] = Vector3.Zero;
+					_pass1HitNormal[pi] = Vector3.Up;
+					_pass1HitColliderId[pi] = 0;
+					return local;
 				}
 
 				float v = ((y + 0.5f) / filmH) * 2f - 1f;
@@ -526,16 +582,77 @@ public partial class GrinFilmCamera : Node
 
 				int segOffset = pi * maxSeg;
 
+				Pass1HitInfo hitInfo = new Pass1HitInfo
+				{
+					Found = false,
+					Distance = float.PositiveInfinity,
+					Position = Vector3.Zero,
+					Normal = Vector3.Up,
+					ColliderId = 0
+				};
+				bool stoppedEarly = false;
+				int hitSegIndex = -1;
+
+				RayBeamRenderer.SegmentCallback onSegment = (in RayBeamRenderer.RaySeg seg, int segIndex) =>
+				{
+					local.QuickRayParams.From = seg.A;
+					local.QuickRayParams.To = seg.B;
+					var hit0 = space.IntersectRay(local.QuickRayParams);
+					local.PhysQueries++;
+					if (hit0.Count == 0)
+						return false;
+
+					Vector3 hp = (Vector3)hit0["position"];
+					Vector3 hn = (Vector3)hit0["normal"];
+					float segLen = (seg.B - seg.A).Length();
+					float d = seg.TraveledB - segLen + (hp - seg.A).Length();
+					if (!hitInfo.Found || d < hitInfo.Distance)
+					{
+						hitInfo.Found = true;
+						hitInfo.Distance = d;
+						hitInfo.Position = hp;
+						hitInfo.Normal = hn;
+						if (hit0.ContainsKey("collider_id"))
+							hitInfo.ColliderId = (ulong)(long)hit0["collider_id"];
+					}
+					if (hitSegIndex < 0)
+						hitSegIndex = segIndex;
+
+					if (pass1StopOnHit)
+					{
+						stoppedEarly = true;
+						return true;
+					}
+
+					return false;
+				};
+
 				int count = _rbr.BuildRaySegmentsCamera(
 					camPos, dirWorld, bendDir,
 					center, beta, gamma,
 					fieldSnaps, hasSources,
 					farForSim,
 					_segBuf, segOffset, maxSeg,
-					insightPlane, useInsightPlane, insightEps
+					insightPlane, useInsightPlane, insightEps,
+					onSegment
 				);
 
 				_segCountPerPixel[pi] = count;
+				_pass1HitFound[pi] = hitInfo.Found;
+				_pass1StoppedEarly[pi] = stoppedEarly;
+				_pass1HitSegIndex[pi] = hitSegIndex;
+				_pass1HitDist[pi] = hitInfo.Distance;
+				_pass1HitPos[pi] = hitInfo.Position;
+				_pass1HitNormal[pi] = hitInfo.Normal;
+				_pass1HitColliderId[pi] = hitInfo.ColliderId;
+				if (stoppedEarly) local.EarlyStopPixels++;
+
+				return local;
+			},
+			local =>
+			{
+				Interlocked.Add(ref pass1PhysQueries, local.PhysQueries);
+				Interlocked.Add(ref pass1EarlyStopPixels, local.EarlyStopPixels);
 			});
 
 		if (framePerfEnabled) pass1Scope.Dispose();
@@ -546,6 +663,11 @@ public partial class GrinFilmCamera : Node
 		{
 			_perfFrame.AddPass1Usec(a1 - a0);
 			_perfFrame.Pixels += pixelCount;
+		}
+		if (framePerfEnabled)
+		{
+			_framePerf.PhysicsQueries += pass1PhysQueries;
+			_framePerf.EarlyStopOnHitPixels += pass1EarlyStopPixels;
 		}
 
 		// ---- PASS 2 (main thread): collisions + shading ----
@@ -673,6 +795,15 @@ public partial class GrinFilmCamera : Node
 
 					int segCount = _segCountPerPixel[pi];
 					int segOffset = pi * maxSeg;
+					bool pass1StoppedEarly = _pass1StoppedEarly[pi];
+					int pass1HitSegIndex = _pass1HitSegIndex[pi];
+					int segStart = 0;
+					int segEnd = segCount - 1;
+					if (pass1StoppedEarly && pass1HitSegIndex >= 0)
+					{
+						segStart = Math.Max(0, pass1HitSegIndex - 1);
+						segEnd = Math.Min(segCount - 1, pass1HitSegIndex + 1);
+					}
 
 					if (statsEnabled) _perfFrame.Segs += segCount;
 					if (framePerfEnabled) bandSegsIntegrated += segCount;
@@ -707,8 +838,10 @@ public partial class GrinFilmCamera : Node
 					int lastSi = Math.Max(0, segCount - 1);
 					for (int pass = 0; pass < 2; pass++)
 					{
-						bool forceStride1 = pass == 1;
-						if (forceStride1)
+						bool forceStride1 = pass1StoppedEarly || pass == 1;
+						if (pass1StoppedEarly && pass == 1)
+							break;
+						if (forceStride1 && !pass1StoppedEarly)
 						{
 							if (hadHit)
 								break;
@@ -717,7 +850,7 @@ public partial class GrinFilmCamera : Node
 							if (statsEnabled) _perfFrame.Pass2ForceStride1Pixels++;
 						}
 
-						for (int si = 0; si < segCount; si++)
+						for (int si = segStart; si <= segEnd; si++)
 						{
 							var seg = _segBuf[segOffset + si];
 							Vector3 segA = seg.A;

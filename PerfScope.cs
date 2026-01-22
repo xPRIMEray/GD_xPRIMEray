@@ -33,6 +33,7 @@ namespace XPrimeRay.Perf
         public long Hits;
         public long EarlyOutAabb;
         public long EarlyOutFar;
+        public long EarlyStopOnHitPixels;
         public long CacheHits;
         public long CacheMisses;
 
@@ -49,6 +50,7 @@ namespace XPrimeRay.Perf
             Hits = 0;
             EarlyOutAabb = 0;
             EarlyOutFar = 0;
+            EarlyStopOnHitPixels = 0;
             CacheHits = 0;
             CacheMisses = 0;
         }
@@ -71,7 +73,7 @@ namespace XPrimeRay.Perf
                 $"upl={Ms(PerfStage.UploadTexture):0.00}) " +
                 $"px={PixelsUpdated} rays={RaysTraced} seg={SegmentsIntegrated} tested={SegmentsTested} " +
                 $"fieldEvals={FieldEvals} physQ={PhysicsQueries} hits={Hits} " +
-                $"early(AABB={EarlyOutAabb} far={EarlyOutFar}) cache(h={CacheHits} m={CacheMisses})";
+                $"early(AABB={EarlyOutAabb} far={EarlyOutFar} hitStopPx={EarlyStopOnHitPixels}) cache(h={CacheHits} m={CacheMisses})";
         }
     }
 
