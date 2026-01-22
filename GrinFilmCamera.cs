@@ -245,6 +245,25 @@ public partial class GrinFilmCamera : Node
 	private int _dbgRayCount = 0;
 	private int _dbgPtWrite = 0;
 
+	private const int Pass2QuickRayCacheSize = 512;
+	private const float Pass2QuickRayCacheQuantize = 10f;
+
+	private struct Pass2QuickRayCacheEntry
+	{
+		public int Ax;
+		public int Ay;
+		public int Az;
+		public int Bx;
+		public int By;
+		public int Bz;
+		public float HitDistAlongRay;
+		public bool DidHit;
+	}
+
+	private Pass2QuickRayCacheEntry[] _pass2QuickRayCache = Array.Empty<Pass2QuickRayCacheEntry>();
+	private int _pass2QuickRayCacheCount = 0;
+	private int _pass2QuickRayCacheWrite = 0;
+
 	private struct ToggleSnapshot
 	{
 		public bool UseAdaptiveSubsteps;
@@ -747,6 +766,12 @@ public partial class GrinFilmCamera : Node
 			_quickRayParams.HitBackFaces = Pass2HitBackFaces;
 		}
 
+		if (useQuickRay || UseSingleProbeThenSubdivide)
+		{
+			EnsurePass2QuickRayCache();
+			ResetPass2QuickRayCache();
+		}
+
 		PerfScope pass2Scope = default;
 		if (framePerfEnabled) pass2Scope = new PerfScope(_framePerf, PerfStage.Pass2_Subdivide);
 		bool shadeTimingEnabled = statsEnabled || framePerfEnabled;
@@ -947,51 +972,100 @@ public partial class GrinFilmCamera : Node
 								// ---- PASS2 cheap reject 1: quick ray probe ----
 								if (useQuickRay)
 								{
-									_quickRayParams.From = segA;
-									_quickRayParams.To = segB;
-									var hit0 = space.IntersectRay(_quickRayParams);
-									if (statsEnabled) _perfFrame.IntersectRayCalls++;
-									if (bandCountersEnabled) bandPhysicsQueries++;
-									if ((statsEnabled || framePerfEnabled) && !segCounted)
+									int ax = QuantizePass2QuickRay(segA.X);
+									int ay = QuantizePass2QuickRay(segA.Y);
+									int az = QuantizePass2QuickRay(segA.Z);
+									int bx = QuantizePass2QuickRay(segB.X);
+									int by = QuantizePass2QuickRay(segB.Y);
+									int bz = QuantizePass2QuickRay(segB.Z);
+
+									if (TryGetPass2QuickRayCache(ax, ay, az, bx, by, bz, out bool cachedHit, out float cachedDist))
 									{
-										if (statsEnabled) _perfFrame.SegsTested++;
-										if (bandCountersEnabled) bandSegsTested++;
-										segCounted = true;
+										if (framePerfEnabled) _framePerf.CacheHits++;
+										if (!cachedHit)
+										{
+											if (UseSingleProbeThenSubdivide)
+												_perfFrame.SubdividedRaySkipped++;
+											continue;
+										}
+										if (cachedDist < bestHitDistAlongRay)
+											bestHitDistAlongRay = cachedDist;
 									}
-									if (hit0.Count == 0)
+									else
 									{
-										if (UseSingleProbeThenSubdivide)
-											_perfFrame.SubdividedRaySkipped++;
-										continue;
+										if (framePerfEnabled) _framePerf.CacheMisses++;
+										_quickRayParams.From = segA;
+										_quickRayParams.To = segB;
+										var hit0 = space.IntersectRay(_quickRayParams);
+										if (statsEnabled) _perfFrame.IntersectRayCalls++;
+										if (bandCountersEnabled) bandPhysicsQueries++;
+										if ((statsEnabled || framePerfEnabled) && !segCounted)
+										{
+											if (statsEnabled) _perfFrame.SegsTested++;
+											if (bandCountersEnabled) bandSegsTested++;
+											segCounted = true;
+										}
+										if (hit0.Count == 0)
+										{
+											AddPass2QuickRayCache(ax, ay, az, bx, by, bz, false, 0f);
+											if (UseSingleProbeThenSubdivide)
+												_perfFrame.SubdividedRaySkipped++;
+											continue;
+										}
+										Vector3 hitPos = (Vector3)hit0["position"];
+										float d = seg.TraveledB - segLen + (hitPos - segA).Length();
+										AddPass2QuickRayCache(ax, ay, az, bx, by, bz, true, d);
+										if (d < bestHitDistAlongRay)
+											bestHitDistAlongRay = d;
 									}
-									Vector3 hitPos = (Vector3)hit0["position"];
-									float d = seg.TraveledB - segLen + (hitPos - segA).Length();
-									if (d < bestHitDistAlongRay)
-										bestHitDistAlongRay = d;
 								}
 
 								if (UseSingleProbeThenSubdivide && !useQuickRay)
 								{
-									_quickRayParams.From = segA;
-									_quickRayParams.To = segB;
-									var hit0 = space.IntersectRay(_quickRayParams);
-									if (statsEnabled) _perfFrame.IntersectRayCalls++;
-									if (bandCountersEnabled) bandPhysicsQueries++;
-									if ((statsEnabled || framePerfEnabled) && !segCounted)
+									int ax = QuantizePass2QuickRay(segA.X);
+									int ay = QuantizePass2QuickRay(segA.Y);
+									int az = QuantizePass2QuickRay(segA.Z);
+									int bx = QuantizePass2QuickRay(segB.X);
+									int by = QuantizePass2QuickRay(segB.Y);
+									int bz = QuantizePass2QuickRay(segB.Z);
+
+									if (TryGetPass2QuickRayCache(ax, ay, az, bx, by, bz, out bool cachedHit, out float cachedDist))
 									{
-										if (statsEnabled) _perfFrame.SegsTested++;
-										if (bandCountersEnabled) bandSegsTested++;
-										segCounted = true;
+										if (framePerfEnabled) _framePerf.CacheHits++;
+										if (!cachedHit)
+										{
+											_perfFrame.SubdividedRaySkipped++;
+											continue;
+										}
+										if (cachedDist < bestHitDistAlongRay)
+											bestHitDistAlongRay = cachedDist;
 									}
-									if (hit0.Count == 0)
+									else
 									{
-										_perfFrame.SubdividedRaySkipped++;
-										continue;
+										if (framePerfEnabled) _framePerf.CacheMisses++;
+										_quickRayParams.From = segA;
+										_quickRayParams.To = segB;
+										var hit0 = space.IntersectRay(_quickRayParams);
+										if (statsEnabled) _perfFrame.IntersectRayCalls++;
+										if (bandCountersEnabled) bandPhysicsQueries++;
+										if ((statsEnabled || framePerfEnabled) && !segCounted)
+										{
+											if (statsEnabled) _perfFrame.SegsTested++;
+											if (bandCountersEnabled) bandSegsTested++;
+											segCounted = true;
+										}
+										if (hit0.Count == 0)
+										{
+											AddPass2QuickRayCache(ax, ay, az, bx, by, bz, false, 0f);
+											_perfFrame.SubdividedRaySkipped++;
+											continue;
+										}
+										Vector3 hitPos = (Vector3)hit0["position"];
+										float d = seg.TraveledB - segLen + (hitPos - segA).Length();
+										AddPass2QuickRayCache(ax, ay, az, bx, by, bz, true, d);
+										if (d < bestHitDistAlongRay)
+											bestHitDistAlongRay = d;
 									}
-									Vector3 hitPos = (Vector3)hit0["position"];
-									float d = seg.TraveledB - segLen + (hitPos - segA).Length();
-									if (d < bestHitDistAlongRay)
-										bestHitDistAlongRay = d;
 								}
 
 								if (!forceStride1 && pass2Stride > 1)
@@ -1648,6 +1722,69 @@ public partial class GrinFilmCamera : Node
 		float a = (t - startT) / Mathf.Max(1e-6f, (1f - startT));
 		int s = Mathf.RoundToInt(Mathf.Lerp(nearS, farS, a));
 		return Mathf.Clamp(s, 1, farS);
+	}
+
+	private void EnsurePass2QuickRayCache()
+	{
+		if (_pass2QuickRayCache.Length != Pass2QuickRayCacheSize)
+			_pass2QuickRayCache = new Pass2QuickRayCacheEntry[Pass2QuickRayCacheSize];
+	}
+
+	private void ResetPass2QuickRayCache()
+	{
+		_pass2QuickRayCacheCount = 0;
+		_pass2QuickRayCacheWrite = 0;
+	}
+
+	private static int QuantizePass2QuickRay(float v)
+	{
+		return Mathf.FloorToInt(v * Pass2QuickRayCacheQuantize);
+	}
+
+	private bool TryGetPass2QuickRayCache(int ax, int ay, int az, int bx, int by, int bz, out bool didHit, out float hitDistAlongRay)
+	{
+		int count = _pass2QuickRayCacheCount;
+		if (count == 0)
+		{
+			didHit = false;
+			hitDistAlongRay = 0f;
+			return false;
+		}
+
+		int scan = count < _pass2QuickRayCache.Length ? count : _pass2QuickRayCache.Length;
+		for (int i = 0; i < scan; i++)
+		{
+			ref Pass2QuickRayCacheEntry e = ref _pass2QuickRayCache[i];
+			if (e.Ax == ax && e.Ay == ay && e.Az == az && e.Bx == bx && e.By == by && e.Bz == bz)
+			{
+				didHit = e.DidHit;
+				hitDistAlongRay = e.HitDistAlongRay;
+				return true;
+			}
+		}
+
+		didHit = false;
+		hitDistAlongRay = 0f;
+		return false;
+	}
+
+	private void AddPass2QuickRayCache(int ax, int ay, int az, int bx, int by, int bz, bool didHit, float hitDistAlongRay)
+	{
+		int idx = _pass2QuickRayCacheWrite;
+		_pass2QuickRayCache[idx] = new Pass2QuickRayCacheEntry
+		{
+			Ax = ax,
+			Ay = ay,
+			Az = az,
+			Bx = bx,
+			By = by,
+			Bz = bz,
+			DidHit = didHit,
+			HitDistAlongRay = hitDistAlongRay
+		};
+		_pass2QuickRayCacheWrite = (idx + 1) % _pass2QuickRayCache.Length;
+		if (_pass2QuickRayCacheCount < _pass2QuickRayCache.Length)
+			_pass2QuickRayCacheCount++;
 	}
 
 	private int FillPixelBlock(int x, int y, int stride, Color col, int filmW, int filmH)

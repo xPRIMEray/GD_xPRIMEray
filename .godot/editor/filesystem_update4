@@ -1,11 +1,11 @@
 res://GrinFilmCamera.cs
-res://RayBeamRenderer.cs
 res://addons/fieldsource_gizmo/FieldSourceGizmoPlugin.cs
 res://FieldSource3D.cs
 res://addons/fieldsource_gizmo/FieldSourceNodeGizmo.cs
 res://addons/grin_inspector_help/GrinInspectorHelpPlugin.cs
 res://CurvedCamera.cs
 res://RayEmitter3D.cs
+res://RayBeamRenderer.cs
 res://RayViz.cs
 res://FilmOverlay2D.cs
 res://addons/grin_inspector_help/GrinInspectorHelpInspector.cs
