@@ -255,20 +255,13 @@ public partial class GrinFilmCamera : Node
 	private long _lastPhysQ = 0;
 	private bool _hasPerfDeltaBaseline = false;
 
-	private struct Pass1HitInfo
-	{
-		public bool Found;
-		public float Distance;
-		public Vector3 Position;
-		public Vector3 Normal;
-		public ulong ColliderId;
-	}
-
 	private sealed class Pass1ThreadLocal
 	{
 		public PhysicsRayQueryParameters3D QuickRayParams;
 		public long PhysQueries;
 		public long EarlyStopPixels;
+		public long StepsIntegrated;
+		public long FieldEvals;
 	}
 
 
@@ -530,6 +523,8 @@ public partial class GrinFilmCamera : Node
 		bool pass1StopOnHit = _rbr.StopOnHit || _rbr.TerminateTrailOnHit || _rbr.RequireHitToRender;
 		long pass1PhysQueries = 0;
 		long pass1EarlyStopPixels = 0;
+		long pass1StepsIntegrated = 0;
+		long pass1FieldEvals = 0;
 
 		System.Threading.Tasks.Parallel.For(
 			0,
@@ -582,60 +577,26 @@ public partial class GrinFilmCamera : Node
 
 				int segOffset = pi * maxSeg;
 
-				Pass1HitInfo hitInfo = new Pass1HitInfo
-				{
-					Found = false,
-					Distance = float.PositiveInfinity,
-					Position = Vector3.Zero,
-					Normal = Vector3.Up,
-					ColliderId = 0
-				};
-				bool stoppedEarly = false;
-				int hitSegIndex = -1;
-
-				RayBeamRenderer.SegmentCallback onSegment = (in RayBeamRenderer.RaySeg seg, int segIndex) =>
-				{
-					local.QuickRayParams.From = seg.A;
-					local.QuickRayParams.To = seg.B;
-					var hit0 = space.IntersectRay(local.QuickRayParams);
-					local.PhysQueries++;
-					if (hit0.Count == 0)
-						return false;
-
-					Vector3 hp = (Vector3)hit0["position"];
-					Vector3 hn = (Vector3)hit0["normal"];
-					float segLen = (seg.B - seg.A).Length();
-					float d = seg.TraveledB - segLen + (hp - seg.A).Length();
-					if (!hitInfo.Found || d < hitInfo.Distance)
-					{
-						hitInfo.Found = true;
-						hitInfo.Distance = d;
-						hitInfo.Position = hp;
-						hitInfo.Normal = hn;
-						if (hit0.ContainsKey("collider_id"))
-							hitInfo.ColliderId = (ulong)(long)hit0["collider_id"];
-					}
-					if (hitSegIndex < 0)
-						hitSegIndex = segIndex;
-
-					if (pass1StopOnHit)
-					{
-						stoppedEarly = true;
-						return true;
-					}
-
-					return false;
-				};
-
-				int count = _rbr.BuildRaySegmentsCamera(
+				int count = _rbr.BuildRaySegmentsCamera_Pass1(
+					space,
+					ref local.QuickRayParams,
 					camPos, dirWorld, bendDir,
 					center, beta, gamma,
 					fieldSnaps, hasSources,
 					farForSim,
 					_segBuf, segOffset, maxSeg,
 					insightPlane, useInsightPlane, insightEps,
-					onSegment
+					pass1StopOnHit,
+					out RayBeamRenderer.Pass1HitInfo hitInfo,
+					out bool stoppedEarly,
+					out int hitSegIndex,
+					out int stepsIntegrated,
+					out int fieldEvals
 				);
+
+				local.PhysQueries += count;
+				local.StepsIntegrated += stepsIntegrated;
+				local.FieldEvals += fieldEvals;
 
 				_segCountPerPixel[pi] = count;
 				_pass1HitFound[pi] = hitInfo.Found;
@@ -653,6 +614,8 @@ public partial class GrinFilmCamera : Node
 			{
 				Interlocked.Add(ref pass1PhysQueries, local.PhysQueries);
 				Interlocked.Add(ref pass1EarlyStopPixels, local.EarlyStopPixels);
+				Interlocked.Add(ref pass1StepsIntegrated, local.StepsIntegrated);
+				Interlocked.Add(ref pass1FieldEvals, local.FieldEvals);
 			});
 
 		if (framePerfEnabled) pass1Scope.Dispose();
@@ -668,6 +631,8 @@ public partial class GrinFilmCamera : Node
 		{
 			_framePerf.PhysicsQueries += pass1PhysQueries;
 			_framePerf.EarlyStopOnHitPixels += pass1EarlyStopPixels;
+			_framePerf.StepsIntegrated += pass1StepsIntegrated;
+			_framePerf.FieldEvals += pass1FieldEvals;
 		}
 
 		// ---- PASS 2 (main thread): collisions + shading ----

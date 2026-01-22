@@ -203,6 +203,15 @@ public partial class RayBeamRenderer : Node3D
 
 	public delegate bool SegmentCallback(in RaySeg seg, int segIndex);
 
+	public struct Pass1HitInfo
+	{
+		public bool Found;
+		public float Distance;
+		public Vector3 Position;
+		public Vector3 Normal;
+		public ulong ColliderId;
+	}
+
 	public struct FieldSourceSnap
 	{
 		public bool Enabled;
@@ -1506,6 +1515,181 @@ public partial class RayBeamRenderer : Node3D
 				bool stop = onSegment != null && onSegment(seg, written);
 				written++;
 				if (stop) break;
+			}
+
+			p = next;
+		}
+
+		return written;
+	}
+
+	// Pass-1 variant to avoid per-pixel delegate allocations in Parallel.For.
+	public int BuildRaySegmentsCamera_Pass1(
+		PhysicsDirectSpaceState3D space,
+		ref PhysicsRayQueryParameters3D quickRayParams,
+		Vector3 origin, Vector3 dir, Vector3 bendDir,
+		Vector3 center, float beta, float gamma,
+		FieldSourceSnap[] fieldSnaps, bool hasSources,
+		float maxDistance,
+		RaySeg[] outSegs, int outOffset, int outCapacity,
+		Plane insightPlane, bool useInsightPlane, float insightEps,
+		bool stopOnHit,
+		out Pass1HitInfo hitInfo,
+		out bool stoppedEarly,
+		out int hitSegIndex,
+		out int stepsIntegrated,
+		out int fieldEvals)
+	{
+		Vector3 p = origin;
+		Vector3 v = dir; // assumed normalized
+
+		float traveled = 0f;
+
+		int ceBase = Mathf.Max(1, CollisionEveryNSteps);
+		int ce = ceBase;
+		int stepsSinceEmit = 0;
+
+		// camera data for screen-space cadence
+		Camera3D cam = GetCamera();
+		float pxPerRad = (UseScreenSpaceCollisionCadence && cam != null) ? GetPixelsPerRadian(cam) : 0f;
+		Vector3 camPos = (cam != null) ? cam.GlobalPosition : Vector3.Zero;
+
+		float minStep = Mathf.Max(0.0001f, Mathf.Min(MinStepLength, MaxStepLength));
+		float maxStep = Mathf.Max(MinStepLength, MaxStepLength);
+
+		int written = 0;
+		stepsIntegrated = 0;
+		fieldEvals = 0;
+
+		hitInfo = new Pass1HitInfo
+		{
+			Found = false,
+			Distance = float.PositiveInfinity,
+			Position = Vector3.Zero,
+			Normal = Vector3.Up,
+			ColliderId = 0
+		};
+		stoppedEarly = false;
+		hitSegIndex = -1;
+
+		// Precompute for non-integrated mode
+		float bendScale = BendScale;
+		float fieldStrength = FieldStrength;
+		float stepLength = StepLength;
+		float stepAdaptGain = StepAdaptGain;
+
+		for (int s = 0; s <= StepsPerRay; s++)
+		{
+			stepsIntegrated++;
+			Vector3 next = p;
+
+			if (UseIntegratedField)
+			{
+				// Early-out if we are already at/over max distance
+				float remaining = maxDistance - traveled;
+				if (remaining <= 0f) break;
+
+				Vector3 a;
+
+				if (hasSources)
+					a = ComputeAccelerationAtPointSnap(p, fieldSnaps, beta, gamma, bendScale, fieldStrength);
+				else
+				{
+					Vector3 rvec = p - center;
+					float rr = Mathf.Max(0.001f, rvec.Length());
+					a = (-rvec / rr) * (beta * Mathf.Pow(rr, gamma) * bendScale * fieldStrength);
+				}
+				fieldEvals++;
+
+				float aLen = a.Length();
+				if (!float.IsFinite(aLen)) { a = Vector3.Zero; aLen = 0f; }
+				else if (aLen > 50f) { a *= (50f / aLen); aLen = 50f; }
+
+				// Compute step FIRST
+				float step = stepLength / (1.0f + aLen * stepAdaptGain);
+				step = Mathf.Clamp(step, minStep, maxStep);
+
+				// Clamp to remaining distance so we don't overshoot maxDistance
+				if (step > remaining) step = remaining;
+
+				// Update segment cadence AFTER step exists
+				if (UseScreenSpaceCollisionCadence && cam != null)
+				{
+					float aPerp = PerpAccelLen(a, v);   // v from previous iteration; ok
+					float depth = (p - camPos).Length();
+					ce = ComputeCeFromScreenError(ceBase, step, aPerp, depth, pxPerRad, CollisionMaxErrorPixels);
+				}
+				else
+				{
+					ce = ceBase;
+				}
+
+				v = SafeNormalized(v + a * step, v);
+				next = p + v * step;
+
+				// traveled increment is ~step (v is normalized)
+				traveled += step;
+			}
+			else
+			{
+				float t = s * stepLength;
+				if (t > maxDistance) break;
+
+				float bend = beta * Mathf.Pow(t, gamma) * bendScale;
+				next = origin + dir * t + bendDir * bend;
+				traveled = t;
+			}
+
+			// Only emit segments at adaptive cadence
+			stepsSinceEmit++;
+			if (s > 0 && stepsSinceEmit >= ce)
+			{
+				stepsSinceEmit = 0;
+				if (useInsightPlane && !SegmentCrossesPlane(p, next, insightPlane, insightEps))
+				{
+					p = next;
+					continue;
+				}
+
+				if (written >= outCapacity) break;
+
+				int segIndex = written;
+				RaySeg seg = new RaySeg
+				{
+					A = p,
+					B = next,
+					TraveledB = traveled
+				};
+				outSegs[outOffset + written] = seg;
+				written++;
+
+				quickRayParams.From = seg.A;
+				quickRayParams.To = seg.B;
+				var hit0 = space.IntersectRay(quickRayParams);
+				if (hit0.Count > 0)
+				{
+					Vector3 hp = (Vector3)hit0["position"];
+					Vector3 hn = (Vector3)hit0["normal"];
+					float segLen = (seg.B - seg.A).Length();
+					float d = seg.TraveledB - segLen + (hp - seg.A).Length();
+					if (!hitInfo.Found || d < hitInfo.Distance)
+					{
+						hitInfo.Found = true;
+						hitInfo.Distance = d;
+						hitInfo.Position = hp;
+						hitInfo.Normal = hn;
+						if (hit0.ContainsKey("collider_id"))
+							hitInfo.ColliderId = (ulong)(long)hit0["collider_id"];
+					}
+					if (hitSegIndex < 0)
+						hitSegIndex = segIndex;
+
+					if (stopOnHit)
+					{
+						stoppedEarly = true;
+						break;
+					}
+				}
 			}
 
 			p = next;

@@ -27,6 +27,7 @@ namespace XPrimeRay.Perf
         public long PixelsUpdated;
         public long RaysTraced;
         public long SegmentsIntegrated;
+        public long StepsIntegrated;
         public long SegmentsTested;
         public long FieldEvals;
         public long PhysicsQueries;
@@ -44,6 +45,7 @@ namespace XPrimeRay.Perf
             PixelsUpdated = 0;
             RaysTraced = 0;
             SegmentsIntegrated = 0;
+            StepsIntegrated = 0;
             SegmentsTested = 0;
             FieldEvals = 0;
             PhysicsQueries = 0;
@@ -71,7 +73,7 @@ namespace XPrimeRay.Perf
                 $"p1={Ms(PerfStage.Pass1_Integrate):0.00} field={Ms(PerfStage.Pass1_FieldEval):0.00} " +
                 $"p2={Ms(PerfStage.Pass2_Subdivide):0.00} shade={Ms(PerfStage.Shade):0.00} " +
                 $"upl={Ms(PerfStage.UploadTexture):0.00}) " +
-                $"px={PixelsUpdated} rays={RaysTraced} seg={SegmentsIntegrated} tested={SegmentsTested} " +
+                $"px={PixelsUpdated} rays={RaysTraced} seg={SegmentsIntegrated} steps={StepsIntegrated} tested={SegmentsTested} " +
                 $"fieldEvals={FieldEvals} physQ={PhysicsQueries} hits={Hits} " +
                 $"early(AABB={EarlyOutAabb} far={EarlyOutFar} hitStopPx={EarlyStopOnHitPixels}) cache(h={CacheHits} m={CacheMisses})";
         }
