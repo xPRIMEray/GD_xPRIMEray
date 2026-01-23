@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Diagnostics;
+using System.Text;
 using System.Threading;
 using XPrimeRay.Perf; // adjust namespace new PerfScope.cs
 
@@ -199,6 +200,10 @@ public partial class GrinFilmCamera : Node
 	[Export] public int DebugEveryNPixels = 8;
 	/// <summary>Cap on debug rays per band.</summary>
 	[Export] public int DebugMaxFilmRays = 2048;
+	/// <summary>Enables soft-gate debug counters and logging.</summary>
+	[Export] public bool DebugSoftGate = true;
+	/// <summary>SoftGate debug verbosity (0=off, 1=frame, 2=band, 3=sampled segments).</summary>
+	[Export(PropertyHint.Range, "0,3,1")] public int SoftGateDebugVerbosity = 1;
 
 	[ExportGroup("Deprecated (No Effect)")]
 	/// <summary>Legacy pass-2 insight plane toggle (no effect).</summary>
@@ -317,6 +322,64 @@ public partial class GrinFilmCamera : Node
 	private long _lastPhysQ = 0;
 	private bool _hasPerfDeltaBaseline = false;
 	private int _adaptiveRowsPerFrame = 0;
+	private const int SoftGateSampleEveryNSegments = 4096;
+	private int _softGateSampleCounter = 0;
+	private SoftGateDebugCounters _softGateFrame;
+	private SoftGateDebugCounters _softGateBand;
+	private SoftGateConfigSnapshot _lastSoftGateCfgSnapshot;
+	private bool _hasSoftGateCfgSnapshot = false;
+
+	private struct SoftGateDebugCounters
+	{
+		public int FrameIndex;
+		public long TracedPixels;
+		public long FilledPixels;
+		public long EffectivePixels;
+		public long SegsTotal;
+		public long SegsTested;
+		public long Pass2Hits;
+		public long QRayCalls;
+		public long QRayHit;
+		public long QRayMiss;
+		public bool SoftGateEnabled;
+		public int SoftGateA;
+		public float SoftGateB;
+		public long SoftGateConsidered;
+		public long SoftGateSkipped;
+		public long SoftGateForced;
+		public long SoftGateAttempts;
+		public long SoftGateHits;
+		public double SoftGateMetricMin;
+		public double SoftGateMetricMax;
+		public double SoftGateMetricSum;
+		public long SoftGateMetricCount;
+		public long SkipDisabled;
+		public long SkipEveryNsegZero;
+		public long SkipSegLenTooShort;
+		public long SkipNoCandidate;
+		public long SkipNanMetric;
+		public long SkipOther;
+	}
+
+	private struct SoftGateConfigSnapshot
+	{
+		public bool Pass2QuickRaySoftGate;
+		public int Pass2SoftGateEveryNSegments;
+		public float MinSegLenForSoftGate;
+		public bool UpdateEveryFrame;
+	}
+
+	private enum SoftGateDecisionReason
+	{
+		Allow = 0,
+		Disabled,
+		EveryNsegZero,
+		SegLenTooShort,
+		NoCandidate,
+		NanMetric,
+		CadenceMiss,
+		Other
+	}
 
 	private sealed class Pass1ThreadLocal
 	{
@@ -330,6 +393,13 @@ public partial class GrinFilmCamera : Node
 		public long FieldGridHits;
 		public long FieldGridMisses;
 	}
+
+	private bool _dbgOnce = false;
+	private void EarlyOut(string why)
+	{
+		GD.PrintErr($"⛔ RenderStep early-out: {why} rowCursor={_rowCursor} cam={_cam?.GetPath()} rbr={_rbr?.GetPath()}");
+	}
+
 
 
 	public override void _Ready()
@@ -416,6 +486,9 @@ public partial class GrinFilmCamera : Node
 		bool statsEnabled = EnableProfiling || VerbosePerfLogs;
 		bool framePerfEnabled = EnableFramePerf;
 		bool frameStart = _rowCursor == 0;
+		bool softGateDebugEnabled = DebugSoftGate && SoftGateDebugVerbosity > 0;
+		bool softGateBandEnabled = softGateDebugEnabled && SoftGateDebugVerbosity >= 2;
+		bool softGateSegEnabled = softGateDebugEnabled && SoftGateDebugVerbosity >= 3;
 		PerfScope frameScope = default;
 		if (framePerfEnabled) frameScope = new PerfScope(_framePerf, PerfStage.FrameTotal);
 
@@ -437,12 +510,24 @@ public partial class GrinFilmCamera : Node
 					_perfFrame.EffectiveWidth = filmW;
 					_perfFrame.EffectiveHeight = filmH;
 					_perfFrame.EffectiveRenderPixels = (filmW * filmH) / Math.Max(1, stride * stride);
-				}
+				}else{}
 				if (framePerfEnabled)
 				{
 					_framePerf.Reset();
 					_framePerf.FrameIndex = _frameIndex;
-				}
+				}else{}
+				if (softGateDebugEnabled)
+				{
+					long effPx = (long)filmW * filmH / Math.Max(1, stride * stride);
+					ResetSoftGateCounters(
+						ref _softGateFrame,
+						_frameIndex,
+						effPx,
+						Pass2QuickRaySoftGate,
+						Pass2SoftGateEveryNSegments,
+						MinSegLenForSoftGate);
+					_softGateSampleCounter = 0;
+				}else{}
 			}
 			if (statsEnabled && resizedFilm)
 			{
@@ -451,8 +536,22 @@ public partial class GrinFilmCamera : Node
 			if (VerbosePerfLogs && (_rowCursor % filmH) == 0)
 				GD.Print($"Film RenderStep running. rowCursor={_rowCursor} cam={(_cam != null ? _cam.GetPath() : "<null>")}");
 
-			if (_rbr == null || _cam == null) return;
-			if (frameStart) MaybePrintToggleSnapshot();
+			if (_rbr == null)
+			{
+				EarlyOut("No RayBeamRenderer assigned.");
+				return;
+			} else{}
+
+			if (_cam == null) {
+				EarlyOut("No active Camera3D in viewport.");
+				return;
+			} else{}
+
+			if (frameStart)
+			{
+				MaybePrintToggleSnapshot();
+				MaybePrintSoftGateConfigSnapshot();
+			}
 
 			var space = _cam.GetWorld3D().DirectSpaceState;
 
@@ -467,657 +566,767 @@ public partial class GrinFilmCamera : Node
 				GD.Print($"fieldSnaps={fieldSnaps.Length} hasSources={hasSources}");
 
 
-		float beta = 0f;
-		float gamma = 2f;
-		if (UseCameraPropsBetaGamma)
-		{
-			beta = ReadFloat(_cam, "Beta", 0f);
-			gamma = ReadFloat(_cam, "Gamma", 2f);
-		}
-
-		Vector3 center = _rbr.FieldCenterIsCamera ? _cam.GlobalPosition : _rbr.FieldCenter;
-		var basis = _cam.GlobalTransform.Basis;
-
-		float fovRad = Mathf.DegToRad(_cam.Fov);
-		float tanHalf = Mathf.Tan(fovRad * 0.5f);
-		float aspect = (float)filmW / Mathf.Max(1f, filmH);
-
-		int yStart = _rowCursor;
-		int baseRowsPerFrame = Mathf.Clamp(RowsPerFrame, Mathf.Max(1, MinRowsPerFrame), filmH);
-		int maxRowsPerFrame = Mathf.Clamp(MaxRowsPerFrameCap, Mathf.Max(1, MinRowsPerFrame), filmH);
-		if (TargetMsPerFrame <= 0 || _adaptiveRowsPerFrame <= 0)
-			_adaptiveRowsPerFrame = baseRowsPerFrame;
-		int rowsPerFrame = Mathf.Clamp(_adaptiveRowsPerFrame, Mathf.Max(1, MinRowsPerFrame), maxRowsPerFrame);
-		if (rowsPerFrame != _adaptiveRowsPerFrame)
-			_adaptiveRowsPerFrame = rowsPerFrame;
-		int yEnd = Mathf.Min(filmH, _rowCursor + rowsPerFrame);
-		int bandH = yEnd - yStart;
-		int pixelCount = bandH * filmW;
-
-		EnsureDepthHistory();
-		float frameMaxHit = 0f; // track deepest hit this RenderStep band
-
-		int bandHits = 0;
-		int maxSeg = MaxSegPerRay;
-		float farForSim = AutoRangeDepth ? _rangeFar : MaxDistance;
-		FieldGrid3D fieldGridForPass1 = null;
-		if (UseFieldGrid && _rbr.UseIntegratedField && hasSources)
-		{
-			int rebuildN = Mathf.Max(1, FieldGridRebuildEveryNFrames);
-			bool shouldRebuild = cacheRefreshed || _fieldGrid == null || (_frameIndex % rebuildN) == 0;
-			if (shouldRebuild)
+			float beta = 0f;
+			float gamma = 2f;
+			if (UseCameraPropsBetaGamma)
 			{
-				float cellSize = Mathf.Max(0.001f, FieldGridCellSize);
-				float radius = Mathf.Max(0.01f, farForSim + FieldGridBoundsPadding);
-				Vector3 half = new Vector3(radius, radius, radius);
-				Vector3 origin = _cam.GlobalPosition - half;
-				Aabb bounds = new Aabb(origin, half * 2f);
-				_fieldGrid ??= new FieldGrid3D();
-				_fieldGrid.BuildFromSources(fieldSnaps, beta, gamma, _rbr.BendScale, _rbr.FieldStrength, bounds, cellSize);
+				beta = ReadFloat(_cam, "Beta", 0f);
+				gamma = ReadFloat(_cam, "Gamma", 2f);
 			}
-			fieldGridForPass1 = _fieldGrid;
-		}
-		bool skipBandPhysics = false;
-		int bandIndex = 0;
-		if (UseBandHitSkip)
-		{
-			EnsureBandHitHistory(filmH, rowsPerFrame);
-			bandIndex = yStart / rowsPerFrame;
 
-			if (CheckAndUpdateBandInvalidation(_cam.GlobalTransform, farForSim))
-				ResetBandHitHistory();
+			Vector3 center = _rbr.FieldCenterIsCamera ? _cam.GlobalPosition : _rbr.FieldCenter;
+			var basis = _cam.GlobalTransform.Basis;
 
-			if (bandIndex >= 0 && bandIndex < _bandHitRate.Length && BandSkipFrames > 0)
+			float fovRad = Mathf.DegToRad(_cam.Fov);
+			float tanHalf = Mathf.Tan(fovRad * 0.5f);
+			float aspect = (float)filmW / Mathf.Max(1f, filmH);
+
+			int yStart = _rowCursor;
+			int baseRowsPerFrame = Mathf.Clamp(RowsPerFrame, Mathf.Max(1, MinRowsPerFrame), filmH);
+			int maxRowsPerFrame = Mathf.Clamp(MaxRowsPerFrameCap, Mathf.Max(1, MinRowsPerFrame), filmH);
+			if (TargetMsPerFrame <= 0 || _adaptiveRowsPerFrame <= 0)
+				_adaptiveRowsPerFrame = baseRowsPerFrame;
+			int rowsPerFrame = Mathf.Clamp(_adaptiveRowsPerFrame, Mathf.Max(1, MinRowsPerFrame), maxRowsPerFrame);
+			if (rowsPerFrame != _adaptiveRowsPerFrame)
+				_adaptiveRowsPerFrame = rowsPerFrame;
+			int yEnd = Mathf.Min(filmH, _rowCursor + rowsPerFrame);
+			int bandH = yEnd - yStart;
+			int pixelCount = bandH * filmW;
+
+			EnsureDepthHistory();
+			float frameMaxHit = 0f; // track deepest hit this RenderStep band
+
+			int bandHits = 0;
+			int maxSeg = MaxSegPerRay;
+			float farForSim = AutoRangeDepth ? _rangeFar : MaxDistance;
+			if (softGateBandEnabled)
 			{
-				if (_bandLowHitFrames[bandIndex] >= BandSkipFrames && _bandHitRate[bandIndex] < BandSkipHitThreshold)
-					skipBandPhysics = true;
+				ResetSoftGateCounters(
+					ref _softGateBand,
+					_frameIndex,
+					0,
+					Pass2QuickRaySoftGate,
+					Pass2SoftGateEveryNSegments,
+					MinSegLenForSoftGate);
 			}
-		}
-
-		// allocate / reuse buffers
-		int segTotal = pixelCount * maxSeg;
-		_segBuf ??= new RayBeamRenderer.RaySeg[segTotal];
-		if (_segBuf.Length < segTotal) _segBuf = new RayBeamRenderer.RaySeg[segTotal];
-
-		_segCountPerPixel ??= new int[pixelCount];
-		if (_segCountPerPixel.Length < pixelCount) _segCountPerPixel = new int[pixelCount];
-		if (_pass1HitFound.Length < pixelCount) _pass1HitFound = new bool[pixelCount];
-		if (_pass1StoppedEarly.Length < pixelCount) _pass1StoppedEarly = new bool[pixelCount];
-		if (_pass1HitSegIndex.Length < pixelCount) _pass1HitSegIndex = new int[pixelCount];
-		if (_pass1HitDist.Length < pixelCount) _pass1HitDist = new float[pixelCount];
-		if (_pass1HitPos.Length < pixelCount) _pass1HitPos = new Vector3[pixelCount];
-		if (_pass1HitNormal.Length < pixelCount) _pass1HitNormal = new Vector3[pixelCount];
-		if (_pass1HitColliderId.Length < pixelCount) _pass1HitColliderId = new ulong[pixelCount];
-
-		//////////////
-		///  Debug code block drop
-		/////////////////////////////
-		_dbgRayCount = 0;
-		_dbgPtWrite = 0;
-
-		// Only build debug overlay if enabled
-		bool wantDbg = (_rbr != null
-			&& _rbr.DebugMode != RayBeamRenderer.DebugDrawMode.Off
-			&& _rbr.DebugOverlayOwnedByFilm);
-
-		// Rough upper bounds for this band (for capacity planning)
-		// We’ll only sample 1 out of DebugEveryNPixels pixels.
-		if (wantDbg)
-		{
-			int pxStride = Math.Max(1, DebugEveryNPixels);
-			int sampledW = (filmW + pxStride - 1) / pxStride;
-			int sampledH = (bandH + pxStride - 1) / pxStride;
-			int sampledPixels = sampledW * sampledH;
-			sampledPixels = Math.Min(sampledPixels, DebugMaxFilmRays);
-
-			// Each sampled pixel stores up to segCount+1 points; we’ll cap segments too
-			int maxPtsPerRay = maxSeg + 1;
-			EnsureFilmDebugCapacity(sampledPixels, sampledPixels * maxPtsPerRay);
-		}
-		/////////////////////////
-		/// 
-
-
-		// snapshot plane filter state (value types -> thread friendly)
-		Plane insightPlane = default;
-		bool useInsightPlane = false;
-		float insightEps = _rbr.CollisionRadius;
-
-		if (UseInsightPlanePass2 && _rbr.UseInsightPlaneFilter)
-		{
-			// easiest v0: rebuild plane here from a NodePath you expose, OR if _rbr has the plane cached, add a getter.
-			// For now (if you don't have a getter), just leave this false until we wire it.
-			// useInsightPlane = true; insightPlane = ...;
-		}
-
-		if (_rbr.UseInsightPlaneFilter)
-		{
-			// RayBeamRenderer already computed plane in rebuild, but for film we can just disable
-			// OR if you want it: add a public getter in RayBeamRenderer for current plane/flag.
-			// For now: keep it off in film threading unless you wire it.
-			useInsightPlane = false;
-		}
-
-		// ---- PASS 1 (workers): build segments for each pixel ----
-		//int jobs = Mathf.Clamp(OS.GetProcessorCount(), 2, 16);
-		int jobs = Mathf.Clamp(OS.GetProcessorCount() / 2, 2, 8);
-
-		var basisLocal = basis; // capture for lambda
-		Vector3 camPos = _cam.GlobalPosition;
-
-		ulong a0 = Time.GetTicksUsec(); // before Parallel.For
-
-		PerfScope pass1Scope = default;
-		if (framePerfEnabled) pass1Scope = new PerfScope(_framePerf, PerfStage.Pass1_Integrate);
-
-		bool pass1StopOnHit = _rbr.StopOnHit || _rbr.TerminateTrailOnHit || _rbr.RequireHitToRender;
-		long pass1PhysQueries = 0;
-		long pass1EarlyStopPixels = 0;
-		long pass1StepsIntegrated = 0;
-		long pass1FieldEvals = 0;
-		long pass1Raycasts = 0;
-		long pass1ProbeHits = 0;
-		long pass1FieldGridHits = 0;
-		long pass1FieldGridMisses = 0;
-		bool collectPass1Perf = framePerfEnabled;
-		bool collectPass1Steps = framePerfEnabled || VerbosePerfLogs;
-
-		System.Threading.Tasks.Parallel.For(
-			0,
-			pixelCount,
-			new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = jobs },
-			() =>
+			FieldGrid3D fieldGridForPass1 = null;
+			if (UseFieldGrid && _rbr.UseIntegratedField && hasSources)
 			{
-				return new Pass1ThreadLocal
+				int rebuildN = Mathf.Max(1, FieldGridRebuildEveryNFrames);
+				bool shouldRebuild = cacheRefreshed || _fieldGrid == null || (_frameIndex % rebuildN) == 0;
+				if (shouldRebuild)
 				{
-					QuickRayParams = new PhysicsRayQueryParameters3D
+					float cellSize = Mathf.Max(0.001f, FieldGridCellSize);
+					float radius = Mathf.Max(0.01f, farForSim + FieldGridBoundsPadding);
+					Vector3 half = new Vector3(radius, radius, radius);
+					Vector3 origin = _cam.GlobalPosition - half;
+					Aabb bounds = new Aabb(origin, half * 2f);
+					_fieldGrid ??= new FieldGrid3D();
+					_fieldGrid.BuildFromSources(fieldSnaps, beta, gamma, _rbr.BendScale, _rbr.FieldStrength, bounds, cellSize);
+				}
+				fieldGridForPass1 = _fieldGrid;
+			}
+			bool skipBandPhysics = false;
+			int bandIndex = 0;
+			if (UseBandHitSkip)
+			{
+				EnsureBandHitHistory(filmH, rowsPerFrame);
+				bandIndex = yStart / rowsPerFrame;
+
+				if (CheckAndUpdateBandInvalidation(_cam.GlobalTransform, farForSim))
+					ResetBandHitHistory();
+
+				if (bandIndex >= 0 && bandIndex < _bandHitRate.Length && BandSkipFrames > 0)
+				{
+					if (_bandLowHitFrames[bandIndex] >= BandSkipFrames && _bandHitRate[bandIndex] < BandSkipHitThreshold)
+						skipBandPhysics = true;
+				}
+			}
+
+			// allocate / reuse buffers
+			int segTotal = pixelCount * maxSeg;
+			_segBuf ??= new RayBeamRenderer.RaySeg[segTotal];
+			if (_segBuf.Length < segTotal) _segBuf = new RayBeamRenderer.RaySeg[segTotal];
+
+			_segCountPerPixel ??= new int[pixelCount];
+			if (_segCountPerPixel.Length < pixelCount) _segCountPerPixel = new int[pixelCount];
+			if (_pass1HitFound.Length < pixelCount) _pass1HitFound = new bool[pixelCount];
+			if (_pass1StoppedEarly.Length < pixelCount) _pass1StoppedEarly = new bool[pixelCount];
+			if (_pass1HitSegIndex.Length < pixelCount) _pass1HitSegIndex = new int[pixelCount];
+			if (_pass1HitDist.Length < pixelCount) _pass1HitDist = new float[pixelCount];
+			if (_pass1HitPos.Length < pixelCount) _pass1HitPos = new Vector3[pixelCount];
+			if (_pass1HitNormal.Length < pixelCount) _pass1HitNormal = new Vector3[pixelCount];
+			if (_pass1HitColliderId.Length < pixelCount) _pass1HitColliderId = new ulong[pixelCount];
+
+			//////////////
+			///  Debug code block drop
+			/////////////////////////////
+			_dbgRayCount = 0;
+			_dbgPtWrite = 0;
+
+			// Only build debug overlay if enabled
+			bool wantDbg = (_rbr != null
+				&& _rbr.DebugMode != RayBeamRenderer.DebugDrawMode.Off
+				&& _rbr.DebugOverlayOwnedByFilm);
+
+			// Rough upper bounds for this band (for capacity planning)
+			// We’ll only sample 1 out of DebugEveryNPixels pixels.
+			if (wantDbg)
+			{
+				int pxStride = Math.Max(1, DebugEveryNPixels);
+				int sampledW = (filmW + pxStride - 1) / pxStride;
+				int sampledH = (bandH + pxStride - 1) / pxStride;
+				int sampledPixels = sampledW * sampledH;
+				sampledPixels = Math.Min(sampledPixels, DebugMaxFilmRays);
+
+				// Each sampled pixel stores up to segCount+1 points; we’ll cap segments too
+				int maxPtsPerRay = maxSeg + 1;
+				EnsureFilmDebugCapacity(sampledPixels, sampledPixels * maxPtsPerRay);
+			}
+			/////////////////////////
+			/// 
+
+
+			// snapshot plane filter state (value types -> thread friendly)
+			Plane insightPlane = default;
+			bool useInsightPlane = false;
+			float insightEps = _rbr.CollisionRadius;
+
+			if (UseInsightPlanePass2 && _rbr.UseInsightPlaneFilter)
+			{
+				// easiest v0: rebuild plane here from a NodePath you expose, OR if _rbr has the plane cached, add a getter.
+				// For now (if you don't have a getter), just leave this false until we wire it.
+				// useInsightPlane = true; insightPlane = ...;
+			}
+
+			if (_rbr.UseInsightPlaneFilter)
+			{
+				// RayBeamRenderer already computed plane in rebuild, but for film we can just disable
+				// OR if you want it: add a public getter in RayBeamRenderer for current plane/flag.
+				// For now: keep it off in film threading unless you wire it.
+				useInsightPlane = false;
+			}
+
+			// ---- PASS 1 (workers): build segments for each pixel ----
+			//int jobs = Mathf.Clamp(OS.GetProcessorCount(), 2, 16);
+			int jobs = Mathf.Clamp(OS.GetProcessorCount() / 2, 2, 8);
+
+			var basisLocal = basis; // capture for lambda
+			Vector3 camPos = _cam.GlobalPosition;
+
+			ulong a0 = Time.GetTicksUsec(); // before Parallel.For
+
+			PerfScope pass1Scope = default;
+			if (framePerfEnabled) pass1Scope = new PerfScope(_framePerf, PerfStage.Pass1_Integrate);
+
+			bool pass1StopOnHit = _rbr.StopOnHit || _rbr.TerminateTrailOnHit || _rbr.RequireHitToRender;
+			long pass1PhysQueries = 0;
+			long pass1EarlyStopPixels = 0;
+			long pass1StepsIntegrated = 0;
+			long pass1FieldEvals = 0;
+			long pass1Raycasts = 0;
+			long pass1ProbeHits = 0;
+			long pass1FieldGridHits = 0;
+			long pass1FieldGridMisses = 0;
+			bool collectPass1Perf = framePerfEnabled;
+			bool collectPass1Steps = framePerfEnabled || VerbosePerfLogs;
+
+			System.Threading.Tasks.Parallel.For(
+				0,
+				pixelCount,
+				new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = jobs },
+				() =>
+				{
+					return new Pass1ThreadLocal
 					{
-						CollisionMask = _rbr.CollisionMask,
-						CollideWithBodies = true,
-						CollideWithAreas = true,
-						HitFromInside = Pass2HitFromInside,
-						HitBackFaces = Pass2HitBackFaces
-					}
-				};
-			},
-			(pi, _, local) =>
-			{
-				int localY = pi / filmW;   // 0..bandH-1
-				int x = pi - localY * filmW;
-				int y = yStart + localY;
-				if ((x % stride) != 0 || (y % stride) != 0)
+						QuickRayParams = new PhysicsRayQueryParameters3D
+						{
+							CollisionMask = _rbr.CollisionMask,
+							CollideWithBodies = true,
+							CollideWithAreas = true,
+							HitFromInside = Pass2HitFromInside,
+							HitBackFaces = Pass2HitBackFaces
+						}
+					};
+				},
+				(pi, _, local) =>
 				{
-					_segCountPerPixel[pi] = 0;
-					_pass1HitFound[pi] = false;
-					_pass1StoppedEarly[pi] = false;
-					_pass1HitSegIndex[pi] = -1;
-					_pass1HitDist[pi] = float.PositiveInfinity;
-					_pass1HitPos[pi] = Vector3.Zero;
-					_pass1HitNormal[pi] = Vector3.Up;
-					_pass1HitColliderId[pi] = 0;
-					return local;
-				}
-
-				float v = ((y + 0.5f) / filmH) * 2f - 1f;
-				v = -v;
-				float u = ((x + 0.5f) / filmW) * 2f - 1f;
-
-				Vector3 dirCam = new Vector3(
-					u * tanHalf * aspect,
-					v * tanHalf,
-					-1f
-				).Normalized();
-
-				Vector3 dirWorld = (basisLocal * dirCam).Normalized();
-				Vector3 bendDir = basisLocal.X;
-
-				int segOffset = pi * maxSeg;
-
-				int count = _rbr.BuildRaySegmentsCamera_Pass1(
-					space,
-					ref local.QuickRayParams,
-					camPos, dirWorld, bendDir,
-					center, beta, gamma,
-					fieldSnaps, hasSources,
-					farForSim,
-					_segBuf, segOffset, maxSeg,
-					insightPlane, useInsightPlane, insightEps,
-					pass1StopOnHit,
-					Pass1DoHitTest,
-					Pass1ProbeEveryNSegments,
-					Pass1ProbeMinTravelDelta,
-					out RayBeamRenderer.Pass1HitInfo hitInfo,
-					out bool stoppedEarly,
-					out int hitSegIndex,
-					out int stepsIntegrated,
-					out int fieldEvals,
-					out int pass1RaycastsLocal,
-					out int pass1ProbeHitsLocal,
-					out int fieldGridHitsLocal,
-					out int fieldGridMissesLocal,
-					fieldGridForPass1
-				);
-
-				if (collectPass1Perf)
-				{
-					local.PhysQueries += pass1RaycastsLocal;
-					if (stoppedEarly) local.EarlyStopPixels++;
-				}
-				if (collectPass1Steps) local.StepsIntegrated += stepsIntegrated;
-				if (framePerfEnabled) local.FieldEvals += fieldEvals;
-				if (framePerfEnabled)
-				{
-					local.Pass1Raycasts += pass1RaycastsLocal;
-					local.Pass1ProbeHits += pass1ProbeHitsLocal;
-					local.FieldGridHits += fieldGridHitsLocal;
-					local.FieldGridMisses += fieldGridMissesLocal;
-				}
-
-				_segCountPerPixel[pi] = count;
-				_pass1HitFound[pi] = hitInfo.Found;
-				_pass1StoppedEarly[pi] = stoppedEarly;
-				_pass1HitSegIndex[pi] = hitSegIndex;
-				_pass1HitDist[pi] = hitInfo.Distance;
-				_pass1HitPos[pi] = hitInfo.Position;
-				_pass1HitNormal[pi] = hitInfo.Normal;
-				_pass1HitColliderId[pi] = hitInfo.ColliderId;
-				return local;
-			},
-			local =>
-			{
-				if (collectPass1Perf)
-				{
-					Interlocked.Add(ref pass1PhysQueries, local.PhysQueries);
-					Interlocked.Add(ref pass1EarlyStopPixels, local.EarlyStopPixels);
-				}
-				if (collectPass1Steps) Interlocked.Add(ref pass1StepsIntegrated, local.StepsIntegrated);
-				if (framePerfEnabled) Interlocked.Add(ref pass1FieldEvals, local.FieldEvals);
-				if (framePerfEnabled)
-				{
-					Interlocked.Add(ref pass1Raycasts, local.Pass1Raycasts);
-					Interlocked.Add(ref pass1ProbeHits, local.Pass1ProbeHits);
-					Interlocked.Add(ref pass1FieldGridHits, local.FieldGridHits);
-					Interlocked.Add(ref pass1FieldGridMisses, local.FieldGridMisses);
-				}
-			});
-
-		if (framePerfEnabled) pass1Scope.Dispose();
-
-		ulong a1 = Time.GetTicksUsec(); // after wait
-
-		if (statsEnabled)
-		{
-			_perfFrame.AddPass1Usec(a1 - a0);
-			_perfFrame.Pixels += pixelCount;
-		}
-		if (framePerfEnabled)
-		{
-			_framePerf.PhysicsQueries += pass1PhysQueries;
-			_framePerf.EarlyStopOnHitPixels += pass1EarlyStopPixels;
-			_framePerf.StepsIntegrated += pass1StepsIntegrated;
-			_framePerf.FieldEvals += pass1FieldEvals;
-			_framePerf.Pass1Raycasts += pass1Raycasts;
-			_framePerf.Pass1ProbeHits += pass1ProbeHits;
-			_framePerf.FieldGridHits += pass1FieldGridHits;
-			_framePerf.FieldGridMisses += pass1FieldGridMisses;
-		}
-
-		// ---- PASS 2 (main thread): collisions + shading ----
-		bandHits = 0;
-		int bandTracedPixels = 0;
-		long shadeUsecAccum = 0;
-		long bandSegsIntegrated = 0;
-		long bandSegsTested = 0;
-		long bandPhysicsQueries = 0;
-		bool bandCountersEnabled = statsEnabled || framePerfEnabled;
-		int bandFilledPixels = 0;
-		// Pass-2 stride counters track expensive subdivided tests, not whole segments.
-		long subRaysSkippedByPass2Stride = 0;
-		long subRaysForcedByPass2Stride = 0;
-		long pass2StrideSum = 0;
-		long pass2StrideCount = 0;
-		long bandFarEarlyOuts = 0;
-		long p2SoftGateAttempts = 0;
-		long p2SoftGateHits = 0;
-		Pass2HitFlags pass2Flags = new Pass2HitFlags
-		{
-			HitBackFaces = Pass2HitBackFaces,
-			HitFromInside = Pass2HitFromInside
-		};
-		int pass2FlagsKey = (pass2Flags.HitBackFaces ? 1 : 0) | (pass2Flags.HitFromInside ? 2 : 0);
-		int pass2QuickRayMissLogRemaining = Pass2LogQuickRayMissSamples;
-
-		Vector3 camPosPass2 = camPos;
-		bool useOverlap = UseBroadphaseOverlap;
-		bool useQuickRay = UseBroadphaseQuickRay;
-		if (UseBroadphasePolicy)
-		{
-			switch (BroadphasePolicy)
-			{
-				case BroadphaseMode.None:
-					useOverlap = false;
-					useQuickRay = false;
-					break;
-				case BroadphaseMode.QuickRayOnly:
-					useOverlap = false;
-					useQuickRay = true;
-					break;
-				case BroadphaseMode.OverlapOnly:
-					useOverlap = true;
-					useQuickRay = false;
-					break;
-				case BroadphaseMode.Both:
-					useOverlap = true;
-					useQuickRay = true;
-					break;
-			}
-		}
-
-		if (useOverlap)
-		{
-			_overlapSphere ??= new SphereShape3D();
-			_overlapQuery ??= new PhysicsShapeQueryParameters3D();
-			_overlapSphere.Radius = _rbr.CollisionRadius + BroadphaseMargin;
-			_overlapQuery.Shape = _overlapSphere;
-			_overlapQuery.CollisionMask = _rbr.CollisionMask;
-			_overlapQuery.CollideWithBodies = true;
-			_overlapQuery.CollideWithAreas = true;
-		}
-
-		if (useQuickRay || UseSingleProbeThenSubdivide)
-		{
-			_quickRayParams ??= new PhysicsRayQueryParameters3D();
-			_quickRayParams.CollisionMask = _rbr.CollisionMask;
-			_quickRayParams.CollideWithBodies = true;
-			_quickRayParams.CollideWithAreas = true;
-			_quickRayParams.HitFromInside = pass2Flags.HitFromInside;
-			_quickRayParams.HitBackFaces = pass2Flags.HitBackFaces;
-		}
-
-		if (useQuickRay || UseSingleProbeThenSubdivide)
-		{
-			EnsurePass2QuickRayCache();
-			ResetPass2QuickRayCache();
-		}
-
-		PerfScope pass2Scope = default;
-		if (framePerfEnabled) pass2Scope = new PerfScope(_framePerf, PerfStage.Pass2_Subdivide);
-		bool shadeTimingEnabled = statsEnabled || framePerfEnabled;
-
-		if (skipBandPhysics)
-		{
-			ulong shadeStart = 0;
-			if (shadeTimingEnabled) shadeStart = Time.GetTicksUsec();
-
-			int yAlignedStart = yStart + ((stride - (yStart % stride)) % stride);
-			for (int y = yAlignedStart; y < yEnd; y += stride)
-			{
-				int localY = y - yStart;
-				for (int x = 0; x < filmW; x += stride)
-				{
-					if (statsEnabled)
+					int localY = pi / filmW;   // 0..bandH-1
+					int x = pi - localY * filmW;
+					int y = yStart + localY;
+					if ((x % stride) != 0 || (y % stride) != 0)
 					{
-						int pi = localY * filmW + x;
-						_perfFrame.Segs += _segCountPerPixel[pi];
-						if (_rbr != null && _rbr.RequireHitToRender) _perfFrame.ShadingSkippedPixels++;
-						_perfFrame.TracedPixels++;
+						_segCountPerPixel[pi] = 0;
+						_pass1HitFound[pi] = false;
+						_pass1StoppedEarly[pi] = false;
+						_pass1HitSegIndex[pi] = -1;
+						_pass1HitDist[pi] = float.PositiveInfinity;
+						_pass1HitPos[pi] = Vector3.Zero;
+						_pass1HitNormal[pi] = Vector3.Up;
+						_pass1HitColliderId[pi] = 0;
+						return local;
 					}
-					if (bandCountersEnabled)
-					{
-						int pi = localY * filmW + x;
-						bandSegsIntegrated += _segCountPerPixel[pi];
-					}
-					bandTracedPixels++;
-					int filled = FillPixelBlock(x, y, stride, SkyColor, filmW, filmH);
-					if (statsEnabled) _perfFrame.FilledPixels += filled;
-					if (framePerfEnabled) bandFilledPixels += filled;
-				}
-			}
 
-			if (shadeTimingEnabled)
-			{
-				ulong shadeUsec = Time.GetTicksUsec() - shadeStart;
-				if (statsEnabled) _perfFrame.AddPass2ShadeUsec(shadeUsec);
-				shadeUsecAccum += (long)shadeUsec;
-			}
-		}
-		else
-		{
-			int yAlignedStart = yStart + ((stride - (yStart % stride)) % stride);
-			for (int y = yAlignedStart; y < yEnd; y += stride)
-			{
-				int localY = y - yStart;
-				for (int x = 0; x < filmW; x += stride)
-				{
-					int pi = localY * filmW + x;
-					int globalPi = y * filmW + x;
-					if (statsEnabled) _perfFrame.TracedPixels++;
-					bandTracedPixels++;
+					float v = ((y + 0.5f) / filmH) * 2f - 1f;
+					v = -v;
+					float u = ((x + 0.5f) / filmW) * 2f - 1f;
 
-					bool prevHadHit = Pass2ForceOnInstability
-						&& _pass2PrevHadHit.Length > globalPi
-						&& _pass2PrevHadHit[globalPi] != 0;
-					bool quickRayTestedThisPixel = false;
-					bool quickRayHitThisPixel = false;
-					bool forceInstabilityThisPixel = false;
-					bool forcePrevHitLostThisPixel = false;
-					int forceRepSegIndex = -1;
+					Vector3 dirCam = new Vector3(
+						u * tanHalf * aspect,
+						v * tanHalf,
+						-1f
+					).Normalized();
 
-					bool hadHit = false;
-					float hitDistance = 0f;
-					string hitName = "<none>";
-					float bestHit = float.PositiveInfinity;
-					float bestHitDistAlongRay = float.PositiveInfinity;
-					Vector3 bestHp = Vector3.Zero;
-					Vector3 bestHn = Vector3.Up;
+					Vector3 dirWorld = (basisLocal * dirCam).Normalized();
+					Vector3 bendDir = basisLocal.X;
 
-					int segCount = _segCountPerPixel[pi];
 					int segOffset = pi * maxSeg;
-					bool pass1StoppedEarly = _pass1StoppedEarly[pi];
-					int pass1HitSegIndex = _pass1HitSegIndex[pi];
-					int segStart = 0;
-					int segEnd = segCount - 1;
-					if (pass1StoppedEarly && pass1HitSegIndex >= 0)
+
+					int count = _rbr.BuildRaySegmentsCamera_Pass1(
+						space,
+						ref local.QuickRayParams,
+						camPos, dirWorld, bendDir,
+						center, beta, gamma,
+						fieldSnaps, hasSources,
+						farForSim,
+						_segBuf, segOffset, maxSeg,
+						insightPlane, useInsightPlane, insightEps,
+						pass1StopOnHit,
+						Pass1DoHitTest,
+						Pass1ProbeEveryNSegments,
+						Pass1ProbeMinTravelDelta,
+						out RayBeamRenderer.Pass1HitInfo hitInfo,
+						out bool stoppedEarly,
+						out int hitSegIndex,
+						out int stepsIntegrated,
+						out int fieldEvals,
+						out int pass1RaycastsLocal,
+						out int pass1ProbeHitsLocal,
+						out int fieldGridHitsLocal,
+						out int fieldGridMissesLocal,
+						fieldGridForPass1
+					);
+
+					if (collectPass1Perf)
 					{
-						segStart = Math.Max(0, pass1HitSegIndex - 1);
-						segEnd = Math.Min(segCount - 1, pass1HitSegIndex + 1);
+						local.PhysQueries += pass1RaycastsLocal;
+						if (stoppedEarly) local.EarlyStopPixels++;
+					}
+					if (collectPass1Steps) local.StepsIntegrated += stepsIntegrated;
+					if (framePerfEnabled) local.FieldEvals += fieldEvals;
+					if (framePerfEnabled)
+					{
+						local.Pass1Raycasts += pass1RaycastsLocal;
+						local.Pass1ProbeHits += pass1ProbeHitsLocal;
+						local.FieldGridHits += fieldGridHitsLocal;
+						local.FieldGridMisses += fieldGridMissesLocal;
 					}
 
-					if (statsEnabled) _perfFrame.Segs += segCount;
-					if (bandCountersEnabled) bandSegsIntegrated += segCount;
-
-					bool isCenterSample = (x == filmW / 2 && y == (yStart + (bandH / 2)));
-					bool logCenterSample = VerbosePerfLogs && isCenterSample;
-					bool needHitName = NeedColliderNames || logCenterSample;
-					bool testedAnyInPass0ThisPixel = false;
-					bool skippedAnyByStrideThisPixel = false;
-					bool segmentsMonotonic = true;
-					if (segCount > 1)
+					_segCountPerPixel[pi] = count;
+					_pass1HitFound[pi] = hitInfo.Found;
+					_pass1StoppedEarly[pi] = stoppedEarly;
+					_pass1HitSegIndex[pi] = hitSegIndex;
+					_pass1HitDist[pi] = hitInfo.Distance;
+					_pass1HitPos[pi] = hitInfo.Position;
+					_pass1HitNormal[pi] = hitInfo.Normal;
+					_pass1HitColliderId[pi] = hitInfo.ColliderId;
+					return local;
+				},
+				local =>
+				{
+					if (collectPass1Perf)
 					{
-						float prevTraveledB = float.NegativeInfinity;
-						for (int si = 0; si < segCount; si++)
-						{
-							float traveledB = _segBuf[segOffset + si].TraveledB;
-							if (traveledB < prevTraveledB - 1e-6f)
-							{
-								segmentsMonotonic = false;
-								break;
-							}
-							prevTraveledB = traveledB;
-						}
+						Interlocked.Add(ref pass1PhysQueries, local.PhysQueries);
+						Interlocked.Add(ref pass1EarlyStopPixels, local.EarlyStopPixels);
 					}
-					bool allowFarEarlyOut = NearestHitOnly && segmentsMonotonic;
-					float farEarlyOutEps = Mathf.Max(0f, EarlyOutDistanceEps);
-					bool earlyOutFarThisPixel = false;
-
-					ulong physStart = 0;
-					if (statsEnabled) physStart = Time.GetTicksUsec();
-
-					int lastSi = Math.Max(0, segCount - 1);
-					for (int pass = 0; pass < 2; pass++)
+					if (collectPass1Steps) Interlocked.Add(ref pass1StepsIntegrated, local.StepsIntegrated);
+					if (framePerfEnabled) Interlocked.Add(ref pass1FieldEvals, local.FieldEvals);
+					if (framePerfEnabled)
 					{
-						bool forceStride1 = pass1StoppedEarly || pass == 1;
-						bool allowInstabilityPass = pass == 1 && forceInstabilityThisPixel;
-						if (pass1StoppedEarly && pass == 1 && !forceInstabilityThisPixel)
-							break;
-						if (forceStride1 && !pass1StoppedEarly)
+						Interlocked.Add(ref pass1Raycasts, local.Pass1Raycasts);
+						Interlocked.Add(ref pass1ProbeHits, local.Pass1ProbeHits);
+						Interlocked.Add(ref pass1FieldGridHits, local.FieldGridHits);
+						Interlocked.Add(ref pass1FieldGridMisses, local.FieldGridMisses);
+					}
+				});
+
+			if (framePerfEnabled) pass1Scope.Dispose();
+
+			ulong a1 = Time.GetTicksUsec(); // after wait
+
+			if (statsEnabled)
+			{
+				_perfFrame.AddPass1Usec(a1 - a0);
+				_perfFrame.Pixels += pixelCount;
+			}
+			if (framePerfEnabled)
+			{
+				_framePerf.PhysicsQueries += pass1PhysQueries;
+				_framePerf.EarlyStopOnHitPixels += pass1EarlyStopPixels;
+				_framePerf.StepsIntegrated += pass1StepsIntegrated;
+				_framePerf.FieldEvals += pass1FieldEvals;
+				_framePerf.Pass1Raycasts += pass1Raycasts;
+				_framePerf.Pass1ProbeHits += pass1ProbeHits;
+				_framePerf.FieldGridHits += pass1FieldGridHits;
+				_framePerf.FieldGridMisses += pass1FieldGridMisses;
+			}
+
+			// ---- PASS 2 (main thread): collisions + shading ----
+			bandHits = 0;
+			int bandTracedPixels = 0;
+			long shadeUsecAccum = 0;
+			long bandSegsIntegrated = 0;
+			long bandSegsTested = 0;
+			long bandPhysicsQueries = 0;
+			bool bandCountersEnabled = statsEnabled || framePerfEnabled;
+			int bandFilledPixels = 0;
+			// Pass-2 stride counters track expensive subdivided tests, not whole segments.
+			long subRaysSkippedByPass2Stride = 0;
+			long subRaysForcedByPass2Stride = 0;
+			long pass2StrideSum = 0;
+			long pass2StrideCount = 0;
+			long bandFarEarlyOuts = 0;
+			long p2SoftGateAttempts = 0;
+			long p2SoftGateHits = 0;
+			Pass2HitFlags pass2Flags = new Pass2HitFlags
+			{
+				HitBackFaces = Pass2HitBackFaces,
+				HitFromInside = Pass2HitFromInside
+			};
+			int pass2FlagsKey = (pass2Flags.HitBackFaces ? 1 : 0) | (pass2Flags.HitFromInside ? 2 : 0);
+			int pass2QuickRayMissLogRemaining = Pass2LogQuickRayMissSamples;
+
+			Vector3 camPosPass2 = camPos;
+			bool useOverlap = UseBroadphaseOverlap;
+			bool useQuickRay = UseBroadphaseQuickRay;
+			if (UseBroadphasePolicy)
+			{
+				switch (BroadphasePolicy)
+				{
+					case BroadphaseMode.None:
+						useOverlap = false;
+						useQuickRay = false;
+						break;
+					case BroadphaseMode.QuickRayOnly:
+						useOverlap = false;
+						useQuickRay = true;
+						break;
+					case BroadphaseMode.OverlapOnly:
+						useOverlap = true;
+						useQuickRay = false;
+						break;
+					case BroadphaseMode.Both:
+						useOverlap = true;
+						useQuickRay = true;
+						break;
+				}
+			}
+
+			if (useOverlap)
+			{
+				_overlapSphere ??= new SphereShape3D();
+				_overlapQuery ??= new PhysicsShapeQueryParameters3D();
+				_overlapSphere.Radius = _rbr.CollisionRadius + BroadphaseMargin;
+				_overlapQuery.Shape = _overlapSphere;
+				_overlapQuery.CollisionMask = _rbr.CollisionMask;
+				_overlapQuery.CollideWithBodies = true;
+				_overlapQuery.CollideWithAreas = true;
+			}
+
+			if (useQuickRay || UseSingleProbeThenSubdivide)
+			{
+				_quickRayParams ??= new PhysicsRayQueryParameters3D();
+				_quickRayParams.CollisionMask = _rbr.CollisionMask;
+				_quickRayParams.CollideWithBodies = true;
+				_quickRayParams.CollideWithAreas = true;
+				_quickRayParams.HitFromInside = pass2Flags.HitFromInside;
+				_quickRayParams.HitBackFaces = pass2Flags.HitBackFaces;
+			}
+
+			if (useQuickRay || UseSingleProbeThenSubdivide)
+			{
+				EnsurePass2QuickRayCache();
+				ResetPass2QuickRayCache();
+			}
+
+			PerfScope pass2Scope = default;
+			if (framePerfEnabled) pass2Scope = new PerfScope(_framePerf, PerfStage.Pass2_Subdivide);
+			bool shadeTimingEnabled = statsEnabled || framePerfEnabled;
+			void CountQuickRayResult(bool hit)
+			{
+				if (!softGateDebugEnabled) return;
+				_softGateFrame.QRayCalls++;
+				if (hit) _softGateFrame.QRayHit++;
+				else _softGateFrame.QRayMiss++;
+				if (softGateBandEnabled)
+				{
+					_softGateBand.QRayCalls++;
+					if (hit) _softGateBand.QRayHit++;
+					else _softGateBand.QRayMiss++;
+				}
+			}
+
+			void SoftGateRecordMetric(float metric)
+			{
+				if (!softGateDebugEnabled) return;
+				_softGateFrame.SoftGateMetricCount++;
+				_softGateFrame.SoftGateMetricSum += metric;
+				if (metric < _softGateFrame.SoftGateMetricMin) _softGateFrame.SoftGateMetricMin = metric;
+				if (metric > _softGateFrame.SoftGateMetricMax) _softGateFrame.SoftGateMetricMax = metric;
+				if (softGateBandEnabled)
+				{
+					_softGateBand.SoftGateMetricCount++;
+					_softGateBand.SoftGateMetricSum += metric;
+					if (metric < _softGateBand.SoftGateMetricMin) _softGateBand.SoftGateMetricMin = metric;
+					if (metric > _softGateBand.SoftGateMetricMax) _softGateBand.SoftGateMetricMax = metric;
+				}
+			}
+
+			void SoftGateRecordSkip(SoftGateDecisionReason reason)
+			{
+				if (!softGateDebugEnabled) return;
+				_softGateFrame.SoftGateSkipped++;
+				if (softGateBandEnabled) _softGateBand.SoftGateSkipped++;
+				switch (reason)
+				{
+					case SoftGateDecisionReason.Disabled:
+						_softGateFrame.SkipDisabled++;
+						if (softGateBandEnabled) _softGateBand.SkipDisabled++;
+						break;
+					case SoftGateDecisionReason.EveryNsegZero:
+						_softGateFrame.SkipEveryNsegZero++;
+						if (softGateBandEnabled) _softGateBand.SkipEveryNsegZero++;
+						break;
+					case SoftGateDecisionReason.SegLenTooShort:
+						_softGateFrame.SkipSegLenTooShort++;
+						if (softGateBandEnabled) _softGateBand.SkipSegLenTooShort++;
+						break;
+					case SoftGateDecisionReason.NoCandidate:
+						_softGateFrame.SkipNoCandidate++;
+						if (softGateBandEnabled) _softGateBand.SkipNoCandidate++;
+						break;
+					case SoftGateDecisionReason.NanMetric:
+						_softGateFrame.SkipNanMetric++;
+						if (softGateBandEnabled) _softGateBand.SkipNanMetric++;
+						break;
+					case SoftGateDecisionReason.CadenceMiss:
+					case SoftGateDecisionReason.Other:
+					default:
+						_softGateFrame.SkipOther++;
+						if (softGateBandEnabled) _softGateBand.SkipOther++;
+						break;
+				}
+			}
+
+			bool ShouldSoftGate(int segIndex, float segmentLength, bool hasCandidate, out bool everyNHit, out bool segLenHit, out SoftGateDecisionReason reason)
+			{
+				everyNHit = false;
+				segLenHit = false;
+				reason = SoftGateDecisionReason.Allow;
+
+				//if (softGateDebugEnabled && segIndex == 0)
+					//GD.Print($"[SGDBG] P2SoftGate={Pass2QuickRaySoftGate} N={Pass2SoftGateEveryNSegments} minSeg={MinSegLenForSoftGate} segLen={segmentLength}");
+
+				if (!hasCandidate)
+				{
+					reason = SoftGateDecisionReason.NoCandidate;
+					if (softGateDebugEnabled)
+					{
+						_softGateFrame.SoftGateConsidered++;
+						if (softGateBandEnabled) _softGateBand.SoftGateConsidered++;
+						SoftGateRecordSkip(reason);
+					}
+					return false;
+				}
+
+				if (softGateDebugEnabled)
+				{
+					_softGateFrame.SoftGateConsidered++;
+					if (softGateBandEnabled) _softGateBand.SoftGateConsidered++;
+				}
+
+				if (!Pass2QuickRaySoftGate)
+				{
+					reason = SoftGateDecisionReason.Disabled;
+					SoftGateRecordSkip(reason);
+					return false;
+				}
+
+				bool metricsFinite = float.IsFinite(segmentLength) && float.IsFinite(MinSegLenForSoftGate);
+				if (!metricsFinite)
+				{
+					reason = SoftGateDecisionReason.NanMetric;
+					SoftGateRecordSkip(reason);
+					return false;
+				}
+
+				if (softGateDebugEnabled) SoftGateRecordMetric(segmentLength);
+
+				bool everyNEnabled = Pass2SoftGateEveryNSegments > 0;
+				bool segLenEnabled = MinSegLenForSoftGate > 0f;
+				//everyNHit = everyNEnabled && (segIndex % Pass2SoftGateEveryNSegments) == 0;
+				//everyNHit = everyNEnabled && segIndex > 0 && (segIndex % Pass2SoftGateEveryNSegments) == 0;
+				everyNHit = everyNEnabled && ((segIndex + 1) % Pass2SoftGateEveryNSegments) == 0;
+				//segLenHit = segLenEnabled && segmentLength > MinSegLenForSoftGate;
+				//segLenHit = segLenEnabled && (segmentLength + 1e-6f >= MinSegLenForSoftGate);
+				segLenHit = segLenEnabled && segmentLength >= MinSegLenForSoftGate;
+
+				if (!everyNEnabled && !segLenEnabled)
+				{
+					reason = SoftGateDecisionReason.EveryNsegZero;
+					SoftGateRecordSkip(reason);
+					return false;
+				}
+
+				if (!(everyNHit || segLenHit))
+				{
+					reason = (segLenEnabled && segmentLength <= MinSegLenForSoftGate)
+						? SoftGateDecisionReason.SegLenTooShort
+						: SoftGateDecisionReason.CadenceMiss;
+					SoftGateRecordSkip(reason);
+					return false;
+				}
+
+				if (softGateDebugEnabled)
+				{
+					_softGateFrame.SoftGateForced++;
+					if (softGateBandEnabled) _softGateBand.SoftGateForced++;
+				}
+
+				if (softGateDebugEnabled && segIndex == 0 && everyNHit)
+					GD.Print($"[SoftGate] segIndex=0 cadence HIT (N={Pass2SoftGateEveryNSegments})");
+
+				return true;
+			}
+
+			void LogSoftGateSample(int segIndex, float segmentLength, bool forced, bool attempted, bool hit, SoftGateDecisionReason reason, bool everyNHit, bool segLenHit, bool sampleThisSeg)
+			{
+				if (!sampleThisSeg) return;
+
+				string reasonText;
+				if (reason == SoftGateDecisionReason.Disabled)
+					reasonText = "disabled";
+				else if (reason == SoftGateDecisionReason.EveryNsegZero)
+					reasonText = "nseg0";
+				else if (reason == SoftGateDecisionReason.NoCandidate)
+					reasonText = "no_candidate";
+				else if (reason == SoftGateDecisionReason.NanMetric)
+					reasonText = "nan";
+				else
+					reasonText = (segLenHit ? "seglen_ok" : "seglen_short") + " " + (everyNHit ? "nseg_ok" : "nseg_skip");
+
+				GD.Print(
+					$"SG seg={segIndex} len={segmentLength:0.###} metric={segmentLength:0.###} forced={(forced ? 1 : 0)} attempt={(attempted ? 1 : 0)} hit={(hit ? 1 : 0)} reason={reasonText}");
+			}
+
+			if (skipBandPhysics)
+			{
+				ulong shadeStart = 0;
+				if (shadeTimingEnabled) shadeStart = Time.GetTicksUsec();
+
+				int yAlignedStart = yStart + ((stride - (yStart % stride)) % stride);
+				for (int y = yAlignedStart; y < yEnd; y += stride)
+				{
+					int localY = y - yStart;
+					for (int x = 0; x < filmW; x += stride)
+					{
+						if (statsEnabled)
 						{
-							if (hadHit)
-								break;
-							if (!allowInstabilityPass)
-							{
-								if (!UsePass2CollisionStride || !skippedAnyByStrideThisPixel || testedAnyInPass0ThisPixel)
-									break;
-								if (statsEnabled) _perfFrame.Pass2ForceStride1Pixels++;
-							}
+							int pi = localY * filmW + x;
+							_perfFrame.Segs += _segCountPerPixel[pi];
+							if (_rbr != null && _rbr.RequireHitToRender) _perfFrame.ShadingSkippedPixels++;
+							_perfFrame.TracedPixels++;
+						}
+						if (bandCountersEnabled)
+						{
+							int pi = localY * filmW + x;
+							bandSegsIntegrated += _segCountPerPixel[pi];
+						}
+						bandTracedPixels++;
+						int filled = FillPixelBlock(x, y, stride, SkyColor, filmW, filmH);
+						if (statsEnabled) _perfFrame.FilledPixels += filled;
+						if (framePerfEnabled) bandFilledPixels += filled;
+					}
+				}
+
+				if (shadeTimingEnabled)
+				{
+					ulong shadeUsec = Time.GetTicksUsec() - shadeStart;
+					if (statsEnabled) _perfFrame.AddPass2ShadeUsec(shadeUsec);
+					shadeUsecAccum += (long)shadeUsec;
+				}
+			}
+			else
+			{
+				int yAlignedStart = yStart + ((stride - (yStart % stride)) % stride);
+				for (int y = yAlignedStart; y < yEnd; y += stride)
+				{
+					int localY = y - yStart;
+					for (int x = 0; x < filmW; x += stride)
+					{
+						int pi = localY * filmW + x;
+						int globalPi = y * filmW + x;
+						if (statsEnabled) _perfFrame.TracedPixels++;
+						bandTracedPixels++;
+
+						bool prevHadHit = Pass2ForceOnInstability
+							&& _pass2PrevHadHit.Length > globalPi
+							&& _pass2PrevHadHit[globalPi] != 0;
+						bool quickRayTestedThisPixel = false;
+						bool quickRayHitThisPixel = false;
+						bool forceInstabilityThisPixel = false;
+						bool forcePrevHitLostThisPixel = false;
+						int forceRepSegIndex = -1;
+
+						bool hadHit = false;
+						float hitDistance = 0f;
+						string hitName = "<none>";
+						float bestHit = float.PositiveInfinity;
+						float bestHitDistAlongRay = float.PositiveInfinity;
+						Vector3 bestHp = Vector3.Zero;
+						Vector3 bestHn = Vector3.Up;
+
+						int segCount = _segCountPerPixel[pi];
+						int segOffset = pi * maxSeg;
+						bool pass1StoppedEarly = _pass1StoppedEarly[pi];
+						int pass1HitSegIndex = _pass1HitSegIndex[pi];
+						int segStart = 0;
+						int segEnd = segCount - 1;
+						if (pass1StoppedEarly && pass1HitSegIndex >= 0)
+						{
+							segStart = Math.Max(0, pass1HitSegIndex - 1);
+							segEnd = Math.Min(segCount - 1, pass1HitSegIndex + 1);
 						}
 
-						for (int si = segStart; si <= segEnd; si++)
-						{
-							var seg = _segBuf[segOffset + si];
-							Vector3 segA = seg.A;
-							Vector3 segB = seg.B;
-							float segLen = (segB - segA).Length();
-							int pass2Stride = forceStride1 ? 1 : ComputePass2CollisionStride(seg.TraveledB, farForSim);
+						if (statsEnabled) _perfFrame.Segs += segCount;
+						if (bandCountersEnabled) bandSegsIntegrated += segCount;
 
-							if (segLen <= 1e-6f) continue;
-							if (TinySegmentSkipLen > 0f && segLen < TinySegmentSkipLen) continue;
-							if (allowFarEarlyOut && bestHitDistAlongRay < float.PositiveInfinity)
+						bool isCenterSample = (x == filmW / 2 && y == (yStart + (bandH / 2)));
+						bool logCenterSample = VerbosePerfLogs && isCenterSample;
+						bool needHitName = NeedColliderNames || logCenterSample;
+						bool testedAnyInPass0ThisPixel = false;
+						bool skippedAnyByStrideThisPixel = false;
+						bool segmentsMonotonic = true;
+						if (segCount > 1)
+						{
+							float prevTraveledB = float.NegativeInfinity;
+							for (int si = 0; si < segCount; si++)
 							{
-								float segStartDist = seg.TraveledB - segLen;
-								if (segStartDist > bestHitDistAlongRay + farEarlyOutEps)
+								float traveledB = _segBuf[segOffset + si].TraveledB;
+								if (traveledB < prevTraveledB - 1e-6f)
 								{
-									earlyOutFarThisPixel = true;
-									bandFarEarlyOuts++;
-									if (framePerfEnabled) _framePerf.Pass2Skip_BestHitDist++;
+									segmentsMonotonic = false;
 									break;
+								}
+								prevTraveledB = traveledB;
+							}
+						}
+						bool allowFarEarlyOut = NearestHitOnly && segmentsMonotonic;
+						float farEarlyOutEps = Mathf.Max(0f, EarlyOutDistanceEps);
+						bool earlyOutFarThisPixel = false;
+
+						ulong physStart = 0;
+						if (statsEnabled) physStart = Time.GetTicksUsec();
+
+						int lastSi = Math.Max(0, segCount - 1);
+						for (int pass = 0; pass < 2; pass++)
+						{
+							bool forceStride1 = pass1StoppedEarly || pass == 1;
+							bool allowInstabilityPass = pass == 1 && forceInstabilityThisPixel;
+							if (pass1StoppedEarly && pass == 1 && !forceInstabilityThisPixel)
+								break;
+							if (forceStride1 && !pass1StoppedEarly)
+							{
+								if (hadHit)
+									break;
+								if (!allowInstabilityPass)
+								{
+									if (!UsePass2CollisionStride || !skippedAnyByStrideThisPixel || testedAnyInPass0ThisPixel)
+										break;
+									if (statsEnabled) _perfFrame.Pass2ForceStride1Pixels++;
 								}
 							}
 
-							/////////////////////////////////
-							bool segCounted = false;
-							ulong cid = 0;
-							string cname = "<none>";
-							Vector3 hp = Vector3.Zero;
-							Vector3 hn = Vector3.Up; // hit normal (world-space collider)
-							bool didHit = false;
-							bool softGateAttempt = false;
-							bool quickRayMissCachedForSeg = false;
-							/////////////////////////////////
-							
-							if (_rbr.UseSphereSweepCollision)
+							for (int si = segStart; si <= segEnd; si++)
 							{
-								if (!forceStride1)
+								var seg = _segBuf[segOffset + si];
+								Vector3 segA = seg.A;
+								Vector3 segB = seg.B;
+								float segLen = (segB - segA).Length();
+								int pass2Stride = forceStride1 ? 1 : ComputePass2CollisionStride(seg.TraveledB, farForSim);
+
+								if (segLen <= 1e-6f) continue;
+								if (TinySegmentSkipLen > 0f && segLen < TinySegmentSkipLen) continue;
+								if (allowFarEarlyOut && bestHitDistAlongRay < float.PositiveInfinity)
 								{
-									testedAnyInPass0ThisPixel = true;
-									pass2StrideSum += pass2Stride;
-									pass2StrideCount++;
-								}
-								didHit = RayBeamRenderer.SweepSegmentHit(space, segA, segB, _rbr.CollisionMask, _rbr.CollisionRadius, out hp);
-								if ((statsEnabled || framePerfEnabled) && !segCounted)
-								{
-									if (statsEnabled) _perfFrame.SegsTested++;
-									if (bandCountersEnabled) bandSegsTested++;
-									segCounted = true;
-								}
-								// cname stays "<none>" for sphere sweep (unless you add a separate lookup)
-							}						
-							else
-							{
-								// Decision A
-								if (useInsightPlane)
-								{
-									//if (!SegmentCrossesPlane(segA, segB, insightPlane, insightEps))
-									if (!RayBeamRenderer.SegmentCrossesPlane(segA, segB, insightPlane, insightEps))
+									float segStartDist = seg.TraveledB - segLen;
+									if (segStartDist > bestHitDistAlongRay + farEarlyOutEps)
 									{
-										if (framePerfEnabled) _framePerf.Pass2Skip_InsightPlane++;
-										continue;
+										earlyOutFarThisPixel = true;
+										bandFarEarlyOuts++;
+										if (framePerfEnabled) _framePerf.Pass2Skip_BestHitDist++;
+										EarlyOut("far early-out");
+										break;
 									}
 								}
 
-
-								// Decision B
-								// ---- PASS2 cheap reject 2: optional overlap ----
-								if (useOverlap)
+								/////////////////////////////////
+								bool segCounted = false;
+								ulong cid = 0;
+								string cname = "<none>";
+								Vector3 hp = Vector3.Zero;
+								Vector3 hn = Vector3.Up; // hit normal (world-space collider)
+								bool didHit = false;
+								bool softGateAttempt = false;
+								bool softGateAttemptedRay = false;
+								bool softGateHit = false;
+								bool softGateSampleThisSeg = false;
+								bool softGateEveryNHit = false;
+								bool softGateSegLenHit = false;
+								SoftGateDecisionReason softGateDecisionReason = SoftGateDecisionReason.Other;
+								bool quickRayMissCachedForSeg = false;
+								/////////////////////////////////
+								
+								if (_rbr.UseSphereSweepCollision)
 								{
-									Vector3 mid = (segA + segB) * 0.5f;
-
-									_overlapQuery.Transform = new Transform3D(Basis.Identity, mid);
-									var overlaps = space.IntersectShape(_overlapQuery, BroadphaseMaxResults);
-									if (statsEnabled) _perfFrame.IntersectShapeCalls++;
-									if (bandCountersEnabled) bandPhysicsQueries++;
+									if (!forceStride1)
+									{
+										testedAnyInPass0ThisPixel = true;
+										pass2StrideSum += pass2Stride;
+										pass2StrideCount++;
+									}
+									didHit = RayBeamRenderer.SweepSegmentHit(space, segA, segB, _rbr.CollisionMask, _rbr.CollisionRadius, out hp);
 									if ((statsEnabled || framePerfEnabled) && !segCounted)
 									{
 										if (statsEnabled) _perfFrame.SegsTested++;
 										if (bandCountersEnabled) bandSegsTested++;
 										segCounted = true;
 									}
-									if (overlaps.Count == 0)
-									{
-										if (framePerfEnabled)
-										{
-											_framePerf.Pass2OverlapMisses++;
-											_framePerf.Pass2Skip_OverlapEmpty++;
-										}
-										continue;
-									}
-									if (framePerfEnabled) _framePerf.Pass2OverlapHits++;
-								}
-
-								// Decision C
-								// ---- PASS2 cheap reject 1: quick ray probe ----
-								bool bypassQuickRayForRepresentative = allowInstabilityPass && si == forceRepSegIndex;
-								if (useQuickRay && !bypassQuickRayForRepresentative)
+									// cname stays "<none>" for sphere sweep (unless you add a separate lookup)
+								}						
+								else
 								{
-									int ax = QuantizePass2QuickRay(segA.X);
-									int ay = QuantizePass2QuickRay(segA.Y);
-									int az = QuantizePass2QuickRay(segA.Z);
-									int bx = QuantizePass2QuickRay(segB.X);
-									int by = QuantizePass2QuickRay(segB.Y);
-									int bz = QuantizePass2QuickRay(segB.Z);
-
-									if (TryGetPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, out bool cachedHit, out float cachedDist))
+									// Decision A
+									if (useInsightPlane)
 									{
-										if (pass == 0)
+										//if (!SegmentCrossesPlane(segA, segB, insightPlane, insightEps))
+										if (!RayBeamRenderer.SegmentCrossesPlane(segA, segB, insightPlane, insightEps))
 										{
-											quickRayTestedThisPixel = true;
-											if (cachedHit) quickRayHitThisPixel = true;
+											if (framePerfEnabled) _framePerf.Pass2Skip_InsightPlane++;
+											continue;
 										}
-										if (framePerfEnabled) _framePerf.CacheHits++;
-										if (framePerfEnabled)
-										{
-											if (cachedHit) _framePerf.Pass2QuickRayHits++;
-											else _framePerf.Pass2QuickRayMisses++;
-										}
-										if (!cachedHit)
-										{
-											bool allowSoftGate = Pass2QuickRaySoftGate
-												&& ((Pass2SoftGateEveryNSegments > 0 && (si % Pass2SoftGateEveryNSegments) == 0)
-													|| (MinSegLenForSoftGate > 0f && segLen > MinSegLenForSoftGate));
-											if (allowSoftGate)
-											{
-												softGateAttempt = true;
-												p2SoftGateAttempts++;
-											}
-											else
-											{
-												if (UseSingleProbeThenSubdivide)
-													_perfFrame.SubdividedRaySkipped++;
-												if (framePerfEnabled) _framePerf.Pass2Skip_QuickRayMiss++;
-												continue;
-											}
-										}
-										if (cachedDist < bestHitDistAlongRay)
-											bestHitDistAlongRay = cachedDist;
 									}
-									else
+
+
+									// Decision B
+									// ---- PASS2 cheap reject 2: optional overlap ----
+									if (useOverlap)
 									{
-										if (pass == 0) quickRayTestedThisPixel = true;
-										if (framePerfEnabled) _framePerf.CacheMisses++;
-										_quickRayParams.From = segA;
-										_quickRayParams.To = segB;
-										var hit0 = space.IntersectRay(_quickRayParams);
-										if (statsEnabled) _perfFrame.IntersectRayCalls++;
+										Vector3 mid = (segA + segB) * 0.5f;
+
+										_overlapQuery.Transform = new Transform3D(Basis.Identity, mid);
+										var overlaps = space.IntersectShape(_overlapQuery, BroadphaseMaxResults);
+										if (statsEnabled) _perfFrame.IntersectShapeCalls++;
 										if (bandCountersEnabled) bandPhysicsQueries++;
 										if ((statsEnabled || framePerfEnabled) && !segCounted)
 										{
@@ -1125,605 +1334,828 @@ public partial class GrinFilmCamera : Node
 											if (bandCountersEnabled) bandSegsTested++;
 											segCounted = true;
 										}
-										if (hit0.Count == 0)
+										if (overlaps.Count == 0)
 										{
-											AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, false, 0f);
-											if (framePerfEnabled) _framePerf.Pass2QuickRayMisses++;
-											bool allowSoftGate = Pass2QuickRaySoftGate
-												&& ((Pass2SoftGateEveryNSegments > 0 && (si % Pass2SoftGateEveryNSegments) == 0)
-													|| (MinSegLenForSoftGate > 0f && segLen > MinSegLenForSoftGate));
-											if (allowSoftGate)
+											if (framePerfEnabled)
 											{
-												softGateAttempt = true;
-												p2SoftGateAttempts++;
+												_framePerf.Pass2OverlapMisses++;
+												_framePerf.Pass2Skip_OverlapEmpty++;
+											}
+											continue;
+										}
+										if (framePerfEnabled) _framePerf.Pass2OverlapHits++;
+									}
+
+									// Decision C
+									// ---- PASS2 cheap reject 1: quick ray probe ----
+									bool bypassQuickRayForRepresentative = allowInstabilityPass && si == forceRepSegIndex;
+									if (useQuickRay && !bypassQuickRayForRepresentative)
+									{
+										int ax = QuantizePass2QuickRay(segA.X);
+										int ay = QuantizePass2QuickRay(segA.Y);
+										int az = QuantizePass2QuickRay(segA.Z);
+										int bx = QuantizePass2QuickRay(segB.X);
+										int by = QuantizePass2QuickRay(segB.Y);
+										int bz = QuantizePass2QuickRay(segB.Z);
+
+										if (TryGetPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, out bool cachedHit, out float cachedDist))
+										{
+											if (pass == 0)
+											{
+												quickRayTestedThisPixel = true;
+												if (cachedHit) quickRayHitThisPixel = true;
+											}
+											if (framePerfEnabled) _framePerf.CacheHits++;
+											if (framePerfEnabled)
+											{
+												if (cachedHit) _framePerf.Pass2QuickRayHits++;
+												else _framePerf.Pass2QuickRayMisses++;
+											}
+											CountQuickRayResult(cachedHit);
+											if (!cachedHit)
+											{
+												bool allowSoftGate = ShouldSoftGate(
+													si,
+													segLen,
+													true,
+													out softGateEveryNHit,
+													out softGateSegLenHit,
+													out softGateDecisionReason);
+												if (softGateSegEnabled)
+													softGateSampleThisSeg = (_softGateSampleCounter++ % SoftGateSampleEveryNSegments) == 0;
+												if (allowSoftGate)
+												{
+													softGateAttempt = true;
+													p2SoftGateAttempts++;
+												}
+												else
+												{
+													if (UseSingleProbeThenSubdivide)
+														_perfFrame.SubdividedRaySkipped++;
+													if (framePerfEnabled) _framePerf.Pass2Skip_QuickRayMiss++;
+													LogSoftGateSample(
+														si,
+														segLen,
+														false,
+														false,
+														false,
+														softGateDecisionReason,
+														softGateEveryNHit,
+														softGateSegLenHit,
+														softGateSampleThisSeg);
+													continue;
+												}
+											}
+											if (cachedDist < bestHitDistAlongRay)
+												bestHitDistAlongRay = cachedDist;
+										}
+										else
+										{
+											if (pass == 0) quickRayTestedThisPixel = true;
+											if (framePerfEnabled) _framePerf.CacheMisses++;
+											_quickRayParams.From = segA;
+											_quickRayParams.To = segB;
+											var hit0 = space.IntersectRay(_quickRayParams);
+											if (statsEnabled) _perfFrame.IntersectRayCalls++;
+											if (bandCountersEnabled) bandPhysicsQueries++;
+											if ((statsEnabled || framePerfEnabled) && !segCounted)
+											{
+												if (statsEnabled) _perfFrame.SegsTested++;
+												if (bandCountersEnabled) bandSegsTested++;
+												segCounted = true;
+											}
+											if (hit0.Count == 0)
+											{
+												AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, false, 0f);
+												if (framePerfEnabled) _framePerf.Pass2QuickRayMisses++;
+												CountQuickRayResult(false);
+												bool allowSoftGate = ShouldSoftGate(
+													si,
+													segLen,
+													true,
+													out softGateEveryNHit,
+													out softGateSegLenHit,
+													out softGateDecisionReason);
+												if (softGateSegEnabled)
+													softGateSampleThisSeg = (_softGateSampleCounter++ % SoftGateSampleEveryNSegments) == 0;
+												if (allowSoftGate)
+												{
+													softGateAttempt = true;
+													p2SoftGateAttempts++;
+												}
+												else
+												{
+													if (framePerfEnabled) _framePerf.Pass2Skip_QuickRayMiss++;
+													if (UseSingleProbeThenSubdivide)
+														_perfFrame.SubdividedRaySkipped++;
+													LogSoftGateSample(
+														si,
+														segLen,
+														false,
+														false,
+														false,
+														softGateDecisionReason,
+														softGateEveryNHit,
+														softGateSegLenHit,
+														softGateSampleThisSeg);
+													continue;
+												}
 											}
 											else
 											{
-												if (framePerfEnabled) _framePerf.Pass2Skip_QuickRayMiss++;
-												if (UseSingleProbeThenSubdivide)
+												CountQuickRayResult(true);
+											}
+											if (pass == 0) quickRayHitThisPixel = true;
+											if (framePerfEnabled) _framePerf.Pass2QuickRayHits++;
+											Vector3 hitPos = (Vector3)hit0["position"];
+											float d = seg.TraveledB - segLen + (hitPos - segA).Length();
+											AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, true, d);
+											if (d < bestHitDistAlongRay)
+												bestHitDistAlongRay = d;
+										}
+									}
+
+									if (UseSingleProbeThenSubdivide && !useQuickRay && !bypassQuickRayForRepresentative)
+									{
+										int ax = QuantizePass2QuickRay(segA.X);
+										int ay = QuantizePass2QuickRay(segA.Y);
+										int az = QuantizePass2QuickRay(segA.Z);
+										int bx = QuantizePass2QuickRay(segB.X);
+										int by = QuantizePass2QuickRay(segB.Y);
+										int bz = QuantizePass2QuickRay(segB.Z);
+
+										if (TryGetPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, out bool cachedHit, out float cachedDist))
+										{
+											if (pass == 0)
+											{
+												quickRayTestedThisPixel = true;
+												if (cachedHit) quickRayHitThisPixel = true;
+											}
+											if (framePerfEnabled) _framePerf.CacheHits++;
+											if (framePerfEnabled)
+											{
+												if (cachedHit) _framePerf.Pass2QuickRayHits++;
+												else _framePerf.Pass2QuickRayMisses++;
+											}
+											CountQuickRayResult(cachedHit);
+											if (!cachedHit)
+											{
+												bool allowSoftGate = ShouldSoftGate(
+													si,
+													segLen,
+													true,
+													out softGateEveryNHit,
+													out softGateSegLenHit,
+													out softGateDecisionReason);
+												if (softGateSegEnabled)
+													softGateSampleThisSeg = (_softGateSampleCounter++ % SoftGateSampleEveryNSegments) == 0;
+												if (allowSoftGate)
+												{
+													softGateAttempt = true;
+													p2SoftGateAttempts++;
+												}
+												else
+												{
 													_perfFrame.SubdividedRaySkipped++;
-												continue;
+													if (framePerfEnabled) _framePerf.Pass2Skip_SingleProbeMiss++;
+													LogSoftGateSample(
+														si,
+														segLen,
+														false,
+														false,
+														false,
+														softGateDecisionReason,
+														softGateEveryNHit,
+														softGateSegLenHit,
+														softGateSampleThisSeg);
+													continue;
+												}
 											}
+											if (cachedDist < bestHitDistAlongRay)
+												bestHitDistAlongRay = cachedDist;
 										}
-										if (pass == 0) quickRayHitThisPixel = true;
-										if (framePerfEnabled) _framePerf.Pass2QuickRayHits++;
-										Vector3 hitPos = (Vector3)hit0["position"];
-										float d = seg.TraveledB - segLen + (hitPos - segA).Length();
-										AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, true, d);
-										if (d < bestHitDistAlongRay)
-											bestHitDistAlongRay = d;
-									}
-								}
-
-								if (UseSingleProbeThenSubdivide && !useQuickRay && !bypassQuickRayForRepresentative)
-								{
-									int ax = QuantizePass2QuickRay(segA.X);
-									int ay = QuantizePass2QuickRay(segA.Y);
-									int az = QuantizePass2QuickRay(segA.Z);
-									int bx = QuantizePass2QuickRay(segB.X);
-									int by = QuantizePass2QuickRay(segB.Y);
-									int bz = QuantizePass2QuickRay(segB.Z);
-
-									if (TryGetPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, out bool cachedHit, out float cachedDist))
-									{
-										if (pass == 0)
+										else
 										{
-											quickRayTestedThisPixel = true;
-											if (cachedHit) quickRayHitThisPixel = true;
-										}
-										if (framePerfEnabled) _framePerf.CacheHits++;
-										if (framePerfEnabled)
-										{
-											if (cachedHit) _framePerf.Pass2QuickRayHits++;
-											else _framePerf.Pass2QuickRayMisses++;
-										}
-										if (!cachedHit)
-										{
-											bool allowSoftGate = Pass2QuickRaySoftGate
-												&& ((Pass2SoftGateEveryNSegments > 0 && (si % Pass2SoftGateEveryNSegments) == 0)
-													|| (MinSegLenForSoftGate > 0f && segLen > MinSegLenForSoftGate));
-											if (allowSoftGate)
+											if (pass == 0) quickRayTestedThisPixel = true;
+											if (framePerfEnabled) _framePerf.CacheMisses++;
+											_quickRayParams.From = segA;
+											_quickRayParams.To = segB;
+											var hit0 = space.IntersectRay(_quickRayParams);
+											if (statsEnabled) _perfFrame.IntersectRayCalls++;
+											if (bandCountersEnabled) bandPhysicsQueries++;
+											if ((statsEnabled || framePerfEnabled) && !segCounted)
 											{
-												softGateAttempt = true;
-												p2SoftGateAttempts++;
+												if (statsEnabled) _perfFrame.SegsTested++;
+												if (bandCountersEnabled) bandSegsTested++;
+												segCounted = true;
+											}
+											if (hit0.Count == 0)
+											{
+												AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, false, 0f);
+												if (framePerfEnabled) _framePerf.Pass2QuickRayMisses++;
+												CountQuickRayResult(false);
+												bool allowSoftGate = ShouldSoftGate(
+													si,
+													segLen,
+													true,
+													out softGateEveryNHit,
+													out softGateSegLenHit,
+													out softGateDecisionReason);
+												if (softGateSegEnabled)
+													softGateSampleThisSeg = (_softGateSampleCounter++ % SoftGateSampleEveryNSegments) == 0;
+												if (allowSoftGate)
+												{
+													softGateAttempt = true;
+													p2SoftGateAttempts++;
+												}
+												else
+												{
+													if (framePerfEnabled) _framePerf.Pass2Skip_SingleProbeMiss++;
+													_perfFrame.SubdividedRaySkipped++;
+													LogSoftGateSample(
+														si,
+														segLen,
+														false,
+														false,
+														false,
+														softGateDecisionReason,
+														softGateEveryNHit,
+														softGateSegLenHit,
+														softGateSampleThisSeg);
+													continue;
+												}
 											}
 											else
 											{
-												_perfFrame.SubdividedRaySkipped++;
-												if (framePerfEnabled) _framePerf.Pass2Skip_SingleProbeMiss++;
-												continue;
+												CountQuickRayResult(true);
 											}
+											if (pass == 0) quickRayHitThisPixel = true;
+											if (framePerfEnabled) _framePerf.Pass2QuickRayHits++;
+											Vector3 hitPos = (Vector3)hit0["position"];
+											float d = seg.TraveledB - segLen + (hitPos - segA).Length();
+											AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, true, d);
+											if (d < bestHitDistAlongRay)
+												bestHitDistAlongRay = d;
 										}
-										if (cachedDist < bestHitDistAlongRay)
-											bestHitDistAlongRay = cachedDist;
 									}
-									else
+
+									if (!forceStride1 && pass2Stride > 1)
 									{
-										if (pass == 0) quickRayTestedThisPixel = true;
-										if (framePerfEnabled) _framePerf.CacheMisses++;
-										_quickRayParams.From = segA;
-										_quickRayParams.To = segB;
-										var hit0 = space.IntersectRay(_quickRayParams);
-										if (statsEnabled) _perfFrame.IntersectRayCalls++;
-										if (bandCountersEnabled) bandPhysicsQueries++;
-										if ((statsEnabled || framePerfEnabled) && !segCounted)
+										bool forceTest = si == 0 || si == lastSi
+											|| (MinSegLenForStrideSkip > 0f && segLen < MinSegLenForStrideSkip);
+										if (forceTest)
+											subRaysForcedByPass2Stride++;
+										else if ((si % pass2Stride) != 0)
 										{
-											if (statsEnabled) _perfFrame.SegsTested++;
-											if (bandCountersEnabled) bandSegsTested++;
-											segCounted = true;
+											subRaysSkippedByPass2Stride++;
+											skippedAnyByStrideThisPixel = true;
+											_perfFrame.SubRaySkippedByStride++;
+											if (framePerfEnabled) _framePerf.Pass2Skip_Stride++;
+											LogSoftGateSample(
+												si,
+												segLen,
+												softGateDecisionReason == SoftGateDecisionReason.Allow,
+												false,
+												false,
+												softGateDecisionReason,
+												softGateEveryNHit,
+												softGateSegLenHit,
+												softGateSampleThisSeg);
+											continue;
 										}
-										if (hit0.Count == 0)
-										{
-											AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, false, 0f);
-											if (framePerfEnabled) _framePerf.Pass2QuickRayMisses++;
-											bool allowSoftGate = Pass2QuickRaySoftGate
-												&& ((Pass2SoftGateEveryNSegments > 0 && (si % Pass2SoftGateEveryNSegments) == 0)
-													|| (MinSegLenForSoftGate > 0f && segLen > MinSegLenForSoftGate));
-											if (allowSoftGate)
-											{
-												softGateAttempt = true;
-												p2SoftGateAttempts++;
-											}
-											else
-											{
-												if (framePerfEnabled) _framePerf.Pass2Skip_SingleProbeMiss++;
-												_perfFrame.SubdividedRaySkipped++;
-												continue;
-											}
-										}
-										if (pass == 0) quickRayHitThisPixel = true;
-										if (framePerfEnabled) _framePerf.Pass2QuickRayHits++;
-										Vector3 hitPos = (Vector3)hit0["position"];
-										float d = seg.TraveledB - segLen + (hitPos - segA).Length();
-										AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, true, d);
-										if (d < bestHitDistAlongRay)
-											bestHitDistAlongRay = d;
 									}
-								}
-
-								if (!forceStride1 && pass2Stride > 1)
-								{
-									bool forceTest = si == 0 || si == lastSi
-										|| (MinSegLenForStrideSkip > 0f && segLen < MinSegLenForStrideSkip);
-									if (forceTest)
-										subRaysForcedByPass2Stride++;
-									else if ((si % pass2Stride) != 0)
+									if (!forceStride1)
 									{
-										subRaysSkippedByPass2Stride++;
-										skippedAnyByStrideThisPixel = true;
-										_perfFrame.SubRaySkippedByStride++;
-										if (framePerfEnabled) _framePerf.Pass2Skip_Stride++;
-										continue;
+										testedAnyInPass0ThisPixel = true;
+										pass2StrideSum += pass2Stride;
+										pass2StrideCount++;
 									}
-								}
-								if (!forceStride1)
-								{
-									testedAnyInPass0ThisPixel = true;
-									pass2StrideSum += pass2Stride;
-									pass2StrideCount++;
-								}
 
-								if (pass == 1 && pass2QuickRayMissLogRemaining > 0 && (useQuickRay || UseSingleProbeThenSubdivide))
-								{
-									int ax = QuantizePass2QuickRay(segA.X);
-									int ay = QuantizePass2QuickRay(segA.Y);
-									int az = QuantizePass2QuickRay(segA.Z);
-									int bx = QuantizePass2QuickRay(segB.X);
-									int by = QuantizePass2QuickRay(segB.Y);
-									int bz = QuantizePass2QuickRay(segB.Z);
-									if (TryGetPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, out bool cachedHit, out _))
-										quickRayMissCachedForSeg = !cachedHit;
-								}
+									if (pass == 1 && pass2QuickRayMissLogRemaining > 0 && (useQuickRay || UseSingleProbeThenSubdivide))
+									{
+										int ax = QuantizePass2QuickRay(segA.X);
+										int ay = QuantizePass2QuickRay(segA.Y);
+										int az = QuantizePass2QuickRay(segA.Z);
+										int bx = QuantizePass2QuickRay(segB.X);
+										int by = QuantizePass2QuickRay(segB.Y);
+										int bz = QuantizePass2QuickRay(segB.Z);
+										if (TryGetPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, out bool cachedHit, out _))
+											quickRayMissCachedForSeg = !cachedHit;
+									}
 
-								// ---- accurate subdivided ray ----
-								int sub = 1;
-								if (segLen > _rbr.CollisionRaySubdivideThreshold)
-									sub = Mathf.CeilToInt(segLen / _rbr.CollisionRaySubdivideThreshold);
-								sub = Mathf.Clamp(sub, 1, _rbr.MaxCollisionSubsteps);
+									// ---- accurate subdivided ray ----
+									if (softGateAttempt)
+									{
+										if (softGateDebugEnabled)
+										{
+											_softGateFrame.SoftGateAttempts++;
+											if (softGateBandEnabled) _softGateBand.SoftGateAttempts++;
+										}
+										softGateAttemptedRay = true;
+									}
+									int sub = 1;
+									if (segLen > _rbr.CollisionRaySubdivideThreshold)
+										sub = Mathf.CeilToInt(segLen / _rbr.CollisionRaySubdivideThreshold);
+									sub = Mathf.Clamp(sub, 1, _rbr.MaxCollisionSubsteps);
 
-								if (UseAdaptiveSubsteps)
-								{
-									float far = AutoRangeDepth ? _rangeFar : MaxDistance;
-									float t = Mathf.Clamp(seg.TraveledB / Mathf.Max(0.001f, far), 0f, 1f);
-									float minSub = Mathf.Max(1f, sub * 0.25f);
-									float scaled = Mathf.Lerp(sub, minSub, t);
-									sub = Mathf.Clamp(Mathf.RoundToInt(scaled), 1, _rbr.MaxCollisionSubsteps);
-								}
+									if (UseAdaptiveSubsteps)
+									{
+										float far = AutoRangeDepth ? _rangeFar : MaxDistance;
+										float t = Mathf.Clamp(seg.TraveledB / Mathf.Max(0.001f, far), 0f, 1f);
+										float minSub = Mathf.Max(1f, sub * 0.25f);
+										float scaled = Mathf.Lerp(sub, minSub, t);
+										sub = Mathf.Clamp(Mathf.RoundToInt(scaled), 1, _rbr.MaxCollisionSubsteps);
+									}
 
-								didHit = RayBeamRenderer.SubdividedRayHit(
-										space, segA, segB,
-										_rbr.CollisionMask,
-										sub,
-										out hp, out hn, out cid, out cname,
-										out int rayQueries,
-										includeColliderName: needHitName,
-										hitBackFaces: pass2Flags.HitBackFaces,
-										hitFromInside: pass2Flags.HitFromInside);
-								if (statsEnabled)
-								{
-									_perfFrame.SubdividedRayCalls++;
-									_perfFrame.SubdividedRayQueries += rayQueries;
-									_perfFrame.SubdividedRaySubsteps += sub;
-								}
-								if (bandCountersEnabled) bandPhysicsQueries += rayQueries;
-								if ((statsEnabled || framePerfEnabled) && !segCounted)
-								{
-									if (statsEnabled) _perfFrame.SegsTested++;
-									if (bandCountersEnabled) bandSegsTested++;
-									segCounted = true;
-								}
-								
-								if (didHit && quickRayMissCachedForSeg && pass2QuickRayMissLogRemaining > 0)
-								{
-									Vector3 rayDir = segLen > 0f ? (segB - segA) / segLen : Vector3.Zero;
-									GD.Print($"Pass2 QuickRay miss->subdivide hit: from={segA} to={segB} dir={rayDir} segLen={segLen} flags(HitFromInside={pass2Flags.HitFromInside}, HitBackFaces={pass2Flags.HitBackFaces}) colliderRid={cid}");
-									pass2QuickRayMissLogRemaining--;
-								}
-								if (didHit && softGateAttempt)
-									p2SoftGateHits++;
-
-								if (didHit && needHitName)
-									hitName = cname;
-							}
-
-							////////////
-							if (didHit)
-							{
-								float d = seg.TraveledB - segLen + (hp - segA).Length();
-								if (d < bestHitDistAlongRay)
-									bestHitDistAlongRay = d;
-
-								if (d < bestHit)
-								{
-									bestHit = d;
-									hitDistance = d;
-									hadHit = true;
-									if (needHitName) hitName = cname;
-									bestHp = hp;      // ADD
-									bestHn = hn;      // ADD
-								}
-
-								// If you only want the nearest hit, keep scanning segments
-								if (NearestHitOnly)
-								{
-									if (EarlyOutDistanceEps > 0f && bestHit <= EarlyOutDistanceEps)
-										break;
-									continue;
-								}
-								
-								// Otherwise, first hit wins
-								break;
-							}
-							//////////////////
-						}
-						if (pass == 0)
-						{
-							bool quickRayAllMiss = quickRayTestedThisPixel && !quickRayHitThisPixel;
-							if (!hadHit && Pass2ForceOnInstability && quickRayAllMiss)
-							{
-								bool allowForce = !Pass2ForceIfPrevHitLost || prevHadHit;
-								if (allowForce && segCount > 0 && segStart <= segEnd)
-								{
-									forceInstabilityThisPixel = true;
-									forcePrevHitLostThisPixel = Pass2ForceIfPrevHitLost && prevHadHit;
-									forceRepSegIndex = segStart + ((segEnd - segStart) / 2);
+									didHit = RayBeamRenderer.SubdividedRayHit(
+											space, segA, segB,
+											_rbr.CollisionMask,
+											sub,
+											out hp, out hn, out cid, out cname,
+											out int rayQueries,
+											includeColliderName: needHitName,
+											hitBackFaces: pass2Flags.HitBackFaces,
+											hitFromInside: pass2Flags.HitFromInside);
 									if (statsEnabled)
 									{
-										_perfFrame.Pass2ForceInstabilityPixels++;
-										if (forcePrevHitLostThisPixel)
-											_perfFrame.Pass2ForcePrevHitLostPixels++;
+										_perfFrame.SubdividedRayCalls++;
+										_perfFrame.SubdividedRayQueries += rayQueries;
+										_perfFrame.SubdividedRaySubsteps += sub;
+									}
+									if (bandCountersEnabled) bandPhysicsQueries += rayQueries;
+									if ((statsEnabled || framePerfEnabled) && !segCounted)
+									{
+										if (statsEnabled) _perfFrame.SegsTested++;
+										if (bandCountersEnabled) bandSegsTested++;
+										segCounted = true;
+									}
+									
+									if (didHit && quickRayMissCachedForSeg && pass2QuickRayMissLogRemaining > 0)
+									{
+										Vector3 rayDir = segLen > 0f ? (segB - segA) / segLen : Vector3.Zero;
+										GD.Print($"Pass2 QuickRay miss->subdivide hit: from={segA} to={segB} dir={rayDir} segLen={segLen} flags(HitFromInside={pass2Flags.HitFromInside}, HitBackFaces={pass2Flags.HitBackFaces}) colliderRid={cid}");
+										pass2QuickRayMissLogRemaining--;
+									}
+									if (didHit && softGateAttemptedRay)
+									{
+										p2SoftGateHits++;
+										if (softGateDebugEnabled)
+										{
+											_softGateFrame.SoftGateHits++;
+											if (softGateBandEnabled) _softGateBand.SoftGateHits++;
+										}
+										softGateHit = true;
+									}
+
+									if (didHit && needHitName)
+										hitName = cname;
+									LogSoftGateSample(
+										si,
+										segLen,
+										softGateDecisionReason == SoftGateDecisionReason.Allow,
+										softGateAttemptedRay,
+										softGateHit,
+										softGateDecisionReason,
+										softGateEveryNHit,
+										softGateSegLenHit,
+										softGateSampleThisSeg);
+								}
+
+								////////////
+								if (didHit)
+								{
+									float d = seg.TraveledB - segLen + (hp - segA).Length();
+									if (d < bestHitDistAlongRay)
+										bestHitDistAlongRay = d;
+
+									if (d < bestHit)
+									{
+										bestHit = d;
+										hitDistance = d;
+										hadHit = true;
+										if (needHitName) hitName = cname;
+										bestHp = hp;      // ADD
+										bestHn = hn;      // ADD
+									}
+
+									// If you only want the nearest hit, keep scanning segments
+									if (NearestHitOnly)
+									{
+										if (EarlyOutDistanceEps > 0f && bestHit <= EarlyOutDistanceEps){
+											EarlyOut("near early-out");
+											break;
+										}
+										continue;
+									}
+									
+									// Otherwise, first hit wins
+									break;
+								}
+								//////////////////
+							}
+							if (pass == 0)
+							{
+								bool quickRayAllMiss = quickRayTestedThisPixel && !quickRayHitThisPixel;
+								if (!hadHit && Pass2ForceOnInstability && quickRayAllMiss)
+								{
+									bool allowForce = !Pass2ForceIfPrevHitLost || prevHadHit;
+									if (allowForce && segCount > 0 && segStart <= segEnd)
+									{
+										forceInstabilityThisPixel = true;
+										forcePrevHitLostThisPixel = Pass2ForceIfPrevHitLost && prevHadHit;
+										forceRepSegIndex = segStart + ((segEnd - segStart) / 2);
+										if (statsEnabled)
+										{
+											_perfFrame.Pass2ForceInstabilityPixels++;
+											if (forcePrevHitLostThisPixel)
+												_perfFrame.Pass2ForcePrevHitLostPixels++;
+										}
 									}
 								}
 							}
-						}
-						if (earlyOutFarThisPixel)
-							break;
-						if (hadHit)
-							break;
-					}
-
-					if (statsEnabled)
-					{
-						ulong physEnd = Time.GetTicksUsec();
-						_perfFrame.AddPass2PhysUsec(physEnd - physStart);
-					}
-
-					////
-					////////////////////////
-					ulong shadeStart = 0;
-					if (shadeTimingEnabled) shadeStart = Time.GetTicksUsec();
-					Color col = SkyColor;
-					bool skipShading = _rbr != null && _rbr.RequireHitToRender && !hadHit;
-					if (skipShading)
-					{
-						if (statsEnabled) _perfFrame.ShadingSkippedPixels++;
-					}
-					else if (hadHit)
-					{
-						bandHits++;
-
-						// track farthest hit seen
-						if (hitDistance > frameMaxHit) frameMaxHit = hitDistance;
-
-						// bestHn is a world-space collision normal; film distortion does not change collider geometry.
-						switch (ShadingMode)
-						{
-							default:
-							case FilmShadingMode.DepthHeatmap:
-							{
-								float far = AutoRangeDepth ? _rangeFar : MaxDistance;
-								float d = Mathf.Clamp(hitDistance / Mathf.Max(0.001f, far), 0f, 1f);
-								col = Color.FromHsv(0.66f * (1f - d), 1f, 1f);
+							if (earlyOutFarThisPixel){
+								EarlyOut("near early-out");
 								break;
-							}
+							}else{}
 
-							case FilmShadingMode.NormalRGB:
-							{
-								// hn is the physics collision normal for the nearest hit.
-								Vector3 n = bestHn;
-								if (FlipNormalToCamera)
-								{
-									Vector3 v = (camPosPass2 - bestHp).Normalized();
-									if (n.Dot(v) < 0f) n = -n;
-								}
-								col = ShadeNormalRGB(n);
+							if (hadHit)
 								break;
-							}
-
-							case FilmShadingMode.NdotV:
-							{
-								Vector3 v = camPosPass2 - bestHp;
-								Vector3 n = bestHn;
-								float rawDot;
-								col = ShadeNdotV(n, v, out rawDot);
-								if (statsEnabled && rawDot < 0f) _perfFrame.BackfaceNdotVHits++;
-								if (FlipNormalToCamera && rawDot < 0f)
-								{
-									n = -n;
-									col = ShadeNdotV(n, v, out _);
-								}
-								break;
-							}
-
-							case FilmShadingMode.TwoSidedNdotV:
-							{
-								Vector3 v = (camPosPass2 - bestHp).Normalized();
-								Vector3 n = bestHn.Normalized();
-								float ndv = n.Dot(v);
-								col = ShadeNdotVAbs(ndv);
-								break;
-							}
-
 						}
 
-						if (logCenterSample)
-							GD.Print($"Film hit: dist={hitDistance:0.000} name={hitName} mode={ShadingMode}");
-					}
-
-					int filled = FillPixelBlock(x, y, stride, col, filmW, filmH);
-					if (statsEnabled) _perfFrame.FilledPixels += filled;
-					if (framePerfEnabled) bandFilledPixels += filled;
-					if (shadeTimingEnabled)
-					{
-						ulong shadeEnd = Time.GetTicksUsec();
-						ulong shadeUsec = shadeEnd - shadeStart;
-						if (statsEnabled) _perfFrame.AddPass2ShadeUsec(shadeUsec);
-						shadeUsecAccum += (long)shadeUsec;
-					}
-					if (_pass2PrevHadHit.Length > globalPi)
-						_pass2PrevHadHit[globalPi] = hadHit ? (byte)1 : (byte)0;
-					////////////////////////////
-					/// 
-
-					////////////////////////
-					/// Debug Block Addition
-					///////////
-					if (wantDbg)
-					{
-						ulong dbgStart = 0;
-						if (statsEnabled) dbgStart = Time.GetTicksUsec();
-						int pxStride = Math.Max(1, DebugEveryNPixels);
-
-						// Sample a sparse grid (keeps overlay readable + fast)
-						if ((x % pxStride) == 0 && (y % pxStride) == 0 && _dbgRayCount < DebugMaxFilmRays)
-						{
-							int rayIndex = _dbgRayCount++;
-
-							_dbgOff[rayIndex] = _dbgPtWrite;
-
-							// Build polyline points from the segments we already have
-							// We want: p0, p1, p2, ... so: seg0.A, seg0.B, seg1.B, ...
-							int w0 = _dbgPtWrite;
-
-							if (segCount > 0)
-							{
-								// first point
-								_dbgPts[_dbgPtWrite++] = _segBuf[segOffset + 0].A;
-
-								// subsequent points
-								int writeSegs = Math.Min(segCount, maxSeg);
-								for (int si2 = 0; si2 < writeSegs; si2++)
-								{
-									_dbgPts[_dbgPtWrite++] = _segBuf[segOffset + si2].B;
-								}
-							}
-							else
-							{
-								// no segments: still place a tiny stub so we can see "empty" rays if desired
-								_dbgPts[_dbgPtWrite++] = _cam.GlobalPosition;
-								_dbgPts[_dbgPtWrite++] = _cam.GlobalPosition + (-_cam.GlobalTransform.Basis.Z) * 0.25f;
-							}
-
-							_dbgCnt[rayIndex] = _dbgPtWrite - w0;
-
-							// Hit payload for this pixel ray
-							_dbgHits[rayIndex] = new RayBeamRenderer.HitPayload
-							{
-								Valid = hadHit,
-								Position = bestHp,
-								Normal = bestHn,
-								Distance = hitDistance,
-								ColliderId = 0,
-								ColliderName = needHitName ? hitName : "<none>",
-								Albedo = Colors.White
-							};
-							if (VerbosePerfLogs && _dbgHits[rayIndex].Valid != hadHit)
-							{
-								GD.Print($"Debug hit validity mismatch at rayIndex={rayIndex}");
-							}
-						}
 						if (statsEnabled)
 						{
-							ulong dbgEnd = Time.GetTicksUsec();
-							_perfFrame.AddOverlayBuildUsec(dbgEnd - dbgStart);
+							ulong physEnd = Time.GetTicksUsec();
+							_perfFrame.AddPass2PhysUsec(physEnd - physStart);
 						}
-					}
-					///////////
-					////////////////////////
 
+						////
+						////////////////////////
+						ulong shadeStart = 0;
+						if (shadeTimingEnabled) shadeStart = Time.GetTicksUsec();
+						Color col = SkyColor;
+						bool skipShading = _rbr != null && _rbr.RequireHitToRender && !hadHit;
+						if (skipShading)
+						{
+							if (statsEnabled) _perfFrame.ShadingSkippedPixels++;
+						}
+						else if (hadHit)
+						{
+							bandHits++;
+
+							// track farthest hit seen
+							if (hitDistance > frameMaxHit) frameMaxHit = hitDistance;
+
+							// bestHn is a world-space collision normal; film distortion does not change collider geometry.
+							switch (ShadingMode)
+							{
+								default:
+								case FilmShadingMode.DepthHeatmap:
+								{
+									float far = AutoRangeDepth ? _rangeFar : MaxDistance;
+									float d = Mathf.Clamp(hitDistance / Mathf.Max(0.001f, far), 0f, 1f);
+									col = Color.FromHsv(0.66f * (1f - d), 1f, 1f);
+									break;
+								}
+
+								case FilmShadingMode.NormalRGB:
+								{
+									// hn is the physics collision normal for the nearest hit.
+									Vector3 n = bestHn;
+									if (FlipNormalToCamera)
+									{
+										Vector3 v = (camPosPass2 - bestHp).Normalized();
+										if (n.Dot(v) < 0f) n = -n;
+									}
+									col = ShadeNormalRGB(n);
+									break;
+								}
+
+								case FilmShadingMode.NdotV:
+								{
+									Vector3 v = camPosPass2 - bestHp;
+									Vector3 n = bestHn;
+									float rawDot;
+									col = ShadeNdotV(n, v, out rawDot);
+									if (statsEnabled && rawDot < 0f) _perfFrame.BackfaceNdotVHits++;
+									if (FlipNormalToCamera && rawDot < 0f)
+									{
+										n = -n;
+										col = ShadeNdotV(n, v, out _);
+									}
+									break;
+								}
+
+								case FilmShadingMode.TwoSidedNdotV:
+								{
+									Vector3 v = (camPosPass2 - bestHp).Normalized();
+									Vector3 n = bestHn.Normalized();
+									float ndv = n.Dot(v);
+									col = ShadeNdotVAbs(ndv);
+									break;
+								}
+
+							}
+
+							if (logCenterSample)
+								GD.Print($"Film hit: dist={hitDistance:0.000} name={hitName} mode={ShadingMode}");
+						}
+
+						int filled = FillPixelBlock(x, y, stride, col, filmW, filmH);
+						if (statsEnabled) _perfFrame.FilledPixels += filled;
+						if (framePerfEnabled) bandFilledPixels += filled;
+						if (shadeTimingEnabled)
+						{
+							ulong shadeEnd = Time.GetTicksUsec();
+							ulong shadeUsec = shadeEnd - shadeStart;
+							if (statsEnabled) _perfFrame.AddPass2ShadeUsec(shadeUsec);
+							shadeUsecAccum += (long)shadeUsec;
+						}
+						if (_pass2PrevHadHit.Length > globalPi)
+							_pass2PrevHadHit[globalPi] = hadHit ? (byte)1 : (byte)0;
+						////////////////////////////
+						/// 
+
+						////////////////////////
+						/// Debug Block Addition
+						///////////
+						if (wantDbg)
+						{
+							ulong dbgStart = 0;
+							if (statsEnabled) dbgStart = Time.GetTicksUsec();
+							int pxStride = Math.Max(1, DebugEveryNPixels);
+
+							// Sample a sparse grid (keeps overlay readable + fast)
+							if ((x % pxStride) == 0 && (y % pxStride) == 0 && _dbgRayCount < DebugMaxFilmRays)
+							{
+								int rayIndex = _dbgRayCount++;
+
+								_dbgOff[rayIndex] = _dbgPtWrite;
+
+								// Build polyline points from the segments we already have
+								// We want: p0, p1, p2, ... so: seg0.A, seg0.B, seg1.B, ...
+								int w0 = _dbgPtWrite;
+
+								if (segCount > 0)
+								{
+									// first point
+									_dbgPts[_dbgPtWrite++] = _segBuf[segOffset + 0].A;
+
+									// subsequent points
+									int writeSegs = Math.Min(segCount, maxSeg);
+									for (int si2 = 0; si2 < writeSegs; si2++)
+									{
+										_dbgPts[_dbgPtWrite++] = _segBuf[segOffset + si2].B;
+									}
+								}
+								else
+								{
+									// no segments: still place a tiny stub so we can see "empty" rays if desired
+									_dbgPts[_dbgPtWrite++] = _cam.GlobalPosition;
+									_dbgPts[_dbgPtWrite++] = _cam.GlobalPosition + (-_cam.GlobalTransform.Basis.Z) * 0.25f;
+								}
+
+								_dbgCnt[rayIndex] = _dbgPtWrite - w0;
+
+								// Hit payload for this pixel ray
+								_dbgHits[rayIndex] = new RayBeamRenderer.HitPayload
+								{
+									Valid = hadHit,
+									Position = bestHp,
+									Normal = bestHn,
+									Distance = hitDistance,
+									ColliderId = 0,
+									ColliderName = needHitName ? hitName : "<none>",
+									Albedo = Colors.White
+								};
+								if (VerbosePerfLogs && _dbgHits[rayIndex].Valid != hadHit)
+								{
+									GD.Print($"Debug hit validity mismatch at rayIndex={rayIndex}");
+								}
+							}
+							if (statsEnabled)
+							{
+								ulong dbgEnd = Time.GetTicksUsec();
+								_perfFrame.AddOverlayBuildUsec(dbgEnd - dbgStart);
+							}
+						}
+						///////////
+						////////////////////////
+
+					}
 				}
 			}
-		}
-		if (framePerfEnabled) pass2Scope.Dispose();
-		ulong b1 = Time.GetTicksUsec(); // after PASS 2
-		if (TargetMsPerFrame > 0)
-		{
-			double elapsedMs = (b1 - a0) / 1000.0;
-			if (elapsedMs > 0.01)
+			if (framePerfEnabled) pass2Scope.Dispose();
+			ulong b1 = Time.GetTicksUsec(); // after PASS 2
+			if (TargetMsPerFrame > 0)
 			{
-				double ratio = (double)TargetMsPerFrame / elapsedMs;
-				int currentRows = _adaptiveRowsPerFrame > 0 ? _adaptiveRowsPerFrame : rowsPerFrame;
-				int adjusted = Mathf.RoundToInt((float)(currentRows * ratio));
-				adjusted = Mathf.Clamp(adjusted, Mathf.Max(1, MinRowsPerFrame), maxRowsPerFrame);
-				_adaptiveRowsPerFrame = adjusted;
+				double elapsedMs = (b1 - a0) / 1000.0;
+				if (elapsedMs > 0.01)
+				{
+					double ratio = (double)TargetMsPerFrame / elapsedMs;
+					int currentRows = _adaptiveRowsPerFrame > 0 ? _adaptiveRowsPerFrame : rowsPerFrame;
+					int adjusted = Mathf.RoundToInt((float)(currentRows * ratio));
+					adjusted = Mathf.Clamp(adjusted, Mathf.Max(1, MinRowsPerFrame), maxRowsPerFrame);
+					_adaptiveRowsPerFrame = adjusted;
+				}
 			}
-		}
-		if (statsEnabled)
-		{
-			_perfFrame.Hits += bandHits;
-			_perfFrame.BandSegsIntegrated = bandSegsIntegrated;
-			_perfFrame.BandSegsTested = bandSegsTested;
-			_perfFrame.BandPhysicsQueries = bandPhysicsQueries;
-			_perfFrame.Pass2SoftGateAttempts += p2SoftGateAttempts;
-			_perfFrame.Pass2SoftGateHits += p2SoftGateHits;
-		}
-		if (framePerfEnabled)
-		{
-			_framePerf.RaysTraced += bandTracedPixels;
-			_framePerf.PixelsUpdated += bandFilledPixels;
-			_framePerf.SegmentsIntegrated += bandSegsIntegrated;
-			_framePerf.SegmentsTested += bandSegsTested;
-			_framePerf.PhysicsQueries += bandPhysicsQueries;
-			_framePerf.Hits += bandHits;
-			_framePerf.EarlyOutFar += bandFarEarlyOuts;
-			_framePerf.Pass2SoftGateAttempts += p2SoftGateAttempts;
-			_framePerf.Pass2SoftGateHits += p2SoftGateHits;
-		}
-		if (UseBandHitSkip && bandIndex >= 0 && bandIndex < _bandHitRate.Length)
-		{
-			float hitRate = bandTracedPixels > 0 ? (float)bandHits / bandTracedPixels : 0f;
-			_bandHitRate[bandIndex] = hitRate;
-			if (hitRate < BandSkipHitThreshold)
-				_bandLowHitFrames[bandIndex]++;
-			else
-				_bandLowHitFrames[bandIndex] = 0;
-		}
-
-		// ---- Debug overlay draw ONCE per band ----
-		if (wantDbg && _filmOverlay != null)
-		{
-			ulong dbgOverlayStart = 0;
-			if (statsEnabled) dbgOverlayStart = Time.GetTicksUsec();
-
-			if (VerbosePerfLogs)
-				ValidateDebugOverlayData();
-
-			_filmOverlay.SetData(
-				_cam,
-				_dbgPts.AsSpan(0, _dbgPtWrite),
-				_dbgOff.AsSpan(0, _dbgRayCount),
-				_dbgCnt.AsSpan(0, _dbgRayCount),
-				_dbgHits.AsSpan(0, _dbgRayCount),
-				_rbr.DebugNormalLen,
-				_img,
-				filmW,
-				filmH,
-				DebugEveryNPixels
-			);
-
 			if (statsEnabled)
 			{
-				ulong dbgOverlayEnd = Time.GetTicksUsec();
-				_perfFrame.AddOverlayEnqueueUsec(dbgOverlayEnd - dbgOverlayStart);
+				_perfFrame.Hits += bandHits;
+				_perfFrame.BandSegsIntegrated = bandSegsIntegrated;
+				_perfFrame.BandSegsTested = bandSegsTested;
+				_perfFrame.BandPhysicsQueries = bandPhysicsQueries;
+				_perfFrame.Pass2SoftGateAttempts += p2SoftGateAttempts;
+				_perfFrame.Pass2SoftGateHits += p2SoftGateHits;
 			}
-		}
-		else if (_filmOverlay != null && _rbr != null && _rbr.DebugOverlayOwnedByFilm)
-		{
-			_filmOverlay.ClearOverlay();
-		}
-		if (!wantDbg && _filmOverlay != null && _filmOverlay.DrawFilmGradientNormals)
-		{
-			_filmOverlay.SetFilmImage(_img, filmW, filmH, DebugEveryNPixels);
-		}
-
-
-		if (AutoRangeDepth && frameMaxHit > 0.0001f)
-		{
-			// write one sample per RenderStep call (band-based)
-			_depthHistory[_depthHistWrite] = frameMaxHit;
-			_depthHistWrite = (_depthHistWrite + 1) % _depthHistory.Length;
-
-			// robust far plane estimate + safety multiplier
-			float robust = RobustFarEstimate_Fallback(); // use fallback for reliability
-			float targetFar = robust * AutoRangeSafety;
-
-			// clamp
-			targetFar = Mathf.Clamp(targetFar, AutoRangeMin, AutoRangeMax);
-
-			// smooth
-			_rangeFar = Mathf.Lerp(_rangeFar, targetFar, AutoRangeSmoothing);
-		}
-		if (VerbosePerfLogs && _rowCursor == 0 && AutoRangeDepth)
-			GD.Print($"AutoRange Far={_rangeFar:0.###}  (MaxDistance export={MaxDistance:0.###})");
-
-
-		if (VerbosePerfLogs)
-		{
-			double avgStepsPerTracedPixel = bandTracedPixels > 0
-				? (double)pass1StepsIntegrated / bandTracedPixels
-				: 0.0;
-			GD.Print($"Film band y=[{yStart},{yEnd}) hits={bandHits} avgStepsPerTracedPx={avgStepsPerTracedPixel:0.00}");
-		}
-
-		ulong updateStart = 0;
-		if (statsEnabled) updateStart = Time.GetTicksUsec();
-		PerfScope uploadScope = default;
-		if (framePerfEnabled) uploadScope = new PerfScope(_framePerf, PerfStage.UploadTexture);
-		_tex.Update(_img);
-		if (framePerfEnabled) uploadScope.Dispose();
-		if (statsEnabled) _perfFrame.AddFilmUpdateUsec(Time.GetTicksUsec() - updateStart);
-
-		_rowCursor = yEnd;
-		if (_rowCursor >= filmH) _rowCursor = 0;
-
-		ulong t1 = Time.GetTicksUsec();
-		if (VerbosePerfLogs)
-		{
-			GD.Print($"RenderStep {(t1 - t0)/1000.0:0.00} ms  rows={bandH}  jobs={jobs}  hits={bandHits}");
-			GD.Print($"pass1={(a1-a0)/1000.0:0.00}ms  pass2={(b1-a1)/1000.0:0.00}ms  total={(b1-a0)/1000.0:0.00}ms");
-		}
-		
-		if (statsEnabled)
-		{
-			_perfFrame.SegsSkippedByPass2Stride += subRaysSkippedByPass2Stride;
-			_perfFrame.SegsForcedTestByPass2Stride += subRaysForcedByPass2Stride;
-			_perfFrame.Pass2StrideSum += pass2StrideSum;
-			_perfFrame.Pass2StrideCount += pass2StrideCount;
-		}
-		if (framePerfEnabled && shadeUsecAccum > 0)
-		{
-			long shadeTicks = (long)(shadeUsecAccum * (double)Stopwatch.Frequency / 1_000_000.0);
-			_framePerf.AddTicks(PerfStage.Shade, shadeTicks);
-		}
-		if (statsEnabled && _rowCursor == 0)
-		{
-			_perfFrame.ShadingSkippedNoHits = _perfFrame.RequireHitToRender
-				&& _perfFrame.Hits == 0
-				&& _perfFrame.TracedPixels > 0
-				&& _perfFrame.ShadingSkippedPixels >= _perfFrame.TracedPixels;
-			_perfStats.FinalizeAndPrint(ref _perfFrame, VerbosePerfLogs);
-		}
-		if (framePerfEnabled && _rowCursor == 0)
-		{
-			int logEvery = Mathf.Max(1, FramePerfLogEveryNFrames);
-			bool shouldLogFramePerf = FramePerfVerbose || (_frameIndex % logEvery) == 0;
-			if (shouldLogFramePerf)
+			if (framePerfEnabled)
 			{
-				GD.Print("FramePerf: " + _framePerf.ToOneLineSummary());
-				double testedPerPixel = _framePerf.RaysTraced > 0
-					? (double)_framePerf.SegmentsTested / _framePerf.RaysTraced
-					: 0.0;
-				long physQ = _framePerf.PhysicsQueries;
-				if (_hasPerfDeltaBaseline)
-				{
-					string testedDelta = (testedPerPixel - _lastTestedSegsPerPixel).ToString("+0.###;-0.###;+0.###");
-					string physQDelta = (physQ - _lastPhysQ).ToString("+0;-0;0");
-					GD.Print($"FramePerf delta: tested/px={testedPerPixel:0.###} (d{testedDelta}) physQ={physQ} (d{physQDelta})");
-				}
+				_framePerf.RaysTraced += bandTracedPixels;
+				_framePerf.PixelsUpdated += bandFilledPixels;
+				_framePerf.SegmentsIntegrated += bandSegsIntegrated;
+				_framePerf.SegmentsTested += bandSegsTested;
+				_framePerf.PhysicsQueries += bandPhysicsQueries;
+				_framePerf.Hits += bandHits;
+				_framePerf.EarlyOutFar += bandFarEarlyOuts;
+				_framePerf.Pass2SoftGateAttempts += p2SoftGateAttempts;
+				_framePerf.Pass2SoftGateHits += p2SoftGateHits;
+			}
+			if (softGateDebugEnabled)
+			{
+				_softGateFrame.TracedPixels += bandTracedPixels;
+				_softGateFrame.FilledPixels += bandFilledPixels;
+				_softGateFrame.SegsTotal += bandSegsIntegrated;
+				_softGateFrame.SegsTested += bandSegsTested;
+				_softGateFrame.Pass2Hits += bandHits;
+			}
+			if (softGateBandEnabled)
+			{
+				_softGateBand.TracedPixels = bandTracedPixels;
+				_softGateBand.FilledPixels = bandFilledPixels;
+				_softGateBand.SegsTotal = bandSegsIntegrated;
+				_softGateBand.SegsTested = bandSegsTested;
+				_softGateBand.Pass2Hits = bandHits;
+				GD.Print(BuildSoftGateBandSummary(yStart, yEnd, _softGateBand));
+			}
+			if (UseBandHitSkip && bandIndex >= 0 && bandIndex < _bandHitRate.Length)
+			{
+				float hitRate = bandTracedPixels > 0 ? (float)bandHits / bandTracedPixels : 0f;
+				_bandHitRate[bandIndex] = hitRate;
+				if (hitRate < BandSkipHitThreshold)
+					_bandLowHitFrames[bandIndex]++;
 				else
+					_bandLowHitFrames[bandIndex] = 0;
+			}
+
+			// ---- Debug overlay draw ONCE per band ----
+			if (wantDbg && _filmOverlay != null)
+			{
+				ulong dbgOverlayStart = 0;
+				if (statsEnabled) dbgOverlayStart = Time.GetTicksUsec();
+
+				if (VerbosePerfLogs)
+					ValidateDebugOverlayData();
+
+				_filmOverlay.SetData(
+					_cam,
+					_dbgPts.AsSpan(0, _dbgPtWrite),
+					_dbgOff.AsSpan(0, _dbgRayCount),
+					_dbgCnt.AsSpan(0, _dbgRayCount),
+					_dbgHits.AsSpan(0, _dbgRayCount),
+					_rbr.DebugNormalLen,
+					_img,
+					filmW,
+					filmH,
+					DebugEveryNPixels
+				);
+
+				if (statsEnabled)
 				{
-					GD.Print($"FramePerf delta: tested/px={testedPerPixel:0.###} physQ={physQ} (baseline)");
-					_hasPerfDeltaBaseline = true;
+					ulong dbgOverlayEnd = Time.GetTicksUsec();
+					_perfFrame.AddOverlayEnqueueUsec(dbgOverlayEnd - dbgOverlayStart);
 				}
-				_lastTestedSegsPerPixel = testedPerPixel;
-				_lastPhysQ = physQ;
+			}
+			else if (_filmOverlay != null && _rbr != null && _rbr.DebugOverlayOwnedByFilm)
+			{
+				_filmOverlay.ClearOverlay();
+			}
+			if (!wantDbg && _filmOverlay != null && _filmOverlay.DrawFilmGradientNormals)
+			{
+				_filmOverlay.SetFilmImage(_img, filmW, filmH, DebugEveryNPixels);
+			}
+
+
+			if (AutoRangeDepth && frameMaxHit > 0.0001f)
+			{
+				// write one sample per RenderStep call (band-based)
+				_depthHistory[_depthHistWrite] = frameMaxHit;
+				_depthHistWrite = (_depthHistWrite + 1) % _depthHistory.Length;
+
+				// robust far plane estimate + safety multiplier
+				float robust = RobustFarEstimate_Fallback(); // use fallback for reliability
+				float targetFar = robust * AutoRangeSafety;
+
+				// clamp
+				targetFar = Mathf.Clamp(targetFar, AutoRangeMin, AutoRangeMax);
+
+				// smooth
+				_rangeFar = Mathf.Lerp(_rangeFar, targetFar, AutoRangeSmoothing);
+			}
+			if (VerbosePerfLogs && _rowCursor == 0 && AutoRangeDepth)
+				GD.Print($"AutoRange Far={_rangeFar:0.###}  (MaxDistance export={MaxDistance:0.###})");
+
+
+			if (VerbosePerfLogs)
+			{
+				double avgStepsPerTracedPixel = bandTracedPixels > 0
+					? (double)pass1StepsIntegrated / bandTracedPixels
+					: 0.0;
+				GD.Print($"Film band y=[{yStart},{yEnd}) hits={bandHits} avgStepsPerTracedPx={avgStepsPerTracedPixel:0.00}");
+			}
+
+			ulong updateStart = 0;
+			if (statsEnabled) updateStart = Time.GetTicksUsec();
+			PerfScope uploadScope = default;
+			if (framePerfEnabled) uploadScope = new PerfScope(_framePerf, PerfStage.UploadTexture);
+			_tex.Update(_img);
+			if (framePerfEnabled) uploadScope.Dispose();
+			if (statsEnabled) _perfFrame.AddFilmUpdateUsec(Time.GetTicksUsec() - updateStart);
+
+			_rowCursor = yEnd;
+			if (_rowCursor >= filmH) _rowCursor = 0;
+
+			ulong t1 = Time.GetTicksUsec();
+			if (VerbosePerfLogs)
+			{
+				GD.Print($"RenderStep {(t1 - t0)/1000.0:0.00} ms  rows={bandH}  jobs={jobs}  hits={bandHits}");
+				GD.Print($"pass1={(a1-a0)/1000.0:0.00}ms  pass2={(b1-a1)/1000.0:0.00}ms  total={(b1-a0)/1000.0:0.00}ms");
+			}
+			
+			if (statsEnabled)
+			{
+				_perfFrame.SegsSkippedByPass2Stride += subRaysSkippedByPass2Stride;
+				_perfFrame.SegsForcedTestByPass2Stride += subRaysForcedByPass2Stride;
+				_perfFrame.Pass2StrideSum += pass2StrideSum;
+				_perfFrame.Pass2StrideCount += pass2StrideCount;
+			}
+			if (framePerfEnabled && shadeUsecAccum > 0)
+			{
+				long shadeTicks = (long)(shadeUsecAccum * (double)Stopwatch.Frequency / 1_000_000.0);
+				_framePerf.AddTicks(PerfStage.Shade, shadeTicks);
+			}
+			if (statsEnabled && _rowCursor == 0)
+			{
+				_perfFrame.ShadingSkippedNoHits = _perfFrame.RequireHitToRender
+					&& _perfFrame.Hits == 0
+					&& _perfFrame.TracedPixels > 0
+					&& _perfFrame.ShadingSkippedPixels >= _perfFrame.TracedPixels;
+				_perfStats.FinalizeAndPrint(ref _perfFrame, VerbosePerfLogs);
+			}
+			if (framePerfEnabled && _rowCursor == 0)
+			{
+				int logEvery = Mathf.Max(1, FramePerfLogEveryNFrames);
+				bool shouldLogFramePerf = FramePerfVerbose || (_frameIndex % logEvery) == 0;
+				if (shouldLogFramePerf)
+				{
+					GD.Print("FramePerf: " + _framePerf.ToOneLineSummary());
+					double testedPerPixel = _framePerf.RaysTraced > 0
+						? (double)_framePerf.SegmentsTested / _framePerf.RaysTraced
+						: 0.0;
+					long physQ = _framePerf.PhysicsQueries;
+					if (_hasPerfDeltaBaseline)
+					{
+						string testedDelta = (testedPerPixel - _lastTestedSegsPerPixel).ToString("+0.###;-0.###;+0.###");
+						string physQDelta = (physQ - _lastPhysQ).ToString("+0;-0;0");
+						GD.Print($"FramePerf delta: tested/px={testedPerPixel:0.###} (d{testedDelta}) physQ={physQ} (d{physQDelta})");
+					}
+					else
+					{
+						GD.Print($"FramePerf delta: tested/px={testedPerPixel:0.###} physQ={physQ} (baseline)");
+						_hasPerfDeltaBaseline = true;
+					}
+					_lastTestedSegsPerPixel = testedPerPixel;
+					_lastPhysQ = physQ;
+				}
+			}
+			if (softGateDebugEnabled && _rowCursor == 0)
+			{
+				string extraContext =
+					"px[traced=" + _softGateFrame.TracedPixels +
+					" filled=" + _softGateFrame.FilledPixels +
+					" eff=" + _softGateFrame.EffectivePixels +
+					"] segs[total=" + _softGateFrame.SegsTotal +
+					" tested=" + _softGateFrame.SegsTested +
+					"] pass2Hits=" + _softGateFrame.Pass2Hits;
+				GD.Print(BuildSoftGateFrameSummary(_softGateFrame, extraContext));
+				if (_softGateFrame.SoftGateEnabled && _softGateFrame.SoftGateConsidered > 0 && _softGateFrame.SoftGateAttempts == 0)
+				{
+					GD.Print("[SoftGate][WARN] enabled but no attempts: check gating (everyNseg/minSegLen/metric) summary above.");
+				}
 			}
 		}
-	}
-	finally
-	{
-		if (framePerfEnabled) frameScope.Dispose();
-	}
+		finally
+		{
+			if (framePerfEnabled) frameScope.Dispose();
+		}
 	}
 
 	private static float ReadFloat(Node obj, StringName prop, float fallback)
@@ -2147,6 +2579,110 @@ public partial class GrinFilmCamera : Node
 			&& a.RequireHitToRender == b.RequireHitToRender
 			&& a.StopOnHit == b.StopOnHit
 			&& a.TerminateTrailOnHit == b.TerminateTrailOnHit
+			&& a.UpdateEveryFrame == b.UpdateEveryFrame;
+	}
+
+	private static void ResetSoftGateCounters(ref SoftGateDebugCounters c, int frameIndex, long effectivePixels, bool enabled, int everyN, float minSegLen)
+	{
+		c = new SoftGateDebugCounters
+		{
+			FrameIndex = frameIndex,
+			EffectivePixels = effectivePixels,
+			SoftGateEnabled = enabled,
+			SoftGateA = everyN,
+			SoftGateB = minSegLen,
+			SoftGateMetricMin = double.PositiveInfinity,
+			SoftGateMetricMax = double.NegativeInfinity
+		};
+	}
+
+	private static string BuildSoftGateFrameSummary(in SoftGateDebugCounters c, string extraContext)
+	{
+		double metricAvg = c.SoftGateMetricCount > 0 ? c.SoftGateMetricSum / c.SoftGateMetricCount : 0.0;
+		double metricMin = c.SoftGateMetricCount > 0 ? c.SoftGateMetricMin : 0.0;
+		double metricMax = c.SoftGateMetricCount > 0 ? c.SoftGateMetricMax : 0.0;
+
+		StringBuilder sb = new StringBuilder(256);
+		sb.Append("[SoftGate] frame=").Append(c.FrameIndex)
+			.Append(" enabled=").Append(c.SoftGateEnabled ? "1" : "0")
+			.Append(" A=").Append(c.SoftGateA)
+			.Append(" B=").Append(c.SoftGateB.ToString("0.###"))
+			.Append(" everyNseg=").Append(c.SoftGateA)
+			.Append(" minSeg=").Append(c.SoftGateB.ToString("0.###"))
+			.Append(" considered=").Append(c.SoftGateConsidered)
+			.Append(" forced=").Append(c.SoftGateForced)
+			.Append(" attempts=").Append(c.SoftGateAttempts)
+			.Append(" hits=").Append(c.SoftGateHits)
+			.Append(" skipped=").Append(c.SoftGateSkipped)
+			.Append(" {disabled=").Append(c.SkipDisabled)
+			.Append(" nseg0=").Append(c.SkipEveryNsegZero)
+			.Append(" seglen=").Append(c.SkipSegLenTooShort)
+			.Append(" noCand=").Append(c.SkipNoCandidate)
+			.Append(" nan=").Append(c.SkipNanMetric)
+			.Append(" other=").Append(c.SkipOther)
+			.Append("} ")
+			.Append("metric[min=").Append(metricMin.ToString("0.###"))
+			.Append(" max=").Append(metricMax.ToString("0.###"))
+			.Append(" avg=").Append(metricAvg.ToString("0.###"))
+			.Append("] ")
+			.Append("qray[call=").Append(c.QRayCalls)
+			.Append(" hit=").Append(c.QRayHit)
+			.Append(" miss=").Append(c.QRayMiss)
+			.Append("]");
+
+		if (!string.IsNullOrEmpty(extraContext))
+		{
+			sb.Append(" ").Append(extraContext);
+		}
+
+		return sb.ToString();
+	}
+
+	private static string BuildSoftGateBandSummary(int yStart, int yEnd, in SoftGateDebugCounters c)
+	{
+		StringBuilder sb = new StringBuilder(160);
+		sb.Append("[Band] y=[").Append(yStart).Append(",").Append(yEnd).Append(")")
+			.Append(" hits=").Append(c.Pass2Hits)
+			.Append(" segs=").Append(c.SegsTotal)
+			.Append(" tested=").Append(c.SegsTested)
+			.Append(" qRayHit=").Append(c.QRayHit)
+			.Append(" qRayMiss=").Append(c.QRayMiss)
+			.Append(" SG{considered=").Append(c.SoftGateConsidered)
+			.Append(" skipped=").Append(c.SoftGateSkipped)
+			.Append(" forced=").Append(c.SoftGateForced)
+			.Append(" attempts=").Append(c.SoftGateAttempts)
+			.Append(" hits=").Append(c.SoftGateHits)
+			.Append("}");
+		return sb.ToString();
+	}
+
+	private void MaybePrintSoftGateConfigSnapshot()
+	{
+		SoftGateConfigSnapshot cur = new SoftGateConfigSnapshot
+		{
+			Pass2QuickRaySoftGate = Pass2QuickRaySoftGate,
+			Pass2SoftGateEveryNSegments = Pass2SoftGateEveryNSegments,
+			MinSegLenForSoftGate = MinSegLenForSoftGate,
+			UpdateEveryFrame = UpdateEveryFrame
+		};
+
+		if (_hasSoftGateCfgSnapshot && SoftGateConfigSnapshotEquals(in cur, in _lastSoftGateCfgSnapshot)) return;
+
+		_lastSoftGateCfgSnapshot = cur;
+		_hasSoftGateCfgSnapshot = true;
+
+		GD.Print(
+			"[Cfg] Pass2QuickRaySoftGate=" + (cur.Pass2QuickRaySoftGate ? "1" : "0") +
+			" SoftGateEveryNSegments=" + cur.Pass2SoftGateEveryNSegments +
+			" MinSegLenForSoftGate=" + cur.MinSegLenForSoftGate.ToString("0.###") +
+			" UpdateEveryFrame=" + (cur.UpdateEveryFrame ? "1" : "0"));
+	}
+
+	private static bool SoftGateConfigSnapshotEquals(in SoftGateConfigSnapshot a, in SoftGateConfigSnapshot b)
+	{
+		return a.Pass2QuickRaySoftGate == b.Pass2QuickRaySoftGate
+			&& a.Pass2SoftGateEveryNSegments == b.Pass2SoftGateEveryNSegments
+			&& Math.Abs(a.MinSegLenForSoftGate - b.MinSegLenForSoftGate) < 1e-6f
 			&& a.UpdateEveryFrame == b.UpdateEveryFrame;
 	}
 
