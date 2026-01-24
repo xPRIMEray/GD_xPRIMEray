@@ -1038,7 +1038,7 @@ public partial class GrinFilmCamera : Node
 				segLenHit = false;
 				reason = SoftGateDecisionReason.Allow;
 
-				//if (softGateDebugEnabled && segIndex == 0)
+				if (softGateDebugEnabled && segIndex == 0)
 					//GD.Print($"[SGDBG] P2SoftGate={Pass2QuickRaySoftGate} N={Pass2SoftGateEveryNSegments} minSeg={MinSegLenForSoftGate} segLen={segmentLength}");
 
 				if (!hasCandidate)
