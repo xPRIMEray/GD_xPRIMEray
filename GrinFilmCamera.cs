@@ -160,6 +160,10 @@ public partial class GrinFilmCamera : Node
 	[Export(PropertyHint.Range, "0,64,1")] public int Pass2SoftGateEveryNSegments = 8;
 	/// <summary>Allow soft-gate only when segment length exceeds this value (<=0 disables).</summary>
 	[Export(PropertyHint.Range, "0,1,0.001")] public float MinSegLenForSoftGate = 0f;
+	/// <summary>Watchdog timeout (ms) for a single soft-gated subdivide (0 disables).</summary>
+	[Export(PropertyHint.Range, "0,50,0.1")] public float SoftGateWatchdogMs = 5f;
+	/// <summary>Max watchdog logs per frame when DebugSoftGate is enabled.</summary>
+	[Export(PropertyHint.Range, "0,32,1")] public int SoftGateWatchdogLogLimitPerFrame = 4;
 
 	public enum BroadphaseMode
 	{
@@ -323,6 +327,7 @@ public partial class GrinFilmCamera : Node
 	private bool _hasPerfDeltaBaseline = false;
 	private int _adaptiveRowsPerFrame = 0;
 	private const int SoftGateSampleEveryNSegments = 4096;
+	private int _softGateWatchdogLogsRemaining = 0;
 	private int _softGateSampleCounter = 0;
 	private SoftGateDebugCounters _softGateFrame;
 	private SoftGateDebugCounters _softGateBand;
@@ -528,6 +533,7 @@ public partial class GrinFilmCamera : Node
 						MinSegLenForSoftGate);
 					_softGateSampleCounter = 0;
 				}else{}
+				_softGateWatchdogLogsRemaining = Mathf.Max(0, SoftGateWatchdogLogLimitPerFrame);
 			}
 			if (statsEnabled && resizedFilm)
 			{
@@ -888,6 +894,14 @@ public partial class GrinFilmCamera : Node
 			long bandFarEarlyOuts = 0;
 			long p2SoftGateAttempts = 0;
 			long p2SoftGateHits = 0;
+			long softGateTriggered = 0;
+			long softGateAttempted = 0;
+			long softGateHitChangedResult = 0;
+			long softGateNewPixelFilled = 0;
+			long softGateCandidateNull = 0;
+			long softGateLoopGuardTripped = 0;
+			long pixelDeltaChanged = 0;
+			long pixelDeltaNewFilled = 0;
 			Pass2HitFlags pass2Flags = new Pass2HitFlags
 			{
 				HitBackFaces = Pass2HitBackFaces,
@@ -1030,6 +1044,7 @@ public partial class GrinFilmCamera : Node
 				if (!hasCandidate)
 				{
 					reason = SoftGateDecisionReason.NoCandidate;
+					softGateCandidateNull++;
 					if (softGateDebugEnabled)
 					{
 						_softGateFrame.SoftGateConsidered++;
@@ -1096,6 +1111,7 @@ public partial class GrinFilmCamera : Node
 				if (softGateDebugEnabled && segIndex == 0 && everyNHit)
 					GD.Print($"[SoftGate] segIndex=0 cadence HIT (N={Pass2SoftGateEveryNSegments})");
 
+				softGateTriggered++;
 				return true;
 			}
 
@@ -1174,9 +1190,11 @@ public partial class GrinFilmCamera : Node
 							&& _pass2PrevHadHit[globalPi] != 0;
 						bool quickRayTestedThisPixel = false;
 						bool quickRayHitThisPixel = false;
-						bool forceInstabilityThisPixel = false;
-						bool forcePrevHitLostThisPixel = false;
-						int forceRepSegIndex = -1;
+							bool forceInstabilityThisPixel = false;
+							bool forcePrevHitLostThisPixel = false;
+							int forceRepSegIndex = -1;
+							bool softGateHitThisPixel = false;
+							bool softGateWatchdogTrippedThisPixel = false;
 
 						bool hadHit = false;
 						float hitDistance = 0f;
@@ -1643,19 +1661,23 @@ public partial class GrinFilmCamera : Node
 											quickRayMissCachedForSeg = !cachedHit;
 									}
 
-									// ---- accurate subdivided ray ----
-									if (softGateAttempt)
-									{
-										if (softGateDebugEnabled)
+										// ---- accurate subdivided ray ----
+										if (softGateAttempt)
 										{
-											_softGateFrame.SoftGateAttempts++;
-											if (softGateBandEnabled) _softGateBand.SoftGateAttempts++;
+											if (softGateDebugEnabled)
+											{
+												_softGateFrame.SoftGateAttempts++;
+												if (softGateBandEnabled) _softGateBand.SoftGateAttempts++;
+											}
+											softGateAttemptedRay = true;
+											softGateAttempted++;
 										}
-										softGateAttemptedRay = true;
-									}
-									int sub = 1;
-									if (segLen > _rbr.CollisionRaySubdivideThreshold)
-										sub = Mathf.CeilToInt(segLen / _rbr.CollisionRaySubdivideThreshold);
+										ulong softGateStart = 0;
+										if (softGateAttemptedRay && SoftGateWatchdogMs > 0f)
+											softGateStart = Time.GetTicksUsec();
+										int sub = 1;
+										if (segLen > _rbr.CollisionRaySubdivideThreshold)
+											sub = Mathf.CeilToInt(segLen / _rbr.CollisionRaySubdivideThreshold);
 									sub = Mathf.Clamp(sub, 1, _rbr.MaxCollisionSubsteps);
 
 									if (UseAdaptiveSubsteps)
@@ -1696,32 +1718,52 @@ public partial class GrinFilmCamera : Node
 										GD.Print($"Pass2 QuickRay miss->subdivide hit: from={segA} to={segB} dir={rayDir} segLen={segLen} flags(HitFromInside={pass2Flags.HitFromInside}, HitBackFaces={pass2Flags.HitBackFaces}) colliderRid={cid}");
 										pass2QuickRayMissLogRemaining--;
 									}
-									if (didHit && softGateAttemptedRay)
-									{
-										p2SoftGateHits++;
-										if (softGateDebugEnabled)
+										if (didHit && softGateAttemptedRay)
 										{
-											_softGateFrame.SoftGateHits++;
-											if (softGateBandEnabled) _softGateBand.SoftGateHits++;
+											p2SoftGateHits++;
+											softGateHitChangedResult++;
+											if (softGateDebugEnabled)
+											{
+												_softGateFrame.SoftGateHits++;
+												if (softGateBandEnabled) _softGateBand.SoftGateHits++;
+											}
+											softGateHit = true;
+											softGateHitThisPixel = true;
 										}
-										softGateHit = true;
-									}
+										if (softGateAttemptedRay && SoftGateWatchdogMs > 0f)
+										{
+											double elapsedMs = (Time.GetTicksUsec() - softGateStart) / 1000.0;
+											if (elapsedMs > SoftGateWatchdogMs)
+											{
+												softGateLoopGuardTripped++;
+												softGateWatchdogTrippedThisPixel = true;
+												if (DebugSoftGate && _softGateWatchdogLogsRemaining > 0)
+												{
+													_softGateWatchdogLogsRemaining--;
+													GD.PrintErr($"[SoftGate][Watchdog] segIndex={si} elapsed={elapsedMs:0.00}ms sub={sub} segLen={segLen:0.###} guard=1");
+												}
+											}
+										}
 
-									if (didHit && needHitName)
-										hitName = cname;
-									LogSoftGateSample(
-										si,
-										segLen,
-										softGateDecisionReason == SoftGateDecisionReason.Allow,
+										if (didHit && needHitName)
+											hitName = cname;
+										LogSoftGateSample(
+											si,
+											segLen,
+											softGateDecisionReason == SoftGateDecisionReason.Allow,
 										softGateAttemptedRay,
 										softGateHit,
 										softGateDecisionReason,
-										softGateEveryNHit,
-										softGateSegLenHit,
-										softGateSampleThisSeg);
-								}
+											softGateEveryNHit,
+											softGateSegLenHit,
+											softGateSampleThisSeg);
+										if (softGateWatchdogTrippedThisPixel)
+											break;
+									}
 
 								////////////
+								if (softGateWatchdogTrippedThisPixel)
+									break;
 								if (didHit)
 								{
 									float d = seg.TraveledB - segLen + (hp - segA).Length();
@@ -1777,6 +1819,9 @@ public partial class GrinFilmCamera : Node
 								EarlyOut("near early-out");
 								break;
 							}else{}
+
+							if (softGateWatchdogTrippedThisPixel)
+								break;
 
 							if (hadHit)
 								break;
@@ -1871,7 +1916,14 @@ public partial class GrinFilmCamera : Node
 							shadeUsecAccum += (long)shadeUsec;
 						}
 						if (_pass2PrevHadHit.Length > globalPi)
+						{
+							bool prevHit = prevHadHit;
+							bool nowHit = hadHit;
+							if (prevHit != nowHit) pixelDeltaChanged++;
+							if (!prevHit && nowHit) pixelDeltaNewFilled++;
+							if (!prevHit && nowHit && softGateHitThisPixel) softGateNewPixelFilled++;
 							_pass2PrevHadHit[globalPi] = hadHit ? (byte)1 : (byte)0;
+						}
 						////////////////////////////
 						/// 
 
@@ -1966,6 +2018,14 @@ public partial class GrinFilmCamera : Node
 				_perfFrame.BandPhysicsQueries = bandPhysicsQueries;
 				_perfFrame.Pass2SoftGateAttempts += p2SoftGateAttempts;
 				_perfFrame.Pass2SoftGateHits += p2SoftGateHits;
+				_perfFrame.SoftGateTriggered += softGateTriggered;
+				_perfFrame.SoftGateAttempted += softGateAttempted;
+				_perfFrame.SoftGateHitChangedResult += softGateHitChangedResult;
+				_perfFrame.SoftGateNewPixelFilled += softGateNewPixelFilled;
+				_perfFrame.SoftGateCandidateNull += softGateCandidateNull;
+				_perfFrame.SoftGateLoopGuardTripped += softGateLoopGuardTripped;
+				_perfFrame.PixelDeltaChanged += pixelDeltaChanged;
+				_perfFrame.PixelDeltaNewFilled += pixelDeltaNewFilled;
 			}
 			if (framePerfEnabled)
 			{
@@ -1978,6 +2038,14 @@ public partial class GrinFilmCamera : Node
 				_framePerf.EarlyOutFar += bandFarEarlyOuts;
 				_framePerf.Pass2SoftGateAttempts += p2SoftGateAttempts;
 				_framePerf.Pass2SoftGateHits += p2SoftGateHits;
+				_framePerf.SoftGateTriggered += softGateTriggered;
+				_framePerf.SoftGateAttempted += softGateAttempted;
+				_framePerf.SoftGateHitChangedResult += softGateHitChangedResult;
+				_framePerf.SoftGateNewPixelFilled += softGateNewPixelFilled;
+				_framePerf.SoftGateCandidateNull += softGateCandidateNull;
+				_framePerf.SoftGateLoopGuardTripped += softGateLoopGuardTripped;
+				_framePerf.PixelDeltaChanged += pixelDeltaChanged;
+				_framePerf.PixelDeltaNewFilled += pixelDeltaNewFilled;
 			}
 			if (softGateDebugEnabled)
 			{

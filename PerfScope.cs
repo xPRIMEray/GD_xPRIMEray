@@ -53,6 +53,14 @@ namespace XPrimeRay.Perf
         public long Pass2OverlapMisses;
         public long Pass2SoftGateAttempts;
         public long Pass2SoftGateHits;
+        public long SoftGateTriggered;
+        public long SoftGateAttempted;
+        public long SoftGateHitChangedResult;
+        public long SoftGateNewPixelFilled;
+        public long SoftGateCandidateNull;
+        public long SoftGateLoopGuardTripped;
+        public long PixelDeltaChanged;
+        public long PixelDeltaNewFilled;
 
         public void Reset()
         {
@@ -87,6 +95,14 @@ namespace XPrimeRay.Perf
             Pass2OverlapMisses = 0;
             Pass2SoftGateAttempts = 0;
             Pass2SoftGateHits = 0;
+            SoftGateTriggered = 0;
+            SoftGateAttempted = 0;
+            SoftGateHitChangedResult = 0;
+            SoftGateNewPixelFilled = 0;
+            SoftGateCandidateNull = 0;
+            SoftGateLoopGuardTripped = 0;
+            PixelDeltaChanged = 0;
+            PixelDeltaNewFilled = 0;
         }
 
         public void AddTicks(PerfStage stage, long ticks) => _stageTicks[(int)stage] += ticks;
@@ -114,7 +130,10 @@ namespace XPrimeRay.Perf
                 $"p2Skip(insight={Pass2Skip_InsightPlane} overlap={Pass2Skip_OverlapEmpty} qRay={Pass2Skip_QuickRayMiss} " +
                 $"single={Pass2Skip_SingleProbeMiss} stride={Pass2Skip_Stride} bestDist={Pass2Skip_BestHitDist}) " +
                 $"p2Broad(qRayHit={Pass2QuickRayHits} qRayMiss={Pass2QuickRayMisses} overlapHit={Pass2OverlapHits} overlapMiss={Pass2OverlapMisses}) " +
-                $"p2SoftGate={Pass2SoftGateAttempts}/{Pass2SoftGateHits}";
+                $"p2SoftGate={Pass2SoftGateAttempts}/{Pass2SoftGateHits} " +
+                $"sgTrig={SoftGateTriggered} sgAttempt={SoftGateAttempted} sgHitChange={SoftGateHitChangedResult} " +
+                $"sgNewPx={SoftGateNewPixelFilled} sgNull={SoftGateCandidateNull} sgGuard={SoftGateLoopGuardTripped} " +
+                $"pixDelta={PixelDeltaChanged} pixNew={PixelDeltaNewFilled}";
         }
     }
 
