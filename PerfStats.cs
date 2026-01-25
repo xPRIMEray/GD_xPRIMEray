@@ -54,6 +54,7 @@ public struct PerfFrameReport
 	public long SoftGateNewPixelFilled;
 	public long SoftGateCandidateNull;
 	public long SoftGateLoopGuardTripped;
+	public long SoftGateBudgetExceeded;
 	public long PixelDeltaChanged;
 	public long PixelDeltaNewFilled;
 	public long SegsSkippedByPass2Stride; // skipped expensive subdivided pass due to stride
@@ -144,6 +145,7 @@ public sealed class PerfStats
 		public long SoftGateNewPixelFilled;
 		public long SoftGateCandidateNull;
 		public long SoftGateLoopGuardTripped;
+		public long SoftGateBudgetExceeded;
 		public long PixelDeltaChanged;
 		public long PixelDeltaNewFilled;
 	}
@@ -219,6 +221,7 @@ public sealed class PerfStats
 		_sum.SoftGateNewPixelFilled += frame.SoftGateNewPixelFilled * sign;
 		_sum.SoftGateCandidateNull += frame.SoftGateCandidateNull * sign;
 		_sum.SoftGateLoopGuardTripped += frame.SoftGateLoopGuardTripped * sign;
+		_sum.SoftGateBudgetExceeded += frame.SoftGateBudgetExceeded * sign;
 		_sum.PixelDeltaChanged += frame.PixelDeltaChanged * sign;
 		_sum.PixelDeltaNewFilled += frame.PixelDeltaNewFilled * sign;
 	}
@@ -262,7 +265,7 @@ public sealed class PerfStats
 
 		if (verbose)
 		{
-			GD.Print($"Film frame stats: pixels={frame.Pixels} traced={frame.TracedPixels} filled={frame.FilledPixels} effPx={frame.EffectiveRenderPixels} segs={frame.Segs} segsTested={frame.SegsTested} hits={frame.Hits} qRay={frame.IntersectRayCalls} overlap={frame.IntersectShapeCalls} subRayCalls={frame.SubdividedRayCalls} subRayQueries={frame.SubdividedRayQueries} subRaySkipped={frame.SubdividedRaySkipped} subRaySkipStride={frame.SubRaySkippedByStride} p2ForcePx={frame.Pass2ForceStride1Pixels} p2ForceInstabilityPx={frame.Pass2ForceInstabilityPixels} p2ForcePrevHitLostPx={frame.Pass2ForcePrevHitLostPixels} p2SoftGate={frame.Pass2SoftGateAttempts}/{frame.Pass2SoftGateHits} sgTrig={frame.SoftGateTriggered} sgAttempt={frame.SoftGateAttempted} sgHitChange={frame.SoftGateHitChangedResult} sgNewPx={frame.SoftGateNewPixelFilled} sgNull={frame.SoftGateCandidateNull} sgGuard={frame.SoftGateLoopGuardTripped} pixDelta={frame.PixelDeltaChanged} pixNew={frame.PixelDeltaNewFilled} backfaceNdotV={frame.BackfaceNdotVHits} skipSegs={frame.SegsSkippedByPass2Stride} forceSegs={frame.SegsForcedTestByPass2Stride} avgP2Stride={avgP2Stride:0.00}");
+			GD.Print($"Film frame stats: pixels={frame.Pixels} traced={frame.TracedPixels} filled={frame.FilledPixels} effPx={frame.EffectiveRenderPixels} segs={frame.Segs} segsTested={frame.SegsTested} hits={frame.Hits} qRay={frame.IntersectRayCalls} overlap={frame.IntersectShapeCalls} subRayCalls={frame.SubdividedRayCalls} subRayQueries={frame.SubdividedRayQueries} subRaySkipped={frame.SubdividedRaySkipped} subRaySkipStride={frame.SubRaySkippedByStride} p2ForcePx={frame.Pass2ForceStride1Pixels} p2ForceInstabilityPx={frame.Pass2ForceInstabilityPixels} p2ForcePrevHitLostPx={frame.Pass2ForcePrevHitLostPixels} p2SoftGate={frame.Pass2SoftGateAttempts}/{frame.Pass2SoftGateHits} sgTrig={frame.SoftGateTriggered} sgAttempt={frame.SoftGateAttempted} sgHitChange={frame.SoftGateHitChangedResult} sgNewPx={frame.SoftGateNewPixelFilled} sgNull={frame.SoftGateCandidateNull} sgGuard={frame.SoftGateLoopGuardTripped} sgBudget={frame.SoftGateBudgetExceeded} pixDelta={frame.PixelDeltaChanged} pixNew={frame.PixelDeltaNewFilled} backfaceNdotV={frame.BackfaceNdotVHits} skipSegs={frame.SegsSkippedByPass2Stride} forceSegs={frame.SegsForcedTestByPass2Stride} avgP2Stride={avgP2Stride:0.00}");
 			string statFlags = FormatReasonFlags(frame.ReasonFlags);
 			GD.Print($"Film physics summary: avgSegPerPixel={avgSegPerPixel:0.00} avgSegsTestedPerPixel={avgSegsTestedPerPixel:0.00} avgSubsteps={avgSubsteps:0.00} hitPct={hitPct:0.00}%{(statFlags.Length > 0 ? " " + statFlags : string.Empty)}");
 			GD.Print($"Film timings(ms): pass1={frame.Pass1Ms:0.00} pass2.physics={frame.Pass2PhysMs:0.00} pass2.shading={frame.Pass2ShadeMs:0.00} film.update={frame.FilmUpdateMs:0.00} overlay.build={frame.OverlayBuildMs:0.00} overlay.enqueue={frame.OverlayEnqueueMs:0.00}");
@@ -295,6 +298,7 @@ public sealed class PerfStats
 			.Append(" sgNewPx=").Append(frame.SoftGateNewPixelFilled)
 			.Append(" sgNull=").Append(frame.SoftGateCandidateNull)
 			.Append(" sgGuard=").Append(frame.SoftGateLoopGuardTripped)
+			.Append(" sgBudget=").Append(frame.SoftGateBudgetExceeded)
 			.Append(" pixDelta=").Append(frame.PixelDeltaChanged)
 			.Append(" pixNew=").Append(frame.PixelDeltaNewFilled)
 			.Append(" backfaceNdotV=").Append(frame.BackfaceNdotVHits)

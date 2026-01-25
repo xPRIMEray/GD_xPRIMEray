@@ -59,6 +59,7 @@ namespace XPrimeRay.Perf
         public long SoftGateNewPixelFilled;
         public long SoftGateCandidateNull;
         public long SoftGateLoopGuardTripped;
+        public long SoftGateBudgetExceeded;
         public long PixelDeltaChanged;
         public long PixelDeltaNewFilled;
 
@@ -101,6 +102,7 @@ namespace XPrimeRay.Perf
             SoftGateNewPixelFilled = 0;
             SoftGateCandidateNull = 0;
             SoftGateLoopGuardTripped = 0;
+            SoftGateBudgetExceeded = 0;
             PixelDeltaChanged = 0;
             PixelDeltaNewFilled = 0;
         }
@@ -132,7 +134,7 @@ namespace XPrimeRay.Perf
                 $"p2Broad(qRayHit={Pass2QuickRayHits} qRayMiss={Pass2QuickRayMisses} overlapHit={Pass2OverlapHits} overlapMiss={Pass2OverlapMisses}) " +
                 $"p2SoftGate={Pass2SoftGateAttempts}/{Pass2SoftGateHits} " +
                 $"sgTrig={SoftGateTriggered} sgAttempt={SoftGateAttempted} sgHitChange={SoftGateHitChangedResult} " +
-                $"sgNewPx={SoftGateNewPixelFilled} sgNull={SoftGateCandidateNull} sgGuard={SoftGateLoopGuardTripped} " +
+                $"sgNewPx={SoftGateNewPixelFilled} sgNull={SoftGateCandidateNull} sgGuard={SoftGateLoopGuardTripped} sgBudget={SoftGateBudgetExceeded} " +
                 $"pixDelta={PixelDeltaChanged} pixNew={PixelDeltaNewFilled}";
         }
     }

@@ -70,7 +70,6 @@ script = ExtResource("2_ppyta")
 
 [node name="CanvasLayerUI" type="CanvasLayer" parent="."]
 layer = 0
-visible = false
 
 [node name="Options" type="Control" parent="CanvasLayerUI" node_paths=PackedStringArray("sun", "world_environment")]
 layout_mode = 3
@@ -298,7 +297,7 @@ size_flags_vertical = 4
 min_value = 0.5
 max_value = 20.0
 step = 0.1
-value = 10.0
+value = 20.0
 
 [node name="Value" type="Label" parent="CanvasLayerUI/Options/Camera/FocusDistance"]
 layout_mode = 2
@@ -323,14 +322,14 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 min_value = 2.0
-value = 10.0
+value = 20.0
 
 [node name="Value" type="Label" parent="CanvasLayerUI/Options/Camera/FocalLength"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
-text = "10 mm"
+text = "20 mm"
 
 [node name="Aperture" type="HBoxContainer" parent="CanvasLayerUI/Options/Camera"]
 layout_mode = 2
@@ -543,8 +542,7 @@ FilmResolutionScale = 0.25
 Preset = 0
 ApplyPresetOnReady = true
 UpdateEveryFrame = false
-VerbosePerfLogs = true
-FramePerfVerbose = true
+EnableFramePerf = false
 UseFieldSourceCache = true
 UseFieldGrid = true
 RowsPerFrame = 10
@@ -559,14 +557,20 @@ AutoRangeSmoothing = 0.05
 AutoRangeSafety = 1.01
 UsePass2CollisionStride = true
 MinSegLenForStrideSkip = 1.0
-Pass2HitBackFaces = true
+Pass2HitFromInside = false
 Pass2ForceIfPrevHitLost = true
-Pass2QuickRaySoftGate = true
+Pass2SoftGateEveryNSegments = 10
+MinSegLenForSoftGate = 0.1
+SoftGateMaxAttemptsPerPixel = 3
+SoftGateMaxAttemptsPerFrame = 10
+SoftGateMaxSubdividedCallsPerFrame = 20
+SoftGateWatchdogMs = 10.0
 UseBroadphasePolicy = true
 UseSingleProbeThenSubdivide = true
 NearestHitOnly = false
 ShadingMode = 3
 FlipNormalToCamera = false
+SoftGateDebugVerbosity = 3
 UseSmoothNormals = true
 
 [node name="FieldSource3D" type="Node3D" parent="."]
