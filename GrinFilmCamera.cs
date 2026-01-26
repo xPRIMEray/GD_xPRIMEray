@@ -157,10 +157,14 @@ public partial class GrinFilmCamera : Node
 	[Export] public bool Pass2ForceIfPrevHitLost = false;
 	/// <summary>Logs quick-ray misses that later subdivide and hit (per frame).</summary>
 	[Export] public int Pass2LogQuickRayMissSamples = 0;
+
+	// --- SoftGate (legacy + limits) ---
 	/// <summary>Allows occasional subdivide attempts on quick-ray misses.</summary>
 	[Export] public bool Pass2QuickRaySoftGate = false;
+	// Legacy (unused)
 	/// <summary>Allow one soft-gated subdivide every N segments (0 disables).</summary>
 	[Export(PropertyHint.Range, "0,64,1")] public int Pass2SoftGateEveryNSegments = 8;
+	// Legacy (unused)
 	/// <summary>Allow soft-gate only when segment length exceeds this value (<=0 disables).</summary>
 	[Export(PropertyHint.Range, "0,1,0.001")] public float MinSegLenForSoftGate = 0f;
 	/// <summary>Max soft-gate attempts per pixel (0 disables).</summary>
@@ -174,36 +178,24 @@ public partial class GrinFilmCamera : Node
 	/// <summary>Max watchdog logs per frame when DebugSoftGate is enabled.</summary>
 	[Export(PropertyHint.Range, "0,32,1")] public int SoftGateWatchdogLogLimitPerFrame = 4;
 
-	// SoftGate v2 (condition + budget)
-	// If enabled, SoftGate triggers only when QuickRay misses AND we have "instability evidence"
-	// AND we are within the per-frame budget.
-
 	[ExportGroup("Physics / Collision / SoftGate v2")]
+	[ExportSubgroup("SoftGate v2 Settings")]
+	/// <summary>Enables v2 gating: only trigger on QuickRay misses with instability evidence.</summary>
 	[Export] public bool Pass2SoftGateV2Enabled = true;
-
-	// Per-frame budget: max number of "forced expensive" attempts allowed.
-	// Keeps you from nuking performance / appearing to freeze.
-	[Export] public int Pass2SoftGateBudgetPerFrame = 64;
-
-	// Segment length threshold (still useful): only consider SoftGate for long-ish segments,
-	// which are most likely to false-negative QuickRay in curved stepping.
-	[Export] public float Pass2SoftGateMinSegLen = 0.15f;
-
-	// Instability scoring: trigger SoftGate when score >= threshold.
+	/// <summary>Max v2 soft-gate attempts per frame (0 disables the v2 budget).</summary>
+	[Export] public int Pass2SoftGateBudgetPerFrame = 32;
+	/// <summary>Minimum segment length required for v2 consideration (<=0 disables length gating).</summary>
+	[Export] public float Pass2SoftGateMinSegLen = 0.2f;
+	/// <summary>Trigger v2 soft-gate when the instability score meets or exceeds this value.</summary>
 	[Export] public float Pass2SoftGateScoreThreshold = 1.0f;
-
-	// Curvature proxy: if direction changes fast, QuickRay becomes less reliable.
-	// Measured as angle between prevDir and currDir (degrees).
-	[Export] public float Pass2SoftGateMinTurnAngleDeg = 3.0f;
-
-	// Optional: prioritize SoftGate when you "lost" a hit compared to previous frame.
+	/// <summary>Minimum turn angle (degrees) to count as instability for v2 scoring.</summary>
+	[Export] public float Pass2SoftGateMinTurnAngleDeg = 2.0f;
+	/// <summary>Bonus score applied when a previous-frame hit is lost for this pixel.</summary>
 	[Export] public float Pass2SoftGatePrevHitLostBonus = 0.75f;
-
-	// Optional: allow a tiny randomized sampling so you still sometimes probe the space
-	// even if the score is just below threshold (helps catch edge cases early).
-	[Export] public float Pass2SoftGateRandomProbeChance = 0.02f; // 2%
-
-
+	/// <summary>Random probe chance to occasionally test v2 even below the score threshold.</summary>
+	[Export] public float Pass2SoftGateRandomProbeChance = 0.01f; // 1%
+	/// <summary>Print a single-line v2 activity summary when v2 is used this frame.</summary>
+	[Export] public bool DebugSoftGateV2 = false;
 
 	public enum BroadphaseMode
 	{
@@ -231,6 +223,7 @@ public partial class GrinFilmCamera : Node
 	}
 
 	[ExportGroup("Rendering / Film Output")]
+	
 	/// <summary>Film shading mode (depth, normal RGB, NdotV).</summary>
 	[Export] public FilmShadingMode ShadingMode = FilmShadingMode.DepthHeatmap;
 	// Note: overlay normals are world-space collision normals (physics mesh).
@@ -377,6 +370,7 @@ public partial class GrinFilmCamera : Node
 	private SoftGateConfigSnapshot _lastSoftGateCfgSnapshot;
 	private bool _hasSoftGateCfgSnapshot = false;
 	private int _p2SoftGateUsedThisFrame = 0;
+	private int _p2QuickRayMissesThisFrame = 0;
 	private int _softGateFrameId = -1;
 	private RandomNumberGenerator _rng = new RandomNumberGenerator();
 
@@ -574,6 +568,8 @@ public partial class GrinFilmCamera : Node
 			if (frameStart)
 			{
 				_frameIndex++;
+				_p2SoftGateUsedThisFrame = 0;
+				_p2QuickRayMissesThisFrame = 0;
 				if (statsEnabled)
 				{
 					_perfFrame.Reset();
@@ -1132,6 +1128,7 @@ public partial class GrinFilmCamera : Node
 				{
 					_softGateFrameId = frameId;
 					_p2SoftGateUsedThisFrame = 0;
+					_p2QuickRayMissesThisFrame = 0;
 				}
 
 				if (!hasCandidate)
@@ -1533,6 +1530,7 @@ public partial class GrinFilmCamera : Node
 													out softGateEveryNHit,
 													out softGateSegLenHit,
 													out softGateDecisionReason);
+												_p2QuickRayMissesThisFrame++;
 												if (softGateSegEnabled)
 													softGateSampleThisSeg = (_softGateSampleCounter++ % SoftGateSampleEveryNSegments) == 0;
 												if (allowSoftGate)
@@ -1621,6 +1619,7 @@ public partial class GrinFilmCamera : Node
 													out softGateEveryNHit,
 													out softGateSegLenHit,
 													out softGateDecisionReason);
+												_p2QuickRayMissesThisFrame++;
 												if (softGateSegEnabled)
 													softGateSampleThisSeg = (_softGateSampleCounter++ % SoftGateSampleEveryNSegments) == 0;
 												if (allowSoftGate)
@@ -1725,6 +1724,7 @@ public partial class GrinFilmCamera : Node
 													out softGateEveryNHit,
 													out softGateSegLenHit,
 													out softGateDecisionReason);
+												_p2QuickRayMissesThisFrame++;
 												if (softGateSegEnabled)
 													softGateSampleThisSeg = (_softGateSampleCounter++ % SoftGateSampleEveryNSegments) == 0;
 												if (allowSoftGate)
@@ -1812,6 +1812,7 @@ public partial class GrinFilmCamera : Node
 													out softGateEveryNHit,
 													out softGateSegLenHit,
 													out softGateDecisionReason);
+												_p2QuickRayMissesThisFrame++;
 												if (softGateSegEnabled)
 													softGateSampleThisSeg = (_softGateSampleCounter++ % SoftGateSampleEveryNSegments) == 0;
 												if (allowSoftGate)
@@ -2494,6 +2495,10 @@ public partial class GrinFilmCamera : Node
 				{
 					GD.Print("[SoftGate][WARN] enabled but no attempts: check gating (everyNseg/minSegLen/metric) summary above.");
 				}
+			}
+			if (DebugSoftGateV2 && _rowCursor == 0 && _p2SoftGateUsedThisFrame > 0)
+			{
+				GD.Print($"[SoftGateV2] frame={_frameIndex} used={_p2SoftGateUsedThisFrame} triggers={softGateTriggered} quickMisses={_p2QuickRayMissesThisFrame}");
 			}
 		}
 		finally
