@@ -7,7 +7,7 @@ using XPrimeRay.Perf; // adjust namespace new PerfScope.cs
 
 public partial class GrinFilmCamera : Node
 {
-	[ExportCategory("Film Camera")]
+
 	[ExportGroup("References")]
 	/// <summary>NodePath to the RayBeamRenderer used for film segment generation.</summary>
 	[Export] public NodePath RayBeamRendererPath;
@@ -16,6 +16,11 @@ public partial class GrinFilmCamera : Node
 	/// <summary>Optional FilmOverlay2D for debug ray overlay.</summary>
 	[Export] public NodePath FilmOverlayPath;
 
+	[ExportGroup("General")]
+	/// <summary>Runs RenderStep every frame when enabled.</summary>
+	[Export] public bool UpdateEveryFrame = true;
+
+	[ExportCategory("Film Camera")]
 	[ExportGroup("Rendering / Film Output")]
 	/// <summary>Base film width in pixels before scaling.</summary>
 	[Export] public int Width = 160;
@@ -38,8 +43,6 @@ public partial class GrinFilmCamera : Node
 	[Export] public PresetMode Preset = PresetMode.Preview;
 	/// <summary>Apply the preset automatically in _Ready.</summary>
 	[Export] public bool ApplyPresetOnReady = false;
-	/// <summary>Runs RenderStep every frame when enabled.</summary>
-	[Export] public bool UpdateEveryFrame = true;
 	/// <summary>Enables perf stats collection.</summary>
 	[Export] public bool EnableProfiling = true;
 	/// <summary>Prints verbose perf logs per band.</summary>
@@ -981,6 +984,7 @@ public partial class GrinFilmCamera : Node
 			long softGateSubdividedCallsUsed = 0;
 			long pixelDeltaChanged = 0;
 			long pixelDeltaNewFilled = 0;
+			int softGateFrameId = (int)Engine.GetFramesDrawn();
 
 			Pass2HitFlags pass2Flags = new Pass2HitFlags
 			{
@@ -1117,14 +1121,18 @@ public partial class GrinFilmCamera : Node
 				}
 			}
 
-			bool ShouldSoftGate(int segIndex, float segmentLength, bool hasCandidate, out bool everyNHit, out bool segLenHit, out SoftGateDecisionReason reason)
+			bool ShouldSoftGate(int frameId, int segIndex, float segmentLength, Vector3 prevSegDir, Vector3 currSegDir, bool prevHadHit, bool prevHitLost, bool hasCandidate, out bool everyNHit, out bool segLenHit, out SoftGateDecisionReason reason)
 			{
 				everyNHit = false;
 				segLenHit = false;
 				reason = SoftGateDecisionReason.Allow;
 
-				if (softGateDebugEnabled && segIndex == 0)
-					//GD.Print($"[SGDBG] P2SoftGate={Pass2QuickRaySoftGate} N={Pass2SoftGateEveryNSegments} minSeg={MinSegLenForSoftGate} segLen={segmentLength}");
+				// SoftGate v2: allow only on QuickRay misses with instability evidence and within the per-frame budget.
+				if (frameId != _softGateFrameId)
+				{
+					_softGateFrameId = frameId;
+					_p2SoftGateUsedThisFrame = 0;
+				}
 
 				if (!hasCandidate)
 				{
@@ -1145,14 +1153,21 @@ public partial class GrinFilmCamera : Node
 					if (softGateBandEnabled) _softGateBand.SoftGateConsidered++;
 				}
 
-				if (!Pass2QuickRaySoftGate)
+				if (!Pass2QuickRaySoftGate || !Pass2SoftGateV2Enabled)
 				{
 					reason = SoftGateDecisionReason.Disabled;
 					SoftGateRecordSkip(reason);
 					return false;
 				}
 
-				bool metricsFinite = float.IsFinite(segmentLength) && float.IsFinite(MinSegLenForSoftGate);
+				bool metricsFinite = float.IsFinite(segmentLength)
+					&& float.IsFinite(Pass2SoftGateMinSegLen)
+					&& float.IsFinite(Pass2SoftGateMinTurnAngleDeg)
+					&& float.IsFinite(Pass2SoftGateScoreThreshold)
+					&& float.IsFinite(Pass2SoftGatePrevHitLostBonus)
+					&& float.IsFinite(Pass2SoftGateRandomProbeChance)
+					&& float.IsFinite(prevSegDir.X) && float.IsFinite(prevSegDir.Y) && float.IsFinite(prevSegDir.Z)
+					&& float.IsFinite(currSegDir.X) && float.IsFinite(currSegDir.Y) && float.IsFinite(currSegDir.Z);
 				if (!metricsFinite)
 				{
 					reason = SoftGateDecisionReason.NanMetric;
@@ -1160,29 +1175,42 @@ public partial class GrinFilmCamera : Node
 					return false;
 				}
 
-				if (softGateDebugEnabled) SoftGateRecordMetric(segmentLength);
-
-				bool everyNEnabled = Pass2SoftGateEveryNSegments >= 2;
-				bool segLenEnabled = MinSegLenForSoftGate > 0f;
-				//everyNHit = everyNEnabled && (segIndex % Pass2SoftGateEveryNSegments) == 0;
-				//everyNHit = everyNEnabled && segIndex > 0 && (segIndex % Pass2SoftGateEveryNSegments) == 0;
-				everyNHit = everyNEnabled && ((segIndex + 1) % Pass2SoftGateEveryNSegments) == 0;
-				//segLenHit = segLenEnabled && segmentLength > MinSegLenForSoftGate;
-				//segLenHit = segLenEnabled && (segmentLength + 1e-6f >= MinSegLenForSoftGate);
-				segLenHit = segLenEnabled && segmentLength >= MinSegLenForSoftGate;
-
-				if (!everyNEnabled && !segLenEnabled)
+				segLenHit = Pass2SoftGateMinSegLen <= 0f || segmentLength >= Pass2SoftGateMinSegLen;
+				if (!segLenHit)
 				{
-					reason = SoftGateDecisionReason.EveryNsegZero;
+					reason = SoftGateDecisionReason.SegLenTooShort;
 					SoftGateRecordSkip(reason);
 					return false;
 				}
 
-				if (!(everyNHit || segLenHit))
+				float score = 0f;
+				float angleDeg = 0f;
+				bool haveDirs = prevSegDir.LengthSquared() > 1e-6f && currSegDir.LengthSquared() > 1e-6f;
+				if (haveDirs)
 				{
-					reason = (segLenEnabled && segmentLength <= MinSegLenForSoftGate)
-						? SoftGateDecisionReason.SegLenTooShort
-						: SoftGateDecisionReason.CadenceMiss;
+					float dot = Mathf.Clamp(prevSegDir.Dot(currSegDir), -1f, 1f);
+					angleDeg = Mathf.RadToDeg(Mathf.Acos(dot));
+					if (angleDeg >= Pass2SoftGateMinTurnAngleDeg)
+						score += 1f;
+				}
+				if (prevHadHit && prevHitLost)
+					score += Pass2SoftGatePrevHitLostBonus;
+
+				bool randomProbe = Pass2SoftGateRandomProbeChance > 0f && _rng.Randf() < Pass2SoftGateRandomProbeChance;
+				everyNHit = score >= Pass2SoftGateScoreThreshold || randomProbe;
+
+				if (softGateDebugEnabled) SoftGateRecordMetric(score);
+
+				if (!everyNHit)
+				{
+					reason = SoftGateDecisionReason.CadenceMiss;
+					SoftGateRecordSkip(reason);
+					return false;
+				}
+
+				if (Pass2SoftGateBudgetPerFrame > 0 && _p2SoftGateUsedThisFrame >= Pass2SoftGateBudgetPerFrame)
+				{
+					reason = SoftGateDecisionReason.BudgetExceeded;
 					SoftGateRecordSkip(reason);
 					return false;
 				}
@@ -1193,8 +1221,7 @@ public partial class GrinFilmCamera : Node
 					if (softGateBandEnabled) _softGateBand.SoftGateForced++;
 				}
 
-				if (softGateDebugEnabled && segIndex == 0 && everyNHit)
-					GD.Print($"[SoftGate] segIndex=0 cadence HIT (N={Pass2SoftGateEveryNSegments})");
+				_p2SoftGateUsedThisFrame++;
 
 				softGateTriggered++;
 				return true;
@@ -1357,12 +1384,17 @@ public partial class GrinFilmCamera : Node
 								}
 							}
 
+							Vector3 lastSegDir = Vector3.Zero;
 							for (int si = segStart; si <= segEnd; si++)
 							{
 								var seg = _segBuf[segOffset + si];
 								Vector3 segA = seg.A;
 								Vector3 segB = seg.B;
-								float segLen = (segB - segA).Length();
+								Vector3 segDelta = segB - segA;
+								float segLen = segDelta.Length();
+								Vector3 prevSegDir = lastSegDir;
+								Vector3 currSegDir = segDelta.Normalized();
+								lastSegDir = currSegDir;
 								int pass2Stride = forceStride1 ? 1 : ComputePass2CollisionStride(seg.TraveledB, farForSim);
 
 								if (segLen <= 1e-6f) continue;
@@ -1487,11 +1519,16 @@ public partial class GrinFilmCamera : Node
 											{
 												if (prevHadHitForSoftGate && si > segStart && _pass2HadHitLostThisFrame.Length > globalPi)
 													_pass2HadHitLostThisFrame[globalPi] = 1;
-												bool needsFill = !prevHadHitForSoftGate
-													|| (_pass2HadHitLostThisFrame.Length > globalPi && _pass2HadHitLostThisFrame[globalPi] != 0);
-												bool allowSoftGate = needsFill && ShouldSoftGate(
+												// SoftGate v2 uses per-pixel hit history; wire these to real history buffers if you track them elsewhere.
+												bool prevHitLostForSoftGate = _pass2HadHitLostThisFrame.Length > globalPi && _pass2HadHitLostThisFrame[globalPi] != 0;
+												bool allowSoftGate = ShouldSoftGate(
+													softGateFrameId,
 													si,
 													segLen,
+													prevSegDir,
+													currSegDir,
+													prevHadHitForSoftGate,
+													prevHitLostForSoftGate,
 													true,
 													out softGateEveryNHit,
 													out softGateSegLenHit,
@@ -1571,11 +1608,15 @@ public partial class GrinFilmCamera : Node
 												CountQuickRayResult(false);
 												if (prevHadHitForSoftGate && si > segStart && _pass2HadHitLostThisFrame.Length > globalPi)
 													_pass2HadHitLostThisFrame[globalPi] = 1;
-												bool needsFill = !prevHadHitForSoftGate
-													|| (_pass2HadHitLostThisFrame.Length > globalPi && _pass2HadHitLostThisFrame[globalPi] != 0);
-												bool allowSoftGate = needsFill && ShouldSoftGate(
+												bool prevHitLostForSoftGate = _pass2HadHitLostThisFrame.Length > globalPi && _pass2HadHitLostThisFrame[globalPi] != 0;
+												bool allowSoftGate = ShouldSoftGate(
+													softGateFrameId,
 													si,
 													segLen,
+													prevSegDir,
+													currSegDir,
+													prevHadHitForSoftGate,
+													prevHitLostForSoftGate,
 													true,
 													out softGateEveryNHit,
 													out softGateSegLenHit,
@@ -1671,11 +1712,15 @@ public partial class GrinFilmCamera : Node
 											{
 												if (prevHadHitForSoftGate && si > segStart && _pass2HadHitLostThisFrame.Length > globalPi)
 													_pass2HadHitLostThisFrame[globalPi] = 1;
-												bool needsFill = !prevHadHitForSoftGate
-													|| (_pass2HadHitLostThisFrame.Length > globalPi && _pass2HadHitLostThisFrame[globalPi] != 0);
-												bool allowSoftGate = needsFill && ShouldSoftGate(
+												bool prevHitLostForSoftGate = _pass2HadHitLostThisFrame.Length > globalPi && _pass2HadHitLostThisFrame[globalPi] != 0;
+												bool allowSoftGate = ShouldSoftGate(
+													softGateFrameId,
 													si,
 													segLen,
+													prevSegDir,
+													currSegDir,
+													prevHadHitForSoftGate,
+													prevHitLostForSoftGate,
 													true,
 													out softGateEveryNHit,
 													out softGateSegLenHit,
@@ -1754,11 +1799,15 @@ public partial class GrinFilmCamera : Node
 												CountQuickRayResult(false);
 												if (prevHadHitForSoftGate && si > segStart && _pass2HadHitLostThisFrame.Length > globalPi)
 													_pass2HadHitLostThisFrame[globalPi] = 1;
-												bool needsFill = !prevHadHitForSoftGate
-													|| (_pass2HadHitLostThisFrame.Length > globalPi && _pass2HadHitLostThisFrame[globalPi] != 0);
-												bool allowSoftGate = needsFill && ShouldSoftGate(
+												bool prevHitLostForSoftGate = _pass2HadHitLostThisFrame.Length > globalPi && _pass2HadHitLostThisFrame[globalPi] != 0;
+												bool allowSoftGate = ShouldSoftGate(
+													softGateFrameId,
 													si,
 													segLen,
+													prevSegDir,
+													currSegDir,
+													prevHadHitForSoftGate,
+													prevHitLostForSoftGate,
 													true,
 													out softGateEveryNHit,
 													out softGateSegLenHit,
