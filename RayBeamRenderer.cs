@@ -266,18 +266,24 @@ public partial class RayBeamRenderer : Node3D
 	/////////////////////////
 	public override async void _Ready()
 	{
-		// 1. Multimesh Instance
-		_mm = new MultiMesh();
-		_mm.TransformFormat = MultiMesh.TransformFormatEnum.Transform3D;
-		_mm.UseColors = true;
-		_mm.UseCustomData = false;
-		_mmi = new MultiMeshInstance3D
+		// Prevent double-init if _Ready runs again (scene reloads, etc.)
+		if (_mmi != null && IsInstanceValid(_mmi) && _mmi.IsInsideTree())
+			return;
+
+		// 1) MultiMesh Instance
+		_mm = new MultiMesh
 		{
-			Multimesh = _mm
+			TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+			UseColors = true,
+			UseCustomData = false
 		};
+
+		_mmi = new MultiMeshInstance3D { Multimesh = _mm };
+
 		// Simple quad for each sample
 		var quad = new QuadMesh { Size = new Vector2(1, 1) };
 		_mm.Mesh = quad;
+
 		_mat = new StandardMaterial3D
 		{
 			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
@@ -289,39 +295,57 @@ public partial class RayBeamRenderer : Node3D
 			Emission = new Color(1, 1, 1, 1),
 			EmissionEnergyMultiplier = 2.0f
 		};
+
 		_mmi.MaterialOverride = _mat;
 		AddChild(_mmi);
 
-
-		// 2. Debug mesh setup
-		_dbgImmediate = new ImmediateMesh();
-		_dbgMaterial = new StandardMaterial3D
+		// 2) Debug mesh setup (attach ONCE — pick ONE parent)
+		if (_dbgMeshInstance == null || !IsInstanceValid(_dbgMeshInstance))
 		{
-			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-			VertexColorUseAsAlbedo = true,
-			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-			NoDepthTest = true
-		};
-		_dbgMeshInstance = new MeshInstance3D();
-		_dbgMeshInstance.Mesh = _dbgImmediate;
-		_dbgMeshInstance.MaterialOverride = _dbgMaterial;
-		_dbgMeshInstance.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
-		_dbgMeshInstance.GlobalTransform = Transform3D.Identity;
-		_dbgMeshInstance.Visible = true;
-		_dbgMeshInstance.Layers = 1; // default 3D layer
-		_dbgMeshInstance.TopLevel = false;
+			_dbgImmediate = new ImmediateMesh();
+			_dbgMaterial = new StandardMaterial3D
+			{
+				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+				VertexColorUseAsAlbedo = true,
+				Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+				NoDepthTest = true
+			};
 
-		AddChild(_dbgMeshInstance);
-		GetTree().CurrentScene.AddChild(_dbgMeshInstance);
-		_dbgMeshInstance.Owner = Owner; // if you ever want it visible in editor ownership
+			_dbgMeshInstance = new MeshInstance3D
+			{
+				Mesh = _dbgImmediate,
+				MaterialOverride = _dbgMaterial,
+				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+				GlobalTransform = Transform3D.Identity,
+				Visible = true,
+				Layers = 1,
+				TopLevel = false
+			};
 
+			// ✅ Option A: Keep debug mesh under THIS node (recommended)
+			AddChild(_dbgMeshInstance);
+
+			// If you want it visible in the editor tree when running,
+			// set Owner to the current edited scene root (not Owner).
+			_dbgMeshInstance.Owner = GetTree().EditedSceneRoot;
+		}
+		else
+		{
+			// If it exists but is parented elsewhere, re-home it safely
+			var p = _dbgMeshInstance.GetParent();
+			if (p != this)
+			{
+				p?.RemoveChild(_dbgMeshInstance);
+				AddChild(_dbgMeshInstance);
+			}
+		}
 
 		GD.Print($"[DBG] dbgMesh inTree={_dbgMeshInstance.IsInsideTree()} parent={_dbgMeshInstance.GetParent()?.Name} world={_dbgMeshInstance.GlobalTransform.Origin}");
 
-		// 3. Await Frame
+		// 3) Await frame (lets scene settle)
 		await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 
-		// 4. Rebuild
+		// 4) Rebuild
 		Rebuild();
 	}
 
