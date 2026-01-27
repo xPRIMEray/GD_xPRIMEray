@@ -1,0 +1,227 @@
+Film RenderStep running. rowCursor=0 cam=/root/Node3D/Camera3D
+fieldSnaps=3 hasSources=True
+AutoRange Far=4.201  (MaxDistance export=15)
+Film band y=[0,156) hits=250 avgStepsPerTracedPx=43.40
+RenderStep 1463.42 ms  rows=156  jobs=8  hits=250
+pass1=522.12ms  pass2=941.07ms  total=1463.18ms
+Film hit: dist=3.022 name=<StaticBody3D#30433871420> mode=TwoSidedNdotV
+Film band y=[156,209) hits=2706 avgStepsPerTracedPx=37.17
+RenderStep 422.94 ms  rows=53  jobs=8  hits=2706
+pass1=180.25ms  pass2=242.37ms  total=422.62ms
+Film hit: dist=2.139 name=<StaticBody3D#30500980288> mode=TwoSidedNdotV
+Film band y=[209,272) hits=2455 avgStepsPerTracedPx=33.17
+RenderStep 470.03 ms  rows=63  jobs=8  hits=2455
+pass1=210.62ms  pass2=259.24ms  total=469.86ms
+Film band y=[272,339) hits=85 avgStepsPerTracedPx=33.75
+RenderStep 527.26 ms  rows=67  jobs=8  hits=85
+pass1=215.35ms  pass2=311.72ms  total=527.07ms
+Film band y=[339,360) hits=0 avgStepsPerTracedPx=33.47
+RenderStep 157.59 ms  rows=21  jobs=8  hits=0
+pass1=68.34ms  pass2=89.08ms  total=157.42ms
+Film frame stats: pixels=230400 traced=57600 filled=230400 effPx=57600 segs=2094819 segsTested=483731 hits=5496 qRay=480229 overlap=0 subRayCalls=5693 subRayQueries=5693 subRaySkipped=2005233 subRaySkipStride=0 p2ForcePx=0 p2ForceInstabilityPx=0 p2ForcePrevHitLostPx=0 p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=5496 pixNew=5496 backfaceNdotV=0 skipSegs=0 forceSegs=3512 avgP2Stride=2.31
+Film physics summary: avgSegPerPixel=36.37 avgSegsTestedPerPixel=8.40 avgSubsteps=1.00 hitPct=9.54%
+Film timings(ms): pass1=1196.68 pass2.physics=1805.85 pass2.shading=9.71 film.update=0.62 overlay.build=0.00 overlay.enqueue=0.00
+Film avg(ms): pass1=4376.81 pass2.physics=1829.52 pass2.shading=14.41 film.update=0.55 overlay.build=0.00 overlay.enqueue=0.00
+Film avg summary: avgSegPerPixel=27.59 avgSegsTestedPerPixel=5.44 avgSubsteps=1.01 hitPct=8.67% avgTracedPixels=80845.67 avgFilledPixels=323308.40 avgEffPx=57600.00
+FramePerf: Frame#428 ms(total=2883.82 tile=0.00 gen=0.00 p0=0.00 p1=1196.67 field=0.00 p2=1843.46 shade=9.71 upl=0.62) px=230400 rays=57600 seg=2094819 steps=2207667 tested=483731 fieldEvals=2152419 physQ=1226540 p1rc=740618 p1hit=2352 hits=5496 gridHitRate=0.000 grid(h=0 m=0) early(AABB=0 far=0 hitStopPx=2352) cache(h=1530698 m=480229) p2Skip(insight=0 overlap=0 qRay=2005233 single=0 stride=0 bestDist=0) p2Broad(qRayHit=5693 qRayMiss=2005233 overlapHit=0 overlapMiss=0) p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=5496 pixNew=5496
+FramePerf delta: tested/px=8.398 (d+0.003) physQ=1226540 (d+152)
+[SoftGate] frame=428 enabled=1 minSeg=0.2 scoreThr=0.08 turnW=1 prevLost=0.75 rand=0.05 scoreBudget=128 considered=2005233 forced=0 attempts=0 hits=0 hitChange=0 newPx=0 budget{px=2 frame=192 sub=500 used=0 subUsed=0 exceeded=0} skipped=2005233 {seglen=2005233 scoreLow=0 randMiss=0 budAttempt=0 budSub=0 guard=0 other=0} metric[min=0 max=0 avg=0] qray[call=2010926 hit=5693 miss=2005233] px[traced=57600 filled=230400 eff=57600] segs[total=2094819 tested=483731] pass2Hits=5496
+[SoftGate][Dbg] attempts=0 hits=0 skipped{seglen=2005233 scoreLow=0 randMiss=0 budAttempt=0 budSub=0 guard=0 other=0}
+[SoftGate][WARN] minSegLen=0.2 > 1.5x estAvgSegLen=0.116; consider minSegLen~0.116.
+[SoftGate][WARN] enabled but no attempts: check gating (minSegLen/score/random) summary above.
+Film RenderStep running. rowCursor=0 cam=/root/Node3D/Camera3D
+fieldSnaps=3 hasSources=True
+AutoRange Far=4.203  (MaxDistance export=15)
+Film band y=[0,203) hits=2559 avgStepsPerTracedPx=41.97
+RenderStep 1831.20 ms  rows=203  jobs=8  hits=2559
+pass1=670.91ms  pass2=1159.94ms  total=1830.85ms
+Film hit: dist=2.175 name=<StaticBody3D#30500980288> mode=TwoSidedNdotV
+Film band y=[203,258) hits=2564 avgStepsPerTracedPx=33.42
+RenderStep 407.12 ms  rows=55  jobs=8  hits=2564
+pass1=181.60ms  pass2=225.33ms  total=406.93ms
+Film band y=[258,326) hits=373 avgStepsPerTracedPx=33.75
+RenderStep 522.93 ms  rows=68  jobs=8  hits=373
+pass1=214.46ms  pass2=308.24ms  total=522.70ms
+Film band y=[326,360) hits=0 avgStepsPerTracedPx=33.48
+RenderStep 259.47 ms  rows=34  jobs=8  hits=0
+pass1=107.43ms  pass2=151.85ms  total=259.29ms
+Film frame stats: pixels=230400 traced=57600 filled=230400 effPx=57600 segs=2095061 segsTested=483863 hits=5496 qRay=480361 overlap=0 subRayCalls=5693 subRayQueries=5693 subRaySkipped=2005475 subRaySkipStride=0 p2ForcePx=0 p2ForceInstabilityPx=0 p2ForcePrevHitLostPx=0 p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=5496 pixNew=5496 backfaceNdotV=0 skipSegs=0 forceSegs=3512 avgP2Stride=2.31
+Film physics summary: avgSegPerPixel=36.37 avgSegsTestedPerPixel=8.40 avgSubsteps=1.00 hitPct=9.54%
+Film timings(ms): pass1=1174.40 pass2.physics=1808.17 pass2.shading=9.50 film.update=0.60 overlay.build=0.00 overlay.enqueue=0.00
+Film avg(ms): pass1=4384.07 pass2.physics=1847.07 pass2.shading=14.40 film.update=0.56 overlay.build=0.00 overlay.enqueue=0.00
+Film avg summary: avgSegPerPixel=27.84 avgSegsTestedPerPixel=5.51 avgSubsteps=1.01 hitPct=8.60% avgTracedPixels=80845.67 avgFilledPixels=323308.40 avgEffPx=57600.00
+FramePerf: Frame#429 ms(total=2761.31 tile=0.00 gen=0.00 p0=0.00 p1=1174.39 field=0.00 p2=1845.35 shade=9.50 upl=0.60) px=230400 rays=57600 seg=2095061 steps=2207909 tested=483863 fieldEvals=2152661 physQ=1226672 p1rc=740618 p1hit=2352 hits=5496 gridHitRate=0.000 grid(h=0 m=0) early(AABB=0 far=0 hitStopPx=2352) cache(h=1530808 m=480361) p2Skip(insight=0 overlap=0 qRay=2005475 single=0 stride=0 bestDist=0) p2Broad(qRayHit=5693 qRayMiss=2005475 overlapHit=0 overlapMiss=0) p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=5496 pixNew=5496
+FramePerf delta: tested/px=8.4 (d+0.002) physQ=1226672 (d+132)
+[SoftGate] frame=429 enabled=1 minSeg=0.2 scoreThr=0.08 turnW=1 prevLost=0.75 rand=0.05 scoreBudget=128 considered=2005475 forced=0 attempts=0 hits=0 hitChange=0 newPx=0 budget{px=2 frame=192 sub=500 used=0 subUsed=0 exceeded=0} skipped=2005475 {seglen=2005475 scoreLow=0 randMiss=0 budAttempt=0 budSub=0 guard=0 other=0} metric[min=0 max=0 avg=0] qray[call=2011168 hit=5693 miss=2005475] px[traced=57600 filled=230400 eff=57600] segs[total=2095061 tested=483863] pass2Hits=5496
+[SoftGate][Dbg] attempts=0 hits=0 skipped{seglen=2005475 scoreLow=0 randMiss=0 budAttempt=0 budSub=0 guard=0 other=0}
+[SoftGate][WARN] minSegLen=0.2 > 1.5x estAvgSegLen=0.116; consider minSegLen~0.116.
+[SoftGate][WARN] enabled but no attempts: check gating (minSegLen/score/random) summary above.
+Film RenderStep running. rowCursor=0 cam=/root/Node3D/Camera3D
+fieldSnaps=3 hasSources=True
+AutoRange Far=4.204  (MaxDistance export=15)
+Film band y=[0,125) hits=0 avgStepsPerTracedPx=43.93
+RenderStep 1185.18 ms  rows=125  jobs=8  hits=0
+pass1=424.33ms  pass2=760.61ms  total=1184.94ms
+Film band y=[125,178) hits=1119 avgStepsPerTracedPx=39.70
+RenderStep 483.38 ms  rows=53  jobs=8  hits=1119
+pass1=217.69ms  pass2=265.50ms  total=483.19ms
+Film band y=[178,233) hits=3121 avgStepsPerTracedPx=35.37
+RenderStep 451.24 ms  rows=55  jobs=8  hits=3121
+pass1=201.47ms  pass2=249.56ms  total=451.03ms
+Film band y=[233,294) hits=1256 avgStepsPerTracedPx=33.40
+RenderStep 449.31 ms  rows=61  jobs=8  hits=1256
+pass1=179.50ms  pass2=269.55ms  total=449.05ms
+Film band y=[294,360) hits=0 avgStepsPerTracedPx=33.58
+RenderStep 509.63 ms  rows=66  jobs=8  hits=0
+pass1=207.28ms  pass2=302.16ms  total=509.44ms
+Film frame stats: pixels=230400 traced=57600 filled=230400 effPx=57600 segs=2095271 segsTested=483988 hits=5496 qRay=480486 overlap=0 subRayCalls=5693 subRayQueries=5693 subRaySkipped=2005685 subRaySkipStride=0 p2ForcePx=0 p2ForceInstabilityPx=0 p2ForcePrevHitLostPx=0 p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=5496 pixNew=5496 backfaceNdotV=0 skipSegs=0 forceSegs=3512 avgP2Stride=2.31
+Film physics summary: avgSegPerPixel=36.38 avgSegsTestedPerPixel=8.40 avgSubsteps=1.00 hitPct=9.54%
+Film timings(ms): pass1=1230.27 pass2.physics=1809.75 pass2.shading=9.45 film.update=0.54 overlay.build=0.00 overlay.enqueue=0.00
+Film avg(ms): pass1=4391.70 pass2.physics=1864.89 pass2.shading=14.40 film.update=0.56 overlay.build=0.00 overlay.enqueue=0.00
+Film avg summary: avgSegPerPixel=28.09 avgSegsTestedPerPixel=5.57 avgSubsteps=1.01 hitPct=8.54% avgTracedPixels=80845.67 avgFilledPixels=323308.40 avgEffPx=57600.00
+FramePerf: Frame#430 ms(total=2569.19 tile=0.00 gen=0.00 p0=0.00 p1=1230.25 field=0.00 p2=1847.36 shade=9.45 upl=0.54) px=230400 rays=57600 seg=2095271 steps=2208119 tested=483988 fieldEvals=2152871 physQ=1226797 p1rc=740618 p1hit=2352 hits=5496 gridHitRate=0.000 grid(h=0 m=0) early(AABB=0 far=0 hitStopPx=2352) cache(h=1530892 m=480487) p2Skip(insight=0 overlap=0 qRay=2005685 single=0 stride=0 bestDist=0) p2Broad(qRayHit=5693 qRayMiss=2005685 overlapHit=0 overlapMiss=0) p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=5496 pixNew=5496
+FramePerf delta: tested/px=8.403 (d+0.002) physQ=1226797 (d+125)
+[SoftGate] frame=430 enabled=1 minSeg=0.2 scoreThr=0.08 turnW=1 prevLost=0.75 rand=0.05 scoreBudget=128 considered=2005685 forced=0 attempts=0 hits=0 hitChange=0 newPx=0 budget{px=2 frame=192 sub=500 used=0 subUsed=0 exceeded=0} skipped=2005685 {seglen=2005685 scoreLow=0 randMiss=0 budAttempt=0 budSub=0 guard=0 other=0} metric[min=0 max=0 avg=0] qray[call=2011378 hit=5693 miss=2005685] px[traced=57600 filled=230400 eff=57600] segs[total=2095271 tested=483988] pass2Hits=5496
+[SoftGate][Dbg] attempts=0 hits=0 skipped{seglen=2005685 scoreLow=0 randMiss=0 budAttempt=0 budSub=0 guard=0 other=0}
+[SoftGate][WARN] minSegLen=0.2 > 1.5x estAvgSegLen=0.116; consider minSegLen~0.116.
+[SoftGate][WARN] enabled but no attempts: check gating (minSegLen/score/random) summary above.
+Film RenderStep running. rowCursor=0 cam=/root/Node3D/Camera3D
+fieldSnaps=3 hasSources=True
+AutoRange Far=4.205  (MaxDistance export=15)
+Film band y=[0,67) hits=0 avgStepsPerTracedPx=44.07
+RenderStep 672.70 ms  rows=67  jobs=8  hits=0
+pass1=256.01ms  pass2=416.45ms  total=672.46ms
+Film band y=[67,117) hits=0 avgStepsPerTracedPx=43.93
+RenderStep 491.59 ms  rows=50  jobs=8  hits=0
+pass1=193.37ms  pass2=298.03ms  total=491.40ms
+Film band y=[117,168) hits=691 avgStepsPerTracedPx=40.64
+RenderStep 463.55 ms  rows=51  jobs=8  hits=691
+pass1=195.98ms  pass2=267.38ms  total=463.36ms
+Set UpdateEveryFrame
+Film band y=[168,223) hits=3039 avgStepsPerTracedPx=36.29
+RenderStep 440.47 ms  rows=55  jobs=8  hits=3039
+pass1=186.69ms  pass2=253.59ms  total=440.28ms
+Set UpdateEveryFrame
+Film hit: dist=2.084 name=<StaticBody3D#30500980288> mode=TwoSidedNdotV
+Film band y=[223,285) hits=1780 avgStepsPerTracedPx=34.60
+RenderStep 468.45 ms  rows=62  jobs=8  hits=1780
+pass1=193.82ms  pass2=274.45ms  total=468.27ms
+Film band y=[285,351) hits=0 avgStepsPerTracedPx=34.68
+RenderStep 523.92 ms  rows=66  jobs=8  hits=0
+pass1=215.56ms  pass2=308.17ms  total=523.73ms
+Film band y=[351,360) hits=0 avgStepsPerTracedPx=34.53
+RenderStep 79.01 ms  rows=9  jobs=8  hits=0
+pass1=42.85ms  pass2=36.00ms  total=78.84ms
+Film frame stats: pixels=230400 traced=57600 filled=230400 effPx=57600 segs=2121824 segsTested=484648 hits=5510 qRay=481079 overlap=0 subRayCalls=5701 subRayQueries=5701 subRaySkipped=2028225 subRaySkipStride=0 p2ForcePx=0 p2ForceInstabilityPx=0 p2ForcePrevHitLostPx=0 p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=5510 pixNew=5510 backfaceNdotV=0 skipSegs=0 forceSegs=3663 avgP2Stride=2.29
+Film physics summary: avgSegPerPixel=36.84 avgSegsTestedPerPixel=8.41 avgSubsteps=1.00 hitPct=9.57%
+Film timings(ms): pass1=1284.27 pass2.physics=1816.04 pass2.shading=9.56 film.update=0.74 overlay.build=0.00 overlay.enqueue=0.00
+Film avg(ms): pass1=4400.37 pass2.physics=1882.41 pass2.shading=14.39 film.update=0.56 overlay.build=0.00 overlay.enqueue=0.00
+Film avg summary: avgSegPerPixel=28.35 avgSegsTestedPerPixel=5.63 avgSubsteps=1.01 hitPct=8.48% avgTracedPixels=80845.67 avgFilledPixels=323308.40 avgEffPx=57600.00
+FramePerf: Frame#431 ms(total=3060.89 tile=0.00 gen=0.00 p0=0.00 p1=1284.26 field=0.00 p2=1854.04 shade=9.56 upl=0.74) px=230400 rays=57600 seg=2121824 steps=2234851 tested=484648 fieldEvals=2179424 physQ=1232548 p1rc=745768 p1hit=2173 hits=5510 gridHitRate=0.000 grid(h=0 m=0) early(AABB=0 far=0 hitStopPx=2173) cache(h=1552848 m=481079) p2Skip(insight=0 overlap=0 qRay=2028225 single=0 stride=0 bestDist=0) p2Broad(qRayHit=5701 qRayMiss=2028225 overlapHit=0 overlapMiss=0) p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=5510 pixNew=5510
+FramePerf delta: tested/px=8.414 (d+0.011) physQ=1232548 (d+5751)
+[SoftGate] frame=431 enabled=1 minSeg=0.2 scoreThr=0.08 turnW=1 prevLost=0.75 rand=0.05 scoreBudget=128 considered=2028225 forced=0 attempts=0 hits=0 hitChange=0 newPx=0 budget{px=2 frame=192 sub=500 used=0 subUsed=0 exceeded=0} skipped=2028225 {seglen=2028225 scoreLow=0 randMiss=0 budAttempt=0 budSub=0 guard=0 other=0} metric[min=0 max=0 avg=0] qray[call=2033926 hit=5701 miss=2028225] px[traced=57600 filled=230400 eff=57600] segs[total=2121824 tested=484648] pass2Hits=5510
+[SoftGate][Dbg] attempts=0 hits=0 skipped{seglen=2028225 scoreLow=0 randMiss=0 budAttempt=0 budSub=0 guard=0 other=0}
+[SoftGate][WARN] minSegLen=0.2 > 1.5x estAvgSegLen=0.114; consider minSegLen~0.114.
+[SoftGate][WARN] enabled but no attempts: check gating (minSegLen/score/random) summary above.
+Film RenderStep running. rowCursor=0 cam=/root/Node3D/Camera3D
+fieldSnaps=3 hasSources=True
+AutoRange Far=4.206  (MaxDistance export=15)
+Film band y=[0,256) hits=5317 avgStepsPerTracedPx=41.01
+RenderStep 2220.75 ms  rows=256  jobs=8  hits=5317
+pass1=823.41ms  pass2=1397.09ms  total=2220.50ms
+Film band y=[256,314) hits=398 avgStepsPerTracedPx=34.87
+RenderStep 468.50 ms  rows=58  jobs=8  hits=398
+pass1=194.42ms  pass2=273.89ms  total=468.31ms
+Film band y=[314,360) hits=0 avgStepsPerTracedPx=34.51
+RenderStep 357.97 ms  rows=46  jobs=8  hits=0
+pass1=146.09ms  pass2=211.58ms  total=357.67ms
+Film frame stats: pixels=230400 traced=57600 filled=230400 effPx=57600 segs=2144887 segsTested=475837 hits=5715 qRay=472072 overlap=0 subRayCalls=5936 subRayQueries=5936 subRaySkipped=2046777 subRaySkipStride=0 p2ForcePx=0 p2ForceInstabilityPx=0 p2ForcePrevHitLostPx=0 p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=5715 pixNew=5715 backfaceNdotV=0 skipSegs=0 forceSegs=3461 avgP2Stride=2.32
+Film physics summary: avgSegPerPixel=37.24 avgSegsTestedPerPixel=8.26 avgSubsteps=1.00 hitPct=9.92%
+Film timings(ms): pass1=1163.92 pass2.physics=1845.46 pass2.shading=9.50 film.update=0.46 overlay.build=0.00 overlay.enqueue=0.00
+Film avg(ms): pass1=4407.38 pass2.physics=1900.64 pass2.shading=14.38 film.update=0.57 overlay.build=0.00 overlay.enqueue=0.00
+Film avg summary: avgSegPerPixel=28.61 avgSegsTestedPerPixel=5.69 avgSubsteps=1.01 hitPct=8.42% avgTracedPixels=80845.67 avgFilledPixels=323308.40 avgEffPx=57600.00
+FramePerf: Frame#432 ms(total=2689.29 tile=0.00 gen=0.00 p0=0.00 p1=1163.91 field=0.00 p2=1882.55 shade=9.50 upl=0.45) px=230400 rays=57600 seg=2144887 steps=2257470 tested=475837 fieldEvals=2202487 physQ=1226376 p1rc=748368 p1hit=2617 hits=5715 gridHitRate=0.000 grid(h=0 m=0) early(AABB=0 far=0 hitStopPx=2617) cache(h=1580642 m=472072) p2Skip(insight=0 overlap=0 qRay=2046777 single=0 stride=0 bestDist=0) p2Broad(qRayHit=5936 qRayMiss=2046777 overlapHit=0 overlapMiss=0) p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=5715 pixNew=5715
+FramePerf delta: tested/px=8.261 (d-0.153) physQ=1226376 (d-6172)
+[SoftGate] frame=432 enabled=1 minSeg=0.2 scoreThr=0.08 turnW=1 prevLost=0.75 rand=0.05 scoreBudget=128 considered=2046777 forced=0 attempts=0 hits=0 hitChange=0 newPx=0 budget{px=2 frame=192 sub=500 used=0 subUsed=0 exceeded=0} skipped=2046777 {seglen=2046777 scoreLow=0 randMiss=0 budAttempt=0 budSub=0 guard=0 other=0} metric[min=0 max=0 avg=0] qray[call=2052713 hit=5936 miss=2046777] px[traced=57600 filled=230400 eff=57600] segs[total=2144887 tested=475837] pass2Hits=5715
+[SoftGate][Dbg] attempts=0 hits=0 skipped{seglen=2046777 scoreLow=0 randMiss=0 budAttempt=0 budSub=0 guard=0 other=0}
+[SoftGate][WARN] minSegLen=0.2 > 1.5x estAvgSegLen=0.113; consider minSegLen~0.113.
+[SoftGate][WARN] enabled but no attempts: check gating (minSegLen/score/random) summary above.
+Set UpdateEveryFrame
+Film RenderStep running. rowCursor=0 cam=/root/Node3D/Camera3D
+fieldSnaps=3 hasSources=True
+AutoRange Far=4.206  (MaxDistance export=15)
+Film band y=[0,87) hits=0 avgStepsPerTracedPx=44.23
+RenderStep 827.88 ms  rows=87  jobs=8  hits=0
+pass1=301.97ms  pass2=525.65ms  total=827.62ms
+Set StepsPerRay
+Set StepLength
+Set MinStepLength
+Scene Undo: Set MinStepLength
+Scene Undo: Set StepLength
+Set UpdateEveryFrame
+Film band y=[87,140) hits=0 avgStepsPerTracedPx=44.08
+RenderStep 485.74 ms  rows=53  jobs=8  hits=0
+pass1=179.57ms  pass2=305.88ms  total=485.45ms
+Film band y=[140,195) hits=2394 avgStepsPerTracedPx=39.44
+RenderStep 482.50 ms  rows=55  jobs=8  hits=2394
+pass1=202.48ms  pass2=279.82ms  total=482.31ms
+Film band y=[195,252) hits=2804 avgStepsPerTracedPx=35.16
+RenderStep 430.92 ms  rows=57  jobs=8  hits=2804
+pass1=192.09ms  pass2=238.64ms  total=430.73ms
+Film band y=[252,318) hits=517 avgStepsPerTracedPx=34.84
+RenderStep 525.48 ms  rows=66  jobs=8  hits=517
+pass1=215.04ms  pass2=310.24ms  total=525.28ms
+Film band y=[318,360) hits=0 avgStepsPerTracedPx=38.86
+RenderStep 347.26 ms  rows=42  jobs=8  hits=0
+pass1=141.10ms  pass2=205.98ms  total=347.07ms
+Film frame stats: pixels=230400 traced=57600 filled=230400 effPx=57600 segs=2174474 segsTested=468667 hits=5715 qRay=464902 overlap=0 subRayCalls=5936 subRayQueries=5936 subRaySkipped=2076363 subRaySkipStride=0 p2ForcePx=0 p2ForceInstabilityPx=0 p2ForcePrevHitLostPx=0 p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=5715 pixNew=5715 backfaceNdotV=0 skipSegs=0 forceSegs=3461 avgP2Stride=2.32
+Film physics summary: avgSegPerPixel=37.75 avgSegsTestedPerPixel=8.14 avgSubsteps=1.00 hitPct=9.92%
+Film timings(ms): pass1=1232.24 pass2.physics=1830.15 pass2.shading=9.33 film.update=0.71 overlay.build=0.00 overlay.enqueue=0.00
+Film avg(ms): pass1=4415.34 pass2.physics=1918.49 pass2.shading=14.38 film.update=0.57 overlay.build=0.00 overlay.enqueue=0.00
+Film avg summary: avgSegPerPixel=28.88 avgSegsTestedPerPixel=5.75 avgSubsteps=1.01 hitPct=8.36% avgTracedPixels=80845.67 avgFilledPixels=323308.40 avgEffPx=57600.00
+FramePerf: Frame#433 ms(total=2752.63 tile=0.00 gen=0.00 p0=0.00 p1=1232.23 field=0.00 p2=1866.17 shade=9.33 upl=0.70) px=230400 rays=57600 seg=2174474 steps=2287057 tested=468667 fieldEvals=2232074 physQ=1224880 p1rc=754042 p1hit=2617 hits=5715 gridHitRate=0.000 grid(h=0 m=0) early(AABB=0 far=0 hitStopPx=2617) cache(h=1617398 m=464902) p2Skip(insight=0 overlap=0 qRay=2076363 single=0 stride=0 bestDist=0) p2Broad(qRayHit=5936 qRayMiss=2076363 overlapHit=0 overlapMiss=0) p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=5715 pixNew=5715
+FramePerf delta: tested/px=8.137 (d-0.124) physQ=1224880 (d-1496)
+[SoftGate] frame=433 enabled=1 minSeg=0.2 scoreThr=0.08 turnW=1 prevLost=0.75 rand=0.05 scoreBudget=128 considered=2076363 forced=0 attempts=0 hits=0 hitChange=0 newPx=0 budget{px=2 frame=192 sub=500 used=0 subUsed=0 exceeded=0} skipped=2076363 {seglen=2076363 scoreLow=0 randMiss=0 budAttempt=0 budSub=0 guard=0 other=0} metric[min=0 max=0 avg=0] qray[call=2082299 hit=5936 miss=2076363] px[traced=57600 filled=230400 eff=57600] segs[total=2174474 tested=468667] pass2Hits=5715
+[SoftGate][Dbg] attempts=0 hits=0 skipped{seglen=2076363 scoreLow=0 randMiss=0 budAttempt=0 budSub=0 guard=0 other=0}
+[SoftGate][WARN] minSegLen=0.2 > 1.5x estAvgSegLen=0.111; consider minSegLen~0.111.
+[SoftGate][WARN] enabled but no attempts: check gating (minSegLen/score/random) summary above.
+Film RenderStep running. rowCursor=0 cam=/root/Node3D/Camera3D
+fieldSnaps=3 hasSources=True
+AutoRange Far=4.207  (MaxDistance export=15)
+Film band y=[0,91) hits=4522 avgStepsPerTracedPx=44.18
+RenderStep 834.99 ms  rows=91  jobs=8  hits=4522
+pass1=324.50ms  pass2=510.27ms  total=834.77ms
+Film hit: dist=2.627 name=<StaticBody3D#30433871420> mode=TwoSidedNdotV
+Film band y=[91,146) hits=1835 avgStepsPerTracedPx=43.52
+RenderStep 480.72 ms  rows=55  jobs=8  hits=1835
+pass1=205.43ms  pass2=275.13ms  total=480.56ms
+Film band y=[146,203) hits=2010 avgStepsPerTracedPx=42.24
+RenderStep 503.20 ms  rows=57  jobs=8  hits=2010
+pass1=219.68ms  pass2=283.32ms  total=503.00ms
+Film band y=[203,260) hits=2576 avgStepsPerTracedPx=39.28
+RenderStep 456.79 ms  rows=57  jobs=8  hits=2576
+pass1=201.61ms  pass2=254.99ms  total=456.60ms
+Film band y=[260,322) hits=157 avgStepsPerTracedPx=39.88
+RenderStep 550.58 ms  rows=62  jobs=8  hits=157
+pass1=231.57ms  pass2=318.82ms  total=550.40ms
+Film band y=[322,360) hits=0 avgStepsPerTracedPx=38.90
+RenderStep 334.18 ms  rows=38  jobs=8  hits=0
+pass1=144.80ms  pass2=189.19ms  total=333.99ms
+Film frame stats: pixels=230400 traced=57600 filled=230400 effPx=57600 segs=2292117 segsTested=385457 hits=11100 qRay=375931 overlap=0 subRayCalls=13045 subRayQueries=13045 subRaySkipped=2072521 subRaySkipStride=0 p2ForcePx=0 p2ForceInstabilityPx=0 p2ForcePrevHitLostPx=0 p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=11100 pixNew=11100 backfaceNdotV=0 skipSegs=0 forceSegs=8031 avgP2Stride=2.83
+Film physics summary: avgSegPerPixel=39.79 avgSegsTestedPerPixel=6.69 avgSubsteps=1.00 hitPct=19.27%
+Film timings(ms): pass1=1327.60 pass2.physics=1794.55 pass2.shading=10.31 film.update=0.65 overlay.build=0.00 overlay.enqueue=0.00
+Film avg(ms): pass1=4424.98 pass2.physics=1935.74 pass2.shading=14.38 film.update=0.57 overlay.build=0.00 overlay.enqueue=0.00
+Film avg summary: avgSegPerPixel=29.17 avgSegsTestedPerPixel=5.80 avgSubsteps=1.01 hitPct=8.41% avgTracedPixels=80845.67 avgFilledPixels=323308.40 avgEffPx=57600.00
+FramePerf: Frame#434 ms(total=2826.44 tile=0.00 gen=0.00 p0=0.00 p1=1327.58 field=0.00 p2=1831.69 shade=10.31 upl=0.65) px=230400 rays=57600 seg=2292117 steps=2402375 tested=385457 fieldEvals=2349717 physQ=1156807 p1rc=767831 p1hit=4942 hits=11100 gridHitRate=0.000 grid(h=0 m=0) early(AABB=0 far=0 hitStopPx=4942) cache(h=1709636 m=375931) p2Skip(insight=0 overlap=0 qRay=2072521 single=0 stride=0 bestDist=0) p2Broad(qRayHit=13045 qRayMiss=2072521 overlapHit=0 overlapMiss=0) p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=11100 pixNew=11100
+FramePerf delta: tested/px=6.692 (d-1.445) physQ=1156807 (d-68073)
+[SoftGate] frame=434 enabled=1 minSeg=0.2 scoreThr=0.08 turnW=1 prevLost=0.75 rand=0.05 scoreBudget=128 considered=2072521 forced=0 attempts=0 hits=0 hitChange=0 newPx=0 budget{px=2 frame=192 sub=500 used=0 subUsed=0 exceeded=0} skipped=2072521 {seglen=2072521 scoreLow=0 randMiss=0 budAttempt=0 budSub=0 guard=0 other=0} metric[min=0 max=0 avg=0] qray[call=2085566 hit=13045 miss=2072521] px[traced=57600 filled=230400 eff=57600] segs[total=2292117 tested=385457] pass2Hits=11100
+[SoftGate][Dbg] attempts=0 hits=0 skipped{seglen=2072521 scoreLow=0 randMiss=0 budAttempt=0 budSub=0 guard=0 other=0}
+[SoftGate][WARN] minSegLen=0.2 > 1.5x estAvgSegLen=0.106; consider minSegLen~0.106.
+[SoftGate][WARN] enabled but no attempts: check gating (minSegLen/score/random) summary above.
+Set UpdateEveryFrame
+Film RenderStep running. rowCursor=0 cam=/root/Node3D/Camera3D
+fieldSnaps=3 hasSources=True
+AutoRange Far=4.208  (MaxDistance export=15)
+Film band y=[0,84) hits=4230 avgStepsPerTracedPx=44.22
+RenderStep 767.33 ms  rows=84  jobs=8  hits=4230
+pass1=298.80ms  pass2=468.29ms  total=767.09ms
