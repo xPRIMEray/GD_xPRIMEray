@@ -540,6 +540,13 @@ DebugNormalLen = 0.295
 [node name="GrinField3D" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3563714, 2.303526, -2.0074396)
 script = ExtResource("3_77dp3")
+Pass2QuickRaySoftGate = true
+SoftGateMaxAttemptsPerFrame = 50
+SoftGateMaxSubdividedCallsPerFrame = 20
+SoftGateWatchdogMs = 50.0
+SoftGateDebugVerbosity = 3
+Pass2SoftGateEveryNSegments = 15
+MinSegLenForSoftGate = 0.05
 RayBeamRendererPath = NodePath("../RayBeamRenderer")
 FilmViewPath = NodePath("../CanvasLayer/FilmView")
 FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
@@ -566,18 +573,11 @@ UsePass2CollisionStride = true
 MinSegLenForStrideSkip = 1.0
 Pass2HitFromInside = false
 Pass2ForceIfPrevHitLost = true
-Pass2QuickRaySoftGate = true
-Pass2SoftGateEveryNSegments = 15
-MinSegLenForSoftGate = 0.05
-SoftGateMaxAttemptsPerFrame = 50
-SoftGateMaxSubdividedCallsPerFrame = 20
-SoftGateWatchdogMs = 50.0
 UseBroadphasePolicy = true
 UseSingleProbeThenSubdivide = true
 NearestHitOnly = false
 ShadingMode = 3
 FlipNormalToCamera = false
-SoftGateDebugVerbosity = 3
 UseSmoothNormals = true
 
 [node name="FieldSource3D" type="Node3D" parent="."]
