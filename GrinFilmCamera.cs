@@ -419,12 +419,12 @@ public partial class GrinFilmCamera : Node
 		public double SoftGateMetricMax;
 		public double SoftGateMetricSum;
 		public long SoftGateMetricCount;
-		public long SkipDisabled;
-		public long SkipEveryNsegZero;
 		public long SkipSegLenTooShort;
-		public long SkipNoCandidate;
-		public long SkipNanMetric;
-		public long SkipBudgetExceeded;
+		public long SkipScoreTooLow;
+		public long SkipRandomNotSelected;
+		public long SkipBudgetAttemptCap;
+		public long SkipBudgetSubdivideCap;
+		public long SkipGuard;
 		public long SkipOther;
 	}
 
@@ -448,12 +448,13 @@ public partial class GrinFilmCamera : Node
 	{
 		Allow = 0,
 		Disabled,
-		EveryNsegZero,
 		SegLenTooShort,
-		NoCandidate,
 		NanMetric,
-		BudgetExceeded,
-		CadenceMiss,
+		ScoreTooLow,
+		RandomNotSelected,
+		BudgetAttemptCap,
+		BudgetSubdivideCap,
+		Guard,
 		Other
 	}
 
@@ -1110,30 +1111,34 @@ public partial class GrinFilmCamera : Node
 				switch (reason)
 				{
 					case SoftGateDecisionReason.Disabled:
-						_softGateFrame.SkipDisabled++;
-						if (softGateBandEnabled) _softGateBand.SkipDisabled++;
-						break;
-					case SoftGateDecisionReason.EveryNsegZero:
-						_softGateFrame.SkipEveryNsegZero++;
-						if (softGateBandEnabled) _softGateBand.SkipEveryNsegZero++;
+						_softGateFrame.SkipOther++;
+						if (softGateBandEnabled) _softGateBand.SkipOther++;
 						break;
 					case SoftGateDecisionReason.SegLenTooShort:
 						_softGateFrame.SkipSegLenTooShort++;
 						if (softGateBandEnabled) _softGateBand.SkipSegLenTooShort++;
 						break;
-					case SoftGateDecisionReason.NoCandidate:
-						_softGateFrame.SkipNoCandidate++;
-						if (softGateBandEnabled) _softGateBand.SkipNoCandidate++;
+					case SoftGateDecisionReason.ScoreTooLow:
+						_softGateFrame.SkipScoreTooLow++;
+						if (softGateBandEnabled) _softGateBand.SkipScoreTooLow++;
+						break;
+					case SoftGateDecisionReason.RandomNotSelected:
+						_softGateFrame.SkipRandomNotSelected++;
+						if (softGateBandEnabled) _softGateBand.SkipRandomNotSelected++;
+						break;
+					case SoftGateDecisionReason.BudgetAttemptCap:
+						_softGateFrame.SkipBudgetAttemptCap++;
+						if (softGateBandEnabled) _softGateBand.SkipBudgetAttemptCap++;
+						break;
+					case SoftGateDecisionReason.BudgetSubdivideCap:
+						_softGateFrame.SkipBudgetSubdivideCap++;
+						if (softGateBandEnabled) _softGateBand.SkipBudgetSubdivideCap++;
+						break;
+					case SoftGateDecisionReason.Guard:
+						_softGateFrame.SkipGuard++;
+						if (softGateBandEnabled) _softGateBand.SkipGuard++;
 						break;
 					case SoftGateDecisionReason.NanMetric:
-						_softGateFrame.SkipNanMetric++;
-						if (softGateBandEnabled) _softGateBand.SkipNanMetric++;
-						break;
-					case SoftGateDecisionReason.BudgetExceeded:
-						_softGateFrame.SkipBudgetExceeded++;
-						if (softGateBandEnabled) _softGateBand.SkipBudgetExceeded++;
-						break;
-					case SoftGateDecisionReason.CadenceMiss:
 					case SoftGateDecisionReason.Other:
 					default:
 						_softGateFrame.SkipOther++;
@@ -1210,13 +1215,14 @@ public partial class GrinFilmCamera : Node
 					return false;
 				}
 
-				bool budgetOk = (Pass2SoftGateMaxAttemptsPerPixel > 0 && attemptsThisPixel < Pass2SoftGateMaxAttemptsPerPixel)
-					&& (Pass2SoftGateMaxAttemptsPerFrame > 0 && _softGateAttemptsUsedThisFrame < Pass2SoftGateMaxAttemptsPerFrame)
-					&& (Pass2SoftGateMaxSubdividedCallsPerFrame > 0 && _softGateSubdividedCallsUsedThisFrame < Pass2SoftGateMaxSubdividedCallsPerFrame);
-				if (!budgetOk)
+				bool attemptBudgetOk = (Pass2SoftGateMaxAttemptsPerPixel > 0 && attemptsThisPixel < Pass2SoftGateMaxAttemptsPerPixel)
+					&& (Pass2SoftGateMaxAttemptsPerFrame > 0 && _softGateAttemptsUsedThisFrame < Pass2SoftGateMaxAttemptsPerFrame);
+				bool subdivideBudgetOk = Pass2SoftGateMaxSubdividedCallsPerFrame > 0
+					&& _softGateSubdividedCallsUsedThisFrame < Pass2SoftGateMaxSubdividedCallsPerFrame;
+				if (!attemptBudgetOk || !subdivideBudgetOk)
 				{
 					budgetExceeded++;
-					reason = SoftGateDecisionReason.BudgetExceeded;
+					reason = attemptBudgetOk ? SoftGateDecisionReason.BudgetSubdivideCap : SoftGateDecisionReason.BudgetAttemptCap;
 					SoftGateRecordSkip(reason);
 					LogSoftGateSample(
 						segIndex,
@@ -1345,14 +1351,15 @@ public partial class GrinFilmCamera : Node
 				// Score threshold: only trigger when instability evidence is strong enough.
 				if (!scoreHit)
 				{
-					reason = SoftGateDecisionReason.CadenceMiss;
+					bool randEnabled = Pass2SoftGateRandomProbeChance > 0f;
+					reason = randEnabled ? SoftGateDecisionReason.RandomNotSelected : SoftGateDecisionReason.ScoreTooLow;
 					SoftGateRecordSkip(reason);
 					return false;
 				}
 
 				if (Pass2SoftGateScoreBudgetPerFrame > 0 && _p2SoftGateUsedThisFrame >= Pass2SoftGateScoreBudgetPerFrame)
 				{
-					reason = SoftGateDecisionReason.BudgetExceeded;
+					reason = SoftGateDecisionReason.BudgetAttemptCap;
 					SoftGateRecordSkip(reason);
 					return false;
 				}
@@ -1379,23 +1386,26 @@ public partial class GrinFilmCamera : Node
 					case SoftGateDecisionReason.Disabled:
 						reasonText = "disabled";
 						break;
-					case SoftGateDecisionReason.EveryNsegZero:
-						reasonText = "nseg0";
-						break;
-					case SoftGateDecisionReason.NoCandidate:
-						reasonText = "no_candidate";
-						break;
 					case SoftGateDecisionReason.NanMetric:
 						reasonText = "nan";
-						break;
-					case SoftGateDecisionReason.BudgetExceeded:
-						reasonText = "budget";
 						break;
 					case SoftGateDecisionReason.SegLenTooShort:
 						reasonText = "seglen_short";
 						break;
-					case SoftGateDecisionReason.CadenceMiss:
-						reasonText = "score_skip";
+					case SoftGateDecisionReason.ScoreTooLow:
+						reasonText = "score_low";
+						break;
+					case SoftGateDecisionReason.RandomNotSelected:
+						reasonText = "rand_miss";
+						break;
+					case SoftGateDecisionReason.BudgetAttemptCap:
+						reasonText = "budget_attempt";
+						break;
+					case SoftGateDecisionReason.BudgetSubdivideCap:
+						reasonText = "budget_sub";
+						break;
+					case SoftGateDecisionReason.Guard:
+						reasonText = "guard";
 						break;
 					case SoftGateDecisionReason.Allow:
 						reasonText = "allow";
@@ -2027,6 +2037,7 @@ public partial class GrinFilmCamera : Node
 										{
 											softGateLoopGuardTripped++;
 											softGateWatchdogTrippedThisPixel = true;
+											SoftGateRecordSkip(SoftGateDecisionReason.Guard);
 											if (Pass2SoftGateDebugEnabled && _softGateWatchdogLogsRemaining > 0)
 											{
 												_softGateWatchdogLogsRemaining--;
@@ -2527,6 +2538,31 @@ public partial class GrinFilmCamera : Node
 					GD.Print(BuildSoftGateDebugSummary(_softGateFrame));
 					_softGateSummaryLogsRemaining--;
 				}
+
+				bool haveAutoRangeFar = AutoRangeDepth && float.IsFinite(_rangeFar) && _rangeFar > 0f;
+				bool haveAvgSegPerPixel = _softGateFrame.TracedPixels > 0 && _softGateFrame.SegsTotal > 0;
+				if (haveAutoRangeFar && haveAvgSegPerPixel)
+				{
+					double avgSegPerPixel = (double)_softGateFrame.SegsTotal / Math.Max(1.0, _softGateFrame.TracedPixels);
+					double estimateAvgSegLen = _rangeFar / Math.Max(1.0, avgSegPerPixel);
+					if (_softGateFrame.SoftGateMinSegLen > 1.5f * estimateAvgSegLen)
+					{
+						GD.Print($"[SoftGate][WARN] minSegLen={_softGateFrame.SoftGateMinSegLen:0.###} > 1.5x estAvgSegLen={estimateAvgSegLen:0.###}; consider minSegLen~{estimateAvgSegLen:0.###}.");
+					}
+				}
+
+				if (_softGateFrame.SoftGateForced > 0 && _softGateFrame.SoftGateAttempts == 0)
+				{
+					GetTopSoftGateSkipReasons(_softGateFrame, out string top1, out long top1Count, out string top2, out long top2Count);
+					GD.Print("[SoftGate][WARN] forced>0 but attempts=0: topSkips="
+						+ top1 + "(" + top1Count + "), "
+						+ top2 + "(" + top2Count + ") "
+						+ "budget{px=" + _softGateFrame.Pass2SoftGateMaxAttemptsPerPixel
+						+ " frame=" + _softGateFrame.Pass2SoftGateMaxAttemptsPerFrame
+						+ " sub=" + _softGateFrame.Pass2SoftGateMaxSubdividedCallsPerFrame
+						+ " score=" + _softGateFrame.SoftGateMaxAttemptsPerFrameV2
+						+ "}");
+				}
 				if (_softGateFrame.SoftGateEnabled && _softGateFrame.SoftGateConsidered > 0 && _softGateFrame.SoftGateAttempts == 0)
 				{
 					GD.Print("[SoftGate][WARN] enabled but no attempts: check gating (minSegLen/score/random) summary above.");
@@ -3001,6 +3037,45 @@ public partial class GrinFilmCamera : Node
 		};
 	}
 
+	private static void GetTopSoftGateSkipReasons(
+		in SoftGateDebugCounters c,
+		out string firstReason,
+		out long firstCount,
+		out string secondReason,
+		out long secondCount)
+	{
+		firstReason = "none";
+		secondReason = "none";
+		firstCount = 0;
+		secondCount = 0;
+
+		void Consider(string name, long count)
+		{
+			if (count <= 0) return;
+			if (count > firstCount)
+			{
+				secondCount = firstCount;
+				secondReason = firstReason;
+				firstCount = count;
+				firstReason = name;
+				return;
+			}
+			if (count > secondCount)
+			{
+				secondCount = count;
+				secondReason = name;
+			}
+		}
+
+		Consider("segLenTooShort", c.SkipSegLenTooShort);
+		Consider("scoreTooLow", c.SkipScoreTooLow);
+		Consider("randomNotSelected", c.SkipRandomNotSelected);
+		Consider("budgetAttemptCap", c.SkipBudgetAttemptCap);
+		Consider("budgetSubdivideCap", c.SkipBudgetSubdivideCap);
+		Consider("guard", c.SkipGuard);
+		Consider("other", c.SkipOther);
+	}
+
 	private static string BuildSoftGateFrameSummary(in SoftGateDebugCounters c, string extraContext)
 	{
 		double metricAvg = c.SoftGateMetricCount > 0 ? c.SoftGateMetricSum / c.SoftGateMetricCount : 0.0;
@@ -3030,12 +3105,12 @@ public partial class GrinFilmCamera : Node
 			.Append(" exceeded=").Append(c.SoftGateBudgetExceeded)
 			.Append("}")
 			.Append(" skipped=").Append(c.SoftGateSkipped)
-			.Append(" {disabled=").Append(c.SkipDisabled)
-			.Append(" nseg0=").Append(c.SkipEveryNsegZero)
-			.Append(" seglen=").Append(c.SkipSegLenTooShort)
-			.Append(" noCand=").Append(c.SkipNoCandidate)
-			.Append(" nan=").Append(c.SkipNanMetric)
-			.Append(" budget=").Append(c.SkipBudgetExceeded)
+			.Append(" {seglen=").Append(c.SkipSegLenTooShort)
+			.Append(" scoreLow=").Append(c.SkipScoreTooLow)
+			.Append(" randMiss=").Append(c.SkipRandomNotSelected)
+			.Append(" budAttempt=").Append(c.SkipBudgetAttemptCap)
+			.Append(" budSub=").Append(c.SkipBudgetSubdivideCap)
+			.Append(" guard=").Append(c.SkipGuard)
 			.Append(" other=").Append(c.SkipOther)
 			.Append("} ")
 			.Append("metric[min=").Append(metricMin.ToString("0.###"))
@@ -3046,6 +3121,13 @@ public partial class GrinFilmCamera : Node
 			.Append(" hit=").Append(c.QRayHit)
 			.Append(" miss=").Append(c.QRayMiss)
 			.Append("]");
+
+		if (c.SoftGateMetricCount > 0 && c.SoftGateScoreThreshold > metricMax)
+		{
+			sb.Append(" ScoreThr=").Append(c.SoftGateScoreThreshold.ToString("0.###"))
+				.Append(" > maxObserved=").Append(metricMax.ToString("0.###"))
+				.Append(" -> will rarely/never attempt.");
+		}
 
 		if (!string.IsNullOrEmpty(extraContext))
 		{
@@ -3060,12 +3142,12 @@ public partial class GrinFilmCamera : Node
 		StringBuilder sb = new StringBuilder(180);
 		sb.Append("[SoftGate][Dbg] attempts=").Append(c.SoftGateAttempts)
 			.Append(" hits=").Append(c.SoftGateHits)
-			.Append(" skipped{disabled=").Append(c.SkipDisabled)
-			.Append(" nseg0=").Append(c.SkipEveryNsegZero)
-			.Append(" seglen=").Append(c.SkipSegLenTooShort)
-			.Append(" noCand=").Append(c.SkipNoCandidate)
-			.Append(" nan=").Append(c.SkipNanMetric)
-			.Append(" budget=").Append(c.SkipBudgetExceeded)
+			.Append(" skipped{seglen=").Append(c.SkipSegLenTooShort)
+			.Append(" scoreLow=").Append(c.SkipScoreTooLow)
+			.Append(" randMiss=").Append(c.SkipRandomNotSelected)
+			.Append(" budAttempt=").Append(c.SkipBudgetAttemptCap)
+			.Append(" budSub=").Append(c.SkipBudgetSubdivideCap)
+			.Append(" guard=").Append(c.SkipGuard)
 			.Append(" other=").Append(c.SkipOther)
 			.Append("}");
 		return sb.ToString();
