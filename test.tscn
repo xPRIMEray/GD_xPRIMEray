@@ -546,10 +546,10 @@ Pass2SoftGateMaxAttemptsPerFrameMin = 10
 Pass2SoftGateMaxAttemptsPerFrameMax = 500
 Pass2SoftGateMaxSubdividedCallsPerFrame = 100
 Pass2SoftGateMaxSubdividedCallsPerFrameMax = 500
-Pass2SoftGateDebugSummaryPerFrame = true
 Pass2SoftGateScoreBudgetPerFrame = 128
 Pass2SoftGateScoreThreshold = 0.08
 Pass2SoftGateRandomProbeChance = 0.05
+Pass2SoftGateDebugSummaryPerFrame = true
 RayBeamRendererPath = NodePath("../RayBeamRenderer")
 FilmViewPath = NodePath("../CanvasLayer/FilmView")
 FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
@@ -584,7 +584,6 @@ UseSingleProbeThenSubdivide = true
 NearestHitOnly = false
 ShadingMode = 3
 FlipNormalToCamera = false
-UseSmoothNormals = true
 
 [node name="FieldSource3D" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.41781783, 1.8735187, -0.49812222)

@@ -9,3 +9,6 @@ res://RayBeamRenderer.cs
 res://RayViz.cs
 res://FilmOverlay2D.cs
 res://addons/grin_inspector_help/GrinInspectorHelpInspector.cs
+res://test.tscn
+res://curved_view.gdshader
+res://curved_ray_postprocess.gdshader
