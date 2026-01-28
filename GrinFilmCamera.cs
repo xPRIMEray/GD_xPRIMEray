@@ -677,6 +677,20 @@ public partial class GrinFilmCamera : Node
 				}
 			}
 
+			int effectiveMaxMs = RenderStepMaxMs;
+			if (UpdateEveryFrame)
+			{
+				if (effectiveMaxMs <= 0) effectiveMaxMs = TargetMsPerFrame;
+				if (effectiveMaxMs <= 0) effectiveMaxMs = 8;
+			}
+			bool softGateEnabledNow = Pass2SoftGateEnableQuickRayMiss && Pass2SoftGateScoringEnabled;
+			int bandH = 0;
+			int bandTracedPixels = 0;
+			long bandSegsTested = 0;
+			long bandPhysicsQueries = 0;
+			int maxAttemptsAnyPixelThisBand = 0;
+			int maxSubdividesAnyPixelThisBand = 0;
+
 			void LogRenderPhase(string phase)
 			{
 				GD.Print(
@@ -689,12 +703,12 @@ public partial class GrinFilmCamera : Node
 
 			bool CheckRenderStepWatchdog()
 			{
-				if (RenderStepMaxMs <= 0) return false;
-				if (renderStepWatch.ElapsedMilliseconds <= RenderStepMaxMs) return false;
+				if (effectiveMaxMs <= 0) return false;
+				if (renderStepWatch.ElapsedMilliseconds <= effectiveMaxMs) return false;
 				if (!renderStepAbort)
 				{
 					renderStepAbort = true;
-					if (DisableSoftGateOnOverload)
+					if (DisableSoftGateOnOverload && softGateEnabledNow)
 						DisableSoftGateThisFrame("renderstep_watchdog");
 				}
 				return true;
@@ -714,6 +728,24 @@ public partial class GrinFilmCamera : Node
 						$"attempts={_softGateAttemptsUsedThisFrame}/{pass2SoftGateMaxAttemptsPerFrameEffective} " +
 						$"sub={_softGateSubdividedCallsUsedThisFrame}/{pass2SoftGateMaxSubdividedCallsPerFrameEffective} " +
 						$"ms={renderStepWatch.ElapsedMilliseconds}");
+				}
+				bool budgetAbort = reason == "watchdog"
+					|| (softGateDisabledThisFrame && softGateDisableReason.StartsWith("budget", StringComparison.Ordinal));
+				if (budgetAbort)
+				{
+					long qRayCalls = softGateDebugEnabled ? _softGateFrame.QRayCalls : 0;
+					long qRayHit = softGateDebugEnabled ? _softGateFrame.QRayHit : 0;
+					long qRayMiss = softGateDebugEnabled ? _softGateFrame.QRayMiss : 0;
+					int subCalls = statsEnabled ? _perfFrame.SubdividedRayCalls : 0;
+					int subSteps = statsEnabled ? _perfFrame.SubdividedRaySubsteps : 0;
+					GD.PrintErr(
+						$"[RenderStep][Budget] reason={reason} frame={_frameIndex} row={_rowCursor} bandH={bandH} stride={stride} " +
+						$"elapsedMs={renderStepWatch.ElapsedMilliseconds} maxMs={effectiveMaxMs} " +
+						$"attempts={_softGateAttemptsUsedThisFrame}/{pass2SoftGateMaxAttemptsPerFrameEffective} " +
+						$"sub={_softGateSubdividedCallsUsedThisFrame}/{pass2SoftGateMaxSubdividedCallsPerFrameEffective} " +
+						$"maxPxAttempts={maxAttemptsAnyPixelThisBand} maxPxSub={maxSubdividesAnyPixelThisBand} " +
+						$"tracedPx={bandTracedPixels} segsTested={bandSegsTested} qRay={qRayCalls}/{qRayHit}/{qRayMiss} " +
+						$"physQ={bandPhysicsQueries} subCalls={subCalls} subSteps={subSteps}");
 				}
 				GD.PrintErr(
 					$"[RenderStep][Abort] reason={reason} frame={_frameIndex} row={_rowCursor} " +
@@ -833,7 +865,7 @@ public partial class GrinFilmCamera : Node
 			if (rowsPerFrame != _adaptiveRowsPerFrame)
 				_adaptiveRowsPerFrame = rowsPerFrame;
 			int yEnd = Mathf.Min(filmH, _rowCursor + rowsPerFrame);
-			int bandH = yEnd - yStart;
+			bandH = yEnd - yStart;
 			int pixelCount = bandH * filmW;
 			if (RenderStepMaxPixelsPerFrame > 0 && pixelCount > RenderStepMaxPixelsPerFrame)
 			{
@@ -1140,11 +1172,11 @@ public partial class GrinFilmCamera : Node
 			// ---- PASS 2 (main thread): collisions + shading ----
 			LogRenderPhase("pass2-start");
 			bandHits = 0;
-			int bandTracedPixels = 0;
+			bandTracedPixels = 0;
 			long shadeUsecAccum = 0;
 			long bandSegsIntegrated = 0;
-			long bandSegsTested = 0;
-			long bandPhysicsQueries = 0;
+			bandSegsTested = 0;
+			bandPhysicsQueries = 0;
 			bool bandCountersEnabled = statsEnabled || framePerfEnabled;
 			int bandFilledPixels = 0;
 			// Pass-2 stride counters track expensive subdivided tests, not whole segments.
@@ -1791,6 +1823,7 @@ public partial class GrinFilmCamera : Node
 						bool testedAnyInPass0ThisPixel = false;
 						bool skippedAnyByStrideThisPixel = false;
 						int softGateAttemptsThisPixel = 0;
+						int softGateSubdividesThisPixel = 0;
 						bool segmentsMonotonic = true;
 						if (segCount > 1)
 						{
@@ -2250,21 +2283,31 @@ public partial class GrinFilmCamera : Node
 										int sub = 1;
 										if (segLen > _rbr.CollisionRaySubdivideThreshold)
 											sub = Mathf.CeilToInt(segLen / _rbr.CollisionRaySubdivideThreshold);
-									sub = Mathf.Clamp(sub, 1, _rbr.MaxCollisionSubsteps);
+										sub = Mathf.Clamp(sub, 1, _rbr.MaxCollisionSubsteps);
 
-									if (UseAdaptiveSubsteps)
-									{
-										float far = AutoRangeDepth ? _rangeFar : MaxDistance;
-										float t = Mathf.Clamp(seg.TraveledB / Mathf.Max(0.001f, far), 0f, 1f);
-										float minSub = Mathf.Max(1f, sub * 0.25f);
-										float scaled = Mathf.Lerp(sub, minSub, t);
-										sub = Mathf.Clamp(Mathf.RoundToInt(scaled), 1, _rbr.MaxCollisionSubsteps);
-									}
+										if (UseAdaptiveSubsteps)
+										{
+											float far = AutoRangeDepth ? _rangeFar : MaxDistance;
+											float t = Mathf.Clamp(seg.TraveledB / Mathf.Max(0.001f, far), 0f, 1f);
+											float minSub = Mathf.Max(1f, sub * 0.25f);
+											float scaled = Mathf.Lerp(sub, minSub, t);
+											sub = Mathf.Clamp(Mathf.RoundToInt(scaled), 1, _rbr.MaxCollisionSubsteps);
+										}
 
-									didHit = RayBeamRenderer.SubdividedRayHit(
-											space, segA, segB,
-											_rbr.CollisionMask,
-											sub,
+										if (softGateAttemptedRay)
+										{
+											softGateSubdividesThisPixel++;
+											if (CheckRenderStepWatchdog())
+											{
+												renderStepAbort = true;
+												softGateWatchdogTrippedThisPixel = true;
+												break;
+											}
+										}
+										didHit = RayBeamRenderer.SubdividedRayHit(
+												space, segA, segB,
+												_rbr.CollisionMask,
+												sub,
 											out hp, out hn, out cid, out cname,
 											out int rayQueries,
 											includeColliderName: needHitName,
@@ -2509,6 +2552,10 @@ public partial class GrinFilmCamera : Node
 						}
 						if (_pass2HadHitLostThisFrame.Length > globalPi)
 							_pass2HadHitLostThisFrame[globalPi] = (prevHadHitForSoftGate && !hadHit && testedAnyInPass0ThisPixel) ? (byte)1 : (byte)0;
+						if (softGateAttemptsThisPixel > maxAttemptsAnyPixelThisBand)
+							maxAttemptsAnyPixelThisBand = softGateAttemptsThisPixel;
+						if (softGateSubdividesThisPixel > maxSubdividesAnyPixelThisBand)
+							maxSubdividesAnyPixelThisBand = softGateSubdividesThisPixel;
 						////////////////////////////
 						/// 
 

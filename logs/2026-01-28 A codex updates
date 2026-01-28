@@ -1,0 +1,1024 @@
+Godot Engine v4.5.1.stable.mono.official.f62fdbde1 - https://godotengine.org
+OpenGL API 3.3.0 Core Profile Context 25.11.1.251104 - Compatibility - Using Device: ATI Technologies Inc. - AMD Radeon RX 6700 XT
+
+[DBG] dbgMesh inTree=True parent=RayBeamRenderer world=(0, 0, 0)
+✅ GrinFilmCamera READY: /root/Node3D/GrinField3D
+RayBeamRenderer found? True
+FilmView found? True
+✅ GrinFilmCamera ready. Rendering film.
+Rebuild ENTER
+Rebuild on node: /root/Node3D/RayBeamRenderer  TerminateTrailOnHit=True StopOnHit=False RequireHitToRender=False
+READY node: /root/Node3D/RayBeamRenderer  Script=<CSharpScript#-9223372009893788259>  TerminateTrailOnHit=True
+RayBeamRenderer: field sources in group = 3
+RayBeamRenderer: emitters in group = 1
+RayBeamRenderer: total instances target = 4590
+Rebuild EXIT
+Set UpdateEveryFrame
+[RenderStep] phase=enter frame=1 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=1
+Toggles: AdaptiveSubsteps=1 SingleProbeSubdivide=1 BandHitSkip=1 RequireHit=0 StopOnHit=0 TerminateTrailOnHit=1 UpdateEveryFrame=1
+[Cfg] Pass2SoftGateEnableQuickRayMiss=1 Pass2SoftGateScoringEnabled=1 Pass2SoftGateMinSegmentLength=0.1 Pass2SoftGateScoreThreshold=0.08 Pass2SoftGateScoreTurnAngleWeight=1 Pass2SoftGateScorePrevHitLostBonus=0.75 Pass2SoftGateRandomProbeChance=0.05 Pass2SoftGateScoreBudgetPerFrame=32 Pass2SoftGateMaxAttemptsPerPixel=2 Pass2SoftGateMaxAttemptsPerFrame=200 Pass2SoftGateMaxSubdividedCallsPerFrame=100 UpdateEveryFrame=1
+fieldSnaps=3 hasSources=True
+[RenderStep] phase=pass1-start frame=1 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=8
+[RenderStep] phase=pass1-end frame=1 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=79
+[RenderStep] phase=pass2-start frame=1 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=79
+[RenderStep] phase=softgate-loop frame=1 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=79
+[SoftGate][Cfg] segIndex=0 minSegLen=0.1 minSegSteps=0.95 effStepLen=0.105 scoreThr=0.08 turnW=1 prevLost=0.75 rand=0.05
+[SoftGate][Cfg] segIndex=1 minSegLen=0.1 minSegSteps=0.95 effStepLen=0.105 scoreThr=0.08 turnW=1 prevLost=0.75 rand=0.05
+[RenderStep] phase=enter frame=2 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=0
+fieldSnaps=3 hasSources=True
+[RenderStep] phase=pass1-start frame=2 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=2 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=68
+[RenderStep] phase=pass2-start frame=2 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=68
+[RenderStep] phase=softgate-loop frame=2 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=68
+[RenderStep] phase=enter frame=3 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=0
+fieldSnaps=3 hasSources=True
+[RenderStep] phase=pass1-start frame=3 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=3 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=74
+[RenderStep] phase=pass2-start frame=3 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=74
+[RenderStep] phase=softgate-loop frame=3 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=74
+[RenderStep] phase=enter frame=4 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=0
+fieldSnaps=3 hasSources=True
+[RenderStep] phase=pass1-start frame=4 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=4 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=61
+[RenderStep] phase=pass2-start frame=4 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=61
+[RenderStep] phase=softgate-loop frame=4 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=61
+[RenderStep] phase=enter frame=5 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=0
+fieldSnaps=3 hasSources=True
+[RenderStep] phase=pass1-start frame=5 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=61
+[RenderStep] phase=pass2-start frame=5 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=61
+[RenderStep] phase=softgate-loop frame=5 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=61
+  ERROR: [SoftGate][Disable] reason=budget_pixel frame=5 row=0 attempts=2/400 sub=2/200 ms=156
+AutoRange Far=4.966  (MaxDistance export=15)
+Film band y=[0,16) hits=915 avgStepsPerTracedPx=49.50
+RenderStep 157.91 ms  rows=16  jobs=8  hits=915
+pass1=61.90ms  pass2=94.62ms  total=156.52ms
+[RenderStep] phase=end frame=5 row=16 attempts=2/400 sub=2/200 pxCap=2 scoreCap=32 ms=157
+[RenderStep] phase=enter frame=5 row=16 attempts=2/400 sub=2/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=16 attempts=2/400 sub=2/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=16 attempts=2/400 sub=2/200 pxCap=2 scoreCap=32 ms=211
+[RenderStep] phase=pass2-start frame=5 row=16 attempts=2/400 sub=2/200 pxCap=2 scoreCap=32 ms=211
+[RenderStep] phase=softgate-loop frame=5 row=16 attempts=2/400 sub=2/200 pxCap=2 scoreCap=32 ms=211
+[RenderStep] phase=enter frame=5 row=16 attempts=3/400 sub=3/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=16 attempts=3/400 sub=3/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=16 attempts=3/400 sub=3/200 pxCap=2 scoreCap=32 ms=206
+[RenderStep] phase=pass2-start frame=5 row=16 attempts=3/400 sub=3/200 pxCap=2 scoreCap=32 ms=206
+[RenderStep] phase=softgate-loop frame=5 row=16 attempts=3/400 sub=3/200 pxCap=2 scoreCap=32 ms=206
+[RenderStep] phase=enter frame=5 row=16 attempts=4/400 sub=4/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=16 attempts=4/400 sub=4/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=16 attempts=4/400 sub=4/200 pxCap=2 scoreCap=32 ms=198
+[RenderStep] phase=pass2-start frame=5 row=16 attempts=4/400 sub=4/200 pxCap=2 scoreCap=32 ms=198
+[RenderStep] phase=softgate-loop frame=5 row=16 attempts=4/400 sub=4/200 pxCap=2 scoreCap=32 ms=198
+[RenderStep] phase=enter frame=5 row=16 attempts=5/400 sub=5/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=16 attempts=5/400 sub=5/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=16 attempts=5/400 sub=5/200 pxCap=2 scoreCap=32 ms=201
+[RenderStep] phase=pass2-start frame=5 row=16 attempts=5/400 sub=5/200 pxCap=2 scoreCap=32 ms=201
+[RenderStep] phase=softgate-loop frame=5 row=16 attempts=5/400 sub=5/200 pxCap=2 scoreCap=32 ms=201
+[RenderStep] phase=enter frame=5 row=16 attempts=6/400 sub=6/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=16 attempts=6/400 sub=6/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=16 attempts=6/400 sub=6/200 pxCap=2 scoreCap=32 ms=212
+[RenderStep] phase=pass2-start frame=5 row=16 attempts=6/400 sub=6/200 pxCap=2 scoreCap=32 ms=212
+[RenderStep] phase=softgate-loop frame=5 row=16 attempts=6/400 sub=6/200 pxCap=2 scoreCap=32 ms=212
+[RenderStep] phase=enter frame=5 row=16 attempts=7/400 sub=7/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=16 attempts=7/400 sub=7/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=16 attempts=7/400 sub=7/200 pxCap=2 scoreCap=32 ms=199
+[RenderStep] phase=pass2-start frame=5 row=16 attempts=7/400 sub=7/200 pxCap=2 scoreCap=32 ms=199
+[RenderStep] phase=softgate-loop frame=5 row=16 attempts=7/400 sub=7/200 pxCap=2 scoreCap=32 ms=199
+[RenderStep] phase=enter frame=5 row=16 attempts=8/400 sub=8/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=16 attempts=8/400 sub=8/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=16 attempts=8/400 sub=8/200 pxCap=2 scoreCap=32 ms=199
+[RenderStep] phase=pass2-start frame=5 row=16 attempts=8/400 sub=8/200 pxCap=2 scoreCap=32 ms=199
+[RenderStep] phase=softgate-loop frame=5 row=16 attempts=8/400 sub=8/200 pxCap=2 scoreCap=32 ms=199
+[RenderStep] phase=enter frame=5 row=16 attempts=9/400 sub=9/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=16 attempts=9/400 sub=9/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=16 attempts=9/400 sub=9/200 pxCap=2 scoreCap=32 ms=192
+[RenderStep] phase=pass2-start frame=5 row=16 attempts=9/400 sub=9/200 pxCap=2 scoreCap=32 ms=192
+[RenderStep] phase=softgate-loop frame=5 row=16 attempts=9/400 sub=9/200 pxCap=2 scoreCap=32 ms=192
+[RenderStep] phase=enter frame=5 row=16 attempts=10/400 sub=10/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=16 attempts=10/400 sub=10/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=16 attempts=10/400 sub=10/200 pxCap=2 scoreCap=32 ms=187
+[RenderStep] phase=pass2-start frame=5 row=16 attempts=10/400 sub=10/200 pxCap=2 scoreCap=32 ms=187
+[RenderStep] phase=softgate-loop frame=5 row=16 attempts=10/400 sub=10/200 pxCap=2 scoreCap=32 ms=187
+[RenderStep] phase=enter frame=5 row=16 attempts=11/400 sub=11/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=16 attempts=11/400 sub=11/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=16 attempts=11/400 sub=11/200 pxCap=2 scoreCap=32 ms=198
+[RenderStep] phase=pass2-start frame=5 row=16 attempts=11/400 sub=11/200 pxCap=2 scoreCap=32 ms=198
+[RenderStep] phase=softgate-loop frame=5 row=16 attempts=11/400 sub=11/200 pxCap=2 scoreCap=32 ms=198
+[RenderStep] phase=enter frame=5 row=16 attempts=12/400 sub=12/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=16 attempts=12/400 sub=12/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=16 attempts=12/400 sub=12/200 pxCap=2 scoreCap=32 ms=189
+[RenderStep] phase=pass2-start frame=5 row=16 attempts=12/400 sub=12/200 pxCap=2 scoreCap=32 ms=189
+[RenderStep] phase=softgate-loop frame=5 row=16 attempts=12/400 sub=12/200 pxCap=2 scoreCap=32 ms=189
+[RenderStep] phase=enter frame=5 row=16 attempts=13/400 sub=13/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=16 attempts=13/400 sub=13/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=16 attempts=13/400 sub=13/200 pxCap=2 scoreCap=32 ms=193
+[RenderStep] phase=pass2-start frame=5 row=16 attempts=13/400 sub=13/200 pxCap=2 scoreCap=32 ms=193
+[RenderStep] phase=softgate-loop frame=5 row=16 attempts=13/400 sub=13/200 pxCap=2 scoreCap=32 ms=193
+[RenderStep] phase=enter frame=5 row=16 attempts=14/400 sub=14/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=16 attempts=14/400 sub=14/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=16 attempts=14/400 sub=14/200 pxCap=2 scoreCap=32 ms=186
+[RenderStep] phase=pass2-start frame=5 row=16 attempts=14/400 sub=14/200 pxCap=2 scoreCap=32 ms=186
+[RenderStep] phase=softgate-loop frame=5 row=16 attempts=14/400 sub=14/200 pxCap=2 scoreCap=32 ms=186
+[RenderStep] phase=enter frame=5 row=16 attempts=15/400 sub=15/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=16 attempts=15/400 sub=15/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=16 attempts=15/400 sub=15/200 pxCap=2 scoreCap=32 ms=188
+[RenderStep] phase=pass2-start frame=5 row=16 attempts=15/400 sub=15/200 pxCap=2 scoreCap=32 ms=188
+[RenderStep] phase=softgate-loop frame=5 row=16 attempts=15/400 sub=15/200 pxCap=2 scoreCap=32 ms=188
+[RenderStep] phase=enter frame=5 row=16 attempts=16/400 sub=16/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=16 attempts=16/400 sub=16/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=16 attempts=16/400 sub=16/200 pxCap=2 scoreCap=32 ms=188
+[RenderStep] phase=pass2-start frame=5 row=16 attempts=16/400 sub=16/200 pxCap=2 scoreCap=32 ms=188
+[RenderStep] phase=softgate-loop frame=5 row=16 attempts=16/400 sub=16/200 pxCap=2 scoreCap=32 ms=188
+[RenderStep] phase=enter frame=5 row=16 attempts=17/400 sub=17/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=16 attempts=17/400 sub=17/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=16 attempts=17/400 sub=17/200 pxCap=2 scoreCap=32 ms=195
+[RenderStep] phase=pass2-start frame=5 row=16 attempts=17/400 sub=17/200 pxCap=2 scoreCap=32 ms=195
+[RenderStep] phase=softgate-loop frame=5 row=16 attempts=17/400 sub=17/200 pxCap=2 scoreCap=32 ms=195
+[RenderStep] phase=enter frame=5 row=16 attempts=18/400 sub=18/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=16 attempts=18/400 sub=18/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=16 attempts=18/400 sub=18/200 pxCap=2 scoreCap=32 ms=192
+[RenderStep] phase=pass2-start frame=5 row=16 attempts=18/400 sub=18/200 pxCap=2 scoreCap=32 ms=192
+[RenderStep] phase=softgate-loop frame=5 row=16 attempts=18/400 sub=18/200 pxCap=2 scoreCap=32 ms=192
+[RenderStep] phase=enter frame=5 row=16 attempts=19/400 sub=19/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=16 attempts=19/400 sub=19/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=16 attempts=19/400 sub=19/200 pxCap=2 scoreCap=32 ms=191
+[RenderStep] phase=pass2-start frame=5 row=16 attempts=19/400 sub=19/200 pxCap=2 scoreCap=32 ms=191
+[RenderStep] phase=softgate-loop frame=5 row=16 attempts=19/400 sub=19/200 pxCap=2 scoreCap=32 ms=191
+  ERROR: [SoftGate][Disable] reason=budget_pixel frame=5 row=16 attempts=21/400 sub=21/200 ms=507
+Film band y=[16,67) hits=2575 avgStepsPerTracedPx=48.89
+RenderStep 508.29 ms  rows=51  jobs=8  hits=2575
+pass1=191.16ms  pass2=316.21ms  total=507.37ms
+[RenderStep] phase=end frame=5 row=67 attempts=21/400 sub=21/200 pxCap=2 scoreCap=32 ms=508
+[RenderStep] phase=enter frame=5 row=67 attempts=21/400 sub=21/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=67 attempts=21/400 sub=21/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=67 attempts=21/400 sub=21/200 pxCap=2 scoreCap=32 ms=221
+[RenderStep] phase=pass2-start frame=5 row=67 attempts=21/400 sub=21/200 pxCap=2 scoreCap=32 ms=221
+[RenderStep] phase=softgate-loop frame=5 row=67 attempts=21/400 sub=21/200 pxCap=2 scoreCap=32 ms=221
+[RenderStep] phase=enter frame=5 row=67 attempts=22/400 sub=22/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=67 attempts=22/400 sub=22/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=67 attempts=22/400 sub=22/200 pxCap=2 scoreCap=32 ms=199
+[RenderStep] phase=pass2-start frame=5 row=67 attempts=22/400 sub=22/200 pxCap=2 scoreCap=32 ms=199
+[RenderStep] phase=softgate-loop frame=5 row=67 attempts=22/400 sub=22/200 pxCap=2 scoreCap=32 ms=199
+[RenderStep] phase=enter frame=5 row=67 attempts=23/400 sub=23/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=67 attempts=23/400 sub=23/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=67 attempts=23/400 sub=23/200 pxCap=2 scoreCap=32 ms=179
+[RenderStep] phase=pass2-start frame=5 row=67 attempts=23/400 sub=23/200 pxCap=2 scoreCap=32 ms=179
+[RenderStep] phase=softgate-loop frame=5 row=67 attempts=23/400 sub=23/200 pxCap=2 scoreCap=32 ms=179
+[RenderStep] phase=enter frame=5 row=67 attempts=24/400 sub=24/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=67 attempts=24/400 sub=24/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=67 attempts=24/400 sub=24/200 pxCap=2 scoreCap=32 ms=184
+[RenderStep] phase=pass2-start frame=5 row=67 attempts=24/400 sub=24/200 pxCap=2 scoreCap=32 ms=184
+[RenderStep] phase=softgate-loop frame=5 row=67 attempts=24/400 sub=24/200 pxCap=2 scoreCap=32 ms=184
+  ERROR: [SoftGate][Disable] reason=budget_pixel frame=5 row=67 attempts=26/400 sub=26/200 ms=500
+Film band y=[67,117) hits=1945 avgStepsPerTracedPx=49.06
+RenderStep 501.14 ms  rows=50  jobs=8  hits=1945
+pass1=184.95ms  pass2=316.00ms  total=500.95ms
+[RenderStep] phase=end frame=5 row=117 attempts=26/400 sub=26/200 pxCap=2 scoreCap=32 ms=501
+[RenderStep] phase=enter frame=5 row=117 attempts=26/400 sub=26/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=117 attempts=26/400 sub=26/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=117 attempts=26/400 sub=26/200 pxCap=2 scoreCap=32 ms=213
+[RenderStep] phase=pass2-start frame=5 row=117 attempts=26/400 sub=26/200 pxCap=2 scoreCap=32 ms=213
+[RenderStep] phase=softgate-loop frame=5 row=117 attempts=26/400 sub=26/200 pxCap=2 scoreCap=32 ms=213
+[RenderStep] phase=enter frame=5 row=117 attempts=27/400 sub=27/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=117 attempts=27/400 sub=27/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=117 attempts=27/400 sub=27/200 pxCap=2 scoreCap=32 ms=196
+[RenderStep] phase=pass2-start frame=5 row=117 attempts=27/400 sub=27/200 pxCap=2 scoreCap=32 ms=196
+[RenderStep] phase=softgate-loop frame=5 row=117 attempts=27/400 sub=27/200 pxCap=2 scoreCap=32 ms=196
+Film hit: dist=2.693 name=<StaticBody3D#30366762556> mode=TwoSidedNdotV
+  ERROR: [SoftGate][Disable] reason=budget_pixel frame=5 row=117 attempts=29/400 sub=29/200 ms=489
+Film band y=[117,167) hits=1504 avgStepsPerTracedPx=48.24
+RenderStep 489.75 ms  rows=50  jobs=8  hits=1504
+pass1=196.32ms  pass2=293.03ms  total=489.35ms
+[RenderStep] phase=end frame=5 row=167 attempts=29/400 sub=29/200 pxCap=2 scoreCap=32 ms=489
+[RenderStep] phase=enter frame=5 row=167 attempts=29/400 sub=29/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=167 attempts=29/400 sub=29/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=167 attempts=29/400 sub=29/200 pxCap=2 scoreCap=32 ms=202
+[RenderStep] phase=pass2-start frame=5 row=167 attempts=29/400 sub=29/200 pxCap=2 scoreCap=32 ms=202
+[RenderStep] phase=softgate-loop frame=5 row=167 attempts=29/400 sub=29/200 pxCap=2 scoreCap=32 ms=202
+[RenderStep] phase=enter frame=5 row=167 attempts=30/400 sub=30/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=167 attempts=30/400 sub=30/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=167 attempts=30/400 sub=30/200 pxCap=2 scoreCap=32 ms=175
+[RenderStep] phase=pass2-start frame=5 row=167 attempts=30/400 sub=30/200 pxCap=2 scoreCap=32 ms=175
+[RenderStep] phase=softgate-loop frame=5 row=167 attempts=30/400 sub=30/200 pxCap=2 scoreCap=32 ms=175
+[RenderStep] phase=enter frame=5 row=167 attempts=31/400 sub=31/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=167 attempts=31/400 sub=31/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=167 attempts=31/400 sub=31/200 pxCap=2 scoreCap=32 ms=184
+[RenderStep] phase=pass2-start frame=5 row=167 attempts=31/400 sub=31/200 pxCap=2 scoreCap=32 ms=184
+[RenderStep] phase=softgate-loop frame=5 row=167 attempts=31/400 sub=31/200 pxCap=2 scoreCap=32 ms=184
+[RenderStep] phase=enter frame=5 row=167 attempts=32/400 sub=32/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=167 attempts=32/400 sub=32/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=167 attempts=32/400 sub=32/200 pxCap=2 scoreCap=32 ms=188
+[RenderStep] phase=pass2-start frame=5 row=167 attempts=32/400 sub=32/200 pxCap=2 scoreCap=32 ms=188
+[RenderStep] phase=softgate-loop frame=5 row=167 attempts=32/400 sub=32/200 pxCap=2 scoreCap=32 ms=188
+[RenderStep] phase=enter frame=5 row=167 attempts=33/400 sub=33/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=167 attempts=33/400 sub=33/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=167 attempts=33/400 sub=33/200 pxCap=2 scoreCap=32 ms=175
+[RenderStep] phase=pass2-start frame=5 row=167 attempts=33/400 sub=33/200 pxCap=2 scoreCap=32 ms=175
+[RenderStep] phase=softgate-loop frame=5 row=167 attempts=33/400 sub=33/200 pxCap=2 scoreCap=32 ms=175
+Film hit: dist=2.206 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+  ERROR: [SoftGate][Disable] reason=budget_pixel frame=5 row=167 attempts=35/400 sub=35/200 ms=449
+Film band y=[167,218) hits=1795 avgStepsPerTracedPx=45.87
+RenderStep 449.44 ms  rows=51  jobs=8  hits=1795
+pass1=175.31ms  pass2=273.93ms  total=449.24ms
+[RenderStep] phase=end frame=5 row=218 attempts=35/400 sub=35/200 pxCap=2 scoreCap=32 ms=449
+[RenderStep] phase=enter frame=5 row=218 attempts=35/400 sub=35/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=218 attempts=35/400 sub=35/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=218 attempts=35/400 sub=35/200 pxCap=2 scoreCap=32 ms=219
+[RenderStep] phase=pass2-start frame=5 row=218 attempts=35/400 sub=35/200 pxCap=2 scoreCap=32 ms=219
+[RenderStep] phase=softgate-loop frame=5 row=218 attempts=35/400 sub=35/200 pxCap=2 scoreCap=32 ms=219
+[RenderStep] phase=enter frame=5 row=218 attempts=36/400 sub=36/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=218 attempts=36/400 sub=36/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=218 attempts=36/400 sub=36/200 pxCap=2 scoreCap=32 ms=209
+[RenderStep] phase=pass2-start frame=5 row=218 attempts=36/400 sub=36/200 pxCap=2 scoreCap=32 ms=209
+[RenderStep] phase=softgate-loop frame=5 row=218 attempts=36/400 sub=36/200 pxCap=2 scoreCap=32 ms=209
+[RenderStep] phase=enter frame=5 row=218 attempts=37/400 sub=37/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=218 attempts=37/400 sub=37/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=218 attempts=37/400 sub=37/200 pxCap=2 scoreCap=32 ms=210
+[RenderStep] phase=pass2-start frame=5 row=218 attempts=37/400 sub=37/200 pxCap=2 scoreCap=32 ms=211
+[RenderStep] phase=softgate-loop frame=5 row=218 attempts=37/400 sub=37/200 pxCap=2 scoreCap=32 ms=211
+[RenderStep] phase=enter frame=5 row=218 attempts=38/400 sub=38/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=218 attempts=38/400 sub=38/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=218 attempts=38/400 sub=38/200 pxCap=2 scoreCap=32 ms=200
+[RenderStep] phase=pass2-start frame=5 row=218 attempts=38/400 sub=38/200 pxCap=2 scoreCap=32 ms=200
+[RenderStep] phase=softgate-loop frame=5 row=218 attempts=38/400 sub=38/200 pxCap=2 scoreCap=32 ms=200
+[RenderStep] phase=enter frame=5 row=218 attempts=39/400 sub=39/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=218 attempts=39/400 sub=39/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=218 attempts=39/400 sub=39/200 pxCap=2 scoreCap=32 ms=203
+[RenderStep] phase=pass2-start frame=5 row=218 attempts=39/400 sub=39/200 pxCap=2 scoreCap=32 ms=203
+[RenderStep] phase=softgate-loop frame=5 row=218 attempts=39/400 sub=39/200 pxCap=2 scoreCap=32 ms=203
+[RenderStep] phase=enter frame=5 row=218 attempts=40/400 sub=40/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=218 attempts=40/400 sub=40/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=218 attempts=40/400 sub=40/200 pxCap=2 scoreCap=32 ms=201
+[RenderStep] phase=pass2-start frame=5 row=218 attempts=40/400 sub=40/200 pxCap=2 scoreCap=32 ms=201
+[RenderStep] phase=softgate-loop frame=5 row=218 attempts=40/400 sub=40/200 pxCap=2 scoreCap=32 ms=201
+[RenderStep] phase=enter frame=5 row=218 attempts=41/400 sub=41/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=218 attempts=41/400 sub=41/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=218 attempts=41/400 sub=41/200 pxCap=2 scoreCap=32 ms=206
+[RenderStep] phase=pass2-start frame=5 row=218 attempts=41/400 sub=41/200 pxCap=2 scoreCap=32 ms=206
+[RenderStep] phase=softgate-loop frame=5 row=218 attempts=41/400 sub=41/200 pxCap=2 scoreCap=32 ms=206
+[RenderStep] phase=enter frame=5 row=218 attempts=42/400 sub=42/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=218 attempts=42/400 sub=42/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=218 attempts=42/400 sub=42/200 pxCap=2 scoreCap=32 ms=210
+[RenderStep] phase=pass2-start frame=5 row=218 attempts=42/400 sub=42/200 pxCap=2 scoreCap=32 ms=210
+[RenderStep] phase=softgate-loop frame=5 row=218 attempts=42/400 sub=42/200 pxCap=2 scoreCap=32 ms=210
+[RenderStep] phase=enter frame=5 row=218 attempts=43/400 sub=43/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=218 attempts=43/400 sub=43/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=218 attempts=43/400 sub=43/200 pxCap=2 scoreCap=32 ms=200
+[RenderStep] phase=pass2-start frame=5 row=218 attempts=43/400 sub=43/200 pxCap=2 scoreCap=32 ms=201
+[RenderStep] phase=softgate-loop frame=5 row=218 attempts=43/400 sub=43/200 pxCap=2 scoreCap=32 ms=201
+[RenderStep] phase=enter frame=5 row=218 attempts=44/400 sub=44/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=218 attempts=44/400 sub=44/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=218 attempts=44/400 sub=44/200 pxCap=2 scoreCap=32 ms=201
+[RenderStep] phase=pass2-start frame=5 row=218 attempts=44/400 sub=44/200 pxCap=2 scoreCap=32 ms=201
+[RenderStep] phase=softgate-loop frame=5 row=218 attempts=44/400 sub=44/200 pxCap=2 scoreCap=32 ms=201
+[RenderStep] phase=enter frame=5 row=218 attempts=45/400 sub=45/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=218 attempts=45/400 sub=45/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=218 attempts=45/400 sub=45/200 pxCap=2 scoreCap=32 ms=205
+[RenderStep] phase=pass2-start frame=5 row=218 attempts=45/400 sub=45/200 pxCap=2 scoreCap=32 ms=205
+[RenderStep] phase=softgate-loop frame=5 row=218 attempts=45/400 sub=45/200 pxCap=2 scoreCap=32 ms=205
+  ERROR: [SoftGate][Disable] reason=budget_pixel frame=5 row=218 attempts=47/400 sub=47/200 ms=531
+Film band y=[218,275) hits=840 avgStepsPerTracedPx=44.86
+RenderStep 531.28 ms  rows=57  jobs=8  hits=840
+pass1=205.71ms  pass2=325.37ms  total=531.08ms
+[RenderStep] phase=end frame=5 row=275 attempts=47/400 sub=47/200 pxCap=2 scoreCap=32 ms=531
+[RenderStep] phase=enter frame=5 row=275 attempts=47/400 sub=47/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=275 attempts=47/400 sub=47/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=275 attempts=47/400 sub=47/200 pxCap=2 scoreCap=32 ms=208
+[RenderStep] phase=pass2-start frame=5 row=275 attempts=47/400 sub=47/200 pxCap=2 scoreCap=32 ms=208
+[RenderStep] phase=softgate-loop frame=5 row=275 attempts=47/400 sub=47/200 pxCap=2 scoreCap=32 ms=208
+[RenderStep] phase=enter frame=5 row=275 attempts=48/400 sub=48/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=275 attempts=48/400 sub=48/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=275 attempts=48/400 sub=48/200 pxCap=2 scoreCap=32 ms=194
+[RenderStep] phase=pass2-start frame=5 row=275 attempts=48/400 sub=48/200 pxCap=2 scoreCap=32 ms=194
+[RenderStep] phase=softgate-loop frame=5 row=275 attempts=48/400 sub=48/200 pxCap=2 scoreCap=32 ms=194
+  ERROR: [SoftGate][Disable] reason=budget_pixel frame=5 row=275 attempts=50/400 sub=50/200 ms=506
+Film band y=[275,329) hits=0 avgStepsPerTracedPx=44.32
+RenderStep 506.62 ms  rows=54  jobs=8  hits=0
+pass1=194.61ms  pass2=311.83ms  total=506.44ms
+[RenderStep] phase=end frame=5 row=329 attempts=50/400 sub=50/200 pxCap=2 scoreCap=32 ms=506
+[RenderStep] phase=enter frame=5 row=329 attempts=50/400 sub=50/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=329 attempts=50/400 sub=50/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=329 attempts=50/400 sub=50/200 pxCap=2 scoreCap=32 ms=123
+[RenderStep] phase=pass2-start frame=5 row=329 attempts=50/400 sub=50/200 pxCap=2 scoreCap=32 ms=123
+[RenderStep] phase=softgate-loop frame=5 row=329 attempts=50/400 sub=50/200 pxCap=2 scoreCap=32 ms=123
+[RenderStep] phase=enter frame=5 row=329 attempts=51/400 sub=51/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=329 attempts=51/400 sub=51/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=329 attempts=51/400 sub=51/200 pxCap=2 scoreCap=32 ms=100
+[RenderStep] phase=pass2-start frame=5 row=329 attempts=51/400 sub=51/200 pxCap=2 scoreCap=32 ms=100
+[RenderStep] phase=softgate-loop frame=5 row=329 attempts=51/400 sub=51/200 pxCap=2 scoreCap=32 ms=100
+[RenderStep] phase=enter frame=5 row=329 attempts=52/400 sub=52/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=329 attempts=52/400 sub=52/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=329 attempts=52/400 sub=52/200 pxCap=2 scoreCap=32 ms=106
+[RenderStep] phase=pass2-start frame=5 row=329 attempts=52/400 sub=52/200 pxCap=2 scoreCap=32 ms=106
+[RenderStep] phase=softgate-loop frame=5 row=329 attempts=52/400 sub=52/200 pxCap=2 scoreCap=32 ms=106
+[RenderStep] phase=enter frame=5 row=329 attempts=53/400 sub=53/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=329 attempts=53/400 sub=53/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=329 attempts=53/400 sub=53/200 pxCap=2 scoreCap=32 ms=103
+[RenderStep] phase=pass2-start frame=5 row=329 attempts=53/400 sub=53/200 pxCap=2 scoreCap=32 ms=103
+[RenderStep] phase=softgate-loop frame=5 row=329 attempts=53/400 sub=53/200 pxCap=2 scoreCap=32 ms=103
+[RenderStep] phase=enter frame=5 row=329 attempts=54/400 sub=54/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=329 attempts=54/400 sub=54/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=329 attempts=54/400 sub=54/200 pxCap=2 scoreCap=32 ms=117
+[RenderStep] phase=pass2-start frame=5 row=329 attempts=54/400 sub=54/200 pxCap=2 scoreCap=32 ms=117
+[RenderStep] phase=softgate-loop frame=5 row=329 attempts=54/400 sub=54/200 pxCap=2 scoreCap=32 ms=117
+[RenderStep] phase=enter frame=5 row=329 attempts=55/400 sub=55/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=329 attempts=55/400 sub=55/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=329 attempts=55/400 sub=55/200 pxCap=2 scoreCap=32 ms=102
+[RenderStep] phase=pass2-start frame=5 row=329 attempts=55/400 sub=55/200 pxCap=2 scoreCap=32 ms=102
+[RenderStep] phase=softgate-loop frame=5 row=329 attempts=55/400 sub=55/200 pxCap=2 scoreCap=32 ms=102
+[RenderStep] phase=enter frame=5 row=329 attempts=56/400 sub=56/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=329 attempts=56/400 sub=56/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=329 attempts=56/400 sub=56/200 pxCap=2 scoreCap=32 ms=106
+[RenderStep] phase=pass2-start frame=5 row=329 attempts=56/400 sub=56/200 pxCap=2 scoreCap=32 ms=106
+[RenderStep] phase=softgate-loop frame=5 row=329 attempts=56/400 sub=56/200 pxCap=2 scoreCap=32 ms=106
+[RenderStep] phase=enter frame=5 row=329 attempts=57/400 sub=57/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=329 attempts=57/400 sub=57/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=329 attempts=57/400 sub=57/200 pxCap=2 scoreCap=32 ms=101
+[RenderStep] phase=pass2-start frame=5 row=329 attempts=57/400 sub=57/200 pxCap=2 scoreCap=32 ms=101
+[RenderStep] phase=softgate-loop frame=5 row=329 attempts=57/400 sub=57/200 pxCap=2 scoreCap=32 ms=101
+[RenderStep] phase=enter frame=5 row=329 attempts=58/400 sub=58/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=329 attempts=58/400 sub=58/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=329 attempts=58/400 sub=58/200 pxCap=2 scoreCap=32 ms=112
+[RenderStep] phase=pass2-start frame=5 row=329 attempts=58/400 sub=58/200 pxCap=2 scoreCap=32 ms=112
+[RenderStep] phase=softgate-loop frame=5 row=329 attempts=58/400 sub=58/200 pxCap=2 scoreCap=32 ms=112
+[RenderStep] phase=enter frame=5 row=329 attempts=59/400 sub=59/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=329 attempts=59/400 sub=59/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=329 attempts=59/400 sub=59/200 pxCap=2 scoreCap=32 ms=103
+[RenderStep] phase=pass2-start frame=5 row=329 attempts=59/400 sub=59/200 pxCap=2 scoreCap=32 ms=103
+[RenderStep] phase=softgate-loop frame=5 row=329 attempts=59/400 sub=59/200 pxCap=2 scoreCap=32 ms=103
+[RenderStep] phase=enter frame=5 row=329 attempts=60/400 sub=60/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=5 row=329 attempts=60/400 sub=60/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=5 row=329 attempts=60/400 sub=60/200 pxCap=2 scoreCap=32 ms=102
+[RenderStep] phase=pass2-start frame=5 row=329 attempts=60/400 sub=60/200 pxCap=2 scoreCap=32 ms=102
+[RenderStep] phase=softgate-loop frame=5 row=329 attempts=60/400 sub=60/200 pxCap=2 scoreCap=32 ms=102
+  ERROR: [SoftGate][Disable] reason=budget_pixel frame=5 row=329 attempts=62/400 sub=62/200 ms=277
+Film band y=[329,360) hits=0 avgStepsPerTracedPx=44.80
+RenderStep 277.36 ms  rows=31  jobs=8  hits=0
+pass1=102.12ms  pass2=175.02ms  total=277.14ms
+Film frame stats: pixels=1641600 traced=57646 filled=230400 effPx=57600 segs=2583775 segsTested=495612 hits=9574 qRay=487962 overlap=0 subRayCalls=11146 subRayQueries=11146 subRaySkipped=2368287 subRaySkipStride=0 p2ForcePx=0 p2ForceInstabilityPx=0 p2ForcePrevHitLostPx=0 p2SoftGate=16/0 sgTrig=16 sgAttempt=16 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=189 pixDelta=9574 pixNew=9574 backfaceNdotV=0 skipSegs=0 forceSegs=5453 avgP2Stride=2.33
+Film physics summary: avgSegPerPixel=44.82 avgSegsTestedPerPixel=8.60 avgSubsteps=1.00 hitPct=16.61%
+Film timings(ms): pass1=9568.72 pass2.physics=2065.50 pass2.shading=11.01 film.update=0.89 overlay.build=0.00 overlay.enqueue=0.00
+Film avg(ms): pass1=9568.72 pass2.physics=2065.50 pass2.shading=11.01 film.update=0.89 overlay.build=0.00 overlay.enqueue=0.00
+Film avg summary: avgSegPerPixel=44.82 avgSegsTestedPerPixel=8.60 avgSubsteps=1.00 hitPct=16.61% avgTracedPixels=57646.00 avgFilledPixels=230400.00 avgEffPx=57600.00
+FramePerf: Frame#5 ms(total=11406.60 tile=0.00 gen=0.00 p0=0.00 p1=9567.11 field=0.00 p2=2105.43 shade=11.01 upl=0.89) px=230400 rays=57600 seg=2581592 steps=19336013 tested=494795 fieldEvals=18950931 physQ=6784662 p1rc=6286371 p1hit=27398 hits=9574 gridHitRate=0.000 grid(h=0 m=0) early(AABB=0 far=0 hitStopPx=27398) cache(h=1891707 m=487962) p2Skip(insight=0 overlap=0 qRay=2368287 single=0 stride=0 bestDist=0) p2Broad(qRayHit=11176 qRayMiss=2368538 overlapHit=0 overlapMiss=0) p2SoftGate=16/0 sgTrig=16 sgAttempt=16 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=189 pixDelta=9574 pixNew=9574
+FramePerf delta: tested/px=8.59 physQ=6784662 (baseline)
+[RenderStep] phase=end frame=5 row=0 attempts=62/400 sub=62/200 pxCap=2 scoreCap=32 ms=280
+[SoftGate] frame=5 enabled=1 minSeg=0.1 scoreThr=0.08 turnW=1 prevLost=0.75 rand=0.05 scoreBudget=32 considered=2368349 forced=62 attempts=16 hits=0 hitChange=0 newPx=0 budget{px=2 frame=400 sub=200 used=16 subUsed=16 exceeded=189} skipped=2368476 {seglen=8 scoreLow=0 randMiss=1320 budAttempt=189 budSub=0 guard=2366959 other=0} metric[min=0 max=0.033 avg=0.016] qray[call=2379668 hit=11130 miss=2368538] ScoreThr=0.08 > maxObserved=0.033 -> will rarely/never attempt. px[traced=57600 filled=230400 eff=57600] segs[total=2581592 tested=494795] pass2Hits=9574
+[SoftGate][Dbg] attempts=16 hits=0 skipped{seglen=8 scoreLow=0 randMiss=1320 budAttempt=189 budSub=0 guard=2366959 other=0}
+[RenderStep] phase=enter frame=6 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=0
+fieldSnaps=3 hasSources=True
+[RenderStep] phase=pass1-start frame=6 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=6 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=370
+[RenderStep] phase=pass2-start frame=6 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=370
+[RenderStep] phase=softgate-loop frame=6 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=370
+[RenderStep] phase=enter frame=7 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=0
+fieldSnaps=3 hasSources=True
+[RenderStep] phase=pass1-start frame=7 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=7 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=362
+[RenderStep] phase=pass2-start frame=7 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=362
+[RenderStep] phase=softgate-loop frame=7 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=362
+[RenderStep] phase=enter frame=8 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=0
+fieldSnaps=3 hasSources=True
+[RenderStep] phase=pass1-start frame=8 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=342
+[RenderStep] phase=pass2-start frame=8 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=342
+[RenderStep] phase=softgate-loop frame=8 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=342
+  ERROR: [SoftGate][Disable] reason=budget_pixel frame=8 row=0 attempts=2/400 sub=2/200 ms=937
+AutoRange Far=4.791  (MaxDistance export=15)
+Film band y=[0,96) hits=4661 avgStepsPerTracedPx=48.01
+RenderStep 937.59 ms  rows=96  jobs=8  hits=4661
+pass1=342.65ms  pass2=594.74ms  total=937.38ms
+[RenderStep] phase=end frame=8 row=96 attempts=2/400 sub=2/200 pxCap=2 scoreCap=32 ms=937
+[RenderStep] phase=enter frame=8 row=96 attempts=2/400 sub=2/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=96 attempts=2/400 sub=2/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=96 attempts=2/400 sub=2/200 pxCap=2 scoreCap=32 ms=237
+[RenderStep] phase=pass2-start frame=8 row=96 attempts=2/400 sub=2/200 pxCap=2 scoreCap=32 ms=237
+[RenderStep] phase=softgate-loop frame=8 row=96 attempts=2/400 sub=2/200 pxCap=2 scoreCap=32 ms=237
+[RenderStep] phase=enter frame=8 row=96 attempts=3/400 sub=3/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=96 attempts=3/400 sub=3/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=96 attempts=3/400 sub=3/200 pxCap=2 scoreCap=32 ms=197
+[RenderStep] phase=pass2-start frame=8 row=96 attempts=3/400 sub=3/200 pxCap=2 scoreCap=32 ms=197
+[RenderStep] phase=softgate-loop frame=8 row=96 attempts=3/400 sub=3/200 pxCap=2 scoreCap=32 ms=197
+[RenderStep] phase=enter frame=8 row=96 attempts=4/400 sub=4/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=96 attempts=4/400 sub=4/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=96 attempts=4/400 sub=4/200 pxCap=2 scoreCap=32 ms=194
+[RenderStep] phase=pass2-start frame=8 row=96 attempts=4/400 sub=4/200 pxCap=2 scoreCap=32 ms=194
+[RenderStep] phase=softgate-loop frame=8 row=96 attempts=4/400 sub=4/200 pxCap=2 scoreCap=32 ms=194
+  ERROR: [SoftGate][Disable] reason=budget_pixel frame=8 row=96 attempts=6/400 sub=6/200 ms=549
+Film band y=[96,147) hits=0 avgStepsPerTracedPx=47.55
+RenderStep 549.23 ms  rows=51  jobs=8  hits=0
+pass1=194.24ms  pass2=354.83ms  total=549.07ms
+[RenderStep] phase=end frame=8 row=147 attempts=6/400 sub=6/200 pxCap=2 scoreCap=32 ms=549
+[RenderStep] phase=enter frame=8 row=147 attempts=6/400 sub=6/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=6/400 sub=6/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=6/400 sub=6/200 pxCap=2 scoreCap=32 ms=175
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=6/400 sub=6/200 pxCap=2 scoreCap=32 ms=175
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=6/400 sub=6/200 pxCap=2 scoreCap=32 ms=175
+[RenderStep] phase=enter frame=8 row=147 attempts=7/400 sub=7/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=7/400 sub=7/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=7/400 sub=7/200 pxCap=2 scoreCap=32 ms=173
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=7/400 sub=7/200 pxCap=2 scoreCap=32 ms=173
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=7/400 sub=7/200 pxCap=2 scoreCap=32 ms=173
+[RenderStep] phase=enter frame=8 row=147 attempts=8/400 sub=8/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=8/400 sub=8/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=8/400 sub=8/200 pxCap=2 scoreCap=32 ms=158
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=8/400 sub=8/200 pxCap=2 scoreCap=32 ms=158
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=8/400 sub=8/200 pxCap=2 scoreCap=32 ms=158
+[RenderStep] phase=enter frame=8 row=147 attempts=9/400 sub=9/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=9/400 sub=9/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=9/400 sub=9/200 pxCap=2 scoreCap=32 ms=157
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=9/400 sub=9/200 pxCap=2 scoreCap=32 ms=157
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=9/400 sub=9/200 pxCap=2 scoreCap=32 ms=157
+[RenderStep] phase=enter frame=8 row=147 attempts=10/400 sub=10/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=10/400 sub=10/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=10/400 sub=10/200 pxCap=2 scoreCap=32 ms=169
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=10/400 sub=10/200 pxCap=2 scoreCap=32 ms=169
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=10/400 sub=10/200 pxCap=2 scoreCap=32 ms=169
+[RenderStep] phase=enter frame=8 row=147 attempts=11/400 sub=11/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=11/400 sub=11/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=11/400 sub=11/200 pxCap=2 scoreCap=32 ms=157
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=11/400 sub=11/200 pxCap=2 scoreCap=32 ms=157
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=11/400 sub=11/200 pxCap=2 scoreCap=32 ms=157
+[RenderStep] phase=enter frame=8 row=147 attempts=12/400 sub=12/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=12/400 sub=12/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=12/400 sub=12/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=12/400 sub=12/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=12/400 sub=12/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=enter frame=8 row=147 attempts=13/400 sub=13/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=13/400 sub=13/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=13/400 sub=13/200 pxCap=2 scoreCap=32 ms=168
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=13/400 sub=13/200 pxCap=2 scoreCap=32 ms=168
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=13/400 sub=13/200 pxCap=2 scoreCap=32 ms=168
+[RenderStep] phase=enter frame=8 row=147 attempts=14/400 sub=14/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=14/400 sub=14/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=14/400 sub=14/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=14/400 sub=14/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=14/400 sub=14/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=enter frame=8 row=147 attempts=15/400 sub=15/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=15/400 sub=15/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=15/400 sub=15/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=15/400 sub=15/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=15/400 sub=15/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=enter frame=8 row=147 attempts=16/400 sub=16/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=16/400 sub=16/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=16/400 sub=16/200 pxCap=2 scoreCap=32 ms=162
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=16/400 sub=16/200 pxCap=2 scoreCap=32 ms=162
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=16/400 sub=16/200 pxCap=2 scoreCap=32 ms=162
+[RenderStep] phase=enter frame=8 row=147 attempts=17/400 sub=17/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=17/400 sub=17/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=17/400 sub=17/200 pxCap=2 scoreCap=32 ms=164
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=17/400 sub=17/200 pxCap=2 scoreCap=32 ms=164
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=17/400 sub=17/200 pxCap=2 scoreCap=32 ms=164
+[RenderStep] phase=enter frame=8 row=147 attempts=18/400 sub=18/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=18/400 sub=18/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=18/400 sub=18/200 pxCap=2 scoreCap=32 ms=157
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=18/400 sub=18/200 pxCap=2 scoreCap=32 ms=157
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=18/400 sub=18/200 pxCap=2 scoreCap=32 ms=157
+[RenderStep] phase=enter frame=8 row=147 attempts=19/400 sub=19/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=19/400 sub=19/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=19/400 sub=19/200 pxCap=2 scoreCap=32 ms=169
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=19/400 sub=19/200 pxCap=2 scoreCap=32 ms=169
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=19/400 sub=19/200 pxCap=2 scoreCap=32 ms=169
+[RenderStep] phase=enter frame=8 row=147 attempts=20/400 sub=20/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=20/400 sub=20/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=20/400 sub=20/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=20/400 sub=20/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=20/400 sub=20/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=enter frame=8 row=147 attempts=21/400 sub=21/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=21/400 sub=21/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=21/400 sub=21/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=21/400 sub=21/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=21/400 sub=21/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=enter frame=8 row=147 attempts=22/400 sub=22/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=22/400 sub=22/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=22/400 sub=22/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=22/400 sub=22/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=22/400 sub=22/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=enter frame=8 row=147 attempts=23/400 sub=23/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=23/400 sub=23/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=23/400 sub=23/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=23/400 sub=23/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=23/400 sub=23/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=enter frame=8 row=147 attempts=24/400 sub=24/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=24/400 sub=24/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=24/400 sub=24/200 pxCap=2 scoreCap=32 ms=157
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=24/400 sub=24/200 pxCap=2 scoreCap=32 ms=157
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=24/400 sub=24/200 pxCap=2 scoreCap=32 ms=157
+[RenderStep] phase=enter frame=8 row=147 attempts=25/400 sub=25/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=25/400 sub=25/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=25/400 sub=25/200 pxCap=2 scoreCap=32 ms=162
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=25/400 sub=25/200 pxCap=2 scoreCap=32 ms=162
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=25/400 sub=25/200 pxCap=2 scoreCap=32 ms=162
+[RenderStep] phase=enter frame=8 row=147 attempts=26/400 sub=26/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=26/400 sub=26/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=26/400 sub=26/200 pxCap=2 scoreCap=32 ms=166
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=26/400 sub=26/200 pxCap=2 scoreCap=32 ms=166
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=26/400 sub=26/200 pxCap=2 scoreCap=32 ms=166
+[RenderStep] phase=enter frame=8 row=147 attempts=27/400 sub=27/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=27/400 sub=27/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=27/400 sub=27/200 pxCap=2 scoreCap=32 ms=158
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=27/400 sub=27/200 pxCap=2 scoreCap=32 ms=159
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=27/400 sub=27/200 pxCap=2 scoreCap=32 ms=159
+[RenderStep] phase=enter frame=8 row=147 attempts=28/400 sub=28/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=28/400 sub=28/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=28/400 sub=28/200 pxCap=2 scoreCap=32 ms=163
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=28/400 sub=28/200 pxCap=2 scoreCap=32 ms=163
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=28/400 sub=28/200 pxCap=2 scoreCap=32 ms=163
+[RenderStep] phase=enter frame=8 row=147 attempts=29/400 sub=29/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=29/400 sub=29/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=29/400 sub=29/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=29/400 sub=29/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=29/400 sub=29/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=enter frame=8 row=147 attempts=30/400 sub=30/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=30/400 sub=30/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=30/400 sub=30/200 pxCap=2 scoreCap=32 ms=156
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=30/400 sub=30/200 pxCap=2 scoreCap=32 ms=156
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=30/400 sub=30/200 pxCap=2 scoreCap=32 ms=156
+[RenderStep] phase=enter frame=8 row=147 attempts=31/400 sub=31/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=31/400 sub=31/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=31/400 sub=31/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=31/400 sub=31/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=31/400 sub=31/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=enter frame=8 row=147 attempts=32/400 sub=32/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=32/400 sub=32/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=32/400 sub=32/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=32/400 sub=32/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=32/400 sub=32/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=enter frame=8 row=147 attempts=33/400 sub=33/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=33/400 sub=33/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=33/400 sub=33/200 pxCap=2 scoreCap=32 ms=173
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=33/400 sub=33/200 pxCap=2 scoreCap=32 ms=173
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=33/400 sub=33/200 pxCap=2 scoreCap=32 ms=173
+[RenderStep] phase=enter frame=8 row=147 attempts=34/400 sub=34/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=34/400 sub=34/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=34/400 sub=34/200 pxCap=2 scoreCap=32 ms=163
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=34/400 sub=34/200 pxCap=2 scoreCap=32 ms=163
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=34/400 sub=34/200 pxCap=2 scoreCap=32 ms=164
+[RenderStep] phase=enter frame=8 row=147 attempts=35/400 sub=35/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=35/400 sub=35/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=35/400 sub=35/200 pxCap=2 scoreCap=32 ms=163
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=35/400 sub=35/200 pxCap=2 scoreCap=32 ms=163
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=35/400 sub=35/200 pxCap=2 scoreCap=32 ms=163
+[RenderStep] phase=enter frame=8 row=147 attempts=36/400 sub=36/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=36/400 sub=36/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=36/400 sub=36/200 pxCap=2 scoreCap=32 ms=158
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=36/400 sub=36/200 pxCap=2 scoreCap=32 ms=158
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=36/400 sub=36/200 pxCap=2 scoreCap=32 ms=158
+[RenderStep] phase=enter frame=8 row=147 attempts=37/400 sub=37/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=37/400 sub=37/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=37/400 sub=37/200 pxCap=2 scoreCap=32 ms=156
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=37/400 sub=37/200 pxCap=2 scoreCap=32 ms=156
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=37/400 sub=37/200 pxCap=2 scoreCap=32 ms=156
+[RenderStep] phase=enter frame=8 row=147 attempts=38/400 sub=38/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=38/400 sub=38/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=38/400 sub=38/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=38/400 sub=38/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=38/400 sub=38/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=enter frame=8 row=147 attempts=39/400 sub=39/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=39/400 sub=39/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=39/400 sub=39/200 pxCap=2 scoreCap=32 ms=167
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=39/400 sub=39/200 pxCap=2 scoreCap=32 ms=167
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=39/400 sub=39/200 pxCap=2 scoreCap=32 ms=167
+[RenderStep] phase=enter frame=8 row=147 attempts=40/400 sub=40/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=40/400 sub=40/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=40/400 sub=40/200 pxCap=2 scoreCap=32 ms=159
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=40/400 sub=40/200 pxCap=2 scoreCap=32 ms=159
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=40/400 sub=40/200 pxCap=2 scoreCap=32 ms=159
+[RenderStep] phase=enter frame=8 row=147 attempts=41/400 sub=41/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=41/400 sub=41/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=41/400 sub=41/200 pxCap=2 scoreCap=32 ms=162
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=41/400 sub=41/200 pxCap=2 scoreCap=32 ms=162
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=41/400 sub=41/200 pxCap=2 scoreCap=32 ms=162
+[RenderStep] phase=enter frame=8 row=147 attempts=42/400 sub=42/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=42/400 sub=42/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=42/400 sub=42/200 pxCap=2 scoreCap=32 ms=154
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=42/400 sub=42/200 pxCap=2 scoreCap=32 ms=155
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=42/400 sub=42/200 pxCap=2 scoreCap=32 ms=155
+[RenderStep] phase=enter frame=8 row=147 attempts=43/400 sub=43/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=43/400 sub=43/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=43/400 sub=43/200 pxCap=2 scoreCap=32 ms=162
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=43/400 sub=43/200 pxCap=2 scoreCap=32 ms=162
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=43/400 sub=43/200 pxCap=2 scoreCap=32 ms=162
+[RenderStep] phase=enter frame=8 row=147 attempts=44/400 sub=44/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=44/400 sub=44/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=44/400 sub=44/200 pxCap=2 scoreCap=32 ms=155
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=44/400 sub=44/200 pxCap=2 scoreCap=32 ms=155
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=44/400 sub=44/200 pxCap=2 scoreCap=32 ms=155
+[RenderStep] phase=enter frame=8 row=147 attempts=45/400 sub=45/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=45/400 sub=45/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=45/400 sub=45/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=45/400 sub=45/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=45/400 sub=45/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=enter frame=8 row=147 attempts=46/400 sub=46/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=46/400 sub=46/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=46/400 sub=46/200 pxCap=2 scoreCap=32 ms=168
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=46/400 sub=46/200 pxCap=2 scoreCap=32 ms=168
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=46/400 sub=46/200 pxCap=2 scoreCap=32 ms=168
+[RenderStep] phase=enter frame=8 row=147 attempts=47/400 sub=47/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=47/400 sub=47/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=47/400 sub=47/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=47/400 sub=47/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=47/400 sub=47/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=enter frame=8 row=147 attempts=48/400 sub=48/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=48/400 sub=48/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=48/400 sub=48/200 pxCap=2 scoreCap=32 ms=155
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=48/400 sub=48/200 pxCap=2 scoreCap=32 ms=155
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=48/400 sub=48/200 pxCap=2 scoreCap=32 ms=155
+[RenderStep] phase=enter frame=8 row=147 attempts=49/400 sub=49/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=49/400 sub=49/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=49/400 sub=49/200 pxCap=2 scoreCap=32 ms=159
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=49/400 sub=49/200 pxCap=2 scoreCap=32 ms=159
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=49/400 sub=49/200 pxCap=2 scoreCap=32 ms=159
+[RenderStep] phase=enter frame=8 row=147 attempts=50/400 sub=50/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=50/400 sub=50/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=50/400 sub=50/200 pxCap=2 scoreCap=32 ms=155
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=50/400 sub=50/200 pxCap=2 scoreCap=32 ms=155
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=50/400 sub=50/200 pxCap=2 scoreCap=32 ms=155
+[RenderStep] phase=enter frame=8 row=147 attempts=51/400 sub=51/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=51/400 sub=51/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=51/400 sub=51/200 pxCap=2 scoreCap=32 ms=159
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=51/400 sub=51/200 pxCap=2 scoreCap=32 ms=159
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=51/400 sub=51/200 pxCap=2 scoreCap=32 ms=159
+[RenderStep] phase=enter frame=8 row=147 attempts=52/400 sub=52/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=52/400 sub=52/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=52/400 sub=52/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=52/400 sub=52/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=52/400 sub=52/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=enter frame=8 row=147 attempts=53/400 sub=53/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=53/400 sub=53/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=53/400 sub=53/200 pxCap=2 scoreCap=32 ms=168
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=53/400 sub=53/200 pxCap=2 scoreCap=32 ms=168
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=53/400 sub=53/200 pxCap=2 scoreCap=32 ms=168
+[RenderStep] phase=enter frame=8 row=147 attempts=54/400 sub=54/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=54/400 sub=54/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=54/400 sub=54/200 pxCap=2 scoreCap=32 ms=153
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=54/400 sub=54/200 pxCap=2 scoreCap=32 ms=153
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=54/400 sub=54/200 pxCap=2 scoreCap=32 ms=153
+[RenderStep] phase=enter frame=8 row=147 attempts=55/400 sub=55/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=55/400 sub=55/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=55/400 sub=55/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=55/400 sub=55/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=55/400 sub=55/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=enter frame=8 row=147 attempts=56/400 sub=56/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=56/400 sub=56/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=56/400 sub=56/200 pxCap=2 scoreCap=32 ms=156
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=56/400 sub=56/200 pxCap=2 scoreCap=32 ms=156
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=56/400 sub=56/200 pxCap=2 scoreCap=32 ms=156
+[RenderStep] phase=enter frame=8 row=147 attempts=58/400 sub=58/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=58/400 sub=58/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=58/400 sub=58/200 pxCap=2 scoreCap=32 ms=164
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=58/400 sub=58/200 pxCap=2 scoreCap=32 ms=164
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=58/400 sub=58/200 pxCap=2 scoreCap=32 ms=164
+[RenderStep] phase=enter frame=8 row=147 attempts=59/400 sub=59/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=59/400 sub=59/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=59/400 sub=59/200 pxCap=2 scoreCap=32 ms=163
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=59/400 sub=59/200 pxCap=2 scoreCap=32 ms=163
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=59/400 sub=59/200 pxCap=2 scoreCap=32 ms=163
+[RenderStep] phase=enter frame=8 row=147 attempts=60/400 sub=60/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=60/400 sub=60/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=60/400 sub=60/200 pxCap=2 scoreCap=32 ms=159
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=60/400 sub=60/200 pxCap=2 scoreCap=32 ms=159
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=60/400 sub=60/200 pxCap=2 scoreCap=32 ms=159
+[RenderStep] phase=enter frame=8 row=147 attempts=61/400 sub=61/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=61/400 sub=61/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=61/400 sub=61/200 pxCap=2 scoreCap=32 ms=168
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=61/400 sub=61/200 pxCap=2 scoreCap=32 ms=168
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=61/400 sub=61/200 pxCap=2 scoreCap=32 ms=168
+[RenderStep] phase=enter frame=8 row=147 attempts=62/400 sub=62/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=62/400 sub=62/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=62/400 sub=62/200 pxCap=2 scoreCap=32 ms=162
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=62/400 sub=62/200 pxCap=2 scoreCap=32 ms=162
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=62/400 sub=62/200 pxCap=2 scoreCap=32 ms=162
+[RenderStep] phase=enter frame=8 row=147 attempts=63/400 sub=63/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=147 attempts=63/400 sub=63/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=147 attempts=63/400 sub=63/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=pass2-start frame=8 row=147 attempts=63/400 sub=63/200 pxCap=2 scoreCap=32 ms=160
+[RenderStep] phase=softgate-loop frame=8 row=147 attempts=63/400 sub=63/200 pxCap=2 scoreCap=32 ms=160
+Film hit: dist=2.732 name=<StaticBody3D#30366762556> mode=TwoSidedNdotV
+  ERROR: [SoftGate][Disable] reason=budget_pixel frame=8 row=147 attempts=65/400 sub=65/200 ms=415
+Film band y=[147,193) hits=1346 avgStepsPerTracedPx=43.18
+RenderStep 415.42 ms  rows=46  jobs=8  hits=1346
+pass1=160.88ms  pass2=254.37ms  total=415.25ms
+[RenderStep] phase=end frame=8 row=193 attempts=65/400 sub=65/200 pxCap=2 scoreCap=32 ms=415
+[RenderStep] phase=enter frame=8 row=193 attempts=65/400 sub=65/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=193 attempts=65/400 sub=65/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=193 attempts=65/400 sub=65/200 pxCap=2 scoreCap=32 ms=201
+[RenderStep] phase=pass2-start frame=8 row=193 attempts=65/400 sub=65/200 pxCap=2 scoreCap=32 ms=201
+[RenderStep] phase=softgate-loop frame=8 row=193 attempts=65/400 sub=65/200 pxCap=2 scoreCap=32 ms=201
+[RenderStep] phase=enter frame=8 row=193 attempts=66/400 sub=66/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=193 attempts=66/400 sub=66/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=193 attempts=66/400 sub=66/200 pxCap=2 scoreCap=32 ms=175
+[RenderStep] phase=pass2-start frame=8 row=193 attempts=66/400 sub=66/200 pxCap=2 scoreCap=32 ms=175
+[RenderStep] phase=softgate-loop frame=8 row=193 attempts=66/400 sub=66/200 pxCap=2 scoreCap=32 ms=175
+[RenderStep] phase=enter frame=8 row=193 attempts=67/400 sub=67/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=193 attempts=67/400 sub=67/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=193 attempts=67/400 sub=67/200 pxCap=2 scoreCap=32 ms=183
+[RenderStep] phase=pass2-start frame=8 row=193 attempts=67/400 sub=67/200 pxCap=2 scoreCap=32 ms=183
+[RenderStep] phase=softgate-loop frame=8 row=193 attempts=67/400 sub=67/200 pxCap=2 scoreCap=32 ms=183
+[RenderStep] phase=enter frame=8 row=193 attempts=68/400 sub=68/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=193 attempts=68/400 sub=68/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=193 attempts=68/400 sub=68/200 pxCap=2 scoreCap=32 ms=171
+[RenderStep] phase=pass2-start frame=8 row=193 attempts=68/400 sub=68/200 pxCap=2 scoreCap=32 ms=171
+[RenderStep] phase=softgate-loop frame=8 row=193 attempts=68/400 sub=68/200 pxCap=2 scoreCap=32 ms=171
+[RenderStep] phase=enter frame=8 row=193 attempts=69/400 sub=69/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=193 attempts=69/400 sub=69/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=193 attempts=69/400 sub=69/200 pxCap=2 scoreCap=32 ms=170
+[RenderStep] phase=pass2-start frame=8 row=193 attempts=69/400 sub=69/200 pxCap=2 scoreCap=32 ms=170
+[RenderStep] phase=softgate-loop frame=8 row=193 attempts=69/400 sub=69/200 pxCap=2 scoreCap=32 ms=170
+[RenderStep] phase=enter frame=8 row=193 attempts=70/400 sub=70/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=193 attempts=70/400 sub=70/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=193 attempts=70/400 sub=70/200 pxCap=2 scoreCap=32 ms=180
+[RenderStep] phase=pass2-start frame=8 row=193 attempts=70/400 sub=70/200 pxCap=2 scoreCap=32 ms=180
+[RenderStep] phase=softgate-loop frame=8 row=193 attempts=70/400 sub=70/200 pxCap=2 scoreCap=32 ms=180
+[RenderStep] phase=enter frame=8 row=193 attempts=71/400 sub=71/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=193 attempts=71/400 sub=71/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=193 attempts=71/400 sub=71/200 pxCap=2 scoreCap=32 ms=171
+[RenderStep] phase=pass2-start frame=8 row=193 attempts=71/400 sub=71/200 pxCap=2 scoreCap=32 ms=171
+[RenderStep] phase=softgate-loop frame=8 row=193 attempts=71/400 sub=71/200 pxCap=2 scoreCap=32 ms=171
+[RenderStep] phase=enter frame=8 row=193 attempts=72/400 sub=72/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=193 attempts=72/400 sub=72/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=193 attempts=72/400 sub=72/200 pxCap=2 scoreCap=32 ms=173
+[RenderStep] phase=pass2-start frame=8 row=193 attempts=72/400 sub=72/200 pxCap=2 scoreCap=32 ms=173
+[RenderStep] phase=softgate-loop frame=8 row=193 attempts=72/400 sub=72/200 pxCap=2 scoreCap=32 ms=173
+[RenderStep] phase=enter frame=8 row=193 attempts=73/400 sub=73/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=193 attempts=73/400 sub=73/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=193 attempts=73/400 sub=73/200 pxCap=2 scoreCap=32 ms=180
+[RenderStep] phase=pass2-start frame=8 row=193 attempts=73/400 sub=73/200 pxCap=2 scoreCap=32 ms=180
+[RenderStep] phase=softgate-loop frame=8 row=193 attempts=73/400 sub=73/200 pxCap=2 scoreCap=32 ms=180
+[RenderStep] phase=enter frame=8 row=193 attempts=74/400 sub=74/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=193 attempts=74/400 sub=74/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=193 attempts=74/400 sub=74/200 pxCap=2 scoreCap=32 ms=169
+[RenderStep] phase=pass2-start frame=8 row=193 attempts=74/400 sub=74/200 pxCap=2 scoreCap=32 ms=169
+[RenderStep] phase=softgate-loop frame=8 row=193 attempts=74/400 sub=74/200 pxCap=2 scoreCap=32 ms=169
+[RenderStep] phase=enter frame=8 row=193 attempts=75/400 sub=75/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=193 attempts=75/400 sub=75/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=193 attempts=75/400 sub=75/200 pxCap=2 scoreCap=32 ms=170
+[RenderStep] phase=pass2-start frame=8 row=193 attempts=75/400 sub=75/200 pxCap=2 scoreCap=32 ms=170
+[RenderStep] phase=softgate-loop frame=8 row=193 attempts=75/400 sub=75/200 pxCap=2 scoreCap=32 ms=170
+[RenderStep] phase=enter frame=8 row=193 attempts=76/400 sub=76/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=193 attempts=76/400 sub=76/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=193 attempts=76/400 sub=76/200 pxCap=2 scoreCap=32 ms=177
+[RenderStep] phase=pass2-start frame=8 row=193 attempts=76/400 sub=76/200 pxCap=2 scoreCap=32 ms=177
+[RenderStep] phase=softgate-loop frame=8 row=193 attempts=76/400 sub=76/200 pxCap=2 scoreCap=32 ms=177
+[RenderStep] phase=enter frame=8 row=193 attempts=77/400 sub=77/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=193 attempts=77/400 sub=77/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=193 attempts=77/400 sub=77/200 pxCap=2 scoreCap=32 ms=175
+[RenderStep] phase=pass2-start frame=8 row=193 attempts=77/400 sub=77/200 pxCap=2 scoreCap=32 ms=175
+[RenderStep] phase=softgate-loop frame=8 row=193 attempts=77/400 sub=77/200 pxCap=2 scoreCap=32 ms=175
+Film hit: dist=2.171 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+  ERROR: [SoftGate][Disable] reason=budget_pixel frame=8 row=193 attempts=79/400 sub=79/200 ms=438
+Film band y=[193,248) hits=2002 avgStepsPerTracedPx=38.09
+RenderStep 438.68 ms  rows=55  jobs=8  hits=2002
+pass1=175.08ms  pass2=263.42ms  total=438.50ms
+[RenderStep] phase=end frame=8 row=248 attempts=79/400 sub=79/200 pxCap=2 scoreCap=32 ms=438
+[RenderStep] phase=enter frame=8 row=248 attempts=79/400 sub=79/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=248 attempts=79/400 sub=79/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=248 attempts=79/400 sub=79/200 pxCap=2 scoreCap=32 ms=229
+[RenderStep] phase=pass2-start frame=8 row=248 attempts=79/400 sub=79/200 pxCap=2 scoreCap=32 ms=229
+[RenderStep] phase=softgate-loop frame=8 row=248 attempts=79/400 sub=79/200 pxCap=2 scoreCap=32 ms=229
+[RenderStep] phase=enter frame=8 row=248 attempts=80/400 sub=80/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=248 attempts=80/400 sub=80/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=248 attempts=80/400 sub=80/200 pxCap=2 scoreCap=32 ms=215
+[RenderStep] phase=pass2-start frame=8 row=248 attempts=80/400 sub=80/200 pxCap=2 scoreCap=32 ms=215
+[RenderStep] phase=softgate-loop frame=8 row=248 attempts=80/400 sub=80/200 pxCap=2 scoreCap=32 ms=215
+  ERROR: [SoftGate][Disable] reason=budget_pixel frame=8 row=248 attempts=83/400 sub=83/200 ms=555
+Film band y=[248,311) hits=108 avgStepsPerTracedPx=38.37
+RenderStep 556.04 ms  rows=63  jobs=8  hits=108
+pass1=215.01ms  pass2=340.88ms  total=555.88ms
+[RenderStep] phase=end frame=8 row=311 attempts=83/400 sub=83/200 pxCap=2 scoreCap=32 ms=556
+[RenderStep] phase=enter frame=8 row=311 attempts=83/400 sub=83/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=311 attempts=83/400 sub=83/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=311 attempts=83/400 sub=83/200 pxCap=2 scoreCap=32 ms=183
+[RenderStep] phase=pass2-start frame=8 row=311 attempts=83/400 sub=83/200 pxCap=2 scoreCap=32 ms=183
+[RenderStep] phase=softgate-loop frame=8 row=311 attempts=83/400 sub=83/200 pxCap=2 scoreCap=32 ms=183
+[RenderStep] phase=enter frame=8 row=311 attempts=84/400 sub=84/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=311 attempts=84/400 sub=84/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=311 attempts=84/400 sub=84/200 pxCap=2 scoreCap=32 ms=152
+[RenderStep] phase=pass2-start frame=8 row=311 attempts=84/400 sub=84/200 pxCap=2 scoreCap=32 ms=152
+[RenderStep] phase=softgate-loop frame=8 row=311 attempts=84/400 sub=84/200 pxCap=2 scoreCap=32 ms=152
+[RenderStep] phase=enter frame=8 row=311 attempts=85/400 sub=85/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=311 attempts=85/400 sub=85/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=311 attempts=85/400 sub=85/200 pxCap=2 scoreCap=32 ms=150
+[RenderStep] phase=pass2-start frame=8 row=311 attempts=85/400 sub=85/200 pxCap=2 scoreCap=32 ms=150
+[RenderStep] phase=softgate-loop frame=8 row=311 attempts=85/400 sub=85/200 pxCap=2 scoreCap=32 ms=150
+[RenderStep] phase=enter frame=8 row=311 attempts=86/400 sub=86/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=311 attempts=86/400 sub=86/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=311 attempts=86/400 sub=86/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=pass2-start frame=8 row=311 attempts=86/400 sub=86/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=softgate-loop frame=8 row=311 attempts=86/400 sub=86/200 pxCap=2 scoreCap=32 ms=161
+[RenderStep] phase=enter frame=8 row=311 attempts=87/400 sub=87/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=311 attempts=87/400 sub=87/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=311 attempts=87/400 sub=87/200 pxCap=2 scoreCap=32 ms=149
+[RenderStep] phase=pass2-start frame=8 row=311 attempts=87/400 sub=87/200 pxCap=2 scoreCap=32 ms=149
+[RenderStep] phase=softgate-loop frame=8 row=311 attempts=87/400 sub=87/200 pxCap=2 scoreCap=32 ms=149
+[RenderStep] phase=enter frame=8 row=311 attempts=88/400 sub=88/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=311 attempts=88/400 sub=88/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=311 attempts=88/400 sub=88/200 pxCap=2 scoreCap=32 ms=148
+[RenderStep] phase=pass2-start frame=8 row=311 attempts=88/400 sub=88/200 pxCap=2 scoreCap=32 ms=148
+[RenderStep] phase=softgate-loop frame=8 row=311 attempts=88/400 sub=88/200 pxCap=2 scoreCap=32 ms=148
+[RenderStep] phase=enter frame=8 row=311 attempts=89/400 sub=89/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=311 attempts=89/400 sub=89/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=311 attempts=89/400 sub=89/200 pxCap=2 scoreCap=32 ms=154
+[RenderStep] phase=pass2-start frame=8 row=311 attempts=89/400 sub=89/200 pxCap=2 scoreCap=32 ms=154
+[RenderStep] phase=softgate-loop frame=8 row=311 attempts=89/400 sub=89/200 pxCap=2 scoreCap=32 ms=154
+[RenderStep] phase=enter frame=8 row=311 attempts=90/400 sub=90/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=311 attempts=90/400 sub=90/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=311 attempts=90/400 sub=90/200 pxCap=2 scoreCap=32 ms=148
+[RenderStep] phase=pass2-start frame=8 row=311 attempts=90/400 sub=90/200 pxCap=2 scoreCap=32 ms=148
+[RenderStep] phase=softgate-loop frame=8 row=311 attempts=90/400 sub=90/200 pxCap=2 scoreCap=32 ms=148
+[RenderStep] phase=enter frame=8 row=311 attempts=91/400 sub=91/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=311 attempts=91/400 sub=91/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=311 attempts=91/400 sub=91/200 pxCap=2 scoreCap=32 ms=148
+[RenderStep] phase=pass2-start frame=8 row=311 attempts=91/400 sub=91/200 pxCap=2 scoreCap=32 ms=148
+[RenderStep] phase=softgate-loop frame=8 row=311 attempts=91/400 sub=91/200 pxCap=2 scoreCap=32 ms=148
+[RenderStep] phase=enter frame=8 row=311 attempts=92/400 sub=92/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=311 attempts=92/400 sub=92/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=311 attempts=92/400 sub=92/200 pxCap=2 scoreCap=32 ms=156
+[RenderStep] phase=pass2-start frame=8 row=311 attempts=92/400 sub=92/200 pxCap=2 scoreCap=32 ms=156
+[RenderStep] phase=softgate-loop frame=8 row=311 attempts=92/400 sub=92/200 pxCap=2 scoreCap=32 ms=156
+[RenderStep] phase=enter frame=8 row=311 attempts=93/400 sub=93/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=311 attempts=93/400 sub=93/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=311 attempts=93/400 sub=93/200 pxCap=2 scoreCap=32 ms=158
+[RenderStep] phase=pass2-start frame=8 row=311 attempts=93/400 sub=93/200 pxCap=2 scoreCap=32 ms=158
+[RenderStep] phase=softgate-loop frame=8 row=311 attempts=93/400 sub=93/200 pxCap=2 scoreCap=32 ms=158
+[RenderStep] phase=enter frame=8 row=311 attempts=95/400 sub=95/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=311 attempts=95/400 sub=95/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=311 attempts=95/400 sub=95/200 pxCap=2 scoreCap=32 ms=147
+[RenderStep] phase=pass2-start frame=8 row=311 attempts=95/400 sub=95/200 pxCap=2 scoreCap=32 ms=147
+[RenderStep] phase=softgate-loop frame=8 row=311 attempts=95/400 sub=95/200 pxCap=2 scoreCap=32 ms=147
+[RenderStep] phase=enter frame=8 row=311 attempts=96/400 sub=96/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=311 attempts=96/400 sub=96/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=311 attempts=96/400 sub=96/200 pxCap=2 scoreCap=32 ms=157
+[RenderStep] phase=pass2-start frame=8 row=311 attempts=96/400 sub=96/200 pxCap=2 scoreCap=32 ms=157
+[RenderStep] phase=softgate-loop frame=8 row=311 attempts=96/400 sub=96/200 pxCap=2 scoreCap=32 ms=157
+[RenderStep] phase=enter frame=8 row=311 attempts=97/400 sub=97/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=311 attempts=97/400 sub=97/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=311 attempts=97/400 sub=97/200 pxCap=2 scoreCap=32 ms=151
+[RenderStep] phase=pass2-start frame=8 row=311 attempts=97/400 sub=97/200 pxCap=2 scoreCap=32 ms=151
+[RenderStep] phase=softgate-loop frame=8 row=311 attempts=97/400 sub=97/200 pxCap=2 scoreCap=32 ms=151
+[RenderStep] phase=enter frame=8 row=311 attempts=98/400 sub=98/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=8 row=311 attempts=98/400 sub=98/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=8 row=311 attempts=98/400 sub=98/200 pxCap=2 scoreCap=32 ms=155
+[RenderStep] phase=pass2-start frame=8 row=311 attempts=98/400 sub=98/200 pxCap=2 scoreCap=32 ms=155
+[RenderStep] phase=softgate-loop frame=8 row=311 attempts=98/400 sub=98/200 pxCap=2 scoreCap=32 ms=155
+  ERROR: [SoftGate][Disable] reason=budget_pixel frame=8 row=311 attempts=100/400 sub=100/200 ms=408
+Film band y=[311,360) hits=0 avgStepsPerTracedPx=38.11
+RenderStep 408.48 ms  rows=49  jobs=8  hits=0
+pass1=155.64ms  pass2=252.62ms  total=408.26ms
+Film frame stats: pixels=2846080 traced=57689 filled=230416 effPx=57600 segs=2357620 segsTested=573512 hits=8117 qRay=567370 overlap=0 subRayCalls=9266 subRayQueries=9266 subRaySkipped=2202912 subRaySkipStride=0 p2ForcePx=0 p2ForceInstabilityPx=0 p2ForcePrevHitLostPx=0 p2SoftGate=13/0 sgTrig=13 sgAttempt=13 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=165 pixDelta=8117 pixNew=8117 backfaceNdotV=0 skipSegs=0 forceSegs=4891 avgP2Stride=2.55
+Film physics summary: avgSegPerPixel=40.87 avgSegsTestedPerPixel=9.94 avgSubsteps=1.00 hitPct=14.07%
+Film timings(ms): pass1=15270.79 pass2.physics=2023.00 pass2.shading=9.49 film.update=0.66 overlay.build=0.00 overlay.enqueue=0.00
+Film avg(ms): pass1=12419.75 pass2.physics=2044.25 pass2.shading=10.25 film.update=0.78 overlay.build=0.00 overlay.enqueue=0.00
+Film avg summary: avgSegPerPixel=42.84 avgSegsTestedPerPixel=9.27 avgSubsteps=1.00 hitPct=15.34% avgTracedPixels=57667.50 avgFilledPixels=230408.00 avgEffPx=57600.00
+FramePerf: Frame#8 ms(total=16932.64 tile=0.00 gen=0.00 p0=0.00 p1=15268.30 field=0.00 p2=2060.48 shade=9.48 upl=0.66) px=230400 rays=57600 seg=2353526 steps=29491251 tested=572263 fieldEvals=28825075 physQ=10358155 p1rc=9782768 p1hit=41664 hits=8117 gridHitRate=0.000 grid(h=0 m=0) early(AABB=0 far=0 hitStopPx=41664) cache(h=1645059 m=567370) p2Skip(insight=0 overlap=0 qRay=2202912 single=0 stride=0 bestDist=0) p2Broad(qRayHit=9336 qRayMiss=2203177 overlapHit=0 overlapMiss=0) p2SoftGate=13/0 sgTrig=13 sgAttempt=13 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=165 pixDelta=8117 pixNew=8117
+FramePerf delta: tested/px=9.935 (d+1.345) physQ=10358155 (d+3573493)
+[RenderStep] phase=end frame=8 row=0 attempts=100/400 sub=100/200 pxCap=2 scoreCap=32 ms=408
+[SoftGate] frame=8 enabled=1 minSeg=0.1 scoreThr=0.08 turnW=1 prevLost=0.75 rand=0.05 scoreBudget=32 considered=2203012 forced=100 attempts=15 hits=0 hitChange=0 newPx=0 budget{px=2 frame=400 sub=200 used=13 subUsed=13 exceeded=165} skipped=2203077 {seglen=38 scoreLow=0 randMiss=1673 budAttempt=165 budSub=0 guard=2201201 other=0} metric[min=0 max=0.033 avg=0.009] qray[call=2212428 hit=9251 miss=2203177] ScoreThr=0.08 > maxObserved=0.033 -> will rarely/never attempt. px[traced=57600 filled=230400 eff=57600] segs[total=2353526 tested=572263] pass2Hits=8117
+[SoftGate][Dbg] attempts=15 hits=0 skipped{seglen=38 scoreLow=0 randMiss=1673 budAttempt=165 budSub=0 guard=2201201 other=0}
+[RenderStep] phase=enter frame=9 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=0
+fieldSnaps=3 hasSources=True
+[RenderStep] phase=pass1-start frame=9 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=9 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=270
+[RenderStep] phase=pass2-start frame=9 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=270
+[RenderStep] phase=softgate-loop frame=9 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=270
+[RenderStep] phase=enter frame=10 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=0
+fieldSnaps=3 hasSources=True
+[RenderStep] phase=pass1-start frame=10 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=10 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=256
+[RenderStep] phase=pass2-start frame=10 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=256
+[RenderStep] phase=softgate-loop frame=10 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=256
+[RenderStep] phase=enter frame=11 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=0
+fieldSnaps=3 hasSources=True
+[RenderStep] phase=pass1-start frame=11 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=11 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=253
+[RenderStep] phase=pass2-start frame=11 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=253
+[RenderStep] phase=softgate-loop frame=11 row=0 attempts=0/400 sub=0/200 pxCap=2 scoreCap=32 ms=253
+  ERROR: [SoftGate][Disable] reason=budget_pixel frame=11 row=0 attempts=2/400 sub=2/200 ms=727
+AutoRange Far=4.721  (MaxDistance export=15)
+Film band y=[0,70) hits=0 avgStepsPerTracedPx=47.42
+RenderStep 728.00 ms  rows=70  jobs=8  hits=0
+pass1=253.48ms  pass2=474.29ms  total=727.76ms
+[RenderStep] phase=end frame=11 row=70 attempts=2/400 sub=2/200 pxCap=2 scoreCap=32 ms=728
+[RenderStep] phase=enter frame=11 row=70 attempts=2/400 sub=2/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=11 row=70 attempts=2/400 sub=2/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=11 row=70 attempts=2/400 sub=2/200 pxCap=2 scoreCap=32 ms=183
+[RenderStep] phase=pass2-start frame=11 row=70 attempts=2/400 sub=2/200 pxCap=2 scoreCap=32 ms=183
+[RenderStep] phase=softgate-loop frame=11 row=70 attempts=2/400 sub=2/200 pxCap=2 scoreCap=32 ms=183
+[RenderStep] phase=enter frame=11 row=70 attempts=3/400 sub=3/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=11 row=70 attempts=3/400 sub=3/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=11 row=70 attempts=3/400 sub=3/200 pxCap=2 scoreCap=32 ms=177
+[RenderStep] phase=pass2-start frame=11 row=70 attempts=3/400 sub=3/200 pxCap=2 scoreCap=32 ms=177
+[RenderStep] phase=softgate-loop frame=11 row=70 attempts=3/400 sub=3/200 pxCap=2 scoreCap=32 ms=177
+[RenderStep] phase=enter frame=11 row=70 attempts=4/400 sub=4/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=11 row=70 attempts=4/400 sub=4/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=11 row=70 attempts=4/400 sub=4/200 pxCap=2 scoreCap=32 ms=173
+[RenderStep] phase=pass2-start frame=11 row=70 attempts=4/400 sub=4/200 pxCap=2 scoreCap=32 ms=173
+[RenderStep] phase=softgate-loop frame=11 row=70 attempts=4/400 sub=4/200 pxCap=2 scoreCap=32 ms=173
+[RenderStep] phase=enter frame=11 row=70 attempts=5/400 sub=5/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=11 row=70 attempts=5/400 sub=5/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=11 row=70 attempts=5/400 sub=5/200 pxCap=2 scoreCap=32 ms=180
+[RenderStep] phase=pass2-start frame=11 row=70 attempts=5/400 sub=5/200 pxCap=2 scoreCap=32 ms=180
+[RenderStep] phase=softgate-loop frame=11 row=70 attempts=5/400 sub=5/200 pxCap=2 scoreCap=32 ms=180
+[RenderStep] phase=enter frame=11 row=70 attempts=6/400 sub=6/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=11 row=70 attempts=6/400 sub=6/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=11 row=70 attempts=6/400 sub=6/200 pxCap=2 scoreCap=32 ms=172
+[RenderStep] phase=pass2-start frame=11 row=70 attempts=6/400 sub=6/200 pxCap=2 scoreCap=32 ms=172
+[RenderStep] phase=softgate-loop frame=11 row=70 attempts=6/400 sub=6/200 pxCap=2 scoreCap=32 ms=172
+[RenderStep] phase=enter frame=11 row=70 attempts=7/400 sub=7/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=11 row=70 attempts=7/400 sub=7/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=11 row=70 attempts=7/400 sub=7/200 pxCap=2 scoreCap=32 ms=176
+[RenderStep] phase=pass2-start frame=11 row=70 attempts=7/400 sub=7/200 pxCap=2 scoreCap=32 ms=176
+[RenderStep] phase=softgate-loop frame=11 row=70 attempts=7/400 sub=7/200 pxCap=2 scoreCap=32 ms=176
+[RenderStep] phase=enter frame=11 row=70 attempts=8/400 sub=8/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=11 row=70 attempts=8/400 sub=8/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=11 row=70 attempts=8/400 sub=8/200 pxCap=2 scoreCap=32 ms=169
+[RenderStep] phase=pass2-start frame=11 row=70 attempts=8/400 sub=8/200 pxCap=2 scoreCap=32 ms=169
+[RenderStep] phase=softgate-loop frame=11 row=70 attempts=8/400 sub=8/200 pxCap=2 scoreCap=32 ms=169
+  ERROR: [SoftGate][Disable] reason=budget_pixel frame=11 row=70 attempts=10/400 sub=10/200 ms=487
+Film band y=[70,118) hits=0 avgStepsPerTracedPx=47.31
+RenderStep 487.54 ms  rows=48  jobs=8  hits=0
+pass1=169.01ms  pass2=318.25ms  total=487.26ms
+[RenderStep] phase=end frame=11 row=118 attempts=10/400 sub=10/200 pxCap=2 scoreCap=32 ms=487
+[RenderStep] phase=enter frame=11 row=118 attempts=10/400 sub=10/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=11 row=118 attempts=10/400 sub=10/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=11 row=118 attempts=10/400 sub=10/200 pxCap=2 scoreCap=32 ms=203
+[RenderStep] phase=pass2-start frame=11 row=118 attempts=10/400 sub=10/200 pxCap=2 scoreCap=32 ms=203
+[RenderStep] phase=softgate-loop frame=11 row=118 attempts=10/400 sub=10/200 pxCap=2 scoreCap=32 ms=203
+  ERROR: [SoftGate][Disable] reason=budget_pixel frame=11 row=118 attempts=12/400 sub=12/200 ms=523
+Film band y=[118,167) hits=351 avgStepsPerTracedPx=45.62
+RenderStep 523.32 ms  rows=49  jobs=8  hits=351
+pass1=203.75ms  pass2=319.32ms  total=523.07ms
+[RenderStep] phase=end frame=11 row=167 attempts=12/400 sub=12/200 pxCap=2 scoreCap=32 ms=523
+[RenderStep] phase=enter frame=11 row=167 attempts=12/400 sub=12/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=11 row=167 attempts=12/400 sub=12/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=11 row=167 attempts=12/400 sub=12/200 pxCap=2 scoreCap=32 ms=166
+[RenderStep] phase=pass2-start frame=11 row=167 attempts=12/400 sub=12/200 pxCap=2 scoreCap=32 ms=166
+[RenderStep] phase=softgate-loop frame=11 row=167 attempts=12/400 sub=12/200 pxCap=2 scoreCap=32 ms=166
+Film hit: dist=3.291 name=<StaticBody3D#30366762556> mode=TwoSidedNdotV
+  ERROR: [SoftGate][Disable] reason=budget_pixel frame=11 row=167 attempts=14/400 sub=14/200 ms=394
+Film band y=[167,214) hits=1949 avgStepsPerTracedPx=39.74
+RenderStep 395.12 ms  rows=47  jobs=8  hits=1949
+pass1=166.00ms  pass2=228.94ms  total=394.94ms
+[RenderStep] phase=end frame=11 row=214 attempts=14/400 sub=14/200 pxCap=2 scoreCap=32 ms=395
+[RenderStep] phase=enter frame=11 row=214 attempts=14/400 sub=14/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=11 row=214 attempts=14/400 sub=14/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=11 row=214 attempts=14/400 sub=14/200 pxCap=2 scoreCap=32 ms=235
+[RenderStep] phase=pass2-start frame=11 row=214 attempts=14/400 sub=14/200 pxCap=2 scoreCap=32 ms=235
+[RenderStep] phase=softgate-loop frame=11 row=214 attempts=14/400 sub=14/200 pxCap=2 scoreCap=32 ms=235
+[RenderStep] phase=enter frame=11 row=214 attempts=15/400 sub=15/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=11 row=214 attempts=15/400 sub=15/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=11 row=214 attempts=15/400 sub=15/200 pxCap=2 scoreCap=32 ms=215
+[RenderStep] phase=pass2-start frame=11 row=214 attempts=15/400 sub=15/200 pxCap=2 scoreCap=32 ms=215
+[RenderStep] phase=softgate-loop frame=11 row=214 attempts=15/400 sub=15/200 pxCap=2 scoreCap=32 ms=215
+[RenderStep] phase=enter frame=11 row=214 attempts=16/400 sub=16/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=11 row=214 attempts=16/400 sub=16/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=11 row=214 attempts=16/400 sub=16/200 pxCap=2 scoreCap=32 ms=200
+[RenderStep] phase=pass2-start frame=11 row=214 attempts=16/400 sub=16/200 pxCap=2 scoreCap=32 ms=200
+[RenderStep] phase=softgate-loop frame=11 row=214 attempts=16/400 sub=16/200 pxCap=2 scoreCap=32 ms=200
+Film hit: dist=2.074 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+  ERROR: [SoftGate][Disable] reason=budget_pixel frame=11 row=214 attempts=18/400 sub=18/200 ms=500
+Film band y=[214,274) hits=1156 avgStepsPerTracedPx=37.42
+RenderStep 500.90 ms  rows=60  jobs=8  hits=1156
+pass1=200.54ms  pass2=300.20ms  total=500.74ms
+[RenderStep] phase=end frame=11 row=274 attempts=18/400 sub=18/200 pxCap=2 scoreCap=32 ms=500
+[RenderStep] phase=enter frame=11 row=274 attempts=18/400 sub=18/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=11 row=274 attempts=18/400 sub=18/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=11 row=274 attempts=18/400 sub=18/200 pxCap=2 scoreCap=32 ms=217
+[RenderStep] phase=pass2-start frame=11 row=274 attempts=18/400 sub=18/200 pxCap=2 scoreCap=32 ms=217
+[RenderStep] phase=softgate-loop frame=11 row=274 attempts=18/400 sub=18/200 pxCap=2 scoreCap=32 ms=217
+[RenderStep] phase=enter frame=11 row=274 attempts=19/400 sub=19/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=11 row=274 attempts=19/400 sub=19/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=11 row=274 attempts=19/400 sub=19/200 pxCap=2 scoreCap=32 ms=196
+[RenderStep] phase=pass2-start frame=11 row=274 attempts=19/400 sub=19/200 pxCap=2 scoreCap=32 ms=196
+[RenderStep] phase=softgate-loop frame=11 row=274 attempts=19/400 sub=19/200 pxCap=2 scoreCap=32 ms=196
+[RenderStep] phase=enter frame=11 row=274 attempts=20/400 sub=20/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=11 row=274 attempts=20/400 sub=20/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=11 row=274 attempts=20/400 sub=20/200 pxCap=2 scoreCap=32 ms=190
+[RenderStep] phase=pass2-start frame=11 row=274 attempts=20/400 sub=20/200 pxCap=2 scoreCap=32 ms=190
+[RenderStep] phase=softgate-loop frame=11 row=274 attempts=20/400 sub=20/200 pxCap=2 scoreCap=32 ms=190
+[RenderStep] phase=enter frame=11 row=274 attempts=21/400 sub=21/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=11 row=274 attempts=21/400 sub=21/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=11 row=274 attempts=21/400 sub=21/200 pxCap=2 scoreCap=32 ms=188
+[RenderStep] phase=pass2-start frame=11 row=274 attempts=21/400 sub=21/200 pxCap=2 scoreCap=32 ms=188
+[RenderStep] phase=softgate-loop frame=11 row=274 attempts=21/400 sub=21/200 pxCap=2 scoreCap=32 ms=188
+[RenderStep] phase=enter frame=11 row=274 attempts=22/400 sub=22/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=11 row=274 attempts=22/400 sub=22/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=11 row=274 attempts=22/400 sub=22/200 pxCap=2 scoreCap=32 ms=189
+[RenderStep] phase=pass2-start frame=11 row=274 attempts=22/400 sub=22/200 pxCap=2 scoreCap=32 ms=189
+[RenderStep] phase=softgate-loop frame=11 row=274 attempts=22/400 sub=22/200 pxCap=2 scoreCap=32 ms=189
+  ERROR: [SoftGate][Disable] reason=budget_pixel frame=11 row=274 attempts=24/400 sub=24/200 ms=500
+Film band y=[274,334) hits=0 avgStepsPerTracedPx=37.34
+RenderStep 500.78 ms  rows=60  jobs=8  hits=0
+pass1=189.83ms  pass2=310.79ms  total=500.61ms
+[RenderStep] phase=end frame=11 row=334 attempts=24/400 sub=24/200 pxCap=2 scoreCap=32 ms=500
+[RenderStep] phase=enter frame=11 row=334 attempts=24/400 sub=24/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=11 row=334 attempts=24/400 sub=24/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=11 row=334 attempts=24/400 sub=24/200 pxCap=2 scoreCap=32 ms=102
+[RenderStep] phase=pass2-start frame=11 row=334 attempts=24/400 sub=24/200 pxCap=2 scoreCap=32 ms=102
+[RenderStep] phase=softgate-loop frame=11 row=334 attempts=24/400 sub=24/200 pxCap=2 scoreCap=32 ms=102
+Set UpdateEveryFrame
+[RenderStep] phase=enter frame=11 row=334 attempts=25/400 sub=25/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=11 row=334 attempts=25/400 sub=25/200 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=11 row=334 attempts=25/400 sub=25/200 pxCap=2 scoreCap=32 ms=92
+[RenderStep] phase=pass2-start frame=11 row=334 attempts=25/400 sub=25/200 pxCap=2 scoreCap=32 ms=92
+[RenderStep] phase=softgate-loop frame=11 row=334 attempts=25/400 sub=25/200 pxCap=2 scoreCap=32 ms=92
