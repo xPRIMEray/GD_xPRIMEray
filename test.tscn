@@ -539,8 +539,10 @@ DebugNormalLen = 0.295
 [node name="GrinField3D" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3563714, 2.303526, -2.0074396)
 script = ExtResource("3_77dp3")
-Pass2SoftGateEnableQuickRayMiss = true
 Pass2SoftGateMinSegLenSteps = 0.8
+Pass2SoftGateMaxAttemptsPerFrameMin = 30
+Pass2SoftGateMaxAttemptsPerFrameMax = 1000
+Pass2SoftGateMaxSubdividedCallsPerFrame = 5000
 Pass2SoftGateMinSegmentLength = 0.08
 Pass2SoftGateScoreThreshold = 0.08
 Pass2SoftGateRandomProbeChance = 0.05

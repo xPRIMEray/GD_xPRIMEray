@@ -292,6 +292,11 @@ public partial class GrinFilmCamera : Node
 	private TextureRect _filmView;   // if user supplies FilmViewPath
 	private TextureRect _overlayRect; // auto-created fallback
 	private int _rowCursor = 0;
+	private bool _softGateDisabledForPass = false;
+	private int _lastFilmSettingsHash = 0;
+	private bool _hasFilmSettingsHash = false;
+	private ulong _lastCameraInstanceId = 0;
+	private bool _hasLastCameraInstanceId = false;
 	private Camera3D _cam;
 	private RayBeamRenderer _rbr;
 	private RayBeamRenderer.RaySeg[] _segBuf;
@@ -512,6 +517,8 @@ public partial class GrinFilmCamera : Node
 			GD.PushError("GrinFilmCamera: No active Camera3D found in viewport.");
 			return;
 		}
+		_lastCameraInstanceId = _cam.GetInstanceId();
+		_hasLastCameraInstanceId = true;
 
 		_rbr = GetNodeOrNull<RayBeamRenderer>(RayBeamRendererPath);
 		GD.Print("RayBeamRenderer found? ", _rbr != null);
@@ -598,6 +605,12 @@ public partial class GrinFilmCamera : Node
 		Stopwatch renderStepWatch = Stopwatch.StartNew();
 		bool renderStepAbort = false;
 		bool renderStepAbortLogged = false;
+		bool budgetStop = false;
+		bool budgetStopLogged = false;
+		string budgetStopReason = "";
+		int budgetStopRowStart = _rowCursor;
+		int budgetStopRowCursor = _rowCursor;
+		int budgetStopRowEnd = _rowCursor;
 		bool softGateDisabledThisFrame = false;
 		string softGateDisableReason = "";
 		bool softGateDisableLogged = false;
@@ -611,7 +624,6 @@ public partial class GrinFilmCamera : Node
 			ulong t0 = Time.GetTicksUsec();
 			statsEnabled = EnableProfiling || VerbosePerfLogs;
 			framePerfEnabled = EnableFramePerf;
-			frameStart = _rowCursor == 0;
 			if (framePerfEnabled) frameScope = new PerfScope(_framePerf, PerfStage.FrameTotal);
 
 		// Soft-gate debug toggles
@@ -622,6 +634,28 @@ public partial class GrinFilmCamera : Node
 		/////////////////////////////
 
 			bool resizedFilm = EnsureFilmImageSize();
+			int settingsHash = ComputeFilmSettingsHash();
+			if (_hasFilmSettingsHash && settingsHash != _lastFilmSettingsHash)
+				ResetRowCursor("settings_dirty");
+			_lastFilmSettingsHash = settingsHash;
+			_hasFilmSettingsHash = true;
+
+			Camera3D activeCam = GetViewport().GetCamera3D();
+			if (activeCam != null)
+			{
+				ulong camId = activeCam.GetInstanceId();
+				if (_cam != activeCam || (!_hasLastCameraInstanceId || camId != _lastCameraInstanceId))
+				{
+					_cam = activeCam;
+					_lastCameraInstanceId = camId;
+					_hasLastCameraInstanceId = true;
+					ResetRowCursor("camera_dirty");
+				}
+			}
+			if (_rowCursor >= _filmHeight)
+				ResetRowCursor("completed");
+
+			frameStart = _rowCursor == 0;
 			int filmW = _filmWidth;
 			int filmH = _filmHeight;
 			int stride = Mathf.Clamp(PixelStride, 1, 8);
@@ -683,7 +717,7 @@ public partial class GrinFilmCamera : Node
 				if (effectiveMaxMs <= 0) effectiveMaxMs = TargetMsPerFrame;
 				if (effectiveMaxMs <= 0) effectiveMaxMs = 8;
 			}
-			bool softGateEnabledNow = Pass2SoftGateEnableQuickRayMiss && Pass2SoftGateScoringEnabled;
+			bool softGateEnabledNow = Pass2SoftGateEnableQuickRayMiss && Pass2SoftGateScoringEnabled && !_softGateDisabledForPass;
 			int bandH = 0;
 			int bandTracedPixels = 0;
 			long bandSegsTested = 0;
@@ -701,10 +735,38 @@ public partial class GrinFilmCamera : Node
 					$"ms={renderStepWatch.ElapsedMilliseconds}");
 			}
 
+			void TriggerBudgetStop(string reason)
+			{
+				if (!UpdateEveryFrame) return;
+				if (budgetStop) return;
+				budgetStop = true;
+				budgetStopReason = reason;
+				budgetStopRowEnd = budgetStopRowCursor;
+			}
+
+			void LogBudgetStopOnce()
+			{
+				if (!budgetStop || budgetStopLogged) return;
+				budgetStopLogged = true;
+				long p2Miss = softGateDebugEnabled ? _softGateFrame.QRayMiss : 0;
+				int rowEnd = Mathf.Clamp(budgetStopRowEnd, 0, _filmHeight);
+				GD.Print(
+					$"[BudgetStop] reason={budgetStopReason} frame={_frameIndex} rowStart={budgetStopRowStart} rowEnd={rowEnd} " +
+					$"ms={renderStepWatch.ElapsedMilliseconds} p2Miss={p2Miss} " +
+					$"sgAttempt={_softGateAttemptsUsedThisFrame} sgSub={_softGateSubdividedCallsUsedThisFrame}");
+			}
+
 			bool CheckRenderStepWatchdog()
 			{
 				if (effectiveMaxMs <= 0) return false;
 				if (renderStepWatch.ElapsedMilliseconds <= effectiveMaxMs) return false;
+				if (UpdateEveryFrame)
+				{
+					TriggerBudgetStop("max_ms");
+					if (DisableSoftGateOnOverload && softGateEnabledNow)
+						DisableSoftGateThisFrame("renderstep_watchdog");
+					return true;
+				}
 				if (!renderStepAbort)
 				{
 					renderStepAbort = true;
@@ -856,7 +918,11 @@ public partial class GrinFilmCamera : Node
 			float tanHalf = Mathf.Tan(fovRad * 0.5f);
 			float aspect = (float)filmW / Mathf.Max(1f, filmH);
 
+			int maxSeg = MaxSegPerRay;
 			int yStart = _rowCursor;
+			budgetStopRowStart = yStart;
+			budgetStopRowCursor = yStart;
+			budgetStopRowEnd = yStart;
 			int baseRowsPerFrame = Mathf.Clamp(RowsPerFrame, Mathf.Max(1, MinRowsPerFrame), filmH);
 			int maxRowsPerFrame = Mathf.Clamp(MaxRowsPerFrameCap, Mathf.Max(1, MinRowsPerFrame), filmH);
 			if (TargetMsPerFrame <= 0 || _adaptiveRowsPerFrame <= 0)
@@ -864,12 +930,33 @@ public partial class GrinFilmCamera : Node
 			int rowsPerFrame = Mathf.Clamp(_adaptiveRowsPerFrame, Mathf.Max(1, MinRowsPerFrame), maxRowsPerFrame);
 			if (rowsPerFrame != _adaptiveRowsPerFrame)
 				_adaptiveRowsPerFrame = rowsPerFrame;
+			if (UpdateEveryFrame)
+			{
+				int maxRowsByPixel = RenderStepMaxPixelsPerFrame > 0
+					? Math.Max(1, RenderStepMaxPixelsPerFrame / Math.Max(1, filmW))
+					: int.MaxValue;
+				int maxRowsBySeg = RenderStepMaxSegmentsPerFrame > 0
+					? Math.Max(1, RenderStepMaxSegmentsPerFrame / Math.Max(1, filmW * maxSeg))
+					: int.MaxValue;
+				int cappedRows = Math.Min(rowsPerFrame, Math.Min(maxRowsByPixel, maxRowsBySeg));
+				rowsPerFrame = Mathf.Clamp(cappedRows, Mathf.Max(1, MinRowsPerFrame), maxRowsPerFrame);
+			}
 			int yEnd = Mathf.Min(filmH, _rowCursor + rowsPerFrame);
 			bandH = yEnd - yStart;
 			int pixelCount = bandH * filmW;
 			if (RenderStepMaxPixelsPerFrame > 0 && pixelCount > RenderStepMaxPixelsPerFrame)
 			{
-				AbortRenderStep($"max-pixels {pixelCount}>{RenderStepMaxPixelsPerFrame}");
+				if (UpdateEveryFrame)
+					TriggerBudgetStop("max_pixels");
+				else
+				{
+					AbortRenderStep($"max-pixels {pixelCount}>{RenderStepMaxPixelsPerFrame}");
+					return;
+				}
+			}
+			if (budgetStop)
+			{
+				LogBudgetStopOnce();
 				return;
 			}
 
@@ -877,7 +964,6 @@ public partial class GrinFilmCamera : Node
 			float frameMaxHit = 0f; // track deepest hit this RenderStep band
 
 			int bandHits = 0;
-			int maxSeg = MaxSegPerRay;
 			float farForSim = AutoRangeDepth ? _rangeFar : MaxDistance;
 
 			// Soft-gate band counters
@@ -940,7 +1026,17 @@ public partial class GrinFilmCamera : Node
 			int segTotal = pixelCount * maxSeg;
 			if (RenderStepMaxSegmentsPerFrame > 0 && segTotal > RenderStepMaxSegmentsPerFrame)
 			{
-				AbortRenderStep($"max-segs {segTotal}>{RenderStepMaxSegmentsPerFrame}");
+				if (UpdateEveryFrame)
+					TriggerBudgetStop("max_segments");
+				else
+				{
+					AbortRenderStep($"max-segs {segTotal}>{RenderStepMaxSegmentsPerFrame}");
+					return;
+				}
+			}
+			if (budgetStop)
+			{
+				LogBudgetStopOnce();
 				return;
 			}
 			_segBuf ??= new RayBeamRenderer.RaySeg[segTotal];
@@ -1146,8 +1242,11 @@ public partial class GrinFilmCamera : Node
 			LogRenderPhase("pass1-end");
 			if (CheckRenderStepWatchdog())
 			{
-				AbortRenderStep("watchdog");
-				return;
+				if (!budgetStop)
+				{
+					AbortRenderStep("watchdog");
+					return;
+				}
 			}
 
 			ulong a1 = Time.GetTicksUsec(); // after wait
@@ -1406,6 +1505,7 @@ public partial class GrinFilmCamera : Node
 					reason = SoftGateDecisionReason.BudgetAttemptCap;
 					SoftGateRecordSkip(reason);
 					DisableSoftGateThisFrame("budget_attempt");
+					if (UpdateEveryFrame) TriggerBudgetStop("sg_attempts");
 					LogSoftGateSample(
 						segIndex,
 						segmentLength,
@@ -1429,6 +1529,7 @@ public partial class GrinFilmCamera : Node
 					reason = SoftGateDecisionReason.BudgetSubdivideCap;
 					SoftGateRecordSkip(reason);
 					DisableSoftGateThisFrame("budget_subdivide");
+					if (UpdateEveryFrame) TriggerBudgetStop("sg_subdivide");
 					LogSoftGateSample(
 						segIndex,
 						segmentLength,
@@ -1497,6 +1598,7 @@ public partial class GrinFilmCamera : Node
 					reason = attemptBudgetOk ? SoftGateDecisionReason.BudgetSubdivideCap : SoftGateDecisionReason.BudgetAttemptCap;
 					SoftGateRecordSkip(reason);
 					DisableSoftGateThisFrame(attemptBudgetOk ? "budget_subdivide" : "budget_attempt");
+					if (UpdateEveryFrame) TriggerBudgetStop(attemptBudgetOk ? "sg_subdivide" : "sg_attempts");
 					LogSoftGateSample(
 						segIndex,
 						segmentLength,
@@ -1562,7 +1664,7 @@ public partial class GrinFilmCamera : Node
 					if (softGateBandEnabled) _softGateBand.SoftGateConsidered++;
 				}
 
-				if (softGateDisabledThisFrame)
+				if (softGateDisabledThisFrame || _softGateDisabledForPass)
 				{
 					reason = SoftGateDecisionReason.Guard;
 					SoftGateRecordSkip(reason);
@@ -1716,16 +1818,20 @@ public partial class GrinFilmCamera : Node
 				int yAlignedStart = yStart + ((stride - (yStart % stride)) % stride);
 				for (int y = yAlignedStart; y < yEnd; y += stride)
 				{
+					budgetStopRowCursor = y;
 					if (CheckRenderStepWatchdog())
 					{
+						if (budgetStop) break;
 						renderStepAbort = true;
 						break;
 					}
 					int localY = y - yStart;
 					for (int x = 0; x < filmW; x += stride)
 					{
+						if (budgetStop) break;
 						if ((x & 31) == 0 && CheckRenderStepWatchdog())
 						{
+							if (budgetStop) break;
 							renderStepAbort = true;
 							break;
 						}
@@ -1746,7 +1852,7 @@ public partial class GrinFilmCamera : Node
 						if (statsEnabled) _perfFrame.FilledPixels += filled;
 						if (framePerfEnabled) bandFilledPixels += filled;
 					}
-					if (renderStepAbort) break;
+					if (renderStepAbort || budgetStop) break;
 				}
 
 				if (shadeTimingEnabled)
@@ -1761,16 +1867,20 @@ public partial class GrinFilmCamera : Node
 				int yAlignedStart = yStart + ((stride - (yStart % stride)) % stride);
 				for (int y = yAlignedStart; y < yEnd; y += stride)
 				{
+					budgetStopRowCursor = y;
 					if (CheckRenderStepWatchdog())
 					{
+						if (budgetStop) break;
 						renderStepAbort = true;
 						break;
 					}
 					int localY = y - yStart;
 					for (int x = 0; x < filmW; x += stride)
 					{
+						if (budgetStop) break;
 						if ((x & 31) == 0 && CheckRenderStepWatchdog())
 						{
+							if (budgetStop) break;
 							renderStepAbort = true;
 							break;
 						}
@@ -2030,7 +2140,10 @@ public partial class GrinFilmCamera : Node
 													ref softGateSubdividedCallsUsed,
 													ref p2SoftGateAttempts,
 													ref softGateBudgetExceeded))
+												{
+													if (budgetStop) break;
 													continue;
+												}
 											}
 											if (cachedDist < bestHitDistAlongRay)
 												bestHitDistAlongRay = cachedDist;
@@ -2082,7 +2195,10 @@ public partial class GrinFilmCamera : Node
 													ref softGateSubdividedCallsUsed,
 													ref p2SoftGateAttempts,
 													ref softGateBudgetExceeded))
+												{
+													if (budgetStop) break;
 													continue;
+												}
 											}
 											else
 											{
@@ -2150,7 +2266,10 @@ public partial class GrinFilmCamera : Node
 													ref softGateSubdividedCallsUsed,
 													ref p2SoftGateAttempts,
 													ref softGateBudgetExceeded))
+												{
+													if (budgetStop) break;
 													continue;
+												}
 											}
 											if (cachedDist < bestHitDistAlongRay)
 												bestHitDistAlongRay = cachedDist;
@@ -2202,7 +2321,10 @@ public partial class GrinFilmCamera : Node
 													ref softGateSubdividedCallsUsed,
 													ref p2SoftGateAttempts,
 													ref softGateBudgetExceeded))
+												{
+													if (budgetStop) break;
 													continue;
+												}
 											}
 											else
 											{
@@ -2299,6 +2421,7 @@ public partial class GrinFilmCamera : Node
 											softGateSubdividesThisPixel++;
 											if (CheckRenderStepWatchdog())
 											{
+												if (budgetStop) break;
 												renderStepAbort = true;
 												softGateWatchdogTrippedThisPixel = true;
 												break;
@@ -2358,7 +2481,10 @@ public partial class GrinFilmCamera : Node
 											softGateWatchdogTrippedThisPixel = true;
 											SoftGateRecordSkip(SoftGateDecisionReason.Guard);
 											if (DisableSoftGateOnOverload)
+											{
+												_softGateDisabledForPass = true;
 												DisableSoftGateThisFrame("softgate_watchdog");
+											}
 											if (Pass2SoftGateDebugEnabled && _softGateWatchdogLogsRemaining > 0)
 											{
 												_softGateWatchdogLogsRemaining--;
@@ -2421,6 +2547,7 @@ public partial class GrinFilmCamera : Node
 								}
 								//////////////////
 							}
+							if (budgetStop) break;
 							if (pass == 0)
 							{
 								bool quickRayAllMiss = quickRayTestedThisPixel && !quickRayHitThisPixel;
@@ -2449,12 +2576,13 @@ public partial class GrinFilmCamera : Node
 							if (softGateWatchdogTrippedThisPixel)
 								break;
 
-							if (hadHit)
-								break;
-						}
+						if (hadHit)
+							break;
+					}
+					if (budgetStop) break;
 
-						if (statsEnabled)
-						{
+					if (statsEnabled)
+					{
 							ulong physEnd = Time.GetTicksUsec();
 							_perfFrame.AddPass2PhysUsec(physEnd - physStart);
 						}
@@ -2629,7 +2757,7 @@ public partial class GrinFilmCamera : Node
 				}
 			}
 			if (framePerfEnabled) pass2Scope.Dispose();
-			if (renderStepAbort)
+			if (renderStepAbort && !budgetStop)
 			{
 				AbortRenderStep("watchdog");
 				return;
@@ -2809,8 +2937,11 @@ public partial class GrinFilmCamera : Node
 			if (framePerfEnabled) uploadScope.Dispose();
 			if (statsEnabled) _perfFrame.AddFilmUpdateUsec(Time.GetTicksUsec() - updateStart);
 
-			_rowCursor = yEnd;
-			if (_rowCursor >= filmH) _rowCursor = 0;
+			if (budgetStop) LogBudgetStopOnce();
+			int nextRowCursor = budgetStop ? budgetStopRowEnd : yEnd;
+			_rowCursor = Mathf.Clamp(nextRowCursor, 0, filmH);
+			if (!budgetStop && _rowCursor >= filmH)
+				ResetRowCursor("completed");
 
 			ulong t1 = Time.GetTicksUsec();
 			if (VerbosePerfLogs)
@@ -3266,8 +3397,29 @@ public partial class GrinFilmCamera : Node
 
 		UpdateFilmViewTexture();
 
-		if (_rowCursor >= _filmHeight) _rowCursor = 0;
 		return true;
+	}
+
+	private int ComputeFilmSettingsHash()
+	{
+		unchecked
+		{
+			int hash = 17;
+			hash = hash * 31 + Width;
+			hash = hash * 31 + Height;
+			hash = hash * 31 + PixelStride;
+			hash = hash * 31 + FilmResolutionScale.GetHashCode();
+			return hash;
+		}
+	}
+
+	private void ResetRowCursor(string reason)
+	{
+		_softGateDisabledForPass = false;
+		if (_rowCursor == 0) return;
+		int prev = _rowCursor;
+		_rowCursor = 0;
+		GD.Print($"[FrameReset] reason={reason} prevRow={prev} frame={_frameIndex}");
 	}
 
 	private void EnsureFilmDebugCapacity(int rays, int pts)
@@ -3587,6 +3739,11 @@ public partial class GrinFilmCamera : Node
 		TinySegmentSkipLen = 0.005f;
 		EarlyOutDistanceEps = 0.01f;
 		NeedColliderNames = false;
+	}
+
+	public void ResetFilmPassManual()
+	{
+		ResetRowCursor("manual");
 	}
 
 	public void ApplyPreset(PresetMode mode)
