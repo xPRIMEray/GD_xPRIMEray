@@ -1,0 +1,1160 @@
+Godot Engine v4.5.1.stable.mono.official.f62fdbde1 - https://godotengine.org
+OpenGL API 3.3.0 Core Profile Context 25.11.1.251104 - Compatibility - Using Device: ATI Technologies Inc. - AMD Radeon(TM) Graphics
+
+[DBG] dbgMesh inTree=True parent=RayBeamRenderer world=(0, 0, 0)
+✅ GrinFilmCamera READY: /root/Node3D/GrinField3D
+RayBeamRenderer found? True
+FilmView found? True
+✅ GrinFilmCamera ready. Rendering film.
+Rebuild ENTER
+Rebuild on node: /root/Node3D/RayBeamRenderer  TerminateTrailOnHit=True StopOnHit=False RequireHitToRender=False
+READY node: /root/Node3D/RayBeamRenderer  Script=<CSharpScript#-9223372009893788259>  TerminateTrailOnHit=True
+RayBeamRenderer: field sources in group = 3
+RayBeamRenderer: emitters in group = 1
+RayBeamRenderer: total instances target = 5117
+Rebuild EXIT
+[RenderStep] phase=enter frame=1 row=0 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=1
+Toggles: AdaptiveSubsteps=0 SingleProbeSubdivide=0 BandHitSkip=0 RequireHit=0 StopOnHit=0 TerminateTrailOnHit=1 UpdateEveryFrame=1
+[Cfg] Pass2SoftGateEnableQuickRayMiss=1 Pass2SoftGateScoringEnabled=1 Pass2SoftGateMinSegmentLength=0.08 Pass2SoftGateScoreThreshold=0.05 Pass2SoftGateScoreTurnAngleWeight=1 Pass2SoftGateScorePrevHitLostBonus=0.75 Pass2SoftGateRandomProbeChance=0 Pass2SoftGateScoreBudgetPerFrame=256 Pass2SoftGateMaxAttemptsPerPixel=3 Pass2SoftGateMaxAttemptsPerFrame=50 Pass2SoftGateMaxSubdividedCallsPerFrame=500 UpdateEveryFrame=1
+fieldSnaps=3 hasSources=True
+[RenderStep] phase=pass1-start frame=1 row=0 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=6
+[RenderStep] phase=pass1-end frame=1 row=0 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=134
+[RenderStep] phase=pass2-start frame=1 row=0 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=134
+[RenderStep] phase=softgate-loop frame=1 row=0 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=134
+[SoftGate][Cfg] segIndex=0 minSegLen=0.035 minSegSteps=0.35 effStepLen=0.1 scoreThr=0.05 turnW=1 prevLost=0.75 rand=0
+[SoftGate][Cfg] segIndex=1 minSegLen=0.035 minSegSteps=0.35 effStepLen=0.1 scoreThr=0.05 turnW=1 prevLost=0.75 rand=0
+Film band y=[0,8) hits=174 avgStepsPerTracedPx=253.70
+[RenderStep][Yield] reason=max_ms frame=1 rowCursor=6 rowsDone=6 pendingPass2=0 bandH=8 pass1RerunAvoided=0 ms=507 p1ms=127.93 p2ms=371.79 p2SegTestedStep=187476 softGate{attemptUsed=0 subdivUsed=0}
+RenderStep 506.98 ms  rows=8  jobs=8  hits=174
+pass1=127.93ms  pass2=371.79ms  total=499.73ms
+[RenderStep] phase=end frame=1 row=6 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=507
+[RenderStep] phase=enter frame=1 row=6 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=6 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=6 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=21
+[RenderStep] phase=pass2-start frame=1 row=6 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=21
+[RenderStep] phase=softgate-loop frame=1 row=6 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=21
+Film band y=[6,7) hits=66 avgStepsPerTracedPx=200.47
+RenderStep 141.21 ms  rows=1  jobs=8  hits=66
+pass1=20.89ms  pass2=119.87ms  total=140.76ms
+[RenderStep] phase=end frame=1 row=7 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=141
+[RenderStep] phase=enter frame=1 row=7 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=7 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=7 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=7 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=7 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[7,8) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.33 ms  rows=1  jobs=8  hits=0
+pass1=0.13ms  pass2=0.02ms  total=0.14ms
+[RenderStep] phase=end frame=1 row=8 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=8 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=8 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=8 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=139
+[RenderStep] phase=pass2-start frame=1 row=8 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=139
+[RenderStep] phase=softgate-loop frame=1 row=8 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=139
+Film band y=[8,16) hits=207 avgStepsPerTracedPx=215.08
+[RenderStep][Yield] reason=max_ms frame=1 rowCursor=14 rowsDone=6 pendingPass2=0 bandH=8 pass1RerunAvoided=0 ms=501 p1ms=139.05 p2ms=362.38 p2SegTestedStep=214103 softGate{attemptUsed=0 subdivUsed=0}
+RenderStep 501.81 ms  rows=8  jobs=8  hits=207
+pass1=139.05ms  pass2=362.38ms  total=501.43ms
+[RenderStep] phase=end frame=1 row=14 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=501
+[RenderStep] phase=enter frame=1 row=14 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=14 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=14 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=44
+[RenderStep] phase=pass2-start frame=1 row=14 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=44
+[RenderStep] phase=softgate-loop frame=1 row=14 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=44
+Film band y=[14,15) hits=73 avgStepsPerTracedPx=193.58
+RenderStep 133.53 ms  rows=1  jobs=8  hits=73
+pass1=44.44ms  pass2=88.84ms  total=133.27ms
+[RenderStep] phase=end frame=1 row=15 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=133
+[RenderStep] phase=enter frame=1 row=15 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=15 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=15 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=15 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=15 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[15,16) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.31 ms  rows=1  jobs=8  hits=0
+pass1=0.10ms  pass2=0.01ms  total=0.11ms
+[RenderStep] phase=end frame=1 row=16 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=16 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=16 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=16 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=138
+[RenderStep] phase=pass2-start frame=1 row=16 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=138
+[RenderStep] phase=softgate-loop frame=1 row=16 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=138
+Film band y=[16,24) hits=231 avgStepsPerTracedPx=202.20
+[RenderStep][Yield] reason=max_ms frame=1 rowCursor=22 rowsDone=6 pendingPass2=0 bandH=8 pass1RerunAvoided=0 ms=504 p1ms=138.61 p2ms=365.97 p2SegTestedStep=214612 softGate{attemptUsed=0 subdivUsed=0}
+RenderStep 504.88 ms  rows=8  jobs=8  hits=231
+pass1=138.61ms  pass2=365.97ms  total=504.58ms
+[RenderStep] phase=end frame=1 row=22 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=504
+[RenderStep] phase=enter frame=1 row=22 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=22 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=22 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=38
+[RenderStep] phase=pass2-start frame=1 row=22 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=38
+[RenderStep] phase=softgate-loop frame=1 row=22 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=38
+Film band y=[22,23) hits=77 avgStepsPerTracedPx=186.69
+RenderStep 122.43 ms  rows=1  jobs=8  hits=77
+pass1=38.55ms  pass2=83.59ms  total=122.13ms
+[RenderStep] phase=end frame=1 row=23 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=122
+[RenderStep] phase=enter frame=1 row=23 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=23 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=23 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=23 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=23 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[23,24) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.27 ms  rows=1  jobs=8  hits=0
+pass1=0.07ms  pass2=0.01ms  total=0.08ms
+[RenderStep] phase=end frame=1 row=24 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=24 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=24 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=24 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=120
+[RenderStep] phase=pass2-start frame=1 row=24 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=120
+[RenderStep] phase=softgate-loop frame=1 row=24 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=120
+Film band y=[24,32) hits=348 avgStepsPerTracedPx=182.86
+RenderStep 497.79 ms  rows=8  jobs=8  hits=348
+pass1=120.79ms  pass2=376.69ms  total=497.48ms
+[RenderStep] phase=end frame=1 row=32 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=497
+[RenderStep] phase=enter frame=1 row=32 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=32 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=32 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=40
+[RenderStep] phase=pass2-start frame=1 row=32 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=40
+[RenderStep] phase=softgate-loop frame=1 row=32 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=40
+Film band y=[32,33) hits=93 avgStepsPerTracedPx=178.27
+RenderStep 142.64 ms  rows=1  jobs=8  hits=93
+pass1=40.76ms  pass2=101.57ms  total=142.34ms
+[RenderStep] phase=end frame=1 row=33 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=142
+[RenderStep] phase=enter frame=1 row=33 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=33 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=33 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=33 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=33 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[33,34) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.23 ms  rows=1  jobs=8  hits=0
+pass1=0.08ms  pass2=0.02ms  total=0.09ms
+[RenderStep] phase=end frame=1 row=34 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=34 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=34 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=34 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=111
+[RenderStep] phase=pass2-start frame=1 row=34 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=111
+[RenderStep] phase=softgate-loop frame=1 row=34 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=111
+Film band y=[34,42) hits=382 avgStepsPerTracedPx=174.44
+RenderStep 457.57 ms  rows=8  jobs=8  hits=382
+pass1=111.47ms  pass2=345.83ms  total=457.30ms
+[RenderStep] phase=end frame=1 row=42 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=457
+[RenderStep] phase=enter frame=1 row=42 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=42 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=42 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=42
+[RenderStep] phase=pass2-start frame=1 row=42 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=42
+[RenderStep] phase=softgate-loop frame=1 row=42 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=42
+Film band y=[42,43) hits=96 avgStepsPerTracedPx=169.84
+RenderStep 119.78 ms  rows=1  jobs=8  hits=96
+pass1=42.17ms  pass2=77.37ms  total=119.54ms
+[RenderStep] phase=end frame=1 row=43 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=119
+[RenderStep] phase=enter frame=1 row=43 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=43 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=43 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=43 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=43 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[43,44) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.53 ms  rows=1  jobs=8  hits=0
+pass1=0.07ms  pass2=0.01ms  total=0.08ms
+[RenderStep] phase=end frame=1 row=44 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=44 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=44 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=44 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=113
+[RenderStep] phase=pass2-start frame=1 row=44 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=113
+[RenderStep] phase=softgate-loop frame=1 row=44 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=113
+Film band y=[44,52) hits=418 avgStepsPerTracedPx=165.82
+RenderStep 443.11 ms  rows=8  jobs=8  hits=418
+pass1=113.88ms  pass2=328.98ms  total=442.86ms
+[RenderStep] phase=end frame=1 row=52 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=443
+[RenderStep] phase=enter frame=1 row=52 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=52 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=52 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=pass2-start frame=1 row=52 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=softgate-loop frame=1 row=52 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=37
+Film band y=[52,53) hits=115 avgStepsPerTracedPx=161.42
+RenderStep 110.94 ms  rows=1  jobs=8  hits=115
+pass1=37.74ms  pass2=72.97ms  total=110.71ms
+[RenderStep] phase=end frame=1 row=53 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=110
+[RenderStep] phase=enter frame=1 row=53 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=53 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=53 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=53 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=53 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[53,54) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.18 ms  rows=1  jobs=8  hits=0
+pass1=0.07ms  pass2=0.01ms  total=0.08ms
+[RenderStep] phase=end frame=1 row=54 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=54 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=54 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=54 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=109
+[RenderStep] phase=pass2-start frame=1 row=54 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=109
+[RenderStep] phase=softgate-loop frame=1 row=54 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=109
+Film band y=[54,62) hits=470 avgStepsPerTracedPx=157.40
+RenderStep 413.90 ms  rows=8  jobs=8  hits=470
+pass1=109.73ms  pass2=303.89ms  total=413.63ms
+[RenderStep] phase=end frame=1 row=62 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=413
+[RenderStep] phase=enter frame=1 row=62 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=62 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=62 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=32
+[RenderStep] phase=pass2-start frame=1 row=62 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=32
+[RenderStep] phase=softgate-loop frame=1 row=62 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=32
+Film band y=[62,63) hits=128 avgStepsPerTracedPx=153.00
+RenderStep 102.34 ms  rows=1  jobs=8  hits=128
+pass1=32.77ms  pass2=69.33ms  total=102.10ms
+[RenderStep] phase=end frame=1 row=63 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=102
+[RenderStep] phase=enter frame=1 row=63 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=63 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=63 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=63 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=63 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[63,64) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.21 ms  rows=1  jobs=8  hits=0
+pass1=0.07ms  pass2=0.01ms  total=0.08ms
+[RenderStep] phase=end frame=1 row=64 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=64 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=64 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=64 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=108
+[RenderStep] phase=pass2-start frame=1 row=64 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=108
+[RenderStep] phase=softgate-loop frame=1 row=64 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=108
+Film band y=[64,72) hits=525 avgStepsPerTracedPx=160.66
+RenderStep 401.10 ms  rows=8  jobs=8  hits=525
+pass1=108.41ms  pass2=292.47ms  total=400.88ms
+[RenderStep] phase=end frame=1 row=72 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=401
+[RenderStep] phase=enter frame=1 row=72 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=72 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=72 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=34
+[RenderStep] phase=pass2-start frame=1 row=72 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=34
+[RenderStep] phase=softgate-loop frame=1 row=72 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=34
+Film band y=[72,73) hits=139 avgStepsPerTracedPx=172.14
+RenderStep 99.99 ms  rows=1  jobs=8  hits=139
+pass1=34.61ms  pass2=65.19ms  total=99.80ms
+[RenderStep] phase=end frame=1 row=73 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=100
+[RenderStep] phase=enter frame=1 row=73 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=73 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=73 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=73 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=73 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[73,74) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.18 ms  rows=1  jobs=8  hits=0
+pass1=0.06ms  pass2=0.01ms  total=0.07ms
+[RenderStep] phase=end frame=1 row=74 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=74 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=74 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=74 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=141
+[RenderStep] phase=pass2-start frame=1 row=74 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=141
+[RenderStep] phase=softgate-loop frame=1 row=74 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=141
+Film band y=[74,82) hits=571 avgStepsPerTracedPx=179.03
+RenderStep 414.40 ms  rows=8  jobs=8  hits=571
+pass1=141.73ms  pass2=272.44ms  total=414.17ms
+[RenderStep] phase=end frame=1 row=82 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=414
+[RenderStep] phase=enter frame=1 row=82 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=82 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=82 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=23
+[RenderStep] phase=pass2-start frame=1 row=82 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=23
+[RenderStep] phase=softgate-loop frame=1 row=82 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=23
+Film band y=[82,83) hits=150 avgStepsPerTracedPx=184.39
+RenderStep 102.66 ms  rows=1  jobs=8  hits=150
+pass1=23.22ms  pass2=79.23ms  total=102.45ms
+[RenderStep] phase=end frame=1 row=83 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=102
+[RenderStep] phase=enter frame=1 row=83 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=83 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=83 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=83 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=83 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[83,84) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.23 ms  rows=1  jobs=8  hits=0
+pass1=0.08ms  pass2=0.02ms  total=0.10ms
+[RenderStep] phase=end frame=1 row=84 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=84 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=84 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=84 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=109
+[RenderStep] phase=pass2-start frame=1 row=84 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=109
+[RenderStep] phase=softgate-loop frame=1 row=84 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=109
+Film band y=[84,92) hits=608 avgStepsPerTracedPx=188.03
+RenderStep 372.08 ms  rows=8  jobs=8  hits=608
+pass1=109.74ms  pass2=262.14ms  total=371.88ms
+[RenderStep] phase=end frame=1 row=92 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=372
+[RenderStep] phase=enter frame=1 row=92 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=92 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=92 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=38
+[RenderStep] phase=pass2-start frame=1 row=92 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=38
+[RenderStep] phase=softgate-loop frame=1 row=92 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=38
+Film hit: dist=1.129 name=<StaticBody3D#30500980292> mode=TwoSidedNdotV
+Film band y=[92,93) hits=161 avgStepsPerTracedPx=190.52
+RenderStep 97.74 ms  rows=1  jobs=8  hits=161
+pass1=38.42ms  pass2=59.13ms  total=97.55ms
+[RenderStep] phase=end frame=1 row=93 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=97
+[RenderStep] phase=enter frame=1 row=93 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=93 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=93 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=93 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=93 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[93,94) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.18 ms  rows=1  jobs=8  hits=0
+pass1=0.05ms  pass2=0.01ms  total=0.06ms
+[RenderStep] phase=end frame=1 row=94 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=94 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=94 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=94 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=137
+[RenderStep] phase=pass2-start frame=1 row=94 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=137
+[RenderStep] phase=softgate-loop frame=1 row=94 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=137
+Film band y=[94,102) hits=643 avgStepsPerTracedPx=192.62
+RenderStep 370.74 ms  rows=8  jobs=8  hits=643
+pass1=137.04ms  pass2=233.49ms  total=370.53ms
+[RenderStep] phase=end frame=1 row=102 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=370
+[RenderStep] phase=enter frame=1 row=102 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=102 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=102 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=pass2-start frame=1 row=102 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=softgate-loop frame=1 row=102 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=37
+Film band y=[102,103) hits=152 avgStepsPerTracedPx=194.34
+RenderStep 93.57 ms  rows=1  jobs=8  hits=152
+pass1=37.78ms  pass2=55.59ms  total=93.37ms
+[RenderStep] phase=end frame=1 row=103 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=93
+[RenderStep] phase=enter frame=1 row=103 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=103 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=103 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=103 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=103 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[103,104) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.30 ms  rows=1  jobs=8  hits=0
+pass1=0.05ms  pass2=0.01ms  total=0.06ms
+[RenderStep] phase=end frame=1 row=104 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=104 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=104 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=104 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=113
+[RenderStep] phase=pass2-start frame=1 row=104 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=113
+[RenderStep] phase=softgate-loop frame=1 row=104 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=113
+Film hit: dist=1.066 name=<StaticBody3D#30500980292> mode=TwoSidedNdotV
+Film band y=[104,112) hits=638 avgStepsPerTracedPx=194.92
+RenderStep 361.30 ms  rows=8  jobs=8  hits=638
+pass1=113.89ms  pass2=247.21ms  total=361.10ms
+[RenderStep] phase=end frame=1 row=112 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=361
+[RenderStep] phase=enter frame=1 row=112 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=112 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=112 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=39
+[RenderStep] phase=pass2-start frame=1 row=112 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=39
+[RenderStep] phase=softgate-loop frame=1 row=112 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=39
+Film hit: dist=1.051 name=<StaticBody3D#30500980292> mode=TwoSidedNdotV
+Film band y=[112,113) hits=161 avgStepsPerTracedPx=195.88
+RenderStep 97.44 ms  rows=1  jobs=8  hits=161
+pass1=39.26ms  pass2=57.98ms  total=97.24ms
+[RenderStep] phase=end frame=1 row=113 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=97
+[RenderStep] phase=enter frame=1 row=113 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=113 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=113 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=113 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=113 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[113,114) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.51 ms  rows=1  jobs=8  hits=0
+pass1=0.40ms  pass2=0.01ms  total=0.41ms
+[RenderStep] phase=end frame=1 row=114 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=114 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=114 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=114 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=140
+[RenderStep] phase=pass2-start frame=1 row=114 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=140
+[RenderStep] phase=softgate-loop frame=1 row=114 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=140
+Film hit: dist=1.030 name=<StaticBody3D#30500980292> mode=TwoSidedNdotV
+Film band y=[114,122) hits=624 avgStepsPerTracedPx=196.07
+RenderStep 384.64 ms  rows=8  jobs=8  hits=624
+pass1=140.32ms  pass2=244.14ms  total=384.46ms
+[RenderStep] phase=end frame=1 row=122 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=384
+[RenderStep] phase=enter frame=1 row=122 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=122 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=122 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=38
+[RenderStep] phase=pass2-start frame=1 row=122 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=38
+[RenderStep] phase=softgate-loop frame=1 row=122 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=38
+Film hit: dist=1.017 name=<StaticBody3D#30500980292> mode=TwoSidedNdotV
+Film band y=[122,123) hits=156 avgStepsPerTracedPx=197.41
+RenderStep 96.94 ms  rows=1  jobs=8  hits=156
+pass1=38.18ms  pass2=58.60ms  total=96.77ms
+[RenderStep] phase=end frame=1 row=123 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=96
+[RenderStep] phase=enter frame=1 row=123 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=123 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=123 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=123 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=123 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[123,124) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.17 ms  rows=1  jobs=8  hits=0
+pass1=0.05ms  pass2=0.01ms  total=0.06ms
+[RenderStep] phase=end frame=1 row=124 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=124 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=124 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=124 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=130
+[RenderStep] phase=pass2-start frame=1 row=124 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=131
+[RenderStep] phase=softgate-loop frame=1 row=124 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=131
+Film hit: dist=1.000 name=<StaticBody3D#30500980292> mode=TwoSidedNdotV
+Film band y=[124,132) hits=591 avgStepsPerTracedPx=198.75
+RenderStep 388.74 ms  rows=8  jobs=8  hits=591
+pass1=130.97ms  pass2=257.56ms  total=388.53ms
+[RenderStep] phase=end frame=1 row=132 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=388
+[RenderStep] phase=enter frame=1 row=132 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=132 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=132 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=19
+[RenderStep] phase=pass2-start frame=1 row=132 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=19
+[RenderStep] phase=softgate-loop frame=1 row=132 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=19
+Film hit: dist=1.000 name=<StaticBody3D#30500980292> mode=TwoSidedNdotV
+Film band y=[132,133) hits=153 avgStepsPerTracedPx=200.47
+RenderStep 93.84 ms  rows=1  jobs=8  hits=153
+pass1=19.05ms  pass2=74.62ms  total=93.66ms
+[RenderStep] phase=end frame=1 row=133 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=93
+[RenderStep] phase=enter frame=1 row=133 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=133 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=133 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=133 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=133 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[133,134) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.16 ms  rows=1  jobs=8  hits=0
+pass1=0.05ms  pass2=0.01ms  total=0.06ms
+[RenderStep] phase=end frame=1 row=134 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=134 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=134 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=134 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=115
+[RenderStep] phase=pass2-start frame=1 row=134 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=115
+[RenderStep] phase=softgate-loop frame=1 row=134 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=115
+Film hit: dist=0.967 name=<StaticBody3D#30500980292> mode=TwoSidedNdotV
+Film band y=[134,142) hits=602 avgStepsPerTracedPx=201.23
+RenderStep 366.29 ms  rows=8  jobs=8  hits=602
+pass1=115.91ms  pass2=250.19ms  total=366.10ms
+[RenderStep] phase=end frame=1 row=142 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=366
+[RenderStep] phase=enter frame=1 row=142 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=142 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=142 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=62
+[RenderStep] phase=pass2-start frame=1 row=142 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=62
+[RenderStep] phase=softgate-loop frame=1 row=142 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=62
+Film hit: dist=0.955 name=<StaticBody3D#30500980292> mode=TwoSidedNdotV
+Film band y=[142,143) hits=150 avgStepsPerTracedPx=202.77
+RenderStep 123.68 ms  rows=1  jobs=8  hits=150
+pass1=62.24ms  pass2=61.26ms  total=123.50ms
+[RenderStep] phase=end frame=1 row=143 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=123
+[RenderStep] phase=enter frame=1 row=143 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=143 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=143 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=143 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=143 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[143,144) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.18 ms  rows=1  jobs=8  hits=0
+pass1=0.06ms  pass2=0.01ms  total=0.07ms
+[RenderStep] phase=end frame=1 row=144 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=144 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=144 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=144 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=143
+[RenderStep] phase=pass2-start frame=1 row=144 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=143
+[RenderStep] phase=softgate-loop frame=1 row=144 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=143
+Film hit: dist=0.939 name=<StaticBody3D#30500980292> mode=TwoSidedNdotV
+Film band y=[144,152) hits=576 avgStepsPerTracedPx=203.53
+RenderStep 403.17 ms  rows=8  jobs=8  hits=576
+pass1=143.48ms  pass2=259.46ms  total=402.94ms
+[RenderStep] phase=end frame=1 row=152 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=403
+[RenderStep] phase=enter frame=1 row=152 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=152 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=152 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=pass2-start frame=1 row=152 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=softgate-loop frame=1 row=152 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=37
+Film hit: dist=0.928 name=<StaticBody3D#30500980292> mode=TwoSidedNdotV
+Film band y=[152,153) hits=138 avgStepsPerTracedPx=204.30
+RenderStep 101.00 ms  rows=1  jobs=8  hits=138
+pass1=37.63ms  pass2=63.20ms  total=100.83ms
+[RenderStep] phase=end frame=1 row=153 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=101
+[RenderStep] phase=enter frame=1 row=153 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=153 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=153 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=153 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=153 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[153,154) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.17 ms  rows=1  jobs=8  hits=0
+pass1=0.05ms  pass2=0.01ms  total=0.06ms
+[RenderStep] phase=end frame=1 row=154 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=154 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=154 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=154 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=129
+[RenderStep] phase=pass2-start frame=1 row=154 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=129
+[RenderStep] phase=softgate-loop frame=1 row=154 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=129
+Film hit: dist=0.913 name=<StaticBody3D#30500980292> mode=TwoSidedNdotV
+Film band y=[154,162) hits=540 avgStepsPerTracedPx=205.45
+RenderStep 411.58 ms  rows=8  jobs=8  hits=540
+pass1=129.66ms  pass2=281.69ms  total=411.35ms
+[RenderStep] phase=end frame=1 row=162 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=411
+[RenderStep] phase=enter frame=1 row=162 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=162 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=162 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=pass2-start frame=1 row=162 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=softgate-loop frame=1 row=162 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=36
+Film hit: dist=0.903 name=<StaticBody3D#30500980292> mode=TwoSidedNdotV
+Film band y=[162,163) hits=130 avgStepsPerTracedPx=205.09
+RenderStep 100.62 ms  rows=1  jobs=8  hits=130
+pass1=36.65ms  pass2=63.79ms  total=100.44ms
+[RenderStep] phase=end frame=1 row=163 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=100
+[RenderStep] phase=enter frame=1 row=163 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=163 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=163 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=163 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=163 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[163,164) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.30 ms  rows=1  jobs=8  hits=0
+pass1=0.06ms  pass2=0.01ms  total=0.07ms
+[RenderStep] phase=end frame=1 row=164 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=164 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=164 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=164 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=104
+[RenderStep] phase=pass2-start frame=1 row=164 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=104
+[RenderStep] phase=softgate-loop frame=1 row=164 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=104
+Film hit: dist=0.889 name=<StaticBody3D#30500980292> mode=TwoSidedNdotV
+Film band y=[164,172) hits=544 avgStepsPerTracedPx=182.25
+RenderStep 379.59 ms  rows=8  jobs=8  hits=544
+pass1=104.87ms  pass2=274.53ms  total=379.40ms
+[RenderStep] phase=end frame=1 row=172 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=379
+[RenderStep] phase=enter frame=1 row=172 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=172 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=172 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=32
+[RenderStep] phase=pass2-start frame=1 row=172 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=32
+[RenderStep] phase=softgate-loop frame=1 row=172 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=32
+Film hit: dist=2.512 name=<StaticBody3D#30366762556> mode=TwoSidedNdotV
+Film band y=[172,173) hits=137 avgStepsPerTracedPx=157.30
+RenderStep 98.59 ms  rows=1  jobs=8  hits=137
+pass1=32.46ms  pass2=65.92ms  total=98.39ms
+[RenderStep] phase=end frame=1 row=173 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=98
+[RenderStep] phase=enter frame=1 row=173 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=173 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=173 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=173 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=173 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[173,174) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.20 ms  rows=1  jobs=8  hits=0
+pass1=0.06ms  pass2=0.01ms  total=0.07ms
+[RenderStep] phase=end frame=1 row=174 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=174 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=174 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=174 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=116
+[RenderStep] phase=pass2-start frame=1 row=174 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=116
+[RenderStep] phase=softgate-loop frame=1 row=174 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=116
+Film hit: dist=2.581 name=<StaticBody3D#30366762556> mode=TwoSidedNdotV
+Film band y=[174,182) hits=531 avgStepsPerTracedPx=154.14
+RenderStep 396.36 ms  rows=8  jobs=8  hits=531
+pass1=116.26ms  pass2=279.44ms  total=395.70ms
+[RenderStep] phase=end frame=1 row=182 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=396
+[RenderStep] phase=enter frame=1 row=182 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=182 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=182 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=1 row=182 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=1 row=182 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=18
+Film hit: dist=2.630 name=<StaticBody3D#30366762556> mode=TwoSidedNdotV
+Film band y=[182,183) hits=134 avgStepsPerTracedPx=152.87
+RenderStep 104.19 ms  rows=1  jobs=8  hits=134
+pass1=18.34ms  pass2=85.63ms  total=103.97ms
+[RenderStep] phase=end frame=1 row=183 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=104
+[RenderStep] phase=enter frame=1 row=183 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=183 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=183 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=183 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=183 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[183,184) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.20 ms  rows=1  jobs=8  hits=0
+pass1=0.07ms  pass2=0.02ms  total=0.08ms
+[RenderStep] phase=end frame=1 row=184 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=184 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=184 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=184 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=90
+[RenderStep] phase=pass2-start frame=1 row=184 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=90
+[RenderStep] phase=softgate-loop frame=1 row=184 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=90
+Film hit: dist=2.707 name=<StaticBody3D#30366762556> mode=TwoSidedNdotV
+Film band y=[184,192) hits=592 avgStepsPerTracedPx=156.05
+RenderStep 348.14 ms  rows=8  jobs=8  hits=592
+pass1=90.20ms  pass2=257.75ms  total=347.95ms
+[RenderStep] phase=end frame=1 row=192 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=348
+[RenderStep] phase=enter frame=1 row=192 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=192 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=192 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=16
+[RenderStep] phase=pass2-start frame=1 row=192 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=16
+[RenderStep] phase=softgate-loop frame=1 row=192 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=16
+Film hit: dist=2.761 name=<StaticBody3D#30366762556> mode=TwoSidedNdotV
+Film band y=[192,193) hits=157 avgStepsPerTracedPx=168.50
+RenderStep 93.87 ms  rows=1  jobs=8  hits=157
+pass1=16.81ms  pass2=76.88ms  total=93.68ms
+[RenderStep] phase=end frame=1 row=193 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=93
+[RenderStep] phase=enter frame=1 row=193 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=193 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=193 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=193 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=193 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[193,194) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.16 ms  rows=1  jobs=8  hits=0
+pass1=0.05ms  pass2=0.01ms  total=0.06ms
+[RenderStep] phase=end frame=1 row=194 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=194 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=194 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=194 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=106
+[RenderStep] phase=pass2-start frame=1 row=194 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=106
+[RenderStep] phase=softgate-loop frame=1 row=194 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=106
+Film hit: dist=0.883 name=<StaticBody3D#30500980292> mode=TwoSidedNdotV
+Film band y=[194,202) hits=656 avgStepsPerTracedPx=179.18
+RenderStep 336.96 ms  rows=8  jobs=8  hits=656
+pass1=106.36ms  pass2=230.42ms  total=336.78ms
+[RenderStep] phase=end frame=1 row=202 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=336
+[RenderStep] phase=enter frame=1 row=202 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=202 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=202 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=pass2-start frame=1 row=202 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=softgate-loop frame=1 row=202 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=37
+Film hit: dist=2.908 name=<StaticBody3D#30366762556> mode=TwoSidedNdotV
+Film band y=[202,203) hits=169 avgStepsPerTracedPx=160.71
+RenderStep 89.05 ms  rows=1  jobs=8  hits=169
+pass1=37.19ms  pass2=51.69ms  total=88.87ms
+[RenderStep] phase=end frame=1 row=203 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=89
+[RenderStep] phase=enter frame=1 row=203 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=203 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=203 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=203 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=203 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[203,204) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.19 ms  rows=1  jobs=8  hits=0
+pass1=0.05ms  pass2=0.01ms  total=0.07ms
+[RenderStep] phase=end frame=1 row=204 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=204 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=204 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=204 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=100
+[RenderStep] phase=pass2-start frame=1 row=204 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=100
+[RenderStep] phase=softgate-loop frame=1 row=204 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=100
+Film hit: dist=3.005 name=<StaticBody3D#30366762556> mode=TwoSidedNdotV
+Film band y=[204,212) hits=714 avgStepsPerTracedPx=152.12
+RenderStep 306.33 ms  rows=8  jobs=8  hits=714
+pass1=100.89ms  pass2=205.24ms  total=306.13ms
+[RenderStep] phase=end frame=1 row=212 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=306
+[RenderStep] phase=enter frame=1 row=212 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=212 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=212 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=34
+[RenderStep] phase=pass2-start frame=1 row=212 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=34
+[RenderStep] phase=softgate-loop frame=1 row=212 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=34
+Film hit: dist=3.073 name=<StaticBody3D#30366762556> mode=TwoSidedNdotV
+Film band y=[212,213) hits=182 avgStepsPerTracedPx=151.25
+RenderStep 78.89 ms  rows=1  jobs=8  hits=182
+pass1=34.37ms  pass2=44.35ms  total=78.72ms
+[RenderStep] phase=end frame=1 row=213 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=78
+[RenderStep] phase=enter frame=1 row=213 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=213 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=213 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=213 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=213 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[213,214) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.17 ms  rows=1  jobs=8  hits=0
+pass1=0.05ms  pass2=0.01ms  total=0.06ms
+[RenderStep] phase=end frame=1 row=214 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=214 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=214 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=214 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=107
+[RenderStep] phase=pass2-start frame=1 row=214 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=107
+[RenderStep] phase=softgate-loop frame=1 row=214 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=107
+Film hit: dist=3.182 name=<StaticBody3D#30366762556> mode=TwoSidedNdotV
+Film band y=[214,222) hits=814 avgStepsPerTracedPx=166.58
+RenderStep 285.84 ms  rows=8  jobs=8  hits=814
+pass1=107.54ms  pass2=178.12ms  total=285.66ms
+[RenderStep] phase=end frame=1 row=222 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=285
+[RenderStep] phase=enter frame=1 row=222 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=222 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=222 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=33
+[RenderStep] phase=pass2-start frame=1 row=222 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=33
+[RenderStep] phase=softgate-loop frame=1 row=222 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=33
+Film hit: dist=3.260 name=<StaticBody3D#30366762556> mode=TwoSidedNdotV
+Film band y=[222,223) hits=216 avgStepsPerTracedPx=182.38
+RenderStep 71.81 ms  rows=1  jobs=8  hits=216
+pass1=33.56ms  pass2=38.08ms  total=71.64ms
+[RenderStep] phase=end frame=1 row=223 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=71
+[RenderStep] phase=enter frame=1 row=223 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=223 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=223 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=223 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=223 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[223,224) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.31 ms  rows=1  jobs=8  hits=0
+pass1=0.05ms  pass2=0.01ms  total=0.06ms
+[RenderStep] phase=end frame=1 row=224 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=224 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=224 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=224 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=94
+[RenderStep] phase=pass2-start frame=1 row=224 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=94
+[RenderStep] phase=softgate-loop frame=1 row=224 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=94
+Film hit: dist=3.384 name=<StaticBody3D#30366762556> mode=TwoSidedNdotV
+Film band y=[224,232) hits=865 avgStepsPerTracedPx=140.50
+RenderStep 259.02 ms  rows=8  jobs=8  hits=865
+pass1=94.47ms  pass2=164.31ms  total=258.77ms
+[RenderStep] phase=end frame=1 row=232 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=259
+[RenderStep] phase=enter frame=1 row=232 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=232 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=232 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=14
+[RenderStep] phase=pass2-start frame=1 row=232 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=14
+[RenderStep] phase=softgate-loop frame=1 row=232 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=14
+Film hit: dist=3.472 name=<StaticBody3D#30366762556> mode=TwoSidedNdotV
+Film band y=[232,233) hits=218 avgStepsPerTracedPx=128.90
+RenderStep 68.42 ms  rows=1  jobs=8  hits=218
+pass1=14.86ms  pass2=53.32ms  total=68.18ms
+[RenderStep] phase=end frame=1 row=233 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=68
+[RenderStep] phase=enter frame=1 row=233 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=233 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=233 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=233 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=233 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[233,234) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.22 ms  rows=1  jobs=8  hits=0
+pass1=0.09ms  pass2=0.01ms  total=0.10ms
+[RenderStep] phase=end frame=1 row=234 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=234 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=234 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=234 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=80
+[RenderStep] phase=pass2-start frame=1 row=234 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=80
+[RenderStep] phase=softgate-loop frame=1 row=234 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=80
+Film hit: dist=3.613 name=<StaticBody3D#30366762556> mode=TwoSidedNdotV
+Film band y=[234,242) hits=819 avgStepsPerTracedPx=139.44
+RenderStep 248.74 ms  rows=8  jobs=8  hits=819
+pass1=80.25ms  pass2=168.32ms  total=248.57ms
+[RenderStep] phase=end frame=1 row=242 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=248
+[RenderStep] phase=enter frame=1 row=242 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=242 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=242 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=25
+[RenderStep] phase=pass2-start frame=1 row=242 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=25
+[RenderStep] phase=softgate-loop frame=1 row=242 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=25
+Film hit: dist=3.714 name=<StaticBody3D#30366762556> mode=TwoSidedNdotV
+Film band y=[242,243) hits=201 avgStepsPerTracedPx=133.41
+RenderStep 68.20 ms  rows=1  jobs=8  hits=201
+pass1=25.42ms  pass2=42.61ms  total=68.03ms
+[RenderStep] phase=end frame=1 row=243 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=68
+[RenderStep] phase=enter frame=1 row=243 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=243 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=243 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=243 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=243 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[243,244) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.21 ms  rows=1  jobs=8  hits=0
+pass1=0.07ms  pass2=0.02ms  total=0.08ms
+[RenderStep] phase=end frame=1 row=244 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=244 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=244 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=244 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=93
+[RenderStep] phase=pass2-start frame=1 row=244 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=93
+[RenderStep] phase=softgate-loop frame=1 row=244 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=93
+Film hit: dist=2.260 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+Film band y=[244,252) hits=750 avgStepsPerTracedPx=136.44
+RenderStep 271.48 ms  rows=8  jobs=8  hits=750
+pass1=93.79ms  pass2=177.50ms  total=271.29ms
+[RenderStep] phase=end frame=1 row=252 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=271
+[RenderStep] phase=enter frame=1 row=252 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=252 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=252 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=28
+[RenderStep] phase=pass2-start frame=1 row=252 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=28
+[RenderStep] phase=softgate-loop frame=1 row=252 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=28
+Film hit: dist=2.246 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+Film band y=[252,253) hits=171 avgStepsPerTracedPx=146.53
+RenderStep 78.82 ms  rows=1  jobs=8  hits=171
+pass1=28.91ms  pass2=49.72ms  total=78.63ms
+[RenderStep] phase=end frame=1 row=253 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=78
+[RenderStep] phase=enter frame=1 row=253 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=253 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=253 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=253 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=253 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[253,254) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.17 ms  rows=1  jobs=8  hits=0
+pass1=0.05ms  pass2=0.01ms  total=0.06ms
+[RenderStep] phase=end frame=1 row=254 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=254 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=254 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=254 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=117
+[RenderStep] phase=pass2-start frame=1 row=254 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=117
+[RenderStep] phase=softgate-loop frame=1 row=254 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=117
+Film hit: dist=2.225 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+Film band y=[254,262) hits=601 avgStepsPerTracedPx=161.51
+RenderStep 340.69 ms  rows=8  jobs=8  hits=601
+pass1=117.09ms  pass2=223.42ms  total=340.50ms
+[RenderStep] phase=end frame=1 row=262 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=340
+[RenderStep] phase=enter frame=1 row=262 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=262 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=262 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=31
+[RenderStep] phase=pass2-start frame=1 row=262 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=31
+[RenderStep] phase=softgate-loop frame=1 row=262 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=31
+Film hit: dist=2.211 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+Film band y=[262,263) hits=151 avgStepsPerTracedPx=175.79
+RenderStep 108.99 ms  rows=1  jobs=8  hits=151
+pass1=31.46ms  pass2=77.36ms  total=108.82ms
+[RenderStep] phase=end frame=1 row=263 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=109
+[RenderStep] phase=enter frame=1 row=263 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=263 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=263 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=263 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=263 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[263,264) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.18 ms  rows=1  jobs=8  hits=0
+pass1=0.05ms  pass2=0.01ms  total=0.06ms
+[RenderStep] phase=end frame=1 row=264 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=264 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=264 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=264 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=109
+[RenderStep] phase=pass2-start frame=1 row=264 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=109
+[RenderStep] phase=softgate-loop frame=1 row=264 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=109
+Film hit: dist=2.200 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+Film band y=[264,272) hits=542 avgStepsPerTracedPx=188.91
+RenderStep 383.79 ms  rows=8  jobs=8  hits=542
+pass1=109.90ms  pass2=273.68ms  total=383.59ms
+[RenderStep] phase=end frame=1 row=272 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=383
+[RenderStep] phase=enter frame=1 row=272 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=272 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=272 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=54
+[RenderStep] phase=pass2-start frame=1 row=272 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=54
+[RenderStep] phase=softgate-loop frame=1 row=272 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=54
+Film hit: dist=2.200 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+Film band y=[272,273) hits=116 avgStepsPerTracedPx=194.75
+RenderStep 126.90 ms  rows=1  jobs=8  hits=116
+pass1=54.46ms  pass2=72.26ms  total=126.72ms
+[RenderStep] phase=end frame=1 row=273 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=126
+[RenderStep] phase=enter frame=1 row=273 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=273 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=273 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=273 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=273 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[273,274) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.16 ms  rows=1  jobs=8  hits=0
+pass1=0.05ms  pass2=0.01ms  total=0.06ms
+[RenderStep] phase=end frame=1 row=274 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=274 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=274 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=274 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=135
+[RenderStep] phase=pass2-start frame=1 row=274 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=135
+[RenderStep] phase=softgate-loop frame=1 row=274 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=135
+Film hit: dist=2.162 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+Film band y=[274,282) hits=368 avgStepsPerTracedPx=201.15
+RenderStep 467.25 ms  rows=8  jobs=8  hits=368
+pass1=135.60ms  pass2=331.44ms  total=467.04ms
+[RenderStep] phase=end frame=1 row=282 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=467
+[RenderStep] phase=enter frame=1 row=282 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=282 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=282 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=41
+[RenderStep] phase=pass2-start frame=1 row=282 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=42
+[RenderStep] phase=softgate-loop frame=1 row=282 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=42
+Film hit: dist=2.151 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+Film band y=[282,283) hits=74 avgStepsPerTracedPx=209.79
+RenderStep 128.42 ms  rows=1  jobs=8  hits=74
+pass1=41.97ms  pass2=86.28ms  total=128.25ms
+[RenderStep] phase=end frame=1 row=283 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=128
+[RenderStep] phase=enter frame=1 row=283 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=283 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=283 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass2-start frame=1 row=283 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=softgate-loop frame=1 row=283 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+Film band y=[283,284) hits=0 avgStepsPerTracedPx=0.00
+RenderStep 0.32 ms  rows=1  jobs=8  hits=0
+pass1=0.05ms  pass2=0.01ms  total=0.06ms
+[RenderStep] phase=end frame=1 row=284 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=enter frame=1 row=284 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=284 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=284 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=154
+[RenderStep] phase=pass2-start frame=1 row=284 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=154
+[RenderStep] phase=softgate-loop frame=1 row=284 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=154
+Film hit: dist=2.135 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+Film band y=[284,292) hits=276 avgStepsPerTracedPx=231.73
+[RenderStep][Yield] reason=max_ms frame=1 rowCursor=290 rowsDone=6 pendingPass2=0 bandH=8 pass1RerunAvoided=0 ms=501 p1ms=154.35 p2ms=346.95 p2SegTestedStep=205563 softGate{attemptUsed=0 subdivUsed=0}
+RenderStep 501.52 ms  rows=8  jobs=8  hits=276
+pass1=154.35ms  pass2=346.95ms  total=501.30ms
+[RenderStep] phase=end frame=1 row=290 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=501
+[RenderStep] phase=enter frame=1 row=290 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=40
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=40
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=0/100 sub=0/1000 pxCap=3 scoreCap=256 ms=40
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=1/100 sub=1/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=1/100 sub=1/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=1/100 sub=1/1000 pxCap=3 scoreCap=256 ms=43
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=1/100 sub=1/1000 pxCap=3 scoreCap=256 ms=43
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=1/100 sub=1/1000 pxCap=3 scoreCap=256 ms=43
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=2/100 sub=2/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=2/100 sub=2/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=2/100 sub=2/1000 pxCap=3 scoreCap=256 ms=33
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=2/100 sub=2/1000 pxCap=3 scoreCap=256 ms=33
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=2/100 sub=2/1000 pxCap=3 scoreCap=256 ms=33
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=3/100 sub=3/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=3/100 sub=3/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=3/100 sub=3/1000 pxCap=3 scoreCap=256 ms=35
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=3/100 sub=3/1000 pxCap=3 scoreCap=256 ms=35
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=3/100 sub=3/1000 pxCap=3 scoreCap=256 ms=35
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=4/100 sub=4/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=4/100 sub=4/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=4/100 sub=4/1000 pxCap=3 scoreCap=256 ms=33
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=4/100 sub=4/1000 pxCap=3 scoreCap=256 ms=33
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=4/100 sub=4/1000 pxCap=3 scoreCap=256 ms=33
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=5/100 sub=5/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=5/100 sub=5/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=5/100 sub=5/1000 pxCap=3 scoreCap=256 ms=38
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=5/100 sub=5/1000 pxCap=3 scoreCap=256 ms=38
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=5/100 sub=5/1000 pxCap=3 scoreCap=256 ms=38
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=6/100 sub=6/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=6/100 sub=6/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=6/100 sub=6/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=6/100 sub=6/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=6/100 sub=6/1000 pxCap=3 scoreCap=256 ms=37
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=7/100 sub=7/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=7/100 sub=7/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=7/100 sub=7/1000 pxCap=3 scoreCap=256 ms=40
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=7/100 sub=7/1000 pxCap=3 scoreCap=256 ms=40
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=7/100 sub=7/1000 pxCap=3 scoreCap=256 ms=40
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=8/100 sub=8/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=8/100 sub=8/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=8/100 sub=8/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=8/100 sub=8/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=8/100 sub=8/1000 pxCap=3 scoreCap=256 ms=37
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=9/100 sub=9/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=9/100 sub=9/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=9/100 sub=9/1000 pxCap=3 scoreCap=256 ms=34
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=9/100 sub=9/1000 pxCap=3 scoreCap=256 ms=34
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=9/100 sub=9/1000 pxCap=3 scoreCap=256 ms=34
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=10/100 sub=10/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=10/100 sub=10/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=10/100 sub=10/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=10/100 sub=10/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=10/100 sub=10/1000 pxCap=3 scoreCap=256 ms=36
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=11/100 sub=11/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=11/100 sub=11/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=11/100 sub=11/1000 pxCap=3 scoreCap=256 ms=35
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=11/100 sub=11/1000 pxCap=3 scoreCap=256 ms=35
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=11/100 sub=11/1000 pxCap=3 scoreCap=256 ms=35
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=12/100 sub=12/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=12/100 sub=12/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=12/100 sub=12/1000 pxCap=3 scoreCap=256 ms=38
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=12/100 sub=12/1000 pxCap=3 scoreCap=256 ms=38
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=12/100 sub=12/1000 pxCap=3 scoreCap=256 ms=38
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=13/100 sub=13/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=13/100 sub=13/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=13/100 sub=13/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=13/100 sub=13/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=13/100 sub=13/1000 pxCap=3 scoreCap=256 ms=37
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=14/100 sub=14/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=14/100 sub=14/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=14/100 sub=14/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=14/100 sub=14/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=14/100 sub=14/1000 pxCap=3 scoreCap=256 ms=36
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=15/100 sub=15/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=15/100 sub=15/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=15/100 sub=15/1000 pxCap=3 scoreCap=256 ms=31
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=15/100 sub=15/1000 pxCap=3 scoreCap=256 ms=31
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=15/100 sub=15/1000 pxCap=3 scoreCap=256 ms=31
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=16/100 sub=16/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=16/100 sub=16/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=16/100 sub=16/1000 pxCap=3 scoreCap=256 ms=31
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=16/100 sub=16/1000 pxCap=3 scoreCap=256 ms=31
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=16/100 sub=16/1000 pxCap=3 scoreCap=256 ms=31
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=17/100 sub=17/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=17/100 sub=17/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=17/100 sub=17/1000 pxCap=3 scoreCap=256 ms=33
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=17/100 sub=17/1000 pxCap=3 scoreCap=256 ms=33
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=17/100 sub=17/1000 pxCap=3 scoreCap=256 ms=33
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=18/100 sub=18/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=18/100 sub=18/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=18/100 sub=18/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=18/100 sub=18/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=18/100 sub=18/1000 pxCap=3 scoreCap=256 ms=37
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=19/100 sub=19/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=19/100 sub=19/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=19/100 sub=19/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=19/100 sub=19/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=19/100 sub=19/1000 pxCap=3 scoreCap=256 ms=36
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=20/100 sub=20/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=20/100 sub=20/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=20/100 sub=20/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=20/100 sub=20/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=20/100 sub=20/1000 pxCap=3 scoreCap=256 ms=36
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=21/100 sub=21/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=21/100 sub=21/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=21/100 sub=21/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=21/100 sub=21/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=21/100 sub=21/1000 pxCap=3 scoreCap=256 ms=36
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=22/100 sub=22/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=22/100 sub=22/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=22/100 sub=22/1000 pxCap=3 scoreCap=256 ms=31
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=22/100 sub=22/1000 pxCap=3 scoreCap=256 ms=31
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=22/100 sub=22/1000 pxCap=3 scoreCap=256 ms=31
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=23/100 sub=23/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=23/100 sub=23/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=23/100 sub=23/1000 pxCap=3 scoreCap=256 ms=38
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=23/100 sub=23/1000 pxCap=3 scoreCap=256 ms=38
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=23/100 sub=23/1000 pxCap=3 scoreCap=256 ms=38
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=24/100 sub=24/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=24/100 sub=24/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=24/100 sub=24/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=24/100 sub=24/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=24/100 sub=24/1000 pxCap=3 scoreCap=256 ms=36
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=25/100 sub=25/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=25/100 sub=25/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=25/100 sub=25/1000 pxCap=3 scoreCap=256 ms=35
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=25/100 sub=25/1000 pxCap=3 scoreCap=256 ms=35
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=25/100 sub=25/1000 pxCap=3 scoreCap=256 ms=35
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=26/100 sub=26/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=26/100 sub=26/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=26/100 sub=26/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=26/100 sub=26/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=26/100 sub=26/1000 pxCap=3 scoreCap=256 ms=36
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=27/100 sub=27/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=27/100 sub=27/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=27/100 sub=27/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=27/100 sub=27/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=27/100 sub=27/1000 pxCap=3 scoreCap=256 ms=36
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=28/100 sub=28/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=28/100 sub=28/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=28/100 sub=28/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=28/100 sub=28/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=28/100 sub=28/1000 pxCap=3 scoreCap=256 ms=36
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=29/100 sub=29/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=29/100 sub=29/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=29/100 sub=29/1000 pxCap=3 scoreCap=256 ms=32
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=29/100 sub=29/1000 pxCap=3 scoreCap=256 ms=32
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=29/100 sub=29/1000 pxCap=3 scoreCap=256 ms=32
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=30/100 sub=30/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=30/100 sub=30/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=30/100 sub=30/1000 pxCap=3 scoreCap=256 ms=32
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=30/100 sub=30/1000 pxCap=3 scoreCap=256 ms=32
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=30/100 sub=30/1000 pxCap=3 scoreCap=256 ms=32
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=31/100 sub=31/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=31/100 sub=31/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=31/100 sub=31/1000 pxCap=3 scoreCap=256 ms=34
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=31/100 sub=31/1000 pxCap=3 scoreCap=256 ms=34
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=31/100 sub=31/1000 pxCap=3 scoreCap=256 ms=34
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=32/100 sub=32/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=32/100 sub=32/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=32/100 sub=32/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=32/100 sub=32/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=32/100 sub=32/1000 pxCap=3 scoreCap=256 ms=37
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=33/100 sub=33/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=33/100 sub=33/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=33/100 sub=33/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=33/100 sub=33/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=33/100 sub=33/1000 pxCap=3 scoreCap=256 ms=36
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=34/100 sub=34/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=34/100 sub=34/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=34/100 sub=34/1000 pxCap=3 scoreCap=256 ms=39
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=34/100 sub=34/1000 pxCap=3 scoreCap=256 ms=39
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=34/100 sub=34/1000 pxCap=3 scoreCap=256 ms=39
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=35/100 sub=35/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=35/100 sub=35/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=35/100 sub=35/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=35/100 sub=35/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=35/100 sub=35/1000 pxCap=3 scoreCap=256 ms=36
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=36/100 sub=36/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=36/100 sub=36/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=36/100 sub=36/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=36/100 sub=36/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=36/100 sub=36/1000 pxCap=3 scoreCap=256 ms=37
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=37/100 sub=37/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=37/100 sub=37/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=37/100 sub=37/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=37/100 sub=37/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=37/100 sub=37/1000 pxCap=3 scoreCap=256 ms=36
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=38/100 sub=38/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=38/100 sub=38/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=38/100 sub=38/1000 pxCap=3 scoreCap=256 ms=38
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=38/100 sub=38/1000 pxCap=3 scoreCap=256 ms=38
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=38/100 sub=38/1000 pxCap=3 scoreCap=256 ms=38
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=39/100 sub=39/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=39/100 sub=39/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=39/100 sub=39/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=39/100 sub=39/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=39/100 sub=39/1000 pxCap=3 scoreCap=256 ms=36
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=40/100 sub=40/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=40/100 sub=40/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=40/100 sub=40/1000 pxCap=3 scoreCap=256 ms=38
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=40/100 sub=40/1000 pxCap=3 scoreCap=256 ms=38
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=40/100 sub=40/1000 pxCap=3 scoreCap=256 ms=38
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=41/100 sub=41/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=41/100 sub=41/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=41/100 sub=41/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=41/100 sub=41/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=41/100 sub=41/1000 pxCap=3 scoreCap=256 ms=36
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=42/100 sub=42/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=42/100 sub=42/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=42/100 sub=42/1000 pxCap=3 scoreCap=256 ms=31
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=42/100 sub=42/1000 pxCap=3 scoreCap=256 ms=32
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=42/100 sub=42/1000 pxCap=3 scoreCap=256 ms=32
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=43/100 sub=43/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=43/100 sub=43/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=43/100 sub=43/1000 pxCap=3 scoreCap=256 ms=35
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=43/100 sub=43/1000 pxCap=3 scoreCap=256 ms=35
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=43/100 sub=43/1000 pxCap=3 scoreCap=256 ms=35
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=44/100 sub=44/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=44/100 sub=44/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=44/100 sub=44/1000 pxCap=3 scoreCap=256 ms=34
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=44/100 sub=44/1000 pxCap=3 scoreCap=256 ms=34
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=44/100 sub=44/1000 pxCap=3 scoreCap=256 ms=34
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=45/100 sub=45/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=45/100 sub=45/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=45/100 sub=45/1000 pxCap=3 scoreCap=256 ms=39
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=45/100 sub=45/1000 pxCap=3 scoreCap=256 ms=39
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=45/100 sub=45/1000 pxCap=3 scoreCap=256 ms=39
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=46/100 sub=46/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=46/100 sub=46/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=46/100 sub=46/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=46/100 sub=46/1000 pxCap=3 scoreCap=256 ms=36
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=46/100 sub=46/1000 pxCap=3 scoreCap=256 ms=36
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=47/100 sub=47/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=47/100 sub=47/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=47/100 sub=47/1000 pxCap=3 scoreCap=256 ms=39
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=47/100 sub=47/1000 pxCap=3 scoreCap=256 ms=39
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=47/100 sub=47/1000 pxCap=3 scoreCap=256 ms=39
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=48/100 sub=48/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=48/100 sub=48/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=48/100 sub=48/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=48/100 sub=48/1000 pxCap=3 scoreCap=256 ms=37
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=48/100 sub=48/1000 pxCap=3 scoreCap=256 ms=37
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=49/100 sub=49/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=49/100 sub=49/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=49/100 sub=49/1000 pxCap=3 scoreCap=256 ms=33
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=49/100 sub=49/1000 pxCap=3 scoreCap=256 ms=33
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=49/100 sub=49/1000 pxCap=3 scoreCap=256 ms=33
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
+[RenderStep] phase=enter frame=1 row=290 attempts=50/100 sub=50/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=1 row=290 attempts=50/100 sub=50/1000 pxCap=3 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=1 row=290 attempts=50/100 sub=50/1000 pxCap=3 scoreCap=256 ms=35
+[RenderStep] phase=pass2-start frame=1 row=290 attempts=50/100 sub=50/1000 pxCap=3 scoreCap=256 ms=35
+[RenderStep] phase=softgate-loop frame=1 row=290 attempts=50/100 sub=50/1000 pxCap=3 scoreCap=256 ms=35
+Film hit: dist=2.130 name=<StaticBody3D#30433871424> mode=TwoSidedNdotV
