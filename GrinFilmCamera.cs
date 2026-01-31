@@ -530,6 +530,10 @@ public partial class GrinFilmCamera : Node
 	private int _softGateFrameId = -1;
 	private int _softGateParamLogRemaining = 2;
 	private int _budgetYieldLogFrameId = -1;
+	private int _renderStepYieldLogFrameId = -1;
+	private int _renderStepYieldLogsThisFrame = 0;
+	private int _renderStepForceAdvanceWarnFrameId = -1;
+	private int _renderStepForceAdvanceWarnsThisFrame = 0;
 	private RandomNumberGenerator _rng = new RandomNumberGenerator();
 	private volatile int _renderStepActive = 0;
 	private bool _renderStepReentryWarned = false;
@@ -739,6 +743,10 @@ public partial class GrinFilmCamera : Node
 			return;
 		}
 
+		// DECISION: record starting row for forward-progress guard.
+		int startRow = _rowCursor;
+		bool rowCursorResetThisStep = false;
+
 		// EFFECT: start timing for watchdog/budget checks.
 		Stopwatch renderStepWatch = Stopwatch.StartNew();
 		bool renderStepAbort = false;
@@ -762,6 +770,11 @@ public partial class GrinFilmCamera : Node
 		ulong pass2EndUsec = 0;
 		bool pass1SkippedThisStep = false;
 		bool pendingPass2 = false;
+		int rowsPerFrame = 1;
+		int yStart = _rowCursor;
+		int yEnd = _rowCursor;
+		int bandH = 0;
+		int bandHits = 0;
 
 		try
 		{
@@ -786,7 +799,10 @@ public partial class GrinFilmCamera : Node
 			int settingsHash = ComputeFilmSettingsHash();
 			// DECISION: reset row cursor when film settings change.
 			if (_hasFilmSettingsHash && settingsHash != _lastFilmSettingsHash)
+			{
 				ResetRowCursor("settings_dirty");
+				rowCursorResetThisStep = true;
+			}
 			_lastFilmSettingsHash = settingsHash;
 			_hasFilmSettingsHash = true;
 
@@ -802,11 +818,17 @@ public partial class GrinFilmCamera : Node
 					_lastCameraInstanceId = camId;
 					_hasLastCameraInstanceId = true;
 					ResetRowCursor("camera_dirty");
+					rowCursorResetThisStep = true;
 				}
 			}
 			// DECISION: wrap when we finished all rows.
 			if (_rowCursor >= _filmHeight)
+			{
 				ResetRowCursor("completed");
+				rowCursorResetThisStep = true;
+			}
+			if (rowCursorResetThisStep)
+				startRow = _rowCursor;
 
 			// DECISION: this is the start of a frame when row cursor wraps to 0.
 			frameStart = _rowCursor == 0;
@@ -894,7 +916,7 @@ public partial class GrinFilmCamera : Node
 				_pendingBandHasPass1 = false;
 			}
 			pendingPass2 = _pendingBandHasPass1;
-			int bandH = 0;
+			bandH = 0;
 			int bandTracedPixels = 0;
 			long bandSegsTested = 0;
 			long bandPhysicsQueries = 0;
@@ -946,6 +968,86 @@ public partial class GrinFilmCamera : Node
 					$"pendingPass2={(pendingPass2 ? 1 : 0)} bandH={bandH} pass1RerunAvoided={(pass1SkippedThisStep ? 1 : 0)} " +
 					$"ms={renderStepWatch.ElapsedMilliseconds} p1ms={p1Ms:0.00} p2ms={p2Ms:0.00} " +
 					$"p2SegTestedStep={bandSegsTested} softGate{{attemptUsed={_softGateAttemptsUsedThisFrame} subdivUsed={_softGateSubdividedCallsUsedThisFrame}}}");
+			}
+
+			void LogYieldAbortReason(string reason, int endRow, bool forcedAdvance, int hitsInBand)
+			{
+				int frameId = (int)Engine.GetFramesDrawn();
+				if (_renderStepYieldLogFrameId != frameId)
+				{
+					_renderStepYieldLogFrameId = frameId;
+					_renderStepYieldLogsThisFrame = 0;
+				}
+				if (_renderStepYieldLogsThisFrame >= 2) return;
+				_renderStepYieldLogsThisFrame++;
+				GD.Print(
+					$"[RenderStep][YieldAbort] reason={reason} startRow={startRow} endRow={endRow} " +
+					$"forcedAdvance={(forcedAdvance ? 1 : 0)} elapsedMs={renderStepWatch.ElapsedMilliseconds} " +
+					$"budgetStop={(budgetStop ? 1 : 0)} hitsInBand={hitsInBand}");
+			}
+
+			void LogForcedAdvanceWarning(string reason, int endRow)
+			{
+				int frameId = (int)Engine.GetFramesDrawn();
+				if (_renderStepForceAdvanceWarnFrameId != frameId)
+				{
+					_renderStepForceAdvanceWarnFrameId = frameId;
+					_renderStepForceAdvanceWarnsThisFrame = 0;
+				}
+				if (_renderStepForceAdvanceWarnsThisFrame >= 1) return;
+				_renderStepForceAdvanceWarnsThisFrame++;
+				GD.PrintErr(
+					$"[RenderStep][WARN] progress-guard forced advance reason={reason} startRow={startRow} endRow={endRow} " +
+					$"bandH={bandH} rowsPerFrame={rowsPerFrame} ms={renderStepWatch.ElapsedMilliseconds}");
+			}
+
+			int ComputeAdvanceRows()
+			{
+				int advance = bandH > 0 ? bandH : rowsPerFrame;
+				if (advance <= 0) advance = Math.Max(1, RowsPerFrame);
+				return Math.Max(1, advance);
+			}
+
+			void EnsureForwardProgress(string reason, bool fatal, int desiredEndRow, int hitsInBand, bool logAlways)
+			{
+				if (fatal)
+				{
+					if (logAlways)
+						LogYieldAbortReason(reason, Mathf.Clamp(desiredEndRow, 0, _filmHeight), false, hitsInBand);
+					return;
+				}
+
+				int filmHLocal = _filmHeight;
+				int endRow = Mathf.Clamp(desiredEndRow, 0, filmHLocal);
+				bool forced = false;
+				if (startRow < filmHLocal)
+				{
+					if (endRow <= startRow)
+					{
+						endRow = Math.Min(filmHLocal, startRow + ComputeAdvanceRows());
+						forced = true;
+					}
+				}
+				else
+				{
+					endRow = filmHLocal;
+				}
+
+				_rowCursor = endRow;
+				if (forced)
+				{
+					// DECISION: clear pending pass2 when forced to advance; prevents reprocessing the same band.
+					if (_pendingBandHasPass1)
+					{
+						_pendingBandRowStart = -1;
+						_pendingBandRowCount = 0;
+						_pendingBandHasPass1 = false;
+					}
+					LogForcedAdvanceWarning(reason, endRow);
+				}
+
+				if (logAlways || forced)
+					LogYieldAbortReason(reason, endRow, forced, hitsInBand);
 			}
 
 			bool CheckRenderStepWatchdog()
@@ -1083,12 +1185,14 @@ public partial class GrinFilmCamera : Node
 			if (_rbr == null)
 			{
 				AbortRenderStep("No RayBeamRenderer assigned");
+				EnsureForwardProgress("no_rbr", true, _rowCursor, bandHits, true);
 				return;
 			} else{}
 
 			// DECISION: abort if camera is missing.
 			if (_cam == null) {
 				AbortRenderStep("No active Camera3D in viewport");
+				EnsureForwardProgress("no_camera", true, _rowCursor, bandHits, true);
 				return;
 			} else{}
 
@@ -1133,13 +1237,13 @@ public partial class GrinFilmCamera : Node
 			float aspect = (float)filmW / Mathf.Max(1f, filmH);
 
 			int maxSeg = MaxSegPerRay;
-			int yStart = _rowCursor;
+			yStart = _rowCursor;
 			int baseRowsPerFrame = Mathf.Clamp(RowsPerFrame, Mathf.Max(1, MinRowsPerFrame), filmH);
 			int maxRowsPerFrame = Mathf.Clamp(MaxRowsPerFrameCap, Mathf.Max(1, MinRowsPerFrame), filmH);
 			// DECISION: disable adaptive rows when target ms <= 0 or no prior adaptive state.
 			if (TargetMsPerFrame <= 0 || _adaptiveRowsPerFrame <= 0)
 				_adaptiveRowsPerFrame = baseRowsPerFrame;
-			int rowsPerFrame = Mathf.Clamp(_adaptiveRowsPerFrame, Mathf.Max(1, MinRowsPerFrame), maxRowsPerFrame);
+			rowsPerFrame = Mathf.Clamp(_adaptiveRowsPerFrame, Mathf.Max(1, MinRowsPerFrame), maxRowsPerFrame);
 			// DECISION: keep adaptive state in sync.
 			if (rowsPerFrame != _adaptiveRowsPerFrame)
 				_adaptiveRowsPerFrame = rowsPerFrame;
@@ -1161,7 +1265,7 @@ public partial class GrinFilmCamera : Node
 				if (rowsPerFrame != _adaptiveRowsPerFrame)
 					_adaptiveRowsPerFrame = rowsPerFrame;
 			}
-			int yEnd;
+			// NOTE: yEnd is tracked for forward-progress guard/logs.
 			// DECISION: if pass2 is pending, re-use the cached band.
 			if (pendingPass2)
 			{
@@ -1189,6 +1293,7 @@ public partial class GrinFilmCamera : Node
 				else
 				{
 					AbortRenderStep($"max-pixels {pixelCount}>{RenderStepMaxPixelsPerFrame}");
+					EnsureForwardProgress("abort_max_pixels", true, yEnd, bandHits, true);
 					return;
 				}
 			}
@@ -1196,13 +1301,14 @@ public partial class GrinFilmCamera : Node
 			if (budgetStop)
 			{
 				LogBudgetStopOnce();
+				EnsureForwardProgress(budgetStopReason, false, budgetStopRowEnd, bandHits, true);
 				return;
 			}
 
 			EnsureDepthHistory();
 			float frameMaxHit = 0f; // track deepest hit this RenderStep band
 
-			int bandHits = 0;
+			bandHits = 0;
 			// DECISION: choose far distance based on auto-range.
 			float farForSim = AutoRangeDepth ? _rangeFar : MaxDistance;
 
@@ -1280,6 +1386,7 @@ public partial class GrinFilmCamera : Node
 				else
 				{
 					AbortRenderStep($"max-segs {segTotal}>{RenderStepMaxSegmentsPerFrame}");
+					EnsureForwardProgress("abort_max_segments", true, yEnd, bandHits, true);
 					return;
 				}
 			}
@@ -1287,6 +1394,7 @@ public partial class GrinFilmCamera : Node
 			if (budgetStop)
 			{
 				LogBudgetStopOnce();
+				EnsureForwardProgress(budgetStopReason, false, budgetStopRowEnd, bandHits, true);
 				return;
 			}
 			// EFFECT: allocate segment buffers for this band.
@@ -1537,6 +1645,7 @@ public partial class GrinFilmCamera : Node
 					_pendingBandRowCount = bandH;
 					_pendingBandHasPass1 = true;
 					GD.Print($"[RenderStep][Yield] reason=max_ms_after_pass1 frame={_frameIndex} rowStart={yStart} bandH={bandH} committed=0 pendingPass2=1 ms={renderStepWatch.ElapsedMilliseconds}");
+					EnsureForwardProgress("max_ms_after_pass1", false, yEnd, bandHits, true);
 					return;
 				}
 
@@ -1547,6 +1656,7 @@ public partial class GrinFilmCamera : Node
 					if (!budgetStop)
 					{
 						AbortRenderStep("watchdog");
+						EnsureForwardProgress("watchdog", true, yEnd, bandHits, true);
 						return;
 					}
 				}
@@ -3157,6 +3267,7 @@ public partial class GrinFilmCamera : Node
 			if (renderStepAbort && !budgetStop)
 			{
 				AbortRenderStep("watchdog");
+				EnsureForwardProgress("watchdog", true, yEnd, bandHits, true);
 				return;
 			}
 
@@ -3347,8 +3458,12 @@ public partial class GrinFilmCamera : Node
 				_pendingBandRowCount = 0;
 				_pendingBandHasPass1 = false;
 			}
+			if (!budgetStop && _rowCursor < filmH)
+				EnsureForwardProgress(budgetStop ? budgetStopReason : "end", false, _rowCursor, bandHits, false);
 			if (!budgetStop && _rowCursor >= filmH)
 				ResetRowCursor("completed");
+			if (budgetStop)
+				EnsureForwardProgress(budgetStopReason, false, _rowCursor, bandHits, true);
 
 			ulong t1 = Time.GetTicksUsec();
 			if (VerbosePerfLogs)
@@ -3792,7 +3907,7 @@ public partial class GrinFilmCamera : Node
 
 	private bool EnsureFilmImageSize()
 	{
-		float scale = Mathf.Clamp(FilmResolutionScale, 0.25f, 1.0f);
+		float scale = Mathf.Clamp(FilmResolutionScale, 0.01f, 1.0f);
 		int targetW = Mathf.Max(8, Mathf.RoundToInt(Width * scale));
 		int targetH = Mathf.Max(8, Mathf.RoundToInt(Height * scale));
 		int targetPixels = targetW * targetH;

@@ -70,7 +70,6 @@ script = ExtResource("2_ppyta")
 
 [node name="CanvasLayerUI" type="CanvasLayer" parent="."]
 layer = 0
-visible = false
 
 [node name="Options" type="Control" parent="CanvasLayerUI" node_paths=PackedStringArray("sun", "world_environment")]
 layout_mode = 3
@@ -534,7 +533,6 @@ BendScale = 1.0
 FieldCenter = Vector3(0, 1.5, 0)
 FieldCenterIsCamera = false
 Alpha = 1.0
-CollisionRadius = 0.06
 DebugMode = 0
 DebugNormalLen = 0.295
 
@@ -558,13 +556,13 @@ RayBeamRendererPath = NodePath("../RayBeamRenderer")
 FilmViewPath = NodePath("../CanvasLayer/FilmView")
 FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
 UpdateEveryFrame = false
-UpdateEveryFrameBudgetMs = 750.0
+UpdateEveryFrameBudgetMs = 500.0
 UpdateEveryFrameMaxRowsPerStep = 32
 RenderStepMaxMs = 10000
 RenderStepMaxSegmentsPerFrame = 50000000
 Width = 1280
 Height = 720
-FilmResolutionScale = 0.15000000000000002
+FilmResolutionScale = 0.5
 PixelStride = 2
 Preset = 0
 ApplyPresetOnReady = true
