@@ -156,6 +156,15 @@ public partial class GrinFilmCamera : Node
 	// CONTROL FACTOR: Pixel stride; higher skips pixels and fills blocks for speed (lower fidelity).
 	[Export(PropertyHint.Range, "1,8,1")] public int PixelStride = 1;
 
+	public enum RenderQualityMode
+	{
+		Debug,
+		FastPreview,
+		Balanced,
+		Quality,
+		Barebones
+	}
+
 	public enum PresetMode
 	{
 		Walk = 0,
@@ -164,6 +173,9 @@ public partial class GrinFilmCamera : Node
 	}
 
 	[ExportGroup("Performance / Profiling")]
+	/// <summary>Quality preset controlling key render budgets/strides.</summary>
+	// CONTROL FACTOR: Quality mode preset; overrides key budgets/stride values.
+	[Export] public RenderQualityMode QualityMode = RenderQualityMode.Balanced;
 	/// <summary>Preset selection for tuning.</summary>
 	// CONTROL FACTOR: Performance preset; higher quality increases cost.
 	[Export] public PresetMode Preset = PresetMode.Preview;
@@ -534,9 +546,30 @@ public partial class GrinFilmCamera : Node
 	private int _renderStepYieldLogsThisFrame = 0;
 	private int _renderStepForceAdvanceWarnFrameId = -1;
 	private int _renderStepForceAdvanceWarnsThisFrame = 0;
+	private int _budgetExitFrameId = -1;
+	private bool _budgetExitLoggedThisFrame = false;
+	private RenderQualityMode _appliedQualityMode = (RenderQualityMode)(-1);
 	private RandomNumberGenerator _rng = new RandomNumberGenerator();
 	private volatile int _renderStepActive = 0;
 	private bool _renderStepReentryWarned = false;
+	private int _stuckBandStartRow = -1;
+	private int _stuckBandEndRow = -1;
+	private int _stuckBandRepeats = 0;
+	private int _bandNoHitStallStartRow = -1;
+	private int _bandNoHitStallEndRow = -1;
+	private int _bandNoHitStallRepeats = 0;
+	private bool _lastBandCommitted = true;
+	private int _lastRenderStepRowCursor = -1;
+	private int _lastRenderStepBandStart = -1;
+	private int _lastRenderStepBandEnd = -1;
+	private int _bandIncompleteFrameId = -1;
+	private int _bandIncompleteRowStart = -1;
+	private int _bandIncompleteRowEnd = -1;
+	private bool _suppressStuckBandRepeatOnce = false;
+	private bool _pendingRowCursorReset = false;
+	private string _pendingRowCursorResetReason = "";
+	private const int StuckBandWatchdogMaxRepeats = 10;
+	private const int BandNoHitStallMaxRepeats = 3;
 
 
 
@@ -667,6 +700,7 @@ public partial class GrinFilmCamera : Node
 		{
 			ApplyPreset(Preset);
 		}
+		ApplyQualityModePresetIfNeeded("ready");
 
     	// ⛔ Freeze beam rebuilds while film camera is active
 		// CROSS-CLASS CONTRACT: Freeze RayBeamRenderer rebuilds while film camera is active.
@@ -722,6 +756,7 @@ public partial class GrinFilmCamera : Node
 
 	public override void _Process(double delta)
 	{
+		ApplyQualityModePresetIfNeeded("process");
 		// DECISION: only render when UpdateEveryFrame is enabled.
 		if (!UpdateEveryFrame) return;
 		RenderStep();
@@ -746,11 +781,19 @@ public partial class GrinFilmCamera : Node
 		// DECISION: record starting row for forward-progress guard.
 		int startRow = _rowCursor;
 		bool rowCursorResetThisStep = false;
+		int budgetFrameId = (int)Engine.GetFramesDrawn();
+		if (_budgetExitFrameId != budgetFrameId)
+		{
+			_budgetExitFrameId = budgetFrameId;
+			_budgetExitLoggedThisFrame = false;
+		}
 
 		// EFFECT: start timing for watchdog/budget checks.
 		Stopwatch renderStepWatch = Stopwatch.StartNew();
 		bool renderStepAbort = false;
 		bool renderStepAbortLogged = false;
+		bool renderStepStopLogged = false;
+		bool bandCommittedThisStep = false;
 		bool budgetStop = false;
 		bool budgetStopLogged = false;
 		string budgetStopReason = "";
@@ -775,6 +818,13 @@ public partial class GrinFilmCamera : Node
 		int yEnd = _rowCursor;
 		int bandH = 0;
 		int bandHits = 0;
+		string renderPhase = "enter";
+		bool pass1CompletedThisStep = false;
+		bool pass2CompletedThisStep = false;
+		bool bandCompletedThisStep = false;
+		bool bandSummaryLoggedThisBand = false;
+		int bandStartRowCursor = _rowCursor;
+		long pass1StepsIntegrated = 0;
 
 		try
 		{
@@ -800,8 +850,18 @@ public partial class GrinFilmCamera : Node
 			// DECISION: reset row cursor when film settings change.
 			if (_hasFilmSettingsHash && settingsHash != _lastFilmSettingsHash)
 			{
-				ResetRowCursor("settings_dirty");
-				rowCursorResetThisStep = true;
+				// DECISION: defer settings resets mid-band so we don't keep restarting the same rows.
+				if (_rowCursor != 0 && !_pendingRowCursorReset)
+				{
+					_pendingRowCursorReset = true;
+					_pendingRowCursorResetReason = "settings_dirty";
+					GD.Print($"[RenderStep][DeferReset] reason=settings_dirty row={_rowCursor} -> defer until band advance");
+				}
+				else
+				{
+					ResetRowCursor("settings_dirty");
+					rowCursorResetThisStep = true;
+				}
 			}
 			_lastFilmSettingsHash = settingsHash;
 			_hasFilmSettingsHash = true;
@@ -828,7 +888,10 @@ public partial class GrinFilmCamera : Node
 				rowCursorResetThisStep = true;
 			}
 			if (rowCursorResetThisStep)
+			{
 				startRow = _rowCursor;
+				bandStartRowCursor = _rowCursor;
+			}
 
 			// DECISION: this is the start of a frame when row cursor wraps to 0.
 			frameStart = _rowCursor == 0;
@@ -925,12 +988,122 @@ public partial class GrinFilmCamera : Node
 
 			void LogRenderPhase(string phase)
 			{
+				renderPhase = phase;
 				GD.Print(
 					$"[RenderStep] phase={phase} frame={_frameIndex} row={_rowCursor} " +
 					$"attempts={_softGateAttemptsUsedThisFrame}/{pass2SoftGateMaxAttemptsPerFrameEffective} " +
 					$"sub={_softGateSubdividedCallsUsedThisFrame}/{pass2SoftGateMaxSubdividedCallsPerFrameEffective} " +
 					$"pxCap={Pass2SoftGateMaxAttemptsPerPixel} scoreCap={Pass2SoftGateScoreBudgetPerFrame} " +
 					$"ms={renderStepWatch.ElapsedMilliseconds}");
+			}
+
+			void LogRenderStopOnce(string reason)
+			{
+				// DECISION: emit a single definitive stop line for any budget/timeout stop.
+				if (renderStepStopLogged) return;
+				renderStepStopLogged = true;
+				GD.PrintErr(
+					$"[RenderStep][STOP] reason={reason} phase={renderPhase} y=[{yStart},{yEnd}) rowCursor={_rowCursor} " +
+					$"elapsedMs={renderStepWatch.ElapsedMilliseconds} " +
+					$"attempts={_softGateAttemptsUsedThisFrame}/{pass2SoftGateMaxAttemptsPerFrameEffective} " +
+					$"sub={_softGateSubdividedCallsUsedThisFrame}/{pass2SoftGateMaxSubdividedCallsPerFrameEffective} " +
+					$"hits={bandHits}");
+			}
+
+			void FinalizeBandAndAdvance(string reason, int bandStart, int bandEnd, int hitsInBand, string extraStats)
+			{
+				int rowCursorBefore = _rowCursor;
+				int bandRows = Math.Max(0, bandEnd - bandStart);
+				int advanceRows = Math.Max(1, bandRows);
+				int filmHLocal = _filmHeight;
+				int nextRow = bandStart + advanceRows;
+				if (filmHLocal > 0)
+				{
+					nextRow = Mathf.Clamp(nextRow, 0, filmHLocal);
+					if (nextRow >= filmHLocal)
+						nextRow = 0;
+				}
+				long attemptsUsed = _softGateAttemptsUsedThisFrame;
+				long subdivUsed = _softGateSubdividedCallsUsedThisFrame;
+				string extraSuffix = string.IsNullOrEmpty(extraStats) ? "" : $" {extraStats}";
+				GD.Print(
+					$"[RenderStep][Finalize] reason={reason} phase={renderPhase} y=[{bandStart},{bandEnd}) " +
+					$"rowCursor={rowCursorBefore}->{nextRow} elapsedMs={renderStepWatch.ElapsedMilliseconds} " +
+					$"attempts={attemptsUsed}/{pass2SoftGateMaxAttemptsPerFrameEffective} " +
+					$"sub={subdivUsed}/{pass2SoftGateMaxSubdividedCallsPerFrameEffective} " +
+					$"hits={hitsInBand}{extraSuffix}");
+				LogBandSummaryOnce(MapBandSummaryReason(reason));
+
+				_rowCursor = nextRow;
+				bandCommittedThisStep = true;
+				ResetNoHitStall();
+				if (_pendingBandHasPass1)
+				{
+					_pendingBandRowStart = -1;
+					_pendingBandRowCount = 0;
+					_pendingBandHasPass1 = false;
+				}
+				_bandIncompleteFrameId = -1;
+				_bandIncompleteRowStart = -1;
+				_bandIncompleteRowEnd = -1;
+				// Reset per-band soft-gate counters to avoid carrying stalls forward.
+				_softGateAttemptsUsedThisFrame = 0;
+				_softGateSubdividedCallsUsedThisFrame = 0;
+				_p2SoftGateUsedThisFrame = 0;
+				maxAttemptsAnyPixelThisBand = 0;
+				maxSubdividesAnyPixelThisBand = 0;
+			}
+
+			void MarkBandIncompleteThisFrame(string reason, int bandStart, int bandEnd)
+			{
+				_ = reason;
+				int frameId = (int)Engine.GetFramesDrawn();
+				_bandIncompleteFrameId = frameId;
+				_bandIncompleteRowStart = bandStart;
+				_bandIncompleteRowEnd = bandEnd;
+				_suppressStuckBandRepeatOnce = true;
+				_stuckBandRepeats = 0;
+			}
+
+			void ForceAdvanceRowCursorOnStop(string reason, int desiredEndRow)
+			{
+				// DECISION: always advance on stop so "no hits" or budget exits can't stall the same band.
+				_ = reason;
+				int filmHLocal = _filmHeight;
+				int advanceTarget = desiredEndRow;
+				if (advanceTarget <= yStart)
+					advanceTarget = yStart + 1;
+				advanceTarget = Mathf.Clamp(advanceTarget, 0, filmHLocal);
+				if (filmHLocal > 0 && advanceTarget >= filmHLocal)
+					advanceTarget = 0;
+				_rowCursor = advanceTarget;
+				bandCommittedThisStep = true;
+				// DECISION: drop pending pass2 when stopping early to avoid re-entering the same band forever.
+				if (_pendingBandHasPass1)
+				{
+					_pendingBandRowStart = -1;
+					_pendingBandRowCount = 0;
+					_pendingBandHasPass1 = false;
+				}
+			}
+
+			void ApplyDeferredRowCursorResetIfNeeded(int bandStart, int bandEnd)
+			{
+				// DECISION: apply deferred reset only after the band advances to avoid restarting the same rows.
+				if (!_pendingRowCursorReset || !bandCommittedThisStep) return;
+				string reason = _pendingRowCursorResetReason;
+				_pendingRowCursorReset = false;
+				_pendingRowCursorResetReason = "";
+				GD.Print($"[RenderStep][DeferReset] apply reason={reason} after band y=[{bandStart},{bandEnd})");
+				ResetRowCursor(reason);
+			}
+
+			string GetMaxMsStopReason()
+			{
+				// DECISION: distinguish which time budget is active for stop logs.
+				if (UpdateEveryFrame && UpdateEveryFrameBudgetMs > 0f && (RenderStepMaxMs <= 0 || UpdateEveryFrameBudgetMs <= RenderStepMaxMs))
+					return "update_every_frame_budget";
+				return "renderstep_max_ms";
 			}
 
 			void TriggerBudgetStop(string reason)
@@ -942,6 +1115,8 @@ public partial class GrinFilmCamera : Node
 				budgetStop = true;
 				budgetStopReason = reason;
 				budgetStopRowEnd = budgetStopRowCursor;
+				LogBudgetExitOnce(reason, budgetStopRowCursor);
+				LogRenderStopOnce(reason);
 			}
 
 			void LogBudgetStopOnce()
@@ -968,6 +1143,82 @@ public partial class GrinFilmCamera : Node
 					$"pendingPass2={(pendingPass2 ? 1 : 0)} bandH={bandH} pass1RerunAvoided={(pass1SkippedThisStep ? 1 : 0)} " +
 					$"ms={renderStepWatch.ElapsedMilliseconds} p1ms={p1Ms:0.00} p2ms={p2Ms:0.00} " +
 					$"p2SegTestedStep={bandSegsTested} softGate{{attemptUsed={_softGateAttemptsUsedThisFrame} subdivUsed={_softGateSubdividedCallsUsedThisFrame}}}");
+			}
+
+			void LogBudgetExitOnce(string reason, int rowCursor)
+			{
+				if (_budgetExitLoggedThisFrame) return;
+				_budgetExitLoggedThisFrame = true;
+				long elapsedMs = renderStepWatch.ElapsedMilliseconds;
+				int rowsDoneThisStep = rowCursor >= startRow ? rowCursor - startRow : 0;
+				int pixelCountLocal = bandH > 0 && filmW > 0 ? bandH * filmW : 0;
+				int pixelCap = RenderStepMaxPixelsPerFrame > 0 ? RenderStepMaxPixelsPerFrame : 0;
+				int attemptsCap = pass2SoftGateMaxAttemptsPerFrameEffective;
+				int subdivCap = pass2SoftGateMaxSubdividedCallsPerFrameEffective;
+				GD.Print(
+					$"[BudgetExit] frame={_frameIndex} row={rowCursor} reason={reason} elapsedMs={elapsedMs} " +
+					$"rowsDoneThisStep={rowsDoneThisStep} hitsThisBand={bandHits} " +
+					$"attempts={_softGateAttemptsUsedThisFrame}/{attemptsCap} " +
+					$"subdiv={_softGateSubdividedCallsUsedThisFrame}/{subdivCap} " +
+					$"px={pixelCountLocal}/{pixelCap}");
+			}
+
+			string MapBandSummaryReason(string reason)
+			{
+				if (string.IsNullOrEmpty(reason)) return "normal";
+				if (reason == "zero_hit_advance" || reason == "zero-hit-advance") return "zero-hit-advance";
+				if (reason.Contains("guard") || reason.Contains("watchdog")) return "guard";
+				if (reason.Contains("budget") || reason.Contains("max_ms") || reason.Contains("target_ms")) return "budget";
+				if (reason.StartsWith("max_") || reason.StartsWith("sg_") || reason.Contains("max_segments") || reason.Contains("max_pixels")) return "cap";
+				return "normal";
+			}
+
+			void LogBandSummaryOnce(string reasonDone)
+			{
+				if (bandSummaryLoggedThisBand) return;
+				bandSummaryLoggedThisBand = true;
+				double avgStepsPerTracedPixel = bandTracedPixels > 0
+					? (double)pass1StepsIntegrated / bandTracedPixels
+					: 0.0;
+				GD.Print(
+					$"[BandSummary] frame={_frameIndex} y=[{yStart},{yEnd}) " +
+					$"hits={bandHits} tracedPx={bandTracedPixels} avgSteps={avgStepsPerTracedPixel:0.00} reasonDone={reasonDone}");
+			}
+
+			void ResetNoHitStall()
+			{
+				_bandNoHitStallRepeats = 0;
+				_bandNoHitStallStartRow = -1;
+				_bandNoHitStallEndRow = -1;
+			}
+
+			bool TrackNoHitStall()
+			{
+				if (bandHits > 0 || _rowCursor != bandStartRowCursor)
+				{
+					ResetNoHitStall();
+					return false;
+				}
+				if (_bandNoHitStallStartRow == yStart && _bandNoHitStallEndRow == yEnd)
+					_bandNoHitStallRepeats++;
+				else
+				{
+					_bandNoHitStallStartRow = yStart;
+					_bandNoHitStallEndRow = yEnd;
+					_bandNoHitStallRepeats = 1;
+				}
+				return _bandNoHitStallRepeats > BandNoHitStallMaxRepeats;
+			}
+
+			bool ForceAdvanceOnNoHit(string reason, string reasonDone, bool forceNow)
+			{
+				bool shouldForce = forceNow || TrackNoHitStall();
+				if (!shouldForce) return false;
+				LogBudgetExitOnce(reason, _rowCursor);
+				ForceAdvanceRowCursorOnStop("zero_hit_advance", yEnd);
+				ResetNoHitStall();
+				LogBandSummaryOnce(reasonDone);
+				return true;
 			}
 
 			void LogYieldAbortReason(string reason, int endRow, bool forcedAdvance, int hitsInBand)
@@ -1043,7 +1294,9 @@ public partial class GrinFilmCamera : Node
 						_pendingBandRowCount = 0;
 						_pendingBandHasPass1 = false;
 					}
+					LogBudgetExitOnce("guard_progress", endRow);
 					LogForcedAdvanceWarning(reason, endRow);
+					LogBandSummaryOnce("guard");
 				}
 
 				if (logAlways || forced)
@@ -1059,7 +1312,7 @@ public partial class GrinFilmCamera : Node
 				// DECISION: if UpdateEveryFrame, yield instead of abort.
 				if (UpdateEveryFrame)
 				{
-					TriggerBudgetStop("max_ms");
+					TriggerBudgetStop(GetMaxMsStopReason());
 					return true;
 				}
 				// DECISION: first time over budget, mark abort and possibly disable soft gate.
@@ -1078,6 +1331,8 @@ public partial class GrinFilmCamera : Node
 				// DECISION: abort is one-shot; skip if already logged.
 				if (renderStepAbortLogged) return;
 				renderStepAbortLogged = true;
+				if (reason == "watchdog")
+					LogBudgetExitOnce("renderstep_max_ms", _rowCursor);
 				// EFFECT: disable UpdateEveryFrame on abort.
 				UpdateEveryFrame = false;
 				// DECISION: log soft gate disable reason once.
@@ -1283,6 +1538,52 @@ public partial class GrinFilmCamera : Node
 			budgetStopRowStart = yStart;
 			budgetStopRowCursor = yStart;
 			budgetStopRowEnd = yStart;
+			int renderFrameId = (int)Engine.GetFramesDrawn();
+			if (_bandIncompleteFrameId != renderFrameId)
+			{
+				_bandIncompleteFrameId = -1;
+				_bandIncompleteRowStart = -1;
+				_bandIncompleteRowEnd = -1;
+			}
+			if (_bandIncompleteFrameId == renderFrameId
+				&& _rowCursor == _bandIncompleteRowStart
+				&& yStart == _bandIncompleteRowStart
+				&& yEnd == _bandIncompleteRowEnd)
+			{
+				// DECISION: avoid re-entering an incomplete band within the same frame.
+				_suppressStuckBandRepeatOnce = true;
+				LogBudgetExitOnce("guard_incomplete_band", _rowCursor);
+				LogBandSummaryOnce("guard");
+				return;
+			}
+
+			// DECISION: detect repeated starts on the same band without a prior commit and force advance.
+			if (bandH > 0)
+			{
+				bool noProgressSinceLast = _lastRenderStepRowCursor >= 0 && _rowCursor == _lastRenderStepRowCursor;
+				bool sameBandAsLast = _lastRenderStepBandStart == yStart
+					&& _lastRenderStepBandEnd == yEnd
+					&& _lastRenderStepRowCursor == _rowCursor;
+				bool countRepeat = sameBandAsLast && noProgressSinceLast && !_suppressStuckBandRepeatOnce && !_lastBandCommitted;
+				if (countRepeat)
+					_stuckBandRepeats++;
+				else
+					_stuckBandRepeats = 0;
+				_suppressStuckBandRepeatOnce = false;
+				_stuckBandStartRow = yStart;
+				_stuckBandEndRow = yEnd;
+				if (_stuckBandRepeats > StuckBandWatchdogMaxRepeats)
+				{
+					GD.PrintErr($"[RenderStep][WATCHDOG] stuckBand y=[{yStart},{yEnd}) repeats={_stuckBandRepeats} -> forceAdvance");
+					LogBudgetExitOnce("guard_stuck_band", _rowCursor);
+					ForceAdvanceRowCursorOnStop("watchdog_stuck_band", yEnd);
+					LogBandSummaryOnce("guard");
+					ResetNoHitStall();
+					ApplyDeferredRowCursorResetIfNeeded(yStart, yEnd);
+					return;
+				}
+			}
+
 			int pixelCount = bandH * filmW;
 			// DECISION: enforce max pixels per frame when configured.
 			if (RenderStepMaxPixelsPerFrame > 0 && pixelCount > RenderStepMaxPixelsPerFrame)
@@ -1293,7 +1594,10 @@ public partial class GrinFilmCamera : Node
 				else
 				{
 					AbortRenderStep($"max-pixels {pixelCount}>{RenderStepMaxPixelsPerFrame}");
-					EnsureForwardProgress("abort_max_pixels", true, yEnd, bandHits, true);
+					LogBudgetExitOnce("max_pixels", _rowCursor);
+					LogRenderStopOnce("max_pixels");
+					FinalizeBandAndAdvance("max_pixels", yStart, yEnd, bandHits, $"px={pixelCount}");
+					ApplyDeferredRowCursorResetIfNeeded(yStart, yEnd);
 					return;
 				}
 			}
@@ -1301,7 +1605,15 @@ public partial class GrinFilmCamera : Node
 			if (budgetStop)
 			{
 				LogBudgetStopOnce();
-				EnsureForwardProgress(budgetStopReason, false, budgetStopRowEnd, bandHits, true);
+				if (budgetStopReason == "sg_attempts")
+				{
+					FinalizeBandAndAdvance("sg_attempts", yStart, yEnd, bandHits, "");
+				}
+				else
+				{
+					FinalizeBandAndAdvance(budgetStopReason, yStart, yEnd, bandHits, "");
+				}
+				ApplyDeferredRowCursorResetIfNeeded(yStart, yEnd);
 				return;
 			}
 
@@ -1386,7 +1698,10 @@ public partial class GrinFilmCamera : Node
 				else
 				{
 					AbortRenderStep($"max-segs {segTotal}>{RenderStepMaxSegmentsPerFrame}");
-					EnsureForwardProgress("abort_max_segments", true, yEnd, bandHits, true);
+					LogBudgetExitOnce("max_segments", _rowCursor);
+					LogRenderStopOnce("max_segments");
+					FinalizeBandAndAdvance("max_segments", yStart, yEnd, bandHits, $"segs={segTotal}");
+					ApplyDeferredRowCursorResetIfNeeded(yStart, yEnd);
 					return;
 				}
 			}
@@ -1394,7 +1709,15 @@ public partial class GrinFilmCamera : Node
 			if (budgetStop)
 			{
 				LogBudgetStopOnce();
-				EnsureForwardProgress(budgetStopReason, false, budgetStopRowEnd, bandHits, true);
+				if (budgetStopReason == "sg_attempts")
+				{
+					FinalizeBandAndAdvance("sg_attempts", yStart, yEnd, bandHits, "");
+				}
+				else
+				{
+					FinalizeBandAndAdvance(budgetStopReason, yStart, yEnd, bandHits, "");
+				}
+				ApplyDeferredRowCursorResetIfNeeded(yStart, yEnd);
 				return;
 			}
 			// EFFECT: allocate segment buffers for this band.
@@ -1480,7 +1803,7 @@ public partial class GrinFilmCamera : Node
 			bool pass1StopOnHit = _rbr.StopOnHit || _rbr.TerminateTrailOnHit || _rbr.RequireHitToRender;
 			long pass1PhysQueries = 0;
 			long pass1EarlyStopPixels = 0;
-			long pass1StepsIntegrated = 0;
+			pass1StepsIntegrated = 0;
 			long pass1FieldEvals = 0;
 			long pass1Raycasts = 0;
 			long pass1ProbeHits = 0;
@@ -1645,7 +1968,9 @@ public partial class GrinFilmCamera : Node
 					_pendingBandRowCount = bandH;
 					_pendingBandHasPass1 = true;
 					GD.Print($"[RenderStep][Yield] reason=max_ms_after_pass1 frame={_frameIndex} rowStart={yStart} bandH={bandH} committed=0 pendingPass2=1 ms={renderStepWatch.ElapsedMilliseconds}");
-					EnsureForwardProgress("max_ms_after_pass1", false, yEnd, bandHits, true);
+					LogRenderStopOnce("max_ms_after_pass1");
+					FinalizeBandAndAdvance("max_ms_after_pass1", yStart, yEnd, bandHits, "pendingPass2=1");
+					ApplyDeferredRowCursorResetIfNeeded(yStart, yEnd);
 					return;
 				}
 
@@ -1656,7 +1981,13 @@ public partial class GrinFilmCamera : Node
 					if (!budgetStop)
 					{
 						AbortRenderStep("watchdog");
-						EnsureForwardProgress("watchdog", true, yEnd, bandHits, true);
+						string maxMsReason = GetMaxMsStopReason();
+						LogRenderStopOnce(maxMsReason);
+						LogBudgetExitOnce(maxMsReason, _rowCursor);
+						ForceAdvanceRowCursorOnStop(maxMsReason, yEnd);
+						LogBandSummaryOnce("guard");
+						ResetNoHitStall();
+						ApplyDeferredRowCursorResetIfNeeded(yStart, yEnd);
 						return;
 					}
 				}
@@ -1679,6 +2010,7 @@ public partial class GrinFilmCamera : Node
 					_framePerf.FieldGridHits += pass1FieldGridHits;
 					_framePerf.FieldGridMisses += pass1FieldGridMisses;
 				}
+				pass1CompletedThisStep = true;
 			}
 			else
 			{
@@ -2987,6 +3319,7 @@ public partial class GrinFilmCamera : Node
 											softGateLoopGuardTripped++;
 											softGateWatchdogTrippedThisPixel = true;
 											SoftGateRecordSkip(SoftGateDecisionReason.Guard);
+											LogBudgetExitOnce("guard_softgate_watchdog", y);
 											if (DisableSoftGateOnOverload)
 											{
 												_softGateDisabledForPass = true;
@@ -3264,10 +3597,17 @@ public partial class GrinFilmCamera : Node
 				}
 			}
 			if (framePerfEnabled) pass2Scope.Dispose();
+			pass2CompletedThisStep = !budgetStop && !renderStepAbort;
 			if (renderStepAbort && !budgetStop)
 			{
 				AbortRenderStep("watchdog");
-				EnsureForwardProgress("watchdog", true, yEnd, bandHits, true);
+				string maxMsReason = GetMaxMsStopReason();
+				LogRenderStopOnce(maxMsReason);
+				LogBudgetExitOnce(maxMsReason, _rowCursor);
+				ForceAdvanceRowCursorOnStop(maxMsReason, yEnd);
+				LogBandSummaryOnce("guard");
+				ResetNoHitStall();
+				ApplyDeferredRowCursorResetIfNeeded(yStart, yEnd);
 				return;
 			}
 
@@ -3447,23 +3787,55 @@ public partial class GrinFilmCamera : Node
 			if (statsEnabled) _perfFrame.AddFilmUpdateUsec(Time.GetTicksUsec() - updateStart);
 
 			if (budgetStop) LogBudgetStopOnce();
-			bool holdRowCursorForPendingPass2 = pendingPass2 && budgetStop;
-			int nextRowCursor = holdRowCursorForPendingPass2
-				? yStart
-				: (budgetStop ? budgetStopRowEnd : yEnd);
-			_rowCursor = Mathf.Clamp(nextRowCursor, 0, filmH);
-			if (pendingPass2 && !budgetStop)
-			{
-				_pendingBandRowStart = -1;
-				_pendingBandRowCount = 0;
-				_pendingBandHasPass1 = false;
-			}
-			if (!budgetStop && _rowCursor < filmH)
-				EnsureForwardProgress(budgetStop ? budgetStopReason : "end", false, _rowCursor, bandHits, false);
-			if (!budgetStop && _rowCursor >= filmH)
-				ResetRowCursor("completed");
 			if (budgetStop)
-				EnsureForwardProgress(budgetStopReason, false, _rowCursor, bandHits, true);
+			{
+				bandCompletedThisStep = pass2CompletedThisStep && (pass1CompletedThisStep || pass1SkippedThisStep);
+				bool isTimeBudget = budgetStopReason == "update_every_frame_budget"
+					|| budgetStopReason == "renderstep_max_ms"
+					|| budgetStopReason == "render_step_max_ms"
+					|| budgetStopReason == "target_ms_per_frame";
+				if (budgetStopReason == "sg_attempts")
+				{
+					FinalizeBandAndAdvance("sg_attempts", yStart, yEnd, bandHits, "");
+				}
+				else if (isTimeBudget && !bandCompletedThisStep)
+				{
+					LogRenderStopOnce(budgetStopReason);
+					if (!ForceAdvanceOnNoHit(budgetStopReason, "zero-hit-advance", true))
+					{
+						LogBandSummaryOnce("budget");
+						MarkBandIncompleteThisFrame(budgetStopReason, yStart, yEnd);
+					}
+					return;
+				}
+				else
+				{
+					FinalizeBandAndAdvance(budgetStopReason, yStart, yEnd, bandHits, "");
+				}
+			}
+			else
+			{
+				int nextRowCursor = yEnd;
+				_rowCursor = Mathf.Clamp(nextRowCursor, 0, filmH);
+				bool bandAdvanced = yEnd != yStart;
+				if (pendingPass2)
+				{
+					_pendingBandRowStart = -1;
+					_pendingBandRowCount = 0;
+					_pendingBandHasPass1 = false;
+				}
+				if (_rowCursor < filmH)
+					EnsureForwardProgress("end", false, _rowCursor, bandHits, false);
+				if (_rowCursor >= filmH)
+					ResetRowCursor("completed");
+				bandCommittedThisStep = bandAdvanced;
+				if (bandAdvanced)
+					LogBandSummaryOnce(bandHits == 0 ? "zero-hit-advance" : "normal");
+				else
+					ForceAdvanceOnNoHit("guard_no_progress", "zero-hit-advance", false);
+				if (bandAdvanced) ResetNoHitStall();
+			}
+			ApplyDeferredRowCursorResetIfNeeded(yStart, yEnd);
 
 			ulong t1 = Time.GetTicksUsec();
 			if (VerbosePerfLogs)
@@ -3579,6 +3951,10 @@ public partial class GrinFilmCamera : Node
 		finally
 		{
 			if (framePerfEnabled) frameScope.Dispose();
+			_lastBandCommitted = bandCommittedThisStep;
+			_lastRenderStepRowCursor = _rowCursor;
+			_lastRenderStepBandStart = yStart;
+			_lastRenderStepBandEnd = yEnd;
 			Interlocked.Exchange(ref _renderStepActive, 0);
 		}
 	}
@@ -3952,6 +4328,19 @@ public partial class GrinFilmCamera : Node
 		_pendingBandRowStart = -1;
 		_pendingBandRowCount = 0;
 		_pendingBandHasPass1 = false;
+		_pendingRowCursorReset = false;
+		_pendingRowCursorResetReason = "";
+		_stuckBandStartRow = -1;
+		_stuckBandEndRow = -1;
+		_stuckBandRepeats = 0;
+		_lastBandCommitted = true;
+		_lastRenderStepRowCursor = -1;
+		_lastRenderStepBandStart = -1;
+		_lastRenderStepBandEnd = -1;
+		_bandIncompleteFrameId = -1;
+		_bandIncompleteRowStart = -1;
+		_bandIncompleteRowEnd = -1;
+		_suppressStuckBandRepeatOnce = false;
 		if (_rowCursor == 0) return;
 		int prev = _rowCursor;
 		_rowCursor = 0;
@@ -4275,6 +4664,7 @@ public partial class GrinFilmCamera : Node
 		TinySegmentSkipLen = 0.005f;
 		EarlyOutDistanceEps = 0.01f;
 		NeedColliderNames = false;
+		ApplyQualityModePresetIfNeeded("preset");
 	}
 
 	public void ResetFilmPassManual()
@@ -4321,6 +4711,7 @@ public partial class GrinFilmCamera : Node
 				UseBroadphaseOverlap = false;
 				break;
 		}
+		ApplyQualityModePresetIfNeeded("preset");
 	}
 
 	public void ApplyPerfPresetQuality()
@@ -4330,6 +4721,94 @@ public partial class GrinFilmCamera : Node
 		TinySegmentSkipLen = 0.0f;
 		EarlyOutDistanceEps = 0.0f;
 		NeedColliderNames = false;
+		ApplyQualityModePresetIfNeeded("preset");
+	}
+	public void ApplyQualityModePresetIfNeeded(string reason)
+	{
+		bool forceApply = reason == "ready" || reason == "preset";
+		bool modeChanged = _appliedQualityMode != QualityMode;
+		if (!modeChanged && !forceApply) return;
+
+		switch (QualityMode)
+		{
+			case RenderQualityMode.Debug:
+				FilmResolutionScale = 0.25f;
+				PixelStride = 4;
+				RowsPerFrame = 2;
+				TargetMsPerFrame = 8;
+				MaxRowsPerFrameCap = 48;
+				UpdateEveryFrameBudgetMs = 8f;
+				RenderStepMaxMs = 20;
+				Pass2SoftGateScoreBudgetPerFrame = 8;
+				Pass2SoftGateMaxAttemptsPerPixel = 1;
+				Pass2SoftGateMaxAttemptsPerFrame = 200;
+				Pass2SoftGateMaxSubdividedCallsPerFrame = 400;
+				break;
+			case RenderQualityMode.FastPreview:
+				FilmResolutionScale = 0.5f;
+				PixelStride = 2;
+				RowsPerFrame = 6;
+				TargetMsPerFrame = 16;
+				MaxRowsPerFrameCap = 128;
+				UpdateEveryFrameBudgetMs = 16f;
+				RenderStepMaxMs = 40;
+				Pass2SoftGateScoreBudgetPerFrame = 16;
+				Pass2SoftGateMaxAttemptsPerPixel = 2;
+				Pass2SoftGateMaxAttemptsPerFrame = 1000;
+				Pass2SoftGateMaxSubdividedCallsPerFrame = 2000;
+				break;
+			case RenderQualityMode.Balanced:
+				FilmResolutionScale = 0.75f;
+				PixelStride = 1;
+				RowsPerFrame = 8;
+				TargetMsPerFrame = 20;
+				MaxRowsPerFrameCap = 256;
+				UpdateEveryFrameBudgetMs = 20f;
+				RenderStepMaxMs = 60;
+				Pass2SoftGateScoreBudgetPerFrame = 32;
+				Pass2SoftGateMaxAttemptsPerPixel = 3;
+				Pass2SoftGateMaxAttemptsPerFrame = 3000;
+				Pass2SoftGateMaxSubdividedCallsPerFrame = 6000;
+				break;
+			case RenderQualityMode.Quality:
+				FilmResolutionScale = 1.0f;
+				PixelStride = 1;
+				RowsPerFrame = 16;
+				TargetMsPerFrame = 33;
+				MaxRowsPerFrameCap = 512;
+				UpdateEveryFrameBudgetMs = 33f;
+				RenderStepMaxMs = 100;
+				Pass2SoftGateScoreBudgetPerFrame = 64;
+				Pass2SoftGateMaxAttemptsPerPixel = 4;
+				Pass2SoftGateMaxAttemptsPerFrame = 6000;
+				Pass2SoftGateMaxSubdividedCallsPerFrame = 12000;
+				break;
+			case RenderQualityMode.Barebones:
+				FilmResolutionScale = 0.25f;
+				PixelStride = 2;
+				RowsPerFrame = 8;
+				TargetMsPerFrame = 500;
+				MaxRowsPerFrameCap = 16;
+				UpdateEveryFrameBudgetMs = 1000f;
+				RenderStepMaxMs = 10000;
+				Pass2SoftGateScoreBudgetPerFrame = 256;
+				Pass2SoftGateMaxAttemptsPerPixel = 4;
+				Pass2SoftGateMaxAttemptsPerFrame = 300;
+				Pass2SoftGateMaxSubdividedCallsPerFrame = 500;
+				break;
+		}
+
+		if (modeChanged)
+		{
+			GD.Print(
+				$"[QualityMode] applied mode={QualityMode} reason={reason} settings: " +
+				$"filmScale={FilmResolutionScale:0.###} pixelStride={PixelStride} rowsPerFrame={RowsPerFrame} " +
+				$"targetMs={TargetMsPerFrame} maxRowsCap={MaxRowsPerFrameCap} " +
+				$"UpdateEveryFrameBudgetMs={UpdateEveryFrameBudgetMs:0.###} RenderStepMaxMs={RenderStepMaxMs} " +
+				$"softgate{{score={Pass2SoftGateScoreBudgetPerFrame} px={Pass2SoftGateMaxAttemptsPerPixel} " +
+				$"frame={Pass2SoftGateMaxAttemptsPerFrame} sub={Pass2SoftGateMaxSubdividedCallsPerFrame}}}");
+		}
+		_appliedQualityMode = QualityMode;
 	}
 
 	void UpdateFilmOpacity()

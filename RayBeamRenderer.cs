@@ -30,9 +30,15 @@ public partial class RayBeamRenderer : Node3D
 	[Export] public NodePath CameraPath;
 
 	[ExportGroup("Performance / Profiling")]
-	/// <summary>Rebuilds rays when camera or field sources change.</summary>
-	// CONTROL FACTOR: Master toggle for automatic rebuilds; when false, rays stay static until manually rebuilt.
+	/// <summary>Rebuilds ray debug visualization every frame (RayBeamRenderer only; not film rendering).</summary>
+	// CONTROL FACTOR: Master toggle for ray debug rebuilds; when false, rays stay static until manually rebuilt.
 	[Export] public bool UpdateEveryFrame = true;
+	/// <summary>Alias for UpdateEveryFrame to distinguish from GrinFilmCamera.UpdateEveryFrame.</summary>
+	[Export] public bool UpdateRayDebugEveryFrame
+	{
+		get => UpdateEveryFrame;
+		set => UpdateEveryFrame = value;
+	}
 	/// <summary>Allows Rebuild when UpdateEveryFrame is enabled.</summary>
 	// CONTROL FACTOR: Secondary gate for rebuilds; use to freeze updates without disabling UpdateEveryFrame logic.
 	[Export] public bool AllowRebuild = true;
