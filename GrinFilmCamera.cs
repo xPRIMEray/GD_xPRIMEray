@@ -275,14 +275,25 @@ public partial class GrinFilmCamera : Node
 
 
 	[ExportGroup("Collision")]
-	[ExportSubgroup("Broadphase")]
+	[ExportSubgroup("Broadphase/Policy")]
+	// This section affects collision policy switches (behavior).
+	/// <summary>Use Broadphase Policy (recommended).</summary>
+	// CONTROL FACTOR: When true, BroadphasePolicy overrides individual toggles.
+	[Export] public bool UseBroadphasePolicy = false;
+	/// <summary>Broadphase Policy.</summary>
+	// CONTROL FACTOR: Broadphase mode policy selection.
+	[Export] public BroadphaseMode BroadphasePolicy = BroadphaseMode.QuickRayOnly;
+
+	[ExportSubgroup("Broadphase/Manual Overrides")]
 	// This section affects collision culling (performance only).
-	/// <summary>Enables a quick raycast broadphase test.</summary>
+	/// <summary>Quick Ray (manual override when policy OFF).</summary>
 	// CONTROL FACTOR: Enables quick-ray broadphase; true reduces work by early rejection.
 	[Export] public bool UseBroadphaseQuickRay = true;
-	/// <summary>Enables a sphere overlap broadphase test.</summary>
+	/// <summary>Overlap (manual override when policy OFF).</summary>
 	// CONTROL FACTOR: Enables overlap broadphase; true adds extra culling based on radius.
 	[Export] public bool UseBroadphaseOverlap = false;
+
+	[ExportSubgroup("Broadphase/Settings")]
 	/// <summary>Extra radius for overlap broadphase.</summary>
 	// CONTROL FACTOR: Overlap margin (world units); higher catches more but costs more.
 	[Export] public float BroadphaseMargin = 0.03f;
@@ -332,15 +343,6 @@ public partial class GrinFilmCamera : Node
 		OverlapOnly = 2,
 		Both = 3
 	}
-
-	[ExportSubgroup("Policies")]
-	// This section affects collision policy switches (behavior).
-	/// <summary>Overrides broadphase toggles using BroadphasePolicy.</summary>
-	// CONTROL FACTOR: When true, BroadphasePolicy overrides individual toggles.
-	[Export] public bool UseBroadphasePolicy = false;
-	/// <summary>Broadphase policy when UseBroadphasePolicy is true.</summary>
-	// CONTROL FACTOR: Broadphase mode policy selection.
-	[Export] public BroadphaseMode BroadphasePolicy = BroadphaseMode.QuickRayOnly;
 	/// <summary>Uses a quick probe, then subdivides if needed.</summary>
 	// CONTROL FACTOR: Enables quick probe then subdivide; true favors early-outs.
 	[Export] public bool UseSingleProbeThenSubdivide = false;
@@ -589,6 +591,10 @@ public partial class GrinFilmCamera : Node
 
 	private ToggleSnapshot _lastToggleSnapshot;
 	private bool _hasToggleSnapshot;
+	private bool _lastBroadphaseEffectiveQuickRay = false;
+	private bool _lastBroadphaseEffectiveOverlap = false;
+	private string _lastBroadphaseEffectiveSourceTag = "";
+	private bool _hasLastBroadphaseEffective = false;
 
 	// band hit ROI history
 	private float[] _bandHitRate = Array.Empty<float>();
@@ -840,6 +846,7 @@ public partial class GrinFilmCamera : Node
 	public override void _Process(double delta)
 	{
 		ApplyAllPresetsIfNeeded("process");
+		UpdateBroadphaseEffectiveState();
 		// DECISION: only render when UpdateEveryFrame is enabled.
 		if (!UpdateEveryFrame) return;
 		RenderStep();
@@ -2154,32 +2161,9 @@ public partial class GrinFilmCamera : Node
 			int pass2QuickRayMissLogRemaining = Pass2LogQuickRayMissSamples;
 
 			Vector3 camPosPass2 = camPos;
-			bool useOverlap = UseBroadphaseOverlap;
-			bool useQuickRay = UseBroadphaseQuickRay;
-			// DECISION: optionally override broadphase toggles via policy.
-			if (UseBroadphasePolicy)
-			{
-				// DECISION: select broadphase strategy based on policy.
-				switch (BroadphasePolicy)
-				{
-					case BroadphaseMode.None:
-						useOverlap = false;
-						useQuickRay = false;
-						break;
-					case BroadphaseMode.QuickRayOnly:
-						useOverlap = false;
-						useQuickRay = true;
-						break;
-					case BroadphaseMode.OverlapOnly:
-						useOverlap = true;
-						useQuickRay = false;
-						break;
-					case BroadphaseMode.Both:
-						useOverlap = true;
-						useQuickRay = true;
-						break;
-				}
-			}
+			var (effQuickRay, effOverlap, _) = UpdateBroadphaseEffectiveState();
+			bool useOverlap = effOverlap;
+			bool useQuickRay = effQuickRay;
 
 			// DECISION: configure overlap broadphase only when enabled.
 			if (useOverlap)
@@ -4888,6 +4872,99 @@ public partial class GrinFilmCamera : Node
 		TargetMsPerFrame = Math.Max(1, TargetMsPerFrame);
 		UpdateEveryFrameBudgetMs = Mathf.Max(1f, UpdateEveryFrameBudgetMs);
 		RenderStepMaxMs = Math.Max(1, RenderStepMaxMs);
+	}
+
+	private static (bool quickRay, bool overlap) GetBroadphaseTogglesFromPolicy(BroadphaseMode policy)
+	{
+		switch (policy)
+		{
+			case BroadphaseMode.None:
+				return (false, false);
+			case BroadphaseMode.QuickRayOnly:
+				return (true, false);
+			case BroadphaseMode.OverlapOnly:
+				return (false, true);
+			case BroadphaseMode.Both:
+			default:
+				return (true, true);
+		}
+	}
+
+	private static BroadphaseMode GetBroadphasePolicyFromToggles(bool quickRay, bool overlap)
+	{
+		if (quickRay && overlap) return BroadphaseMode.Both;
+		if (quickRay) return BroadphaseMode.QuickRayOnly;
+		if (overlap) return BroadphaseMode.OverlapOnly;
+		return BroadphaseMode.None;
+	}
+
+	private static string GetBroadphaseModeLabel(bool quickRay, bool overlap)
+	{
+		if (quickRay && overlap) return "Both";
+		if (quickRay) return "QuickRayOnly";
+		if (overlap) return "OverlapOnly";
+		return "None";
+	}
+
+	private void SyncBroadphaseControlsIfNeeded()
+	{
+		if (UseBroadphasePolicy)
+		{
+			var (policyQuickRay, policyOverlap) = GetBroadphaseTogglesFromPolicy(BroadphasePolicy);
+			if (UseBroadphaseQuickRay != policyQuickRay || UseBroadphaseOverlap != policyOverlap)
+			{
+				UseBroadphaseQuickRay = policyQuickRay;
+				UseBroadphaseOverlap = policyOverlap;
+				GD.Print($"[Broadphase] sync-toggles policy={BroadphasePolicy} quickRay={(policyQuickRay ? 1 : 0)} overlap={(policyOverlap ? 1 : 0)}");
+			}
+		}
+		else
+		{
+			BroadphaseMode desiredPolicy = GetBroadphasePolicyFromToggles(UseBroadphaseQuickRay, UseBroadphaseOverlap);
+			if (BroadphasePolicy != desiredPolicy)
+			{
+				BroadphasePolicy = desiredPolicy;
+				GD.Print($"[Broadphase] sync-policy manual={desiredPolicy}");
+			}
+		}
+	}
+
+	private (bool effQuickRay, bool effOverlap, string sourceTag) ResolveEffectiveBroadphase()
+	{
+		if (UseBroadphasePolicy)
+		{
+			var (policyQuickRay, policyOverlap) = GetBroadphaseTogglesFromPolicy(BroadphasePolicy);
+			return (policyQuickRay, policyOverlap, "policy");
+		}
+
+		return (UseBroadphaseQuickRay, UseBroadphaseOverlap, "manual");
+	}
+
+	private (bool effQuickRay, bool effOverlap, string sourceTag) UpdateBroadphaseEffectiveState()
+	{
+		SyncBroadphaseControlsIfNeeded();
+		var resolved = ResolveEffectiveBroadphase();
+		LogBroadphaseEffectiveIfChanged(resolved.effQuickRay, resolved.effOverlap, resolved.sourceTag);
+		return resolved;
+	}
+
+	private void LogBroadphaseEffectiveIfChanged(bool effQuickRay, bool effOverlap, string sourceTag)
+	{
+		if (_hasLastBroadphaseEffective
+			&& _lastBroadphaseEffectiveQuickRay == effQuickRay
+			&& _lastBroadphaseEffectiveOverlap == effOverlap
+			&& _lastBroadphaseEffectiveSourceTag == sourceTag)
+		{
+			return;
+		}
+
+		_lastBroadphaseEffectiveQuickRay = effQuickRay;
+		_lastBroadphaseEffectiveOverlap = effOverlap;
+		_lastBroadphaseEffectiveSourceTag = sourceTag;
+		_hasLastBroadphaseEffective = true;
+
+		string modeLabel = GetBroadphaseModeLabel(effQuickRay, effOverlap);
+		GD.Print($"[Broadphase] effective={modeLabel} source={sourceTag}");
 	}
 
 	public void ApplyQualityModePreset(RenderQualityMode mode)
