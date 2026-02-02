@@ -182,6 +182,13 @@ public partial class GrinFilmCamera : Node
 	/// <summary>How often to refresh cached field sources.</summary>
 	// CONTROL FACTOR: Refresh interval in frames; higher = less overhead but more staleness.
 	[Export] public int FieldSourceRefreshIntervalFrames = 30;
+	/// <summary>Enables RenderStep Phase Logging.</summary>
+	// CONTROL FACTOR: Enables Phase by Phase updates in console log.
+	[Export] public bool RenderStepPhaseLog = true;
+	/// <summary>Enables RenderStep Band by Band Logging.</summary>
+	// CONTROL FACTOR: Enables Band by Band Logging each RenderStep in console log.
+	[Export] public bool RenderStepBandLog = true;
+
 
 	[ExportGroup("Ray March")]
 
@@ -1108,7 +1115,8 @@ public partial class GrinFilmCamera : Node
 					$"attempts={attemptsUsed}/{pass2SoftGateMaxAttemptsPerFrameEffective} " +
 					$"sub={subdivUsed}/{pass2SoftGateMaxSubdividedCallsPerFrameEffective} " +
 					$"hits={hitsInBand}{extraSuffix}");
-				LogBandSummaryOnce(MapBandSummaryReason(reason));
+				
+				if (RenderStepBandLog) LogBandSummaryOnce(MapBandSummaryReason(reason));
 
 				_rowCursor = nextRow;
 				bandCommittedThisStep = true;
@@ -1293,7 +1301,7 @@ public partial class GrinFilmCamera : Node
 				LogBudgetExitOnce(reason, _rowCursor);
 				ForceAdvanceRowCursorOnStop("zero_hit_advance", yEnd);
 				ResetNoHitStall();
-				LogBandSummaryOnce(reasonDone);
+				if (RenderStepBandLog) LogBandSummaryOnce(reasonDone);
 				return true;
 			}
 
@@ -1372,7 +1380,7 @@ public partial class GrinFilmCamera : Node
 					}
 					LogBudgetExitOnce("guard_progress", endRow);
 					LogForcedAdvanceWarning(reason, endRow);
-					LogBandSummaryOnce("guard");
+					if (RenderStepBandLog) LogBandSummaryOnce("guard");
 				}
 
 				if (logAlways || forced)
@@ -1505,7 +1513,9 @@ public partial class GrinFilmCamera : Node
 				_softGateSummaryLogsRemaining = Mathf.Max(0, Pass2SoftGateDebugSummaryLogLimitPerFrame);
 				/////////////////////////////
 			}
-			LogRenderPhase("enter");
+
+			if (RenderStepPhaseLog)	LogRenderPhase("enter");
+
 			// DECISION: mark film resize in perf stats when enabled.
 			if (statsEnabled && resizedFilm)
 			{
@@ -1629,7 +1639,7 @@ public partial class GrinFilmCamera : Node
 				// DECISION: avoid re-entering an incomplete band within the same frame.
 				_suppressStuckBandRepeatOnce = true;
 				LogBudgetExitOnce("guard_incomplete_band", _rowCursor);
-				LogBandSummaryOnce("guard");
+				if (RenderStepBandLog) LogBandSummaryOnce("guard");
 				return;
 			}
 
@@ -1653,7 +1663,7 @@ public partial class GrinFilmCamera : Node
 					GD.PrintErr($"[RenderStep][WATCHDOG] stuckBand y=[{yStart},{yEnd}) repeats={_stuckBandRepeats} -> forceAdvance");
 					LogBudgetExitOnce("guard_stuck_band", _rowCursor);
 					ForceAdvanceRowCursorOnStop("watchdog_stuck_band", yEnd);
-					LogBandSummaryOnce("guard");
+					if (RenderStepBandLog) LogBandSummaryOnce("guard");
 					ResetNoHitStall();
 					ApplyDeferredRowCursorResetIfNeeded(yStart, yEnd);
 					return;
@@ -1889,7 +1899,8 @@ public partial class GrinFilmCamera : Node
 			if (!pendingPass2)
 			{
 				pass1StartUsec = a0;
-				LogRenderPhase("pass1-start");
+				
+				if (RenderStepPhaseLog)	LogRenderPhase("pass1-start");
 
 				PerfScope pass1Scope = default;
 				// DECISION: enable pass1 perf scope when frame perf is enabled.
@@ -2032,7 +2043,7 @@ public partial class GrinFilmCamera : Node
 
 				// DECISION: dispose pass1 perf scope when enabled.
 				if (framePerfEnabled) pass1Scope.Dispose();
-				LogRenderPhase("pass1-end");
+				if (RenderStepPhaseLog)	LogRenderPhase("pass1-end");
 
 				a1 = Time.GetTicksUsec(); // after wait
 				pass1EndUsec = a1;
@@ -2061,7 +2072,7 @@ public partial class GrinFilmCamera : Node
 						LogRenderStopOnce(maxMsReason);
 						LogBudgetExitOnce(maxMsReason, _rowCursor);
 						ForceAdvanceRowCursorOnStop(maxMsReason, yEnd);
-						LogBandSummaryOnce("guard");
+						if (RenderStepBandLog) LogBandSummaryOnce("guard");
 						ResetNoHitStall();
 						ApplyDeferredRowCursorResetIfNeeded(yStart, yEnd);
 						return;
@@ -2099,7 +2110,7 @@ public partial class GrinFilmCamera : Node
 			// ---- PASS 2 (main thread): collisions + shading ----
 			// EFFECT: mark pass2 start time for budgets and logs.
 			pass2StartUsec = a1;
-			LogRenderPhase("pass2-start");
+			if (RenderStepPhaseLog) LogRenderPhase("pass2-start");
 			bandHits = 0;
 			bandTracedPixels = 0;
 			long shadeUsecAccum = 0;
@@ -2131,7 +2142,7 @@ public partial class GrinFilmCamera : Node
 			long pixelDeltaChanged = 0;
 			long pixelDeltaNewFilled = 0;
 			int softGateFrameId = (int)Engine.GetFramesDrawn();
-			LogRenderPhase("softgate-loop");
+			if (RenderStepPhaseLog) LogRenderPhase("softgate-loop");
 
 			Pass2HitFlags pass2Flags = new Pass2HitFlags
 			{
@@ -3681,7 +3692,7 @@ public partial class GrinFilmCamera : Node
 				LogRenderStopOnce(maxMsReason);
 				LogBudgetExitOnce(maxMsReason, _rowCursor);
 				ForceAdvanceRowCursorOnStop(maxMsReason, yEnd);
-				LogBandSummaryOnce("guard");
+				if (RenderStepBandLog) LogBandSummaryOnce("guard");
 				ResetNoHitStall();
 				ApplyDeferredRowCursorResetIfNeeded(yStart, yEnd);
 				return;
@@ -3879,7 +3890,7 @@ public partial class GrinFilmCamera : Node
 					LogRenderStopOnce(budgetStopReason);
 					if (!ForceAdvanceOnNoHit(budgetStopReason, "zero-hit-advance", true))
 					{
-						LogBandSummaryOnce("budget");
+						if (RenderStepBandLog) LogBandSummaryOnce("budget");
 						MarkBandIncompleteThisFrame(budgetStopReason, yStart, yEnd);
 					}
 					return;
@@ -3906,7 +3917,7 @@ public partial class GrinFilmCamera : Node
 					ResetRowCursor("completed");
 				bandCommittedThisStep = bandAdvanced;
 				if (bandAdvanced)
-					LogBandSummaryOnce(bandHits == 0 ? "zero-hit-advance" : "normal");
+					if (RenderStepBandLog) LogBandSummaryOnce(bandHits == 0 ? "zero-hit-advance" : "normal");
 				else
 					ForceAdvanceOnNoHit("guard_no_progress", "zero-hit-advance", false);
 				if (bandAdvanced) ResetNoHitStall();
@@ -3966,7 +3977,7 @@ public partial class GrinFilmCamera : Node
 					_lastPhysQ = physQ;
 				}
 			}
-			LogRenderPhase("end");
+			if (RenderStepPhaseLog) LogRenderPhase("end");
 			if (softGateDebugEnabled && _rowCursor == 0)
 			{
 				string extraContext =
