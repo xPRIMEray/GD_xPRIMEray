@@ -1,7 +1,7 @@
+res://GrinFilmCamera.cs
 res://addons/fieldsource_gizmo/FieldSourceGizmoPlugin.cs
 res://FieldSource3D.cs
 res://addons/fieldsource_gizmo/FieldSourceNodeGizmo.cs
-res://GrinFilmCamera.cs
 res://addons/grin_inspector_help/GrinInspectorHelpPlugin.cs
 res://CurvedCamera.cs
 res://RayEmitter3D.cs

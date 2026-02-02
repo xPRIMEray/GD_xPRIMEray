@@ -18,11 +18,321 @@ public partial class GrinFilmCamera : Node
 	// - UpdateDebugOverlayFromFilm(...) called during render pass when DebugOverlayOwnedByFilm is true
 
 	// ===== Inputs / Controls =====
+	[Export] public bool UpdateEveryFrame = true;
+	/// <summary>When UpdateEveryFrame is true, clamp per-call RenderStep budget to this value (ms). <=0 disables the clamp.</summary>
+	// CONTROL FACTOR: Per-call RenderStep time budget (ms); lower reduces work per frame.
 
-	[ExportCategory("Film Camera")]
+	public enum RenderQualityMode
+	{
+		Debug,
+		FastPreview,
+		Balanced,
+		Quality,
+		Barebones
+	}
+
+	public enum PresetMode
+	{
+		Walk = 0,
+		Preview = 1,
+		Cinematic = 2
+	}
+
+	[ExportGroup("Rendering")]
+
+	/// <summary>Quality preset controlling key render budgets/strides.</summary>
+	// CONTROL FACTOR: Quality mode preset; overrides key budgets/stride values.
+	[Export] public RenderQualityMode QualityMode = RenderQualityMode.Balanced;
+	/// <summary>Preset selection for tuning.</summary>
+	// CONTROL FACTOR: Performance preset; higher quality increases cost.
+	[Export] public PresetMode Preset = PresetMode.Preview;
+	/// <summary>Apply the preset automatically in _Ready.</summary>
+	// CONTROL FACTOR: Auto-apply preset on startup; true overrides manual tweaks.
+	[Export] public bool ApplyPresetOnReady = false;
+	/// <summary>When true, apply QualityMode after Preset (default).</summary>
+	// CONTROL FACTOR: Preset ordering; true means quality mode is applied last.
+	[Export] public bool UseQualityModePresets = true;
+	/// <summary>Force reapply presets next frame (debug escape hatch).</summary>
+	// CONTROL FACTOR: Forces a one-shot preset reapply; auto-clears after use.
+	[Export] public bool ForceReapplyPresetsNextFrame = false;
+
+	[ExportSubgroup("General Budgets")]
+	/// <summary>Runs RenderStep every frame when enabled.</summary>
+	// CONTROL FACTOR: Master toggle for per-frame RenderStep; false requires manual stepping.
+	[Export] public float UpdateEveryFrameBudgetMs = 16f;
+	/// <summary>When UpdateEveryFrame is true, hard-cap RenderStep band height (rows) per call.</summary>
+	// CONTROL FACTOR: Per-call row cap when updating every frame; lower spreads work across frames.
+	[Export] public int UpdateEveryFrameMaxRowsPerStep = 2;
+	/// <summary>Hard time budget for RenderStep (ms). Exceeding this disables UpdateEveryFrame.</summary>
+	// CONTROL FACTOR: Hard ceiling (ms); exceeding disables UpdateEveryFrame to prevent stalls.
+	[Export] public int RenderStepMaxMs = 50;
+	/// <summary>Hard cap on RenderStep pixel workload per frame. 0 disables.</summary>
+	// CONTROL FACTOR: Hard pixel cap per frame; lower reduces CPU cost.
+	[Export] public int RenderStepMaxPixelsPerFrame = 2000000;
+	/// <summary>Hard cap on RenderStep segments per frame. 0 disables.</summary>
+	// CONTROL FACTOR: Hard segment cap per frame; lower reduces collision workload.
+	[Export] public int RenderStepMaxSegmentsPerFrame = 20000000;
+
+	[ExportSubgroup("Film Output")]
+	/// <summary>Base film width in pixels before scaling.</summary>
+	// CONTROL FACTOR: Base width (pixels); higher increases resolution and cost.
+	[Export] public int Width = 160;
+	/// <summary>Base film height in pixels before scaling.</summary>
+	// CONTROL FACTOR: Base height (pixels); higher increases resolution and cost.
+	[Export] public int Height = 90;
+	/// <summary>Scales film resolution (0.25 to 1.0).</summary>
+	// CONTROL FACTOR: Resolution scale (0.25..1.0); lower reduces cost at the expense of detail.
+	[Export(PropertyHint.Range, "0.01,1.0,0.01")] public float FilmResolutionScale = 1.0f;
+	/// <summary>Traces every Nth pixel and fills stride-sized blocks.</summary>
+	// CONTROL FACTOR: Pixel stride; higher skips pixels and fills blocks for speed (lower fidelity).
+	[Export(PropertyHint.Range, "1,8,1")] public int PixelStride = 1;
+	/// <summary>Number of film rows rendered per frame.</summary>
+	// CONTROL FACTOR: Rows per frame; higher = faster convergence but more per-frame cost.
+	[Export] public int RowsPerFrame = 8;
+	/// <summary>Target CPU time budget per RenderStep (ms). Set <=0 to disable adaptive rows.</summary>
+	// CONTROL FACTOR: Target budget (ms) for adaptive rows; lower reduces work.
+	[Export] public int TargetMsPerFrame = 16;
+	/// <summary>Minimum rows per frame when adaptive rows are enabled.</summary>
+	// CONTROL FACTOR: Minimum rows per frame under adaptive mode; higher keeps throughput up.
+	[Export] public int MinRowsPerFrame = 4;
+	/// <summary>Maximum rows per frame when adaptive rows are enabled.</summary>
+	// CONTROL FACTOR: Maximum rows per frame under adaptive mode; higher allows bigger bursts.
+	[Export] public int MaxRowsPerFrameCap = 256;
+	/// <summary>Max ray distance when auto-range is disabled.</summary>
+	// CONTROL FACTOR: Max ray distance (world units) when AutoRangeDepth is off.
+	[Export] public float MaxDistance = 50f;
+	/// <summary>Background color for no-hit pixels.</summary>
+	// CONTROL FACTOR: Background color for miss pixels.
+	[Export] public Color SkyColor = new Color(0, 0, 0, 1);
+	/// <summary>Opacity applied to the film TextureRect.</summary>
+	// CONTROL FACTOR: UI opacity for film display; higher = more opaque.
+	[Export] public float FilmOpacity = 0.7f;
+	public enum FilmShadingMode
+	{
+		DepthHeatmap = 0,   // your current behavior
+		NormalRGB = 1,      // (N*0.5 + 0.5)
+		NdotV = 2,          // grayscale: saturate(dot(N, V))
+		TwoSidedNdotV = 3,  // grayscale: saturate(abs(dot(N, V)))
+	}
+
+	/// <summary>Film shading mode (depth, normal RGB, NdotV).</summary>
+	// CONTROL FACTOR: Shading mode selection; changes how hits map to film color.
+	[Export] public FilmShadingMode ShadingMode = FilmShadingMode.DepthHeatmap;
+	// Note: overlay normals are world-space collision normals (physics mesh).
+	// Film distortion is a visualization artifact and does not change collider geometry.
+	// For film-surface normals, use a screen-space gradient (see FilmOverlay2D) or a ray-space curvature normal; physics will not provide it.
+	/// <summary>Flips hit normals to face the camera for shading.</summary>
+	// CONTROL FACTOR: When true, normals are flipped toward camera; affects NdotV shading.
+	[Export] public bool FlipNormalToCamera = true;
+
+
+	[ExportGroup("Performance Profiling")]
+	/// <summary>Enables perf stats collection.</summary>
+	// CONTROL FACTOR: Enables perf stats; true adds some overhead.
+	[Export] public bool EnableProfiling = true;
+	/// <summary>Prints verbose perf logs per band.</summary>
+	// CONTROL FACTOR: Verbose perf logging; higher log volume.
+	[Export] public bool VerbosePerfLogs = false;
+	/// <summary>Enables FramePerf stage timing and counters.</summary>
+	// CONTROL FACTOR: Enables frame performance tracking.
+	[Export] public bool EnableFramePerf = true;
+	/// <summary>Prints FramePerf every frame when enabled.</summary>
+	// CONTROL FACTOR: Verbose per-frame perf logging.
+	[Export] public bool FramePerfVerbose = false;
+	/// <summary>Frames between FramePerf logs when not verbose.</summary>
+	// CONTROL FACTOR: Log cadence in frames when not verbose.
+	[Export] public int FramePerfLogEveryNFrames = 30;
+	/// <summary>Fetches collider names for debug output.</summary>
+	// CONTROL FACTOR: Fetch collider names; true adds lookup cost but improves debug readability.
+	[Export] public bool NeedColliderNames = false;
+	/// <summary>Caches field source snapshots for faster updates.</summary>
+	// CONTROL FACTOR: Cache field sources; true reduces per-frame scanning but may lag changes.
+	[Export] public bool UseFieldSourceCache = false;
+	/// <summary>How often to refresh cached field sources.</summary>
+	// CONTROL FACTOR: Refresh interval in frames; higher = less overhead but more staleness.
+	[Export] public int FieldSourceRefreshIntervalFrames = 30;
+
+	[ExportGroup("Auto Range - Depth")]
+	/// <summary>Auto-adjusts depth range based on recent hits.</summary>
+	// CONTROL FACTOR: Enables auto-range; true adapts far distance to recent hits.
+	[Export] public bool AutoRangeDepth = true;
+	/// <summary>Minimum allowed auto-range far distance.</summary>
+	// CONTROL FACTOR: Minimum far distance (world units) under auto-range.
+	[Export] public float AutoRangeMin = 0.25f;
+	/// <summary>Maximum allowed auto-range far distance.</summary>
+	// CONTROL FACTOR: Maximum far distance (world units) under auto-range.
+	[Export] public float AutoRangeMax = 200f;
+	/// <summary>Lerp factor for auto-range updates.</summary>
+	// CONTROL FACTOR: Smoothing factor; higher reacts faster to changes.
+	[Export] public float AutoRangeSmoothing = 0.15f;
+	/// <summary>Safety multiplier for robust far estimate.</summary>
+	// CONTROL FACTOR: Safety multiplier; higher increases far distance buffer.
+	[Export] public float AutoRangeSafety = 1.15f;
+	/// <summary>Frames tracked for robust far estimate.</summary>
+	// CONTROL FACTOR: Depth history window size (frames); larger smooths more.
+	[Export] public int DepthHistoryFrames = 30;
+
+	[ExportGroup("Debug Visualization")]
+	/// <summary>Debug ray sampling density for overlay.</summary>
+	// CONTROL FACTOR: Debug ray stride; higher samples fewer rays.
+	[Export] public int DebugEveryNPixels = 8;
+	/// <summary>Cap on debug rays per band.</summary>
+	// CONTROL FACTOR: Debug ray cap per band; limits overlay workload.
+	[Export] public int DebugMaxFilmRays = 2048;
+
+	[ExportSubgroup("Deprecated (No Effect)")]
+	/// <summary>Legacy pass-2 insight plane toggle (no effect).</summary>
+	// CONTROL FACTOR: Deprecated; has no effect.
+	[Obsolete("Deprecated: no effect in current film pass.")]
+	public bool UseInsightPlanePass2 = true;
+	/// <summary>Legacy insight plane slab thickness (no effect).</summary>
+	// CONTROL FACTOR: Deprecated; has no effect.
+	[Obsolete("Deprecated: no effect in current film pass.")]
+	public float InsightPlaneEps = 0.10f;
+	/// <summary>Placeholder for future normal smoothing (unused).</summary>
+	// CONTROL FACTOR: Deprecated; has no effect.
+	[Obsolete("Deprecated: reserved for future normal smoothing.")]
+	public bool UseSmoothNormals = false;
+
+	[ExportGroup("References")]
+	// SHARED FROM RAYBEAMRENDERER: StepsPerRay, CollisionEveryNSteps, collision mask, and field integration settings.
+	// TOGGLES PULLED FROM RAYBEAMRENDERER: RequireHitToRender, StopOnHit, TerminateTrailOnHit, DebugOverlayOwnedByFilm.
+	/// <summary>NodePath to the RayBeamRenderer used for film segment generation.</summary>
+	// CONTROL FACTOR: RayBeamRendererPath selects the ray integrator; wrong path breaks film ray generation.
+	[Export] public NodePath RayBeamRendererPath;
+	/// <summary>Optional TextureRect used to display the film texture.</summary>
+	// CONTROL FACTOR: Optional UI target for film texture; when null, film still renders but no direct display.
+	[Export] public NodePath FilmViewPath;
+	/// <summary>Optional FilmOverlay2D for debug ray overlay.</summary>
+	// CONTROL FACTOR: Optional overlay node for debug ray visualization.
+	[Export] public NodePath FilmOverlayPath;
+
+
+	[ExportCategory("Physics: PRT Physical Ray Tracing")]
+	
+	[Export] public bool UseCameraPropsBetaGamma = true;
+	/// <summary>Skips collision checks for tiny segments.</summary>
+	/// // CONTROL FACTOR: Segment length threshold (world units) below which collisions are skipped.
+
+	[ExportGroup("Field Grid")]
+	/// <summary>Uses a cached 3D vector field grid for pass-1 sampling.</summary>
+	// CONTROL FACTOR: Enables field grid; true trades memory for speed.
+	[Export] public bool UseFieldGrid = false;
+	/// <summary>Cell size for field grid sampling.</summary>
+	// CONTROL FACTOR: Grid cell size (world units); smaller = more accurate but more memory.
+	[Export] public float FieldGridCellSize = 0.25f;
+	/// <summary>Rebuild the field grid every N frames.</summary>
+	// CONTROL FACTOR: Grid rebuild cadence; higher = less overhead but more staleness.
+	[Export] public int FieldGridRebuildEveryNFrames = 8;
+	/// <summary>Padding added to far distance for grid bounds.</summary>
+	// CONTROL FACTOR: Extra padding (world units) for grid bounds; higher covers more space at cost of memory.
+	[Export] public float FieldGridBoundsPadding = 5f;
+
+	[ExportGroup("Sampling")]
+	/// <summary>Reads Beta/Gamma from the active Camera3D.</summary>
+	// CONTROL FACTOR: When true, uses camera Beta/Gamma; false uses film defaults.
+	[Export] public float TinySegmentSkipLen = 0.0f;
+	/// <summary>Early-out distance for nearest-hit search.</summary>
+	// CONTROL FACTOR: Early-out epsilon (world units); higher exits sooner, possibly missing closer hits.
+	[Export] public float EarlyOutDistanceEps = 0.0f;
+	/// <summary>Refines collision checks by subdividing segments.</summary>
+	// CONTROL FACTOR: Enables adaptive substeps; true increases accuracy at cost.
+	[Export] public bool UseAdaptiveSubsteps = false;
+	/// <summary>Skips physics for low-hit bands.</summary>
+	// CONTROL FACTOR: Enables band-level hit skip; true reduces cost when bands rarely hit.
+	[Export] public bool UseBandHitSkip = false;
+	/// <summary>Hit rate threshold to enable skipping.</summary>
+	// CONTROL FACTOR: Hit-rate threshold; lower = more likely to skip.
+	[Export] public float BandSkipHitThreshold = 0.001f;
+	/// <summary>Frames below threshold before skipping.</summary>
+	// CONTROL FACTOR: Frames below threshold before skipping; higher reduces flapping.
+	[Export] public int BandSkipFrames = 3;
+	/// <summary>Position delta that invalidates band skip history.</summary>
+	// CONTROL FACTOR: Position delta (world units) that resets skip history.
+	[Export] public float BandSkipInvalidatePosDelta = 0.05f;
+	/// <summary>Basis delta that invalidates band skip history.</summary>
+	// CONTROL FACTOR: Basis delta (radians-ish) that resets skip history.
+	[Export] public float BandSkipInvalidateBasisDelta = 0.02f;
+	/// <summary>Range delta that invalidates band skip history.</summary>
+	// CONTROL FACTOR: Range delta (world units) that resets skip history.
+	[Export] public float BandSkipInvalidateRangeDelta = 0.25f;
+	/// <summary>Enables pass-1 hit tests.</summary>
+	// CONTROL FACTOR: Enables pass-1 hit probes; true increases accuracy but adds work.
+	[Export] public bool Pass1DoHitTest = true;
+	/// <summary>Runs a pass-1 probe every N steps (0 disables; independent of segment emission cadence).</summary>
+	// CONTROL FACTOR: Probe cadence in steps; higher = fewer probes.
+	[Export] public int Pass1ProbeEveryNSegments = 4;
+	/// <summary>Minimum travel distance between pass-1 probes (<=0 disables).</summary>
+	// CONTROL FACTOR: Probe travel distance (world units); higher = fewer probes.
+	[Export] public float Pass1ProbeMinTravelDelta = 0.25f;
+
+
+	[ExportGroup("Collision")]
+	/// <summary>Enables a quick raycast broadphase test.</summary>
+	// CONTROL FACTOR: Enables quick-ray broadphase; true reduces work by early rejection.
+	[Export] public bool UseBroadphaseQuickRay = true;
+	/// <summary>Enables a sphere overlap broadphase test.</summary>
+	// CONTROL FACTOR: Enables overlap broadphase; true adds extra culling based on radius.
+	[Export] public bool UseBroadphaseOverlap = false;
+	/// <summary>Extra radius for overlap broadphase.</summary>
+	// CONTROL FACTOR: Overlap margin (world units); higher catches more but costs more.
+	[Export] public float BroadphaseMargin = 0.03f;
+	/// <summary>Max overlap results to consider.</summary>
+	// CONTROL FACTOR: Cap on overlap results; higher may increase cost.
+	[Export] public int BroadphaseMaxResults = 8;
+	/// <summary>Skips some pass-2 collision checks based on distance.</summary>
+	// CONTROL FACTOR: Enables distance-based collision stride in pass 2.
+	[Export] public bool UsePass2CollisionStride = false;
+	/// <summary>Stride near the camera for pass-2 collision checks.</summary>
+	// CONTROL FACTOR: Collision stride near camera; higher skips more checks close-up.
+	[Export(PropertyHint.Range, "1,8,1")] public int Pass2CollisionStrideNear = 1;
+	/// <summary>Stride at far distances for pass-2 collision checks.</summary>
+	// CONTROL FACTOR: Collision stride far away; higher skips more checks in distance.
+	[Export(PropertyHint.Range, "1,32,1")] public int Pass2CollisionStrideFar = 4;
+	/// <summary>Start t (0..1) where far stride begins in pass 2.</summary>
+	// CONTROL FACTOR: Transition point (0..1 of ray length) to far stride.
+	[Export(PropertyHint.Range, "0,1,0.01")] public float Pass2CollisionStrideFarStartT = 0.35f;
+	/// <summary>If >0, segments shorter than this length always run pass-2 collision tests.</summary>
+	// CONTROL FACTOR: Minimum segment length (world units) for stride skipping; lower = more checks.
+	[Export(PropertyHint.Range, "0,1,0.001")] public float MinSegLenForStrideSkip = 0f;
+	/// <summary>Ray query option: include back-facing triangles in pass-2 checks.</summary>
+	// CONTROL FACTOR: Include backfaces in pass-2 raycasts; true increases hits but can add noise.
+	[Export] public bool Pass2HitBackFaces = false;
+	/// <summary>Ray query option: detect hits when starting inside colliders.</summary>
+	// CONTROL FACTOR: Allow hits from inside; true detects interior starts.
+	[Export] public bool Pass2HitFromInside = true;
+	/// <summary>Forces a representative subdivided test when quick-ray misses all candidate segments.</summary>
+	// CONTROL FACTOR: Forces subdivided test on instability; increases accuracy at cost.
+	[Export] public bool Pass2ForceOnInstability = false;
+	/// <summary>Only forces instability tests when the pixel hit in the previous frame.</summary>
+	// CONTROL FACTOR: Limit forced instability tests to previously hit pixels.
+	[Export] public bool Pass2ForceIfPrevHitLost = false;
+	/// <summary>Logs quick-ray misses that later subdivide and hit (per frame).</summary>
+	// CONTROL FACTOR: Log sample count for quick-ray misses; higher logs more diagnostics.
+	[Export] public int Pass2LogQuickRayMissSamples = 0;
+	public enum BroadphaseMode
+	{
+		None = 0,
+		QuickRayOnly = 1,
+		OverlapOnly = 2,
+		Both = 3
+	}
+
+	/// <summary>Overrides broadphase toggles using BroadphasePolicy.</summary>
+	// CONTROL FACTOR: When true, BroadphasePolicy overrides individual toggles.
+	[Export] public bool UseBroadphasePolicy = false;
+	/// <summary>Broadphase policy when UseBroadphasePolicy is true.</summary>
+	// CONTROL FACTOR: Broadphase mode policy selection.
+	[Export] public BroadphaseMode BroadphasePolicy = BroadphaseMode.QuickRayOnly;
+	/// <summary>Uses a quick probe, then subdivides if needed.</summary>
+	// CONTROL FACTOR: Enables quick probe then subdivide; true favors early-outs.
+	[Export] public bool UseSingleProbeThenSubdivide = false;
+	/// <summary>If true, keeps scanning segments for the nearest hit.</summary>
+	// CONTROL FACTOR: Nearest-hit search; true prioritizes closest hit over first hit.
+	[Export] public bool NearestHitOnly = false;
+
 #region Pass2 SoftGate
-	[ExportGroup("Physics / Collision / Pass2 SoftGate")]
-	[ExportSubgroup("Core")]
+	[ExportGroup("Pass 2: Soft-Gate")]
 	/// <summary>Allows occasional subdivide attempts on quick-ray misses (Pass2).</summary>
 	// CONTROL FACTOR: Enables soft-gated subdivide probes on quick-ray misses; true increases accuracy at some cost.
 	[Export] public bool Pass2SoftGateEnableQuickRayMiss = false;
@@ -36,7 +346,7 @@ public partial class GrinFilmCamera : Node
 	// CONTROL FACTOR: Minimum segment length (in steps) eligible for SoftGate when using RayBeam scaling; higher reduces probes.
 	[Export] public float Pass2SoftGateMinSegLenSteps = 2.0f;
 
-	[ExportSubgroup("Budget")]
+	[ExportSubgroup("Budgets")]
 	/// <summary>Max soft-gate attempts per pixel (Pass2). 0 disables.</summary>
 	// CONTROL FACTOR: Per-pixel SoftGate attempt cap; higher increases accuracy but can cost CPU.
 	[Export(PropertyHint.Range, "0,8,1")] public int Pass2SoftGateMaxAttemptsPerPixel = 2;
@@ -109,305 +419,6 @@ public partial class GrinFilmCamera : Node
 	// CONTROL FACTOR: Cap on per-frame summary logs.
 	[Export(PropertyHint.Range, "0,8,1")] public int Pass2SoftGateDebugSummaryLogLimitPerFrame = 1;
 #endregion
-
-	[ExportGroup("References")]
-	/// <summary>NodePath to the RayBeamRenderer used for film segment generation.</summary>
-	// CONTROL FACTOR: RayBeamRendererPath selects the ray integrator; wrong path breaks film ray generation.
-	[Export] public NodePath RayBeamRendererPath;
-	/// <summary>Optional TextureRect used to display the film texture.</summary>
-	// CONTROL FACTOR: Optional UI target for film texture; when null, film still renders but no direct display.
-	[Export] public NodePath FilmViewPath;
-	/// <summary>Optional FilmOverlay2D for debug ray overlay.</summary>
-	// CONTROL FACTOR: Optional overlay node for debug ray visualization.
-	[Export] public NodePath FilmOverlayPath;
-
-[ExportGroup("General")]
-/// <summary>Runs RenderStep every frame when enabled.</summary>
-// CONTROL FACTOR: Master toggle for per-frame RenderStep; false requires manual stepping.
-[Export] public bool UpdateEveryFrame = true;
-/// <summary>When UpdateEveryFrame is true, clamp per-call RenderStep budget to this value (ms). <=0 disables the clamp.</summary>
-// CONTROL FACTOR: Per-call RenderStep time budget (ms); lower reduces work per frame.
-[Export] public float UpdateEveryFrameBudgetMs = 16f;
-/// <summary>When UpdateEveryFrame is true, hard-cap RenderStep band height (rows) per call.</summary>
-// CONTROL FACTOR: Per-call row cap when updating every frame; lower spreads work across frames.
-[Export] public int UpdateEveryFrameMaxRowsPerStep = 2;
-/// <summary>Hard time budget for RenderStep (ms). Exceeding this disables UpdateEveryFrame.</summary>
-// CONTROL FACTOR: Hard ceiling (ms); exceeding disables UpdateEveryFrame to prevent stalls.
-[Export] public int RenderStepMaxMs = 50;
-/// <summary>Hard cap on RenderStep pixel workload per frame. 0 disables.</summary>
-// CONTROL FACTOR: Hard pixel cap per frame; lower reduces CPU cost.
-[Export] public int RenderStepMaxPixelsPerFrame = 2000000;
-/// <summary>Hard cap on RenderStep segments per frame. 0 disables.</summary>
-// CONTROL FACTOR: Hard segment cap per frame; lower reduces collision workload.
-[Export] public int RenderStepMaxSegmentsPerFrame = 20000000;
-
-	[ExportCategory("Film Camera")]
-	[ExportGroup("Rendering / Film Output")]
-	/// <summary>Base film width in pixels before scaling.</summary>
-	// CONTROL FACTOR: Base width (pixels); higher increases resolution and cost.
-	[Export] public int Width = 160;
-	/// <summary>Base film height in pixels before scaling.</summary>
-	// CONTROL FACTOR: Base height (pixels); higher increases resolution and cost.
-	[Export] public int Height = 90;
-	/// <summary>Scales film resolution (0.25 to 1.0).</summary>
-	// CONTROL FACTOR: Resolution scale (0.25..1.0); lower reduces cost at the expense of detail.
-	[Export(PropertyHint.Range, "0.01,1.0,0.01")] public float FilmResolutionScale = 1.0f;
-	/// <summary>Traces every Nth pixel and fills stride-sized blocks.</summary>
-	// CONTROL FACTOR: Pixel stride; higher skips pixels and fills blocks for speed (lower fidelity).
-	[Export(PropertyHint.Range, "1,8,1")] public int PixelStride = 1;
-
-	public enum RenderQualityMode
-	{
-		Debug,
-		FastPreview,
-		Balanced,
-		Quality,
-		Barebones
-	}
-
-	public enum PresetMode
-	{
-		Walk = 0,
-		Preview = 1,
-		Cinematic = 2
-	}
-
-	[ExportGroup("Performance / Profiling")]
-	/// <summary>Quality preset controlling key render budgets/strides.</summary>
-	// CONTROL FACTOR: Quality mode preset; overrides key budgets/stride values.
-	[Export] public RenderQualityMode QualityMode = RenderQualityMode.Balanced;
-	/// <summary>Preset selection for tuning.</summary>
-	// CONTROL FACTOR: Performance preset; higher quality increases cost.
-	[Export] public PresetMode Preset = PresetMode.Preview;
-	/// <summary>Apply the preset automatically in _Ready.</summary>
-	// CONTROL FACTOR: Auto-apply preset on startup; true overrides manual tweaks.
-	[Export] public bool ApplyPresetOnReady = false;
-	/// <summary>Enables perf stats collection.</summary>
-	// CONTROL FACTOR: Enables perf stats; true adds some overhead.
-	[Export] public bool EnableProfiling = true;
-	/// <summary>Prints verbose perf logs per band.</summary>
-	// CONTROL FACTOR: Verbose perf logging; higher log volume.
-	[Export] public bool VerbosePerfLogs = false;
-	/// <summary>Enables FramePerf stage timing and counters.</summary>
-	// CONTROL FACTOR: Enables frame performance tracking.
-	[Export] public bool EnableFramePerf = true;
-	/// <summary>Prints FramePerf every frame when enabled.</summary>
-	// CONTROL FACTOR: Verbose per-frame perf logging.
-	[Export] public bool FramePerfVerbose = false;
-	/// <summary>Frames between FramePerf logs when not verbose.</summary>
-	// CONTROL FACTOR: Log cadence in frames when not verbose.
-	[Export] public int FramePerfLogEveryNFrames = 30;
-	/// <summary>Fetches collider names for debug output.</summary>
-	// CONTROL FACTOR: Fetch collider names; true adds lookup cost but improves debug readability.
-	[Export] public bool NeedColliderNames = false;
-	/// <summary>Caches field source snapshots for faster updates.</summary>
-	// CONTROL FACTOR: Cache field sources; true reduces per-frame scanning but may lag changes.
-	[Export] public bool UseFieldSourceCache = false;
-	/// <summary>How often to refresh cached field sources.</summary>
-	// CONTROL FACTOR: Refresh interval in frames; higher = less overhead but more staleness.
-	[Export] public int FieldSourceRefreshIntervalFrames = 30;
-
-	[ExportGroup("Field Grid")]
-	/// <summary>Uses a cached 3D vector field grid for pass-1 sampling.</summary>
-	// CONTROL FACTOR: Enables field grid; true trades memory for speed.
-	[Export] public bool UseFieldGrid = false;
-	/// <summary>Cell size for field grid sampling.</summary>
-	// CONTROL FACTOR: Grid cell size (world units); smaller = more accurate but more memory.
-	[Export] public float FieldGridCellSize = 0.25f;
-	/// <summary>Rebuild the field grid every N frames.</summary>
-	// CONTROL FACTOR: Grid rebuild cadence; higher = less overhead but more staleness.
-	[Export] public int FieldGridRebuildEveryNFrames = 8;
-	/// <summary>Padding added to far distance for grid bounds.</summary>
-	// CONTROL FACTOR: Extra padding (world units) for grid bounds; higher covers more space at cost of memory.
-	[Export] public float FieldGridBoundsPadding = 5f;
-
-	[ExportGroup("Rendering / Film Output")]
-	/// <summary>Number of film rows rendered per frame.</summary>
-	// CONTROL FACTOR: Rows per frame; higher = faster convergence but more per-frame cost.
-	[Export] public int RowsPerFrame = 8;
-	/// <summary>Target CPU time budget per RenderStep (ms). Set <=0 to disable adaptive rows.</summary>
-	// CONTROL FACTOR: Target budget (ms) for adaptive rows; lower reduces work.
-	[Export] public int TargetMsPerFrame = 16;
-	/// <summary>Minimum rows per frame when adaptive rows are enabled.</summary>
-	// CONTROL FACTOR: Minimum rows per frame under adaptive mode; higher keeps throughput up.
-	[Export] public int MinRowsPerFrame = 4;
-	/// <summary>Maximum rows per frame when adaptive rows are enabled.</summary>
-	// CONTROL FACTOR: Maximum rows per frame under adaptive mode; higher allows bigger bursts.
-	[Export] public int MaxRowsPerFrameCap = 256;
-	/// <summary>Max ray distance when auto-range is disabled.</summary>
-	// CONTROL FACTOR: Max ray distance (world units) when AutoRangeDepth is off.
-	[Export] public float MaxDistance = 50f;
-	/// <summary>Background color for no-hit pixels.</summary>
-	// CONTROL FACTOR: Background color for miss pixels.
-	[Export] public Color SkyColor = new Color(0, 0, 0, 1);
-	/// <summary>Opacity applied to the film TextureRect.</summary>
-	// CONTROL FACTOR: UI opacity for film display; higher = more opaque.
-	[Export] public float FilmOpacity = 0.7f;
-
-	[ExportGroup("Ray March / Sampling")]
-	/// <summary>Reads Beta/Gamma from the active Camera3D.</summary>
-	// CONTROL FACTOR: When true, uses camera Beta/Gamma; false uses film defaults.
-	[Export] public bool UseCameraPropsBetaGamma = true;
-	/// <summary>Skips collision checks for tiny segments.</summary>
-	// CONTROL FACTOR: Segment length threshold (world units) below which collisions are skipped.
-	[Export] public float TinySegmentSkipLen = 0.0f;
-	/// <summary>Early-out distance for nearest-hit search.</summary>
-	// CONTROL FACTOR: Early-out epsilon (world units); higher exits sooner, possibly missing closer hits.
-	[Export] public float EarlyOutDistanceEps = 0.0f;
-	/// <summary>Refines collision checks by subdividing segments.</summary>
-	// CONTROL FACTOR: Enables adaptive substeps; true increases accuracy at cost.
-	[Export] public bool UseAdaptiveSubsteps = false;
-	/// <summary>Skips physics for low-hit bands.</summary>
-	// CONTROL FACTOR: Enables band-level hit skip; true reduces cost when bands rarely hit.
-	[Export] public bool UseBandHitSkip = false;
-	/// <summary>Hit rate threshold to enable skipping.</summary>
-	// CONTROL FACTOR: Hit-rate threshold; lower = more likely to skip.
-	[Export] public float BandSkipHitThreshold = 0.001f;
-	/// <summary>Frames below threshold before skipping.</summary>
-	// CONTROL FACTOR: Frames below threshold before skipping; higher reduces flapping.
-	[Export] public int BandSkipFrames = 3;
-	/// <summary>Position delta that invalidates band skip history.</summary>
-	// CONTROL FACTOR: Position delta (world units) that resets skip history.
-	[Export] public float BandSkipInvalidatePosDelta = 0.05f;
-	/// <summary>Basis delta that invalidates band skip history.</summary>
-	// CONTROL FACTOR: Basis delta (radians-ish) that resets skip history.
-	[Export] public float BandSkipInvalidateBasisDelta = 0.02f;
-	/// <summary>Range delta that invalidates band skip history.</summary>
-	// CONTROL FACTOR: Range delta (world units) that resets skip history.
-	[Export] public float BandSkipInvalidateRangeDelta = 0.25f;
-	/// <summary>Enables pass-1 hit tests.</summary>
-	// CONTROL FACTOR: Enables pass-1 hit probes; true increases accuracy but adds work.
-	[Export] public bool Pass1DoHitTest = true;
-	/// <summary>Runs a pass-1 probe every N steps (0 disables; independent of segment emission cadence).</summary>
-	// CONTROL FACTOR: Probe cadence in steps; higher = fewer probes.
-	[Export] public int Pass1ProbeEveryNSegments = 4;
-	/// <summary>Minimum travel distance between pass-1 probes (<=0 disables).</summary>
-	// CONTROL FACTOR: Probe travel distance (world units); higher = fewer probes.
-	[Export] public float Pass1ProbeMinTravelDelta = 0.25f;
-
-	[ExportGroup("Auto Range / Depth")]
-	/// <summary>Auto-adjusts depth range based on recent hits.</summary>
-	// CONTROL FACTOR: Enables auto-range; true adapts far distance to recent hits.
-	[Export] public bool AutoRangeDepth = true;
-	/// <summary>Minimum allowed auto-range far distance.</summary>
-	// CONTROL FACTOR: Minimum far distance (world units) under auto-range.
-	[Export] public float AutoRangeMin = 0.25f;
-	/// <summary>Maximum allowed auto-range far distance.</summary>
-	// CONTROL FACTOR: Maximum far distance (world units) under auto-range.
-	[Export] public float AutoRangeMax = 200f;
-	/// <summary>Lerp factor for auto-range updates.</summary>
-	// CONTROL FACTOR: Smoothing factor; higher reacts faster to changes.
-	[Export] public float AutoRangeSmoothing = 0.15f;
-	/// <summary>Safety multiplier for robust far estimate.</summary>
-	// CONTROL FACTOR: Safety multiplier; higher increases far distance buffer.
-	[Export] public float AutoRangeSafety = 1.15f;
-	/// <summary>Frames tracked for robust far estimate.</summary>
-	// CONTROL FACTOR: Depth history window size (frames); larger smooths more.
-	[Export] public int DepthHistoryFrames = 30;
-
-	[ExportGroup("Physics / Collision")]
-	/// <summary>Enables a quick raycast broadphase test.</summary>
-	// CONTROL FACTOR: Enables quick-ray broadphase; true reduces work by early rejection.
-	[Export] public bool UseBroadphaseQuickRay = true;
-	/// <summary>Enables a sphere overlap broadphase test.</summary>
-	// CONTROL FACTOR: Enables overlap broadphase; true adds extra culling based on radius.
-	[Export] public bool UseBroadphaseOverlap = false;
-	/// <summary>Extra radius for overlap broadphase.</summary>
-	// CONTROL FACTOR: Overlap margin (world units); higher catches more but costs more.
-	[Export] public float BroadphaseMargin = 0.03f;
-	/// <summary>Max overlap results to consider.</summary>
-	// CONTROL FACTOR: Cap on overlap results; higher may increase cost.
-	[Export] public int BroadphaseMaxResults = 8;
-	/// <summary>Skips some pass-2 collision checks based on distance.</summary>
-	// CONTROL FACTOR: Enables distance-based collision stride in pass 2.
-	[Export] public bool UsePass2CollisionStride = false;
-	/// <summary>Stride near the camera for pass-2 collision checks.</summary>
-	// CONTROL FACTOR: Collision stride near camera; higher skips more checks close-up.
-	[Export(PropertyHint.Range, "1,8,1")] public int Pass2CollisionStrideNear = 1;
-	/// <summary>Stride at far distances for pass-2 collision checks.</summary>
-	// CONTROL FACTOR: Collision stride far away; higher skips more checks in distance.
-	[Export(PropertyHint.Range, "1,32,1")] public int Pass2CollisionStrideFar = 4;
-	/// <summary>Start t (0..1) where far stride begins in pass 2.</summary>
-	// CONTROL FACTOR: Transition point (0..1 of ray length) to far stride.
-	[Export(PropertyHint.Range, "0,1,0.01")] public float Pass2CollisionStrideFarStartT = 0.35f;
-	/// <summary>If >0, segments shorter than this length always run pass-2 collision tests.</summary>
-	// CONTROL FACTOR: Minimum segment length (world units) for stride skipping; lower = more checks.
-	[Export(PropertyHint.Range, "0,1,0.001")] public float MinSegLenForStrideSkip = 0f;
-	/// <summary>Ray query option: include back-facing triangles in pass-2 checks.</summary>
-	// CONTROL FACTOR: Include backfaces in pass-2 raycasts; true increases hits but can add noise.
-	[Export] public bool Pass2HitBackFaces = false;
-	/// <summary>Ray query option: detect hits when starting inside colliders.</summary>
-	// CONTROL FACTOR: Allow hits from inside; true detects interior starts.
-	[Export] public bool Pass2HitFromInside = true;
-	/// <summary>Forces a representative subdivided test when quick-ray misses all candidate segments.</summary>
-	// CONTROL FACTOR: Forces subdivided test on instability; increases accuracy at cost.
-	[Export] public bool Pass2ForceOnInstability = false;
-	/// <summary>Only forces instability tests when the pixel hit in the previous frame.</summary>
-	// CONTROL FACTOR: Limit forced instability tests to previously hit pixels.
-	[Export] public bool Pass2ForceIfPrevHitLost = false;
-	/// <summary>Logs quick-ray misses that later subdivide and hit (per frame).</summary>
-	// CONTROL FACTOR: Log sample count for quick-ray misses; higher logs more diagnostics.
-	[Export] public int Pass2LogQuickRayMissSamples = 0;
-	public enum BroadphaseMode
-	{
-		None = 0,
-		QuickRayOnly = 1,
-		OverlapOnly = 2,
-		Both = 3
-	}
-
-	/// <summary>Overrides broadphase toggles using BroadphasePolicy.</summary>
-	// CONTROL FACTOR: When true, BroadphasePolicy overrides individual toggles.
-	[Export] public bool UseBroadphasePolicy = false;
-	/// <summary>Broadphase policy when UseBroadphasePolicy is true.</summary>
-	// CONTROL FACTOR: Broadphase mode policy selection.
-	[Export] public BroadphaseMode BroadphasePolicy = BroadphaseMode.QuickRayOnly;
-	/// <summary>Uses a quick probe, then subdivides if needed.</summary>
-	// CONTROL FACTOR: Enables quick probe then subdivide; true favors early-outs.
-	[Export] public bool UseSingleProbeThenSubdivide = false;
-	/// <summary>If true, keeps scanning segments for the nearest hit.</summary>
-	// CONTROL FACTOR: Nearest-hit search; true prioritizes closest hit over first hit.
-	[Export] public bool NearestHitOnly = false;
-
-	public enum FilmShadingMode
-	{
-		DepthHeatmap = 0,   // your current behavior
-		NormalRGB = 1,      // (N*0.5 + 0.5)
-		NdotV = 2,          // grayscale: saturate(dot(N, V))
-		TwoSidedNdotV = 3,  // grayscale: saturate(abs(dot(N, V)))
-	}
-
-	[ExportGroup("Rendering / Film Output")]
-	/// <summary>Film shading mode (depth, normal RGB, NdotV).</summary>
-	// CONTROL FACTOR: Shading mode selection; changes how hits map to film color.
-	[Export] public FilmShadingMode ShadingMode = FilmShadingMode.DepthHeatmap;
-	// Note: overlay normals are world-space collision normals (physics mesh).
-	// Film distortion is a visualization artifact and does not change collider geometry.
-	// For film-surface normals, use a screen-space gradient (see FilmOverlay2D) or a ray-space curvature normal; physics will not provide it.
-	/// <summary>Flips hit normals to face the camera for shading.</summary>
-	// CONTROL FACTOR: When true, normals are flipped toward camera; affects NdotV shading.
-	[Export] public bool FlipNormalToCamera = true;
-
-	[ExportGroup("Debug Visualization")]
-	/// <summary>Debug ray sampling density for overlay.</summary>
-	// CONTROL FACTOR: Debug ray stride; higher samples fewer rays.
-	[Export] public int DebugEveryNPixels = 8;
-	/// <summary>Cap on debug rays per band.</summary>
-	// CONTROL FACTOR: Debug ray cap per band; limits overlay workload.
-	[Export] public int DebugMaxFilmRays = 2048;
-	[ExportGroup("Deprecated (No Effect)")]
-	/// <summary>Legacy pass-2 insight plane toggle (no effect).</summary>
-	// CONTROL FACTOR: Deprecated; has no effect.
-	[Obsolete("Deprecated: no effect in current film pass.")]
-	public bool UseInsightPlanePass2 = true;
-	/// <summary>Legacy insight plane slab thickness (no effect).</summary>
-	// CONTROL FACTOR: Deprecated; has no effect.
-	[Obsolete("Deprecated: no effect in current film pass.")]
-	public float InsightPlaneEps = 0.10f;
-	/// <summary>Placeholder for future normal smoothing (unused).</summary>
-	// CONTROL FACTOR: Deprecated; has no effect.
-	[Obsolete("Deprecated: reserved for future normal smoothing.")]
-	public bool UseSmoothNormals = false;
 
 
 	// ===== Cached State =====
@@ -548,7 +559,8 @@ public partial class GrinFilmCamera : Node
 	private int _renderStepForceAdvanceWarnsThisFrame = 0;
 	private int _budgetExitFrameId = -1;
 	private bool _budgetExitLoggedThisFrame = false;
-	private RenderQualityMode _appliedQualityMode = (RenderQualityMode)(-1);
+	private RenderQualityMode _lastQualityMode = (RenderQualityMode)(-1);
+	private PresetMode _lastPreset = (PresetMode)(-1);
 	private RandomNumberGenerator _rng = new RandomNumberGenerator();
 	private volatile int _renderStepActive = 0;
 	private bool _renderStepReentryWarned = false;
@@ -693,14 +705,18 @@ public partial class GrinFilmCamera : Node
 			return;
 		}
 
-    	_rng.Randomize();
+		_rng.Randomize();
 
 		// DECISION: optionally apply preset at startup.
 		if (ApplyPresetOnReady)
 		{
-			ApplyPreset(Preset);
+			ApplyAllPresetsIfNeeded("ready", force: true);
 		}
-		ApplyQualityModePresetIfNeeded("ready");
+		else
+		{
+			_lastPreset = Preset;
+			_lastQualityMode = QualityMode;
+		}
 
     	// ⛔ Freeze beam rebuilds while film camera is active
 		// CROSS-CLASS CONTRACT: Freeze RayBeamRenderer rebuilds while film camera is active.
@@ -756,7 +772,7 @@ public partial class GrinFilmCamera : Node
 
 	public override void _Process(double delta)
 	{
-		ApplyQualityModePresetIfNeeded("process");
+		ApplyAllPresetsIfNeeded("process");
 		// DECISION: only render when UpdateEveryFrame is enabled.
 		if (!UpdateEveryFrame) return;
 		RenderStep();
@@ -4664,7 +4680,6 @@ public partial class GrinFilmCamera : Node
 		TinySegmentSkipLen = 0.005f;
 		EarlyOutDistanceEps = 0.01f;
 		NeedColliderNames = false;
-		ApplyQualityModePresetIfNeeded("preset");
 	}
 
 	public void ResetFilmPassManual()
@@ -4711,7 +4726,6 @@ public partial class GrinFilmCamera : Node
 				UseBroadphaseOverlap = false;
 				break;
 		}
-		ApplyQualityModePresetIfNeeded("preset");
 	}
 
 	public void ApplyPerfPresetQuality()
@@ -4721,15 +4735,52 @@ public partial class GrinFilmCamera : Node
 		TinySegmentSkipLen = 0.0f;
 		EarlyOutDistanceEps = 0.0f;
 		NeedColliderNames = false;
-		ApplyQualityModePresetIfNeeded("preset");
 	}
-	public void ApplyQualityModePresetIfNeeded(string reason)
-	{
-		bool forceApply = reason == "ready" || reason == "preset";
-		bool modeChanged = _appliedQualityMode != QualityMode;
-		if (!modeChanged && !forceApply) return;
 
-		switch (QualityMode)
+	public void ApplyAllPresetsIfNeeded(string reason, bool force = false)
+	{
+		bool forceApply = force || ForceReapplyPresetsNextFrame;
+		bool presetChanged = _lastPreset != Preset;
+		bool qualityChanged = _lastQualityMode != QualityMode;
+		if (!forceApply && !presetChanged && !qualityChanged) return;
+
+		if (UseQualityModePresets)
+		{
+			ApplyPreset(Preset);
+			ApplyQualityModePreset(QualityMode);
+		}
+		else
+		{
+			ApplyQualityModePreset(QualityMode);
+			ApplyPreset(Preset);
+		}
+
+		SanitizePresetValues();
+
+		_lastPreset = Preset;
+		_lastQualityMode = QualityMode;
+
+		GD.Print($"[Presets] applied reason={reason} preset={Preset} quality={QualityMode} useQuality={UseQualityModePresets}");
+
+		if (ForceReapplyPresetsNextFrame)
+		{
+			ForceReapplyPresetsNextFrame = false;
+		}
+	}
+
+	private void SanitizePresetValues()
+	{
+		PixelStride = Mathf.Clamp(PixelStride, 1, 8);
+		RowsPerFrame = Math.Max(1, RowsPerFrame);
+		TargetMsPerFrame = Math.Max(1, TargetMsPerFrame);
+		UpdateEveryFrameBudgetMs = Mathf.Max(1f, UpdateEveryFrameBudgetMs);
+		RenderStepMaxMs = Math.Max(1, RenderStepMaxMs);
+	}
+
+	public void ApplyQualityModePreset(RenderQualityMode mode)
+	{
+
+		switch (mode)
 		{
 			case RenderQualityMode.Debug:
 				FilmResolutionScale = 0.25f;
@@ -4797,18 +4848,6 @@ public partial class GrinFilmCamera : Node
 				Pass2SoftGateMaxSubdividedCallsPerFrame = 500;
 				break;
 		}
-
-		if (modeChanged)
-		{
-			GD.Print(
-				$"[QualityMode] applied mode={QualityMode} reason={reason} settings: " +
-				$"filmScale={FilmResolutionScale:0.###} pixelStride={PixelStride} rowsPerFrame={RowsPerFrame} " +
-				$"targetMs={TargetMsPerFrame} maxRowsCap={MaxRowsPerFrameCap} " +
-				$"UpdateEveryFrameBudgetMs={UpdateEveryFrameBudgetMs:0.###} RenderStepMaxMs={RenderStepMaxMs} " +
-				$"softgate{{score={Pass2SoftGateScoreBudgetPerFrame} px={Pass2SoftGateMaxAttemptsPerPixel} " +
-				$"frame={Pass2SoftGateMaxAttemptsPerFrame} sub={Pass2SoftGateMaxSubdividedCallsPerFrame}}}");
-		}
-		_appliedQualityMode = QualityMode;
 	}
 
 	void UpdateFilmOpacity()
