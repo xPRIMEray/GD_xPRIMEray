@@ -277,25 +277,36 @@ public partial class GrinFilmCamera : Node
 
 
 	[ExportGroup("Physics / Collision")]
-	[ExportSubgroup("Broadphase / Policy")]
-	// Broadphase precedence: policy ON -> BroadphasePolicy drives effective mode.
-	// Syncing behavior: manual toggles are kept in sync with the policy while it is ON.
-	// When policy is OFF, manual toggles drive the effective mode and the policy is kept in sync.
+	[ExportSubgroup("Broadphase / Mode")]
+	// Broadphase precedence: Mode selects the single source of truth.
+	// Off: disables quick-ray + overlap.
+	// Manual: uses manual toggles below.
+	// Policy: uses BroadphasePolicy dropdown.
+	// Auto: uses heuristic (see Render Health) to choose policy.
 	// This section affects collision policy switches (behavior).
-	/// <summary>Use Broadphase Policy (overrides manual toggles).</summary>
-	// CONTROL FACTOR: When true, BroadphasePolicy overrides manual QuickRay/Overlap toggles.
-	[Export] public bool UseBroadphasePolicy = false;
-	/// <summary>Broadphase Policy.</summary>
-	// CONTROL FACTOR: Broadphase mode policy selection.
-	[Export] public BroadphaseMode BroadphasePolicy = BroadphaseMode.QuickRayOnly;
+	/// <summary>Broadphase mode (single source of truth).</summary>
+	// CONTROL FACTOR: Mode that decides where broadphase settings come from.
+	[Export] public BroadphaseMode BroadphaseControlMode = BroadphaseMode.Policy;
+
+	[ExportSubgroup("Broadphase / Policy")]
+	// This section affects collision policy switches (behavior).
+	/// <summary>Broadphase Policy (used when Mode = Policy or Auto).</summary>
+	// CONTROL FACTOR: Broadphase policy selection.
+	[Export] public BroadphasePolicyMode BroadphasePolicy = BroadphasePolicyMode.QuickRayOnly;
+
+	[ExportSubgroup("Broadphase / Legacy (Read-Only)")]
+	/// <summary>Legacy: UseBroadphasePolicy (deprecated).</summary>
+	// CONTROL FACTOR: Deprecated; mirrored from BroadphaseMode for backwards compatibility.
+	[Export] [Obsolete("Deprecated: use BroadphaseMode.")]
+	public bool UseBroadphasePolicy = false;
 
 	[ExportSubgroup("Broadphase / Manual Overrides")]
-	// Manual toggles are only authoritative when policy is OFF; otherwise they reflect policy.
+	// Manual toggles are only authoritative when Mode = Manual; otherwise they reflect effective state.
 	// This section affects collision culling (performance only).
-	/// <summary>Quick Ray (manual override when policy OFF).</summary>
+	/// <summary>Quick Ray (effective; read-only unless Mode = Manual).</summary>
 	// CONTROL FACTOR: Enables quick-ray broadphase; true reduces work by early rejection.
 	[Export] public bool UseBroadphaseQuickRay = true;
-	/// <summary>Overlap (manual override when policy OFF).</summary>
+	/// <summary>Overlap (effective; read-only unless Mode = Manual).</summary>
 	// CONTROL FACTOR: Enables overlap broadphase; true adds extra culling based on radius.
 	[Export] public bool UseBroadphaseOverlap = false;
 
@@ -343,6 +354,14 @@ public partial class GrinFilmCamera : Node
 	// CONTROL FACTOR: Log sample count for quick-ray misses; higher logs more diagnostics.
 	[Export] public int Pass2LogQuickRayMissSamples = 0;
 	public enum BroadphaseMode
+	{
+		Off = 0,
+		Manual = 1,
+		Policy = 2,
+		Auto = 3
+	}
+
+	public enum BroadphasePolicyMode
 	{
 		None = 0,
 		QuickRayOnly = 1,
@@ -495,6 +514,100 @@ public partial class GrinFilmCamera : Node
 	// CONTROL FACTOR: Minimum segment length (in steps) eligible for SoftGate when using RayBeam scaling; higher reduces probes.
 	[Export] public float Pass2SoftGateMinSegLenSteps = 2.0f;
 
+	[ExportGroup("Shared From RayBeamRenderer (Read-Only)")]
+
+	[ExportSubgroup("Status")]
+	/// <summary>Shows whether a RayBeamRenderer snapshot is currently available.</summary>
+	// CONTROL FACTOR: Read-only status mirror.
+	[Export] public bool SharedRbrHasRenderer = false;
+
+	[ExportSubgroup("Ray March")]
+	/// <summary>Ray march steps per ray (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public int SharedRbrStepsPerRay = 0;
+	/// <summary>Collision cadence (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public int SharedRbrCollisionEveryNSteps = 1;
+	/// <summary>Step length (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public float SharedRbrStepLength = 0.0f;
+	/// <summary>Minimum step length (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public float SharedRbrMinStepLength = 0.0f;
+	/// <summary>Maximum step length (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public float SharedRbrMaxStepLength = 0.0f;
+	/// <summary>Step adapt gain (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public float SharedRbrStepAdaptGain = 0.0f;
+	/// <summary>Integrated field toggle (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public bool SharedRbrUseIntegratedField = false;
+	/// <summary>Bend scale (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public float SharedRbrBendScale = 0.0f;
+	/// <summary>Field strength (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public float SharedRbrFieldStrength = 0.0f;
+	/// <summary>Field center (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public Vector3 SharedRbrFieldCenter = Vector3.Zero;
+	/// <summary>Field center follows camera (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public bool SharedRbrFieldCenterIsCamera = true;
+
+	[ExportSubgroup("Collision")]
+	/// <summary>Collision mask (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public uint SharedRbrCollisionMask = 0x0000FFFF;
+	/// <summary>Collision radius (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public float SharedRbrCollisionRadius = 0.0f;
+	/// <summary>Sphere sweep collision (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public bool SharedRbrUseSphereSweepCollision = false;
+	/// <summary>Insight plane filter (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public bool SharedRbrUseInsightPlaneFilter = false;
+	/// <summary>Collision subdivide threshold (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public float SharedRbrCollisionRaySubdivideThreshold = 0.0f;
+	/// <summary>Max collision substeps (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public int SharedRbrMaxCollisionSubsteps = 0;
+	/// <summary>Require hit to render (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public bool SharedRbrRequireHitToRender = false;
+	/// <summary>Stop on hit (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public bool SharedRbrStopOnHit = false;
+	/// <summary>Terminate trail on hit (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public bool SharedRbrTerminateTrailOnHit = false;
+	/// <summary>Screen-space collision cadence (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public bool SharedRbrUseScreenSpaceCollisionCadence = false;
+	/// <summary>Collision max error pixels (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public float SharedRbrCollisionMaxErrorPixels = 0.0f;
+	/// <summary>Min depth for error (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public float SharedRbrMinDepthForError = 0.0f;
+	/// <summary>Min collision cadence (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public int SharedRbrMinCollisionEveryNSteps = 0;
+
+	[ExportSubgroup("Debug Visualization")]
+	/// <summary>Debug draw mode (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public RayBeamRenderer.DebugDrawMode SharedRbrDebugMode = RayBeamRenderer.DebugDrawMode.Off;
+	/// <summary>Debug normal length (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public float SharedRbrDebugNormalLen = 0.0f;
+	/// <summary>Debug overlay owned by film (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror from RayBeamRenderer.
+	[Export] public bool SharedRbrDebugOverlayOwnedByFilm = false;
+
 
 	// ===== Cached State =====
 	private FilmOverlay2D _filmOverlay;
@@ -602,16 +715,37 @@ public partial class GrinFilmCamera : Node
 	private bool _hasToggleSnapshot;
 	private bool _lastBroadphaseEffectiveQuickRay = false;
 	private bool _lastBroadphaseEffectiveOverlap = false;
-	private bool _lastBroadphaseEffectivePolicyOn = false;
-	private BroadphaseMode _lastBroadphaseEffectivePolicy = BroadphaseMode.None;
+	private BroadphaseMode _lastBroadphaseEffectiveMode = BroadphaseMode.Manual;
+	private BroadphasePolicyMode _lastBroadphaseEffectivePolicy = BroadphasePolicyMode.None;
 	private bool _hasLastBroadphaseEffective = false;
 	private bool _isBroadphaseSyncing = false;
 	private bool _hasBroadphaseSyncSnapshot = false;
-	private bool _lastUseBroadphasePolicy = false;
-	private BroadphaseMode _lastBroadphasePolicy = BroadphaseMode.None;
+	private BroadphaseMode _lastBroadphaseMode = BroadphaseMode.Manual;
+	private BroadphasePolicyMode _lastBroadphasePolicy = BroadphasePolicyMode.None;
 	private bool _lastUseBroadphaseQuickRay = false;
 	private bool _lastUseBroadphaseOverlap = false;
 	private bool _broadphaseCurvedWarned = false;
+	private BroadphasePolicyMode _autoBroadphasePolicy = BroadphasePolicyMode.QuickRayOnly;
+	private int _autoBroadphaseCooldownRemaining = 0;
+	private int _autoBroadphaseLastFlipStep = -1;
+
+	private const int RenderHealthBufferSize = 60;
+	private const int RenderHealthLogEveryNSteps = 30;
+	private const int RenderHealthStallThreshold = 10;
+	private const int AutoBroadphaseCooldownSteps = 30;
+	private const int AutoBroadphaseWindow = 6;
+	private const int AutoBroadphaseMinTracedPixels = 5000;
+	private const float AutoBroadphaseLowHitRate = 0.0025f;
+	private const float AutoBroadphaseVarianceThreshold = 0.0004f;
+
+	private RenderHealthSample[] _renderHealthSamples = new RenderHealthSample[RenderHealthBufferSize];
+	private int _renderHealthWrite = 0;
+	private int _renderHealthCount = 0;
+	private int _renderHealthStepIndex = 0;
+	private int _renderHealthLastLogStep = -1;
+	private int _renderHealthStallSteps = 0;
+	private int _renderHealthLastRowCursor = -1;
+	private string _renderHealthLastExitReason = "";
 
 	// band hit ROI history
 	private float[] _bandHitRate = Array.Empty<float>();
@@ -639,6 +773,8 @@ public partial class GrinFilmCamera : Node
 	private int _p2SoftGateUsedThisFrame = 0;
 	private int _lastEffectiveConfigHash = 0;
 	private bool _hasEffectiveConfigHash = false;
+	private int _lastSharedSnapshotHash = 0;
+	private bool _hasSharedSnapshotHash = false;
 	private int _softGateFrameId = -1;
 	private int _softGateParamLogRemaining = 2;
 	private int _budgetYieldLogFrameId = -1;
@@ -651,6 +787,10 @@ public partial class GrinFilmCamera : Node
 	private RenderQualityMode _lastQualityMode = (RenderQualityMode)(-1);
 	private PresetMode _lastPreset = (PresetMode)(-1);
 	private PerformancePresetMode _lastPerformancePreset = (PerformancePresetMode)(-1);
+	private bool _presetSceneDirty = false;
+	private bool _presetPerfDirty = false;
+	private bool _presetQualityDirty = false;
+	private string _presetDirtyReason = "";
 	private bool _isApplyingPresets = false;
 	private RandomNumberGenerator _rng = new RandomNumberGenerator();
 	private volatile int _renderStepActive = 0;
@@ -744,8 +884,7 @@ public partial class GrinFilmCamera : Node
 		public BroadphaseMode Mode;
 		public string ModeName;
 		public string Reason;
-		public bool PolicyEnabled;
-		public BroadphaseMode Policy;
+		public BroadphasePolicyMode Policy;
 		public float Margin;
 		public int MaxResults;
 	}
@@ -825,6 +964,7 @@ public partial class GrinFilmCamera : Node
 		public EffectiveBroadphaseSettings Broadphase;
 		public EffectiveSoftGateSettings SoftGate;
 		public EffectiveRayMarchSettings RayMarch;
+		public RayBeamRenderer.SharedSnapshot SharedRaySnapshot;
 		public EffectiveFilmSettings Film;
 		public bool UpdateEveryFrame;
 		public float UpdateEveryFrameBudgetMs;
@@ -886,6 +1026,19 @@ public partial class GrinFilmCamera : Node
 		public FilmShadingMode ShadingMode;
 		public bool FlipNormalToCamera;
 		public Color SkyColor;
+	}
+
+	private struct RenderHealthSample
+	{
+		public int StepIndex;
+		public int RowCursorBefore;
+		public int RowCursorAfter;
+		public int RowsAdvanced;
+		public int BandsProcessed;
+		public long TracedPixels;
+		public int Hits;
+		public double AvgStepsPerTracedPixel;
+		public string BudgetExitReason;
 	}
 
 	private enum SoftGateDecisionReason
@@ -959,6 +1112,10 @@ public partial class GrinFilmCamera : Node
 			_lastPreset = Preset;
 			_lastQualityMode = QualityMode;
 			_lastPerformancePreset = PerformancePreset;
+			_presetSceneDirty = false;
+			_presetPerfDirty = false;
+			_presetQualityDirty = false;
+			_presetDirtyReason = "";
 		}
 
     	// ⛔ Freeze beam rebuilds while film camera is active
@@ -1052,6 +1209,7 @@ public partial class GrinFilmCamera : Node
 
 		// DECISION: record starting row for forward-progress guard.
 		int startRow = _rowCursor;
+		int renderHealthRowCursorBefore = _rowCursor;
 		bool rowCursorResetThisStep = false;
 		int budgetFrameId = (int)Engine.GetFramesDrawn();
 		if (_budgetExitFrameId != budgetFrameId)
@@ -1064,6 +1222,7 @@ public partial class GrinFilmCamera : Node
 		Stopwatch renderStepWatch = Stopwatch.StartNew();
 		bool renderStepAbort = false;
 		bool renderStepAbortLogged = false;
+		string renderStepAbortReason = "";
 		bool renderStepStopLogged = false;
 		bool bandCommittedThisStep = false;
 		bool budgetStop = false;
@@ -1090,6 +1249,7 @@ public partial class GrinFilmCamera : Node
 		int yEnd = _rowCursor;
 		int bandH = 0;
 		int bandHits = 0;
+		int bandTracedPixels = 0;
 		string renderPhase = "enter";
 		bool pass1CompletedThisStep = false;
 		bool pass2CompletedThisStep = false;
@@ -1199,7 +1359,6 @@ public partial class GrinFilmCamera : Node
 			}
 			pendingPass2 = _pendingBandHasPass1;
 			bandH = 0;
-			int bandTracedPixels = 0;
 			long bandSegsTested = 0;
 			long bandPhysicsQueries = 0;
 			int maxAttemptsAnyPixelThisBand = 0;
@@ -1551,6 +1710,7 @@ public partial class GrinFilmCamera : Node
 				// DECISION: abort is one-shot; skip if already logged.
 				if (renderStepAbortLogged) return;
 				renderStepAbortLogged = true;
+				renderStepAbortReason = reason;
 				if (reason == "watchdog")
 					LogBudgetExitOnce("renderstep_max_ms", _rowCursor);
 				// EFFECT: disable UpdateEveryFrame on abort.
@@ -4152,6 +4312,20 @@ public partial class GrinFilmCamera : Node
 		finally
 		{
 			if (framePerfEnabled) frameScope.Dispose();
+			double avgStepsPerTracedPixel = bandTracedPixels > 0
+				? (double)pass1StepsIntegrated / bandTracedPixels
+				: 0.0;
+			string healthExitReason = budgetStop
+				? budgetStopReason
+				: (renderStepAbortLogged ? renderStepAbortReason : "");
+			RecordRenderHealthSample(
+				renderHealthRowCursorBefore,
+				_rowCursor,
+				bandCommittedThisStep ? 1 : 0,
+				bandTracedPixels,
+				bandHits,
+				avgStepsPerTracedPixel,
+				healthExitReason);
 			_lastBandCommitted = bandCommittedThisStep;
 			_lastRenderStepRowCursor = _rowCursor;
 			_lastRenderStepBandStart = yStart;
@@ -4861,7 +5035,7 @@ public partial class GrinFilmCamera : Node
 	public void ApplyPerfPresetFastPreview()
 	{
 		PerformancePreset = PerformancePresetMode.FastPreview;
-		ApplyAllPresets("PerfPresetFastPreview");
+		MarkPresetDirty(scene: false, perf: true, quality: false, reason: "PerfPresetFastPreview");
 	}
 
 	public void ResetFilmPassManual()
@@ -4872,21 +5046,16 @@ public partial class GrinFilmCamera : Node
 	public void ApplyPreset(PresetMode mode)
 	{
 		Preset = mode;
-		ApplyAllPresets("ApplyPreset");
+		MarkPresetDirty(scene: true, perf: false, quality: false, reason: "ApplyPreset");
 	}
 
 	public void ApplyPerfPresetQuality()
 	{
 		PerformancePreset = PerformancePresetMode.Quality;
-		ApplyAllPresets("PerfPresetQuality");
+		MarkPresetDirty(scene: false, perf: true, quality: false, reason: "PerfPresetQuality");
 	}
 
 	public void ApplyAllPresetsIfNeeded(string reason, bool force = false)
-	{
-		ApplyAllPresets(reason, force);
-	}
-
-	private void ApplyAllPresets(string reason, bool force = false)
 	{
 		if (_isApplyingPresets) return;
 
@@ -4894,7 +5063,10 @@ public partial class GrinFilmCamera : Node
 		bool presetChanged = _lastPreset != Preset;
 		bool qualityChanged = _lastQualityMode != QualityMode;
 		bool perfChanged = _lastPerformancePreset != PerformancePreset;
-		if (!forceApply && !presetChanged && !qualityChanged && !perfChanged) return;
+		if (presetChanged) _presetSceneDirty = true;
+		if (qualityChanged) _presetQualityDirty = true;
+		if (perfChanged) _presetPerfDirty = true;
+		if (!forceApply && !_presetSceneDirty && !_presetQualityDirty && !_presetPerfDirty) return;
 
 		_isApplyingPresets = true;
 		bool sceneApplied = false;
@@ -4903,19 +5075,19 @@ public partial class GrinFilmCamera : Node
 
 		try
 		{
-			if (forceApply || presetChanged)
+			if (forceApply || _presetSceneDirty)
 			{
 				ApplyScenePresetCore(Preset);
 				sceneApplied = true;
 			}
 
-			if (forceApply || perfChanged)
+			if (forceApply || _presetPerfDirty)
 			{
 				ApplyPerfPresetCore(PerformancePreset);
 				perfApplied = true;
 			}
 
-			if (forceApply || qualityChanged)
+			if (forceApply || _presetQualityDirty)
 			{
 				ApplyQualityModePresetCore(QualityMode);
 				qualityApplied = true;
@@ -4926,8 +5098,17 @@ public partial class GrinFilmCamera : Node
 			_lastPreset = Preset;
 			_lastQualityMode = QualityMode;
 			_lastPerformancePreset = PerformancePreset;
+			_presetSceneDirty = false;
+			_presetPerfDirty = false;
+			_presetQualityDirty = false;
+			string applyReason = !string.IsNullOrEmpty(_presetDirtyReason) ? _presetDirtyReason : reason;
+			_presetDirtyReason = "";
 
-			GD.Print($"[PresetFlow] reason={reason} scene={(sceneApplied ? 1 : 0)} perf={(perfApplied ? 1 : 0)} quality={(qualityApplied ? 1 : 0)} force={(forceApply ? 1 : 0)}");
+			GD.Print(
+				$"[PresetApply] reason={applyReason} scene={(sceneApplied ? 1 : 0)} perf={(perfApplied ? 1 : 0)} quality={(qualityApplied ? 1 : 0)} " +
+				$"preset={Preset} perfPreset={PerformancePreset} quality={QualityMode} " +
+				$"resScale={FilmResolutionScale:0.###} stride={PixelStride} rows={RowsPerFrame} " +
+				$"broadphaseMode={BroadphaseControlMode} broadphasePolicy={BroadphasePolicy}");
 		}
 		finally
 		{
@@ -4946,16 +5127,16 @@ public partial class GrinFilmCamera : Node
 			case PresetMode.Walk:
 				DebugEveryNPixels = 16;
 				DebugMaxFilmRays = 512;
-				UseBroadphasePolicy = true;
-				BroadphasePolicy = BroadphaseMode.QuickRayOnly;
+				BroadphaseControlMode = BroadphaseMode.Policy;
+				BroadphasePolicy = BroadphasePolicyMode.QuickRayOnly;
 				UseBroadphaseQuickRay = true;
 				UseBroadphaseOverlap = false;
 				break;
 			case PresetMode.Cinematic:
 				DebugEveryNPixels = 4;
 				DebugMaxFilmRays = 4096;
-				UseBroadphasePolicy = true;
-				BroadphasePolicy = BroadphaseMode.Both;
+				BroadphaseControlMode = BroadphaseMode.Policy;
+				BroadphasePolicy = BroadphasePolicyMode.Both;
 				UseBroadphaseQuickRay = true;
 				UseBroadphaseOverlap = true;
 				break;
@@ -4963,8 +5144,8 @@ public partial class GrinFilmCamera : Node
 			case PresetMode.Preview:
 				DebugEveryNPixels = 8;
 				DebugMaxFilmRays = 2048;
-				UseBroadphasePolicy = true;
-				BroadphasePolicy = BroadphaseMode.QuickRayOnly;
+				BroadphaseControlMode = BroadphaseMode.Policy;
+				BroadphasePolicy = BroadphasePolicyMode.QuickRayOnly;
 				UseBroadphaseQuickRay = true;
 				UseBroadphaseOverlap = false;
 				break;
@@ -4977,15 +5158,15 @@ public partial class GrinFilmCamera : Node
 		{
 			case PerformancePresetMode.FastPreview:
 				UseFieldSourceCache = true;
-				UseBroadphasePolicy = true;
-				BroadphasePolicy = BroadphaseMode.QuickRayOnly;
+				BroadphaseControlMode = BroadphaseMode.Policy;
+				BroadphasePolicy = BroadphasePolicyMode.QuickRayOnly;
 				TinySegmentSkipLen = 0.005f;
 				EarlyOutDistanceEps = 0.01f;
 				NeedColliderNames = false;
 				break;
 			case PerformancePresetMode.Quality:
 				UseFieldSourceCache = false;
-				UseBroadphasePolicy = false;
+				BroadphaseControlMode = BroadphaseMode.Manual;
 				TinySegmentSkipLen = 0.0f;
 				EarlyOutDistanceEps = 0.0f;
 				NeedColliderNames = false;
@@ -5005,6 +5186,17 @@ public partial class GrinFilmCamera : Node
 		RenderStepMaxMs = Math.Max(1, RenderStepMaxMs);
 	}
 
+	private void MarkPresetDirty(bool scene, bool perf, bool quality, string reason)
+	{
+		if (scene) _presetSceneDirty = true;
+		if (perf) _presetPerfDirty = true;
+		if (quality) _presetQualityDirty = true;
+		if (!string.IsNullOrEmpty(reason))
+		{
+			_presetDirtyReason = reason;
+		}
+	}
+
 	private void ResolveEffectiveConfig(out EffectiveConfig cfg)
 	{
 		// Apply preset flow first so effective config is always resolved from current presets.
@@ -5021,8 +5213,7 @@ public partial class GrinFilmCamera : Node
 				Mode = broadphaseResolved.effMode,
 				ModeName = broadphaseResolved.effMode.ToString(),
 				Reason = broadphaseResolved.sourceTag,
-				PolicyEnabled = UseBroadphasePolicy,
-				Policy = BroadphasePolicy,
+				Policy = broadphaseResolved.effPolicy,
 				Margin = BroadphaseMargin,
 				MaxResults = BroadphaseMaxResults
 			},
@@ -5125,39 +5316,50 @@ public partial class GrinFilmCamera : Node
 		};
 
 		var rbr = _rbr;
-		if (rbr != null)
+		bool hasRenderer = rbr != null;
+		RayBeamRenderer.SharedSnapshot sharedSnap = default;
+		if (hasRenderer)
+		{
+			sharedSnap = rbr.GetSharedSnapshot();
+		}
+
+		cfg.SharedRaySnapshot = sharedSnap;
+		LogSharedSnapshotIfChanged(in sharedSnap, hasRenderer);
+		UpdateSharedSnapshotMirror(in sharedSnap, hasRenderer);
+
+		if (hasRenderer)
 		{
 			cfg.RayMarch = new EffectiveRayMarchSettings
 			{
 				HasRenderer = true,
-				StepsPerRay = rbr.StepsPerRay,
-				CollisionEveryNSteps = rbr.CollisionEveryNSteps,
-				StepLength = rbr.StepLength,
-				MinStepLength = rbr.MinStepLength,
-				MaxStepLength = rbr.MaxStepLength,
-				StepAdaptGain = rbr.StepAdaptGain,
-				UseIntegratedField = rbr.UseIntegratedField,
-				BendScale = rbr.BendScale,
-				FieldStrength = rbr.FieldStrength,
-				FieldCenter = rbr.FieldCenter,
-				FieldCenterIsCamera = rbr.FieldCenterIsCamera,
-				CollisionMask = rbr.CollisionMask,
-				CollisionRadius = rbr.CollisionRadius,
-				UseSphereSweepCollision = rbr.UseSphereSweepCollision,
-				UseInsightPlaneFilter = rbr.UseInsightPlaneFilter,
-				CollisionRaySubdivideThreshold = rbr.CollisionRaySubdivideThreshold,
-				MaxCollisionSubsteps = rbr.MaxCollisionSubsteps,
-				RequireHitToRender = rbr.RequireHitToRender,
-				StopOnHit = rbr.StopOnHit,
-				TerminateTrailOnHit = rbr.TerminateTrailOnHit,
-				UseScreenSpaceCollisionCadence = rbr.UseScreenSpaceCollisionCadence,
-				CollisionMaxErrorPixels = rbr.CollisionMaxErrorPixels,
-				MinDepthForError = rbr.MinDepthForError,
-				MinCollisionEveryNSteps = rbr.MinCollisionEveryNSteps,
-				DebugMode = rbr.DebugMode,
-				DebugNormalLen = rbr.DebugNormalLen,
-				DebugOverlayOwnedByFilm = rbr.DebugOverlayOwnedByFilm,
-				MaxSegPerRay = Mathf.Max(1, rbr.StepsPerRay / Mathf.Max(1, rbr.CollisionEveryNSteps)) + 2
+				StepsPerRay = sharedSnap.StepsPerRay,
+				CollisionEveryNSteps = sharedSnap.CollisionEveryNSteps,
+				StepLength = sharedSnap.StepLength,
+				MinStepLength = sharedSnap.MinStepLength,
+				MaxStepLength = sharedSnap.MaxStepLength,
+				StepAdaptGain = sharedSnap.StepAdaptGain,
+				UseIntegratedField = sharedSnap.UseIntegratedField,
+				BendScale = sharedSnap.BendScale,
+				FieldStrength = sharedSnap.FieldStrength,
+				FieldCenter = sharedSnap.FieldCenter,
+				FieldCenterIsCamera = sharedSnap.FieldCenterIsCamera,
+				CollisionMask = sharedSnap.CollisionMask,
+				CollisionRadius = sharedSnap.CollisionRadius,
+				UseSphereSweepCollision = sharedSnap.UseSphereSweepCollision,
+				UseInsightPlaneFilter = sharedSnap.UseInsightPlaneFilter,
+				CollisionRaySubdivideThreshold = sharedSnap.CollisionRaySubdivideThreshold,
+				MaxCollisionSubsteps = sharedSnap.MaxCollisionSubsteps,
+				RequireHitToRender = sharedSnap.RequireHitToRender,
+				StopOnHit = sharedSnap.StopOnHit,
+				TerminateTrailOnHit = sharedSnap.TerminateTrailOnHit,
+				UseScreenSpaceCollisionCadence = sharedSnap.UseScreenSpaceCollisionCadence,
+				CollisionMaxErrorPixels = sharedSnap.CollisionMaxErrorPixels,
+				MinDepthForError = sharedSnap.MinDepthForError,
+				MinCollisionEveryNSteps = sharedSnap.MinCollisionEveryNSteps,
+				DebugMode = sharedSnap.DebugMode,
+				DebugNormalLen = sharedSnap.DebugNormalLen,
+				DebugOverlayOwnedByFilm = sharedSnap.DebugOverlayOwnedByFilm,
+				MaxSegPerRay = Mathf.Max(1, sharedSnap.StepsPerRay / Mathf.Max(1, sharedSnap.CollisionEveryNSteps)) + 2
 			};
 		}
 		else
@@ -5221,7 +5423,6 @@ public partial class GrinFilmCamera : Node
 		hash.Add(cfg.Broadphase.UseOverlap);
 		hash.Add(cfg.Broadphase.Mode);
 		hash.Add(cfg.Broadphase.Reason ?? string.Empty);
-		hash.Add(cfg.Broadphase.PolicyEnabled);
 		hash.Add(cfg.Broadphase.Policy);
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.Broadphase.Margin));
 		hash.Add(cfg.Broadphase.MaxResults);
@@ -5360,7 +5561,7 @@ public partial class GrinFilmCamera : Node
 
 		string broadphaseTag = string.IsNullOrEmpty(cfg.Broadphase.Reason) ? "resolved" : cfg.Broadphase.Reason;
 		GD.Print(
-			$"[EffectiveCfg] broadphase={cfg.Broadphase.ModeName}({broadphaseTag}) quick={(cfg.Broadphase.UseQuickRay ? 1 : 0)} overlap={(cfg.Broadphase.UseOverlap ? 1 : 0)} " +
+			$"[EffectiveCfg] broadphase={cfg.Broadphase.ModeName}({broadphaseTag}) policy={cfg.Broadphase.Policy} quick={(cfg.Broadphase.UseQuickRay ? 1 : 0)} overlap={(cfg.Broadphase.UseOverlap ? 1 : 0)} " +
 			$"softgate={(cfg.SoftGate.EnableQuickRayMiss ? 1 : 0)} score={(cfg.SoftGate.ScoringEnabled ? 1 : 0)} " +
 			$"minSeg={cfg.SoftGate.MinSegmentLength:0.###} attempts={cfg.SoftGate.MaxAttemptsPerFrame} sub={cfg.SoftGate.MaxSubdividedCallsPerFrame} " +
 			$"stride={cfg.Film.PixelStride} resScale={cfg.Film.ResolutionScale:0.###} rows={cfg.Film.RowsPerFrame} " +
@@ -5368,28 +5569,336 @@ public partial class GrinFilmCamera : Node
 			$"maxDist={cfg.Film.MaxDistance:0.###}");
 	}
 
-	private static (bool quickRay, bool overlap) GetBroadphaseTogglesFromPolicy(BroadphaseMode policy)
+	private static int ComputeSharedSnapshotHash(in RayBeamRenderer.SharedSnapshot snap, bool hasRenderer)
+	{
+		var hash = new HashCode();
+		hash.Add(hasRenderer);
+		hash.Add(snap.StepsPerRay);
+		hash.Add(snap.CollisionEveryNSteps);
+		hash.Add(BitConverter.SingleToInt32Bits(snap.StepLength));
+		hash.Add(BitConverter.SingleToInt32Bits(snap.MinStepLength));
+		hash.Add(BitConverter.SingleToInt32Bits(snap.MaxStepLength));
+		hash.Add(BitConverter.SingleToInt32Bits(snap.StepAdaptGain));
+		hash.Add(snap.UseIntegratedField);
+		hash.Add(BitConverter.SingleToInt32Bits(snap.BendScale));
+		hash.Add(BitConverter.SingleToInt32Bits(snap.FieldStrength));
+		hash.Add(BitConverter.SingleToInt32Bits(snap.FieldCenter.X));
+		hash.Add(BitConverter.SingleToInt32Bits(snap.FieldCenter.Y));
+		hash.Add(BitConverter.SingleToInt32Bits(snap.FieldCenter.Z));
+		hash.Add(snap.FieldCenterIsCamera);
+		hash.Add(snap.CollisionMask);
+		hash.Add(BitConverter.SingleToInt32Bits(snap.CollisionRadius));
+		hash.Add(snap.UseSphereSweepCollision);
+		hash.Add(snap.UseInsightPlaneFilter);
+		hash.Add(BitConverter.SingleToInt32Bits(snap.CollisionRaySubdivideThreshold));
+		hash.Add(snap.MaxCollisionSubsteps);
+		hash.Add(snap.RequireHitToRender);
+		hash.Add(snap.StopOnHit);
+		hash.Add(snap.TerminateTrailOnHit);
+		hash.Add(snap.UseScreenSpaceCollisionCadence);
+		hash.Add(BitConverter.SingleToInt32Bits(snap.CollisionMaxErrorPixels));
+		hash.Add(BitConverter.SingleToInt32Bits(snap.MinDepthForError));
+		hash.Add(snap.MinCollisionEveryNSteps);
+		hash.Add(snap.DebugMode);
+		hash.Add(BitConverter.SingleToInt32Bits(snap.DebugNormalLen));
+		hash.Add(snap.DebugOverlayOwnedByFilm);
+		return hash.ToHashCode();
+	}
+
+	private void LogSharedSnapshotIfChanged(in RayBeamRenderer.SharedSnapshot snap, bool hasRenderer)
+	{
+		int hash = ComputeSharedSnapshotHash(in snap, hasRenderer);
+		if (_hasSharedSnapshotHash && hash == _lastSharedSnapshotHash) return;
+		_lastSharedSnapshotHash = hash;
+		_hasSharedSnapshotHash = true;
+
+		if (!hasRenderer)
+		{
+			GD.Print("[SharedSnap] renderer=missing");
+			return;
+		}
+
+		GD.Print(
+			$"[SharedSnap] steps={snap.StepsPerRay} stepLen={snap.StepLength:0.###} minStep={snap.MinStepLength:0.###} maxStep={snap.MaxStepLength:0.###} " +
+			$"collEvery={snap.CollisionEveryNSteps} collRad={snap.CollisionRadius:0.###} mask=0x{snap.CollisionMask:X8} debug={snap.DebugMode}");
+	}
+
+	private void UpdateSharedSnapshotMirror(in RayBeamRenderer.SharedSnapshot snap, bool hasRenderer)
+	{
+		SharedRbrHasRenderer = hasRenderer;
+		if (!hasRenderer)
+		{
+			SharedRbrStepsPerRay = 0;
+			SharedRbrCollisionEveryNSteps = 0;
+			SharedRbrStepLength = 0.0f;
+			SharedRbrMinStepLength = 0.0f;
+			SharedRbrMaxStepLength = 0.0f;
+			SharedRbrStepAdaptGain = 0.0f;
+			SharedRbrUseIntegratedField = false;
+			SharedRbrBendScale = 0.0f;
+			SharedRbrFieldStrength = 0.0f;
+			SharedRbrFieldCenter = Vector3.Zero;
+			SharedRbrFieldCenterIsCamera = false;
+			SharedRbrCollisionMask = 0;
+			SharedRbrCollisionRadius = 0.0f;
+			SharedRbrUseSphereSweepCollision = false;
+			SharedRbrUseInsightPlaneFilter = false;
+			SharedRbrCollisionRaySubdivideThreshold = 0.0f;
+			SharedRbrMaxCollisionSubsteps = 0;
+			SharedRbrRequireHitToRender = false;
+			SharedRbrStopOnHit = false;
+			SharedRbrTerminateTrailOnHit = false;
+			SharedRbrUseScreenSpaceCollisionCadence = false;
+			SharedRbrCollisionMaxErrorPixels = 0.0f;
+			SharedRbrMinDepthForError = 0.0f;
+			SharedRbrMinCollisionEveryNSteps = 0;
+			SharedRbrDebugMode = RayBeamRenderer.DebugDrawMode.Off;
+			SharedRbrDebugNormalLen = 0.0f;
+			SharedRbrDebugOverlayOwnedByFilm = false;
+			return;
+		}
+
+		SharedRbrStepsPerRay = snap.StepsPerRay;
+		SharedRbrCollisionEveryNSteps = snap.CollisionEveryNSteps;
+		SharedRbrStepLength = snap.StepLength;
+		SharedRbrMinStepLength = snap.MinStepLength;
+		SharedRbrMaxStepLength = snap.MaxStepLength;
+		SharedRbrStepAdaptGain = snap.StepAdaptGain;
+		SharedRbrUseIntegratedField = snap.UseIntegratedField;
+		SharedRbrBendScale = snap.BendScale;
+		SharedRbrFieldStrength = snap.FieldStrength;
+		SharedRbrFieldCenter = snap.FieldCenter;
+		SharedRbrFieldCenterIsCamera = snap.FieldCenterIsCamera;
+		SharedRbrCollisionMask = snap.CollisionMask;
+		SharedRbrCollisionRadius = snap.CollisionRadius;
+		SharedRbrUseSphereSweepCollision = snap.UseSphereSweepCollision;
+		SharedRbrUseInsightPlaneFilter = snap.UseInsightPlaneFilter;
+		SharedRbrCollisionRaySubdivideThreshold = snap.CollisionRaySubdivideThreshold;
+		SharedRbrMaxCollisionSubsteps = snap.MaxCollisionSubsteps;
+		SharedRbrRequireHitToRender = snap.RequireHitToRender;
+		SharedRbrStopOnHit = snap.StopOnHit;
+		SharedRbrTerminateTrailOnHit = snap.TerminateTrailOnHit;
+		SharedRbrUseScreenSpaceCollisionCadence = snap.UseScreenSpaceCollisionCadence;
+		SharedRbrCollisionMaxErrorPixels = snap.CollisionMaxErrorPixels;
+		SharedRbrMinDepthForError = snap.MinDepthForError;
+		SharedRbrMinCollisionEveryNSteps = snap.MinCollisionEveryNSteps;
+		SharedRbrDebugMode = snap.DebugMode;
+		SharedRbrDebugNormalLen = snap.DebugNormalLen;
+		SharedRbrDebugOverlayOwnedByFilm = snap.DebugOverlayOwnedByFilm;
+	}
+
+	private RenderHealthSample GetRenderHealthSampleFromEnd(int offset)
+	{
+		int idx = _renderHealthWrite - 1 - offset;
+		if (idx < 0) idx += RenderHealthBufferSize;
+		return _renderHealthSamples[idx];
+	}
+
+	private void LogRenderHealth(in RenderHealthSample latest, bool stalled)
+	{
+		int window = Math.Min(_renderHealthCount, 10);
+		long totalTraced = 0;
+		long totalHits = 0;
+		string topExit = "none";
+		int topExitCount = 0;
+		var exitCounts = new System.Collections.Generic.Dictionary<string, int>(StringComparer.Ordinal);
+
+		for (int i = 0; i < window; i++)
+		{
+			RenderHealthSample s = GetRenderHealthSampleFromEnd(i);
+			totalTraced += s.TracedPixels;
+			totalHits += s.Hits;
+			if (!string.IsNullOrEmpty(s.BudgetExitReason))
+			{
+				exitCounts.TryGetValue(s.BudgetExitReason, out int count);
+				exitCounts[s.BudgetExitReason] = count + 1;
+			}
+		}
+
+		foreach (var kv in exitCounts)
+		{
+			if (kv.Value > topExitCount)
+			{
+				topExit = kv.Key;
+				topExitCount = kv.Value;
+			}
+		}
+
+		float hitRate = totalTraced > 0 ? (float)totalHits / totalTraced : 0f;
+		string exitTag = string.IsNullOrEmpty(latest.BudgetExitReason) ? "none" : latest.BudgetExitReason;
+		GD.Print(
+			$"[RenderHealth] step={latest.StepIndex} lastRow={latest.RowCursorAfter} rowsAdv={latest.RowsAdvanced} bands={latest.BandsProcessed} " +
+			$"stalledSteps={_renderHealthStallSteps} exit={exitTag} topExit={topExit} hitRate={hitRate:0.###} " +
+			$"avgSteps={latest.AvgStepsPerTracedPixel:0.###}");
+	}
+
+	private void RecordRenderHealthSample(
+		int rowCursorBefore,
+		int rowCursorAfter,
+		int bandsProcessed,
+		long tracedPixels,
+		int hits,
+		double avgStepsPerTracedPixel,
+		string budgetExitReason)
+	{
+		_renderHealthStepIndex++;
+		int rowsAdvanced = 0;
+		int filmHLocal = _filmHeight;
+		if (filmHLocal > 0)
+		{
+			rowsAdvanced = rowCursorAfter >= rowCursorBefore
+				? rowCursorAfter - rowCursorBefore
+				: (filmHLocal - rowCursorBefore) + rowCursorAfter;
+		}
+
+		var sample = new RenderHealthSample
+		{
+			StepIndex = _renderHealthStepIndex,
+			RowCursorBefore = rowCursorBefore,
+			RowCursorAfter = rowCursorAfter,
+			RowsAdvanced = rowsAdvanced,
+			BandsProcessed = bandsProcessed,
+			TracedPixels = tracedPixels,
+			Hits = hits,
+			AvgStepsPerTracedPixel = avgStepsPerTracedPixel,
+			BudgetExitReason = budgetExitReason ?? string.Empty
+		};
+
+		_renderHealthSamples[_renderHealthWrite] = sample;
+		_renderHealthWrite = (_renderHealthWrite + 1) % RenderHealthBufferSize;
+		if (_renderHealthCount < RenderHealthBufferSize) _renderHealthCount++;
+
+		if (_autoBroadphaseCooldownRemaining > 0) _autoBroadphaseCooldownRemaining--;
+
+		if (rowCursorAfter == _renderHealthLastRowCursor
+			&& !string.IsNullOrEmpty(sample.BudgetExitReason)
+			&& sample.BudgetExitReason == _renderHealthLastExitReason)
+		{
+			_renderHealthStallSteps++;
+		}
+		else
+		{
+			_renderHealthStallSteps = 0;
+		}
+
+		_renderHealthLastRowCursor = rowCursorAfter;
+		_renderHealthLastExitReason = sample.BudgetExitReason;
+
+		bool stalled = _renderHealthStallSteps >= RenderHealthStallThreshold;
+		bool cadenceLog = (_renderHealthStepIndex % RenderHealthLogEveryNSteps) == 0;
+		if (stalled || cadenceLog)
+		{
+			if (_renderHealthLastLogStep != _renderHealthStepIndex)
+			{
+				_renderHealthLastLogStep = _renderHealthStepIndex;
+				LogRenderHealth(in sample, stalled);
+			}
+		}
+	}
+
+	private bool TryComputeAutoBroadphaseSignal(out string reason)
+	{
+		reason = "";
+		int window = Math.Min(_renderHealthCount, AutoBroadphaseWindow);
+		if (window <= 0) return false;
+
+		double sum = 0.0;
+		double sumSq = 0.0;
+		int count = 0;
+		float minHitRate = 1.0f;
+		long tracedTotal = 0;
+
+		for (int i = 0; i < window; i++)
+		{
+			RenderHealthSample s = GetRenderHealthSampleFromEnd(i);
+			if (s.TracedPixels < AutoBroadphaseMinTracedPixels) continue;
+			float hitRate = s.TracedPixels > 0 ? (float)s.Hits / s.TracedPixels : 0f;
+			sum += hitRate;
+			sumSq += hitRate * hitRate;
+			count++;
+			tracedTotal += s.TracedPixels;
+			if (hitRate < minHitRate) minHitRate = hitRate;
+		}
+
+		if (count <= 0) return false;
+		double mean = sum / count;
+		double variance = Math.Max(0.0, (sumSq / count) - (mean * mean));
+
+		if (minHitRate < AutoBroadphaseLowHitRate && tracedTotal >= AutoBroadphaseMinTracedPixels)
+		{
+			reason = $"low_hit_rate<{AutoBroadphaseLowHitRate:0.####}";
+			return true;
+		}
+
+		if (variance > AutoBroadphaseVarianceThreshold)
+		{
+			reason = $"hit_var>{AutoBroadphaseVarianceThreshold:0.####}";
+			return true;
+		}
+
+		return false;
+	}
+
+	private void LogAutoBroadphaseFlip(string reason, int cooldown)
+	{
+		GD.Print($"[AutoBroadphase] policy={_autoBroadphasePolicy} reason={reason} cooldown={cooldown}");
+	}
+
+	private BroadphasePolicyMode ResolveAutoBroadphasePolicy(out string reason)
+	{
+		if (_autoBroadphaseCooldownRemaining > 0)
+		{
+			reason = $"auto_cooldown:{_autoBroadphaseCooldownRemaining}";
+			return BroadphasePolicyMode.OverlapOnly;
+		}
+
+		if (TryComputeAutoBroadphaseSignal(out string autoReason))
+		{
+			BroadphasePolicyMode nextPolicy = BroadphasePolicyMode.OverlapOnly;
+			_autoBroadphaseCooldownRemaining = AutoBroadphaseCooldownSteps;
+			if (_autoBroadphasePolicy != nextPolicy)
+			{
+				_autoBroadphasePolicy = nextPolicy;
+				_autoBroadphaseLastFlipStep = _renderHealthStepIndex;
+				LogAutoBroadphaseFlip(autoReason, _autoBroadphaseCooldownRemaining);
+			}
+			reason = autoReason;
+			return nextPolicy;
+		}
+
+		BroadphasePolicyMode defaultPolicy = BroadphasePolicyMode.QuickRayOnly;
+		if (_autoBroadphasePolicy != defaultPolicy)
+		{
+			_autoBroadphasePolicy = defaultPolicy;
+			_autoBroadphaseLastFlipStep = _renderHealthStepIndex;
+			LogAutoBroadphaseFlip("cooldown_end", 0);
+		}
+		reason = "auto_default";
+		return defaultPolicy;
+	}
+
+	private static (bool quickRay, bool overlap) GetBroadphaseTogglesFromPolicy(BroadphasePolicyMode policy)
 	{
 		switch (policy)
 		{
-			case BroadphaseMode.None:
+			case BroadphasePolicyMode.None:
 				return (false, false);
-			case BroadphaseMode.QuickRayOnly:
+			case BroadphasePolicyMode.QuickRayOnly:
 				return (true, false);
-			case BroadphaseMode.OverlapOnly:
+			case BroadphasePolicyMode.OverlapOnly:
 				return (false, true);
-			case BroadphaseMode.Both:
+			case BroadphasePolicyMode.Both:
 			default:
 				return (true, true);
 		}
 	}
 
-	private static BroadphaseMode GetBroadphasePolicyFromToggles(bool quickRay, bool overlap)
+	private static BroadphasePolicyMode GetBroadphasePolicyFromToggles(bool quickRay, bool overlap)
 	{
-		if (quickRay && overlap) return BroadphaseMode.Both;
-		if (quickRay) return BroadphaseMode.QuickRayOnly;
-		if (overlap) return BroadphaseMode.OverlapOnly;
-		return BroadphaseMode.None;
+		if (quickRay && overlap) return BroadphasePolicyMode.Both;
+		if (quickRay) return BroadphasePolicyMode.QuickRayOnly;
+		if (overlap) return BroadphasePolicyMode.OverlapOnly;
+		return BroadphasePolicyMode.None;
 	}
 
 	private void SyncBroadphaseControlsIfNeeded()
@@ -5399,42 +5908,33 @@ public partial class GrinFilmCamera : Node
 		_isBroadphaseSyncing = true;
 		try
 		{
-			bool hadSnapshot = _hasBroadphaseSyncSnapshot;
-			bool policyChanged = hadSnapshot && BroadphasePolicy != _lastBroadphasePolicy;
-			bool togglesChanged = hadSnapshot
-				&& (UseBroadphaseQuickRay != _lastUseBroadphaseQuickRay || UseBroadphaseOverlap != _lastUseBroadphaseOverlap);
+			// Legacy field mirrors new mode.
+			UseBroadphasePolicy = BroadphaseControlMode == BroadphaseMode.Policy;
 
-			if (UseBroadphasePolicy)
+			if (BroadphaseControlMode == BroadphaseMode.Manual)
 			{
-				// If the user edits toggles while policy is ON, treat it as a policy change.
-				if (togglesChanged && !policyChanged)
-				{
-					BroadphaseMode desiredPolicy = GetBroadphasePolicyFromToggles(UseBroadphaseQuickRay, UseBroadphaseOverlap);
-					if (BroadphasePolicy != desiredPolicy)
-					{
-						BroadphasePolicy = desiredPolicy;
-					}
-				}
-
-				var (policyQuickRay, policyOverlap) = GetBroadphaseTogglesFromPolicy(BroadphasePolicy);
-				if (UseBroadphaseQuickRay != policyQuickRay || UseBroadphaseOverlap != policyOverlap)
-				{
-					UseBroadphaseQuickRay = policyQuickRay;
-					UseBroadphaseOverlap = policyOverlap;
-				}
-			}
-			else
-			{
-				BroadphaseMode desiredPolicy = GetBroadphasePolicyFromToggles(UseBroadphaseQuickRay, UseBroadphaseOverlap);
+				BroadphasePolicyMode desiredPolicy = GetBroadphasePolicyFromToggles(UseBroadphaseQuickRay, UseBroadphaseOverlap);
 				if (BroadphasePolicy != desiredPolicy)
 				{
 					BroadphasePolicy = desiredPolicy;
 				}
 			}
+			else if (BroadphaseControlMode == BroadphaseMode.Off)
+			{
+				if (UseBroadphaseQuickRay || UseBroadphaseOverlap)
+				{
+					UseBroadphaseQuickRay = false;
+					UseBroadphaseOverlap = false;
+				}
+				if (BroadphasePolicy != BroadphasePolicyMode.None)
+				{
+					BroadphasePolicy = BroadphasePolicyMode.None;
+				}
+			}
 		}
 		finally
 		{
-			_lastUseBroadphasePolicy = UseBroadphasePolicy;
+			_lastBroadphaseMode = BroadphaseControlMode;
 			_lastBroadphasePolicy = BroadphasePolicy;
 			_lastUseBroadphaseQuickRay = UseBroadphaseQuickRay;
 			_lastUseBroadphaseOverlap = UseBroadphaseOverlap;
@@ -5446,54 +5946,85 @@ public partial class GrinFilmCamera : Node
 	private void ResolveEffectiveBroadphase(
 		out bool effQuickRay,
 		out bool effOverlap,
+		out BroadphasePolicyMode effPolicy,
 		out BroadphaseMode effMode,
 		out string source)
 	{
-		if (UseBroadphasePolicy)
+		effMode = BroadphaseControlMode;
+		switch (BroadphaseControlMode)
 		{
-			var (policyQuickRay, policyOverlap) = GetBroadphaseTogglesFromPolicy(BroadphasePolicy);
-			effQuickRay = policyQuickRay;
-			effOverlap = policyOverlap;
-			effMode = BroadphasePolicy;
-			source = "policy";
-			return;
+			case BroadphaseMode.Off:
+				effQuickRay = false;
+				effOverlap = false;
+				effPolicy = BroadphasePolicyMode.None;
+				source = "off";
+				break;
+			case BroadphaseMode.Manual:
+				effQuickRay = UseBroadphaseQuickRay;
+				effOverlap = UseBroadphaseOverlap;
+				effPolicy = GetBroadphasePolicyFromToggles(effQuickRay, effOverlap);
+				source = "manual";
+				break;
+			case BroadphaseMode.Auto:
+			{
+				effPolicy = ResolveAutoBroadphasePolicy(out string autoReason);
+				var (policyQuickRay, policyOverlap) = GetBroadphaseTogglesFromPolicy(effPolicy);
+				effQuickRay = policyQuickRay;
+				effOverlap = policyOverlap;
+				source = autoReason;
+				break;
+			}
+			case BroadphaseMode.Policy:
+			default:
+				effPolicy = BroadphasePolicy;
+				var (policyQuick, policyOverlapPolicy) = GetBroadphaseTogglesFromPolicy(effPolicy);
+				effQuickRay = policyQuick;
+				effOverlap = policyOverlapPolicy;
+				source = "policy";
+				break;
 		}
 
-		effQuickRay = UseBroadphaseQuickRay;
-		effOverlap = UseBroadphaseOverlap;
-		effMode = GetBroadphasePolicyFromToggles(effQuickRay, effOverlap);
-		source = "toggles";
+		if (BroadphaseControlMode != BroadphaseMode.Manual)
+		{
+			if (UseBroadphaseQuickRay != effQuickRay || UseBroadphaseOverlap != effOverlap)
+			{
+				UseBroadphaseQuickRay = effQuickRay;
+				UseBroadphaseOverlap = effOverlap;
+			}
+			if (BroadphasePolicy != effPolicy)
+			{
+				BroadphasePolicy = effPolicy;
+			}
+		}
 	}
 
-	private (bool effQuickRay, bool effOverlap, BroadphaseMode effMode, string sourceTag) UpdateBroadphaseEffectiveState()
+	private (bool effQuickRay, bool effOverlap, BroadphasePolicyMode effPolicy, BroadphaseMode effMode, string sourceTag) UpdateBroadphaseEffectiveState()
 	{
 		SyncBroadphaseControlsIfNeeded();
-		ResolveEffectiveBroadphase(out bool effQuickRay, out bool effOverlap, out BroadphaseMode effMode, out string source);
-		LogBroadphaseEffectiveIfChanged(effQuickRay, effOverlap, effMode, source);
-		return (effQuickRay, effOverlap, effMode, source);
+		ResolveEffectiveBroadphase(out bool effQuickRay, out bool effOverlap, out BroadphasePolicyMode effPolicy, out BroadphaseMode effMode, out string source);
+		LogBroadphaseEffectiveIfChanged(effQuickRay, effOverlap, effPolicy, effMode, source);
+		return (effQuickRay, effOverlap, effPolicy, effMode, source);
 	}
 
-	private void LogBroadphaseEffectiveIfChanged(bool effQuickRay, bool effOverlap, BroadphaseMode effMode, string sourceTag)
+	private void LogBroadphaseEffectiveIfChanged(bool effQuickRay, bool effOverlap, BroadphasePolicyMode effPolicy, BroadphaseMode effMode, string sourceTag)
 	{
-		bool policyOn = UseBroadphasePolicy;
-		BroadphaseMode policy = BroadphasePolicy;
 		if (_hasLastBroadphaseEffective
 			&& _lastBroadphaseEffectiveQuickRay == effQuickRay
 			&& _lastBroadphaseEffectiveOverlap == effOverlap
-			&& _lastBroadphaseEffectivePolicyOn == policyOn
-			&& _lastBroadphaseEffectivePolicy == policy)
+			&& _lastBroadphaseEffectiveMode == effMode
+			&& _lastBroadphaseEffectivePolicy == effPolicy)
 		{
 			return;
 		}
 
 		_lastBroadphaseEffectiveQuickRay = effQuickRay;
 		_lastBroadphaseEffectiveOverlap = effOverlap;
-		_lastBroadphaseEffectivePolicyOn = policyOn;
-		_lastBroadphaseEffectivePolicy = policy;
+		_lastBroadphaseEffectiveMode = effMode;
+		_lastBroadphaseEffectivePolicy = effPolicy;
 		_hasLastBroadphaseEffective = true;
 
 		GD.Print(
-			$"[Broadphase] effective={effMode} policyOn={policyOn} policy={policy} " +
+			$"[BroadphaseEffective] mode={effMode} policy={effPolicy} " +
 			$"quick={effQuickRay} overlap={effOverlap} source={sourceTag}");
 	}
 
@@ -5517,7 +6048,7 @@ public partial class GrinFilmCamera : Node
 	public void ApplyQualityModePreset(RenderQualityMode mode)
 	{
 		QualityMode = mode;
-		ApplyAllPresets("QualityModePreset");
+		MarkPresetDirty(scene: false, perf: false, quality: true, reason: "QualityModePreset");
 	}
 
 	private void ApplyQualityModePresetCore(RenderQualityMode mode)

@@ -204,6 +204,72 @@ public partial class RayBeamRenderer : Node3D
 	// CONTROL FACTOR: Filter debug overlay to hit rays only.
 	[Export] public bool DebugDrawOnlyHits = false;
 
+	public struct SharedSnapshot
+	{
+		public int StepsPerRay;
+		public int CollisionEveryNSteps;
+		public float StepLength;
+		public float MinStepLength;
+		public float MaxStepLength;
+		public float StepAdaptGain;
+		public bool UseIntegratedField;
+		public float BendScale;
+		public float FieldStrength;
+		public Vector3 FieldCenter;
+		public bool FieldCenterIsCamera;
+		public uint CollisionMask;
+		public float CollisionRadius;
+		public bool UseSphereSweepCollision;
+		public bool UseInsightPlaneFilter;
+		public float CollisionRaySubdivideThreshold;
+		public int MaxCollisionSubsteps;
+		public bool RequireHitToRender;
+		public bool StopOnHit;
+		public bool TerminateTrailOnHit;
+		public bool UseScreenSpaceCollisionCadence;
+		public float CollisionMaxErrorPixels;
+		public float MinDepthForError;
+		public int MinCollisionEveryNSteps;
+		public DebugDrawMode DebugMode;
+		public float DebugNormalLen;
+		public bool DebugOverlayOwnedByFilm;
+	}
+
+	public SharedSnapshot GetSharedSnapshot()
+	{
+		// Consumed by GrinFilmCamera.ResolveEffectiveConfig().
+		return new SharedSnapshot
+		{
+			StepsPerRay = StepsPerRay,
+			CollisionEveryNSteps = CollisionEveryNSteps,
+			StepLength = StepLength,
+			MinStepLength = MinStepLength,
+			MaxStepLength = MaxStepLength,
+			StepAdaptGain = StepAdaptGain,
+			UseIntegratedField = UseIntegratedField,
+			BendScale = BendScale,
+			FieldStrength = FieldStrength,
+			FieldCenter = FieldCenter,
+			FieldCenterIsCamera = FieldCenterIsCamera,
+			CollisionMask = CollisionMask,
+			CollisionRadius = CollisionRadius,
+			UseSphereSweepCollision = UseSphereSweepCollision,
+			UseInsightPlaneFilter = UseInsightPlaneFilter,
+			CollisionRaySubdivideThreshold = CollisionRaySubdivideThreshold,
+			MaxCollisionSubsteps = MaxCollisionSubsteps,
+			RequireHitToRender = RequireHitToRender,
+			StopOnHit = StopOnHit,
+			TerminateTrailOnHit = TerminateTrailOnHit,
+			UseScreenSpaceCollisionCadence = UseScreenSpaceCollisionCadence,
+			CollisionMaxErrorPixels = CollisionMaxErrorPixels,
+			MinDepthForError = MinDepthForError,
+			MinCollisionEveryNSteps = MinCollisionEveryNSteps,
+			DebugMode = DebugMode,
+			DebugNormalLen = DebugNormalLen,
+			DebugOverlayOwnedByFilm = DebugOverlayOwnedByFilm
+		};
+	}
+
 	// ===== Cached State =====
 	private MultiMeshInstance3D _mmi;
 	private MultiMesh _mm;
