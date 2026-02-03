@@ -288,11 +288,11 @@ public partial class GrinFilmCamera : Node
 	// CONTROL FACTOR: Mode that decides where broadphase settings come from.
 	[Export] public BroadphaseMode BroadphaseControlMode = BroadphaseMode.Policy;
 
-	[ExportSubgroup("Broadphase / Policy")]
+	[ExportSubgroup("Broadphase / Policy Settings")]
 	// This section affects collision policy switches (behavior).
 	/// <summary>Broadphase Policy (used when Mode = Policy or Auto).</summary>
 	// CONTROL FACTOR: Broadphase policy selection.
-	[Export] public BroadphasePolicyMode BroadphasePolicy = BroadphasePolicyMode.QuickRayOnly;
+	[Export] public BroadphasePolicyMode BroadphasePolicy = BroadphasePolicyMode.None;
 
 	[ExportSubgroup("Broadphase / Legacy (Read-Only)")]
 	/// <summary>Legacy: UseBroadphasePolicy (deprecated).</summary>
@@ -303,20 +303,54 @@ public partial class GrinFilmCamera : Node
 	[ExportSubgroup("Broadphase / Manual Overrides")]
 	// Manual toggles are only authoritative when Mode = Manual; otherwise they reflect effective state.
 	// This section affects collision culling (performance only).
-	/// <summary>Quick Ray (effective; read-only unless Mode = Manual).</summary>
+	/// <summary>Quick Ray (effective; read-only unless Mode = Manual). Only used when BroadphaseMode=Manual.</summary>
 	// CONTROL FACTOR: Enables quick-ray broadphase; true reduces work by early rejection.
-	[Export] public bool UseBroadphaseQuickRay = true;
-	/// <summary>Overlap (effective; read-only unless Mode = Manual).</summary>
+	[Export] public bool UseBroadphaseQuickRay = false;
+	/// <summary>Overlap (effective; read-only unless Mode = Manual). Only used when BroadphaseMode=Manual.</summary>
 	// CONTROL FACTOR: Enables overlap broadphase; true adds extra culling based on radius.
 	[Export] public bool UseBroadphaseOverlap = false;
 
-	[ExportSubgroup("Broadphase / Settings")]
+	[ExportSubgroup("Broadphase / Policy Settings")]
 	/// <summary>Extra radius for overlap broadphase.</summary>
 	// CONTROL FACTOR: Overlap margin (world units); higher catches more but costs more.
 	[Export] public float BroadphaseMargin = 0.03f;
 	/// <summary>Max overlap results to consider.</summary>
 	// CONTROL FACTOR: Cap on overlap results; higher may increase cost.
 	[Export] public int BroadphaseMaxResults = 8;
+
+	[ExportSubgroup("Broadphase / Auto Heuristics")]
+	/// <summary>Render-health window size used by Auto broadphase policy.</summary>
+	// CONTROL FACTOR: Window size for auto policy decisions; higher smooths more.
+	[Export] public int AutoBroadphaseWindow = 6;
+	/// <summary>Cooldown steps after switching Auto policy.</summary>
+	// CONTROL FACTOR: Cooldown duration; higher reduces flip-flopping.
+	[Export] public int AutoBroadphaseCooldownSteps = 30;
+	/// <summary>Minimum traced pixels required to consider auto policy flip.</summary>
+	// CONTROL FACTOR: Low-trace guard; higher ignores low-signal frames.
+	[Export] public int AutoBroadphaseMinTracedPixels = 5000;
+	/// <summary>Low hit-rate threshold for auto policy flip.</summary>
+	// CONTROL FACTOR: Lower values make flips rarer.
+	[Export] public float AutoBroadphaseLowHitRate = 0.0025f;
+	/// <summary>Hit-rate variance threshold for auto policy flip.</summary>
+	// CONTROL FACTOR: Higher values make flips rarer.
+	[Export] public float AutoBroadphaseVarianceThreshold = 0.0004f;
+
+	[ExportSubgroup("Broadphase / Effective State")]
+	/// <summary>Effective broadphase mode (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror of resolved mode.
+	[Export] public BroadphaseMode EffectiveBroadphaseMode = BroadphaseMode.Manual;
+	/// <summary>Effective broadphase policy (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror of resolved policy.
+	[Export] public BroadphasePolicyMode EffectiveBroadphasePolicy = BroadphasePolicyMode.None;
+	/// <summary>Effective Quick Ray toggle (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror of resolved Quick Ray.
+	[Export] public bool EffectiveBroadphaseQuickRay = false;
+	/// <summary>Effective Overlap toggle (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror of resolved Overlap.
+	[Export] public bool EffectiveBroadphaseOverlap = false;
+	/// <summary>Effective broadphase reason tag (mirrored).</summary>
+	// CONTROL FACTOR: Read-only mirror of resolved source tag.
+	[Export] public string EffectiveBroadphaseReason = "";
 
 	[ExportSubgroup("Stride")]
 	// This section affects collision sampling density (performance/correctness tradeoff).
@@ -366,7 +400,8 @@ public partial class GrinFilmCamera : Node
 		None = 0,
 		QuickRayOnly = 1,
 		OverlapOnly = 2,
-		Both = 3
+		Both = 3,
+		HybridQuickRayThenOverlap = 4
 	}
 	/// <summary>Uses a quick probe, then subdivides if needed.</summary>
 	// CONTROL FACTOR: Enables quick probe then subdivide; true favors early-outs.
@@ -514,7 +549,7 @@ public partial class GrinFilmCamera : Node
 	// CONTROL FACTOR: Minimum segment length (in steps) eligible for SoftGate when using RayBeam scaling; higher reduces probes.
 	[Export] public float Pass2SoftGateMinSegLenSteps = 2.0f;
 
-	[ExportGroup("Shared From RayBeamRenderer (Read-Only)")]
+	[ExportGroup("Shared From RayBeamRenderer")]
 
 	[ExportSubgroup("Status")]
 	/// <summary>Shows whether a RayBeamRenderer snapshot is currently available.</summary>
@@ -676,6 +711,8 @@ public partial class GrinFilmCamera : Node
 
 	private const int Pass2QuickRayCacheSize = 512;
 	private const float Pass2QuickRayCacheQuantize = 10f;
+	private const int BroadphaseHybridQuickRayMinCandidates = 2;
+	private const int BroadphaseHybridFallbackLogLimitPerFrame = 4;
 
 	private struct Pass2HitFlags
 	{
@@ -732,11 +769,6 @@ public partial class GrinFilmCamera : Node
 	private const int RenderHealthBufferSize = 60;
 	private const int RenderHealthLogEveryNSteps = 30;
 	private const int RenderHealthStallThreshold = 10;
-	private const int AutoBroadphaseCooldownSteps = 30;
-	private const int AutoBroadphaseWindow = 6;
-	private const int AutoBroadphaseMinTracedPixels = 5000;
-	private const float AutoBroadphaseLowHitRate = 0.0025f;
-	private const float AutoBroadphaseVarianceThreshold = 0.0004f;
 
 	private RenderHealthSample[] _renderHealthSamples = new RenderHealthSample[RenderHealthBufferSize];
 	private int _renderHealthWrite = 0;
@@ -746,6 +778,7 @@ public partial class GrinFilmCamera : Node
 	private int _renderHealthStallSteps = 0;
 	private int _renderHealthLastRowCursor = -1;
 	private string _renderHealthLastExitReason = "";
+	private bool _rowStallActive = false;
 
 	// band hit ROI history
 	private float[] _bandHitRate = Array.Empty<float>();
@@ -763,9 +796,12 @@ public partial class GrinFilmCamera : Node
 	private const int SoftGateSampleEveryNSegments = 4096;
 	private int _softGateWatchdogLogsRemaining = 0;
 	private int _softGateSummaryLogsRemaining = 0;
+	private int _broadphaseHybridFallbackLogsRemaining = 0;
 	private int _softGateSampleCounter = 0;
 	private long _softGateAttemptsUsedThisFrame = 0;
 	private long _softGateSubdividedCallsUsedThisFrame = 0;
+	private int _quickRayZeroCountThisFrame = 0;
+	private int _hybridFallbackCountThisFrame = 0;
 	private SoftGateDebugCounters _softGateFrame;
 	private SoftGateDebugCounters _softGateBand;
 	private SoftGateConfigSnapshot _lastSoftGateCfgSnapshot;
@@ -783,7 +819,7 @@ public partial class GrinFilmCamera : Node
 	private int _renderStepForceAdvanceWarnFrameId = -1;
 	private int _renderStepForceAdvanceWarnsThisFrame = 0;
 	private int _budgetExitFrameId = -1;
-	private bool _budgetExitLoggedThisFrame = false;
+	private readonly System.Collections.Generic.HashSet<string> _budgetExitReasonsThisFrame = new();
 	private RenderQualityMode _lastQualityMode = (RenderQualityMode)(-1);
 	private PresetMode _lastPreset = (PresetMode)(-1);
 	private PerformancePresetMode _lastPerformancePreset = (PerformancePresetMode)(-1);
@@ -1037,6 +1073,8 @@ public partial class GrinFilmCamera : Node
 		public int BandsProcessed;
 		public long TracedPixels;
 		public int Hits;
+		public int QuickRayZeroCount;
+		public int HybridFallbackCount;
 		public double AvgStepsPerTracedPixel;
 		public string BudgetExitReason;
 	}
@@ -1102,12 +1140,8 @@ public partial class GrinFilmCamera : Node
 
 		_rng.Randomize();
 
-		// DECISION: optionally apply preset at startup.
-		if (ApplyPresetOnReady)
-		{
-			ApplyAllPresetsIfNeeded("ready", force: true);
-		}
-		else
+		// DECISION: optionally apply presets at startup via the single orchestration path.
+		if (!ApplyPresetOnReady)
 		{
 			_lastPreset = Preset;
 			_lastQualityMode = QualityMode;
@@ -1117,12 +1151,14 @@ public partial class GrinFilmCamera : Node
 			_presetQualityDirty = false;
 			_presetDirtyReason = "";
 		}
+		SyncAndApplyIfDirty("ready", force: ApplyPresetOnReady);
 
     	// ⛔ Freeze beam rebuilds while film camera is active
 		// CROSS-CLASS CONTRACT: Freeze RayBeamRenderer rebuilds while film camera is active.
 		// ASSUMPTION: film pass owns ray stability; external rebuilds would desync buffers.
 		_rbr.AllowRebuild = false;
 
+		// DECISION: RenderStep reads only the resolved effective config (no direct exported-field reads).
 		ResolveEffectiveConfig(out EffectiveConfig cfg);
 		LogEffectiveConfigIfChanged(in cfg);
 		_rangeFar = cfg.Film.MaxDistance;
@@ -1174,7 +1210,7 @@ public partial class GrinFilmCamera : Node
 
 	public override void _Process(double delta)
 	{
-		ApplyAllPresetsIfNeeded("process");
+		SyncAndApplyIfDirty("process");
 		// Keep broadphase controls in sync each frame so the inspector reflects effective state.
 		UpdateBroadphaseEffectiveState();
 		// DECISION: only render when UpdateEveryFrame is enabled.
@@ -1215,7 +1251,7 @@ public partial class GrinFilmCamera : Node
 		if (_budgetExitFrameId != budgetFrameId)
 		{
 			_budgetExitFrameId = budgetFrameId;
-			_budgetExitLoggedThisFrame = false;
+			_budgetExitReasonsThisFrame.Clear();
 		}
 
 		// EFFECT: start timing for watchdog/budget checks.
@@ -1257,6 +1293,28 @@ public partial class GrinFilmCamera : Node
 		bool bandSummaryLoggedThisBand = false;
 		int bandStartRowCursor = _rowCursor;
 		long pass1StepsIntegrated = 0;
+		int filmW = _filmWidth;
+		int pass2SoftGateMaxAttemptsPerFrameEffective = 0;
+		int pass2SoftGateMaxSubdividedCallsPerFrameEffective = 0;
+
+		void LogBudgetExitOnce(string reason, int rowCursor)
+		{
+			if (string.IsNullOrEmpty(reason)) return;
+			if (_budgetExitReasonsThisFrame.Contains(reason)) return;
+			_budgetExitReasonsThisFrame.Add(reason);
+			long elapsedMs = renderStepWatch.ElapsedMilliseconds;
+			int rowsDoneThisStep = rowCursor >= startRow ? rowCursor - startRow : 0;
+			int pixelCountLocal = bandH > 0 && filmW > 0 ? bandH * filmW : 0;
+			int pixelCap = cfg.RenderStepMaxPixelsPerFrame > 0 ? cfg.RenderStepMaxPixelsPerFrame : 0;
+			int attemptsCap = pass2SoftGateMaxAttemptsPerFrameEffective;
+			int subdivCap = pass2SoftGateMaxSubdividedCallsPerFrameEffective;
+			GD.Print(
+				$"[BudgetExit] frame={_frameIndex} row={rowCursor} reason={reason} elapsedMs={elapsedMs} " +
+				$"rowsDoneThisStep={rowsDoneThisStep} hitsThisBand={bandHits} " +
+				$"attempts={_softGateAttemptsUsedThisFrame}/{attemptsCap} " +
+				$"subdiv={_softGateSubdividedCallsUsedThisFrame}/{subdivCap} " +
+				$"px={pixelCountLocal}/{pixelCap}");
+		}
 
 		try
 		{
@@ -1327,15 +1385,15 @@ public partial class GrinFilmCamera : Node
 
 			// DECISION: this is the start of a frame when row cursor wraps to 0.
 			frameStart = _rowCursor == 0;
-			int filmW = _filmWidth;
+			filmW = _filmWidth;
 			int filmH = _filmHeight;
 			// CONTROL FACTOR: PixelStride reduces sampling density.
 			int stride = filmCfg.PixelStride;
 			long tracedPixels = (long)filmW * filmH / Math.Max(1, stride * stride);
 
 			float pass2SoftGateMinSegmentLengthEffective = softGateCfg.MinSegmentLength;
-			int pass2SoftGateMaxAttemptsPerFrameEffective = softGateCfg.MaxAttemptsPerFrame;
-			int pass2SoftGateMaxSubdividedCallsPerFrameEffective = softGateCfg.MaxSubdividedCallsPerFrame;
+			pass2SoftGateMaxAttemptsPerFrameEffective = softGateCfg.MaxAttemptsPerFrame;
+			pass2SoftGateMaxSubdividedCallsPerFrameEffective = softGateCfg.MaxSubdividedCallsPerFrame;
 			float pass2SoftGateEffStepLen = softGateCfg.EffectiveStepLength;
 			bool pass2SoftGateUseRayBeamSettingsActive = softGateCfg.UseRayBeamSettingsActive;
 
@@ -1524,31 +1582,13 @@ public partial class GrinFilmCamera : Node
 					$"p2SegTestedStep={bandSegsTested} softGate{{attemptUsed={_softGateAttemptsUsedThisFrame} subdivUsed={_softGateSubdividedCallsUsedThisFrame}}}");
 			}
 
-			void LogBudgetExitOnce(string reason, int rowCursor)
-			{
-				if (_budgetExitLoggedThisFrame) return;
-				_budgetExitLoggedThisFrame = true;
-				long elapsedMs = renderStepWatch.ElapsedMilliseconds;
-				int rowsDoneThisStep = rowCursor >= startRow ? rowCursor - startRow : 0;
-				int pixelCountLocal = bandH > 0 && filmW > 0 ? bandH * filmW : 0;
-				int pixelCap = cfg.RenderStepMaxPixelsPerFrame > 0 ? cfg.RenderStepMaxPixelsPerFrame : 0;
-				int attemptsCap = pass2SoftGateMaxAttemptsPerFrameEffective;
-				int subdivCap = pass2SoftGateMaxSubdividedCallsPerFrameEffective;
-				GD.Print(
-					$"[BudgetExit] frame={_frameIndex} row={rowCursor} reason={reason} elapsedMs={elapsedMs} " +
-					$"rowsDoneThisStep={rowsDoneThisStep} hitsThisBand={bandHits} " +
-					$"attempts={_softGateAttemptsUsedThisFrame}/{attemptsCap} " +
-					$"subdiv={_softGateSubdividedCallsUsedThisFrame}/{subdivCap} " +
-					$"px={pixelCountLocal}/{pixelCap}");
-			}
-
 			string MapBandSummaryReason(string reason)
 			{
 				if (string.IsNullOrEmpty(reason)) return "normal";
 				if (reason == "zero_hit_advance" || reason == "zero-hit-advance") return "zero-hit-advance";
 				if (reason.Contains("guard") || reason.Contains("watchdog")) return "guard";
 				if (reason.Contains("budget") || reason.Contains("max_ms") || reason.Contains("target_ms")) return "budget";
-				if (reason.StartsWith("max_") || reason.StartsWith("sg_") || reason.Contains("max_segments") || reason.Contains("max_pixels")) return "cap";
+				if (reason.StartsWith("max_") || reason.StartsWith("softgate_") || reason.Contains("max_segments") || reason.Contains("max_pixels")) return "cap";
 				return "normal";
 			}
 
@@ -1808,6 +1848,9 @@ public partial class GrinFilmCamera : Node
 				_softGateSubdividedCallsUsedThisFrame = 0;
 				_softGateWatchdogLogsRemaining = Mathf.Max(0, softGateCfg.WatchdogLogLimitPerFrame);
 				_softGateSummaryLogsRemaining = Mathf.Max(0, softGateCfg.DebugSummaryLogLimitPerFrame);
+				_broadphaseHybridFallbackLogsRemaining = BroadphaseHybridFallbackLogLimitPerFrame;
+				_quickRayZeroCountThisFrame = 0;
+				_hybridFallbackCountThisFrame = 0;
 				/////////////////////////////
 			}
 
@@ -1989,9 +2032,9 @@ public partial class GrinFilmCamera : Node
 			if (budgetStop)
 			{
 				LogBudgetStopOnce();
-				if (budgetStopReason == "sg_attempts")
+				if (budgetStopReason == "softgate_attempt_cap")
 				{
-					FinalizeBandAndAdvance("sg_attempts", yStart, yEnd, bandHits, "");
+					FinalizeBandAndAdvance("softgate_attempt_cap", yStart, yEnd, bandHits, "");
 				}
 				else
 				{
@@ -2093,9 +2136,9 @@ public partial class GrinFilmCamera : Node
 			if (budgetStop)
 			{
 				LogBudgetStopOnce();
-				if (budgetStopReason == "sg_attempts")
+				if (budgetStopReason == "softgate_attempt_cap")
 				{
-					FinalizeBandAndAdvance("sg_attempts", yStart, yEnd, bandHits, "");
+					FinalizeBandAndAdvance("softgate_attempt_cap", yStart, yEnd, bandHits, "");
 				}
 				else
 				{
@@ -2651,8 +2694,9 @@ public partial class GrinFilmCamera : Node
 					reason = SoftGateDecisionReason.BudgetAttemptCap;
 					SoftGateRecordSkip(reason);
 					DisableSoftGateThisFrame("budget_attempt");
+					LogBudgetExitOnce("softgate_attempt_cap", _rowCursor);
 					// DECISION: yield when updating every frame.
-					if (cfg.UpdateEveryFrame) TriggerBudgetStop("sg_attempts");
+					if (cfg.UpdateEveryFrame) TriggerBudgetStop("softgate_attempt_cap");
 					LogSoftGateSample(
 						segIndex,
 						segmentLength,
@@ -2677,8 +2721,9 @@ public partial class GrinFilmCamera : Node
 					reason = SoftGateDecisionReason.BudgetSubdivideCap;
 					SoftGateRecordSkip(reason);
 					DisableSoftGateThisFrame("budget_subdivide");
+					LogBudgetExitOnce("softgate_subdivide_cap", _rowCursor);
 					// DECISION: yield when updating every frame.
-					if (cfg.UpdateEveryFrame) TriggerBudgetStop("sg_subdivide");
+					if (cfg.UpdateEveryFrame) TriggerBudgetStop("softgate_subdivide_cap");
 					LogSoftGateSample(
 						segIndex,
 						segmentLength,
@@ -2752,8 +2797,10 @@ public partial class GrinFilmCamera : Node
 					reason = attemptBudgetOk ? SoftGateDecisionReason.BudgetSubdivideCap : SoftGateDecisionReason.BudgetAttemptCap;
 					SoftGateRecordSkip(reason);
 					DisableSoftGateThisFrame(attemptBudgetOk ? "budget_subdivide" : "budget_attempt");
+					string softGateBudgetReason = attemptBudgetOk ? "softgate_subdivide_cap" : "softgate_attempt_cap";
+					LogBudgetExitOnce(softGateBudgetReason, _rowCursor);
 					// DECISION: yield when updating every frame.
-					if (cfg.UpdateEveryFrame) TriggerBudgetStop(attemptBudgetOk ? "sg_subdivide" : "sg_attempts");
+					if (cfg.UpdateEveryFrame) TriggerBudgetStop(softGateBudgetReason);
 					LogSoftGateSample(
 						segIndex,
 						segmentLength,
@@ -3258,7 +3305,12 @@ public partial class GrinFilmCamera : Node
 
 									// Decision B
 									// ---- PASS2 cheap reject 2: optional overlap ----
-									if (useOverlap)
+									bool useHybridBroadphase = broadphaseCfg.Policy == BroadphasePolicyMode.HybridQuickRayThenOverlap;
+									int quickRayCandidateCount = -1;
+									bool quickRayTestedForHybrid = false;
+									bool pendingQuickRayMissSoftGate = false;
+									bool prevHitLostForSoftGate = false;
+									if (useOverlap && !useHybridBroadphase)
 									{
 										Vector3 mid = (segA + segB) * 0.5f;
 
@@ -3298,6 +3350,8 @@ public partial class GrinFilmCamera : Node
 
 										if (TryGetPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, out bool cachedHit, out float cachedDist))
 										{
+											quickRayTestedForHybrid = true;
+											quickRayCandidateCount = cachedHit ? 1 : 0;
 											if (pass == 0)
 											{
 												quickRayTestedThisPixel = true;
@@ -3312,37 +3366,45 @@ public partial class GrinFilmCamera : Node
 											CountQuickRayResult(cachedHit);
 											if (!cachedHit)
 											{
+												_quickRayZeroCountThisFrame++;
 												if (prevHadHitForSoftGate && si > segStart && _pass2HadHitLostThisFrame.Length > globalPi)
 													_pass2HadHitLostThisFrame[globalPi] = 1;
 												// SoftGate v2 uses per-pixel hit history; wire these to real history buffers if you track them elsewhere.
-												bool prevHitLostForSoftGate = _pass2HadHitLostThisFrame.Length > globalPi && _pass2HadHitLostThisFrame[globalPi] != 0;
-												if (!TryHandleQuickRayMissWithSoftGate(
-													softGateFrameId,
-													si,
-													segLen,
-													prevSegDir,
-													currSegDir,
-													prevHadHitForSoftGate,
-													prevHitLostForSoftGate,
-													cfg.UseSingleProbeThenSubdivide,
-													false,
-													ref softGateDecisionReason,
-													ref softGateScore,
-													ref softGateTurnAngleDeg,
-													ref softGateTurnAngleScore,
-													ref softGatePrevHitLostScore,
-													ref softGateRandomProbe,
-													ref softGateSegLenOk,
-													ref softGateSampleThisSeg,
-													ref softGateAttempt,
-													ref softGateAttemptsThisPixel,
-													ref softGateAttemptsUsed,
-													ref softGateSubdividedCallsUsed,
-													ref p2SoftGateAttempts,
-													ref softGateBudgetExceeded))
+												prevHitLostForSoftGate = _pass2HadHitLostThisFrame.Length > globalPi && _pass2HadHitLostThisFrame[globalPi] != 0;
+												if (!useHybridBroadphase)
 												{
-													if (budgetStop) break;
-													continue;
+													if (!TryHandleQuickRayMissWithSoftGate(
+														softGateFrameId,
+														si,
+														segLen,
+														prevSegDir,
+														currSegDir,
+														prevHadHitForSoftGate,
+														prevHitLostForSoftGate,
+														cfg.UseSingleProbeThenSubdivide,
+														false,
+														ref softGateDecisionReason,
+														ref softGateScore,
+														ref softGateTurnAngleDeg,
+														ref softGateTurnAngleScore,
+														ref softGatePrevHitLostScore,
+														ref softGateRandomProbe,
+														ref softGateSegLenOk,
+														ref softGateSampleThisSeg,
+														ref softGateAttempt,
+														ref softGateAttemptsThisPixel,
+														ref softGateAttemptsUsed,
+														ref softGateSubdividedCallsUsed,
+														ref p2SoftGateAttempts,
+														ref softGateBudgetExceeded))
+													{
+														if (budgetStop) break;
+														continue;
+													}
+												}
+												else
+												{
+													pendingQuickRayMissSoftGate = true;
 												}
 											}
 											if (cachedDist < bestHitDistAlongRay)
@@ -3365,43 +3427,55 @@ public partial class GrinFilmCamera : Node
 											}
 											if (hit0.Count == 0)
 											{
+												quickRayTestedForHybrid = true;
+												quickRayCandidateCount = 0;
 												AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, false, 0f);
 												if (framePerfEnabled) _framePerf.Pass2QuickRayMisses++;
 												CountQuickRayResult(false);
+												_quickRayZeroCountThisFrame++;
 												if (prevHadHitForSoftGate && si > segStart && _pass2HadHitLostThisFrame.Length > globalPi)
 													_pass2HadHitLostThisFrame[globalPi] = 1;
-												bool prevHitLostForSoftGate = _pass2HadHitLostThisFrame.Length > globalPi && _pass2HadHitLostThisFrame[globalPi] != 0;
-												if (!TryHandleQuickRayMissWithSoftGate(
-													softGateFrameId,
-													si,
-													segLen,
-													prevSegDir,
-													currSegDir,
-													prevHadHitForSoftGate,
-													prevHitLostForSoftGate,
-													cfg.UseSingleProbeThenSubdivide,
-													false,
-													ref softGateDecisionReason,
-													ref softGateScore,
-													ref softGateTurnAngleDeg,
-													ref softGateTurnAngleScore,
-													ref softGatePrevHitLostScore,
-													ref softGateRandomProbe,
-													ref softGateSegLenOk,
-													ref softGateSampleThisSeg,
-													ref softGateAttempt,
-													ref softGateAttemptsThisPixel,
-													ref softGateAttemptsUsed,
-													ref softGateSubdividedCallsUsed,
-													ref p2SoftGateAttempts,
-													ref softGateBudgetExceeded))
+												prevHitLostForSoftGate = _pass2HadHitLostThisFrame.Length > globalPi && _pass2HadHitLostThisFrame[globalPi] != 0;
+												if (!useHybridBroadphase)
 												{
-													if (budgetStop) break;
-													continue;
+													if (!TryHandleQuickRayMissWithSoftGate(
+														softGateFrameId,
+														si,
+														segLen,
+														prevSegDir,
+														currSegDir,
+														prevHadHitForSoftGate,
+														prevHitLostForSoftGate,
+														cfg.UseSingleProbeThenSubdivide,
+														false,
+														ref softGateDecisionReason,
+														ref softGateScore,
+														ref softGateTurnAngleDeg,
+														ref softGateTurnAngleScore,
+														ref softGatePrevHitLostScore,
+														ref softGateRandomProbe,
+														ref softGateSegLenOk,
+														ref softGateSampleThisSeg,
+														ref softGateAttempt,
+														ref softGateAttemptsThisPixel,
+														ref softGateAttemptsUsed,
+														ref softGateSubdividedCallsUsed,
+														ref p2SoftGateAttempts,
+														ref softGateBudgetExceeded))
+													{
+														if (budgetStop) break;
+														continue;
+													}
+												}
+												else
+												{
+													pendingQuickRayMissSoftGate = true;
 												}
 											}
 											else
 											{
+												quickRayTestedForHybrid = true;
+												quickRayCandidateCount = 1;
 												CountQuickRayResult(true);
 											}
 											if (pass == 0) quickRayHitThisPixel = true;
@@ -3411,6 +3485,76 @@ public partial class GrinFilmCamera : Node
 											AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, true, d);
 											if (d < bestHitDistAlongRay)
 												bestHitDistAlongRay = d;
+										}
+									}
+
+									if (useHybridBroadphase && useOverlap && !bypassQuickRayForRepresentative && quickRayTestedForHybrid
+										&& quickRayCandidateCount >= 0 && quickRayCandidateCount < BroadphaseHybridQuickRayMinCandidates)
+									{
+										_hybridFallbackCountThisFrame++;
+										string fallbackReason = quickRayCandidateCount == 0 ? "empty" : "lowcount";
+										if (_broadphaseHybridFallbackLogsRemaining > 0)
+										{
+											float t = Mathf.Clamp(seg.TraveledB / Mathf.Max(0.001f, farForSim), 0f, 1f);
+											GD.Print($"[BroadphaseHybrid] fallback overlap (seg={si}, t={t:0.###}, reason={fallbackReason}, quickCount={quickRayCandidateCount})");
+											_broadphaseHybridFallbackLogsRemaining--;
+										}
+										Vector3 mid = (segA + segB) * 0.5f;
+
+										_overlapQuery.Transform = new Transform3D(Basis.Identity, mid);
+										var overlaps = space.IntersectShape(_overlapQuery, broadphaseCfg.MaxResults);
+										if (statsEnabled) _perfFrame.IntersectShapeCalls++;
+										if (bandCountersEnabled) bandPhysicsQueries++;
+										if ((statsEnabled || framePerfEnabled) && !segCounted)
+										{
+											if (statsEnabled) _perfFrame.SegsTested++;
+											if (bandCountersEnabled) bandSegsTested++;
+											segCounted = true;
+										}
+										if (overlaps.Count == 0)
+										{
+											if (framePerfEnabled)
+											{
+												_framePerf.Pass2OverlapMisses++;
+												_framePerf.Pass2Skip_OverlapEmpty++;
+											}
+										}
+										else
+										{
+											if (framePerfEnabled) _framePerf.Pass2OverlapHits++;
+											pendingQuickRayMissSoftGate = false;
+										}
+									}
+
+									if (pendingQuickRayMissSoftGate)
+									{
+										if (!TryHandleQuickRayMissWithSoftGate(
+											softGateFrameId,
+											si,
+											segLen,
+											prevSegDir,
+											currSegDir,
+											prevHadHitForSoftGate,
+											prevHitLostForSoftGate,
+											cfg.UseSingleProbeThenSubdivide,
+											false,
+											ref softGateDecisionReason,
+											ref softGateScore,
+											ref softGateTurnAngleDeg,
+											ref softGateTurnAngleScore,
+											ref softGatePrevHitLostScore,
+											ref softGateRandomProbe,
+											ref softGateSegLenOk,
+											ref softGateSampleThisSeg,
+											ref softGateAttempt,
+											ref softGateAttemptsThisPixel,
+											ref softGateAttemptsUsed,
+											ref softGateSubdividedCallsUsed,
+											ref p2SoftGateAttempts,
+											ref softGateBudgetExceeded))
+										{
+											if (budgetStop) break;
+											continue;
 										}
 									}
 
@@ -3439,9 +3583,10 @@ public partial class GrinFilmCamera : Node
 											CountQuickRayResult(cachedHit);
 											if (!cachedHit)
 											{
+												_quickRayZeroCountThisFrame++;
 												if (prevHadHitForSoftGate && si > segStart && _pass2HadHitLostThisFrame.Length > globalPi)
 													_pass2HadHitLostThisFrame[globalPi] = 1;
-												bool prevHitLostForSoftGate = _pass2HadHitLostThisFrame.Length > globalPi && _pass2HadHitLostThisFrame[globalPi] != 0;
+												prevHitLostForSoftGate = _pass2HadHitLostThisFrame.Length > globalPi && _pass2HadHitLostThisFrame[globalPi] != 0;
 												if (!TryHandleQuickRayMissWithSoftGate(
 													softGateFrameId,
 													si,
@@ -3494,9 +3639,10 @@ public partial class GrinFilmCamera : Node
 												AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, false, 0f);
 												if (framePerfEnabled) _framePerf.Pass2QuickRayMisses++;
 												CountQuickRayResult(false);
+												_quickRayZeroCountThisFrame++;
 												if (prevHadHitForSoftGate && si > segStart && _pass2HadHitLostThisFrame.Length > globalPi)
 													_pass2HadHitLostThisFrame[globalPi] = 1;
-												bool prevHitLostForSoftGate = _pass2HadHitLostThisFrame.Length > globalPi && _pass2HadHitLostThisFrame[globalPi] != 0;
+												prevHitLostForSoftGate = _pass2HadHitLostThisFrame.Length > globalPi && _pass2HadHitLostThisFrame[globalPi] != 0;
 												if (!TryHandleQuickRayMissWithSoftGate(
 													softGateFrameId,
 													si,
@@ -4155,9 +4301,9 @@ public partial class GrinFilmCamera : Node
 					|| budgetStopReason == "renderstep_max_ms"
 					|| budgetStopReason == "render_step_max_ms"
 					|| budgetStopReason == "target_ms_per_frame";
-				if (budgetStopReason == "sg_attempts")
+				if (budgetStopReason == "softgate_attempt_cap")
 				{
-					FinalizeBandAndAdvance("sg_attempts", yStart, yEnd, bandHits, "");
+					FinalizeBandAndAdvance("softgate_attempt_cap", yStart, yEnd, bandHits, "");
 				}
 				else if (isTimeBudget && !bandCompletedThisStep)
 				{
@@ -4324,8 +4470,21 @@ public partial class GrinFilmCamera : Node
 				bandCommittedThisStep ? 1 : 0,
 				bandTracedPixels,
 				bandHits,
+				_quickRayZeroCountThisFrame,
+				_hybridFallbackCountThisFrame,
 				avgStepsPerTracedPixel,
 				healthExitReason);
+			bool stalledNow = _renderHealthStallSteps >= RenderHealthStallThreshold;
+			if (stalledNow && !_rowStallActive)
+			{
+				_rowStallActive = true;
+				LogBudgetExitOnce("row_stall", _rowCursor);
+			}
+			else if (!stalledNow && _rowStallActive)
+			{
+				_rowStallActive = false;
+				LogBudgetExitOnce("row_progress", _rowCursor);
+			}
 			_lastBandCommitted = bandCommittedThisStep;
 			_lastRenderStepRowCursor = _rowCursor;
 			_lastRenderStepBandStart = yStart;
@@ -5055,8 +5214,11 @@ public partial class GrinFilmCamera : Node
 		MarkPresetDirty(scene: false, perf: true, quality: false, reason: "PerfPresetQuality");
 	}
 
-	public void ApplyAllPresetsIfNeeded(string reason, bool force = false)
+	private void SyncAndApplyIfDirty(string reason, bool force = false)
 	{
+		// PRECEDENCE: quality -> perf -> user overrides -> sanitize.
+		// RATIONALE: quality and perf presets establish baselines; user overrides (scene preset + manual toggles)
+		// can then intentionally supersede them before final clamping.
 		if (_isApplyingPresets) return;
 
 		bool forceApply = force || ForceReapplyPresetsNextFrame;
@@ -5072,13 +5234,14 @@ public partial class GrinFilmCamera : Node
 		bool sceneApplied = false;
 		bool perfApplied = false;
 		bool qualityApplied = false;
+		bool userApplied = false;
 
 		try
 		{
-			if (forceApply || _presetSceneDirty)
+			if (forceApply || _presetQualityDirty)
 			{
-				ApplyScenePresetCore(Preset);
-				sceneApplied = true;
+				ApplyQualityModePresetCore(QualityMode);
+				qualityApplied = true;
 			}
 
 			if (forceApply || _presetPerfDirty)
@@ -5087,11 +5250,14 @@ public partial class GrinFilmCamera : Node
 				perfApplied = true;
 			}
 
-			if (forceApply || _presetQualityDirty)
+			if (forceApply || _presetSceneDirty)
 			{
-				ApplyQualityModePresetCore(QualityMode);
-				qualityApplied = true;
+				ApplyScenePresetCore(Preset);
+				sceneApplied = true;
 			}
+
+			ApplyUserOverridesCore();
+			userApplied = true;
 
 			SanitizeAndClampSettings();
 
@@ -5105,7 +5271,7 @@ public partial class GrinFilmCamera : Node
 			_presetDirtyReason = "";
 
 			GD.Print(
-				$"[PresetApply] reason={applyReason} scene={(sceneApplied ? 1 : 0)} perf={(perfApplied ? 1 : 0)} quality={(qualityApplied ? 1 : 0)} " +
+				$"[PresetApply] reason={applyReason} quality={(qualityApplied ? 1 : 0)} perf={(perfApplied ? 1 : 0)} user={(userApplied ? 1 : 0)} scene={(sceneApplied ? 1 : 0)} " +
 				$"preset={Preset} perfPreset={PerformancePreset} quality={QualityMode} " +
 				$"resScale={FilmResolutionScale:0.###} stride={PixelStride} rows={RowsPerFrame} " +
 				$"broadphaseMode={BroadphaseControlMode} broadphasePolicy={BroadphasePolicy}");
@@ -5118,6 +5284,11 @@ public partial class GrinFilmCamera : Node
 				ForceReapplyPresetsNextFrame = false;
 			}
 		}
+	}
+
+	private void ApplyUserOverridesCore()
+	{
+		// Intentionally left as a hook for future manual overrides without altering preset math.
 	}
 
 	private void ApplyScenePresetCore(PresetMode mode)
@@ -5199,9 +5370,10 @@ public partial class GrinFilmCamera : Node
 
 	private void ResolveEffectiveConfig(out EffectiveConfig cfg)
 	{
-		// Apply preset flow first so effective config is always resolved from current presets.
-		ApplyAllPresetsIfNeeded("resolve");
-
+		// EFFECTIVE CONFIG CONTRACT:
+		// - Snapshots RayBeamRenderer shared values first.
+		// - Resolves broadphase mode (Manual/Policy/Auto/Off).
+		// - Emits only effective booleans for RenderStep to consume.
 		var broadphaseResolved = UpdateBroadphaseEffectiveState();
 
 		cfg = new EffectiveConfig
@@ -5699,6 +5871,8 @@ public partial class GrinFilmCamera : Node
 		int window = Math.Min(_renderHealthCount, 10);
 		long totalTraced = 0;
 		long totalHits = 0;
+		long totalQuickRayZero = 0;
+		long totalHybridFallback = 0;
 		string topExit = "none";
 		int topExitCount = 0;
 		var exitCounts = new System.Collections.Generic.Dictionary<string, int>(StringComparer.Ordinal);
@@ -5708,6 +5882,8 @@ public partial class GrinFilmCamera : Node
 			RenderHealthSample s = GetRenderHealthSampleFromEnd(i);
 			totalTraced += s.TracedPixels;
 			totalHits += s.Hits;
+			totalQuickRayZero += s.QuickRayZeroCount;
+			totalHybridFallback += s.HybridFallbackCount;
 			if (!string.IsNullOrEmpty(s.BudgetExitReason))
 			{
 				exitCounts.TryGetValue(s.BudgetExitReason, out int count);
@@ -5729,7 +5905,7 @@ public partial class GrinFilmCamera : Node
 		GD.Print(
 			$"[RenderHealth] step={latest.StepIndex} lastRow={latest.RowCursorAfter} rowsAdv={latest.RowsAdvanced} bands={latest.BandsProcessed} " +
 			$"stalledSteps={_renderHealthStallSteps} exit={exitTag} topExit={topExit} hitRate={hitRate:0.###} " +
-			$"avgSteps={latest.AvgStepsPerTracedPixel:0.###}");
+			$"avgSteps={latest.AvgStepsPerTracedPixel:0.###} qray0={totalQuickRayZero} hybridFallback={totalHybridFallback}");
 	}
 
 	private void RecordRenderHealthSample(
@@ -5738,6 +5914,8 @@ public partial class GrinFilmCamera : Node
 		int bandsProcessed,
 		long tracedPixels,
 		int hits,
+		int quickRayZeroCount,
+		int hybridFallbackCount,
 		double avgStepsPerTracedPixel,
 		string budgetExitReason)
 	{
@@ -5760,6 +5938,8 @@ public partial class GrinFilmCamera : Node
 			BandsProcessed = bandsProcessed,
 			TracedPixels = tracedPixels,
 			Hits = hits,
+			QuickRayZeroCount = quickRayZeroCount,
+			HybridFallbackCount = hybridFallbackCount,
 			AvgStepsPerTracedPixel = avgStepsPerTracedPixel,
 			BudgetExitReason = budgetExitReason ?? string.Empty
 		};
@@ -5888,6 +6068,7 @@ public partial class GrinFilmCamera : Node
 			case BroadphasePolicyMode.OverlapOnly:
 				return (false, true);
 			case BroadphasePolicyMode.Both:
+			case BroadphasePolicyMode.HybridQuickRayThenOverlap:
 			default:
 				return (true, true);
 		}
@@ -6022,10 +6203,16 @@ public partial class GrinFilmCamera : Node
 		_lastBroadphaseEffectiveMode = effMode;
 		_lastBroadphaseEffectivePolicy = effPolicy;
 		_hasLastBroadphaseEffective = true;
+		EffectiveBroadphaseMode = effMode;
+		EffectiveBroadphasePolicy = effPolicy;
+		EffectiveBroadphaseQuickRay = effQuickRay;
+		EffectiveBroadphaseOverlap = effOverlap;
+		string reasonTag = string.IsNullOrEmpty(sourceTag) ? "resolved" : sourceTag;
+		EffectiveBroadphaseReason = reasonTag;
 
 		GD.Print(
 			$"[BroadphaseEffective] mode={effMode} policy={effPolicy} " +
-			$"quick={effQuickRay} overlap={effOverlap} source={sourceTag}");
+			$"quick={effQuickRay} overlap={effOverlap} reason={reasonTag}");
 	}
 
 	private void MaybeWarnBroadphaseQuickRayCurved(float beta, float gamma, bool effQuickRay, bool useCameraPropsBetaGamma)

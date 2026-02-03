@@ -204,70 +204,126 @@ public partial class RayBeamRenderer : Node3D
 	// CONTROL FACTOR: Filter debug overlay to hit rays only.
 	[Export] public bool DebugDrawOnlyHits = false;
 
-	public struct SharedSnapshot
+	public readonly struct SharedSnapshot
 	{
-		public int StepsPerRay;
-		public int CollisionEveryNSteps;
-		public float StepLength;
-		public float MinStepLength;
-		public float MaxStepLength;
-		public float StepAdaptGain;
-		public bool UseIntegratedField;
-		public float BendScale;
-		public float FieldStrength;
-		public Vector3 FieldCenter;
-		public bool FieldCenterIsCamera;
-		public uint CollisionMask;
-		public float CollisionRadius;
-		public bool UseSphereSweepCollision;
-		public bool UseInsightPlaneFilter;
-		public float CollisionRaySubdivideThreshold;
-		public int MaxCollisionSubsteps;
-		public bool RequireHitToRender;
-		public bool StopOnHit;
-		public bool TerminateTrailOnHit;
-		public bool UseScreenSpaceCollisionCadence;
-		public float CollisionMaxErrorPixels;
-		public float MinDepthForError;
-		public int MinCollisionEveryNSteps;
-		public DebugDrawMode DebugMode;
-		public float DebugNormalLen;
-		public bool DebugOverlayOwnedByFilm;
+		public readonly int StepsPerRay;
+		public readonly int CollisionEveryNSteps;
+		public readonly float StepLength;
+		public readonly float MinStepLength;
+		public readonly float MaxStepLength;
+		public readonly float StepAdaptGain;
+		public readonly bool UseIntegratedField;
+		public readonly float BendScale;
+		public readonly float FieldStrength;
+		public readonly Vector3 FieldCenter;
+		public readonly bool FieldCenterIsCamera;
+		public readonly uint CollisionMask;
+		public readonly float CollisionRadius;
+		public readonly bool UseSphereSweepCollision;
+		public readonly bool UseInsightPlaneFilter;
+		public readonly float CollisionRaySubdivideThreshold;
+		public readonly int MaxCollisionSubsteps;
+		public readonly bool RequireHitToRender;
+		public readonly bool StopOnHit;
+		public readonly bool TerminateTrailOnHit;
+		public readonly bool UseScreenSpaceCollisionCadence;
+		public readonly float CollisionMaxErrorPixels;
+		public readonly float MinDepthForError;
+		public readonly int MinCollisionEveryNSteps;
+		public readonly DebugDrawMode DebugMode;
+		public readonly float DebugNormalLen;
+		public readonly bool DebugOverlayOwnedByFilm;
+
+		public SharedSnapshot(
+			int stepsPerRay,
+			int collisionEveryNSteps,
+			float stepLength,
+			float minStepLength,
+			float maxStepLength,
+			float stepAdaptGain,
+			bool useIntegratedField,
+			float bendScale,
+			float fieldStrength,
+			Vector3 fieldCenter,
+			bool fieldCenterIsCamera,
+			uint collisionMask,
+			float collisionRadius,
+			bool useSphereSweepCollision,
+			bool useInsightPlaneFilter,
+			float collisionRaySubdivideThreshold,
+			int maxCollisionSubsteps,
+			bool requireHitToRender,
+			bool stopOnHit,
+			bool terminateTrailOnHit,
+			bool useScreenSpaceCollisionCadence,
+			float collisionMaxErrorPixels,
+			float minDepthForError,
+			int minCollisionEveryNSteps,
+			DebugDrawMode debugMode,
+			float debugNormalLen,
+			bool debugOverlayOwnedByFilm)
+		{
+			StepsPerRay = stepsPerRay;
+			CollisionEveryNSteps = collisionEveryNSteps;
+			StepLength = stepLength;
+			MinStepLength = minStepLength;
+			MaxStepLength = maxStepLength;
+			StepAdaptGain = stepAdaptGain;
+			UseIntegratedField = useIntegratedField;
+			BendScale = bendScale;
+			FieldStrength = fieldStrength;
+			FieldCenter = fieldCenter;
+			FieldCenterIsCamera = fieldCenterIsCamera;
+			CollisionMask = collisionMask;
+			CollisionRadius = collisionRadius;
+			UseSphereSweepCollision = useSphereSweepCollision;
+			UseInsightPlaneFilter = useInsightPlaneFilter;
+			CollisionRaySubdivideThreshold = collisionRaySubdivideThreshold;
+			MaxCollisionSubsteps = maxCollisionSubsteps;
+			RequireHitToRender = requireHitToRender;
+			StopOnHit = stopOnHit;
+			TerminateTrailOnHit = terminateTrailOnHit;
+			UseScreenSpaceCollisionCadence = useScreenSpaceCollisionCadence;
+			CollisionMaxErrorPixels = collisionMaxErrorPixels;
+			MinDepthForError = minDepthForError;
+			MinCollisionEveryNSteps = minCollisionEveryNSteps;
+			DebugMode = debugMode;
+			DebugNormalLen = debugNormalLen;
+			DebugOverlayOwnedByFilm = debugOverlayOwnedByFilm;
+		}
 	}
 
 	public SharedSnapshot GetSharedSnapshot()
 	{
 		// Consumed by GrinFilmCamera.ResolveEffectiveConfig().
-		return new SharedSnapshot
-		{
-			StepsPerRay = StepsPerRay,
-			CollisionEveryNSteps = CollisionEveryNSteps,
-			StepLength = StepLength,
-			MinStepLength = MinStepLength,
-			MaxStepLength = MaxStepLength,
-			StepAdaptGain = StepAdaptGain,
-			UseIntegratedField = UseIntegratedField,
-			BendScale = BendScale,
-			FieldStrength = FieldStrength,
-			FieldCenter = FieldCenter,
-			FieldCenterIsCamera = FieldCenterIsCamera,
-			CollisionMask = CollisionMask,
-			CollisionRadius = CollisionRadius,
-			UseSphereSweepCollision = UseSphereSweepCollision,
-			UseInsightPlaneFilter = UseInsightPlaneFilter,
-			CollisionRaySubdivideThreshold = CollisionRaySubdivideThreshold,
-			MaxCollisionSubsteps = MaxCollisionSubsteps,
-			RequireHitToRender = RequireHitToRender,
-			StopOnHit = StopOnHit,
-			TerminateTrailOnHit = TerminateTrailOnHit,
-			UseScreenSpaceCollisionCadence = UseScreenSpaceCollisionCadence,
-			CollisionMaxErrorPixels = CollisionMaxErrorPixels,
-			MinDepthForError = MinDepthForError,
-			MinCollisionEveryNSteps = MinCollisionEveryNSteps,
-			DebugMode = DebugMode,
-			DebugNormalLen = DebugNormalLen,
-			DebugOverlayOwnedByFilm = DebugOverlayOwnedByFilm
-		};
+		return new SharedSnapshot(
+			StepsPerRay,
+			CollisionEveryNSteps,
+			StepLength,
+			MinStepLength,
+			MaxStepLength,
+			StepAdaptGain,
+			UseIntegratedField,
+			BendScale,
+			FieldStrength,
+			FieldCenter,
+			FieldCenterIsCamera,
+			CollisionMask,
+			CollisionRadius,
+			UseSphereSweepCollision,
+			UseInsightPlaneFilter,
+			CollisionRaySubdivideThreshold,
+			MaxCollisionSubsteps,
+			RequireHitToRender,
+			StopOnHit,
+			TerminateTrailOnHit,
+			UseScreenSpaceCollisionCadence,
+			CollisionMaxErrorPixels,
+			MinDepthForError,
+			MinCollisionEveryNSteps,
+			DebugMode,
+			DebugNormalLen,
+			DebugOverlayOwnedByFilm);
 	}
 
 	// ===== Cached State =====
