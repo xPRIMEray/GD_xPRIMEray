@@ -156,8 +156,8 @@ public partial class GrinFilmCamera : Node
 	[Export] public int MaxRowsPerFrameCap = 256;
 
 	[ExportGroup("Profiling")]
-	[ExportSubgroup("Performance")]
-	// This section affects profiling/logging only.
+	[ExportSubgroup("Runtime Stats")]
+	// This section affects profiling counters and sampling only.
 	/// <summary>Enables perf stats collection.</summary>
 	// CONTROL FACTOR: Enables perf stats; true adds some overhead.
 	[Export] public bool EnableProfiling = true;
@@ -173,6 +173,8 @@ public partial class GrinFilmCamera : Node
 	/// <summary>Frames between FramePerf logs when not verbose.</summary>
 	// CONTROL FACTOR: Log cadence in frames when not verbose.
 	[Export] public int FramePerfLogEveryNFrames = 30;
+
+	[ExportSubgroup("Logging & Diagnostics")]
 	/// <summary>Fetches collider names for debug output.</summary>
 	// CONTROL FACTOR: Fetch collider names; true adds lookup cost but improves debug readability.
 	[Export] public bool NeedColliderNames = false;
@@ -274,17 +276,21 @@ public partial class GrinFilmCamera : Node
 	[Export] public float Pass1ProbeMinTravelDelta = 0.25f;
 
 
-	[ExportGroup("Collision")]
-	[ExportSubgroup("Broadphase/Policy")]
+	[ExportGroup("Physics / Collision")]
+	[ExportSubgroup("Broadphase / Policy")]
+	// Broadphase precedence: policy ON -> BroadphasePolicy drives effective mode.
+	// Syncing behavior: manual toggles are kept in sync with the policy while it is ON.
+	// When policy is OFF, manual toggles drive the effective mode and the policy is kept in sync.
 	// This section affects collision policy switches (behavior).
-	/// <summary>Use Broadphase Policy (recommended).</summary>
-	// CONTROL FACTOR: When true, BroadphasePolicy overrides individual toggles.
+	/// <summary>Use Broadphase Policy (overrides manual toggles).</summary>
+	// CONTROL FACTOR: When true, BroadphasePolicy overrides manual QuickRay/Overlap toggles.
 	[Export] public bool UseBroadphasePolicy = false;
 	/// <summary>Broadphase Policy.</summary>
 	// CONTROL FACTOR: Broadphase mode policy selection.
 	[Export] public BroadphaseMode BroadphasePolicy = BroadphaseMode.QuickRayOnly;
 
-	[ExportSubgroup("Broadphase/Manual Overrides")]
+	[ExportSubgroup("Broadphase / Manual Overrides")]
+	// Manual toggles are only authoritative when policy is OFF; otherwise they reflect policy.
 	// This section affects collision culling (performance only).
 	/// <summary>Quick Ray (manual override when policy OFF).</summary>
 	// CONTROL FACTOR: Enables quick-ray broadphase; true reduces work by early rejection.
@@ -293,7 +299,7 @@ public partial class GrinFilmCamera : Node
 	// CONTROL FACTOR: Enables overlap broadphase; true adds extra culling based on radius.
 	[Export] public bool UseBroadphaseOverlap = false;
 
-	[ExportSubgroup("Broadphase/Settings")]
+	[ExportSubgroup("Broadphase / Settings")]
 	/// <summary>Extra radius for overlap broadphase.</summary>
 	// CONTROL FACTOR: Overlap margin (world units); higher catches more but costs more.
 	[Export] public float BroadphaseMargin = 0.03f;
@@ -319,7 +325,7 @@ public partial class GrinFilmCamera : Node
 	// CONTROL FACTOR: Minimum segment length (world units) for stride skipping; lower = more checks.
 	[Export(PropertyHint.Range, "0,1,0.001")] public float MinSegLenForStrideSkip = 0f;
 
-	[ExportSubgroup("Hit Flags & Diagnostics")]
+	[ExportSubgroup("Hit Flags")]
 	// This section affects collision hit rules and logging.
 	/// <summary>Ray query option: include back-facing triangles in pass-2 checks.</summary>
 	// CONTROL FACTOR: Include backfaces in pass-2 raycasts; true increases hits but can add noise.
@@ -357,15 +363,9 @@ public partial class GrinFilmCamera : Node
 	/// <summary>Allows occasional subdivide attempts on quick-ray misses (Pass2).</summary>
 	// CONTROL FACTOR: Enables soft-gated subdivide probes on quick-ray misses; true increases accuracy at some cost.
 	[Export] public bool Pass2SoftGateEnableQuickRayMiss = false;
-	/// <summary>Use RayBeamRenderer step sizing to scale Pass2 SoftGate thresholds.</summary>
-	// CONTROL FACTOR: When true, thresholds scale with RayBeamRenderer step sizes (keeps behavior consistent across step settings).
-	[Export] public bool Pass2SoftGateUseRayBeamSettings = true;
 	/// <summary>Disable SoftGate for the rest of the frame when overload is detected.</summary>
 	// CONTROL FACTOR: When true, SoftGate shuts off mid-frame under overload; prevents long stalls but may reduce hits.
 	[Export] public bool DisableSoftGateOnOverload = true;
-	/// <summary>Minimum segment length in steps when using RayBeam settings (leave default unless you are tuning SoftGate).</summary>
-	// CONTROL FACTOR: Minimum segment length (in steps) eligible for SoftGate when using RayBeam scaling; higher reduces probes.
-	[Export] public float Pass2SoftGateMinSegLenSteps = 2.0f;
 
 	[ExportSubgroup("Budgets")]
 	// This section affects SoftGate workload caps (performance only).
@@ -470,7 +470,7 @@ public partial class GrinFilmCamera : Node
 	[Obsolete("Deprecated: reserved for future normal smoothing.")]
 	public bool UseSmoothNormals = false;
 
-	[ExportGroup("RayBeamRenderer Shared")]
+	[ExportGroup("Shared With RayBeamRenderer")]
 
 	[ExportSubgroup("References")]
 	// This section references RayBeamRenderer and reflects shared settings (read from RayBeamRenderer at runtime).
@@ -485,6 +485,15 @@ public partial class GrinFilmCamera : Node
 	/// <summary>Optional FilmOverlay2D for debug ray overlay.</summary>
 	// CONTROL FACTOR: Optional overlay node for debug ray visualization.
 	[Export] public NodePath FilmOverlayPath;
+
+	[ExportSubgroup("SoftGate Scaling (RayBeamRenderer)")]
+	// This section overrides SoftGate thresholds using RayBeamRenderer step sizing.
+	/// <summary>Use RayBeamRenderer step sizing to scale Pass2 SoftGate thresholds.</summary>
+	// CONTROL FACTOR: When enabled, RayBeamRenderer step size overrides manual SoftGate scaling.
+	[Export] public bool Pass2SoftGateUseRayBeamSettings = true;
+	/// <summary>Minimum segment length in steps when using RayBeam settings (leave default unless you are tuning SoftGate).</summary>
+	// CONTROL FACTOR: Minimum segment length (in steps) eligible for SoftGate when using RayBeam scaling; higher reduces probes.
+	[Export] public float Pass2SoftGateMinSegLenSteps = 2.0f;
 
 
 	// ===== Cached State =====
@@ -593,8 +602,16 @@ public partial class GrinFilmCamera : Node
 	private bool _hasToggleSnapshot;
 	private bool _lastBroadphaseEffectiveQuickRay = false;
 	private bool _lastBroadphaseEffectiveOverlap = false;
-	private string _lastBroadphaseEffectiveSourceTag = "";
+	private bool _lastBroadphaseEffectivePolicyOn = false;
+	private BroadphaseMode _lastBroadphaseEffectivePolicy = BroadphaseMode.None;
 	private bool _hasLastBroadphaseEffective = false;
+	private bool _isBroadphaseSyncing = false;
+	private bool _hasBroadphaseSyncSnapshot = false;
+	private bool _lastUseBroadphasePolicy = false;
+	private BroadphaseMode _lastBroadphasePolicy = BroadphaseMode.None;
+	private bool _lastUseBroadphaseQuickRay = false;
+	private bool _lastUseBroadphaseOverlap = false;
+	private bool _broadphaseCurvedWarned = false;
 
 	// band hit ROI history
 	private float[] _bandHitRate = Array.Empty<float>();
@@ -620,6 +637,8 @@ public partial class GrinFilmCamera : Node
 	private SoftGateConfigSnapshot _lastSoftGateCfgSnapshot;
 	private bool _hasSoftGateCfgSnapshot = false;
 	private int _p2SoftGateUsedThisFrame = 0;
+	private int _lastEffectiveConfigHash = 0;
+	private bool _hasEffectiveConfigHash = false;
 	private int _softGateFrameId = -1;
 	private int _softGateParamLogRemaining = 2;
 	private int _budgetYieldLogFrameId = -1;
@@ -718,6 +737,157 @@ public partial class GrinFilmCamera : Node
 		public bool UpdateEveryFrame;
 	}
 
+	private struct EffectiveBroadphaseSettings
+	{
+		public bool UseQuickRay;
+		public bool UseOverlap;
+		public BroadphaseMode Mode;
+		public string ModeName;
+		public string Reason;
+		public bool PolicyEnabled;
+		public BroadphaseMode Policy;
+		public float Margin;
+		public int MaxResults;
+	}
+
+	private struct EffectiveSoftGateSettings
+	{
+		public bool EnableQuickRayMiss;
+		public bool ScoringEnabled;
+		public bool DisableOnOverload;
+		public bool UseRayBeamSettings;
+		public bool UseRayBeamSettingsActive;
+		public float EffectiveStepLength;
+		public float MinSegLenSteps;
+		public float MinSegmentLength;
+		public float ScoreThreshold;
+		public float ScoreTurnAngleWeight;
+		public float ScorePrevHitLostBonus;
+		public float RandomProbeChance;
+		public int ScoreBudgetPerFrame;
+		public int MaxAttemptsPerPixel;
+		public int MaxAttemptsPerFrame;
+		public int MaxSubdividedCallsPerFrame;
+		public float WatchdogMs;
+		public int WatchdogLogLimitPerFrame;
+		public bool DebugEnabled;
+		public int DebugVerbosity;
+		public bool DebugSummaryPerFrame;
+		public int DebugSummaryLogLimitPerFrame;
+	}
+
+	private struct EffectiveRayMarchSettings
+	{
+		public bool HasRenderer;
+		public int StepsPerRay;
+		public int CollisionEveryNSteps;
+		public float StepLength;
+		public float MinStepLength;
+		public float MaxStepLength;
+		public float StepAdaptGain;
+		public bool UseIntegratedField;
+		public float BendScale;
+		public float FieldStrength;
+		public Vector3 FieldCenter;
+		public bool FieldCenterIsCamera;
+		public uint CollisionMask;
+		public float CollisionRadius;
+		public bool UseSphereSweepCollision;
+		public bool UseInsightPlaneFilter;
+		public float CollisionRaySubdivideThreshold;
+		public int MaxCollisionSubsteps;
+		public bool RequireHitToRender;
+		public bool StopOnHit;
+		public bool TerminateTrailOnHit;
+		public bool UseScreenSpaceCollisionCadence;
+		public float CollisionMaxErrorPixels;
+		public float MinDepthForError;
+		public int MinCollisionEveryNSteps;
+		public RayBeamRenderer.DebugDrawMode DebugMode;
+		public float DebugNormalLen;
+		public bool DebugOverlayOwnedByFilm;
+		public int MaxSegPerRay;
+	}
+
+	private struct EffectiveFilmSettings
+	{
+		public int BaseWidth;
+		public int BaseHeight;
+		public float ResolutionScale;
+		public int PixelStride;
+		public int RowsPerFrame;
+		public float MaxDistance;
+		public float Opacity;
+	}
+
+	private struct EffectiveConfig
+	{
+		public EffectiveBroadphaseSettings Broadphase;
+		public EffectiveSoftGateSettings SoftGate;
+		public EffectiveRayMarchSettings RayMarch;
+		public EffectiveFilmSettings Film;
+		public bool UpdateEveryFrame;
+		public float UpdateEveryFrameBudgetMs;
+		public int UpdateEveryFrameMaxRowsPerStep;
+		public int RenderStepMaxMs;
+		public int RenderStepMaxPixelsPerFrame;
+		public int RenderStepMaxSegmentsPerFrame;
+		public int TargetMsPerFrame;
+		public int MinRowsPerFrame;
+		public int MaxRowsPerFrameCap;
+		public bool AutoRangeDepth;
+		public float AutoRangeMin;
+		public float AutoRangeMax;
+		public float AutoRangeSmoothing;
+		public float AutoRangeSafety;
+		public int DepthHistoryFrames;
+		public bool UseFieldGrid;
+		public float FieldGridCellSize;
+		public int FieldGridRebuildEveryNFrames;
+		public float FieldGridBoundsPadding;
+		public bool UseCameraPropsBetaGamma;
+		public float TinySegmentSkipLen;
+		public float EarlyOutDistanceEps;
+		public bool UseAdaptiveSubsteps;
+		public bool UseBandHitSkip;
+		public float BandSkipHitThreshold;
+		public int BandSkipFrames;
+		public float BandSkipInvalidatePosDelta;
+		public float BandSkipInvalidateBasisDelta;
+		public float BandSkipInvalidateRangeDelta;
+		public bool Pass1DoHitTest;
+		public int Pass1ProbeEveryNSegments;
+		public float Pass1ProbeMinTravelDelta;
+		public bool UsePass2CollisionStride;
+		public int Pass2CollisionStrideNear;
+		public int Pass2CollisionStrideFar;
+		public float Pass2CollisionStrideFarStartT;
+		public float MinSegLenForStrideSkip;
+		public bool Pass2HitBackFaces;
+		public bool Pass2HitFromInside;
+		public bool Pass2ForceOnInstability;
+		public bool Pass2ForceIfPrevHitLost;
+		public int Pass2LogQuickRayMissSamples;
+		public bool UseSingleProbeThenSubdivide;
+		public bool NearestHitOnly;
+		public bool UseInsightPlanePass2;
+		public bool RenderStepPhaseLog;
+		public bool RenderStepBandLog;
+		public int DebugEveryNPixels;
+		public int DebugMaxFilmRays;
+		public bool EnableProfiling;
+		public bool VerbosePerfLogs;
+		public bool EnableFramePerf;
+		public bool FramePerfVerbose;
+		public int FramePerfLogEveryNFrames;
+		public bool NeedColliderNames;
+		public bool UseFieldSourceCache;
+		public int FieldSourceRefreshIntervalFrames;
+		public FilmShadingMode ShadingMode;
+		public bool FlipNormalToCamera;
+		public Color SkyColor;
+	}
+
 	private enum SoftGateDecisionReason
 	{
 		Allow = 0,
@@ -746,10 +916,10 @@ public partial class GrinFilmCamera : Node
 	}
 
 	private bool _dbgOnce = false;
-	private void EarlyOut(string why)
+	private void EarlyOut(string why, bool enableProfiling)
 	{
 		//GD.PrintErr($"⛔ RenderStep early-out: {why} rowCursor={_rowCursor} cam={_cam?.GetPath()} rbr={_rbr?.GetPath()}");
-		if (EnableProfiling) GD.Print($"[EarlyOut] {why} rowCursor={_rowCursor} cam={_cam?.GetPath()} rbr={_rbr?.GetPath()}");
+		if (enableProfiling) GD.Print($"[EarlyOut] {why} rowCursor={_rowCursor} cam={_cam?.GetPath()} rbr={_rbr?.GetPath()}");
 
 	}
 
@@ -796,12 +966,14 @@ public partial class GrinFilmCamera : Node
 		// ASSUMPTION: film pass owns ray stability; external rebuilds would desync buffers.
 		_rbr.AllowRebuild = false;
 
-		_rangeFar = MaxDistance;
+		ResolveEffectiveConfig(out EffectiveConfig cfg);
+		LogEffectiveConfigIfChanged(in cfg);
+		_rangeFar = cfg.Film.MaxDistance;
 		_filmView = GetNodeOrNull<TextureRect>(FilmViewPath);
 		GD.Print("FilmView found? ", _filmView != null);
 
 		// EFFECT: allocate film image/texture buffers as needed.
-		EnsureFilmImageSize();
+		EnsureFilmImageSize(in cfg);
 
 		// DECISION: if FilmViewPath is set, use it; otherwise build overlay.
 		if (_filmView != null)
@@ -846,6 +1018,7 @@ public partial class GrinFilmCamera : Node
 	public override void _Process(double delta)
 	{
 		ApplyAllPresetsIfNeeded("process");
+		// Keep broadphase controls in sync each frame so the inspector reflects effective state.
 		UpdateBroadphaseEffectiveState();
 		// DECISION: only render when UpdateEveryFrame is enabled.
 		if (!UpdateEveryFrame) return;
@@ -867,6 +1040,15 @@ public partial class GrinFilmCamera : Node
 			UpdateEveryFrame = false;
 			return;
 		}
+
+		ResolveEffectiveConfig(out EffectiveConfig cfg);
+		LogEffectiveConfigIfChanged(in cfg);
+		EffectiveBroadphaseSettings broadphaseCfg = cfg.Broadphase;
+		EffectiveSoftGateSettings softGateCfg = cfg.SoftGate;
+		EffectiveRayMarchSettings rayCfg = cfg.RayMarch;
+		EffectiveFilmSettings filmCfg = cfg.Film;
+		bool effQuickRay = broadphaseCfg.UseQuickRay;
+		bool effOverlap = broadphaseCfg.UseOverlap;
 
 		// DECISION: record starting row for forward-progress guard.
 		int startRow = _rowCursor;
@@ -920,23 +1102,23 @@ public partial class GrinFilmCamera : Node
 		{
 			ulong t0 = Time.GetTicksUsec();
 			// DECISION: enable stats when profiling or verbose logs are on.
-			statsEnabled = EnableProfiling || VerbosePerfLogs;
+			statsEnabled = cfg.EnableProfiling || cfg.VerbosePerfLogs;
 			// DECISION: enable frame perf when configured.
-			framePerfEnabled = EnableFramePerf;
+			framePerfEnabled = cfg.EnableFramePerf;
 			// DECISION: enable frame perf scope only when enabled.
 			if (framePerfEnabled) frameScope = new PerfScope(_framePerf, PerfStage.FrameTotal);
 
 		// Soft-gate debug toggles
 		/////////////////////////////
 		// DECISION: enable debug tiers based on verbosity level.
-		bool softGateDebugEnabled = Pass2SoftGateDebugEnabled && Pass2SoftGateDebugVerbosity > 0;
-		bool softGateBandEnabled = softGateDebugEnabled && Pass2SoftGateDebugVerbosity >= 2;
-		bool softGateSegEnabled = softGateDebugEnabled && Pass2SoftGateDebugVerbosity >= 3;
+		bool softGateDebugEnabled = softGateCfg.DebugEnabled && softGateCfg.DebugVerbosity > 0;
+		bool softGateBandEnabled = softGateDebugEnabled && softGateCfg.DebugVerbosity >= 2;
+		bool softGateSegEnabled = softGateDebugEnabled && softGateCfg.DebugVerbosity >= 3;
 		/////////////////////////////
 
 			// DECISION: resize film buffers if resolution settings changed.
-			bool resizedFilm = EnsureFilmImageSize();
-			int settingsHash = ComputeFilmSettingsHash();
+			bool resizedFilm = EnsureFilmImageSize(in cfg);
+			int settingsHash = ComputeFilmSettingsHash(in cfg);
 			// DECISION: reset row cursor when film settings change.
 			if (_hasFilmSettingsHash && settingsHash != _lastFilmSettingsHash)
 			{
@@ -988,79 +1170,26 @@ public partial class GrinFilmCamera : Node
 			int filmW = _filmWidth;
 			int filmH = _filmHeight;
 			// CONTROL FACTOR: PixelStride reduces sampling density.
-			int stride = Mathf.Clamp(PixelStride, 1, 8);
+			int stride = filmCfg.PixelStride;
 			long tracedPixels = (long)filmW * filmH / Math.Max(1, stride * stride);
 
-			// CONTROL FACTOR: effective SoftGate thresholds (may be scaled by RayBeam settings).
-			float pass2SoftGateMinSegmentLengthEffective = Pass2SoftGateMinSegmentLength;
-			int pass2SoftGateMaxAttemptsPerFrameEffective = Pass2SoftGateMaxAttemptsPerFrame;
-			int pass2SoftGateMaxSubdividedCallsPerFrameEffective = Pass2SoftGateMaxSubdividedCallsPerFrame;
-			float pass2SoftGateEffStepLen = 0f;
-			bool pass2SoftGateUseRayBeamSettingsActive = false;
-
-			// DECISION: optionally scale SoftGate thresholds based on RayBeamRenderer settings.
-			if (Pass2SoftGateUseRayBeamSettings)
-			{
-				// DECISION: require RayBeamRenderer to source step settings.
-				if (_rbr != null)
-				{
-					// CROSS-CLASS CONTRACT: use RayBeamRenderer step settings to scale SoftGate thresholds.
-					float stepLength = _rbr.StepLength;
-					float minStepLength = _rbr.MinStepLength;
-					float maxStepLength = _rbr.MaxStepLength;
-					float stepAdaptGain = _rbr.StepAdaptGain;
-					bool stepsFinite = float.IsFinite(stepLength)
-						&& float.IsFinite(minStepLength)
-						&& float.IsFinite(maxStepLength)
-						&& float.IsFinite(stepAdaptGain);
-					// DECISION: only use step settings when all values are finite.
-					if (stepsFinite)
-					{
-						float minStep = Mathf.Min(minStepLength, maxStepLength);
-						float maxStep = Mathf.Max(minStepLength, maxStepLength);
-						// EFFECT: compute effective step length in world units.
-						pass2SoftGateEffStepLen = Mathf.Clamp(stepLength, minStep, maxStep);
-						// CONTROL FACTOR: scale min segment length by effective step length.
-						pass2SoftGateMinSegmentLengthEffective = Pass2SoftGateMinSegLenSteps * pass2SoftGateEffStepLen;
-
-						// DECISION: derive step scale from effective step length.
-						float stepScale = pass2SoftGateEffStepLen > 0f
-							? Mathf.Clamp(1f / pass2SoftGateEffStepLen, 0.25f, 4f)
-							: 1f;
-						float strideScale = Mathf.Clamp(1f / Mathf.Max(1, stride), 0.125f, 1f);
-						int derivedMaxAttemptsPerFrame = Mathf.Clamp(
-							Mathf.RoundToInt(Pass2SoftGateMaxAttemptsPerFrame * stepScale * strideScale),
-							Pass2SoftGateMaxAttemptsPerFrameMin,
-							Pass2SoftGateMaxAttemptsPerFrameMax);
-						int derivedMaxSubdividedCallsPerFrame = Mathf.Clamp(
-							Mathf.RoundToInt(Pass2SoftGateMaxSubdividedCallsPerFrame * stepScale * strideScale),
-							Pass2SoftGateMaxSubdividedCallsPerFrameMin,
-							Pass2SoftGateMaxSubdividedCallsPerFrameMax);
-
-						pass2SoftGateMaxAttemptsPerFrameEffective = derivedMaxAttemptsPerFrame;
-						pass2SoftGateMaxSubdividedCallsPerFrameEffective = derivedMaxSubdividedCallsPerFrame;
-						pass2SoftGateUseRayBeamSettingsActive = true;
-					}
-				}
-
-				// DECISION: if RayBeam settings not used, fall back to manual settings.
-				if (!pass2SoftGateUseRayBeamSettingsActive)
-				{
-					// Silent fallback to manual settings when RayBeam parameters are unavailable.
-				}
-			}
+			float pass2SoftGateMinSegmentLengthEffective = softGateCfg.MinSegmentLength;
+			int pass2SoftGateMaxAttemptsPerFrameEffective = softGateCfg.MaxAttemptsPerFrame;
+			int pass2SoftGateMaxSubdividedCallsPerFrameEffective = softGateCfg.MaxSubdividedCallsPerFrame;
+			float pass2SoftGateEffStepLen = softGateCfg.EffectiveStepLength;
+			bool pass2SoftGateUseRayBeamSettingsActive = softGateCfg.UseRayBeamSettingsActive;
 
 			// CONTROL FACTOR: effective time budget for RenderStep.
-			float effectiveMaxMs = RenderStepMaxMs;
+			float effectiveMaxMs = cfg.RenderStepMaxMs;
 			// DECISION: clamp effective budget when UpdateEveryFrame budget is configured.
-			if (UpdateEveryFrame && UpdateEveryFrameBudgetMs > 0f)
+			if (cfg.UpdateEveryFrame && cfg.UpdateEveryFrameBudgetMs > 0f)
 			{
 				// DECISION: choose the tighter of RenderStepMaxMs and UpdateEveryFrameBudgetMs.
-				float baseMax = RenderStepMaxMs > 0 ? RenderStepMaxMs : UpdateEveryFrameBudgetMs;
-				effectiveMaxMs = Mathf.Min(baseMax, UpdateEveryFrameBudgetMs);
+				float baseMax = cfg.RenderStepMaxMs > 0 ? cfg.RenderStepMaxMs : cfg.UpdateEveryFrameBudgetMs;
+				effectiveMaxMs = Mathf.Min(baseMax, cfg.UpdateEveryFrameBudgetMs);
 			}
 			// DECISION: soft gate active only when enabled and not disabled for this pass.
-			bool softGateEnabledNow = Pass2SoftGateEnableQuickRayMiss && Pass2SoftGateScoringEnabled && !_softGateDisabledForPass;
+			bool softGateEnabledNow = softGateCfg.EnableQuickRayMiss && softGateCfg.ScoringEnabled && !_softGateDisabledForPass;
 			// DECISION: clear pending band if its bounds are invalid.
 			if (_pendingBandHasPass1 && (_pendingBandRowStart < 0 || _pendingBandRowCount <= 0))
 			{
@@ -1083,7 +1212,7 @@ public partial class GrinFilmCamera : Node
 					$"[RenderStep] phase={phase} frame={_frameIndex} row={_rowCursor} " +
 					$"attempts={_softGateAttemptsUsedThisFrame}/{pass2SoftGateMaxAttemptsPerFrameEffective} " +
 					$"sub={_softGateSubdividedCallsUsedThisFrame}/{pass2SoftGateMaxSubdividedCallsPerFrameEffective} " +
-					$"pxCap={Pass2SoftGateMaxAttemptsPerPixel} scoreCap={Pass2SoftGateScoreBudgetPerFrame} " +
+					$"pxCap={softGateCfg.MaxAttemptsPerPixel} scoreCap={softGateCfg.ScoreBudgetPerFrame} " +
 					$"ms={renderStepWatch.ElapsedMilliseconds}");
 			}
 
@@ -1123,7 +1252,7 @@ public partial class GrinFilmCamera : Node
 					$"sub={subdivUsed}/{pass2SoftGateMaxSubdividedCallsPerFrameEffective} " +
 					$"hits={hitsInBand}{extraSuffix}");
 				
-				if (RenderStepBandLog) LogBandSummaryOnce(MapBandSummaryReason(reason));
+				if (cfg.RenderStepBandLog) LogBandSummaryOnce(MapBandSummaryReason(reason));
 
 				_rowCursor = nextRow;
 				bandCommittedThisStep = true;
@@ -1192,7 +1321,7 @@ public partial class GrinFilmCamera : Node
 			string GetMaxMsStopReason()
 			{
 				// DECISION: distinguish which time budget is active for stop logs.
-				if (UpdateEveryFrame && UpdateEveryFrameBudgetMs > 0f && (RenderStepMaxMs <= 0 || UpdateEveryFrameBudgetMs <= RenderStepMaxMs))
+				if (cfg.UpdateEveryFrame && cfg.UpdateEveryFrameBudgetMs > 0f && (cfg.RenderStepMaxMs <= 0 || cfg.UpdateEveryFrameBudgetMs <= cfg.RenderStepMaxMs))
 					return "update_every_frame_budget";
 				return "renderstep_max_ms";
 			}
@@ -1200,7 +1329,7 @@ public partial class GrinFilmCamera : Node
 			void TriggerBudgetStop(string reason)
 			{
 				// DECISION: only budget-stop when UpdateEveryFrame is active.
-				if (!UpdateEveryFrame) return;
+				if (!cfg.UpdateEveryFrame) return;
 				// DECISION: budget stop is one-shot.
 				if (budgetStop) return;
 				budgetStop = true;
@@ -1243,7 +1372,7 @@ public partial class GrinFilmCamera : Node
 				long elapsedMs = renderStepWatch.ElapsedMilliseconds;
 				int rowsDoneThisStep = rowCursor >= startRow ? rowCursor - startRow : 0;
 				int pixelCountLocal = bandH > 0 && filmW > 0 ? bandH * filmW : 0;
-				int pixelCap = RenderStepMaxPixelsPerFrame > 0 ? RenderStepMaxPixelsPerFrame : 0;
+				int pixelCap = cfg.RenderStepMaxPixelsPerFrame > 0 ? cfg.RenderStepMaxPixelsPerFrame : 0;
 				int attemptsCap = pass2SoftGateMaxAttemptsPerFrameEffective;
 				int subdivCap = pass2SoftGateMaxSubdividedCallsPerFrameEffective;
 				GD.Print(
@@ -1308,7 +1437,7 @@ public partial class GrinFilmCamera : Node
 				LogBudgetExitOnce(reason, _rowCursor);
 				ForceAdvanceRowCursorOnStop("zero_hit_advance", yEnd);
 				ResetNoHitStall();
-				if (RenderStepBandLog) LogBandSummaryOnce(reasonDone);
+				if (cfg.RenderStepBandLog) LogBandSummaryOnce(reasonDone);
 				return true;
 			}
 
@@ -1346,7 +1475,7 @@ public partial class GrinFilmCamera : Node
 			int ComputeAdvanceRows()
 			{
 				int advance = bandH > 0 ? bandH : rowsPerFrame;
-				if (advance <= 0) advance = Math.Max(1, RowsPerFrame);
+				if (advance <= 0) advance = Math.Max(1, filmCfg.RowsPerFrame);
 				return Math.Max(1, advance);
 			}
 
@@ -1387,7 +1516,7 @@ public partial class GrinFilmCamera : Node
 					}
 					LogBudgetExitOnce("guard_progress", endRow);
 					LogForcedAdvanceWarning(reason, endRow);
-					if (RenderStepBandLog) LogBandSummaryOnce("guard");
+					if (cfg.RenderStepBandLog) LogBandSummaryOnce("guard");
 				}
 
 				if (logAlways || forced)
@@ -1401,7 +1530,7 @@ public partial class GrinFilmCamera : Node
 				// DECISION: continue when still under budget.
 				if (renderStepWatch.ElapsedMilliseconds <= effectiveMaxMs) return false;
 				// DECISION: if UpdateEveryFrame, yield instead of abort.
-				if (UpdateEveryFrame)
+				if (cfg.UpdateEveryFrame)
 				{
 					TriggerBudgetStop(GetMaxMsStopReason());
 					return true;
@@ -1411,7 +1540,7 @@ public partial class GrinFilmCamera : Node
 				{
 					renderStepAbort = true;
 					// DECISION: optionally disable SoftGate on overload to reduce work.
-					if (DisableSoftGateOnOverload && softGateEnabledNow)
+					if (softGateCfg.DisableOnOverload && softGateEnabledNow)
 						DisableSoftGateThisFrame("renderstep_watchdog");
 				}
 				return true;
@@ -1426,6 +1555,7 @@ public partial class GrinFilmCamera : Node
 					LogBudgetExitOnce("renderstep_max_ms", _rowCursor);
 				// EFFECT: disable UpdateEveryFrame on abort.
 				UpdateEveryFrame = false;
+				cfg.UpdateEveryFrame = false;
 				// DECISION: log soft gate disable reason once.
 				if (softGateDisabledThisFrame && !softGateDisableLogged)
 				{
@@ -1478,7 +1608,7 @@ public partial class GrinFilmCamera : Node
 				if (statsEnabled)
 				{
 					_perfFrame.Reset();
-					_perfFrame.RequireHitToRender = _rbr != null && _rbr.RequireHitToRender;
+					_perfFrame.RequireHitToRender = rayCfg.RequireHitToRender;
 					_perfFrame.EffectiveStride = stride;
 					_perfFrame.EffectiveWidth = filmW;
 					_perfFrame.EffectiveHeight = filmH;
@@ -1501,27 +1631,27 @@ public partial class GrinFilmCamera : Node
 						ref _softGateFrame,
 						_frameIndex,
 						effPx,
-						Pass2SoftGateEnableQuickRayMiss,
-						Pass2SoftGateScoringEnabled,
+						softGateCfg.EnableQuickRayMiss,
+						softGateCfg.ScoringEnabled,
 						pass2SoftGateMinSegmentLengthEffective,
-						Pass2SoftGateScoreThreshold,
-						Pass2SoftGateScoreTurnAngleWeight,
-						Pass2SoftGateScorePrevHitLostBonus,
-						Pass2SoftGateRandomProbeChance,
-						Pass2SoftGateScoreBudgetPerFrame,
-						Pass2SoftGateMaxAttemptsPerPixel,
+						softGateCfg.ScoreThreshold,
+						softGateCfg.ScoreTurnAngleWeight,
+						softGateCfg.ScorePrevHitLostBonus,
+						softGateCfg.RandomProbeChance,
+						softGateCfg.ScoreBudgetPerFrame,
+						softGateCfg.MaxAttemptsPerPixel,
 						pass2SoftGateMaxAttemptsPerFrameEffective,
 						pass2SoftGateMaxSubdividedCallsPerFrameEffective);
 					_softGateSampleCounter = 0;
 				}else{}
 				_softGateAttemptsUsedThisFrame = 0;
 				_softGateSubdividedCallsUsedThisFrame = 0;
-				_softGateWatchdogLogsRemaining = Mathf.Max(0, Pass2SoftGateWatchdogLogLimitPerFrame);
-				_softGateSummaryLogsRemaining = Mathf.Max(0, Pass2SoftGateDebugSummaryLogLimitPerFrame);
+				_softGateWatchdogLogsRemaining = Mathf.Max(0, softGateCfg.WatchdogLogLimitPerFrame);
+				_softGateSummaryLogsRemaining = Mathf.Max(0, softGateCfg.DebugSummaryLogLimitPerFrame);
 				/////////////////////////////
 			}
 
-			if (RenderStepPhaseLog)	LogRenderPhase("enter");
+			if (cfg.RenderStepPhaseLog)	LogRenderPhase("enter");
 
 			// DECISION: mark film resize in perf stats when enabled.
 			if (statsEnabled && resizedFilm)
@@ -1547,15 +1677,15 @@ public partial class GrinFilmCamera : Node
 			// DECISION: log toggle snapshots only at frame start.
 			if (frameStart)
 			{
-				MaybePrintToggleSnapshot();
-				MaybePrintSoftGateConfigSnapshot();
+				MaybePrintToggleSnapshot(in cfg, in rayCfg);
+				MaybePrintSoftGateConfigSnapshot(in cfg);
 			}
 
 			var space = _cam.GetWorld3D().DirectSpaceState;
 
-			var fieldSnaps = GetFieldSourceSnaps(_frameIndex, out bool hasSources, out bool cacheRefreshed);
+			var fieldSnaps = GetFieldSourceSnaps(in cfg, _frameIndex, out bool hasSources, out bool cacheRefreshed);
 			// DECISION: track cache hits/misses for field sources when caching is enabled.
-			if (framePerfEnabled && frameStart && UseFieldSourceCache)
+			if (framePerfEnabled && frameStart && cfg.UseFieldSourceCache)
 			{
 				// DECISION: count cache misses vs hits.
 				if (cacheRefreshed) _framePerf.CacheMisses++;
@@ -1563,52 +1693,53 @@ public partial class GrinFilmCamera : Node
 			}
 
 			// DECISION: throttle verbose field source logs to once per frame.
-			if (VerbosePerfLogs && (_rowCursor % filmH) == 0)
+			if (cfg.VerbosePerfLogs && (_rowCursor % filmH) == 0)
 				GD.Print($"fieldSnaps={fieldSnaps.Length} hasSources={hasSources}");
 
 
 			float beta = 0f;
 			float gamma = 2f;
 			// DECISION: optionally pull Beta/Gamma from active camera.
-			if (UseCameraPropsBetaGamma)
+			if (cfg.UseCameraPropsBetaGamma)
 			{
 				beta = ReadFloat(_cam, "Beta", 0f);
 				gamma = ReadFloat(_cam, "Gamma", 2f);
 			}
+			MaybeWarnBroadphaseQuickRayCurved(beta, gamma, effQuickRay, cfg.UseCameraPropsBetaGamma);
 
 			// CROSS-CLASS CONTRACT: RayBeamRenderer decides field center policy.
-			Vector3 center = _rbr.FieldCenterIsCamera ? _cam.GlobalPosition : _rbr.FieldCenter;
+			Vector3 center = rayCfg.FieldCenterIsCamera ? _cam.GlobalPosition : rayCfg.FieldCenter;
 			var basis = _cam.GlobalTransform.Basis;
 
 			float fovRad = Mathf.DegToRad(_cam.Fov);
 			float tanHalf = Mathf.Tan(fovRad * 0.5f);
 			float aspect = (float)filmW / Mathf.Max(1f, filmH);
 
-			int maxSeg = MaxSegPerRay;
+			int maxSeg = rayCfg.MaxSegPerRay;
 			yStart = _rowCursor;
-			int baseRowsPerFrame = Mathf.Clamp(RowsPerFrame, Mathf.Max(1, MinRowsPerFrame), filmH);
-			int maxRowsPerFrame = Mathf.Clamp(MaxRowsPerFrameCap, Mathf.Max(1, MinRowsPerFrame), filmH);
+			int baseRowsPerFrame = Mathf.Clamp(filmCfg.RowsPerFrame, Mathf.Max(1, cfg.MinRowsPerFrame), filmH);
+			int maxRowsPerFrame = Mathf.Clamp(cfg.MaxRowsPerFrameCap, Mathf.Max(1, cfg.MinRowsPerFrame), filmH);
 			// DECISION: disable adaptive rows when target ms <= 0 or no prior adaptive state.
-			if (TargetMsPerFrame <= 0 || _adaptiveRowsPerFrame <= 0)
+			if (cfg.TargetMsPerFrame <= 0 || _adaptiveRowsPerFrame <= 0)
 				_adaptiveRowsPerFrame = baseRowsPerFrame;
-			rowsPerFrame = Mathf.Clamp(_adaptiveRowsPerFrame, Mathf.Max(1, MinRowsPerFrame), maxRowsPerFrame);
+			rowsPerFrame = Mathf.Clamp(_adaptiveRowsPerFrame, Mathf.Max(1, cfg.MinRowsPerFrame), maxRowsPerFrame);
 			// DECISION: keep adaptive state in sync.
 			if (rowsPerFrame != _adaptiveRowsPerFrame)
 				_adaptiveRowsPerFrame = rowsPerFrame;
 			// DECISION: tighten row caps when UpdateEveryFrame is active.
-			if (UpdateEveryFrame)
+			if (cfg.UpdateEveryFrame)
 			{
-				int updateEveryFrameMaxRows = Math.Max(1, UpdateEveryFrameMaxRowsPerStep);
+				int updateEveryFrameMaxRows = Math.Max(1, cfg.UpdateEveryFrameMaxRowsPerStep);
 				maxRowsPerFrame = Math.Min(maxRowsPerFrame, updateEveryFrameMaxRows);
 				// DECISION: apply pixel/segment caps to row budget when configured.
-				int maxRowsByPixel = RenderStepMaxPixelsPerFrame > 0
-					? Math.Max(1, RenderStepMaxPixelsPerFrame / Math.Max(1, filmW))
+				int maxRowsByPixel = cfg.RenderStepMaxPixelsPerFrame > 0
+					? Math.Max(1, cfg.RenderStepMaxPixelsPerFrame / Math.Max(1, filmW))
 					: int.MaxValue;
-				int maxRowsBySeg = RenderStepMaxSegmentsPerFrame > 0
-					? Math.Max(1, RenderStepMaxSegmentsPerFrame / Math.Max(1, filmW * maxSeg))
+				int maxRowsBySeg = cfg.RenderStepMaxSegmentsPerFrame > 0
+					? Math.Max(1, cfg.RenderStepMaxSegmentsPerFrame / Math.Max(1, filmW * maxSeg))
 					: int.MaxValue;
 				int cappedRows = Math.Min(rowsPerFrame, Math.Min(maxRowsByPixel, maxRowsBySeg));
-				rowsPerFrame = Mathf.Clamp(cappedRows, Mathf.Max(1, MinRowsPerFrame), maxRowsPerFrame);
+				rowsPerFrame = Mathf.Clamp(cappedRows, Mathf.Max(1, cfg.MinRowsPerFrame), maxRowsPerFrame);
 				// DECISION: keep adaptive state in sync.
 				if (rowsPerFrame != _adaptiveRowsPerFrame)
 					_adaptiveRowsPerFrame = rowsPerFrame;
@@ -1646,7 +1777,7 @@ public partial class GrinFilmCamera : Node
 				// DECISION: avoid re-entering an incomplete band within the same frame.
 				_suppressStuckBandRepeatOnce = true;
 				LogBudgetExitOnce("guard_incomplete_band", _rowCursor);
-				if (RenderStepBandLog) LogBandSummaryOnce("guard");
+				if (cfg.RenderStepBandLog) LogBandSummaryOnce("guard");
 				return;
 			}
 
@@ -1670,7 +1801,7 @@ public partial class GrinFilmCamera : Node
 					GD.PrintErr($"[RenderStep][WATCHDOG] stuckBand y=[{yStart},{yEnd}) repeats={_stuckBandRepeats} -> forceAdvance");
 					LogBudgetExitOnce("guard_stuck_band", _rowCursor);
 					ForceAdvanceRowCursorOnStop("watchdog_stuck_band", yEnd);
-					if (RenderStepBandLog) LogBandSummaryOnce("guard");
+					if (cfg.RenderStepBandLog) LogBandSummaryOnce("guard");
 					ResetNoHitStall();
 					ApplyDeferredRowCursorResetIfNeeded(yStart, yEnd);
 					return;
@@ -1679,14 +1810,14 @@ public partial class GrinFilmCamera : Node
 
 			int pixelCount = bandH * filmW;
 			// DECISION: enforce max pixels per frame when configured.
-			if (RenderStepMaxPixelsPerFrame > 0 && pixelCount > RenderStepMaxPixelsPerFrame)
+			if (cfg.RenderStepMaxPixelsPerFrame > 0 && pixelCount > cfg.RenderStepMaxPixelsPerFrame)
 			{
 				// DECISION: yield when UpdateEveryFrame; abort otherwise.
-				if (UpdateEveryFrame)
+				if (cfg.UpdateEveryFrame)
 					TriggerBudgetStop("max_pixels");
 				else
 				{
-					AbortRenderStep($"max-pixels {pixelCount}>{RenderStepMaxPixelsPerFrame}");
+					AbortRenderStep($"max-pixels {pixelCount}>{cfg.RenderStepMaxPixelsPerFrame}");
 					LogBudgetExitOnce("max_pixels", _rowCursor);
 					LogRenderStopOnce("max_pixels");
 					FinalizeBandAndAdvance("max_pixels", yStart, yEnd, bandHits, $"px={pixelCount}");
@@ -1710,12 +1841,12 @@ public partial class GrinFilmCamera : Node
 				return;
 			}
 
-			EnsureDepthHistory();
+			EnsureDepthHistory(cfg.DepthHistoryFrames);
 			float frameMaxHit = 0f; // track deepest hit this RenderStep band
 
 			bandHits = 0;
 			// DECISION: choose far distance based on auto-range.
-			float farForSim = AutoRangeDepth ? _rangeFar : MaxDistance;
+			float farForSim = cfg.AutoRangeDepth ? _rangeFar : cfg.Film.MaxDistance;
 
 			// Soft-gate band counters
 			/////////////////////////////
@@ -1726,15 +1857,15 @@ public partial class GrinFilmCamera : Node
 					ref _softGateBand,
 					_frameIndex,
 					0,
-					Pass2SoftGateEnableQuickRayMiss,
-					Pass2SoftGateScoringEnabled,
+					softGateCfg.EnableQuickRayMiss,
+					softGateCfg.ScoringEnabled,
 					pass2SoftGateMinSegmentLengthEffective,
-					Pass2SoftGateScoreThreshold,
-					Pass2SoftGateScoreTurnAngleWeight,
-					Pass2SoftGateScorePrevHitLostBonus,
-					Pass2SoftGateRandomProbeChance,
-					Pass2SoftGateScoreBudgetPerFrame,
-					Pass2SoftGateMaxAttemptsPerPixel,
+					softGateCfg.ScoreThreshold,
+					softGateCfg.ScoreTurnAngleWeight,
+					softGateCfg.ScorePrevHitLostBonus,
+					softGateCfg.RandomProbeChance,
+					softGateCfg.ScoreBudgetPerFrame,
+					softGateCfg.MaxAttemptsPerPixel,
 					pass2SoftGateMaxAttemptsPerFrameEffective,
 					pass2SoftGateMaxSubdividedCallsPerFrameEffective);
 			}else{}
@@ -1742,40 +1873,40 @@ public partial class GrinFilmCamera : Node
 
 			FieldGrid3D fieldGridForPass1 = null;
 			// DECISION: use field grid only when enabled, integrated field is on, and sources exist.
-			if (UseFieldGrid && _rbr.UseIntegratedField && hasSources)
+			if (cfg.UseFieldGrid && rayCfg.UseIntegratedField && hasSources)
 			{
-				int rebuildN = Mathf.Max(1, FieldGridRebuildEveryNFrames);
+				int rebuildN = Mathf.Max(1, cfg.FieldGridRebuildEveryNFrames);
 				bool shouldRebuild = cacheRefreshed || _fieldGrid == null || (_frameIndex % rebuildN) == 0;
 				// DECISION: rebuild grid on schedule or when missing.
 				if (shouldRebuild)
 				{
-					float cellSize = Mathf.Max(0.001f, FieldGridCellSize);
-					float radius = Mathf.Max(0.01f, farForSim + FieldGridBoundsPadding);
+					float cellSize = Mathf.Max(0.001f, cfg.FieldGridCellSize);
+					float radius = Mathf.Max(0.01f, farForSim + cfg.FieldGridBoundsPadding);
 					Vector3 half = new Vector3(radius, radius, radius);
 					Vector3 origin = _cam.GlobalPosition - half;
 					Aabb bounds = new Aabb(origin, half * 2f);
 					_fieldGrid ??= new FieldGrid3D();
-					_fieldGrid.BuildFromSources(fieldSnaps, beta, gamma, _rbr.BendScale, _rbr.FieldStrength, bounds, cellSize);
+					_fieldGrid.BuildFromSources(fieldSnaps, beta, gamma, rayCfg.BendScale, rayCfg.FieldStrength, bounds, cellSize);
 				}
 				fieldGridForPass1 = _fieldGrid;
 			}
 			bool skipBandPhysics = false;
 			int bandIndex = 0;
 			// DECISION: band-level skip when enabled and history supports it.
-			if (UseBandHitSkip)
+			if (cfg.UseBandHitSkip)
 			{
 				EnsureBandHitHistory(filmH, rowsPerFrame);
 				bandIndex = yStart / rowsPerFrame;
 
 				// DECISION: invalidate history when camera/range changed.
-				if (CheckAndUpdateBandInvalidation(_cam.GlobalTransform, farForSim))
+				if (CheckAndUpdateBandInvalidation(_cam.GlobalTransform, farForSim, cfg.BandSkipInvalidatePosDelta, cfg.BandSkipInvalidateBasisDelta, cfg.BandSkipInvalidateRangeDelta))
 					ResetBandHitHistory();
 
 				// DECISION: skip physics when hit rate is low for enough frames.
-				if (bandIndex >= 0 && bandIndex < _bandHitRate.Length && BandSkipFrames > 0)
+				if (bandIndex >= 0 && bandIndex < _bandHitRate.Length && cfg.BandSkipFrames > 0)
 				{
 					// DECISION: only skip when hit rate is below threshold for long enough.
-					if (_bandLowHitFrames[bandIndex] >= BandSkipFrames && _bandHitRate[bandIndex] < BandSkipHitThreshold)
+					if (_bandLowHitFrames[bandIndex] >= cfg.BandSkipFrames && _bandHitRate[bandIndex] < cfg.BandSkipHitThreshold)
 						skipBandPhysics = true;
 				}
 			}
@@ -1783,14 +1914,14 @@ public partial class GrinFilmCamera : Node
 			// allocate / reuse buffers
 			int segTotal = pixelCount * maxSeg;
 			// DECISION: enforce max segments per frame when configured.
-			if (RenderStepMaxSegmentsPerFrame > 0 && segTotal > RenderStepMaxSegmentsPerFrame)
+			if (cfg.RenderStepMaxSegmentsPerFrame > 0 && segTotal > cfg.RenderStepMaxSegmentsPerFrame)
 			{
 				// DECISION: yield when UpdateEveryFrame; abort otherwise.
-				if (UpdateEveryFrame)
+				if (cfg.UpdateEveryFrame)
 					TriggerBudgetStop("max_segments");
 				else
 				{
-					AbortRenderStep($"max-segs {segTotal}>{RenderStepMaxSegmentsPerFrame}");
+					AbortRenderStep($"max-segs {segTotal}>{cfg.RenderStepMaxSegmentsPerFrame}");
 					LogBudgetExitOnce("max_segments", _rowCursor);
 					LogRenderStopOnce("max_segments");
 					FinalizeBandAndAdvance("max_segments", yStart, yEnd, bandHits, $"segs={segTotal}");
@@ -1841,19 +1972,19 @@ public partial class GrinFilmCamera : Node
 			_dbgRayCount = 0;
 			_dbgPtWrite = 0;
 			// DECISION: only build debug overlay if enabled.
-			bool wantDbg = (_rbr != null
-				&& _rbr.DebugMode != RayBeamRenderer.DebugDrawMode.Off
-				&& _rbr.DebugOverlayOwnedByFilm);
+			bool wantDbg = (rayCfg.HasRenderer
+				&& rayCfg.DebugMode != RayBeamRenderer.DebugDrawMode.Off
+				&& rayCfg.DebugOverlayOwnedByFilm);
 			// Rough upper bounds for this band (for capacity planning)
 			// We’ll only sample 1 out of DebugEveryNPixels pixels.
 			// DECISION: allocate debug buffers only when needed.
 			if (wantDbg)
 			{
-				int pxStride = Math.Max(1, DebugEveryNPixels);
+				int pxStride = Math.Max(1, cfg.DebugEveryNPixels);
 				int sampledW = (filmW + pxStride - 1) / pxStride;
 				int sampledH = (bandH + pxStride - 1) / pxStride;
 				int sampledPixels = sampledW * sampledH;
-				sampledPixels = Math.Min(sampledPixels, DebugMaxFilmRays);
+				sampledPixels = Math.Min(sampledPixels, cfg.DebugMaxFilmRays);
 
 				// Each sampled pixel stores up to segCount+1 points; we’ll cap segments too
 				int maxPtsPerRay = maxSeg + 1;
@@ -1863,10 +1994,10 @@ public partial class GrinFilmCamera : Node
 			// snapshot plane filter state (value types -> thread friendly)
 			Plane insightPlane = default;
 			bool useInsightPlane = false;
-			float insightEps = _rbr.CollisionRadius;
+			float insightEps = rayCfg.CollisionRadius;
 
 			// DECISION: legacy pass2 insight plane toggle (currently unused).
-			if (UseInsightPlanePass2 && _rbr.UseInsightPlaneFilter)
+			if (cfg.UseInsightPlanePass2 && rayCfg.UseInsightPlaneFilter)
 			{
 				// easiest v0: rebuild plane here from a NodePath you expose, OR if _rbr has the plane cached, add a getter.
 				// For now (if you don't have a getter), just leave this false until we wire it.
@@ -1874,7 +2005,7 @@ public partial class GrinFilmCamera : Node
 			}
 
 			// DECISION: film pass currently disables insight plane unless wired.
-			if (_rbr.UseInsightPlaneFilter)
+			if (rayCfg.UseInsightPlaneFilter)
 			{
 				// RayBeamRenderer already computed plane in rebuild, but for film we can just disable
 				// OR if you want it: add a public getter in RayBeamRenderer for current plane/flag.
@@ -1893,7 +2024,7 @@ public partial class GrinFilmCamera : Node
 			ulong a0 = Time.GetTicksUsec(); // before Parallel.For
 			ulong a1 = a0;
 			// CROSS-CLASS CONTRACT: pass1StopOnHit inherits ray stopping rules from RayBeamRenderer.
-			bool pass1StopOnHit = _rbr.StopOnHit || _rbr.TerminateTrailOnHit || _rbr.RequireHitToRender;
+			bool pass1StopOnHit = rayCfg.StopOnHit || rayCfg.TerminateTrailOnHit || rayCfg.RequireHitToRender;
 			long pass1PhysQueries = 0;
 			long pass1EarlyStopPixels = 0;
 			pass1StepsIntegrated = 0;
@@ -1907,14 +2038,14 @@ public partial class GrinFilmCamera : Node
 			{
 				pass1StartUsec = a0;
 				
-				if (RenderStepPhaseLog)	LogRenderPhase("pass1-start");
+				if (cfg.RenderStepPhaseLog)	LogRenderPhase("pass1-start");
 
 				PerfScope pass1Scope = default;
 				// DECISION: enable pass1 perf scope when frame perf is enabled.
 				if (framePerfEnabled) pass1Scope = new PerfScope(_framePerf, PerfStage.Pass1_Integrate);
 
 				bool collectPass1Perf = framePerfEnabled;
-				bool collectPass1Steps = framePerfEnabled || VerbosePerfLogs;
+				bool collectPass1Steps = framePerfEnabled || cfg.VerbosePerfLogs;
 
 				// DECISION: parallelize pass1 over all pixels in the band.
 				System.Threading.Tasks.Parallel.For(
@@ -1927,11 +2058,11 @@ public partial class GrinFilmCamera : Node
 						{
 							QuickRayParams = new PhysicsRayQueryParameters3D
 							{
-								CollisionMask = _rbr.CollisionMask,
+								CollisionMask = rayCfg.CollisionMask,
 								CollideWithBodies = true,
 								CollideWithAreas = true,
-								HitFromInside = Pass2HitFromInside,
-								HitBackFaces = Pass2HitBackFaces
+								HitFromInside = cfg.Pass2HitFromInside,
+								HitBackFaces = cfg.Pass2HitBackFaces
 							}
 						};
 					},
@@ -1981,9 +2112,9 @@ public partial class GrinFilmCamera : Node
 							_segBuf, segOffset, maxSeg,
 							insightPlane, useInsightPlane, insightEps,
 							pass1StopOnHit,
-							Pass1DoHitTest,
-							Pass1ProbeEveryNSegments,
-							Pass1ProbeMinTravelDelta,
+							cfg.Pass1DoHitTest,
+							cfg.Pass1ProbeEveryNSegments,
+							cfg.Pass1ProbeMinTravelDelta,
 							out RayBeamRenderer.Pass1HitInfo hitInfo,
 							out bool stoppedEarly,
 							out int hitSegIndex,
@@ -2050,13 +2181,13 @@ public partial class GrinFilmCamera : Node
 
 				// DECISION: dispose pass1 perf scope when enabled.
 				if (framePerfEnabled) pass1Scope.Dispose();
-				if (RenderStepPhaseLog)	LogRenderPhase("pass1-end");
+				if (cfg.RenderStepPhaseLog)	LogRenderPhase("pass1-end");
 
 				a1 = Time.GetTicksUsec(); // after wait
 				pass1EndUsec = a1;
 
 				// DECISION: if we exceeded budget after pass1, defer pass2 to next frame.
-				if (UpdateEveryFrame && effectiveMaxMs > 0f && renderStepWatch.ElapsedMilliseconds > effectiveMaxMs)
+				if (cfg.UpdateEveryFrame && effectiveMaxMs > 0f && renderStepWatch.ElapsedMilliseconds > effectiveMaxMs)
 				{
 					_pendingBandRowStart = yStart;
 					_pendingBandRowCount = bandH;
@@ -2079,7 +2210,7 @@ public partial class GrinFilmCamera : Node
 						LogRenderStopOnce(maxMsReason);
 						LogBudgetExitOnce(maxMsReason, _rowCursor);
 						ForceAdvanceRowCursorOnStop(maxMsReason, yEnd);
-						if (RenderStepBandLog) LogBandSummaryOnce("guard");
+						if (cfg.RenderStepBandLog) LogBandSummaryOnce("guard");
 						ResetNoHitStall();
 						ApplyDeferredRowCursorResetIfNeeded(yStart, yEnd);
 						return;
@@ -2117,7 +2248,7 @@ public partial class GrinFilmCamera : Node
 			// ---- PASS 2 (main thread): collisions + shading ----
 			// EFFECT: mark pass2 start time for budgets and logs.
 			pass2StartUsec = a1;
-			if (RenderStepPhaseLog) LogRenderPhase("pass2-start");
+			if (cfg.RenderStepPhaseLog) LogRenderPhase("pass2-start");
 			bandHits = 0;
 			bandTracedPixels = 0;
 			long shadeUsecAccum = 0;
@@ -2149,19 +2280,18 @@ public partial class GrinFilmCamera : Node
 			long pixelDeltaChanged = 0;
 			long pixelDeltaNewFilled = 0;
 			int softGateFrameId = (int)Engine.GetFramesDrawn();
-			if (RenderStepPhaseLog) LogRenderPhase("softgate-loop");
+			if (cfg.RenderStepPhaseLog) LogRenderPhase("softgate-loop");
 
 			Pass2HitFlags pass2Flags = new Pass2HitFlags
 			{
-				HitBackFaces = Pass2HitBackFaces,
-				HitFromInside = Pass2HitFromInside
+				HitBackFaces = cfg.Pass2HitBackFaces,
+				HitFromInside = cfg.Pass2HitFromInside
 			};
 			// DECISION: encode pass2 flags into a small int for cache keys.
 			int pass2FlagsKey = (pass2Flags.HitBackFaces ? 1 : 0) | (pass2Flags.HitFromInside ? 2 : 0);
-			int pass2QuickRayMissLogRemaining = Pass2LogQuickRayMissSamples;
+			int pass2QuickRayMissLogRemaining = cfg.Pass2LogQuickRayMissSamples;
 
 			Vector3 camPosPass2 = camPos;
-			var (effQuickRay, effOverlap, _) = UpdateBroadphaseEffectiveState();
 			bool useOverlap = effOverlap;
 			bool useQuickRay = effQuickRay;
 
@@ -2170,18 +2300,18 @@ public partial class GrinFilmCamera : Node
 			{
 				_overlapSphere ??= new SphereShape3D();
 				_overlapQuery ??= new PhysicsShapeQueryParameters3D();
-				_overlapSphere.Radius = _rbr.CollisionRadius + BroadphaseMargin;
+				_overlapSphere.Radius = rayCfg.CollisionRadius + broadphaseCfg.Margin;
 				_overlapQuery.Shape = _overlapSphere;
-				_overlapQuery.CollisionMask = _rbr.CollisionMask;
+				_overlapQuery.CollisionMask = rayCfg.CollisionMask;
 				_overlapQuery.CollideWithBodies = true;
 				_overlapQuery.CollideWithAreas = true;
 			}
 
 			// DECISION: configure quick-ray params when quick probing is used.
-			if (useQuickRay || UseSingleProbeThenSubdivide)
+			if (useQuickRay || cfg.UseSingleProbeThenSubdivide)
 			{
 				_quickRayParams ??= new PhysicsRayQueryParameters3D();
-				_quickRayParams.CollisionMask = _rbr.CollisionMask;
+				_quickRayParams.CollisionMask = rayCfg.CollisionMask;
 				_quickRayParams.CollideWithBodies = true;
 				_quickRayParams.CollideWithAreas = true;
 				_quickRayParams.HitFromInside = pass2Flags.HitFromInside;
@@ -2189,7 +2319,7 @@ public partial class GrinFilmCamera : Node
 			}
 
 			// DECISION: reset quick-ray cache when quick probes are active.
-			if (useQuickRay || UseSingleProbeThenSubdivide)
+			if (useQuickRay || cfg.UseSingleProbeThenSubdivide)
 			{
 				EnsurePass2QuickRayCache();
 				ResetPass2QuickRayCache();
@@ -2331,7 +2461,7 @@ public partial class GrinFilmCamera : Node
 				segLenOk = pass2SoftGateMinSegmentLengthEffective <= 0f || segmentLength >= pass2SoftGateMinSegmentLengthEffective;
 
 				// DECISION: per-pixel attempt budget gate.
-				if (Pass2SoftGateMaxAttemptsPerPixel > 0 && attemptsThisPixel >= Pass2SoftGateMaxAttemptsPerPixel)
+				if (softGateCfg.MaxAttemptsPerPixel > 0 && attemptsThisPixel >= softGateCfg.MaxAttemptsPerPixel)
 				{
 					budgetExceeded++;
 					reason = SoftGateDecisionReason.BudgetAttemptCap;
@@ -2362,7 +2492,7 @@ public partial class GrinFilmCamera : Node
 					SoftGateRecordSkip(reason);
 					DisableSoftGateThisFrame("budget_attempt");
 					// DECISION: yield when updating every frame.
-					if (UpdateEveryFrame) TriggerBudgetStop("sg_attempts");
+					if (cfg.UpdateEveryFrame) TriggerBudgetStop("sg_attempts");
 					LogSoftGateSample(
 						segIndex,
 						segmentLength,
@@ -2388,7 +2518,7 @@ public partial class GrinFilmCamera : Node
 					SoftGateRecordSkip(reason);
 					DisableSoftGateThisFrame("budget_subdivide");
 					// DECISION: yield when updating every frame.
-					if (UpdateEveryFrame) TriggerBudgetStop("sg_subdivide");
+					if (cfg.UpdateEveryFrame) TriggerBudgetStop("sg_subdivide");
 					LogSoftGateSample(
 						segIndex,
 						segmentLength,
@@ -2451,7 +2581,7 @@ public partial class GrinFilmCamera : Node
 					return false;
 				}
 
-				bool attemptBudgetOk = (Pass2SoftGateMaxAttemptsPerPixel > 0 && attemptsThisPixel < Pass2SoftGateMaxAttemptsPerPixel)
+				bool attemptBudgetOk = (softGateCfg.MaxAttemptsPerPixel > 0 && attemptsThisPixel < softGateCfg.MaxAttemptsPerPixel)
 					&& (pass2SoftGateMaxAttemptsPerFrameEffective > 0 && _softGateAttemptsUsedThisFrame < pass2SoftGateMaxAttemptsPerFrameEffective);
 				bool subdivideBudgetOk = pass2SoftGateMaxSubdividedCallsPerFrameEffective > 0
 					&& _softGateSubdividedCallsUsedThisFrame < pass2SoftGateMaxSubdividedCallsPerFrameEffective;
@@ -2463,7 +2593,7 @@ public partial class GrinFilmCamera : Node
 					SoftGateRecordSkip(reason);
 					DisableSoftGateThisFrame(attemptBudgetOk ? "budget_subdivide" : "budget_attempt");
 					// DECISION: yield when updating every frame.
-					if (UpdateEveryFrame) TriggerBudgetStop(attemptBudgetOk ? "sg_subdivide" : "sg_attempts");
+					if (cfg.UpdateEveryFrame) TriggerBudgetStop(attemptBudgetOk ? "sg_subdivide" : "sg_attempts");
 					LogSoftGateSample(
 						segIndex,
 						segmentLength,
@@ -2540,7 +2670,7 @@ public partial class GrinFilmCamera : Node
 				}
 
 				// DECISION: soft gate requires both quick-ray-miss and scoring to be enabled.
-				if (!Pass2SoftGateEnableQuickRayMiss || !Pass2SoftGateScoringEnabled)
+				if (!softGateCfg.EnableQuickRayMiss || !softGateCfg.ScoringEnabled)
 				{
 					reason = SoftGateDecisionReason.Disabled;
 					SoftGateRecordSkip(reason);
@@ -2548,26 +2678,26 @@ public partial class GrinFilmCamera : Node
 				}
 
 				// DECISION: emit parameter logs only when debug enabled and budget remains.
-				if (Pass2SoftGateDebugEnabled && _softGateParamLogRemaining > 0)
+				if (softGateCfg.DebugEnabled && _softGateParamLogRemaining > 0)
 				{
 					// DECISION: log includes RayBeam scaling when active.
 					if (pass2SoftGateUseRayBeamSettingsActive)
 					{
-						GD.Print($"[SoftGate][Cfg] segIndex={segIndex} minSegLen={minSegLen:0.###} minSegSteps={Pass2SoftGateMinSegLenSteps:0.###} effStepLen={pass2SoftGateEffStepLen:0.###} scoreThr={Pass2SoftGateScoreThreshold:0.###} turnW={Pass2SoftGateScoreTurnAngleWeight:0.###} prevLost={Pass2SoftGateScorePrevHitLostBonus:0.###} rand={Pass2SoftGateRandomProbeChance:0.###}");
+						GD.Print($"[SoftGate][Cfg] segIndex={segIndex} minSegLen={minSegLen:0.###} minSegSteps={softGateCfg.MinSegLenSteps:0.###} effStepLen={pass2SoftGateEffStepLen:0.###} scoreThr={softGateCfg.ScoreThreshold:0.###} turnW={softGateCfg.ScoreTurnAngleWeight:0.###} prevLost={softGateCfg.ScorePrevHitLostBonus:0.###} rand={softGateCfg.RandomProbeChance:0.###}");
 					}
 					else
 					{
-						GD.Print($"[SoftGate][Cfg] segIndex={segIndex} minSegLen={minSegLen:0.###} scoreThr={Pass2SoftGateScoreThreshold:0.###} turnW={Pass2SoftGateScoreTurnAngleWeight:0.###} prevLost={Pass2SoftGateScorePrevHitLostBonus:0.###} rand={Pass2SoftGateRandomProbeChance:0.###}");
+						GD.Print($"[SoftGate][Cfg] segIndex={segIndex} minSegLen={minSegLen:0.###} scoreThr={softGateCfg.ScoreThreshold:0.###} turnW={softGateCfg.ScoreTurnAngleWeight:0.###} prevLost={softGateCfg.ScorePrevHitLostBonus:0.###} rand={softGateCfg.RandomProbeChance:0.###}");
 					}
 					_softGateParamLogRemaining--;
 				}
 
 				bool metricsFinite = float.IsFinite(segmentLength)
 					&& float.IsFinite(minSegLen)
-					&& float.IsFinite(Pass2SoftGateScoreThreshold)
-					&& float.IsFinite(Pass2SoftGateScoreTurnAngleWeight)
-					&& float.IsFinite(Pass2SoftGateScorePrevHitLostBonus)
-					&& float.IsFinite(Pass2SoftGateRandomProbeChance)
+					&& float.IsFinite(softGateCfg.ScoreThreshold)
+					&& float.IsFinite(softGateCfg.ScoreTurnAngleWeight)
+					&& float.IsFinite(softGateCfg.ScorePrevHitLostBonus)
+					&& float.IsFinite(softGateCfg.RandomProbeChance)
 					&& float.IsFinite(prevSegDir.X) && float.IsFinite(prevSegDir.Y) && float.IsFinite(prevSegDir.Z)
 					&& float.IsFinite(currSegDir.X) && float.IsFinite(currSegDir.Y) && float.IsFinite(currSegDir.Z);
 				// DECISION: skip when any metric is non-finite.
@@ -2591,24 +2721,24 @@ public partial class GrinFilmCamera : Node
 				// Turn-angle score: captures local curvature/instability in the segment chain.
 				bool haveDirs = prevSegDir.LengthSquared() > 1e-6f && currSegDir.LengthSquared() > 1e-6f;
 				// DECISION: compute turn-angle score only when directions are valid and weight > 0.
-				if (haveDirs && Pass2SoftGateScoreTurnAngleWeight > 0f)
+				if (haveDirs && softGateCfg.ScoreTurnAngleWeight > 0f)
 				{
 					float dot = Mathf.Clamp(prevSegDir.Dot(currSegDir), -1f, 1f);
 					turnAngleDeg = Mathf.RadToDeg(Mathf.Acos(dot));
-					turnAngleScore = (turnAngleDeg / 180f) * Pass2SoftGateScoreTurnAngleWeight;
+					turnAngleScore = (turnAngleDeg / 180f) * softGateCfg.ScoreTurnAngleWeight;
 					score += turnAngleScore;
 				}
 				// Prev-hit-lost bonus: encourages probing when last frame hit disappeared.
 				// DECISION: add bonus when previous hit was lost.
 				if (prevHadHit && prevHitLost)
 				{
-					prevHitLostScore = Pass2SoftGateScorePrevHitLostBonus;
+					prevHitLostScore = softGateCfg.ScorePrevHitLostBonus;
 					score += prevHitLostScore;
 				}
 
 				// Random probe: avoids missing thin/rare occluders when score stays low.
-				randomProbe = Pass2SoftGateRandomProbeChance > 0f && _rng.Randf() < Pass2SoftGateRandomProbeChance;
-				bool scoreHit = score >= Pass2SoftGateScoreThreshold || randomProbe;
+				randomProbe = softGateCfg.RandomProbeChance > 0f && _rng.Randf() < softGateCfg.RandomProbeChance;
+				bool scoreHit = score >= softGateCfg.ScoreThreshold || randomProbe;
 
 				// DECISION: record metric only when debug enabled.
 				if (softGateDebugEnabled) SoftGateRecordMetric(score);
@@ -2617,14 +2747,14 @@ public partial class GrinFilmCamera : Node
 				// DECISION: skip when score below threshold and no random probe.
 				if (!scoreHit)
 				{
-					bool randEnabled = Pass2SoftGateRandomProbeChance > 0f;
+					bool randEnabled = softGateCfg.RandomProbeChance > 0f;
 					reason = randEnabled ? SoftGateDecisionReason.RandomNotSelected : SoftGateDecisionReason.ScoreTooLow;
 					SoftGateRecordSkip(reason);
 					return false;
 				}
 
 				// DECISION: enforce per-frame score budget.
-				if (Pass2SoftGateScoreBudgetPerFrame > 0 && _p2SoftGateUsedThisFrame >= Pass2SoftGateScoreBudgetPerFrame)
+				if (softGateCfg.ScoreBudgetPerFrame > 0 && _p2SoftGateUsedThisFrame >= softGateCfg.ScoreBudgetPerFrame)
 				{
 					reason = SoftGateDecisionReason.BudgetAttemptCap;
 					SoftGateRecordSkip(reason);
@@ -2687,7 +2817,7 @@ public partial class GrinFilmCamera : Node
 				}
 
 				// DECISION: append status flags for segment length, score, and random probe.
-				reasonText += $" seglen={(segLenOk ? "ok" : "short")} score={(score >= Pass2SoftGateScoreThreshold ? "ok" : "low")} rand={(randomProbe ? 1 : 0)}";
+				reasonText += $" seglen={(segLenOk ? "ok" : "short")} score={(score >= softGateCfg.ScoreThreshold ? "ok" : "low")} rand={(randomProbe ? 1 : 0)}";
 
 				GD.Print(
 					$"SG seg={segIndex} len={segmentLength:0.###} score={score:0.###} angleDeg={turnAngleDeg:0.###} angleScore={turnAngleScore:0.###} prevLostScore={prevHitLostScore:0.###} forced={(forced ? 1 : 0)} attempt={(attempted ? 1 : 0)} hit={(hit ? 1 : 0)} reason={reasonText}");
@@ -2731,7 +2861,7 @@ public partial class GrinFilmCamera : Node
 							int pi = localY * filmW + x;
 							_perfFrame.Segs += _segCountPerPixel[pi];
 							// DECISION: count shading skipped pixels when RequireHitToRender is active.
-							if (_rbr != null && _rbr.RequireHitToRender) _perfFrame.ShadingSkippedPixels++;
+							if (rayCfg.RequireHitToRender) _perfFrame.ShadingSkippedPixels++;
 							_perfFrame.TracedPixels++;
 						}
 						// DECISION: update band counters when enabled.
@@ -2741,7 +2871,7 @@ public partial class GrinFilmCamera : Node
 							bandSegsIntegrated += _segCountPerPixel[pi];
 						}
 						bandTracedPixels++;
-						int filled = FillPixelBlock(x, y, stride, SkyColor, filmW, filmH);
+						int filled = FillPixelBlock(x, y, stride, cfg.SkyColor, filmW, filmH);
 						// DECISION: count filled pixels when stats enabled.
 						if (statsEnabled) _perfFrame.FilledPixels += filled;
 						// DECISION: count filled pixels for band when frame perf enabled.
@@ -2793,7 +2923,7 @@ public partial class GrinFilmCamera : Node
 						bandTracedPixels++;
 
 						// DECISION: previous-hit flag for instability probes.
-						bool prevHadHit = Pass2ForceOnInstability
+						bool prevHadHit = cfg.Pass2ForceOnInstability
 							&& _pass2PrevHadHit.Length > globalPi
 							&& _pass2PrevHadHit[globalPi] != 0;
 						// DECISION: previous-hit flag for soft gate scoring.
@@ -2838,8 +2968,8 @@ public partial class GrinFilmCamera : Node
 
 						bool isCenterSample = (x == filmW / 2 && y == (yStart + (bandH / 2)));
 						// DECISION: log center sample only when verbose perf logs enabled.
-						bool logCenterSample = VerbosePerfLogs && isCenterSample;
-						bool needHitName = NeedColliderNames || logCenterSample;
+						bool logCenterSample = cfg.VerbosePerfLogs && isCenterSample;
+						bool needHitName = cfg.NeedColliderNames || logCenterSample;
 						bool testedAnyInPass0ThisPixel = false;
 						bool skippedAnyByStrideThisPixel = false;
 						int softGateAttemptsThisPixel = 0;
@@ -2859,8 +2989,8 @@ public partial class GrinFilmCamera : Node
 								prevTraveledB = traveledB;
 							}
 						}
-						bool allowFarEarlyOut = NearestHitOnly && segmentsMonotonic;
-						float farEarlyOutEps = Mathf.Max(0f, EarlyOutDistanceEps);
+						bool allowFarEarlyOut = cfg.NearestHitOnly && segmentsMonotonic;
+						float farEarlyOutEps = Mathf.Max(0f, cfg.EarlyOutDistanceEps);
 						bool earlyOutFarThisPixel = false;
 
 						ulong physStart = 0;
@@ -2879,7 +3009,7 @@ public partial class GrinFilmCamera : Node
 									break;
 								if (!allowInstabilityPass)
 								{
-									if (!UsePass2CollisionStride || !skippedAnyByStrideThisPixel || testedAnyInPass0ThisPixel)
+									if (!cfg.UsePass2CollisionStride || !skippedAnyByStrideThisPixel || testedAnyInPass0ThisPixel)
 										break;
 									if (statsEnabled) _perfFrame.Pass2ForceStride1Pixels++;
 								}
@@ -2896,10 +3026,10 @@ public partial class GrinFilmCamera : Node
 								Vector3 prevSegDir = lastSegDir;
 								Vector3 currSegDir = segDelta.Normalized();
 								lastSegDir = currSegDir;
-								int pass2Stride = forceStride1 ? 1 : ComputePass2CollisionStride(seg.TraveledB, farForSim);
+								int pass2Stride = forceStride1 ? 1 : ComputePass2CollisionStride(seg.TraveledB, farForSim, in cfg);
 
 								if (segLen <= 1e-6f) continue;
-								if (TinySegmentSkipLen > 0f && segLen < TinySegmentSkipLen) continue;
+								if (cfg.TinySegmentSkipLen > 0f && segLen < cfg.TinySegmentSkipLen) continue;
 								if (allowFarEarlyOut && bestHitDistAlongRay < float.PositiveInfinity)
 								{
 									float segStartDist = seg.TraveledB - segLen;
@@ -2908,7 +3038,7 @@ public partial class GrinFilmCamera : Node
 										earlyOutFarThisPixel = true;
 										bandFarEarlyOuts++;
 										if (framePerfEnabled) _framePerf.Pass2Skip_BestHitDist++;
-										EarlyOut("far early-out");
+										EarlyOut("far early-out", cfg.EnableProfiling);
 										break;
 									}
 								}
@@ -2935,7 +3065,7 @@ public partial class GrinFilmCamera : Node
 								bool quickRayMissCachedForSeg = false;
 								/////////////////////////////////
 								
-								if (_rbr.UseSphereSweepCollision)
+								if (rayCfg.UseSphereSweepCollision)
 								{
 									if (!forceStride1)
 									{
@@ -2943,7 +3073,7 @@ public partial class GrinFilmCamera : Node
 										pass2StrideSum += pass2Stride;
 										pass2StrideCount++;
 									}
-									didHit = RayBeamRenderer.SweepSegmentHit(space, segA, segB, _rbr.CollisionMask, _rbr.CollisionRadius, out hp);
+									didHit = RayBeamRenderer.SweepSegmentHit(space, segA, segB, rayCfg.CollisionMask, rayCfg.CollisionRadius, out hp);
 									if ((statsEnabled || framePerfEnabled) && !segCounted)
 									{
 										if (statsEnabled) _perfFrame.SegsTested++;
@@ -2973,7 +3103,7 @@ public partial class GrinFilmCamera : Node
 										Vector3 mid = (segA + segB) * 0.5f;
 
 										_overlapQuery.Transform = new Transform3D(Basis.Identity, mid);
-										var overlaps = space.IntersectShape(_overlapQuery, BroadphaseMaxResults);
+										var overlaps = space.IntersectShape(_overlapQuery, broadphaseCfg.MaxResults);
 										if (statsEnabled) _perfFrame.IntersectShapeCalls++;
 										if (bandCountersEnabled) bandPhysicsQueries++;
 										if ((statsEnabled || framePerfEnabled) && !segCounted)
@@ -3034,7 +3164,7 @@ public partial class GrinFilmCamera : Node
 													currSegDir,
 													prevHadHitForSoftGate,
 													prevHitLostForSoftGate,
-													UseSingleProbeThenSubdivide,
+													cfg.UseSingleProbeThenSubdivide,
 													false,
 													ref softGateDecisionReason,
 													ref softGateScore,
@@ -3089,7 +3219,7 @@ public partial class GrinFilmCamera : Node
 													currSegDir,
 													prevHadHitForSoftGate,
 													prevHitLostForSoftGate,
-													UseSingleProbeThenSubdivide,
+													cfg.UseSingleProbeThenSubdivide,
 													false,
 													ref softGateDecisionReason,
 													ref softGateScore,
@@ -3124,7 +3254,7 @@ public partial class GrinFilmCamera : Node
 										}
 									}
 
-									if (UseSingleProbeThenSubdivide && !useQuickRay && !bypassQuickRayForRepresentative)
+									if (cfg.UseSingleProbeThenSubdivide && !useQuickRay && !bypassQuickRayForRepresentative)
 									{
 										int ax = QuantizePass2QuickRay(segA.X);
 										int ay = QuantizePass2QuickRay(segA.Y);
@@ -3253,7 +3383,7 @@ public partial class GrinFilmCamera : Node
 									if (!forceStride1 && pass2Stride > 1)
 									{
 										bool forceTest = si == 0 || si == lastSi
-											|| (MinSegLenForStrideSkip > 0f && segLen < MinSegLenForStrideSkip);
+											|| (cfg.MinSegLenForStrideSkip > 0f && segLen < cfg.MinSegLenForStrideSkip);
 										if (forceTest)
 											subRaysForcedByPass2Stride++;
 										else if ((si % pass2Stride) != 0)
@@ -3286,7 +3416,7 @@ public partial class GrinFilmCamera : Node
 										pass2StrideCount++;
 									}
 
-									if (pass == 1 && pass2QuickRayMissLogRemaining > 0 && (useQuickRay || UseSingleProbeThenSubdivide))
+									if (pass == 1 && pass2QuickRayMissLogRemaining > 0 && (useQuickRay || cfg.UseSingleProbeThenSubdivide))
 									{
 										int ax = QuantizePass2QuickRay(segA.X);
 										int ay = QuantizePass2QuickRay(segA.Y);
@@ -3310,20 +3440,20 @@ public partial class GrinFilmCamera : Node
 											softGateAttempted++;
 										}
 										ulong softGateStart = 0;
-										if (softGateAttemptedRay && Pass2SoftGateWatchdogMs > 0f)
+										if (softGateAttemptedRay && softGateCfg.WatchdogMs > 0f)
 											softGateStart = Time.GetTicksUsec();
 										int sub = 1;
-										if (segLen > _rbr.CollisionRaySubdivideThreshold)
-											sub = Mathf.CeilToInt(segLen / _rbr.CollisionRaySubdivideThreshold);
-										sub = Mathf.Clamp(sub, 1, _rbr.MaxCollisionSubsteps);
+										if (segLen > rayCfg.CollisionRaySubdivideThreshold)
+											sub = Mathf.CeilToInt(segLen / rayCfg.CollisionRaySubdivideThreshold);
+										sub = Mathf.Clamp(sub, 1, rayCfg.MaxCollisionSubsteps);
 
-										if (UseAdaptiveSubsteps)
+										if (cfg.UseAdaptiveSubsteps)
 										{
-											float far = AutoRangeDepth ? _rangeFar : MaxDistance;
+											float far = cfg.AutoRangeDepth ? _rangeFar : cfg.Film.MaxDistance;
 											float t = Mathf.Clamp(seg.TraveledB / Mathf.Max(0.001f, far), 0f, 1f);
 											float minSub = Mathf.Max(1f, sub * 0.25f);
 											float scaled = Mathf.Lerp(sub, minSub, t);
-											sub = Mathf.Clamp(Mathf.RoundToInt(scaled), 1, _rbr.MaxCollisionSubsteps);
+											sub = Mathf.Clamp(Mathf.RoundToInt(scaled), 1, rayCfg.MaxCollisionSubsteps);
 										}
 
 										if (softGateAttemptedRay)
@@ -3339,7 +3469,7 @@ public partial class GrinFilmCamera : Node
 										}
 										didHit = RayBeamRenderer.SubdividedRayHit(
 												space, segA, segB,
-												_rbr.CollisionMask,
+												rayCfg.CollisionMask,
 												sub,
 											out hp, out hn, out cid, out cname,
 											out int rayQueries,
@@ -3382,21 +3512,21 @@ public partial class GrinFilmCamera : Node
 										softGateHit = true;
 										softGateHitThisPixel = true;
 									}
-									if (softGateAttemptedRay && Pass2SoftGateWatchdogMs > 0f)
+									if (softGateAttemptedRay && softGateCfg.WatchdogMs > 0f)
 									{
 										double elapsedMs = (Time.GetTicksUsec() - softGateStart) / 1000.0;
-										if (elapsedMs > Pass2SoftGateWatchdogMs)
+										if (elapsedMs > softGateCfg.WatchdogMs)
 										{
 											softGateLoopGuardTripped++;
 											softGateWatchdogTrippedThisPixel = true;
 											SoftGateRecordSkip(SoftGateDecisionReason.Guard);
 											LogBudgetExitOnce("guard_softgate_watchdog", y);
-											if (DisableSoftGateOnOverload)
+											if (softGateCfg.DisableOnOverload)
 											{
 												_softGateDisabledForPass = true;
 												DisableSoftGateThisFrame("softgate_watchdog");
 											}
-											if (Pass2SoftGateDebugEnabled && _softGateWatchdogLogsRemaining > 0)
+											if (softGateCfg.DebugEnabled && _softGateWatchdogLogsRemaining > 0)
 											{
 												_softGateWatchdogLogsRemaining--;
 												GD.PrintErr($"[SoftGate][Watchdog] segIndex={si} elapsed={elapsedMs:0.00}ms sub={sub} segLen={segLen:0.###} guard=1");
@@ -3444,10 +3574,10 @@ public partial class GrinFilmCamera : Node
 									}
 
 									// If you only want the nearest hit, keep scanning segments
-									if (NearestHitOnly)
+									if (cfg.NearestHitOnly)
 									{
-										if (EarlyOutDistanceEps > 0f && bestHit <= EarlyOutDistanceEps){
-											EarlyOut("near early-out");
+										if (cfg.EarlyOutDistanceEps > 0f && bestHit <= cfg.EarlyOutDistanceEps){
+											EarlyOut("near early-out", cfg.EnableProfiling);
 											break;
 										}
 										continue;
@@ -3462,13 +3592,13 @@ public partial class GrinFilmCamera : Node
 							if (pass == 0)
 							{
 								bool quickRayAllMiss = quickRayTestedThisPixel && !quickRayHitThisPixel;
-								if (!hadHit && Pass2ForceOnInstability && quickRayAllMiss)
+								if (!hadHit && cfg.Pass2ForceOnInstability && quickRayAllMiss)
 								{
-									bool allowForce = !Pass2ForceIfPrevHitLost || prevHadHit;
+									bool allowForce = !cfg.Pass2ForceIfPrevHitLost || prevHadHit;
 									if (allowForce && segCount > 0 && segStart <= segEnd)
 									{
 										forceInstabilityThisPixel = true;
-										forcePrevHitLostThisPixel = Pass2ForceIfPrevHitLost && prevHadHit;
+										forcePrevHitLostThisPixel = cfg.Pass2ForceIfPrevHitLost && prevHadHit;
 										forceRepSegIndex = segStart + ((segEnd - segStart) / 2);
 										if (statsEnabled)
 										{
@@ -3480,7 +3610,7 @@ public partial class GrinFilmCamera : Node
 								}
 							}
 							if (earlyOutFarThisPixel){
-								EarlyOut("far early-out");
+								EarlyOut("far early-out", cfg.EnableProfiling);
 								break;
 							}else{}
 
@@ -3502,8 +3632,8 @@ public partial class GrinFilmCamera : Node
 						////////////////////////
 						ulong shadeStart = 0;
 						if (shadeTimingEnabled) shadeStart = Time.GetTicksUsec();
-						Color col = SkyColor;
-						bool skipShading = _rbr != null && _rbr.RequireHitToRender && !hadHit;
+						Color col = cfg.SkyColor;
+						bool skipShading = rayCfg.RequireHitToRender && !hadHit;
 						if (skipShading)
 						{
 							if (statsEnabled) _perfFrame.ShadingSkippedPixels++;
@@ -3516,12 +3646,12 @@ public partial class GrinFilmCamera : Node
 							if (hitDistance > frameMaxHit) frameMaxHit = hitDistance;
 
 							// bestHn is a world-space collision normal; film distortion does not change collider geometry.
-							switch (ShadingMode)
+							switch (cfg.ShadingMode)
 							{
 								default:
 								case FilmShadingMode.DepthHeatmap:
 								{
-									float far = AutoRangeDepth ? _rangeFar : MaxDistance;
+									float far = cfg.AutoRangeDepth ? _rangeFar : cfg.Film.MaxDistance;
 									float d = Mathf.Clamp(hitDistance / Mathf.Max(0.001f, far), 0f, 1f);
 									col = Color.FromHsv(0.66f * (1f - d), 1f, 1f);
 									break;
@@ -3531,7 +3661,7 @@ public partial class GrinFilmCamera : Node
 								{
 									// hn is the physics collision normal for the nearest hit.
 									Vector3 n = bestHn;
-									if (FlipNormalToCamera)
+									if (cfg.FlipNormalToCamera)
 									{
 										Vector3 v = (camPosPass2 - bestHp).Normalized();
 										if (n.Dot(v) < 0f) n = -n;
@@ -3547,7 +3677,7 @@ public partial class GrinFilmCamera : Node
 									float rawDot;
 									col = ShadeNdotV(n, v, out rawDot);
 									if (statsEnabled && rawDot < 0f) _perfFrame.BackfaceNdotVHits++;
-									if (FlipNormalToCamera && rawDot < 0f)
+									if (cfg.FlipNormalToCamera && rawDot < 0f)
 									{
 										n = -n;
 										col = ShadeNdotV(n, v, out _);
@@ -3567,7 +3697,7 @@ public partial class GrinFilmCamera : Node
 							}
 
 							if (logCenterSample)
-								GD.Print($"Film hit: dist={hitDistance:0.000} name={hitName} mode={ShadingMode}");
+								GD.Print($"Film hit: dist={hitDistance:0.000} name={hitName} mode={cfg.ShadingMode}");
 						}
 
 						int filled = FillPixelBlock(x, y, stride, col, filmW, filmH);
@@ -3605,10 +3735,10 @@ public partial class GrinFilmCamera : Node
 						{
 							ulong dbgStart = 0;
 							if (statsEnabled) dbgStart = Time.GetTicksUsec();
-							int pxStride = Math.Max(1, DebugEveryNPixels);
+							int pxStride = Math.Max(1, cfg.DebugEveryNPixels);
 
 							// Sample a sparse grid (keeps overlay readable + fast)
-							if ((x % pxStride) == 0 && (y % pxStride) == 0 && _dbgRayCount < DebugMaxFilmRays)
+							if ((x % pxStride) == 0 && (y % pxStride) == 0 && _dbgRayCount < cfg.DebugMaxFilmRays)
 							{
 								int rayIndex = _dbgRayCount++;
 
@@ -3650,7 +3780,7 @@ public partial class GrinFilmCamera : Node
 									ColliderName = needHitName ? hitName : "<none>",
 									Albedo = Colors.White
 								};
-								if (VerbosePerfLogs && _dbgHits[rayIndex].Valid != hadHit)
+								if (cfg.VerbosePerfLogs && _dbgHits[rayIndex].Valid != hadHit)
 								{
 									GD.Print($"Debug hit validity mismatch at rayIndex={rayIndex}");
 								}
@@ -3676,7 +3806,7 @@ public partial class GrinFilmCamera : Node
 				LogRenderStopOnce(maxMsReason);
 				LogBudgetExitOnce(maxMsReason, _rowCursor);
 				ForceAdvanceRowCursorOnStop(maxMsReason, yEnd);
-				if (RenderStepBandLog) LogBandSummaryOnce("guard");
+				if (cfg.RenderStepBandLog) LogBandSummaryOnce("guard");
 				ResetNoHitStall();
 				ApplyDeferredRowCursorResetIfNeeded(yStart, yEnd);
 				return;
@@ -3773,11 +3903,11 @@ public partial class GrinFilmCamera : Node
 				_softGateBand.SoftGateSubdividedCallsUsed = softGateSubdividedCallsUsed;
 				GD.Print(BuildSoftGateBandSummary(yStart, yEnd, _softGateBand));
 			}
-			if (UseBandHitSkip && bandIndex >= 0 && bandIndex < _bandHitRate.Length)
+			if (cfg.UseBandHitSkip && bandIndex >= 0 && bandIndex < _bandHitRate.Length)
 			{
 				float hitRate = bandTracedPixels > 0 ? (float)bandHits / bandTracedPixels : 0f;
 				_bandHitRate[bandIndex] = hitRate;
-				if (hitRate < BandSkipHitThreshold)
+				if (hitRate < cfg.BandSkipHitThreshold)
 					_bandLowHitFrames[bandIndex]++;
 				else
 					_bandLowHitFrames[bandIndex] = 0;
@@ -3789,8 +3919,8 @@ public partial class GrinFilmCamera : Node
 				ulong dbgOverlayStart = 0;
 				if (statsEnabled) dbgOverlayStart = Time.GetTicksUsec();
 
-				if (VerbosePerfLogs)
-					ValidateDebugOverlayData();
+				if (cfg.VerbosePerfLogs)
+					ValidateDebugOverlayData(cfg.DebugMaxFilmRays);
 
 				_filmOverlay.SetData(
 					_cam,
@@ -3798,11 +3928,11 @@ public partial class GrinFilmCamera : Node
 					_dbgOff.AsSpan(0, _dbgRayCount),
 					_dbgCnt.AsSpan(0, _dbgRayCount),
 					_dbgHits.AsSpan(0, _dbgRayCount),
-					_rbr.DebugNormalLen,
+					rayCfg.DebugNormalLen,
 					_img,
 					filmW,
 					filmH,
-					DebugEveryNPixels
+					cfg.DebugEveryNPixels
 				);
 
 				if (statsEnabled)
@@ -3811,17 +3941,17 @@ public partial class GrinFilmCamera : Node
 					_perfFrame.AddOverlayEnqueueUsec(dbgOverlayEnd - dbgOverlayStart);
 				}
 			}
-			else if (_filmOverlay != null && _rbr != null && _rbr.DebugOverlayOwnedByFilm)
+			else if (_filmOverlay != null && rayCfg.HasRenderer && rayCfg.DebugOverlayOwnedByFilm)
 			{
 				_filmOverlay.ClearOverlay();
 			}
 			if (!wantDbg && _filmOverlay != null && _filmOverlay.DrawFilmGradientNormals)
 			{
-				_filmOverlay.SetFilmImage(_img, filmW, filmH, DebugEveryNPixels);
+				_filmOverlay.SetFilmImage(_img, filmW, filmH, cfg.DebugEveryNPixels);
 			}
 
 
-			if (AutoRangeDepth && frameMaxHit > 0.0001f)
+			if (cfg.AutoRangeDepth && frameMaxHit > 0.0001f)
 			{
 				// write one sample per RenderStep call (band-based)
 				_depthHistory[_depthHistWrite] = frameMaxHit;
@@ -3829,19 +3959,19 @@ public partial class GrinFilmCamera : Node
 
 				// robust far plane estimate + safety multiplier
 				float robust = RobustFarEstimate_Fallback(); // use fallback for reliability
-				float targetFar = robust * AutoRangeSafety;
+				float targetFar = robust * cfg.AutoRangeSafety;
 
 				// clamp
-				targetFar = Mathf.Clamp(targetFar, AutoRangeMin, AutoRangeMax);
+				targetFar = Mathf.Clamp(targetFar, cfg.AutoRangeMin, cfg.AutoRangeMax);
 
 				// smooth
-				_rangeFar = Mathf.Lerp(_rangeFar, targetFar, AutoRangeSmoothing);
+				_rangeFar = Mathf.Lerp(_rangeFar, targetFar, cfg.AutoRangeSmoothing);
 			}
-			if (VerbosePerfLogs && _rowCursor == 0 && AutoRangeDepth)
-				GD.Print($"AutoRange Far={_rangeFar:0.###}  (MaxDistance export={MaxDistance:0.###})");
+			if (cfg.VerbosePerfLogs && _rowCursor == 0 && cfg.AutoRangeDepth)
+				GD.Print($"AutoRange Far={_rangeFar:0.###}  (MaxDistance export={cfg.Film.MaxDistance:0.###})");
 
 
-			if (VerbosePerfLogs)
+			if (cfg.VerbosePerfLogs)
 			{
 				double avgStepsPerTracedPixel = bandTracedPixels > 0
 					? (double)pass1StepsIntegrated / bandTracedPixels
@@ -3874,7 +4004,7 @@ public partial class GrinFilmCamera : Node
 					LogRenderStopOnce(budgetStopReason);
 					if (!ForceAdvanceOnNoHit(budgetStopReason, "zero-hit-advance", true))
 					{
-						if (RenderStepBandLog) LogBandSummaryOnce("budget");
+						if (cfg.RenderStepBandLog) LogBandSummaryOnce("budget");
 						MarkBandIncompleteThisFrame(budgetStopReason, yStart, yEnd);
 					}
 					return;
@@ -3901,7 +4031,7 @@ public partial class GrinFilmCamera : Node
 					ResetRowCursor("completed");
 				bandCommittedThisStep = bandAdvanced;
 				if (bandAdvanced)
-					if (RenderStepBandLog) LogBandSummaryOnce(bandHits == 0 ? "zero-hit-advance" : "normal");
+					if (cfg.RenderStepBandLog) LogBandSummaryOnce(bandHits == 0 ? "zero-hit-advance" : "normal");
 				else
 					ForceAdvanceOnNoHit("guard_no_progress", "zero-hit-advance", false);
 				if (bandAdvanced) ResetNoHitStall();
@@ -3909,7 +4039,7 @@ public partial class GrinFilmCamera : Node
 			ApplyDeferredRowCursorResetIfNeeded(yStart, yEnd);
 
 			ulong t1 = Time.GetTicksUsec();
-			if (VerbosePerfLogs)
+			if (cfg.VerbosePerfLogs)
 			{
 				GD.Print($"RenderStep {(t1 - t0)/1000.0:0.00} ms  rows={bandH}  jobs={jobs}  hits={bandHits}");
 				GD.Print($"pass1={(a1-a0)/1000.0:0.00}ms  pass2={(b1-a1)/1000.0:0.00}ms  total={(b1-a0)/1000.0:0.00}ms");
@@ -3933,12 +4063,12 @@ public partial class GrinFilmCamera : Node
 					&& _perfFrame.Hits == 0
 					&& _perfFrame.TracedPixels > 0
 					&& _perfFrame.ShadingSkippedPixels >= _perfFrame.TracedPixels;
-				_perfStats.FinalizeAndPrint(ref _perfFrame, VerbosePerfLogs);
+				_perfStats.FinalizeAndPrint(ref _perfFrame, cfg.VerbosePerfLogs);
 			}
 			if (framePerfEnabled && _rowCursor == 0)
 			{
-				int logEvery = Mathf.Max(1, FramePerfLogEveryNFrames);
-				bool shouldLogFramePerf = FramePerfVerbose || (_frameIndex % logEvery) == 0;
+				int logEvery = Mathf.Max(1, cfg.FramePerfLogEveryNFrames);
+				bool shouldLogFramePerf = cfg.FramePerfVerbose || (_frameIndex % logEvery) == 0;
 				if (shouldLogFramePerf)
 				{
 					GD.Print("FramePerf: " + _framePerf.ToOneLineSummary());
@@ -3961,7 +4091,7 @@ public partial class GrinFilmCamera : Node
 					_lastPhysQ = physQ;
 				}
 			}
-			if (RenderStepPhaseLog) LogRenderPhase("end");
+			if (cfg.RenderStepPhaseLog) LogRenderPhase("end");
 			if (softGateDebugEnabled && _rowCursor == 0)
 			{
 				string extraContext =
@@ -3972,13 +4102,13 @@ public partial class GrinFilmCamera : Node
 					" tested=" + _softGateFrame.SegsTested +
 					"] pass2Hits=" + _softGateFrame.Pass2Hits;
 				GD.Print(BuildSoftGateFrameSummary(_softGateFrame, extraContext));
-				if (Pass2SoftGateDebugSummaryPerFrame && _softGateSummaryLogsRemaining > 0)
+				if (softGateCfg.DebugSummaryPerFrame && _softGateSummaryLogsRemaining > 0)
 				{
 					GD.Print(BuildSoftGateDebugSummary(_softGateFrame));
 					_softGateSummaryLogsRemaining--;
 				}
 
-				bool haveAutoRangeFar = AutoRangeDepth && float.IsFinite(_rangeFar) && _rangeFar > 0f;
+				bool haveAutoRangeFar = cfg.AutoRangeDepth && float.IsFinite(_rangeFar) && _rangeFar > 0f;
 				bool haveAvgSegPerPixel = _softGateFrame.TracedPixels > 0 && _softGateFrame.SegsTotal > 0;
 				if (haveAutoRangeFar && haveAvgSegPerPixel)
 				{
@@ -4010,7 +4140,7 @@ public partial class GrinFilmCamera : Node
 					if (top1 == "segLenTooShort" && top1Count > 0 && _softGateSummaryLogsRemaining > 0)
 					{
 						_softGateSummaryLogsRemaining--;
-						GD.Print($"[SoftGate][WARN] seglen skips dominate with attempts=0 while using RayBeam settings; consider lowering Pass2SoftGateMinSegLenSteps (cur={Pass2SoftGateMinSegLenSteps:0.###}).");
+						GD.Print($"[SoftGate][WARN] seglen skips dominate with attempts=0 while using RayBeam settings; consider lowering Pass2SoftGateMinSegLenSteps (cur={softGateCfg.MinSegLenSteps:0.###}).");
 					}
 				}
 				if (_softGateFrame.SoftGateEnabled && _softGateFrame.SoftGateConsidered > 0 && _softGateFrame.SoftGateAttempts == 0)
@@ -4042,10 +4172,10 @@ public partial class GrinFilmCamera : Node
 		};
 	}
 
-	private RayBeamRenderer.FieldSourceSnap[] GetFieldSourceSnaps(int frameIndex, out bool hasSources, out bool cacheRefreshed)
+	private RayBeamRenderer.FieldSourceSnap[] GetFieldSourceSnaps(in EffectiveConfig cfg, int frameIndex, out bool hasSources, out bool cacheRefreshed)
 	{
 		cacheRefreshed = false;
-		if (!UseFieldSourceCache)
+		if (!cfg.UseFieldSourceCache)
 		{
 			var fieldSources = GetTree().GetNodesInGroup("field_sources");
 			var snaps = _rbr.SnapshotFieldSources(fieldSources);
@@ -4054,7 +4184,7 @@ public partial class GrinFilmCamera : Node
 		}
 
 		bool needsRefresh = false;
-		int refreshInterval = Mathf.Max(1, FieldSourceRefreshIntervalFrames);
+		int refreshInterval = Mathf.Max(1, cfg.FieldSourceRefreshIntervalFrames);
 		if (frameIndex - _fieldSourceLastRefreshFrame >= refreshInterval)
 			needsRefresh = true;
 
@@ -4148,20 +4278,20 @@ public partial class GrinFilmCamera : Node
 		if (_bandLowHitFrames.Length > 0) Array.Clear(_bandLowHitFrames, 0, _bandLowHitFrames.Length);
 	}
 
-	private bool CheckAndUpdateBandInvalidation(Transform3D current, float rangeFar)
+	private bool CheckAndUpdateBandInvalidation(Transform3D current, float rangeFar, float posDeltaThreshold, float basisDeltaThreshold, float rangeDeltaThreshold)
 	{
 		bool invalidate = false;
 		if (_hasLastCamTransform)
 		{
 			float posDelta = (current.Origin - _lastCamTransform.Origin).Length();
 			float basisDelta = MaxBasisDelta(current.Basis, _lastCamTransform.Basis);
-			if (posDelta > BandSkipInvalidatePosDelta || basisDelta > BandSkipInvalidateBasisDelta)
+			if (posDelta > posDeltaThreshold || basisDelta > basisDeltaThreshold)
 				invalidate = true;
 		}
 
-		if (_hasLastRangeFar && BandSkipInvalidateRangeDelta > 0f)
+		if (_hasLastRangeFar && rangeDeltaThreshold > 0f)
 		{
-			if (Mathf.Abs(rangeFar - _lastRangeFar) > BandSkipInvalidateRangeDelta)
+			if (Mathf.Abs(rangeFar - _lastRangeFar) > rangeDeltaThreshold)
 				invalidate = true;
 		}
 
@@ -4181,11 +4311,11 @@ public partial class GrinFilmCamera : Node
 		return Mathf.Max(dx, Mathf.Max(dy, dz));
 	}
 
-	private void EnsureDepthHistory()
+	private void EnsureDepthHistory(int depthHistoryFrames)
 	{
-		if (_depthHistory.Length != DepthHistoryFrames)
+		if (_depthHistory.Length != depthHistoryFrames)
 		{
-			_depthHistory = new float[Mathf.Max(4, DepthHistoryFrames)];
+			_depthHistory = new float[Mathf.Max(4, depthHistoryFrames)];
 			for (int i = 0; i < _depthHistory.Length; i++) _depthHistory[i] = 0f;
 			_depthHistWrite = 0;
 		}
@@ -4233,15 +4363,15 @@ public partial class GrinFilmCamera : Node
 		return new Color(ndv, ndv, ndv, 1f);
 	}
 
-	private int ComputePass2CollisionStride(float traveledB, float far)
+	private int ComputePass2CollisionStride(float traveledB, float far, in EffectiveConfig cfg)
 	{
-		if (!UsePass2CollisionStride) return 1;
-		int nearS = Mathf.Clamp(Pass2CollisionStrideNear, 1, 32);
-		int farS = Mathf.Clamp(Pass2CollisionStrideFar, 1, 32);
+		if (!cfg.UsePass2CollisionStride) return 1;
+		int nearS = Mathf.Clamp(cfg.Pass2CollisionStrideNear, 1, 32);
+		int farS = Mathf.Clamp(cfg.Pass2CollisionStrideFar, 1, 32);
 		if (farS <= nearS) return nearS;
 
 		float t = traveledB / Mathf.Max(0.001f, far);
-		float startT = Mathf.Clamp(Pass2CollisionStrideFarStartT, 0f, 1f);
+		float startT = Mathf.Clamp(cfg.Pass2CollisionStrideFarStartT, 0f, 1f);
 		if (t <= startT) return nearS;
 
 		float a = (t - startT) / Mathf.Max(1e-6f, (1f - startT));
@@ -4352,11 +4482,11 @@ public partial class GrinFilmCamera : Node
 			_overlayRect = null;
 	}
 
-	private bool EnsureFilmImageSize()
+	private bool EnsureFilmImageSize(in EffectiveConfig cfg)
 	{
-		float scale = Mathf.Clamp(FilmResolutionScale, 0.01f, 1.0f);
-		int targetW = Mathf.Max(8, Mathf.RoundToInt(Width * scale));
-		int targetH = Mathf.Max(8, Mathf.RoundToInt(Height * scale));
+		float scale = cfg.Film.ResolutionScale;
+		int targetW = Mathf.Max(8, Mathf.RoundToInt(cfg.Film.BaseWidth * scale));
+		int targetH = Mathf.Max(8, Mathf.RoundToInt(cfg.Film.BaseHeight * scale));
 		int targetPixels = targetW * targetH;
 		if (_img != null && _filmWidth == targetW && _filmHeight == targetH)
 		{
@@ -4370,7 +4500,7 @@ public partial class GrinFilmCamera : Node
 		_filmWidth = targetW;
 		_filmHeight = targetH;
 		_img = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
-		_img.Fill(SkyColor);
+		_img.Fill(cfg.SkyColor);
 		_tex = ImageTexture.CreateFromImage(_img);
 		_pass2PrevHadHit = new byte[_filmWidth * _filmHeight];
 		_pass2HadHitLostThisFrame = new byte[_filmWidth * _filmHeight];
@@ -4380,15 +4510,15 @@ public partial class GrinFilmCamera : Node
 		return true;
 	}
 
-	private int ComputeFilmSettingsHash()
+	private int ComputeFilmSettingsHash(in EffectiveConfig cfg)
 	{
 		unchecked
 		{
 			int hash = 17;
-			hash = hash * 31 + Width;
-			hash = hash * 31 + Height;
-			hash = hash * 31 + PixelStride;
-			hash = hash * 31 + FilmResolutionScale.GetHashCode();
+			hash = hash * 31 + cfg.Film.BaseWidth;
+			hash = hash * 31 + cfg.Film.BaseHeight;
+			hash = hash * 31 + cfg.Film.PixelStride;
+			hash = hash * 31 + cfg.Film.ResolutionScale.GetHashCode();
 			return hash;
 		}
 	}
@@ -4426,10 +4556,10 @@ public partial class GrinFilmCamera : Node
 		if (_dbgPts.Length < pts) Array.Resize(ref _dbgPts, pts);
 	}
 
-	private void ValidateDebugOverlayData()
+	private void ValidateDebugOverlayData(int debugMaxFilmRays)
 	{
-		if (_dbgRayCount > DebugMaxFilmRays)
-			GD.Print($"Debug overlay rayCount exceeded cap: {_dbgRayCount} > {DebugMaxFilmRays}");
+		if (_dbgRayCount > debugMaxFilmRays)
+			GD.Print($"Debug overlay rayCount exceeded cap: {_dbgRayCount} > {debugMaxFilmRays}");
 
 		if (_dbgRayCount > _dbgOff.Length || _dbgRayCount > _dbgCnt.Length || _dbgRayCount > _dbgHits.Length)
 			GD.Print("Debug overlay ray arrays are smaller than rayCount.");
@@ -4453,19 +4583,19 @@ public partial class GrinFilmCamera : Node
 		}
 	}
 
-	private void MaybePrintToggleSnapshot()
+	private void MaybePrintToggleSnapshot(in EffectiveConfig cfg, in EffectiveRayMarchSettings rayCfg)
 	{
-		if (_rbr == null) return;
+		if (!rayCfg.HasRenderer) return;
 
 		ToggleSnapshot cur = new ToggleSnapshot
 		{
-			UseAdaptiveSubsteps = UseAdaptiveSubsteps,
-			UseSingleProbeThenSubdivide = UseSingleProbeThenSubdivide,
-			UseBandHitSkip = UseBandHitSkip,
-			RequireHitToRender = _rbr.RequireHitToRender,
-			StopOnHit = _rbr.StopOnHit,
-			TerminateTrailOnHit = _rbr.TerminateTrailOnHit,
-			UpdateEveryFrame = UpdateEveryFrame
+			UseAdaptiveSubsteps = cfg.UseAdaptiveSubsteps,
+			UseSingleProbeThenSubdivide = cfg.UseSingleProbeThenSubdivide,
+			UseBandHitSkip = cfg.UseBandHitSkip,
+			RequireHitToRender = rayCfg.RequireHitToRender,
+			StopOnHit = rayCfg.StopOnHit,
+			TerminateTrailOnHit = rayCfg.TerminateTrailOnHit,
+			UpdateEveryFrame = cfg.UpdateEveryFrame
 		};
 
 		if (_hasToggleSnapshot && ToggleSnapshotEquals(in cur, in _lastToggleSnapshot)) return;
@@ -4672,22 +4802,23 @@ public partial class GrinFilmCamera : Node
 		return sb.ToString();
 	}
 
-	private void MaybePrintSoftGateConfigSnapshot()
+	private void MaybePrintSoftGateConfigSnapshot(in EffectiveConfig cfg)
 	{
+		EffectiveSoftGateSettings softGateCfg = cfg.SoftGate;
 		SoftGateConfigSnapshot cur = new SoftGateConfigSnapshot
 		{
-			Pass2SoftGateEnableQuickRayMiss = Pass2SoftGateEnableQuickRayMiss,
-			Pass2SoftGateScoringEnabled = Pass2SoftGateScoringEnabled,
-			Pass2SoftGateMinSegmentLength = Pass2SoftGateMinSegmentLength,
-			Pass2SoftGateScoreThreshold = Pass2SoftGateScoreThreshold,
-			Pass2SoftGateScoreTurnAngleWeight = Pass2SoftGateScoreTurnAngleWeight,
-			Pass2SoftGateScorePrevHitLostBonus = Pass2SoftGateScorePrevHitLostBonus,
-			Pass2SoftGateRandomProbeChance = Pass2SoftGateRandomProbeChance,
-			Pass2SoftGateScoreBudgetPerFrame = Pass2SoftGateScoreBudgetPerFrame,
-			Pass2SoftGateMaxAttemptsPerPixel = Pass2SoftGateMaxAttemptsPerPixel,
-			Pass2SoftGateMaxAttemptsPerFrame = Pass2SoftGateMaxAttemptsPerFrame,
-			Pass2SoftGateMaxSubdividedCallsPerFrame = Pass2SoftGateMaxSubdividedCallsPerFrame,
-			UpdateEveryFrame = UpdateEveryFrame
+			Pass2SoftGateEnableQuickRayMiss = softGateCfg.EnableQuickRayMiss,
+			Pass2SoftGateScoringEnabled = softGateCfg.ScoringEnabled,
+			Pass2SoftGateMinSegmentLength = softGateCfg.MinSegmentLength,
+			Pass2SoftGateScoreThreshold = softGateCfg.ScoreThreshold,
+			Pass2SoftGateScoreTurnAngleWeight = softGateCfg.ScoreTurnAngleWeight,
+			Pass2SoftGateScorePrevHitLostBonus = softGateCfg.ScorePrevHitLostBonus,
+			Pass2SoftGateRandomProbeChance = softGateCfg.RandomProbeChance,
+			Pass2SoftGateScoreBudgetPerFrame = softGateCfg.ScoreBudgetPerFrame,
+			Pass2SoftGateMaxAttemptsPerPixel = softGateCfg.MaxAttemptsPerPixel,
+			Pass2SoftGateMaxAttemptsPerFrame = softGateCfg.MaxAttemptsPerFrame,
+			Pass2SoftGateMaxSubdividedCallsPerFrame = softGateCfg.MaxSubdividedCallsPerFrame,
+			UpdateEveryFrame = cfg.UpdateEveryFrame
 		};
 
 		if (_hasSoftGateCfgSnapshot && SoftGateConfigSnapshotEquals(in cur, in _lastSoftGateCfgSnapshot)) return;
@@ -4874,6 +5005,369 @@ public partial class GrinFilmCamera : Node
 		RenderStepMaxMs = Math.Max(1, RenderStepMaxMs);
 	}
 
+	private void ResolveEffectiveConfig(out EffectiveConfig cfg)
+	{
+		// Apply preset flow first so effective config is always resolved from current presets.
+		ApplyAllPresetsIfNeeded("resolve");
+
+		var broadphaseResolved = UpdateBroadphaseEffectiveState();
+
+		cfg = new EffectiveConfig
+		{
+			Broadphase = new EffectiveBroadphaseSettings
+			{
+				UseQuickRay = broadphaseResolved.effQuickRay,
+				UseOverlap = broadphaseResolved.effOverlap,
+				Mode = broadphaseResolved.effMode,
+				ModeName = broadphaseResolved.effMode.ToString(),
+				Reason = broadphaseResolved.sourceTag,
+				PolicyEnabled = UseBroadphasePolicy,
+				Policy = BroadphasePolicy,
+				Margin = BroadphaseMargin,
+				MaxResults = BroadphaseMaxResults
+			},
+			Film = new EffectiveFilmSettings
+			{
+				BaseWidth = Width,
+				BaseHeight = Height,
+				ResolutionScale = Mathf.Clamp(FilmResolutionScale, 0.01f, 1.0f),
+				PixelStride = Mathf.Clamp(PixelStride, 1, 8),
+				RowsPerFrame = Math.Max(1, RowsPerFrame),
+				MaxDistance = MaxDistance,
+				Opacity = FilmOpacity
+			},
+			UpdateEveryFrame = UpdateEveryFrame,
+			UpdateEveryFrameBudgetMs = UpdateEveryFrameBudgetMs,
+			UpdateEveryFrameMaxRowsPerStep = UpdateEveryFrameMaxRowsPerStep,
+			RenderStepMaxMs = RenderStepMaxMs,
+			RenderStepMaxPixelsPerFrame = RenderStepMaxPixelsPerFrame,
+			RenderStepMaxSegmentsPerFrame = RenderStepMaxSegmentsPerFrame,
+			TargetMsPerFrame = TargetMsPerFrame,
+			MinRowsPerFrame = MinRowsPerFrame,
+			MaxRowsPerFrameCap = MaxRowsPerFrameCap,
+			AutoRangeDepth = AutoRangeDepth,
+			AutoRangeMin = AutoRangeMin,
+			AutoRangeMax = AutoRangeMax,
+			AutoRangeSmoothing = AutoRangeSmoothing,
+			AutoRangeSafety = AutoRangeSafety,
+			DepthHistoryFrames = DepthHistoryFrames,
+			UseFieldGrid = UseFieldGrid,
+			FieldGridCellSize = FieldGridCellSize,
+			FieldGridRebuildEveryNFrames = FieldGridRebuildEveryNFrames,
+			FieldGridBoundsPadding = FieldGridBoundsPadding,
+			UseCameraPropsBetaGamma = UseCameraPropsBetaGamma,
+			TinySegmentSkipLen = TinySegmentSkipLen,
+			EarlyOutDistanceEps = EarlyOutDistanceEps,
+			UseAdaptiveSubsteps = UseAdaptiveSubsteps,
+			UseBandHitSkip = UseBandHitSkip,
+			BandSkipHitThreshold = BandSkipHitThreshold,
+			BandSkipFrames = BandSkipFrames,
+			BandSkipInvalidatePosDelta = BandSkipInvalidatePosDelta,
+			BandSkipInvalidateBasisDelta = BandSkipInvalidateBasisDelta,
+			BandSkipInvalidateRangeDelta = BandSkipInvalidateRangeDelta,
+			Pass1DoHitTest = Pass1DoHitTest,
+			Pass1ProbeEveryNSegments = Pass1ProbeEveryNSegments,
+			Pass1ProbeMinTravelDelta = Pass1ProbeMinTravelDelta,
+			UsePass2CollisionStride = UsePass2CollisionStride,
+			Pass2CollisionStrideNear = Pass2CollisionStrideNear,
+			Pass2CollisionStrideFar = Pass2CollisionStrideFar,
+			Pass2CollisionStrideFarStartT = Pass2CollisionStrideFarStartT,
+			MinSegLenForStrideSkip = MinSegLenForStrideSkip,
+			Pass2HitBackFaces = Pass2HitBackFaces,
+			Pass2HitFromInside = Pass2HitFromInside,
+			Pass2ForceOnInstability = Pass2ForceOnInstability,
+			Pass2ForceIfPrevHitLost = Pass2ForceIfPrevHitLost,
+			Pass2LogQuickRayMissSamples = Pass2LogQuickRayMissSamples,
+			UseSingleProbeThenSubdivide = UseSingleProbeThenSubdivide,
+			NearestHitOnly = NearestHitOnly,
+			UseInsightPlanePass2 = UseInsightPlanePass2,
+			RenderStepPhaseLog = RenderStepPhaseLog,
+			RenderStepBandLog = RenderStepBandLog,
+			DebugEveryNPixels = DebugEveryNPixels,
+			DebugMaxFilmRays = DebugMaxFilmRays,
+			EnableProfiling = EnableProfiling,
+			VerbosePerfLogs = VerbosePerfLogs,
+			EnableFramePerf = EnableFramePerf,
+			FramePerfVerbose = FramePerfVerbose,
+			FramePerfLogEveryNFrames = FramePerfLogEveryNFrames,
+			NeedColliderNames = NeedColliderNames,
+			UseFieldSourceCache = UseFieldSourceCache,
+			FieldSourceRefreshIntervalFrames = FieldSourceRefreshIntervalFrames,
+			ShadingMode = ShadingMode,
+			FlipNormalToCamera = FlipNormalToCamera,
+			SkyColor = SkyColor
+		};
+
+		cfg.SoftGate = new EffectiveSoftGateSettings
+		{
+			EnableQuickRayMiss = Pass2SoftGateEnableQuickRayMiss,
+			ScoringEnabled = Pass2SoftGateScoringEnabled,
+			DisableOnOverload = DisableSoftGateOnOverload,
+			UseRayBeamSettings = Pass2SoftGateUseRayBeamSettings,
+			UseRayBeamSettingsActive = false,
+			EffectiveStepLength = 0f,
+			MinSegLenSteps = Pass2SoftGateMinSegLenSteps,
+			MinSegmentLength = Pass2SoftGateMinSegmentLength,
+			ScoreThreshold = Pass2SoftGateScoreThreshold,
+			ScoreTurnAngleWeight = Pass2SoftGateScoreTurnAngleWeight,
+			ScorePrevHitLostBonus = Pass2SoftGateScorePrevHitLostBonus,
+			RandomProbeChance = Pass2SoftGateRandomProbeChance,
+			ScoreBudgetPerFrame = Pass2SoftGateScoreBudgetPerFrame,
+			MaxAttemptsPerPixel = Pass2SoftGateMaxAttemptsPerPixel,
+			MaxAttemptsPerFrame = Pass2SoftGateMaxAttemptsPerFrame,
+			MaxSubdividedCallsPerFrame = Pass2SoftGateMaxSubdividedCallsPerFrame,
+			WatchdogMs = Pass2SoftGateWatchdogMs,
+			WatchdogLogLimitPerFrame = Pass2SoftGateWatchdogLogLimitPerFrame,
+			DebugEnabled = Pass2SoftGateDebugEnabled,
+			DebugVerbosity = Pass2SoftGateDebugVerbosity,
+			DebugSummaryPerFrame = Pass2SoftGateDebugSummaryPerFrame,
+			DebugSummaryLogLimitPerFrame = Pass2SoftGateDebugSummaryLogLimitPerFrame
+		};
+
+		var rbr = _rbr;
+		if (rbr != null)
+		{
+			cfg.RayMarch = new EffectiveRayMarchSettings
+			{
+				HasRenderer = true,
+				StepsPerRay = rbr.StepsPerRay,
+				CollisionEveryNSteps = rbr.CollisionEveryNSteps,
+				StepLength = rbr.StepLength,
+				MinStepLength = rbr.MinStepLength,
+				MaxStepLength = rbr.MaxStepLength,
+				StepAdaptGain = rbr.StepAdaptGain,
+				UseIntegratedField = rbr.UseIntegratedField,
+				BendScale = rbr.BendScale,
+				FieldStrength = rbr.FieldStrength,
+				FieldCenter = rbr.FieldCenter,
+				FieldCenterIsCamera = rbr.FieldCenterIsCamera,
+				CollisionMask = rbr.CollisionMask,
+				CollisionRadius = rbr.CollisionRadius,
+				UseSphereSweepCollision = rbr.UseSphereSweepCollision,
+				UseInsightPlaneFilter = rbr.UseInsightPlaneFilter,
+				CollisionRaySubdivideThreshold = rbr.CollisionRaySubdivideThreshold,
+				MaxCollisionSubsteps = rbr.MaxCollisionSubsteps,
+				RequireHitToRender = rbr.RequireHitToRender,
+				StopOnHit = rbr.StopOnHit,
+				TerminateTrailOnHit = rbr.TerminateTrailOnHit,
+				UseScreenSpaceCollisionCadence = rbr.UseScreenSpaceCollisionCadence,
+				CollisionMaxErrorPixels = rbr.CollisionMaxErrorPixels,
+				MinDepthForError = rbr.MinDepthForError,
+				MinCollisionEveryNSteps = rbr.MinCollisionEveryNSteps,
+				DebugMode = rbr.DebugMode,
+				DebugNormalLen = rbr.DebugNormalLen,
+				DebugOverlayOwnedByFilm = rbr.DebugOverlayOwnedByFilm,
+				MaxSegPerRay = Mathf.Max(1, rbr.StepsPerRay / Mathf.Max(1, rbr.CollisionEveryNSteps)) + 2
+			};
+		}
+		else
+		{
+			cfg.RayMarch = new EffectiveRayMarchSettings
+			{
+				HasRenderer = false,
+				DebugMode = RayBeamRenderer.DebugDrawMode.Off,
+				MaxSegPerRay = 64
+			};
+		}
+
+		// Apply explicit RayBeamRenderer-derived scaling last.
+		if (cfg.SoftGate.UseRayBeamSettings)
+		{
+			bool used = false;
+			if (cfg.RayMarch.HasRenderer)
+			{
+				float stepLength = cfg.RayMarch.StepLength;
+				float minStepLength = cfg.RayMarch.MinStepLength;
+				float maxStepLength = cfg.RayMarch.MaxStepLength;
+				float stepAdaptGain = cfg.RayMarch.StepAdaptGain;
+				bool stepsFinite = float.IsFinite(stepLength)
+					&& float.IsFinite(minStepLength)
+					&& float.IsFinite(maxStepLength)
+					&& float.IsFinite(stepAdaptGain);
+				if (stepsFinite)
+				{
+					float minStep = Mathf.Min(minStepLength, maxStepLength);
+					float maxStep = Mathf.Max(minStepLength, maxStepLength);
+					float effStepLen = Mathf.Clamp(stepLength, minStep, maxStep);
+					cfg.SoftGate.EffectiveStepLength = effStepLen;
+					cfg.SoftGate.MinSegmentLength = cfg.SoftGate.MinSegLenSteps * effStepLen;
+
+					float stepScale = effStepLen > 0f
+						? Mathf.Clamp(1f / effStepLen, 0.25f, 4f)
+						: 1f;
+					float strideScale = Mathf.Clamp(1f / Mathf.Max(1, cfg.Film.PixelStride), 0.125f, 1f);
+					int derivedMaxAttemptsPerFrame = Mathf.Clamp(
+						Mathf.RoundToInt(Pass2SoftGateMaxAttemptsPerFrame * stepScale * strideScale),
+						Pass2SoftGateMaxAttemptsPerFrameMin,
+						Pass2SoftGateMaxAttemptsPerFrameMax);
+					int derivedMaxSubdividedCallsPerFrame = Mathf.Clamp(
+						Mathf.RoundToInt(Pass2SoftGateMaxSubdividedCallsPerFrame * stepScale * strideScale),
+						Pass2SoftGateMaxSubdividedCallsPerFrameMin,
+						Pass2SoftGateMaxSubdividedCallsPerFrameMax);
+
+					cfg.SoftGate.MaxAttemptsPerFrame = derivedMaxAttemptsPerFrame;
+					cfg.SoftGate.MaxSubdividedCallsPerFrame = derivedMaxSubdividedCallsPerFrame;
+					used = true;
+				}
+			}
+			cfg.SoftGate.UseRayBeamSettingsActive = used;
+		}
+	}
+
+	private static int ComputeEffectiveConfigHash(in EffectiveConfig cfg)
+	{
+		var hash = new HashCode();
+		hash.Add(cfg.Broadphase.UseQuickRay);
+		hash.Add(cfg.Broadphase.UseOverlap);
+		hash.Add(cfg.Broadphase.Mode);
+		hash.Add(cfg.Broadphase.Reason ?? string.Empty);
+		hash.Add(cfg.Broadphase.PolicyEnabled);
+		hash.Add(cfg.Broadphase.Policy);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.Broadphase.Margin));
+		hash.Add(cfg.Broadphase.MaxResults);
+		hash.Add(cfg.SoftGate.EnableQuickRayMiss);
+		hash.Add(cfg.SoftGate.ScoringEnabled);
+		hash.Add(cfg.SoftGate.DisableOnOverload);
+		hash.Add(cfg.SoftGate.UseRayBeamSettings);
+		hash.Add(cfg.SoftGate.UseRayBeamSettingsActive);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.SoftGate.EffectiveStepLength));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.SoftGate.MinSegLenSteps));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.SoftGate.MinSegmentLength));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.SoftGate.ScoreThreshold));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.SoftGate.ScoreTurnAngleWeight));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.SoftGate.ScorePrevHitLostBonus));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.SoftGate.RandomProbeChance));
+		hash.Add(cfg.SoftGate.ScoreBudgetPerFrame);
+		hash.Add(cfg.SoftGate.MaxAttemptsPerPixel);
+		hash.Add(cfg.SoftGate.MaxAttemptsPerFrame);
+		hash.Add(cfg.SoftGate.MaxSubdividedCallsPerFrame);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.SoftGate.WatchdogMs));
+		hash.Add(cfg.SoftGate.WatchdogLogLimitPerFrame);
+		hash.Add(cfg.SoftGate.DebugEnabled);
+		hash.Add(cfg.SoftGate.DebugVerbosity);
+		hash.Add(cfg.SoftGate.DebugSummaryPerFrame);
+		hash.Add(cfg.SoftGate.DebugSummaryLogLimitPerFrame);
+		hash.Add(cfg.RayMarch.HasRenderer);
+		hash.Add(cfg.RayMarch.StepsPerRay);
+		hash.Add(cfg.RayMarch.CollisionEveryNSteps);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.RayMarch.StepLength));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.RayMarch.MinStepLength));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.RayMarch.MaxStepLength));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.RayMarch.StepAdaptGain));
+		hash.Add(cfg.RayMarch.UseIntegratedField);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.RayMarch.BendScale));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.RayMarch.FieldStrength));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.RayMarch.FieldCenter.X));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.RayMarch.FieldCenter.Y));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.RayMarch.FieldCenter.Z));
+		hash.Add(cfg.RayMarch.FieldCenterIsCamera);
+		hash.Add(cfg.RayMarch.CollisionMask);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.RayMarch.CollisionRadius));
+		hash.Add(cfg.RayMarch.UseSphereSweepCollision);
+		hash.Add(cfg.RayMarch.UseInsightPlaneFilter);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.RayMarch.CollisionRaySubdivideThreshold));
+		hash.Add(cfg.RayMarch.MaxCollisionSubsteps);
+		hash.Add(cfg.RayMarch.RequireHitToRender);
+		hash.Add(cfg.RayMarch.StopOnHit);
+		hash.Add(cfg.RayMarch.TerminateTrailOnHit);
+		hash.Add(cfg.RayMarch.UseScreenSpaceCollisionCadence);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.RayMarch.CollisionMaxErrorPixels));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.RayMarch.MinDepthForError));
+		hash.Add(cfg.RayMarch.MinCollisionEveryNSteps);
+		hash.Add(cfg.RayMarch.DebugMode);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.RayMarch.DebugNormalLen));
+		hash.Add(cfg.RayMarch.DebugOverlayOwnedByFilm);
+		hash.Add(cfg.RayMarch.MaxSegPerRay);
+		hash.Add(cfg.Film.BaseWidth);
+		hash.Add(cfg.Film.BaseHeight);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.Film.ResolutionScale));
+		hash.Add(cfg.Film.PixelStride);
+		hash.Add(cfg.Film.RowsPerFrame);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.Film.MaxDistance));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.Film.Opacity));
+		hash.Add(cfg.UpdateEveryFrame);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.UpdateEveryFrameBudgetMs));
+		hash.Add(cfg.UpdateEveryFrameMaxRowsPerStep);
+		hash.Add(cfg.RenderStepMaxMs);
+		hash.Add(cfg.RenderStepMaxPixelsPerFrame);
+		hash.Add(cfg.RenderStepMaxSegmentsPerFrame);
+		hash.Add(cfg.TargetMsPerFrame);
+		hash.Add(cfg.MinRowsPerFrame);
+		hash.Add(cfg.MaxRowsPerFrameCap);
+		hash.Add(cfg.AutoRangeDepth);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.AutoRangeMin));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.AutoRangeMax));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.AutoRangeSmoothing));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.AutoRangeSafety));
+		hash.Add(cfg.DepthHistoryFrames);
+		hash.Add(cfg.UseFieldGrid);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.FieldGridCellSize));
+		hash.Add(cfg.FieldGridRebuildEveryNFrames);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.FieldGridBoundsPadding));
+		hash.Add(cfg.UseCameraPropsBetaGamma);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.TinySegmentSkipLen));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.EarlyOutDistanceEps));
+		hash.Add(cfg.UseAdaptiveSubsteps);
+		hash.Add(cfg.UseBandHitSkip);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.BandSkipHitThreshold));
+		hash.Add(cfg.BandSkipFrames);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.BandSkipInvalidatePosDelta));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.BandSkipInvalidateBasisDelta));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.BandSkipInvalidateRangeDelta));
+		hash.Add(cfg.Pass1DoHitTest);
+		hash.Add(cfg.Pass1ProbeEveryNSegments);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.Pass1ProbeMinTravelDelta));
+		hash.Add(cfg.UsePass2CollisionStride);
+		hash.Add(cfg.Pass2CollisionStrideNear);
+		hash.Add(cfg.Pass2CollisionStrideFar);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.Pass2CollisionStrideFarStartT));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.MinSegLenForStrideSkip));
+		hash.Add(cfg.Pass2HitBackFaces);
+		hash.Add(cfg.Pass2HitFromInside);
+		hash.Add(cfg.Pass2ForceOnInstability);
+		hash.Add(cfg.Pass2ForceIfPrevHitLost);
+		hash.Add(cfg.Pass2LogQuickRayMissSamples);
+		hash.Add(cfg.UseSingleProbeThenSubdivide);
+		hash.Add(cfg.NearestHitOnly);
+		hash.Add(cfg.UseInsightPlanePass2);
+		hash.Add(cfg.RenderStepPhaseLog);
+		hash.Add(cfg.RenderStepBandLog);
+		hash.Add(cfg.DebugEveryNPixels);
+		hash.Add(cfg.DebugMaxFilmRays);
+		hash.Add(cfg.EnableProfiling);
+		hash.Add(cfg.VerbosePerfLogs);
+		hash.Add(cfg.EnableFramePerf);
+		hash.Add(cfg.FramePerfVerbose);
+		hash.Add(cfg.FramePerfLogEveryNFrames);
+		hash.Add(cfg.NeedColliderNames);
+		hash.Add(cfg.UseFieldSourceCache);
+		hash.Add(cfg.FieldSourceRefreshIntervalFrames);
+		hash.Add(cfg.ShadingMode);
+		hash.Add(cfg.FlipNormalToCamera);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.SkyColor.R));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.SkyColor.G));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.SkyColor.B));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.SkyColor.A));
+		return hash.ToHashCode();
+	}
+
+	private void LogEffectiveConfigIfChanged(in EffectiveConfig cfg)
+	{
+		int hash = ComputeEffectiveConfigHash(in cfg);
+		if (_hasEffectiveConfigHash && hash == _lastEffectiveConfigHash) return;
+		_lastEffectiveConfigHash = hash;
+		_hasEffectiveConfigHash = true;
+
+		string broadphaseTag = string.IsNullOrEmpty(cfg.Broadphase.Reason) ? "resolved" : cfg.Broadphase.Reason;
+		GD.Print(
+			$"[EffectiveCfg] broadphase={cfg.Broadphase.ModeName}({broadphaseTag}) quick={(cfg.Broadphase.UseQuickRay ? 1 : 0)} overlap={(cfg.Broadphase.UseOverlap ? 1 : 0)} " +
+			$"softgate={(cfg.SoftGate.EnableQuickRayMiss ? 1 : 0)} score={(cfg.SoftGate.ScoringEnabled ? 1 : 0)} " +
+			$"minSeg={cfg.SoftGate.MinSegmentLength:0.###} attempts={cfg.SoftGate.MaxAttemptsPerFrame} sub={cfg.SoftGate.MaxSubdividedCallsPerFrame} " +
+			$"stride={cfg.Film.PixelStride} resScale={cfg.Film.ResolutionScale:0.###} rows={cfg.Film.RowsPerFrame} " +
+			$"stepLen={cfg.RayMarch.StepLength:0.###} collRad={cfg.RayMarch.CollisionRadius:0.###} mask=0x{cfg.RayMarch.CollisionMask:X8} " +
+			$"maxDist={cfg.Film.MaxDistance:0.###}");
+	}
+
 	private static (bool quickRay, bool overlap) GetBroadphaseTogglesFromPolicy(BroadphaseMode policy)
 	{
 		switch (policy)
@@ -4898,73 +5392,126 @@ public partial class GrinFilmCamera : Node
 		return BroadphaseMode.None;
 	}
 
-	private static string GetBroadphaseModeLabel(bool quickRay, bool overlap)
-	{
-		if (quickRay && overlap) return "Both";
-		if (quickRay) return "QuickRayOnly";
-		if (overlap) return "OverlapOnly";
-		return "None";
-	}
-
 	private void SyncBroadphaseControlsIfNeeded()
 	{
-		if (UseBroadphasePolicy)
+		if (_isBroadphaseSyncing) return;
+
+		_isBroadphaseSyncing = true;
+		try
 		{
-			var (policyQuickRay, policyOverlap) = GetBroadphaseTogglesFromPolicy(BroadphasePolicy);
-			if (UseBroadphaseQuickRay != policyQuickRay || UseBroadphaseOverlap != policyOverlap)
+			bool hadSnapshot = _hasBroadphaseSyncSnapshot;
+			bool policyChanged = hadSnapshot && BroadphasePolicy != _lastBroadphasePolicy;
+			bool togglesChanged = hadSnapshot
+				&& (UseBroadphaseQuickRay != _lastUseBroadphaseQuickRay || UseBroadphaseOverlap != _lastUseBroadphaseOverlap);
+
+			if (UseBroadphasePolicy)
 			{
-				UseBroadphaseQuickRay = policyQuickRay;
-				UseBroadphaseOverlap = policyOverlap;
-				GD.Print($"[Broadphase] sync-toggles policy={BroadphasePolicy} quickRay={(policyQuickRay ? 1 : 0)} overlap={(policyOverlap ? 1 : 0)}");
+				// If the user edits toggles while policy is ON, treat it as a policy change.
+				if (togglesChanged && !policyChanged)
+				{
+					BroadphaseMode desiredPolicy = GetBroadphasePolicyFromToggles(UseBroadphaseQuickRay, UseBroadphaseOverlap);
+					if (BroadphasePolicy != desiredPolicy)
+					{
+						BroadphasePolicy = desiredPolicy;
+					}
+				}
+
+				var (policyQuickRay, policyOverlap) = GetBroadphaseTogglesFromPolicy(BroadphasePolicy);
+				if (UseBroadphaseQuickRay != policyQuickRay || UseBroadphaseOverlap != policyOverlap)
+				{
+					UseBroadphaseQuickRay = policyQuickRay;
+					UseBroadphaseOverlap = policyOverlap;
+				}
+			}
+			else
+			{
+				BroadphaseMode desiredPolicy = GetBroadphasePolicyFromToggles(UseBroadphaseQuickRay, UseBroadphaseOverlap);
+				if (BroadphasePolicy != desiredPolicy)
+				{
+					BroadphasePolicy = desiredPolicy;
+				}
 			}
 		}
-		else
+		finally
 		{
-			BroadphaseMode desiredPolicy = GetBroadphasePolicyFromToggles(UseBroadphaseQuickRay, UseBroadphaseOverlap);
-			if (BroadphasePolicy != desiredPolicy)
-			{
-				BroadphasePolicy = desiredPolicy;
-				GD.Print($"[Broadphase] sync-policy manual={desiredPolicy}");
-			}
+			_lastUseBroadphasePolicy = UseBroadphasePolicy;
+			_lastBroadphasePolicy = BroadphasePolicy;
+			_lastUseBroadphaseQuickRay = UseBroadphaseQuickRay;
+			_lastUseBroadphaseOverlap = UseBroadphaseOverlap;
+			_hasBroadphaseSyncSnapshot = true;
+			_isBroadphaseSyncing = false;
 		}
 	}
 
-	private (bool effQuickRay, bool effOverlap, string sourceTag) ResolveEffectiveBroadphase()
+	private void ResolveEffectiveBroadphase(
+		out bool effQuickRay,
+		out bool effOverlap,
+		out BroadphaseMode effMode,
+		out string source)
 	{
 		if (UseBroadphasePolicy)
 		{
 			var (policyQuickRay, policyOverlap) = GetBroadphaseTogglesFromPolicy(BroadphasePolicy);
-			return (policyQuickRay, policyOverlap, "policy");
+			effQuickRay = policyQuickRay;
+			effOverlap = policyOverlap;
+			effMode = BroadphasePolicy;
+			source = "policy";
+			return;
 		}
 
-		return (UseBroadphaseQuickRay, UseBroadphaseOverlap, "manual");
+		effQuickRay = UseBroadphaseQuickRay;
+		effOverlap = UseBroadphaseOverlap;
+		effMode = GetBroadphasePolicyFromToggles(effQuickRay, effOverlap);
+		source = "toggles";
 	}
 
-	private (bool effQuickRay, bool effOverlap, string sourceTag) UpdateBroadphaseEffectiveState()
+	private (bool effQuickRay, bool effOverlap, BroadphaseMode effMode, string sourceTag) UpdateBroadphaseEffectiveState()
 	{
 		SyncBroadphaseControlsIfNeeded();
-		var resolved = ResolveEffectiveBroadphase();
-		LogBroadphaseEffectiveIfChanged(resolved.effQuickRay, resolved.effOverlap, resolved.sourceTag);
-		return resolved;
+		ResolveEffectiveBroadphase(out bool effQuickRay, out bool effOverlap, out BroadphaseMode effMode, out string source);
+		LogBroadphaseEffectiveIfChanged(effQuickRay, effOverlap, effMode, source);
+		return (effQuickRay, effOverlap, effMode, source);
 	}
 
-	private void LogBroadphaseEffectiveIfChanged(bool effQuickRay, bool effOverlap, string sourceTag)
+	private void LogBroadphaseEffectiveIfChanged(bool effQuickRay, bool effOverlap, BroadphaseMode effMode, string sourceTag)
 	{
+		bool policyOn = UseBroadphasePolicy;
+		BroadphaseMode policy = BroadphasePolicy;
 		if (_hasLastBroadphaseEffective
 			&& _lastBroadphaseEffectiveQuickRay == effQuickRay
 			&& _lastBroadphaseEffectiveOverlap == effOverlap
-			&& _lastBroadphaseEffectiveSourceTag == sourceTag)
+			&& _lastBroadphaseEffectivePolicyOn == policyOn
+			&& _lastBroadphaseEffectivePolicy == policy)
 		{
 			return;
 		}
 
 		_lastBroadphaseEffectiveQuickRay = effQuickRay;
 		_lastBroadphaseEffectiveOverlap = effOverlap;
-		_lastBroadphaseEffectiveSourceTag = sourceTag;
+		_lastBroadphaseEffectivePolicyOn = policyOn;
+		_lastBroadphaseEffectivePolicy = policy;
 		_hasLastBroadphaseEffective = true;
 
-		string modeLabel = GetBroadphaseModeLabel(effQuickRay, effOverlap);
-		GD.Print($"[Broadphase] effective={modeLabel} source={sourceTag}");
+		GD.Print(
+			$"[Broadphase] effective={effMode} policyOn={policyOn} policy={policy} " +
+			$"quick={effQuickRay} overlap={effOverlap} source={sourceTag}");
+	}
+
+	private void MaybeWarnBroadphaseQuickRayCurved(float beta, float gamma, bool effQuickRay, bool useCameraPropsBetaGamma)
+	{
+		bool curvedInputs = useCameraPropsBetaGamma
+			|| Math.Abs(beta) > 1e-6f
+			|| Math.Abs(gamma) > 1e-6f;
+
+		if (effQuickRay && curvedInputs)
+		{
+			if (_broadphaseCurvedWarned) return;
+			_broadphaseCurvedWarned = true;
+			GD.Print("[Warn] Broadphase QuickRay may miss hits under curved marching; consider OverlapOnly/Both or disable broadphase.");
+			return;
+		}
+
+		_broadphaseCurvedWarned = false;
 	}
 
 	public void ApplyQualityModePreset(RenderQualityMode mode)

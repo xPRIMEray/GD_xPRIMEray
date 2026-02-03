@@ -525,7 +525,6 @@ FilmGradientScale = 30.0
 visible = false
 script = ExtResource("4_raybeam")
 CameraPath = NodePath("../Camera3D")
-UpdateEveryFrame = false
 StepsPerRay = 400
 StepLength = 0.05
 MinStepLength = 0.001
@@ -534,11 +533,12 @@ LowCurvaturePerpAccel = 0.3
 BendScale = 1.0
 FieldCenter = Vector3(0, 1.5, 0)
 FieldCenterIsCamera = false
-Alpha = 1.0
 DebugMode = 0
 DebugNormalLen = 0.295
+Alpha = 1.0
+UpdateEveryFrame = false
 
-[node name="GrinField3D" type="Node3D" parent="."]
+[node name="GrinFilmCamera" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3563714, 2.303526, -2.0074396)
 script = ExtResource("3_77dp3")
 Preset = 0
@@ -579,7 +579,6 @@ Pass2HitBackFaces = true
 Pass2ForceIfPrevHitLost = true
 Pass2SoftGateEnableQuickRayMiss = true
 DisableSoftGateOnOverload = false
-Pass2SoftGateMinSegLenSteps = 0.35
 Pass2SoftGateMaxAttemptsPerPixel = 6
 Pass2SoftGateMaxAttemptsPerFrame = 300
 Pass2SoftGateMaxAttemptsPerFrameMax = 600
@@ -595,6 +594,7 @@ DebugEveryNPixels = 30
 RayBeamRendererPath = NodePath("../RayBeamRenderer")
 FilmViewPath = NodePath("../CanvasLayer/FilmView")
 FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
+Pass2SoftGateMinSegLenSteps = 0.35
 
 [node name="FieldSource3D" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.41781783, 1.8735187, -0.49812222)

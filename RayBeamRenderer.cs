@@ -1,11 +1,3 @@
-// ✅ Plug-n-play RayBeamRenderer.cs patch
-// What this does:
-// 1) Terminates the *draw trail* at first hit (even if you keep simulating)
-// 2) Prevents double-stamping (no more overbright/saturation from stamping prePos twice)
-// 3) Keeps your existing StopOnHit behavior intact
-//
-// Drop-in replace your script with this full file, or copy the marked blocks into yours.
-
 using Godot;
 using System;
 using System.Collections.Generic;
@@ -29,21 +21,9 @@ public partial class RayBeamRenderer : Node3D
 	// CONTROL FACTOR: Optional camera override path; when set, all ray generation uses this camera's transform/props.
 	[Export] public NodePath CameraPath;
 
-	[ExportGroup("Performance / Profiling")]
-	/// <summary>Rebuilds ray debug visualization every frame (RayBeamRenderer only; not film rendering).</summary>
-	// CONTROL FACTOR: Master toggle for ray debug rebuilds; when false, rays stay static until manually rebuilt.
-	[Export] public bool UpdateEveryFrame = true;
-	/// <summary>Alias for UpdateEveryFrame to distinguish from GrinFilmCamera.UpdateEveryFrame.</summary>
-	[Export] public bool UpdateRayDebugEveryFrame
-	{
-		get => UpdateEveryFrame;
-		set => UpdateEveryFrame = value;
-	}
-	/// <summary>Allows Rebuild when UpdateEveryFrame is enabled.</summary>
-	// CONTROL FACTOR: Secondary gate for rebuilds; use to freeze updates without disabling UpdateEveryFrame logic.
-	[Export] public bool AllowRebuild = true;
-
-	[ExportGroup("Ray March / Sampling")]
+	[ExportGroup("Shared With GrinFilmCamera")]
+	[ExportSubgroup("Ray March")]
+	// Consumed by GrinFilmCamera.ResolveEffectiveConfig().
 	/// <summary>Number of integration steps per ray.</summary>
 	// CONTROL FACTOR: Step count (>=1); higher = smoother curves + more cost.
 	[Export] public int StepsPerRay = 64;
@@ -65,6 +45,9 @@ public partial class RayBeamRenderer : Node3D
 	/// <summary>Multiplier for step size when curvature is low.</summary>
 	// CONTROL FACTOR: Step size multiplier when curvature is low (>1 increases speed, reduces detail).
 	[Export] public float LowCurvatureStepBoost = 2.0f;
+
+	[ExportSubgroup("Field Sources")]
+	// Consumed by GrinFilmCamera.ResolveEffectiveConfig().
 	/// <summary>Integrates field acceleration instead of closed form.</summary>
 	// CONTROL FACTOR: True = integrate acceleration per step; false = analytic bend formula.
 	[Export] public bool UseIntegratedField = true;
@@ -81,36 +64,8 @@ public partial class RayBeamRenderer : Node3D
 	// CONTROL FACTOR: True = field center follows camera; false = uses FieldCenter.
 	[Export] public bool FieldCenterIsCamera = true;
 
-	[ExportGroup("Rendering / Film Output")]
-	/// <summary>Billboard size for each sample.</summary>
-	// CONTROL FACTOR: Billboard quad size (world units); larger = thicker beams.
-	[Export] public float QuadSize = 0.04f;
-	/// <summary>Base alpha for ray samples.</summary>
-	// CONTROL FACTOR: Base alpha for sample color; higher = brighter accumulation.
-	[Export] public float Alpha = 0.50f;
-	/// <summary>Samples every N steps for drawing.</summary>
-	// CONTROL FACTOR: Render cadence; higher = fewer visible samples (faster, more sparse).
-	[Export] public int RenderEveryNSteps = 1;
-	/// <summary>Colors rays based on field magnitude.</summary>
-	// CONTROL FACTOR: True = encode field magnitude in color; false = use emitter color only.
-	[Export] public bool ColorByField = true;
-	/// <summary>Strength of field-based color ramp.</summary>
-	// CONTROL FACTOR: Field-to-color gain; higher = stronger color shift on high acceleration.
-	[Export] public float FieldColorGain = 0.15f;
-	/// <summary>Color for maximum field heat.</summary>
-	// CONTROL FACTOR: Color at high field magnitude; used when ColorByField is true.
-	[Export] public Color HotColor = new Color(0.2f, 1.0f, 1.0f, 1.0f);
-	/// <summary>Stops drawing samples after the first hit.</summary>
-	// CONTROL FACTOR: When true, render trail ends at hit (simulation may continue).
-	[Export] public bool TerminateTrailOnHit = true;
-	/// <summary>Draws a marker at hit position.</summary>
-	// CONTROL FACTOR: Toggle hit marker billboard.
-	[Export] public bool DrawHitMarker = true;
-	/// <summary>Color of the hit marker.</summary>
-	// CONTROL FACTOR: Hit marker color (RGB/A).
-	[Export] public Color HitMarkerColor = new Color(1, 0, 0, 1);
-
-	[ExportGroup("Physics / Collision")]
+	[ExportSubgroup("Collision")]
+	// Consumed by GrinFilmCamera.ResolveEffectiveConfig().
 	/// <summary>Stops simulation on first hit.</summary>
 	// CONTROL FACTOR: True = stop simulation at first hit; false = keep integrating.
 	[Export] public bool StopOnHit = false;
@@ -157,6 +112,50 @@ public partial class RayBeamRenderer : Node3D
 	// CONTROL FACTOR: Minimum allowed collision cadence steps.
 	[Export] public int MinCollisionEveryNSteps = 1;
 
+	[ExportSubgroup("Debug Visualization (Shared)")]
+	// Consumed by GrinFilmCamera.ResolveEffectiveConfig().
+	/// <summary>Debug overlay mode (off/rays/normals).</summary>
+	// CONTROL FACTOR: Debug overlay selection.
+	[Export] public DebugDrawMode DebugMode = DebugDrawMode.RaysAndNormals;
+	/// <summary>Length of debug hit normals.</summary>
+	// CONTROL FACTOR: Length of drawn normals (world units).
+	[Export] public float DebugNormalLen = 0.25f;
+	/// <summary>Film camera drives overlay drawing when true.</summary>
+	// CONTROL FACTOR: If true, overlay is driven by film pass via UpdateDebugOverlayFromFilm.
+	[Export] public bool DebugOverlayOwnedByFilm = true;
+
+	[ExportGroup("Ray Beam Rendering")]
+	[ExportSubgroup("Samples")]
+	/// <summary>Billboard size for each sample.</summary>
+	// CONTROL FACTOR: Billboard quad size (world units); larger = thicker beams.
+	[Export] public float QuadSize = 0.04f;
+	/// <summary>Base alpha for ray samples.</summary>
+	// CONTROL FACTOR: Base alpha for sample color; higher = brighter accumulation.
+	[Export] public float Alpha = 0.50f;
+	/// <summary>Samples every N steps for drawing.</summary>
+	// CONTROL FACTOR: Render cadence; higher = fewer visible samples (faster, more sparse).
+	[Export] public int RenderEveryNSteps = 1;
+	/// <summary>Colors rays based on field magnitude.</summary>
+	// CONTROL FACTOR: True = encode field magnitude in color; false = use emitter color only.
+	[Export] public bool ColorByField = true;
+	/// <summary>Strength of field-based color ramp.</summary>
+	// CONTROL FACTOR: Field-to-color gain; higher = stronger color shift on high acceleration.
+	[Export] public float FieldColorGain = 0.15f;
+	/// <summary>Color for maximum field heat.</summary>
+	// CONTROL FACTOR: Color at high field magnitude; used when ColorByField is true.
+	[Export] public Color HotColor = new Color(0.2f, 1.0f, 1.0f, 1.0f);
+
+	[ExportSubgroup("Hit Markers")]
+	/// <summary>Stops drawing samples after the first hit.</summary>
+	// CONTROL FACTOR: When true, render trail ends at hit (simulation may continue).
+	[Export] public bool TerminateTrailOnHit = true;
+	/// <summary>Draws a marker at hit position.</summary>
+	// CONTROL FACTOR: Toggle hit marker billboard.
+	[Export] public bool DrawHitMarker = true;
+	/// <summary>Color of the hit marker.</summary>
+	// CONTROL FACTOR: Hit marker color (RGB/A).
+	[Export] public Color HitMarkerColor = new Color(1, 0, 0, 1);
+
 	// =======================
 	// Debug Controls (RayBeamRenderer)
 	// =======================
@@ -168,6 +167,21 @@ public partial class RayBeamRenderer : Node3D
 	}
 
 	[ExportGroup("Debug Visualization")]
+	[ExportSubgroup("Live Rebuild")]
+	/// <summary>Rebuilds ray debug visualization every frame (RayBeamRenderer only; not film rendering).</summary>
+	// CONTROL FACTOR: Master toggle for ray debug rebuilds; when false, rays stay static until manually rebuilt.
+	[Export] public bool UpdateEveryFrame = true;
+	/// <summary>Alias for UpdateEveryFrame to distinguish from GrinFilmCamera.UpdateEveryFrame.</summary>
+	[Export] public bool UpdateRayDebugEveryFrame
+	{
+		get => UpdateEveryFrame;
+		set => UpdateEveryFrame = value;
+	}
+	/// <summary>Allows Rebuild when UpdateEveryFrame is enabled.</summary>
+	// CONTROL FACTOR: Secondary gate for rebuilds; use to freeze updates without disabling UpdateEveryFrame logic.
+	[Export] public bool AllowRebuild = true;
+
+	[ExportSubgroup("Logging")]
 	/// <summary>Enables per-ray debug logs.</summary>
 	// CONTROL FACTOR: Master debug logging toggle.
 	[Export] public bool DebugRender = false;
@@ -180,24 +194,15 @@ public partial class RayBeamRenderer : Node3D
 	/// <summary>Max billboard reject logs per ray.</summary>
 	// CONTROL FACTOR: Cap on reject logs per ray.
 	[Export] public int DebugMaxRejectPrints = 10;
-	/// <summary>Debug overlay mode (off/rays/normals).</summary>
-	// CONTROL FACTOR: Debug overlay selection.
-	[Export] public DebugDrawMode DebugMode = DebugDrawMode.RaysAndNormals;
 	/// <summary>Cap on debug overlay rays.</summary>
 	// CONTROL FACTOR: Max rays rendered in debug overlay.
 	[Export] public int DebugMaxRays = 256;
 	/// <summary>Cap on segments per debug ray.</summary>
 	// CONTROL FACTOR: Max segments drawn per debug ray.
 	[Export] public int DebugMaxSegmentsPerRay = 64;
-	/// <summary>Length of debug hit normals.</summary>
-	// CONTROL FACTOR: Length of drawn normals (world units).
-	[Export] public float DebugNormalLen = 0.25f;
 	/// <summary>Draw only rays that hit.</summary>
 	// CONTROL FACTOR: Filter debug overlay to hit rays only.
 	[Export] public bool DebugDrawOnlyHits = false;
-	/// <summary>Film camera drives overlay drawing when true.</summary>
-	// CONTROL FACTOR: If true, overlay is driven by film pass via UpdateDebugOverlayFromFilm.
-	[Export] public bool DebugOverlayOwnedByFilm = true;
 
 	// ===== Cached State =====
 	private MultiMeshInstance3D _mmi;
