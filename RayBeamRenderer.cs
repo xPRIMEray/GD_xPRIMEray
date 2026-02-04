@@ -206,6 +206,7 @@ public partial class RayBeamRenderer : Node3D
 
 	public readonly struct SharedSnapshot
 	{
+		public readonly bool HasRenderer;
 		public readonly int StepsPerRay;
 		public readonly int CollisionEveryNSteps;
 		public readonly float StepLength;
@@ -235,6 +236,7 @@ public partial class RayBeamRenderer : Node3D
 		public readonly bool DebugOverlayOwnedByFilm;
 
 		public SharedSnapshot(
+			bool hasRenderer,
 			int stepsPerRay,
 			int collisionEveryNSteps,
 			float stepLength,
@@ -263,6 +265,7 @@ public partial class RayBeamRenderer : Node3D
 			float debugNormalLen,
 			bool debugOverlayOwnedByFilm)
 		{
+			HasRenderer = hasRenderer;
 			StepsPerRay = stepsPerRay;
 			CollisionEveryNSteps = collisionEveryNSteps;
 			StepLength = stepLength;
@@ -297,6 +300,7 @@ public partial class RayBeamRenderer : Node3D
 	{
 		// Consumed by GrinFilmCamera.ResolveEffectiveConfig().
 		return new SharedSnapshot(
+			true,
 			StepsPerRay,
 			CollisionEveryNSteps,
 			StepLength,

@@ -1,0 +1,37 @@
+digraph CSharpDependencies {
+  graph [rankdir=LR, fontname="Helvetica", fontsize=14, splines=sprite, overlap=false, nodesep=0.2, ranksep=0.8];
+  node [shape=box, style=filled, fillcolor=lightblue, fontname="Helvetica", fontsize=11];
+  edge [fontname="Helvetica", fontsize=9];
+  // Cycle highlighting
+  edge [color="#FF0000", penwidth=2.0];
+
+
+  subgraph "cluster_Physical Light and Camera Units" {
+    label="Physical Light and Camera Units (net8.0)";
+    style="filled";
+    color="lightgray";
+
+    "Physical Light and Camera Units.FieldSourceGizmoPlugin" [label="FieldSourceGizmoPlugin", fillcolor=white, tooltip=".FieldSourceGizmoPlugin"];
+    "Physical Light and Camera Units.FieldSourceNodeGizmo" [label="FieldSourceNodeGizmo", fillcolor=white, tooltip=".FieldSourceNodeGizmo"];
+    "Physical Light and Camera Units.GrinInspectorHelpInspector" [label="GrinInspectorHelpInspector", fillcolor=white, tooltip=".GrinInspectorHelpInspector"];
+    "Physical Light and Camera Units.GrinInspectorHelpPlugin" [label="GrinInspectorHelpPlugin", fillcolor=white, tooltip=".GrinInspectorHelpPlugin"];
+    "Physical Light and Camera Units.CurvedCamera" [label="CurvedCamera", fillcolor=white, tooltip=".CurvedCamera"];
+    "Physical Light and Camera Units.FieldGrid3D" [label="FieldGrid3D", fillcolor=white, tooltip=".FieldGrid3D"];
+    "Physical Light and Camera Units.FieldSource3D" [label="FieldSource3D", fillcolor=white, tooltip=".FieldSource3D"];
+    "Physical Light and Camera Units.FilmOverlay2D" [label="FilmOverlay2D", fillcolor=white, tooltip=".FilmOverlay2D"];
+    "Physical Light and Camera Units.GrinFilmCamera" [label="GrinFilmCamera", fillcolor=white, tooltip="new.GrinFilmCamera"];
+    "Physical Light and Camera Units.Pass1ThreadLocal" [label="Pass1ThreadLocal", fillcolor=white, tooltip="new.Pass1ThreadLocal"];
+    "Physical Light and Camera Units.FramePerf" [label="FramePerf", fillcolor=white, tooltip="XPrimeRay.Perf.FramePerf"];
+    "Physical Light and Camera Units.PerfStats" [label="PerfStats", fillcolor=white, tooltip=".PerfStats"];
+    "Physical Light and Camera Units.RayBeamRenderer" [label="RayBeamRenderer", fillcolor=white, tooltip=".RayBeamRenderer"];
+    "Physical Light and Camera Units.RayEmitter3D" [label="RayEmitter3D", fillcolor=white, tooltip=".RayEmitter3D"];
+    "Physical Light and Camera Units.RayViz" [label="RayViz", fillcolor=white, tooltip=".RayViz"];
+  }
+
+  "Physical Light and Camera Units.FieldSourceGizmoPlugin" -> "Physical Light and Camera Units.FieldSourceNodeGizmo" [penwidth=1.5];
+  "Physical Light and Camera Units.GrinInspectorHelpPlugin" -> "Physical Light and Camera Units.GrinInspectorHelpInspector" [penwidth=1.5];
+  "Physical Light and Camera Units.FieldGrid3D" -> "Physical Light and Camera Units.RayBeamRenderer" [penwidth=1.5, color="#FF0000", penwidth=2.0, fontcolor="#FF0000", label="cycle"];
+  "Physical Light and Camera Units.GrinFilmCamera" -> "Physical Light and Camera Units.Pass1ThreadLocal" [penwidth=1.5];
+  "Physical Light and Camera Units.RayBeamRenderer" -> "Physical Light and Camera Units.GrinFilmCamera" [penwidth=1.5];
+  "Physical Light and Camera Units.RayBeamRenderer" -> "Physical Light and Camera Units.FieldGrid3D" [penwidth=1.5, color="#FF0000", penwidth=2.0, fontcolor="#FF0000", label="cycle"];
+}

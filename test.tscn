@@ -569,7 +569,6 @@ AutoRangeMax = 50.0
 AutoRangeSafety = 1.2
 BandSkipFrames = 1
 Pass1DoHitTest = false
-BroadphasePolicy = 4
 UseBroadphasePolicy = true
 BroadphaseMaxResults = 32
 UsePass2CollisionStride = true
@@ -594,6 +593,8 @@ RayBeamRendererPath = NodePath("../RayBeamRenderer")
 FilmViewPath = NodePath("../CanvasLayer/FilmView")
 FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
 Pass2SoftGateMinSegLenSteps = 0.35
+SharedRbrHasRenderer = true
+SharedRbrFieldCenterIsCamera = false
 
 [node name="FieldSource3D" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.41781783, 1.8735187, -0.49812222)
