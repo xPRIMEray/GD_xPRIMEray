@@ -1970,6 +1970,7 @@ public partial class RayBeamRenderer : Node3D
 		out int fieldGridHits,
 		out int fieldGridMisses,
 		out int fieldGridFallbacks,
+		out int fieldSourceEvals,
 		FieldGrid3D fieldGrid = null)
 	{
 		// CROSS-CLASS CONTRACT: GrinFilmCamera calls this to build segments + optional pass-1 hit probes.
@@ -2005,6 +2006,7 @@ public partial class RayBeamRenderer : Node3D
 		fieldGridHits = 0;
 		fieldGridMisses = 0;
 		fieldGridFallbacks = 0;
+		fieldSourceEvals = 0;
 
 		hitInfo = new Pass1HitInfo
 		{
@@ -2063,16 +2065,21 @@ public partial class RayBeamRenderer : Node3D
 					{
 						a = ComputeAccelerationAtPointSnap(p, fieldSnaps, beta, gamma, bendScale, fieldStrength);
 						fieldGridFallbacks++;
+						fieldSourceEvals++;
 					}
 				}
 				// DECISION: fall back to field sources if any.
 				else if (hasSources)
+				{
 					a = ComputeAccelerationAtPointSnap(p, fieldSnaps, beta, gamma, bendScale, fieldStrength);
+					fieldSourceEvals++;
+				}
 				else
 				{
 					Vector3 rvec = p - center;
 					float rr = Mathf.Max(0.001f, rvec.Length());
 					a = (-rvec / rr) * (beta * FastPow(rr, gamma) * bendScale * fieldStrength);
+					fieldSourceEvals++;
 				}
 				fieldEvals++;
 
