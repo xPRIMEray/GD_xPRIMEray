@@ -1957,6 +1957,7 @@ public partial class RayBeamRenderer : Node3D
 		out int pass1ProbeHits,
 		out int fieldGridHits,
 		out int fieldGridMisses,
+		out int fieldGridFallbacks,
 		FieldGrid3D fieldGrid = null)
 	{
 		// CROSS-CLASS CONTRACT: GrinFilmCamera calls this to build segments + optional pass-1 hit probes.
@@ -1991,6 +1992,7 @@ public partial class RayBeamRenderer : Node3D
 		pass1ProbeHits = 0;
 		fieldGridHits = 0;
 		fieldGridMisses = 0;
+		fieldGridFallbacks = 0;
 
 		hitInfo = new Pass1HitInfo
 		{
@@ -2041,10 +2043,15 @@ public partial class RayBeamRenderer : Node3D
 				{
 					fieldGridHits++;
 				}
-				// DECISION: grid exists but no sample available.
+				// DECISION: grid exists but point is outside bounds — fall through to source eval.
 				else if (fieldGrid != null)
 				{
 					fieldGridMisses++;
+					if (hasSources)
+					{
+						a = ComputeAccelerationAtPointSnap(p, fieldSnaps, beta, gamma, bendScale, fieldStrength);
+						fieldGridFallbacks++;
+					}
 				}
 				// DECISION: fall back to field sources if any.
 				else if (hasSources)

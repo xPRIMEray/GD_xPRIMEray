@@ -41,6 +41,7 @@ namespace XPrimeRay.Perf
         public long CacheMisses;
         public long FieldGridHits;
         public long FieldGridMisses;
+        public long FieldGridFallbacks;
         public long Pass2Skip_InsightPlane;
         public long Pass2Skip_OverlapEmpty;
         public long Pass2Skip_QuickRayMiss;
@@ -84,6 +85,7 @@ namespace XPrimeRay.Perf
             CacheMisses = 0;
             FieldGridHits = 0;
             FieldGridMisses = 0;
+            FieldGridFallbacks = 0;
             Pass2Skip_InsightPlane = 0;
             Pass2Skip_OverlapEmpty = 0;
             Pass2Skip_QuickRayMiss = 0;
@@ -127,7 +129,7 @@ namespace XPrimeRay.Perf
                 $"upl={Ms(PerfStage.UploadTexture):0.00}) " +
                 $"px={PixelsUpdated} rays={RaysTraced} seg={SegmentsIntegrated} steps={StepsIntegrated} tested={SegmentsTested} " +
                 $"fieldEvals={FieldEvals} physQ={PhysicsQueries} p1rc={Pass1Raycasts} p1hit={Pass1ProbeHits} hits={Hits} " +
-                $"gridHitRate={gridHitRate:0.000} grid(h={FieldGridHits} m={FieldGridMisses}) " +
+                $"gridHitRate={gridHitRate:0.000} grid(h={FieldGridHits} m={FieldGridMisses} gFall={FieldGridFallbacks}) " +
                 $"early(AABB={EarlyOutAabb} far={EarlyOutFar} hitStopPx={EarlyStopOnHitPixels}) cache(h={CacheHits} m={CacheMisses}) " +
                 $"p2Skip(insight={Pass2Skip_InsightPlane} overlap={Pass2Skip_OverlapEmpty} qRay={Pass2Skip_QuickRayMiss} " +
                 $"single={Pass2Skip_SingleProbeMiss} stride={Pass2Skip_Stride} bestDist={Pass2Skip_BestHitDist}) " +

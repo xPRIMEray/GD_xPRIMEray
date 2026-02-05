@@ -1135,6 +1135,7 @@ public partial class GrinFilmCamera : Node
 		public long Pass1ProbeHits;
 		public long FieldGridHits;
 		public long FieldGridMisses;
+		public long FieldGridFallbacks;
 	}
 
 	private bool _dbgOnce = false;
@@ -2435,6 +2436,7 @@ public partial class GrinFilmCamera : Node
 			long pass1ProbeHits = 0;
 			long pass1FieldGridHits = 0;
 			long pass1FieldGridMisses = 0;
+			long pass1FieldGridFallbacks = 0;
 			// DECISION: skip pass1 when we are resuming a pending pass2 band.
 			if (!pendingPass2)
 			{
@@ -2526,6 +2528,7 @@ public partial class GrinFilmCamera : Node
 							out int pass1ProbeHitsLocal,
 							out int fieldGridHitsLocal,
 							out int fieldGridMissesLocal,
+							out int fieldGridFallbacksLocal,
 							fieldGridForPass1
 						);
 
@@ -2547,6 +2550,7 @@ public partial class GrinFilmCamera : Node
 							local.Pass1ProbeHits += pass1ProbeHitsLocal;
 							local.FieldGridHits += fieldGridHitsLocal;
 							local.FieldGridMisses += fieldGridMissesLocal;
+							local.FieldGridFallbacks += fieldGridFallbacksLocal;
 						}
 
 						_segCountPerPixel[pi] = count;
@@ -2578,6 +2582,7 @@ public partial class GrinFilmCamera : Node
 							Interlocked.Add(ref pass1ProbeHits, local.Pass1ProbeHits);
 							Interlocked.Add(ref pass1FieldGridHits, local.FieldGridHits);
 							Interlocked.Add(ref pass1FieldGridMisses, local.FieldGridMisses);
+							Interlocked.Add(ref pass1FieldGridFallbacks, local.FieldGridFallbacks);
 						}
 					});
 
@@ -2636,6 +2641,7 @@ public partial class GrinFilmCamera : Node
 					_framePerf.Pass1ProbeHits += pass1ProbeHits;
 					_framePerf.FieldGridHits += pass1FieldGridHits;
 					_framePerf.FieldGridMisses += pass1FieldGridMisses;
+					_framePerf.FieldGridFallbacks += pass1FieldGridFallbacks;
 				}
 				pass1CompletedThisStep = true;
 			}
