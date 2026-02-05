@@ -2107,6 +2107,8 @@ public partial class GrinFilmCamera : Node
 				gamma = ReadFloat(_cam, "Gamma", 2f);
 			}
 			MaybeWarnBroadphaseQuickRayCurved(beta, gamma, effQuickRay, cfg.UseCameraPropsBetaGamma);
+			if (framePerfEnabled)
+				_framePerf.PowFastPath = (gamma == -2f || gamma == -1f || gamma == 0f || gamma == 1f || gamma == 2f);
 
 			// CROSS-CLASS CONTRACT: RayBeamRenderer decides field center policy.
 			Vector3 center = rayCfg.FieldCenterIsCamera ? _cam.GlobalPosition : rayCfg.FieldCenter;

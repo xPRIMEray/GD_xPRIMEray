@@ -1001,11 +1001,11 @@ public partial class RayBeamRenderer : Node3D
 			switch (fs.Profile)
 			{
 				case FieldSource3D.ProfileType.Power: // DECISION: Power profile
-					mag = amp * Mathf.Pow(r, gamma);
+					mag = amp * FastPow(r, gamma);
 					break;
 
 				case FieldSource3D.ProfileType.InversePower: // DECISION: InversePower profile
-					mag = amp / Mathf.Pow(r, Mathf.Max(0.0001f, gamma));
+					mag = amp / FastPow(r, Mathf.Max(0.0001f, gamma));
 					break;
 
 				case FieldSource3D.ProfileType.Gaussian: // DECISION: Gaussian profile
@@ -1026,7 +1026,7 @@ public partial class RayBeamRenderer : Node3D
 						float wOut = 1.0f - SmoothStep(outer - edge, outer + edge, r);
 						float w = Mathf.Clamp(wIn * wOut, 0.0f, 1.0f);
 
-						mag = amp * w * Mathf.Pow(r, gamma);
+						mag = amp * w * FastPow(r, gamma);
 					}
 					break;
 			}
@@ -1042,6 +1042,18 @@ public partial class RayBeamRenderer : Node3D
 		// EFFECT: cubic smooth step in [a,b].
 		float t = Mathf.Clamp((x - a) / (b - a), 0.0f, 1.0f);
 		return t * t * (3.0f - 2.0f * t);
+	}
+
+	[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+	private static float FastPow(float r, float gamma)
+	{
+		// DECISION: fast-path common integer gamma values to avoid Mathf.Pow overhead.
+		if (gamma == -2f) return 1f / (r * r);
+		if (gamma == -1f) return 1f / r;
+		if (gamma ==  0f) return 1f;
+		if (gamma ==  1f) return r;
+		if (gamma ==  2f) return r * r;
+		return Mathf.Pow(r, gamma);
 	}
 
 	private static float ReadFloat(Node obj, StringName prop, float fallback)
@@ -1384,7 +1396,7 @@ public partial class RayBeamRenderer : Node3D
 				{
 					Vector3 rvec = p - center;
 					float rr = Mathf.Max(0.001f, rvec.Length());
-					a = (-rvec / rr) * (beta * Mathf.Pow(rr, gamma) * BendScale * FieldStrength);
+					a = (-rvec / rr) * (beta * FastPow(rr, gamma) * BendScale * FieldStrength);
 				}
 
 				float aLen = a.Length();
@@ -1436,7 +1448,7 @@ public partial class RayBeamRenderer : Node3D
 			{
 				// EFFECT: analytic bend path (no integration), step by StepLength.
 				float t = s * StepLength;
-				float bend = beta * Mathf.Pow(t, gamma) * BendScale;
+				float bend = beta * FastPow(t, gamma) * BendScale;
 				next = origin + dir * t + bendDir * bend;
 			}
 
@@ -1633,7 +1645,7 @@ public partial class RayBeamRenderer : Node3D
 				{
 					Vector3 rvec = p - center;
 					float rr = Mathf.Max(0.001f, rvec.Length());
-					a = (-rvec / rr) * (beta * Mathf.Pow(rr, gamma) * BendScale * FieldStrength);
+					a = (-rvec / rr) * (beta * FastPow(rr, gamma) * BendScale * FieldStrength);
 				}
 
 				float aLen = a.Length();
@@ -1657,7 +1669,7 @@ public partial class RayBeamRenderer : Node3D
 			{
 				// EFFECT: analytic bend path (no integration), step by StepLength.
 				float t = s * StepLength;
-				float bend = beta * Mathf.Pow(t, gamma) * BendScale;
+				float bend = beta * FastPow(t, gamma) * BendScale;
 				next = origin + dir * t + bendDir * bend;
 
 				traveled = t;
@@ -1830,7 +1842,7 @@ public partial class RayBeamRenderer : Node3D
 				{
 					Vector3 rvec = p - center;
 					float rr = Mathf.Max(0.001f, rvec.Length());
-					a = (-rvec / rr) * (beta * Mathf.Pow(rr, gamma) * bendScale * fieldStrength);
+					a = (-rvec / rr) * (beta * FastPow(rr, gamma) * bendScale * fieldStrength);
 				}
 
 				////////////
@@ -1893,7 +1905,7 @@ public partial class RayBeamRenderer : Node3D
 				// DECISION: stop when max distance exceeded.
 				if (t > maxDistance) break;
 
-				float bend = beta * Mathf.Pow(t, gamma) * bendScale;
+				float bend = beta * FastPow(t, gamma) * bendScale;
 				next = origin + dir * t + bendDir * bend;
 				traveled = t;
 			}
@@ -2060,7 +2072,7 @@ public partial class RayBeamRenderer : Node3D
 				{
 					Vector3 rvec = p - center;
 					float rr = Mathf.Max(0.001f, rvec.Length());
-					a = (-rvec / rr) * (beta * Mathf.Pow(rr, gamma) * bendScale * fieldStrength);
+					a = (-rvec / rr) * (beta * FastPow(rr, gamma) * bendScale * fieldStrength);
 				}
 				fieldEvals++;
 
@@ -2112,7 +2124,7 @@ public partial class RayBeamRenderer : Node3D
 				// DECISION: stop when max distance exceeded.
 				if (t > maxDistance) break;
 
-				float bend = beta * Mathf.Pow(t, gamma) * bendScale;
+				float bend = beta * FastPow(t, gamma) * bendScale;
 				next = origin + dir * t + bendDir * bend;
 				traveled = t;
 			}
@@ -2292,11 +2304,11 @@ public partial class RayBeamRenderer : Node3D
 			switch (fs.Profile)
 			{
 				case 0: // DECISION: Power profile
-					mag = amp * Mathf.Pow(r, gamma);
+					mag = amp * FastPow(r, gamma);
 					break;
 
 				case 1: // DECISION: InversePower profile
-					mag = amp / Mathf.Pow(r, Mathf.Max(0.0001f, gamma));
+					mag = amp / FastPow(r, Mathf.Max(0.0001f, gamma));
 					break;
 
 				case 2: // DECISION: Gaussian profile
@@ -2317,7 +2329,7 @@ public partial class RayBeamRenderer : Node3D
 					float wOut = 1.0f - SmoothStep(outer - edge, outer + edge, r);
 					float w = Mathf.Clamp(wIn * wOut, 0.0f, 1.0f);
 
-					mag = amp * w * Mathf.Pow(r, gamma);
+					mag = amp * w * FastPow(r, gamma);
 				}
 				break;
 			}
