@@ -403,6 +403,7 @@ public partial class GrinFilmCamera : Node
 		Both = 3,
 		HybridQuickRayThenOverlap = 4
 	}
+
 	/// <summary>Uses a quick probe, then subdivides if needed.</summary>
 	// CONTROL FACTOR: Enables quick probe then subdivide; true favors early-outs.
 	[Export] public bool UseSingleProbeThenSubdivide = false;
@@ -683,6 +684,7 @@ public partial class GrinFilmCamera : Node
 	private PhysicsRayQueryParameters3D _quickRayParams;
 	private PhysicsShapeQueryParameters3D _overlapQuery;
 	private SphereShape3D _overlapSphere;
+	private readonly System.Collections.Generic.List<Godot.Collections.Dictionary> _pass2OverlapCandidatesScratch = new System.Collections.Generic.List<Godot.Collections.Dictionary>(64);
 	private readonly PerfStats _perfStats = new PerfStats(60);
 	private PerfFrameReport _perfFrame;
 
@@ -719,6 +721,14 @@ public partial class GrinFilmCamera : Node
 	{
 		public bool HitBackFaces;
 		public bool HitFromInside;
+	}
+
+	private struct BroadphaseCandidateResult
+	{
+		public int Count;
+		public bool DidQuickRay;
+		public bool DidOverlap;
+		public bool NoCandidates;
 	}
 
 	private struct Pass2QuickRayCacheEntry
@@ -822,6 +832,9 @@ public partial class GrinFilmCamera : Node
 	private bool _rbrRefLoggedResolvedOk = false;
 	private bool _rbrRefLoggedResolveFailed = false;
 	private bool _rbrRefLoggedWrongType = false;
+	private bool _rbrRefAutoResolveAttempted = false;
+	private bool _rbrRefLoggedAutoResolved = false;
+	private bool _rbrRefLoggedAutoResolveFailed = false;
 	private NodePath _lastRbrResolvePath;
 	private bool _hasLastRbrResolvePath = false;
 	private int _softGateFrameId = -1;
@@ -852,6 +865,8 @@ public partial class GrinFilmCamera : Node
 	private int _bandNoHitStallRepeats = 0;
 	private int _noCandidateBandStallSteps = 0;
 	private int _noCandidateBandLastRowCursor = -1;
+	private int _noHitBandStallSteps = 0;
+	private int _noHitBandLastRowCursor = -1;
 	private bool _lastBandCommitted = true;
 	private int _lastRenderStepRowCursor = -1;
 	private int _lastRenderStepBandStart = -1;
@@ -1130,6 +1145,48 @@ public partial class GrinFilmCamera : Node
 
 	}
 
+	private bool TryAutoResolveRayBeamRenderer(out RayBeamRenderer rbr, out NodePath generatedPath)
+	{
+		rbr = null;
+		generatedPath = default;
+
+		if (_rbrRefAutoResolveAttempted)
+			return false;
+		_rbrRefAutoResolveAttempted = true;
+
+		Node parent = GetParent();
+		if (parent == null)
+			return false;
+
+		Node byName = parent.FindChild("RayBeamRenderer", recursive: true, owned: true);
+		if (byName is RayBeamRenderer byNameRbr)
+		{
+			rbr = byNameRbr;
+			generatedPath = GetPathTo(byNameRbr);
+			return true;
+		}
+
+		var stack = new System.Collections.Generic.Stack<Node>();
+		stack.Push(parent);
+		while (stack.Count > 0)
+		{
+			Node current = stack.Pop();
+			foreach (Node child in current.GetChildren())
+			{
+				if (child is RayBeamRenderer byTypeRbr)
+				{
+					rbr = byTypeRbr;
+					generatedPath = GetPathTo(byTypeRbr);
+					return true;
+				}
+				if (child.GetChildCount() > 0)
+					stack.Push(child);
+			}
+		}
+
+		return false;
+	}
+
 	private void ResolveRayBeamRendererReference()
 	{
 		if (_rbr != null && !IsInstanceValid(_rbr))
@@ -1142,6 +1199,9 @@ public partial class GrinFilmCamera : Node
 		{
 			_lastRbrResolvePath = RayBeamRendererPath;
 			_hasLastRbrResolvePath = true;
+			_rbrRefAutoResolveAttempted = false;
+			_rbrRefLoggedAutoResolved = false;
+			_rbrRefLoggedAutoResolveFailed = false;
 		}
 
 		if (!pathChanged && _rbr != null)
@@ -1154,6 +1214,21 @@ public partial class GrinFilmCamera : Node
 				_rbrRefLoggedPathEmpty = true;
 				GD.Print("[RBRRef] path empty");
 			}
+			if (TryAutoResolveRayBeamRenderer(out RayBeamRenderer autoRbr, out NodePath autoPath))
+			{
+				_rbr = autoRbr;
+				if (!_rbrRefLoggedAutoResolved)
+				{
+					_rbrRefLoggedAutoResolved = true;
+					GD.Print($"[RBRRef] auto-resolved name={autoRbr.Name} path={autoPath}");
+				}
+				return;
+			}
+			if (!_rbrRefLoggedAutoResolveFailed)
+			{
+				_rbrRefLoggedAutoResolveFailed = true;
+				GD.Print("[RBRRef] auto-resolve failed");
+			}
 			_rbr = null;
 			return;
 		}
@@ -1165,6 +1240,21 @@ public partial class GrinFilmCamera : Node
 			{
 				_rbrRefLoggedResolveFailed = true;
 				GD.Print($"[RBRRef] resolve failed path={RayBeamRendererPath}");
+			}
+			if (TryAutoResolveRayBeamRenderer(out RayBeamRenderer autoRbr, out NodePath autoPath))
+			{
+				_rbr = autoRbr;
+				if (!_rbrRefLoggedAutoResolved)
+				{
+					_rbrRefLoggedAutoResolved = true;
+					GD.Print($"[RBRRef] auto-resolved name={autoRbr.Name} path={autoPath}");
+				}
+				return;
+			}
+			if (!_rbrRefLoggedAutoResolveFailed)
+			{
+				_rbrRefLoggedAutoResolveFailed = true;
+				GD.Print("[RBRRef] auto-resolve failed");
 			}
 			_rbr = null;
 			return;
@@ -1186,6 +1276,21 @@ public partial class GrinFilmCamera : Node
 			_rbrRefLoggedWrongType = true;
 			GD.Print("[RBRRef] wrong type at path");
 		}
+		if (TryAutoResolveRayBeamRenderer(out RayBeamRenderer autoRbrWrongType, out NodePath autoPathWrongType))
+		{
+			_rbr = autoRbrWrongType;
+			if (!_rbrRefLoggedAutoResolved)
+			{
+				_rbrRefLoggedAutoResolved = true;
+				GD.Print($"[RBRRef] auto-resolved name={autoRbrWrongType.Name} path={autoPathWrongType}");
+			}
+			return;
+		}
+		if (!_rbrRefLoggedAutoResolveFailed)
+		{
+			_rbrRefLoggedAutoResolveFailed = true;
+			GD.Print("[RBRRef] auto-resolve failed");
+		}
 		_rbr = null;
 	}
 
@@ -1204,7 +1309,9 @@ public partial class GrinFilmCamera : Node
 		_lastCameraInstanceId = _cam.GetInstanceId();
 		_hasLastCameraInstanceId = true;
 
+		GD.Print($"[RBRRef][Startup] configured path={RayBeamRendererPath}");
 		ResolveRayBeamRendererReference();
+		GD.Print($"[RBRRef][Startup] resolved={_rbr != null}");
 		GD.Print("RayBeamRenderer found? ", _rbr != null);
 		// DECISION: warn if RayBeamRenderer is missing, but continue so mirrors can update.
 		if (_rbr == null)
@@ -1284,6 +1391,7 @@ public partial class GrinFilmCamera : Node
 		{
 			RayBeamRenderer.SharedSnapshot snap = _rbr != null ? _rbr.GetSharedSnapshot() : default;
 			UpdateSharedSnapshotMirror(in snap, force: true);
+			GD.Print($"[RBRRef][Startup] HasRenderer(after mirror)={SharedRbrHasRenderer}");
 		}
 
 		GD.Print("✅ GrinFilmCamera ready. Rendering film.");
@@ -1342,6 +1450,7 @@ public partial class GrinFilmCamera : Node
 		string renderStepAbortReason = "";
 		bool renderStepStopLogged = false;
 		bool bandCommittedThisStep = false;
+		bool bandAttemptedThisStep = false;
 		bool budgetStop = false;
 		bool budgetStopLogged = false;
 		string budgetStopReason = "";
@@ -1368,6 +1477,7 @@ public partial class GrinFilmCamera : Node
 		int bandHits = 0;
 		int bandTracedPixels = 0;
 		int processedPixelsThisBand = 0;
+		int bandNoCandidatePixels = 0;
 		string renderPhase = "enter";
 		bool pass1CompletedThisStep = false;
 		bool pass2CompletedThisStep = false;
@@ -1390,12 +1500,15 @@ public partial class GrinFilmCamera : Node
 			int pixelCap = cfg.RenderStepMaxPixelsPerFrame > 0 ? cfg.RenderStepMaxPixelsPerFrame : 0;
 			int attemptsCap = pass2SoftGateMaxAttemptsPerFrameEffective;
 			int subdivCap = pass2SoftGateMaxSubdividedCallsPerFrameEffective;
+			string bandContext = reason == "guard_no_candidates_band"
+				? $" band=[{yStart},{yEnd}) repeats={_noCandidateBandStallSteps}"
+				: "";
 			GD.Print(
 				$"[BudgetExit] frame={_frameIndex} row={rowCursor} reason={reason} elapsedMs={elapsedMs} " +
 				$"rowsDoneThisStep={rowsDoneThisStep} hitsThisBand={bandHits} " +
 				$"attempts={_softGateAttemptsUsedThisFrame}/{attemptsCap} " +
 				$"subdiv={_softGateSubdividedCallsUsedThisFrame}/{subdivCap} " +
-				$"px={pixelCountLocal}/{pixelCap}");
+				$"px={pixelCountLocal}/{pixelCap}{bandContext}");
 		}
 
 		try
@@ -1683,7 +1796,7 @@ public partial class GrinFilmCamera : Node
 					: 0.0;
 				GD.Print(
 					$"[BandSummary] frame={_frameIndex} y=[{yStart},{yEnd}) " +
-					$"hits={bandHits} tracedPx={bandTracedPixels} avgSteps={avgStepsPerTracedPixel:0.00} reasonDone={reasonDone}");
+					$"hits={bandHits} tracedPx={bandTracedPixels} noCandPx={bandNoCandidatePixels} avgSteps={avgStepsPerTracedPixel:0.00} reasonDone={reasonDone}");
 			}
 
 			void ResetNoHitStall()
@@ -2538,6 +2651,7 @@ public partial class GrinFilmCamera : Node
 			// EFFECT: mark pass2 start time for budgets and logs.
 			pass2StartUsec = a1;
 			if (cfg.RenderStepPhaseLog) LogRenderPhase("pass2-start");
+			bandAttemptedThisStep = true;
 			bandHits = 0;
 			bandTracedPixels = 0;
 			processedPixelsThisBand = 0;
@@ -3118,6 +3232,28 @@ public partial class GrinFilmCamera : Node
 					$"SG seg={segIndex} len={segmentLength:0.###} score={score:0.###} angleDeg={turnAngleDeg:0.###} angleScore={turnAngleScore:0.###} prevLostScore={prevHitLostScore:0.###} forced={(forced ? 1 : 0)} attempt={(attempted ? 1 : 0)} hit={(hit ? 1 : 0)} reason={reasonText}");
 			}
 
+			int pixelsVisitedThisBand = 0;
+			int bandPixelCountGuard = 0;
+			int pixelLoopGuardSlack = Math.Max(4, stride * 2);
+			if (bandH > 0 && filmW > 0 && stride > 0)
+			{
+				int rowsGuard = (bandH + stride - 1) / stride;
+				int colsGuard = (filmW + stride - 1) / stride;
+				bandPixelCountGuard = rowsGuard * colsGuard;
+			}
+			bool pixelLoopGuardTripped = false;
+			void CheckPixelLoopGuard(int x, int y)
+			{
+				if (pixelLoopGuardTripped) return;
+				pixelsVisitedThisBand++;
+				if (bandPixelCountGuard <= 0) return;
+				if (pixelsVisitedThisBand <= bandPixelCountGuard + pixelLoopGuardSlack) return;
+				pixelLoopGuardTripped = true;
+				GD.Print($"[WATCHDOG] pixelLoopGuard tripped at row={y} band=[{yStart},{yEnd}) policy={broadphaseCfg.Policy} x={x} stride={stride}");
+				TriggerBudgetStop("guard_pixel_loop");
+				ForceAdvanceRowCursorOnStop("guard_pixel_loop", yEnd);
+			}
+
 			// DECISION: skip physics if band-level skip is active.
 			if (skipBandPhysics)
 			{
@@ -3147,6 +3283,12 @@ public partial class GrinFilmCamera : Node
 						{
 							// DECISION: stop inner loop if budget stop was triggered.
 							if (budgetStop) break;
+							renderStepAbort = true;
+							break;
+						}
+						CheckPixelLoopGuard(x, y);
+						if (pixelLoopGuardTripped)
+						{
 							renderStepAbort = true;
 							break;
 						}
@@ -3212,6 +3354,12 @@ public partial class GrinFilmCamera : Node
 							renderStepAbort = true;
 							break;
 						}
+						CheckPixelLoopGuard(x, y);
+						if (pixelLoopGuardTripped)
+						{
+							renderStepAbort = true;
+							break;
+						}
 						int pi = localY * filmW + x;
 						int globalPi = y * filmW + x;
 						// DECISION: update traced pixels when stats enabled.
@@ -3236,6 +3384,8 @@ public partial class GrinFilmCamera : Node
 							int forceRepSegIndex = -1;
 							bool softGateHitThisPixel = false;
 							bool softGateWatchdogTrippedThisPixel = false;
+						bool hadCandidatesThisPixel = false;
+						bool noCandidatesThisPixel = false;
 
 						bool hadHit = false;
 						float hitDistance = 0f;
@@ -3401,13 +3551,19 @@ public partial class GrinFilmCamera : Node
 									bool prevHitLostForSoftGate = false;
 									bool softGateAllowedNoCandidate = false;
 									bool bypassQuickRayForRepresentative = allowInstabilityPass && si == forceRepSegIndex;
-									bool deferQuickRayZeroCount = useHybridBroadphase && useOverlap && !bypassQuickRayForRepresentative;
+									bool deferQuickRayZeroCount = useHybridBroadphase && !bypassQuickRayForRepresentative;
 									bool skipBroadphaseSegment = false;
+									int quickCandidatesCount = 0;
+									int overlapCandidatesCount = 0;
+									bool quickAttempted = false;
+									bool quickHit = false;
+									bool overlapAttempted = false;
 
-									System.Collections.Generic.List<Rid> RunOverlapQuery(
+									void RunOverlapQuery(
 										PhysicsDirectSpaceState3D localSpace,
 										Vector3 p0,
 										Vector3 p1,
+										System.Collections.Generic.List<Godot.Collections.Dictionary> reuse,
 										out int overlapCount)
 									{
 										Vector3 mid = (p0 + p1) * 0.5f;
@@ -3423,14 +3579,11 @@ public partial class GrinFilmCamera : Node
 											segCounted = true;
 										}
 										overlapCount = overlaps.Count;
-										var list = new System.Collections.Generic.List<Rid>(overlapCount);
+										reuse.Clear();
 										for (int oi = 0; oi < overlapCount; oi++)
 										{
 											var o = (Godot.Collections.Dictionary)overlaps[oi];
-											if (o.ContainsKey("rid"))
-												list.Add((Rid)o["rid"]);
-											else
-												list.Add(default);
+											reuse.Add(o);
 										}
 										if (framePerfEnabled)
 										{
@@ -3444,17 +3597,15 @@ public partial class GrinFilmCamera : Node
 												_framePerf.Pass2OverlapHits++;
 											}
 										}
-										return list;
 									}
 
-									System.Collections.Generic.List<Rid> RunQuickRayQuery(
+									int RunQuickRayQuery(
 										PhysicsDirectSpaceState3D localSpace,
 										Vector3 p0,
 										Vector3 p1,
 										out int qrayCount)
 									{
 										qrayCount = -1;
-										System.Collections.Generic.List<Rid> list = null;
 
 										int ax = QuantizePass2QuickRay(p0.X);
 										int ay = QuantizePass2QuickRay(p0.Y);
@@ -3478,9 +3629,6 @@ public partial class GrinFilmCamera : Node
 												else _framePerf.Pass2QuickRayMisses++;
 											}
 											CountQuickRayResult(cachedHit);
-											list = cachedHit
-												? new System.Collections.Generic.List<Rid>(1) { default }
-												: new System.Collections.Generic.List<Rid>(0);
 											if (!cachedHit)
 											{
 												if (deferQuickRayZeroCount)
@@ -3518,9 +3666,9 @@ public partial class GrinFilmCamera : Node
 														ref p2SoftGateAttempts,
 														ref softGateBudgetExceeded))
 													{
-														if (budgetStop) return list;
+														if (budgetStop) return qrayCount;
 														skipBroadphaseSegment = true;
-														return list;
+														return qrayCount;
 													}
 													softGateAllowedNoCandidate = true;
 												}
@@ -3531,7 +3679,7 @@ public partial class GrinFilmCamera : Node
 											}
 											if (cachedDist < bestHitDistAlongRay)
 												bestHitDistAlongRay = cachedDist;
-											return list;
+											return qrayCount;
 										}
 
 										if (pass == 0) quickRayTestedThisPixel = true;
@@ -3550,7 +3698,6 @@ public partial class GrinFilmCamera : Node
 										if (hit0.Count == 0)
 										{
 											qrayCount = 0;
-											list = new System.Collections.Generic.List<Rid>(0);
 											AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, false, 0f);
 											if (framePerfEnabled) _framePerf.Pass2QuickRayMisses++;
 											CountQuickRayResult(false);
@@ -3588,9 +3735,9 @@ public partial class GrinFilmCamera : Node
 													ref p2SoftGateAttempts,
 													ref softGateBudgetExceeded))
 												{
-													if (budgetStop) return list;
+													if (budgetStop) return qrayCount;
 													skipBroadphaseSegment = true;
-													return list;
+													return qrayCount;
 												}
 												softGateAllowedNoCandidate = true;
 											}
@@ -3602,11 +3749,6 @@ public partial class GrinFilmCamera : Node
 										else
 										{
 											qrayCount = 1;
-											list = new System.Collections.Generic.List<Rid>(1);
-											if (hit0.ContainsKey("rid"))
-												list.Add((Rid)hit0["rid"]);
-											else
-												list.Add(default);
 											CountQuickRayResult(true);
 										}
 										if (pass == 0) quickRayHitThisPixel = true;
@@ -3616,69 +3758,90 @@ public partial class GrinFilmCamera : Node
 										AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, true, d);
 										if (d < bestHitDistAlongRay)
 											bestHitDistAlongRay = d;
-										return list ?? new System.Collections.Generic.List<Rid>(0);
+										return qrayCount;
 									}
 
-									System.Collections.Generic.List<Rid> GetBroadphaseCandidates(
+									BroadphaseCandidateResult GetPass2BroadphaseCandidatesHybrid(
 										PhysicsDirectSpaceState3D localSpace,
 										Vector3 p0, Vector3 p1,
-										bool useQuickRayLocal, bool useOverlapLocal,
-										bool hybridMode,
-										out int qrayCount,
+										bool useQuickRayLocal,
+										bool useOverlapLocal,
+										System.Collections.Generic.List<Godot.Collections.Dictionary> overlapCandidates,
 										out int overlapCount,
-										out bool usedHybridFallback)
+										out bool quickRayMissed)
 									{
-										qrayCount = -1;
-										overlapCount = -1;
-										usedHybridFallback = false;
-
-										if (!hybridMode)
-										{
-											if (useOverlapLocal)
-											{
-												var overlapCandidates = RunOverlapQuery(localSpace, p0, p1, out overlapCount);
-												if (overlapCount > 0)
-													return overlapCandidates;
-											}
-											if (useQuickRayLocal)
-												return RunQuickRayQuery(localSpace, p0, p1, out qrayCount);
-											return new System.Collections.Generic.List<Rid>(0);
-										}
+										BroadphaseCandidateResult result = default;
+										overlapCount = 0;
+										quickRayMissed = false;
 
 										if (useQuickRayLocal)
 										{
-											var quickCandidates = RunQuickRayQuery(localSpace, p0, p1, out qrayCount);
-											if (qrayCount > 0)
-												return quickCandidates;
+											result.DidQuickRay = true;
+											int qrayCount;
+											RunQuickRayQuery(localSpace, p0, p1, out qrayCount);
+											quickRayMissed = qrayCount == 0;
+											result.Count = qrayCount;
+											result.NoCandidates = qrayCount == 0;
+											return result;
 										}
 
-										if (qrayCount == 0 && useOverlapLocal)
+										if (useOverlapLocal)
 										{
-											usedHybridFallback = true;
-											return RunOverlapQuery(localSpace, p0, p1, out overlapCount);
+											result.DidOverlap = true;
+											RunOverlapQuery(localSpace, p0, p1, overlapCandidates, out overlapCount);
+											result.Count = overlapCount;
+											result.NoCandidates = overlapCount == 0;
+											return result;
 										}
 
-										if (!useQuickRayLocal && useOverlapLocal)
-										{
-											return RunOverlapQuery(localSpace, p0, p1, out overlapCount);
-										}
-
-										return new System.Collections.Generic.List<Rid>(0);
+										result.NoCandidates = false;
+										result.Count = 0;
+										return result;
 									}
 
-									int qrayCount;
-									int overlapCount;
-									bool usedHybridFallback;
-									var candidates = GetBroadphaseCandidates(
-										space,
-										segA,
-										segB,
-										useQuickRay && !bypassQuickRayForRepresentative,
-										useOverlap,
-										useHybridBroadphase,
-										out qrayCount,
-										out overlapCount,
-										out usedHybridFallback);
+									int candidateCount = 0;
+									int overlapCount = 0;
+									BroadphaseCandidateResult candidateResult = default;
+									var overlapCandidates = _pass2OverlapCandidatesScratch;
+									if (useHybridBroadphase)
+									{
+										bool useQuickRayLocal = useQuickRay && !bypassQuickRayForRepresentative;
+										bool useOverlapLocal = useOverlap && !useQuickRayLocal;
+										candidateResult = GetPass2BroadphaseCandidatesHybrid(
+											space,
+											segA,
+											segB,
+											useQuickRayLocal,
+											useOverlapLocal,
+											overlapCandidates,
+											out overlapCount,
+											out _);
+										candidateCount = candidateResult.Count;
+										quickAttempted = candidateResult.DidQuickRay;
+										if (candidateResult.DidQuickRay)
+											quickCandidatesCount = candidateResult.Count;
+										if (candidateResult.DidOverlap)
+										{
+											overlapAttempted = true;
+											overlapCandidatesCount = candidateResult.Count;
+										}
+									}
+									else
+									{
+										if (useOverlap)
+										{
+											RunOverlapQuery(space, segA, segB, overlapCandidates, out overlapCount);
+											if (overlapCount > 0)
+												candidateCount = overlapCount;
+										}
+										if (candidateCount == 0 && useQuickRay && !bypassQuickRayForRepresentative)
+										{
+											int qrayCount;
+											RunQuickRayQuery(space, segA, segB, out qrayCount);
+											if (qrayCount > 0)
+												candidateCount = qrayCount;
+										}
+									}
 
 									if (budgetStop) break;
 									if (skipBroadphaseSegment)
@@ -3686,32 +3849,44 @@ public partial class GrinFilmCamera : Node
 										continue;
 									}
 
-									if (usedHybridFallback)
+									if (useHybridBroadphase)
 									{
-										if (_broadphaseHybridFallbackLogsRemaining > 0)
+										if (quickAttempted && !overlapAttempted && useOverlap && candidateCount == 0)
 										{
-											GD.Print($"[HybridFallback] qray=0 -> overlap candidates={overlapCount} row={y} x={x}");
-											_broadphaseHybridFallbackLogsRemaining--;
-										}
-										if (overlapCount == 0)
-										{
-											_hybridNoCandidateCountThisFrame++;
-											if (_broadphaseNoCandidateLogsRemaining > 0)
+											candidateResult = GetPass2BroadphaseCandidatesHybrid(
+												space,
+												segA,
+												segB,
+												false,
+												true,
+												overlapCandidates,
+												out overlapCount,
+												out _);
+											overlapAttempted = candidateResult.DidOverlap;
+											overlapCandidatesCount = candidateResult.Count;
+											candidateCount = candidateResult.Count;
+											if (overlapAttempted)
 											{
-												GD.Print($"[NoCandidates] policy=Hybrid row={y} x={x} qray=0 overlap=0");
-												_broadphaseNoCandidateLogsRemaining--;
+												_hybridFallbackCountThisFrame++;
+												if (_broadphaseHybridFallbackLogsRemaining > 0)
+												{
+													GD.Print($"[HybridFallback] reason=quick_no_hit row={y} x={x} qrayCand={quickCandidatesCount} overlapCand={overlapCandidatesCount}");
+													_broadphaseHybridFallbackLogsRemaining--;
+												}
+												if (overlapCandidatesCount > 0)
+													pendingQuickRayMissSoftGate = false;
 											}
-											if (pendingQuickRayZeroCount)
-											{
+										}
+										if (pendingQuickRayZeroCount)
+										{
+											bool shouldCountZero = !overlapAttempted || overlapCandidatesCount == 0;
+											if (shouldCountZero)
 												_quickRayZeroCountThisFrame++;
-												pendingQuickRayZeroCount = false;
-											}
-										}
-										else
-										{
-											pendingQuickRayMissSoftGate = false;
 											pendingQuickRayZeroCount = false;
-											_hybridFallbackCountThisFrame++;
+										}
+										if (quickCandidatesCount == 0 && (!overlapAttempted || overlapCandidatesCount == 0))
+										{
+											noCandidatesThisPixel = true;
 										}
 									}
 									else if (pendingQuickRayZeroCount)
@@ -3753,13 +3928,16 @@ public partial class GrinFilmCamera : Node
 										softGateAllowedNoCandidate = true;
 									}
 
-									if (candidates.Count == 0 && !softGateAllowedNoCandidate)
+									if (candidateCount == 0 && !softGateAllowedNoCandidate)
 									{
 										continue;
 									}
 
-									if (candidates.Count > 0 || softGateAllowedNoCandidate)
+									if (candidateCount > 0 || softGateAllowedNoCandidate)
+									{
 										bandHadCandidates = true;
+										hadCandidatesThisPixel = true;
+									}
 
 									if (cfg.UseSingleProbeThenSubdivide && !useQuickRay && !bypassQuickRayForRepresentative)
 									{
@@ -3937,6 +4115,7 @@ public partial class GrinFilmCamera : Node
 											quickRayMissCachedForSeg = !cachedHit;
 									}
 
+									RetryOverlapNarrowphase:
 										// ---- accurate subdivided ray ----
 										if (softGateAttempt)
 										{
@@ -4059,6 +4238,41 @@ public partial class GrinFilmCamera : Node
 											softGateHit,
 											softGateDecisionReason,
 											softGateSampleThisSeg);
+									if (useHybridBroadphase && quickAttempted && !quickHit)
+									{
+										if (!overlapAttempted && didHit)
+										{
+											quickHit = true;
+										}
+										else if (useOverlap && !overlapAttempted && !softGateWatchdogTrippedThisPixel)
+										{
+											candidateResult = GetPass2BroadphaseCandidatesHybrid(
+												space,
+												segA,
+												segB,
+												false,
+												true,
+												overlapCandidates,
+												out overlapCount,
+												out _);
+											overlapAttempted = candidateResult.DidOverlap;
+											overlapCandidatesCount = candidateResult.Count;
+											if (overlapAttempted)
+											{
+												_hybridFallbackCountThisFrame++;
+												if (_broadphaseHybridFallbackLogsRemaining > 0)
+												{
+													GD.Print($"[HybridFallback] reason=quick_no_hit row={y} x={x} qrayCand={quickCandidatesCount} overlapCand={overlapCandidatesCount}");
+													_broadphaseHybridFallbackLogsRemaining--;
+												}
+											}
+											if (overlapAttempted && overlapCandidatesCount > 0)
+											{
+												didHit = false;
+												goto RetryOverlapNarrowphase;
+											}
+										}
+									}
 										if (softGateWatchdogTrippedThisPixel)
 											break;
 									}
@@ -4130,6 +4344,17 @@ public partial class GrinFilmCamera : Node
 							break;
 					}
 					if (budgetStop) break;
+
+					if (noCandidatesThisPixel && !hadCandidatesThisPixel)
+					{
+						bandNoCandidatePixels++;
+						_hybridNoCandidateCountThisFrame++;
+						if (_broadphaseNoCandidateLogsRemaining > 0)
+						{
+							GD.Print($"[NoCandidates] row={y} x={x} qrayCand=0 overlapCand=0");
+							_broadphaseNoCandidateLogsRemaining--;
+						}
+					}
 
 					if (statsEnabled)
 					{
@@ -4658,7 +4883,7 @@ public partial class GrinFilmCamera : Node
 				}
 			}
 
-			bool noCandidateBand = processedPixelsThisBand > 0 && bandHits == 0 && !bandHadCandidates;
+			bool noCandidateBand = processedPixelsThisBand > 0 && !bandHadCandidates;
 			bool noRowAdvanceThisStep = renderHealthRowCursorBefore == _rowCursor;
 			if (noCandidateBand && noRowAdvanceThisStep)
 			{
@@ -4683,6 +4908,32 @@ public partial class GrinFilmCamera : Node
 				_noCandidateBandStallSteps = 0;
 				_noCandidateBandLastRowCursor = _rowCursor;
 			}
+
+			bool noHitBand = processedPixelsThisBand > 0 && bandHits == 0 && bandHadCandidates;
+			if (noHitBand && noRowAdvanceThisStep)
+			{
+				if (_noHitBandLastRowCursor == _rowCursor)
+					_noHitBandStallSteps++;
+				else
+				{
+					_noHitBandLastRowCursor = _rowCursor;
+					_noHitBandStallSteps = 1;
+				}
+			}
+			else
+			{
+				_noHitBandStallSteps = 0;
+				_noHitBandLastRowCursor = _rowCursor;
+			}
+
+			if (noHitBand && noRowAdvanceThisStep && _noHitBandStallSteps >= RenderHealthStallThreshold)
+			{
+				GD.PrintErr($"[WATCHDOG] no-hit band y=[{yStart},{yEnd}) repeats={_noHitBandStallSteps} -> forceAdvance");
+				LogBudgetExitOnce("guard_no_hit_band", _rowCursor);
+				ForceAdvanceRowCursorOnStop("guard_no_hit_band", yEnd);
+				_noHitBandStallSteps = 0;
+				_noHitBandLastRowCursor = _rowCursor;
+			}
 		}
 		finally
 		{
@@ -4696,7 +4947,7 @@ public partial class GrinFilmCamera : Node
 			RecordRenderHealthSample(
 				renderHealthRowCursorBefore,
 				_rowCursor,
-				bandCommittedThisStep ? 1 : 0,
+				bandAttemptedThisStep ? 1 : 0,
 				bandTracedPixels,
 				bandHits,
 				_quickRayZeroCountThisFrame,

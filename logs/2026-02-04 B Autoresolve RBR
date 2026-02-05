@@ -1,0 +1,105 @@
+Godot Engine v4.5.1.stable.mono.official.f62fdbde1 - https://godotengine.org
+OpenGL API 3.3.0 Core Profile Context 25.11.1.251104 - Compatibility - Using Device: ATI Technologies Inc. - AMD Radeon RX 6700 XT
+
+[DBG] dbgMesh inTree=True parent=RayBeamRenderer world=(0, 0, 0)
+✅ GrinFilmCamera READY: /root/Node3D/GrinFilmCamera
+[RBRRef][Startup] configured path=../RayBeamRenderer
+[RBRRef] resolved ok name=RayBeamRenderer
+[RBRRef][Startup] resolved=True
+RayBeamRenderer found? True
+[PresetApply] reason=ready quality=1 perf=1 user=1 scene=1 preset=Walk perfPreset=None quality=Barebones resScale=0.25 stride=2 rows=8 broadphaseMode=Policy broadphasePolicy=QuickRayOnly
+[BroadphaseEffective] mode=Policy policy=QuickRayOnly quick=True overlap=False reason=policy
+[SharedSnap] steps=400 stepLen=0.05 minStep=0.001 maxStep=0.3 collEvery=1 collRad=0.03 mask=0x0000FFFF debug=Off
+[EffectiveCfg] broadphase=Policy(policy) policy=QuickRayOnly quick=1 overlap=0 softgate=1 score=0 minSeg=0.018 attempts=600 sub=1000 stride=2 resScale=0.25 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF maxDist=50
+FilmView found? True
+[RBRRef][Startup] HasRenderer(after mirror)=True
+✅ GrinFilmCamera ready. Rendering film.
+Rebuild ENTER
+Rebuild on node: /root/Node3D/RayBeamRenderer  TerminateTrailOnHit=True StopOnHit=False RequireHitToRender=False
+READY node: /root/Node3D/RayBeamRenderer  Script=<CSharpScript#-9223372009893788259>  TerminateTrailOnHit=True
+RayBeamRenderer: field sources in group = 3
+RayBeamRenderer: emitters in group = 1
+RayBeamRenderer: total instances target = 6817
+Rebuild EXIT
+Set RenderStepBandLog
+Set RenderStepPhaseLog
+(3) Set UseFieldSourceCache
+Set FramePerfVerbose
+Set EnableFramePerf
+Set VerbosePerfLogs
+Set EnableProfiling
+Set BroadphasePolicy
+[BroadphaseEffective] mode=Policy policy=OverlapOnly quick=False overlap=True reason=policy
+Set UpdateEveryFrame
+[EffectiveCfg] broadphase=Policy(policy) policy=OverlapOnly quick=0 overlap=1 softgate=1 score=0 minSeg=0.018 attempts=600 sub=1000 stride=2 resScale=0.25 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF maxDist=50
+Toggles: AdaptiveSubsteps=0 SingleProbeSubdivide=0 BandHitSkip=0 RequireHit=0 StopOnHit=0 TerminateTrailOnHit=1 UpdateEveryFrame=1
+[Cfg] Pass2SoftGateEnableQuickRayMiss=1 Pass2SoftGateScoringEnabled=0 Pass2SoftGateMinSegmentLength=0.018 Pass2SoftGateScoreThreshold=0.05 Pass2SoftGateScoreTurnAngleWeight=1 Pass2SoftGateScorePrevHitLostBonus=0.75 Pass2SoftGateRandomProbeChance=0 Pass2SoftGateScoreBudgetPerFrame=256 Pass2SoftGateMaxAttemptsPerPixel=4 Pass2SoftGateMaxAttemptsPerFrame=600 Pass2SoftGateMaxSubdividedCallsPerFrame=1000 UpdateEveryFrame=1
+[FrameReset] reason=completed prevRow=180 frame=1
+[FrameReset] reason=completed prevRow=180 frame=2
+[RenderHealth] step=30 lastRow=91 rowsAdv=16 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.092 avgSteps=0 qray0=0 hybridFallback=0 noCandidates=0
+[FrameReset] reason=completed prevRow=180 frame=3
+Set BroadphasePolicy
+[BroadphaseEffective] mode=Policy policy=Both quick=True overlap=True reason=policy
+[EffectiveCfg] broadphase=Policy(policy) policy=Both quick=1 overlap=1 softgate=1 score=0 minSeg=0.018 attempts=600 sub=1000 stride=2 resScale=0.25 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF maxDist=50
+[Warn] Broadphase QuickRay may miss hits under curved marching; consider OverlapOnly/Both or disable broadphase.
+[BudgetExit] frame=4 row=136 reason=update_every_frame_budget elapsedMs=1026 rowsDoneThisStep=12 hitsThisBand=26 attempts=0/600 subdiv=0/1000 px=5120/2000000
+  ERROR: [RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[124,140) rowCursor=124 elapsedMs=1027 attempts=0/600 sub=0/1000 hits=26
+[RenderStep][Yield] reason=update_every_frame_budget frame=4 rowCursor=136 rowsDone=12 pendingPass2=0 bandH=16 pass1RerunAvoided=0 ms=1027 p1ms=88.97 p2ms=938.11 p2SegTestedStep=0 softGate{attemptUsed=0 subdivUsed=0}
+[FrameReset] reason=completed prevRow=180 frame=4
+[RenderHealth] step=60 lastRow=67 rowsAdv=8 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.099 avgSteps=0 qray0=12179774 hybridFallback=0 noCandidates=0
+[FrameReset] reason=completed prevRow=180 frame=5
+[FrameReset] reason=completed prevRow=180 frame=6
+[RenderHealth] step=90 lastRow=128 rowsAdv=16 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.142 avgSteps=0 qray0=5369722 hybridFallback=0 noCandidates=0
+[FrameReset] reason=completed prevRow=180 frame=7
+[FrameReset] reason=completed prevRow=180 frame=8
+[FrameReset] reason=completed prevRow=180 frame=9
+[RenderHealth] step=120 lastRow=32 rowsAdv=16 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.109 avgSteps=0 qray0=3495588 hybridFallback=0 noCandidates=0
+[FrameReset] reason=completed prevRow=180 frame=10
+[FrameReset] reason=completed prevRow=180 frame=11
+[RenderHealth] step=150 lastRow=128 rowsAdv=16 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.149 avgSteps=0 qray0=2986094 hybridFallback=0 noCandidates=0
+[FrameReset] reason=completed prevRow=180 frame=12
+[FrameReset] reason=completed prevRow=180 frame=13
+[FrameReset] reason=completed prevRow=180 frame=14
+[RenderHealth] step=180 lastRow=32 rowsAdv=16 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.109 avgSteps=0 qray0=3575493 hybridFallback=0 noCandidates=0
+[FrameReset] reason=completed prevRow=180 frame=15
+[FrameReset] reason=completed prevRow=180 frame=16
+[RenderHealth] step=210 lastRow=128 rowsAdv=16 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.207 avgSteps=0 qray0=3712774 hybridFallback=0 noCandidates=0
+[FrameReset] reason=completed prevRow=180 frame=17
+[FrameReset] reason=completed prevRow=180 frame=18
+[FrameReset] reason=completed prevRow=180 frame=19
+[RenderHealth] step=240 lastRow=32 rowsAdv=16 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.141 avgSteps=0 qray0=4119949 hybridFallback=0 noCandidates=0
+[FrameReset] reason=completed prevRow=180 frame=20
+[FrameReset] reason=completed prevRow=180 frame=21
+[RenderHealth] step=270 lastRow=128 rowsAdv=16 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.207 avgSteps=0 qray0=3345664 hybridFallback=0 noCandidates=0
+[FrameReset] reason=completed prevRow=180 frame=22
+[FrameReset] reason=completed prevRow=180 frame=23
+[FrameReset] reason=completed prevRow=180 frame=24
+[RenderHealth] step=300 lastRow=32 rowsAdv=16 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.141 avgSteps=0 qray0=3958781 hybridFallback=0 noCandidates=0
+Set UpdateEveryFrame
+Set BroadphasePolicy
+[BroadphaseEffective] mode=Policy policy=HybridQuickRayThenOverlap quick=True overlap=True reason=policy
+Set UpdateEveryFrame
+[EffectiveCfg] broadphase=Policy(policy) policy=HybridQuickRayThenOverlap quick=1 overlap=1 softgate=1 score=0 minSeg=0.018 attempts=600 sub=1000 stride=2 resScale=0.25 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF maxDist=50
+[RenderHealth] step=330 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+[RenderHealth] step=360 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+[RenderHealth] step=390 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+[RenderHealth] step=420 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+[RenderHealth] step=450 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+[RenderHealth] step=480 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+[RenderHealth] step=510 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+[RenderHealth] step=540 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+[RenderHealth] step=570 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+[RenderHealth] step=600 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+[RenderHealth] step=630 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+[RenderHealth] step=660 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+[RenderHealth] step=690 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+[RenderHealth] step=720 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+[RenderHealth] step=750 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+[RenderHealth] step=780 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+[RenderHealth] step=810 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+[RenderHealth] step=840 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+[RenderHealth] step=870 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+[RenderHealth] step=900 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+[RenderHealth] step=930 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+[RenderHealth] step=960 lastRow=144 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=4973770 hybridFallback=0 noCandidates=0
+Set UpdateEveryFrame
