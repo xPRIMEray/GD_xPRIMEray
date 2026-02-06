@@ -744,7 +744,6 @@ public partial class GrinFilmCamera : Node
 		public bool UseOverlap;
 		public bool BypassQuickRay;
 		public bool QuickRayExecuted;
-		public int QuickRayCount;
 		public bool QuickRayHit;
 		public bool QuickRayMiss;
 		public bool OverlapExecuted;
@@ -3876,14 +3875,12 @@ public partial class GrinFilmCamera : Node
 										out OverlapResult overlaps,
 										out bool usedOverlapFallback)
 									{
-										// Hybrid broadphase: QuickRay hit is sufficient for candidates; only run overlap on qray miss.
 										overlaps = default;
 										overlaps.Candidates = _pass2OverlapCandidatesScratch;
 										overlaps.Count = 0;
 										usedOverlapFallback = false;
 
 										seg.QuickRayExecuted = false;
-										seg.QuickRayCount = -1;
 										seg.QuickRayHit = false;
 										seg.QuickRayMiss = false;
 										seg.OverlapExecuted = false;
@@ -3895,7 +3892,6 @@ public partial class GrinFilmCamera : Node
 											seg.QuickRayExecuted = true;
 											int qrayCount;
 											RunQuickRayQuery(seg.Space, seg.A, seg.B, out qrayCount);
-											seg.QuickRayCount = qrayCount;
 											if (qrayCount > 0)
 											{
 												seg.QuickRayHit = true;
@@ -3903,25 +3899,26 @@ public partial class GrinFilmCamera : Node
 											else
 											{
 												seg.QuickRayMiss = true;
+												if (!seg.UseOverlap)
+													return false;
 											}
 										}
 
-										if (seg.UseOverlap && (!seg.QuickRayExecuted || seg.QuickRayCount == 0))
+										if (seg.UseOverlap)
 										{
 											usedOverlapFallback = seg.QuickRayMiss;
 											seg.OverlapExecuted = true;
 											RunOverlapQuery(seg.Space, seg.A, seg.B, overlaps.Candidates, out int overlapCount);
 											seg.OverlapCount = overlapCount;
 											overlaps.Count = overlapCount;
+											return overlapCount > 0;
 										}
 
-										return (seg.QuickRayCount > 0) || (seg.OverlapCount > 0);
+										return false;
 									}
 
 									int candidateCount = 0;
 									int overlapCount = 0;
-									int qrayCount = -1;
-									bool forceNarrowphaseDueToQuickRay = false;
 									var overlapCandidates = _pass2OverlapCandidatesScratch;
 									if (useHybridBroadphase)
 									{
@@ -3939,36 +3936,30 @@ public partial class GrinFilmCamera : Node
 										bool hasCandidates = TryHybridBroadphase(ref segCtx, out overlapResult, out usedOverlapFallback);
 										overlapCandidates = overlapResult.Candidates;
 										overlapCount = segCtx.OverlapCount;
-										qrayCount = segCtx.QuickRayCount;
+										if (segCtx.QuickRayHit && segCtx.OverlapExecuted && segCtx.OverlapCount == 0)
+										{
+											if (_broadphaseHybridGateLogsRemaining > 0)
+											{
+												GD.Print($"[HybridGate] qray>0 overlap=0 row={_rowCursor} x={x}");
+												_broadphaseHybridGateLogsRemaining--;
+											}
+										}
 										if (hasCandidates)
 										{
-											if (overlapCount > 0)
-											{
-												candidateCount = overlapCount;
-											}
-											else if (qrayCount > 0)
-											{
-												candidateCount = qrayCount;
-												forceNarrowphaseDueToQuickRay = true;
-												if (_broadphaseHybridGateLogsRemaining > 0)
-												{
-													GD.Print($"[HybridGate] qray>0 but overlap=0 -> forcing narrowphase row={y} x={x} seg={si} qray={qrayCount}");
-													_broadphaseHybridGateLogsRemaining--;
-												}
-											}
-											if (usedOverlapFallback && overlapCount > 0)
+											candidateCount = segCtx.OverlapCount;
+											if (usedOverlapFallback && segCtx.OverlapCount > 0)
 											{
 												_hybridFallbackCountThisFrame++;
 												hybridFallbackActive = true;
 												if (_broadphaseHybridFallbackLogsRemaining > 0)
 												{
-													GD.Print($"[HybridFallback] qray=0 -> overlap candidates={overlapCount} row={_rowCursor} x={x}");
+													GD.Print($"[HybridFallback] qray=0 -> overlap candidates={segCtx.OverlapCount} row={_rowCursor} x={x}");
 													_broadphaseHybridFallbackLogsRemaining--;
 												}
 												pendingQuickRayMissSoftGate = false;
 											}
 										}
-										else if (usedOverlapFallback && qrayCount == 0)
+										else if (usedOverlapFallback)
 										{
 											noCandidatesThisPixel = true;
 										}
@@ -3983,10 +3974,10 @@ public partial class GrinFilmCamera : Node
 										}
 										if (candidateCount == 0 && useQuickRay && !bypassQuickRayForRepresentative)
 										{
-											int qrayCountLocal;
-											RunQuickRayQuery(space, segA, segB, out qrayCountLocal);
-											if (qrayCountLocal > 0)
-												candidateCount = qrayCountLocal;
+											int qrayCount;
+											RunQuickRayQuery(space, segA, segB, out qrayCount);
+											if (qrayCount > 0)
+												candidateCount = qrayCount;
 										}
 									}
 
@@ -4033,15 +4024,8 @@ public partial class GrinFilmCamera : Node
 
 									if (candidateCount == 0 && !softGateAllowedNoCandidate)
 									{
-										if (forceNarrowphaseDueToQuickRay)
-										{
-											softGateAllowedNoCandidate = true;
-										}
-										else
-										{
 										FlushHybridQuickRayMissCache();
 										continue;
-										}
 									}
 
 									if (candidateCount > 0 || softGateAllowedNoCandidate)
@@ -5112,6 +5096,7 @@ public partial class GrinFilmCamera : Node
 			_hasLastProcessedPixelsThisBand = true;
 			Interlocked.Exchange(ref _renderStepActive, 0);
 		}
+	}
 	}
 
 	private static float ReadFloat(Node obj, StringName prop, float fallback)

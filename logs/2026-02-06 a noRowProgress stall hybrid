@@ -1,0 +1,740 @@
+Godot Engine v4.5.1.stable.mono.official.f62fdbde1 - https://godotengine.org
+OpenGL API 3.3.0 Core Profile Context 25.11.1.251104 - Compatibility - Using Device: ATI Technologies Inc. - AMD Radeon RX 6700 XT
+
+[DBG] dbgMesh inTree=True parent=RayBeamRenderer world=(0, 0, 0)
+✅ GrinFilmCamera READY: /root/Node3D/GrinFilmCamera
+[RBRRef][Startup] configured path=../RayBeamRenderer
+[RBRRef] resolved ok name=RayBeamRenderer
+[RBRRef][Startup] resolved=True
+RayBeamRenderer found? True
+[PresetApply] reason=ready quality=1 perf=1 user=1 scene=1 preset=Walk perfPreset=None quality=Barebones resScale=0.25 stride=2 rows=8 broadphaseMode=Policy broadphasePolicy=QuickRayOnly
+[BroadphaseEffective] mode=Policy policy=QuickRayOnly quick=True overlap=False reason=policy
+[SharedSnap] steps=400 stepLen=0.05 minStep=0.001 maxStep=0.3 collEvery=1 collRad=0.03 mask=0x0000FFFF debug=Off
+[EffectiveCfg] broadphase=Policy(policy) policy=QuickRayOnly quick=1 overlap=0 softgate=1 score=0 minSeg=0.018 attempts=600 sub=1000 stride=2 resScale=0.25 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF maxDist=50
+FilmView found? True
+[RBRRef][Startup] HasRenderer(after mirror)=True
+✅ GrinFilmCamera ready. Rendering film.
+Rebuild ENTER
+Rebuild on node: /root/Node3D/RayBeamRenderer  TerminateTrailOnHit=True StopOnHit=False RequireHitToRender=False
+READY node: /root/Node3D/RayBeamRenderer  Script=<CSharpScript#-9223372009893788259>  TerminateTrailOnHit=True
+RayBeamRenderer: field sources in group = 3
+RayBeamRenderer: emitters in group = 1
+RayBeamRenderer: total instances target = 6817
+Rebuild EXIT
+Set BroadphaseControlMode
+[BroadphaseEffective] mode=Off policy=None quick=False overlap=False reason=off
+Set UpdateEveryFrame
+[EffectiveCfg] broadphase=Off(off) policy=None quick=0 overlap=0 softgate=1 score=0 minSeg=0.018 attempts=600 sub=1000 stride=2 resScale=0.25 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF maxDist=50
+Toggles: AdaptiveSubsteps=0 SingleProbeSubdivide=0 BandHitSkip=0 RequireHit=0 StopOnHit=0 TerminateTrailOnHit=1 UpdateEveryFrame=1
+[Cfg] Pass2SoftGateEnableQuickRayMiss=1 Pass2SoftGateScoringEnabled=0 Pass2SoftGateMinSegmentLength=0.018 Pass2SoftGateScoreThreshold=0.05 Pass2SoftGateScoreTurnAngleWeight=1 Pass2SoftGateScorePrevHitLostBonus=0.75 Pass2SoftGateRandomProbeChance=0 Pass2SoftGateScoreBudgetPerFrame=256 Pass2SoftGateMaxAttemptsPerPixel=4 Pass2SoftGateMaxAttemptsPerFrame=600 Pass2SoftGateMaxSubdividedCallsPerFrame=1000 UpdateEveryFrame=1
+[FrameReset] reason=completed prevRow=180 frame=1
+Film perf: px=57600 tpx=14400 fpx=57600 effPx=14400 segs=5760000 tested=0 hits=0 hitPct=0.00% avgSeg=400.00 avgTested=0.00 avgSub=0.00 pxStride=2 avgP2Stride=1.00 p2ForcePx=0 p2ForceInstabilityPx=0 p2ForcePrevHitLostPx=0 p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=0 pixNew=0 backfaceNdotV=0 skipSegs=0 forceSegs=0 eff=320x180 ms p1=814.43 p2p=765.09 p2s=2.61 upd=0.90 ovB=0.00 ovE=0.00 avg(ms) p1=814.43 p2p=765.09 p2s=2.61 upd=0.90 ovB=0.00 ovE=0.00 flags=NoSegsTested, NoSubRayCalls, NoHits
+[FrameReset] reason=completed prevRow=180 frame=2
+Film perf: px=57600 tpx=14400 fpx=57600 effPx=14400 segs=5760000 tested=0 hits=0 hitPct=0.00% avgSeg=400.00 avgTested=0.00 avgSub=0.00 pxStride=2 avgP2Stride=1.00 p2ForcePx=0 p2ForceInstabilityPx=0 p2ForcePrevHitLostPx=0 p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=0 pixNew=0 backfaceNdotV=0 skipSegs=0 forceSegs=0 eff=320x180 ms p1=709.98 p2p=755.30 p2s=2.43 upd=0.86 ovB=0.00 ovE=0.00 avg(ms) p1=762.21 p2p=760.20 p2s=2.52 upd=0.88 ovB=0.00 ovE=0.00 flags=NoSegsTested, NoSubRayCalls, NoHits
+[RenderHealth] step=30 lastRow=96 rowsAdv=16 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0
+[FrameReset] reason=completed prevRow=180 frame=3
+Film perf: px=57600 tpx=14400 fpx=57600 effPx=14400 segs=5760000 tested=0 hits=0 hitPct=0.00% avgSeg=400.00 avgTested=0.00 avgSub=0.00 pxStride=2 avgP2Stride=1.00 p2ForcePx=0 p2ForceInstabilityPx=0 p2ForcePrevHitLostPx=0 p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=0 pixNew=0 backfaceNdotV=0 skipSegs=0 forceSegs=0 eff=320x180 ms p1=703.86 p2p=754.02 p2s=2.37 upd=0.82 ovB=0.00 ovE=0.00 avg(ms) p1=742.76 p2p=758.14 p2s=2.47 upd=0.86 ovB=0.00 ovE=0.00 flags=NoSegsTested, NoSubRayCalls, NoHits
+[FrameReset] reason=completed prevRow=180 frame=4
+Film perf: px=57600 tpx=14400 fpx=57600 effPx=14400 segs=5760000 tested=0 hits=0 hitPct=0.00% avgSeg=400.00 avgTested=0.00 avgSub=0.00 pxStride=2 avgP2Stride=1.00 p2ForcePx=0 p2ForceInstabilityPx=0 p2ForcePrevHitLostPx=0 p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=0 pixNew=0 backfaceNdotV=0 skipSegs=0 forceSegs=0 eff=320x180 ms p1=689.97 p2p=751.17 p2s=2.38 upd=0.85 ovB=0.00 ovE=0.00 avg(ms) p1=729.56 p2p=756.40 p2s=2.45 upd=0.86 ovB=0.00 ovE=0.00 flags=NoSegsTested, NoSubRayCalls, NoHits
+[FrameReset] reason=completed prevRow=180 frame=5
+Film perf: px=57600 tpx=14400 fpx=57600 effPx=14400 segs=5760000 tested=0 hits=0 hitPct=0.00% avgSeg=400.00 avgTested=0.00 avgSub=0.00 pxStride=2 avgP2Stride=1.00 p2ForcePx=0 p2ForceInstabilityPx=0 p2ForcePrevHitLostPx=0 p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=0 pixNew=0 backfaceNdotV=0 skipSegs=0 forceSegs=0 eff=320x180 ms p1=703.79 p2p=756.05 p2s=2.38 upd=0.86 ovB=0.00 ovE=0.00 avg(ms) p1=724.41 p2p=756.33 p2s=2.44 upd=0.86 ovB=0.00 ovE=0.00 flags=NoSegsTested, NoSubRayCalls, NoHits
+[RenderHealth] step=60 lastRow=0 rowsAdv=4 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0
+[FrameReset] reason=completed prevRow=180 frame=6
+Film perf: px=57600 tpx=14400 fpx=57600 effPx=14400 segs=5760000 tested=0 hits=0 hitPct=0.00% avgSeg=400.00 avgTested=0.00 avgSub=0.00 pxStride=2 avgP2Stride=1.00 p2ForcePx=0 p2ForceInstabilityPx=0 p2ForcePrevHitLostPx=0 p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=0 pixNew=0 backfaceNdotV=0 skipSegs=0 forceSegs=0 eff=320x180 ms p1=655.87 p2p=748.97 p2s=2.41 upd=0.75 ovB=0.00 ovE=0.00 avg(ms) p1=712.98 p2p=755.10 p2s=2.43 upd=0.84 ovB=0.00 ovE=0.00 flags=NoSegsTested, NoSubRayCalls, NoHits
+[FrameReset] reason=completed prevRow=180 frame=7
+Film perf: px=57600 tpx=14400 fpx=57600 effPx=14400 segs=5760000 tested=0 hits=0 hitPct=0.00% avgSeg=400.00 avgTested=0.00 avgSub=0.00 pxStride=2 avgP2Stride=1.00 p2ForcePx=0 p2ForceInstabilityPx=0 p2ForcePrevHitLostPx=0 p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=0 pixNew=0 backfaceNdotV=0 skipSegs=0 forceSegs=0 eff=320x180 ms p1=666.82 p2p=744.26 p2s=2.40 upd=0.75 ovB=0.00 ovE=0.00 avg(ms) p1=706.39 p2p=753.55 p2s=2.43 upd=0.82 ovB=0.00 ovE=0.00 flags=NoSegsTested, NoSubRayCalls, NoHits
+Set BroadphaseControlMode
+[RenderHealth] step=90 lastRow=96 rowsAdv=16 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0
+[BroadphaseEffective] mode=Policy policy=None quick=False overlap=False reason=policy
+[EffectiveCfg] broadphase=Policy(policy) policy=None quick=0 overlap=0 softgate=1 score=0 minSeg=0.018 attempts=600 sub=1000 stride=2 resScale=0.25 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF maxDist=50
+[FrameReset] reason=completed prevRow=180 frame=8
+Film perf: px=57600 tpx=14400 fpx=57600 effPx=14400 segs=5760000 tested=0 hits=0 hitPct=0.00% avgSeg=400.00 avgTested=0.00 avgSub=0.00 pxStride=2 avgP2Stride=1.00 p2ForcePx=0 p2ForceInstabilityPx=0 p2ForcePrevHitLostPx=0 p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=0 pixNew=0 backfaceNdotV=0 skipSegs=0 forceSegs=0 eff=320x180 ms p1=673.41 p2p=744.85 p2s=2.34 upd=0.75 ovB=0.00 ovE=0.00 avg(ms) p1=702.27 p2p=752.46 p2s=2.42 upd=0.81 ovB=0.00 ovE=0.00 flags=NoSegsTested, NoSubRayCalls, NoHits
+Set BroadphasePolicy
+[BroadphaseEffective] mode=Policy policy=OverlapOnly quick=False overlap=True reason=policy
+[EffectiveCfg] broadphase=Policy(policy) policy=OverlapOnly quick=0 overlap=1 softgate=1 score=0 minSeg=0.018 attempts=600 sub=1000 stride=2 resScale=0.25 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF maxDist=50
+[FrameReset] reason=completed prevRow=180 frame=9
+Film perf: px=57600 tpx=14400 fpx=57600 effPx=14400 segs=5760000 tested=1484809 hits=2433 hitPct=16.90% avgSeg=400.00 avgTested=103.11 avgSub=1.00 pxStride=2 avgP2Stride=1.16 p2ForcePx=0 p2ForceInstabilityPx=0 p2ForcePrevHitLostPx=0 p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=2433 pixNew=2433 backfaceNdotV=0 skipSegs=0 forceSegs=882 eff=320x180 ms p1=789.10 p2p=1881.43 p2s=2.67 upd=0.76 ovB=0.00 ovE=0.00 avg(ms) p1=711.91 p2p=877.91 p2s=2.45 upd=0.81 ovB=0.00 ovE=0.00
+[FrameReset] reason=completed prevRow=180 frame=10
+Film perf: px=57600 tpx=14400 fpx=57600 effPx=14400 segs=5607132 tested=2917587 hits=8685 hitPct=60.31% avgSeg=389.38 avgTested=202.61 avgSub=1.00 pxStride=2 avgP2Stride=1.37 p2ForcePx=0 p2ForceInstabilityPx=0 p2ForcePrevHitLostPx=0 p2SoftGate=0/0 sgTrig=0 sgAttempt=0 sgHitChange=0 sgNewPx=0 sgNull=0 sgGuard=0 sgBudget=0 pixDelta=8685 pixNew=8685 backfaceNdotV=0 skipSegs=0 forceSegs=4335 eff=320x180 ms p1=1054.78 p2p=2603.22 p2s=2.89 upd=0.71 ovB=0.00 ovE=0.00 avg(ms) p1=746.20 p2p=1050.44 p2s=2.49 upd=0.80 ovB=0.00 ovE=0.00
+[RenderHealth] step=120 lastRow=0 rowsAdv=4 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.6 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0
+Set EnableProfiling
+[EffectiveCfg] broadphase=Policy(policy) policy=OverlapOnly quick=0 overlap=1 softgate=1 score=0 minSeg=0.018 attempts=600 sub=1000 stride=2 resScale=0.25 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF maxDist=50
+[FrameReset] reason=completed prevRow=180 frame=11
+[FrameReset] reason=completed prevRow=180 frame=12
+[RenderHealth] step=150 lastRow=96 rowsAdv=16 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.557 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0
+[FrameReset] reason=completed prevRow=180 frame=13
+[FrameReset] reason=completed prevRow=180 frame=14
+[FrameReset] reason=completed prevRow=180 frame=15
+[RenderHealth] step=180 lastRow=0 rowsAdv=9 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.184 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0
+[FrameReset] reason=completed prevRow=180 frame=16
+Set UpdateEveryFrame
+Set BroadphasePolicy
+[BroadphaseEffective] mode=Policy policy=Both quick=True overlap=True reason=policy
+Set UpdateEveryFrame
+[EffectiveCfg] broadphase=Policy(policy) policy=Both quick=1 overlap=1 softgate=1 score=0 minSeg=0.018 attempts=600 sub=1000 stride=2 resScale=0.25 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF maxDist=50
+[Warn] Broadphase QuickRay may miss hits under curved marching; consider OverlapOnly/Both or disable broadphase.
+[FrameReset] reason=completed prevRow=180 frame=17
+[RenderHealth] step=210 lastRow=9 rowsAdv=9 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.041 avgSteps=0 qray0=14843178 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0
+[FrameReset] reason=completed prevRow=180 frame=18
+[FrameReset] reason=completed prevRow=180 frame=19
+[RenderHealth] step=240 lastRow=32 rowsAdv=16 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.119 avgSteps=0 qray0=8300176 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0
+[FrameReset] reason=completed prevRow=180 frame=20
+[FrameReset] reason=completed prevRow=180 frame=21
+[RenderHealth] step=270 lastRow=128 rowsAdv=16 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.181 avgSteps=0 qray0=3608069 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0
+[FrameReset] reason=completed prevRow=180 frame=22
+[FrameReset] reason=completed prevRow=180 frame=23
+[FrameReset] reason=completed prevRow=180 frame=24
+[RenderHealth] step=300 lastRow=32 rowsAdv=16 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.17 avgSteps=0 qray0=3108476 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0
+Set UpdateEveryFrame
+Set BroadphasePolicy
+[BroadphaseEffective] mode=Policy policy=HybridQuickRayThenOverlap quick=True overlap=True reason=policy
+Set UpdateEveryFrame
+[EffectiveCfg] broadphase=Policy(policy) policy=HybridQuickRayThenOverlap quick=1 overlap=1 softgate=1 score=0 minSeg=0.018 attempts=600 sub=1000 stride=2 resScale=0.25 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF maxDist=50
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=25 row=48 reason=guard_no_row_progress elapsedMs=18 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=25 row=64 reason=guard_no_row_progress elapsedMs=17 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=25 row=80 reason=guard_no_row_progress elapsedMs=16 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=25 row=96 reason=guard_no_row_progress elapsedMs=18 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+[RenderHealth] step=330 lastRow=112 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=1504315 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=25 row=112 reason=guard_no_row_progress elapsedMs=16 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=25 row=128 reason=guard_no_row_progress elapsedMs=16 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=25 row=144 reason=guard_no_row_progress elapsedMs=16 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=25 row=160 reason=guard_no_row_progress elapsedMs=16 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=25 row=176 reason=guard_no_row_progress elapsedMs=6 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=1280/2000000
+[FrameReset] reason=completed prevRow=180 frame=25
+[RenderHealth] step=360 lastRow=0 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=752300 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=31 row=0 reason=guard_no_row_progress elapsedMs=19 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=31 row=16 reason=guard_no_row_progress elapsedMs=18 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=31 row=32 reason=guard_no_row_progress elapsedMs=18 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=31 row=48 reason=guard_no_row_progress elapsedMs=21 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=31 row=64 reason=guard_no_row_progress elapsedMs=17 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+[RenderHealth] step=390 lastRow=80 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=255 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=31 row=80 reason=guard_no_row_progress elapsedMs=17 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=31 row=96 reason=guard_no_row_progress elapsedMs=17 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=31 row=112 reason=guard_no_row_progress elapsedMs=17 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=31 row=128 reason=guard_no_row_progress elapsedMs=17 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=31 row=144 reason=guard_no_row_progress elapsedMs=16 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+[RenderHealth] step=420 lastRow=160 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=555 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=31 row=160 reason=guard_no_row_progress elapsedMs=17 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=31 row=176 reason=guard_no_row_progress elapsedMs=5 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=1280/2000000
+[FrameReset] reason=completed prevRow=180 frame=31
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=37 row=0 reason=guard_no_row_progress elapsedMs=18 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=37 row=16 reason=guard_no_row_progress elapsedMs=18 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=37 row=32 reason=guard_no_row_progress elapsedMs=18 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+[RenderHealth] step=450 lastRow=48 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=135 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=37 row=48 reason=guard_no_row_progress elapsedMs=18 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=37 row=64 reason=guard_no_row_progress elapsedMs=17 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=37 row=80 reason=guard_no_row_progress elapsedMs=16 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+Set UpdateEveryFrame
+Set EnableProfiling
+Set VerbosePerfLogs
+Set EnableFramePerf
+Set FramePerfVerbose
+Set RenderStepPhaseLog
+Set RenderStepBandLog
+Set UpdateEveryFrame
+[EffectiveCfg] broadphase=Policy(policy) policy=HybridQuickRayThenOverlap quick=1 overlap=1 softgate=1 score=0 minSeg=0.018 attempts=600 sub=1000 stride=2 resScale=0.25 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF maxDist=50
+[RenderStep] phase=enter frame=37 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=pass2-start frame=37 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=softgate-loop frame=37 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=enter frame=37 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=37 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=37 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=37 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=37 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=37 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=37 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=37 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=37 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=37 row=96 reason=guard_no_row_progress elapsedMs=18 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+[RenderStep] phase=enter frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=37 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=37 row=112 reason=guard_no_row_progress elapsedMs=17 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+[RenderStep] phase=enter frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderHealth] step=480 lastRow=128 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=53301 qray0=435 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0
+[RenderStep] phase=enter frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=37 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=37 row=128 reason=guard_no_row_progress elapsedMs=17 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+[RenderStep] phase=enter frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=pass2-start frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=softgate-loop frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=enter frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=pass2-start frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=softgate-loop frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=enter frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=37 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=37 row=144 reason=guard_no_row_progress elapsedMs=18 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+[RenderStep] phase=enter frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=37 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=37 row=160 reason=guard_no_row_progress elapsedMs=17 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+[RenderStep] phase=enter frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=pass2-start frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=softgate-loop frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=enter frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=pass2-start frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=softgate-loop frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=enter frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=pass2-start frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=softgate-loop frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=enter frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=6
+[RenderStep] phase=pass2-start frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=6
+[RenderStep] phase=softgate-loop frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=6
+[RenderStep] phase=enter frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=pass2-start frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=softgate-loop frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=enter frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=pass2-start frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=softgate-loop frame=37 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=37 row=176 reason=guard_no_row_progress elapsedMs=5 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=1280/2000000
+[FrameReset] reason=completed prevRow=180 frame=37
+[RenderStep] phase=enter frame=38 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+fieldSnaps=3 hasSources=True
+[RenderStep] phase=pass1-start frame=38 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=38 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=20
+[RenderStep] phase=pass2-start frame=38 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=20
+[RenderStep] phase=softgate-loop frame=38 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=20
+[RenderStep] phase=enter frame=39 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+fieldSnaps=3 hasSources=True
+[RenderStep] phase=pass1-start frame=39 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=39 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=pass2-start frame=39 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=softgate-loop frame=39 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=enter frame=40 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+fieldSnaps=3 hasSources=True
+[RenderStep] phase=pass1-start frame=40 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=40 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=20
+[RenderStep] phase=pass2-start frame=40 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=20
+[RenderStep] phase=softgate-loop frame=40 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=20
+[RenderStep] phase=enter frame=41 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+fieldSnaps=3 hasSources=True
+[RenderStep] phase=pass1-start frame=41 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=41 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=pass2-start frame=41 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=softgate-loop frame=41 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=enter frame=42 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+fieldSnaps=3 hasSources=True
+[RenderStep] phase=pass1-start frame=42 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=42 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=pass2-start frame=42 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=softgate-loop frame=42 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=enter frame=43 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+fieldSnaps=3 hasSources=True
+[RenderStep] phase=pass1-start frame=43 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=20
+[RenderStep] phase=pass2-start frame=43 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=20
+[RenderStep] phase=softgate-loop frame=43 row=0 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=20
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=43 row=0 reason=guard_no_row_progress elapsedMs=20 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+[RenderStep] phase=enter frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=pass2-start frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=softgate-loop frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=enter frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=pass2-start frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=softgate-loop frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=enter frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderHealth] step=510 lastRow=16 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=61683 qray0=25 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0
+[RenderStep] phase=enter frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=pass2-start frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=softgate-loop frame=43 row=16 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=43 row=16 reason=guard_no_row_progress elapsedMs=19 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+[RenderStep] phase=enter frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=pass2-start frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=softgate-loop frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=enter frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=pass2-start frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=softgate-loop frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=enter frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=pass2-start frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=softgate-loop frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=enter frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=32 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=43 row=32 reason=guard_no_row_progress elapsedMs=18 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+[RenderStep] phase=enter frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=pass2-start frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=softgate-loop frame=43 row=48 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=43 row=48 reason=guard_no_row_progress elapsedMs=19 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+[RenderStep] phase=enter frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=64 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=43 row=64 reason=guard_no_row_progress elapsedMs=18 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+[RenderStep] phase=enter frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=pass2-start frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=softgate-loop frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=enter frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=pass2-start frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=softgate-loop frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=enter frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=pass2-start frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=softgate-loop frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=19
+[RenderStep] phase=enter frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=80 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=43 row=80 reason=guard_no_row_progress elapsedMs=18 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+[RenderStep] phase=enter frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderHealth] step=540 lastRow=96 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=54190 qray0=315 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0
+[RenderStep] phase=enter frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=96 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=43 row=96 reason=guard_no_row_progress elapsedMs=18 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+[RenderStep] phase=enter frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=16
+[RenderStep] phase=pass2-start frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=16
+[RenderStep] phase=softgate-loop frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=16
+[RenderStep] phase=enter frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=16
+[RenderStep] phase=pass2-start frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=16
+[RenderStep] phase=softgate-loop frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=16
+[RenderStep] phase=enter frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=112 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=43 row=112 reason=guard_no_row_progress elapsedMs=17 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+[RenderStep] phase=enter frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=16
+[RenderStep] phase=pass2-start frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=16
+[RenderStep] phase=softgate-loop frame=43 row=128 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=16
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=43 row=128 reason=guard_no_row_progress elapsedMs=16 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+[RenderStep] phase=enter frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=144 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=43 row=144 reason=guard_no_row_progress elapsedMs=17 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+[RenderStep] phase=enter frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=pass2-start frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=softgate-loop frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=18
+[RenderStep] phase=enter frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=enter frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=pass2-start frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+[RenderStep] phase=softgate-loop frame=43 row=160 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=17
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=43 row=160 reason=guard_no_row_progress elapsedMs=17 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=5120/2000000
+[RenderStep] phase=enter frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=pass2-start frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=softgate-loop frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=enter frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=pass2-start frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=softgate-loop frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=enter frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=pass2-start frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=softgate-loop frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+Set UpdateEveryFrame
+[RenderStep] phase=enter frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=pass2-start frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=softgate-loop frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=enter frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=pass2-start frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=softgate-loop frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderHealth] step=570 lastRow=176 rowsAdv=0 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=13178 qray0=615 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0
+[RenderStep] phase=enter frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-start frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=0
+[RenderStep] phase=pass1-end frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=pass2-start frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+[RenderStep] phase=softgate-loop frame=43 row=176 attempts=0/600 sub=0/1000 pxCap=4 scoreCap=256 ms=5
+  ERROR: [RenderStep][WATCHDOG] noRowProgress processedPixels=1 repeats=6 -> forceAdvance
+[BudgetExit] frame=43 row=176 reason=guard_no_row_progress elapsedMs=5 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/600 subdiv=0/1000 px=1280/2000000
