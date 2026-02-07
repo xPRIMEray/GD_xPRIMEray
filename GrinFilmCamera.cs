@@ -124,6 +124,8 @@ public partial class GrinFilmCamera : Node
 	/// <summary>Runs RenderStep every frame when enabled.</summary>
 	// CONTROL FACTOR: Master toggle for per-frame RenderStep; false requires manual stepping.
 	[Export] public bool UpdateEveryFrame = true;
+	// Backend routing (default Legacy).
+	[Export] public RenderBackends.BackendMode BackendMode = RenderBackends.BackendMode.Legacy;
 	/// <summary>When UpdateEveryFrame is true, clamp per-call RenderStep budget to this value (ms). <=0 disables the clamp.</summary>
 	// CONTROL FACTOR: Per-call RenderStep time budget (ms); lower reduces work per frame.
 	[Export] public float UpdateEveryFrameBudgetMs = 16f;
@@ -673,6 +675,8 @@ public partial class GrinFilmCamera : Node
 	// ASSUMPTION: _rbr settings are synchronized with film expectations (step lengths, collision cadence).
 	// EFFECT: mismatched settings skew pass-1/2 collision accuracy and debug overlays.
 	private RayBeamRenderer _rbr;
+	private RenderBackends.LegacyBackend _legacyBackend;
+	private RenderBackends.CoreBackend _coreBackend;
 	private RayBeamRenderer.RaySeg[] _segBuf;
 	private int[] _segCountPerPixel;
 	private bool[] _pass1HitFound = Array.Empty<bool>();
@@ -1440,7 +1444,30 @@ public partial class GrinFilmCamera : Node
 		UpdateBroadphaseEffectiveState();
 		// DECISION: only render when UpdateEveryFrame is enabled.
 		if (!UpdateEveryFrame) return;
-		RenderStep();
+		RenderFrameBackend();
+	}
+
+	private void RenderFrameBackend()
+	{
+		var snapshot = GodotAdapter.SnapshotBuilder.BuildFromGodotScene(GetTree().CurrentScene);
+
+		_legacyBackend ??= new RenderBackends.LegacyBackend(this);
+		_coreBackend ??= new RenderBackends.CoreBackend();
+
+		switch (BackendMode)
+		{
+			case RenderBackends.BackendMode.Core:
+				_coreBackend.RenderFrame(snapshot);
+				_legacyBackend.RenderFrame(snapshot);
+				break;
+			case RenderBackends.BackendMode.Compare:
+				// TODO: compare mode; for now keep legacy render to avoid breaking output.
+				_legacyBackend.RenderFrame(snapshot);
+				break;
+			default:
+				_legacyBackend.RenderFrame(snapshot);
+				break;
+		}
 	}
 
 	public void RenderStep()
