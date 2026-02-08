@@ -13,11 +13,32 @@ public static class SnapshotBuilder
 {
     public static SceneSnapshot BuildFromGodotScene(Node root)
     {
+        var sceneRoot = root?.GetTree()?.CurrentScene ?? root;
+        if (sceneRoot == null)
+        {
+            return new SceneSnapshot
+            {
+                Instances = InstanceSOA.Empty(),
+                Fields = new FieldEntitySOA(),
+                FieldParams = new PackedParamBuffer(),
+                FieldTLAS = new FieldTLAS(Array.Empty<BVHNode>(), Array.Empty<int>(), -1)
+            };
+        }
+
         var fieldNodes = new List<FieldSource3D>();
-        CollectFieldNodes(root, fieldNodes);
+        CollectFieldNodes(sceneRoot, fieldNodes);
         fieldNodes.Sort(static (a, b) => string.CompareOrdinal(a.GetPath().ToString(), b.GetPath().ToString()));
 
-        var fieldCount = fieldNodes.Count;
+        var enabledFields = new List<FieldSource3D>(fieldNodes.Count);
+        foreach (var field in fieldNodes)
+        {
+            if (field.Enabled)
+            {
+                enabledFields.Add(field);
+            }
+        }
+
+        var fieldCount = enabledFields.Count;
         var fieldParams = new PackedParamBuffer();
 
         var fields = new FieldEntitySOA
@@ -36,41 +57,37 @@ public static class SnapshotBuilder
 
         for (var i = 0; i < fieldCount; i++)
         {
-            var field = fieldNodes[i];
+            var field = enabledFields[i];
             var worldFromLocal = field.GlobalTransform;
             var localFromWorld = worldFromLocal.AffineInverse();
 
-            var rInner = field.InnerRadius;
-            var rOuter = field.OuterRadius;
-            var amp = field.Strength;
+            field.GetPackedParams8(out var rInner, out var rOuter, out var amp, out var a, out var b, out var c, out var r0, out var r1);
+            var metricModel = (int)field.MetricModel;
+            var shapeType = (int)field.ShapeType;
+            var curveType = (int)field.CurveType;
+            var flags = field.ModeFlags;
 
-            // TODO: curveType/metricModel/shapeType/flags not exposed on FieldSource3D yet.
-            var curveType = FieldCurveType.Power;
-            var curveA = 1f;
-            var curveB = 0f;
-            var curveC = 0f;
-            var metricModel = MetricModel.GRIN;
-            var shapeType = FieldShapeType.SphereRadial;
-            var flags = 0u;
+            var paramOffset = fieldParams.AppendBlock8(rInner, rOuter, amp, a, b, c, r0, r1);
 
-            var paramOffset = fieldParams.AppendBlock8(rInner, rOuter, amp, curveA, curveB, curveC, 0f, 0f);
-
-            fields.MetricModel[i] = (int)metricModel;
-            fields.ShapeType[i] = (int)shapeType;
-            fields.CurveType[i] = (int)curveType;
+            fields.MetricModel[i] = metricModel;
+            fields.ShapeType[i] = shapeType;
+            fields.CurveType[i] = curveType;
             fields.WorldFromLocal[i] = ToMatrix4x4(worldFromLocal);
             fields.LocalFromWorld[i] = ToMatrix4x4(localFromWorld);
-            fields.WorldBounds[i] = BuildSphereWorldBounds(worldFromLocal, rOuter);
+            fields.WorldBounds[i] = ToAabb3(field.GetWorldInfluenceAabbConservative());
             fields.ParamOffset[i] = paramOffset;
             fields.ParamLength[i] = 8;
             fields.Flags[i] = flags;
         }
 
+        var ftlas = RendererCore.Fields.FieldTLAS.Build(fields);
+
         return new SceneSnapshot
         {
             Instances = InstanceSOA.Empty(),
             Fields = fields,
-            FieldParams = fieldParams
+            FieldParams = fieldParams,
+            FieldTLAS = ftlas
         };
     }
 
@@ -87,32 +104,12 @@ public static class SnapshotBuilder
         }
     }
 
-    private static Aabb3 BuildSphereWorldBounds(Transform3D worldFromLocal, float rOuter)
+    private static Aabb3 ToAabb3(Aabb aabb)
     {
-        var r = MathF.Max(0f, rOuter);
-        var localCorners = new GdVector3[8]
-        {
-            new(-r, -r, -r),
-            new(-r, -r,  r),
-            new(-r,  r, -r),
-            new(-r,  r,  r),
-            new( r, -r, -r),
-            new( r, -r,  r),
-            new( r,  r, -r),
-            new( r,  r,  r)
-        };
-
-        var min = new NumVector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
-        var max = new NumVector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
-
-        foreach (var local in localCorners)
-        {
-            var world = worldFromLocal * local;
-            var p = ToNumerics(world);
-            min = new NumVector3(MathF.Min(min.X, p.X), MathF.Min(min.Y, p.Y), MathF.Min(min.Z, p.Z));
-            max = new NumVector3(MathF.Max(max.X, p.X), MathF.Max(max.Y, p.Y), MathF.Max(max.Z, p.Z));
-        }
-
+        var p0 = ToNumerics(aabb.Position);
+        var p1 = ToNumerics(aabb.Position + aabb.Size);
+        var min = NumVector3.Min(p0, p1);
+        var max = NumVector3.Max(p0, p1);
         return new Aabb3(min, max);
     }
 
@@ -129,9 +126,9 @@ public static class SnapshotBuilder
         var o = t.Origin;
 
         return new Matrix4x4(
-            bx.X, by.X, bz.X, o.X,
-            bx.Y, by.Y, bz.Y, o.Y,
-            bx.Z, by.Z, bz.Z, o.Z,
-            0f, 0f, 0f, 1f);
+            bx.X, by.X, bz.X, 0f,
+            bx.Y, by.Y, bz.Y, 0f,
+            bx.Z, by.Z, bz.Z, 0f,
+            o.X, o.Y, o.Z, 1f);
     }
 }

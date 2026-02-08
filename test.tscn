@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3 uid="uid://0yko6oxwl0n7"]
+[gd_scene load_steps=20 format=3 uid="uid://0yko6oxwl0n7"]
 
 [ext_resource type="Script" uid="uid://cmss07txb211i" path="res://world_environment.gd" id="1_6uqi0"]
 [ext_resource type="Script" uid="uid://qebxtmehy4vg" path="res://options.gd" id="2_hjhvo"]
@@ -12,6 +12,7 @@
 [ext_resource type="Script" uid="uid://713wqufxods5" path="res://RayEmitter3D.cs" id="5_emitter"]
 [ext_resource type="Script" uid="uid://c0nlk0rn3oilh" path="res://FilmOverlay2D.cs" id="6_filmoverlay"]
 [ext_resource type="Script" uid="uid://vmh5vusla1nv" path="res://FieldSource3D.cs" id="8_xersf"]
+[ext_resource type="Script" uid="uid://dwiws7vsdgshx" path="res://FieldProbe3D.cs" id="13_0m0f1"]
 
 [sub_resource type="PhysicalSkyMaterial" id="PhysicalSkyMaterial_6cd1w"]
 use_debanding = false
@@ -598,9 +599,38 @@ Pass2SoftGateMinSegLenSteps = 0.35
 SharedRbrHasRenderer = true
 SharedRbrFieldCenterIsCamera = false
 
+[node name="FieldProbe3D" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.506566, 2.1392343, 2)
+script = ExtResource("13_0m0f1")
+PrintIntervalSec = 2.0
+
+[node name="TestFieldA" type="Node3D" parent="."]
+script = ExtResource("8_xersf")
+BoxExtents = Vector3(20, 20, 20)
+CurveA = 5.0
+DebugDrawBounds = true
+DebugDrawInGame = true
+
+[node name="TestFieldB" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.9654274, 0.7269521, 0)
+script = ExtResource("8_xersf")
+BoxExtents = Vector3(20, 20, 20)
+CurveA = 2.0
+DebugDrawBounds = true
+DebugDrawInGame = true
+
+[node name="TestFieldC" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6873035, 0.96604896, 3.509484)
+script = ExtResource("8_xersf")
+BoxExtents = Vector3(20, 20, 20)
+CurveA = 3.0
+DebugDrawBounds = true
+DebugDrawInGame = true
+
 [node name="FieldSource3D" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.41781783, 1.8735187, -0.49812222)
 script = ExtResource("8_xersf")
+Enabled = false
 Strength = 0.005
 Softening = 2.115
 InnerRadius = 0.1
@@ -615,10 +645,6 @@ Strength = 0.795
 Softening = 0.625
 Profile = 1
 DebugDrawInGame = true
-
-[node name="FieldB" type="Node3D" parent="."]
-script = ExtResource("8_xersf")
-Enabled = false
 
 [node name="Emitter1" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)

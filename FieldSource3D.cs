@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using RendererCore.Fields;
 
 public partial class FieldSource3D : Node3D
 {
@@ -39,6 +40,27 @@ public partial class FieldSource3D : Node3D
 	[Export] public float OuterRadius = 6.0f;
 	[Export] public float EdgeSoftness = 0.5f;  // smoothstep thickness at edges
 
+	[ExportGroup("Field Model")]
+	[Export] public MetricModel MetricModel { get; set; } = MetricModel.GRIN;
+	[Export] public float RInner { get; set; } = 0f;
+	[Export] public float ROuter { get; set; } = 10f;
+	[Export] public float Amp { get; set; } = 1f;
+	[Export] public uint ModeFlags { get; set; } = 0;
+
+	[ExportGroup("Shape")]
+	[Export] public FieldShapeType ShapeType { get; set; } = FieldShapeType.SphereRadial;
+	[Export] public Vector3 BoxExtents { get; set; } = new Vector3(10, 10, 10);
+
+	[ExportGroup("Curve")]
+	[Export] public FieldCurveType CurveType { get; set; } = FieldCurveType.Power;
+	[Export] public float CurveA { get; set; } = 1f;
+	[Export] public float CurveB { get; set; } = 0f;
+	[Export] public float CurveC { get; set; } = 0f;
+
+	[ExportGroup("Debug")]
+	[Export] public bool DebugDrawBounds { get; set; } = false;
+	[Export] public Color DebugColor { get; set; } = new Color(0.4f, 0.9f, 1.0f);
+
 	// Runtime debug visualization
 	[Export] public bool DebugDrawInGame = false;
 	[Export] public bool DebugDrawAlwaysOnTop = true;
@@ -53,6 +75,8 @@ public partial class FieldSource3D : Node3D
 	public override void _Ready()
 	{
 		AddToGroup("field_sources");
+		ApplyLegacyMappings();
+		ValidateAndClamp();
 
 		if (!Engine.IsEditorHint() && DebugDrawInGame)
 		{
@@ -94,6 +118,11 @@ public partial class FieldSource3D : Node3D
 			_debugMeshInstance.Visible = true;
 		}
 
+		if (DebugDrawBounds)
+		{
+			// TODO: Hook into a shared debug draw system if one exists.
+		}
+
 		DebugState currentState = GetDebugState();
 		if (!_debugStateValid || !_debugState.Equals(currentState))
 		{
@@ -117,6 +146,142 @@ public partial class FieldSource3D : Node3D
 			LineWidth = Mathf.Max(1.0f, DebugLineWidth),
 			AlwaysOnTop = DebugDrawAlwaysOnTop
 		};
+	}
+
+	private void ApplyLegacyMappings()
+	{
+		const float defaultROuter = 10f;
+		const float defaultAmp = 1f;
+
+		if (OuterRadius > 0.0f && Mathf.IsEqualApprox(ROuter, defaultROuter))
+		{
+			ROuter = OuterRadius;
+		}
+
+		if (InnerRadius > 0.0f && Mathf.IsEqualApprox(RInner, 0.0f))
+		{
+			RInner = InnerRadius;
+		}
+
+		if (!Mathf.IsEqualApprox(Strength, defaultAmp) && Mathf.IsEqualApprox(Amp, defaultAmp))
+		{
+			Amp = Strength;
+		}
+
+		if (OverrideGamma && Mathf.IsEqualApprox(CurveA, 1f))
+		{
+			CurveA = Gamma;
+		}
+
+		if (Profile == ProfileType.Gaussian && CurveType == FieldCurveType.Power)
+		{
+			CurveType = FieldCurveType.Exponential;
+		}
+	}
+
+	private void ValidateAndClamp()
+	{
+		bool warned = false;
+
+		if (ROuter < 0.0f)
+		{
+			ROuter = 0.0f;
+			warned = true;
+		}
+
+		if (ROuter < RInner)
+		{
+			ROuter = RInner;
+			warned = true;
+		}
+
+		if (ShapeType == FieldShapeType.BoxVolume)
+		{
+			Vector3 clamped = new Vector3(
+				Mathf.Max(0.0f, BoxExtents.X),
+				Mathf.Max(0.0f, BoxExtents.Y),
+				Mathf.Max(0.0f, BoxExtents.Z));
+
+			if (clamped != BoxExtents)
+			{
+				BoxExtents = clamped;
+				warned = true;
+			}
+		}
+
+		if (warned)
+		{
+			GD.PushWarning($"{Name}: FieldSource3D parameters were clamped to safe ranges.");
+		}
+	}
+
+	public void GetPackedParams8(out float rInner, out float rOuter, out float amp, out float a, out float b, out float c, out float reserved0, out float reserved1)
+	{
+		rInner = RInner;
+		rOuter = ROuter;
+		amp = Amp;
+		a = CurveA;
+		b = CurveB;
+		c = CurveC;
+		reserved0 = 0f;
+		reserved1 = 0f;
+	}
+
+	public Aabb GetLocalInfluenceAabb()
+	{
+		if (ShapeType == FieldShapeType.BoxVolume)
+		{
+			Vector3 size = BoxExtents * 2.0f;
+			return new Aabb(-BoxExtents, size);
+		}
+
+		Vector3 half = new Vector3(ROuter, ROuter, ROuter);
+		return new Aabb(-half, half * 2.0f);
+	}
+
+	public Aabb GetWorldInfluenceAabbConservative()
+	{
+		Aabb local = GetLocalInfluenceAabb();
+		Vector3 min = Vector3.Zero;
+		Vector3 max = Vector3.Zero;
+		bool initialized = false;
+
+		for (int z = 0; z <= 1; z++)
+		{
+			for (int y = 0; y <= 1; y++)
+			{
+				for (int x = 0; x <= 1; x++)
+				{
+					Vector3 corner = new Vector3(
+						x == 0 ? local.Position.X : local.Position.X + local.Size.X,
+						y == 0 ? local.Position.Y : local.Position.Y + local.Size.Y,
+						z == 0 ? local.Position.Z : local.Position.Z + local.Size.Z);
+
+					Vector3 world = GlobalTransform * corner;
+
+					if (!initialized)
+					{
+						min = world;
+						max = world;
+						initialized = true;
+					}
+					else
+					{
+						min = new Vector3(
+							Mathf.Min(min.X, world.X),
+							Mathf.Min(min.Y, world.Y),
+							Mathf.Min(min.Z, world.Z));
+
+						max = new Vector3(
+							Mathf.Max(max.X, world.X),
+							Mathf.Max(max.Y, world.Y),
+							Mathf.Max(max.Z, world.Z));
+					}
+				}
+			}
+		}
+
+		return new Aabb(min, max - min);
 	}
 
 	private void EnsureDebugDraw()
