@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using RendererCore.Common;
 
 public partial class FilmOverlay2D : TextureRect
 {
@@ -139,13 +140,20 @@ public partial class FilmOverlay2D : TextureRect
 	{
 		return GetCanvasToLocalTransform().AffineInverse() * local;
 	}
+
+	public override void _Process(double delta)
+	{
+		if (DebugOverlayBus.Count > 0)
+			QueueRedraw();
+	}
 	
 	public override void _Draw()
 	{
 		bool hasCam = _cam != null && IsInstanceValid(_cam);
 		bool hasRayData = hasCam && _rayCount > 0 && _ptCount > 0;
 		bool drawFilmGradient = DrawFilmGradientNormals && _filmImage != null && _filmWidth > 2 && _filmHeight > 2;
-		if (!hasRayData && !drawFilmGradient) return;
+		bool hasOverlayItems = DebugOverlayBus.Count > 0;
+		if (!hasRayData && !drawFilmGradient && !hasOverlayItems) return;
 
 		if (hasRayData && DrawRays)
 		{
@@ -237,6 +245,43 @@ public partial class FilmOverlay2D : TextureRect
 				}
 			}
 		}
+
+		if (hasOverlayItems)
+		{
+			var font = GetThemeDefaultFont();
+			int fontSize = GetThemeDefaultFontSize();
+
+			foreach (var item in DebugOverlayBus.Items)
+			{
+				switch (item.Type)
+				{
+					case DebugOverlayBus.DebugOverlayItemType.Line:
+					{
+						Vector2 a = ScreenToLocal(item.A);
+						Vector2 b = ScreenToLocal(item.B);
+						float thickness = item.Thickness > 0f ? item.Thickness : 1f;
+						DrawLine(a, b, item.Color, thickness);
+						break;
+					}
+					case DebugOverlayBus.DebugOverlayItemType.Text:
+					{
+						if (font != null)
+						{
+							Vector2 pos = ScreenToLocal(item.Pos);
+							DrawString(font, pos, item.Text, HorizontalAlignment.Left, -1f, fontSize, item.Color);
+						}
+						else
+						{
+							GD.Print(item.Text);
+						}
+						break;
+					}
+				}
+			}
+		}
+
+		if (hasOverlayItems)
+			DebugOverlayBus.ClearFrame();
 	}
 
 

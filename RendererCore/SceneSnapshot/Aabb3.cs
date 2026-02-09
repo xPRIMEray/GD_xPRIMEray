@@ -42,6 +42,13 @@ public readonly struct Aabb3
             && p.X <= Max.X && p.Y <= Max.Y && p.Z <= Max.Z;
     }
 
+    public bool Overlaps(Aabb3 other)
+    {
+        return Min.X <= other.Max.X && Max.X >= other.Min.X
+            && Min.Y <= other.Max.Y && Max.Y >= other.Min.Y
+            && Min.Z <= other.Max.Z && Max.Z >= other.Min.Z;
+    }
+
     public static Aabb3 Union(Aabb3 a, Aabb3 b)
     {
         var min = new Vector3(

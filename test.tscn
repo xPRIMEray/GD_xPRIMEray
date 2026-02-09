@@ -73,6 +73,7 @@ script = ExtResource("2_ppyta")
 layer = 0
 
 [node name="Options" type="Control" parent="CanvasLayerUI" node_paths=PackedStringArray("sun", "world_environment")]
+modulate = Color(1, 1, 1, 0.13333334)
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -552,7 +553,6 @@ SkyColor = Color(0.19793725, 0.19793722, 0.19793722, 1)
 FilmOpacity = 0.8
 ShadingMode = 1
 FlipNormalToCamera = false
-UpdateEveryFrame = false
 UpdateEveryFrameBudgetMs = 1000.0
 UpdateEveryFrameMaxRowsPerStep = 32
 RenderStepMaxMs = 10000
@@ -600,28 +600,51 @@ SharedRbrHasRenderer = true
 SharedRbrFieldCenterIsCamera = false
 
 [node name="FieldProbe3D" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.506566, 2.1392343, 2)
+transform = Transform3D(1, 0, 0, 0, -0.7284068, -0.6851449, 0, 0.6851449, -0.7284068, 2.9835694, 1.3838813, -1.051685)
 script = ExtResource("13_0m0f1")
-PrintIntervalSec = 2.0
+Print = true
+PrintIntervalSec = 5.0
 
 [node name="TestFieldA" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.8231258, 0, -0.5646266)
 script = ExtResource("8_xersf")
-BoxExtents = Vector3(20, 20, 20)
-CurveA = 5.0
+InnerRadius = 0.0
+OuterRadius = 5.0
+ROuter = 5.0
+Amp = 10.0
+CurveA = 10.0
 DebugDrawBounds = true
 DebugDrawInGame = true
+DebugRingSegments = 16
+DebugLineWidth = 3.0
 
 [node name="TestFieldB" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.9654274, 0.7269521, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.857697, 0.7269521, 1.515573)
 script = ExtResource("8_xersf")
+InnerRadius = 0.0
+OuterRadius = 5.0
+ROuter = 5.0
+Amp = -20.0
 BoxExtents = Vector3(20, 20, 20)
 CurveA = 2.0
 DebugDrawBounds = true
 DebugDrawInGame = true
 
 [node name="TestFieldC" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6873035, 0.96604896, 3.509484)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.7274027, 0.96604896, 0.18116665)
 script = ExtResource("8_xersf")
+ROuter = 5.0
+Amp = 15.0
+BoxExtents = Vector3(20, 20, 20)
+CurveA = 3.0
+DebugDrawBounds = true
+DebugDrawInGame = true
+
+[node name="TestFieldD" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.66332006, 1.9320979, 0.7402365)
+script = ExtResource("8_xersf")
+ROuter = 5.0
+Amp = -15.0
 BoxExtents = Vector3(20, 20, 20)
 CurveA = 3.0
 DebugDrawBounds = true
@@ -637,15 +660,6 @@ InnerRadius = 0.1
 OuterRadius = 2.0
 DebugDrawInGame = true
 
-[node name="FieldA" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -0.5)
-script = ExtResource("8_xersf")
-Enabled = false
-Strength = 0.795
-Softening = 0.625
-Profile = 1
-DebugDrawInGame = true
-
 [node name="Emitter1" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
 script = ExtResource("5_emitter")
@@ -656,6 +670,7 @@ FanYawDegrees = 360.0
 
 [node name="living_room" parent="." instance=ExtResource("3_xersf")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.011308312, -0.00152421, 0.021672606)
+visible = false
 
 [node name="TestPhysicsRoom" parent="." instance=ExtResource("4_00tp4")]
 transform = Transform3D(-2.9267077, 0.062589, -3.2043538, 0.25782096, 0.13378882, 3.1383374, 2.6280239, 0.056577086, -3.8764265, 1.3565156, 2.0819187, 0.6275604)

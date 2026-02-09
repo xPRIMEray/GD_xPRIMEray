@@ -10,6 +10,7 @@ public sealed class SceneSnapshot
     public FieldEntitySOA Fields { get; init; } = new();
     public PackedParamBuffer FieldParams { get; init; } = new();
     public FieldTLAS FieldTLAS { get; init; }
+    public CurvatureBoundGrid CurvatureGrid { get; init; }
 
     public string DebugSummary()
     {
@@ -53,6 +54,14 @@ public sealed class SceneSnapshot
             summary.Append($", Other={otherMetricCount}");
         }
         summary.Append(')');
+        if (CurvatureGrid == null)
+        {
+            summary.Append(", CurvatureGrid: NULL");
+        }
+        else
+        {
+            summary.Append($", CurvatureGrid: OK dim={CurvatureGrid.DimX}x{CurvatureGrid.DimY}x{CurvatureGrid.DimZ} cell={CurvatureGrid.CellSize}");
+        }
 
         if (fieldCount > 0 && Fields != null)
         {

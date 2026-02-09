@@ -4,6 +4,9 @@ using System.Diagnostics;
 using System.Text;
 using System.Threading;
 using XPrimeRay.Perf; // adjust namespace new PerfScope.cs
+using RendererCore.Common;
+using RendererCore.SceneSnapshot;
+using RendererCore.Fields;
 
 public partial class GrinFilmCamera : Node
 {
@@ -237,6 +240,21 @@ public partial class GrinFilmCamera : Node
 	/// <summary>Padding added to far distance for grid bounds.</summary>
 	// CONTROL FACTOR: Extra padding (world units) for grid bounds; higher covers more space at cost of memory.
 	[Export] public float FieldGridBoundsPadding = 5f;
+
+	[ExportSubgroup("Curvature Grid")]
+	// This section affects curvature bound lookup (performance/correctness tradeoff).
+	/// <summary>Cell size for curvature bound grid.</summary>
+	// CONTROL FACTOR: Grid cell size (world units); smaller = more accurate but more memory.
+	[Export] public float CurvatureGridCellSize = 1.0f;
+	/// <summary>Curvature grid X dimension (cells).</summary>
+	// CONTROL FACTOR: Grid dimension; higher covers more space at cost of memory.
+	[Export] public int CurvatureGridDimX = 32;
+	/// <summary>Curvature grid Y dimension (cells).</summary>
+	// CONTROL FACTOR: Grid dimension; higher covers more space at cost of memory.
+	[Export] public int CurvatureGridDimY = 16;
+	/// <summary>Curvature grid Z dimension (cells).</summary>
+	// CONTROL FACTOR: Grid dimension; higher covers more space at cost of memory.
+	[Export] public int CurvatureGridDimZ = 32;
 
 	[ExportSubgroup("Sampling & Probes")]
 	// This section affects ray marching behavior and sampling correctness.
@@ -697,6 +715,10 @@ public partial class GrinFilmCamera : Node
 
 	// field source cache
 	private int _frameIndex = 0;
+	private ulong _frameId = 0;
+	private double _busLogTimerSec = 0.0;
+	private bool _warnedNotProcessing = false;
+	private bool _warnedNoCameraForGrid = false;
 	private int _fieldSourceLastRefreshFrame = -100000;
 	private Node[] _fieldSourceNodes = Array.Empty<Node>();
 	private Transform3D[] _fieldSourceXforms = Array.Empty<Transform3D>();
@@ -1374,6 +1396,17 @@ public partial class GrinFilmCamera : Node
 		}
 		SyncAndApplyIfDirty("ready", force: ApplyPresetOnReady);
 
+		if (!IsProcessing() && !_warnedNotProcessing)
+		{
+			_warnedNotProcessing = true;
+			GD.PrintErr("GrinFilmCamera: Node is not processing; FrameSnapshotBus will not update.");
+		}
+		if (!UpdateEveryFrame && !_warnedNotProcessing)
+		{
+			_warnedNotProcessing = true;
+			GD.PrintErr("GrinFilmCamera: UpdateEveryFrame is false; FrameSnapshotBus will not update.");
+		}
+
     	// ⛔ Freeze beam rebuilds while film camera is active
 		// CROSS-CLASS CONTRACT: Freeze RayBeamRenderer rebuilds while film camera is active.
 		// ASSUMPTION: film pass owns ray stability; external rebuilds would desync buffers.
@@ -1444,12 +1477,52 @@ public partial class GrinFilmCamera : Node
 		UpdateBroadphaseEffectiveState();
 		// DECISION: only render when UpdateEveryFrame is enabled.
 		if (!UpdateEveryFrame) return;
-		RenderFrameBackend();
+		RenderFrameBackend(delta);
 	}
 
-	private void RenderFrameBackend()
+	private void RenderFrameBackend(double delta)
 	{
 		var snapshot = GodotAdapter.SnapshotBuilder.BuildFromGodotScene(GetTree().CurrentScene);
+		var cam = _cam;
+		if (cam == null || !IsInstanceValid(cam))
+		{
+			cam = GetViewport()?.GetCamera3D();
+			if (cam != null && IsInstanceValid(cam))
+			{
+				_cam = cam;
+			}
+		}
+		CurvatureBoundGrid grid = null;
+		if (cam != null && IsInstanceValid(cam))
+		{
+			var camPos = cam.GlobalPosition;
+			var camPosNum = new System.Numerics.Vector3(camPos.X, camPos.Y, camPos.Z);
+			grid = CurvatureBoundGrid.BuildAroundCamera(
+				camPosNum,
+				cellSize: CurvatureGridCellSize,
+				dimX: CurvatureGridDimX,
+				dimY: CurvatureGridDimY,
+				dimZ: CurvatureGridDimZ,
+				snapshot);
+		}
+		else if (!_warnedNoCameraForGrid)
+		{
+			_warnedNoCameraForGrid = true;
+			GD.PrintErr("GrinFilmCamera: No valid Camera3D for CurvatureGrid build.");
+		}
+
+		snapshot = new SceneSnapshot
+		{
+			Instances = snapshot.Instances,
+			Fields = snapshot.Fields,
+			FieldParams = snapshot.FieldParams,
+			FieldTLAS = snapshot.FieldTLAS,
+			CurvatureGrid = grid
+		};
+
+		_frameId++;
+		FrameSnapshotBus.Set(snapshot, _frameId);
+		ThrottleBusLog(delta, snapshot);
 
 		_legacyBackend ??= new RenderBackends.LegacyBackend(this);
 		_coreBackend ??= new RenderBackends.CoreBackend();
@@ -1468,6 +1541,20 @@ public partial class GrinFilmCamera : Node
 				_legacyBackend.RenderFrame(snapshot);
 				break;
 		}
+	}
+
+	private void ThrottleBusLog(double delta, SceneSnapshot snapshot)
+	{
+		_busLogTimerSec += Math.Max(0.0, delta);
+		if (_busLogTimerSec < 1.0)
+		{
+			return;
+		}
+
+		_busLogTimerSec -= 1.0;
+		var fieldsCount = snapshot.Fields?.Count ?? 0;
+		var gridOk = snapshot.CurvatureGrid != null ? "OK" : "NULL";
+		GD.Print($"[BUS SET] frameId={_frameId} grid={gridOk} fields={fieldsCount}");
 	}
 
 	public void RenderStep()

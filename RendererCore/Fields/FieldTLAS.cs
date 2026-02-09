@@ -77,6 +77,51 @@ public sealed class FieldTLAS
         return count;
     }
 
+    public int QueryAabb(in Aabb3 region, Span<int> results)
+    {
+        if (Nodes.Length == 0 || RootIndex < 0)
+        {
+            return 0;
+        }
+
+        Span<int> stack = stackalloc int[128];
+        var sp = 0;
+        stack[sp++] = RootIndex;
+
+        var count = 0;
+        while (sp > 0)
+        {
+            var nodeIndex = stack[--sp];
+            ref readonly var node = ref Nodes[nodeIndex];
+            if (!node.Bounds.Overlaps(region))
+            {
+                continue;
+            }
+
+            if (node.Left < 0)
+            {
+                var leafStart = -node.Left - 1;
+                var leafCount = node.Right;
+                for (var i = 0; i < leafCount; i++)
+                {
+                    if (count >= results.Length)
+                    {
+                        return count;
+                    }
+
+                    results[count++] = LeafFieldIds[leafStart + i];
+                }
+            }
+            else
+            {
+                stack[sp++] = node.Left;
+                stack[sp++] = node.Right;
+            }
+        }
+
+        return count;
+    }
+
     public static FieldTLAS Build(in FieldEntitySOA fields)
     {
         if (fields == null)
