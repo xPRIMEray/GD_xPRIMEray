@@ -199,6 +199,15 @@ public partial class GrinFilmCamera : Node
 	// CONTROL FACTOR: Enables Band by Band Logging each RenderStep in console log.
 	[Export] public bool RenderStepBandLog = true;
 
+	[ExportGroup("Debug Logs")]
+	[Export] public bool DebugSnapshotLog = true;
+	[Export(PropertyHint.Range, "0.05,10.0,0.05")] public float DebugSnapshotIntervalSec = 1.0f;
+	[Export] public bool DebugProbeLog = true;
+	[Export(PropertyHint.Range, "0.05,10.0,0.05")] public float DebugProbeIntervalSec = 1.0f;
+	[Export] public bool DebugGeomRejectSampleEnabled = false;
+	[Export(PropertyHint.Range, "1,10000,1")] public int DebugGeomRejectSampleEveryN = 200;
+	[Export] public bool DebugGeomCounterGuardEnabled = false;
+
 
 	[ExportGroup("Ray March")]
 
@@ -392,6 +401,9 @@ public partial class GrinFilmCamera : Node
 	/// <summary>If >0, segments shorter than this length always run pass-2 collision tests.</summary>
 	// CONTROL FACTOR: Minimum segment length (world units) for stride skipping; lower = more checks.
 	[Export(PropertyHint.Range, "0,1,0.001")] public float MinSegLenForStrideSkip = 0f;
+	/// <summary>Multiplier applied to pass-2 geometry envelope radius before TLAS query.</summary>
+	// CONTROL FACTOR: Higher values make candidate gathering more conservative (fewer false rejects, more candidates).
+	[Export(PropertyHint.Range, "1.0,2.0,0.01")] public float Pass2GeomEnvelopeRadiusScale = 1.10f;
 
 	[ExportSubgroup("Hit Flags")]
 	// This section affects collision hit rules and logging.
@@ -717,6 +729,7 @@ public partial class GrinFilmCamera : Node
 	private int _frameIndex = 0;
 	private ulong _frameId = 0;
 	private double _busLogTimerSec = 0.0;
+	private double _snapshotLogTimerSec = 0.0;
 	private bool _warnedNotProcessing = false;
 	private bool _warnedNoCameraForGrid = false;
 	private int _fieldSourceLastRefreshFrame = -100000;
@@ -832,6 +845,7 @@ public partial class GrinFilmCamera : Node
 	private const int RenderHealthBufferSize = 60;
 	private const int RenderHealthLogEveryNSteps = 30;
 	private const int RenderHealthStallThreshold = 10;
+	private const int RenderHealthPass2SampleEveryNSegments = 4096;
 
 	private RenderHealthSample[] _renderHealthSamples = new RenderHealthSample[RenderHealthBufferSize];
 	private int _renderHealthWrite = 0;
@@ -842,6 +856,7 @@ public partial class GrinFilmCamera : Node
 	private int _renderHealthLastRowCursor = -1;
 	private string _renderHealthLastExitReason = "";
 	private bool _rowStallActive = false;
+	private int _renderHealthPass2SampleCounter = 0;
 
 	// band hit ROI history
 	private float[] _bandHitRate = Array.Empty<float>();
@@ -869,6 +884,25 @@ public partial class GrinFilmCamera : Node
 	private int _hybridFallbackCountThisFrame = 0;
 	private int _hybridFallbackHitCountThisFrame = 0;
 	private int _hybridFallbackMissCountThisFrame = 0;
+	private long _geomCandidatesTotalThisFrame = 0;
+	private long _geomCandidatesSegmentsThisFrame = 0;
+	private long _geomSegmentsQueriedThisFrame = 0;
+	// RenderHealth counter accounting map:
+	// - geomSegZero increment site: Pass2 TLAS block immediately after QueryAabb(...) when pass==0 && candCount==0.
+	// - geomPixNoCand increment site: per-pixel Pass2 epilogue when noCandidatesThisPixel && !hadCandidatesThisPixel.
+	// These counters are log-window counters and reset only when a RenderHealth line is printed.
+	private long _geomSegZeroCandidatesThisFrame = 0;
+	private long _geomPixelNoCandidatesThisFrame = 0;
+	private long _geomHitAcceptedThisFrame = 0;
+	private long _geomHitRejectedThisFrame = 0;
+	private long _geomSegZeroCandidatesLastSample = 0;
+	private long _geomPixelNoCandidatesLastSample = 0;
+	private long _geomSegmentsQueriedLastSample = 0;
+	private long _geomRejectSampleCidNotInGeometryList = 0;
+	private long _geomRejectSampleCidInGeometryListNotInCandidates = 0;
+	private long _geomRejectSampleCandidateContainsCid = 0;
+	private int[] _geomCandidatesScratch = Array.Empty<int>();
+	private long[] _geomCandidateInstanceIdsScratch = Array.Empty<long>();
 	private SoftGateDebugCounters _softGateFrame;
 	private SoftGateDebugCounters _softGateBand;
 	private SoftGateConfigSnapshot _lastSoftGateCfgSnapshot;
@@ -1127,6 +1161,7 @@ public partial class GrinFilmCamera : Node
 		public int Pass2CollisionStrideFar;
 		public float Pass2CollisionStrideFarStartT;
 		public float MinSegLenForStrideSkip;
+		public float Pass2GeomEnvelopeRadiusScale;
 		public bool Pass2HitBackFaces;
 		public bool Pass2HitFromInside;
 		public bool Pass2ForceOnInstability;
@@ -1166,6 +1201,22 @@ public partial class GrinFilmCamera : Node
 		public int HybridFallbackHitCount;
 		public int HybridFallbackMissCount;
 		public int HybridNoCandidateCount;
+		public long GeomCandidatesTotal;
+		public long GeomCandidatesSegments;
+		public long GeomSegmentsQueried;
+		public long GeomSegZeroCandidates;
+		public long GeomPixelNoCandidates;
+		public long GeomHitAccepted;
+		public long GeomHitRejected;
+		public long Pass2SampledSegments;
+		public double Pass2RadiusSum;
+		public float Pass2RadiusMax;
+		public double Pass2EnvDiagSum;
+		public long Pass2CandidateCount0;
+		public long Pass2CandidateCount1To2;
+		public long Pass2CandidateCount3To8;
+		public long Pass2CandidateCount9To32;
+		public long Pass2CandidateCount33Plus;
 		public double AvgStepsPerTracedPixel;
 		public string BudgetExitReason;
 	}
@@ -1472,6 +1523,12 @@ public partial class GrinFilmCamera : Node
 
 	public override void _Process(double delta)
 	{
+		DebugLogConfig.EnableSnapshotLog = DebugSnapshotLog;
+		DebugLogConfig.SnapshotLogIntervalSec = Mathf.Max(0.05f, DebugSnapshotIntervalSec);
+		DebugLogConfig.EnableProbeLog = DebugProbeLog;
+		DebugLogConfig.ProbeLogIntervalSec = Mathf.Max(0.05f, DebugProbeIntervalSec);
+		DebugLogConfig.EnableGeomRejectSample = DebugGeomRejectSampleEnabled;
+
 		SyncAndApplyIfDirty("process");
 		// Keep broadphase controls in sync each frame so the inspector reflects effective state.
 		UpdateBroadphaseEffectiveState();
@@ -1517,12 +1574,15 @@ public partial class GrinFilmCamera : Node
 			Fields = snapshot.Fields,
 			FieldParams = snapshot.FieldParams,
 			FieldTLAS = snapshot.FieldTLAS,
+			Geometry = snapshot.Geometry,
+			GeometryTLAS = snapshot.GeometryTLAS,
 			CurvatureGrid = grid
 		};
 
 		_frameId++;
 		FrameSnapshotBus.Set(snapshot, _frameId);
 		ThrottleBusLog(delta, snapshot);
+		ThrottleSnapshotSummary(delta, snapshot);
 
 		_legacyBackend ??= new RenderBackends.LegacyBackend(this);
 		_coreBackend ??= new RenderBackends.CoreBackend();
@@ -1555,6 +1615,18 @@ public partial class GrinFilmCamera : Node
 		var fieldsCount = snapshot.Fields?.Count ?? 0;
 		var gridOk = snapshot.CurvatureGrid != null ? "OK" : "NULL";
 		GD.Print($"[BUS SET] frameId={_frameId} grid={gridOk} fields={fieldsCount}");
+	}
+
+	private void ThrottleSnapshotSummary(double delta, SceneSnapshot snapshot)
+	{
+		_snapshotLogTimerSec += Math.Max(0.0, delta);
+		if (_snapshotLogTimerSec < 1.0)
+		{
+			return;
+		}
+
+		_snapshotLogTimerSec -= 1.0;
+		GD.Print(snapshot.DebugSummary());
 	}
 
 	public void RenderStep()
@@ -1641,6 +1713,17 @@ public partial class GrinFilmCamera : Node
 		int filmW = _filmWidth;
 		int pass2SoftGateMaxAttemptsPerFrameEffective = 0;
 		int pass2SoftGateMaxSubdividedCallsPerFrameEffective = 0;
+		long pass2SampledSegments = 0;
+		double pass2RadiusSum = 0.0;
+		float pass2RadiusMax = 0f;
+		double pass2EnvDiagSum = 0.0;
+		long pass2CandidateCount0 = 0;
+		long pass2CandidateCount1To2 = 0;
+		long pass2CandidateCount3To8 = 0;
+		long pass2CandidateCount9To32 = 0;
+		long pass2CandidateCount33Plus = 0;
+		_geomCandidatesTotalThisFrame = 0;
+		_geomCandidatesSegmentsThisFrame = 0;
 
 		void LogBudgetExitOnce(string reason, int rowCursor)
 		{
@@ -2206,6 +2289,8 @@ public partial class GrinFilmCamera : Node
 				_hybridFallbackHitCountThisFrame = 0;
 				_hybridFallbackMissCountThisFrame = 0;
 				_hybridNoCandidateCountThisFrame = 0;
+				_geomHitAcceptedThisFrame = 0;
+				_geomHitRejectedThisFrame = 0;
 				/////////////////////////////
 			}
 
@@ -2240,6 +2325,9 @@ public partial class GrinFilmCamera : Node
 			}
 
 			var space = _cam.GetWorld3D().DirectSpaceState;
+			var snap = FrameSnapshotBus.CurrentSnapshot;
+			int geomCountForScratch = snap?.Geometry?.Count ?? 0;
+			EnsureGeomScratchCapacity(Math.Max(256, geomCountForScratch));
 
 			var fieldSnaps = GetFieldSourceSnaps(in cfg, _frameIndex, out bool hasSources, out bool cacheRefreshed);
 			// DECISION: track cache hits/misses for field sources when caching is enabled.
@@ -2434,6 +2522,7 @@ public partial class GrinFilmCamera : Node
 			/////////////////////////////
 
 			FieldGrid3D fieldGridForPass1 = null;
+			CurvatureBoundGrid curvatureGridForPass1 = null;
 			// DECISION: use field grid only when enabled, integrated field is on, and sources exist.
 			if (cfg.UseFieldGrid && rayCfg.UseIntegratedField && hasSources)
 			{
@@ -2452,6 +2541,7 @@ public partial class GrinFilmCamera : Node
 				}
 				fieldGridForPass1 = _fieldGrid;
 			}
+			curvatureGridForPass1 = snap?.CurvatureGrid;
 			bool skipBandPhysics = false;
 			int bandIndex = 0;
 			// DECISION: band-level skip when enabled and history supports it.
@@ -2690,6 +2780,7 @@ public partial class GrinFilmCamera : Node
 							out int fieldGridMissesLocal,
 							out int fieldGridFallbacksLocal,
 							out int fieldSourceEvalsLocal,
+							curvatureGridForPass1,
 							fieldGridForPass1
 						);
 
@@ -2904,6 +2995,24 @@ public partial class GrinFilmCamera : Node
 			// DECISION: enable pass2 perf scope when frame perf is enabled.
 			if (framePerfEnabled) pass2Scope = new PerfScope(_framePerf, PerfStage.Pass2_Subdivide);
 			bool shadeTimingEnabled = statsEnabled || framePerfEnabled;
+
+			void RecordRenderHealthPass2Sample(float radius, float envDiag, int candidateCount)
+			{
+				if (float.IsNaN(radius) || float.IsInfinity(radius)) return;
+				if (float.IsNaN(envDiag) || float.IsInfinity(envDiag)) return;
+
+				pass2SampledSegments++;
+				pass2RadiusSum += radius;
+				if (radius > pass2RadiusMax) pass2RadiusMax = radius;
+				pass2EnvDiagSum += envDiag;
+
+				int bucketCount = candidateCount < 0 ? 0 : candidateCount;
+				if (bucketCount <= 0) pass2CandidateCount0++;
+				else if (bucketCount <= 2) pass2CandidateCount1To2++;
+				else if (bucketCount <= 8) pass2CandidateCount3To8++;
+				else if (bucketCount <= 32) pass2CandidateCount9To32++;
+				else pass2CandidateCount33Plus++;
+			}
 
 			void CountQuickRayResult(bool hit)
 			{
@@ -3559,6 +3668,9 @@ public partial class GrinFilmCamera : Node
 						bool hadCandidatesThisPixel = false;
 						bool noCandidatesThisPixel = false;
 						bool useHybridBroadphase = broadphaseCfg.Policy == BroadphasePolicyMode.HybridQuickRayThenOverlap;
+						var geomTlas = snap?.GeometryTLAS;
+						var geomEntities = snap?.Geometry;
+						bool useGeomTlas = geomTlas != null && geomEntities != null && geomEntities.Count > 0;
 
 						bool hadHit = false;
 						float hitDistance = 0f;
@@ -3663,6 +3775,27 @@ public partial class GrinFilmCamera : Node
 									}
 								}
 
+								bool renderHealthSampleThisSeg = pass == 0
+									&& (_renderHealthPass2SampleCounter++ % RenderHealthPass2SampleEveryNSegments) == 0;
+								bool renderHealthSampleRecorded = false;
+								float renderHealthSampleRadius = 0f;
+								float renderHealthSampleEnvDiag = 0f;
+								Aabb3 envelope = default;
+								bool envelopeComputed = false;
+								if (useGeomTlas || renderHealthSampleThisSeg)
+								{
+									var segANum = new System.Numerics.Vector3(segA.X, segA.Y, segA.Z);
+									var segBNum = new System.Numerics.Vector3(segB.X, segB.Y, segB.Z);
+									float geomEnvelopeRadius = seg.RadiusBound * Mathf.Max(1.0f, cfg.Pass2GeomEnvelopeRadiusScale);
+									envelope = Aabb3.FromSegment(segANum, segBNum).Expand(geomEnvelopeRadius);
+									envelopeComputed = true;
+									renderHealthSampleRadius = geomEnvelopeRadius;
+								}
+								if (renderHealthSampleThisSeg && envelopeComputed)
+								{
+									renderHealthSampleEnvDiag = envelope.Extents.Length();
+								}
+
 								/////////////////////////////////
 								/// Per-segment vars with softGate
 								bool segCounted = false;
@@ -3693,8 +3826,58 @@ public partial class GrinFilmCamera : Node
 								int hybridQuickRayMissBy = 0;
 								int hybridQuickRayMissBz = 0;
 								int hybridQuickRayMissFlags = 0;
+								Span<long> geomCandidateInstanceIds = default;
+								int geomCandidateInstanceCount = 0;
+								bool geomCandidatesActive = false;
 								/////////////////////////////////
-								
+
+								if (useGeomTlas)
+								{
+									Span<int> geomCandidates = _geomCandidatesScratch;
+									int geomCandidateCount = geomTlas.QueryAabb(envelope, geomCandidates);
+									if (pass == 0)
+									{
+										_geomSegmentsQueriedThisFrame++;
+										// geomSegZero increments exactly once per queried Pass2 segment.
+										if (geomCandidateCount == 0)
+										_geomSegZeroCandidatesThisFrame++;
+									}
+									if (geomCandidateCount > 0)
+									{
+										geomCandidateInstanceIds = _geomCandidateInstanceIdsScratch;
+										var ids = geomEntities.GodotInstanceIds;
+										int idsLen = ids.Length;
+										int maxFill = Math.Min(geomCandidateCount, geomCandidateInstanceIds.Length);
+										for (int gi = 0; gi < maxFill; gi++)
+										{
+											int geomIndex = geomCandidates[gi];
+											if ((uint)geomIndex < (uint)idsLen)
+												geomCandidateInstanceIds[geomCandidateInstanceCount++] = ids[geomIndex];
+										}
+										if (geomCandidateInstanceCount > 1)
+										{
+											SortLongSpan(geomCandidateInstanceIds, geomCandidateInstanceCount);
+											geomCandidateInstanceCount = DedupSortedLong(geomCandidateInstanceIds, geomCandidateInstanceCount);
+										}
+									}
+									if (pass == 0)
+									{
+										_geomCandidatesSegmentsThisFrame++;
+										_geomCandidatesTotalThisFrame += geomCandidateInstanceCount;
+									}
+									if (renderHealthSampleThisSeg && !renderHealthSampleRecorded && envelopeComputed)
+									{
+										RecordRenderHealthPass2Sample(renderHealthSampleRadius, renderHealthSampleEnvDiag, geomCandidateInstanceCount);
+										renderHealthSampleRecorded = true;
+									}
+									geomCandidatesActive = geomCandidateInstanceCount > 0;
+									if (!geomCandidatesActive)
+									{
+										noCandidatesThisPixel = true;
+										continue;
+									}
+								}
+
 								if (rayCfg.UseSphereSweepCollision)
 								{
 									if (!forceStride1)
@@ -4104,6 +4287,12 @@ public partial class GrinFilmCamera : Node
 										}
 									}
 
+									if (renderHealthSampleThisSeg && !renderHealthSampleRecorded && envelopeComputed)
+									{
+										RecordRenderHealthPass2Sample(renderHealthSampleRadius, renderHealthSampleEnvDiag, candidateCount);
+										renderHealthSampleRecorded = true;
+									}
+
 									if (budgetStop) break;
 									if (skipBroadphaseSegment)
 									{
@@ -4499,6 +4688,46 @@ public partial class GrinFilmCamera : Node
 									else
 										didHit = TrySubdividedRayNarrowphase(out narrowphaseHitDistAlongRay);
 
+									if (didHit && geomCandidatesActive)
+									{
+										long geomId = unchecked((long)cid);
+										if (ContainsSortedLong(geomCandidateInstanceIds, geomCandidateInstanceCount, geomId))
+										{
+											_geomHitAcceptedThisFrame++;
+										}
+										else
+										{
+											_geomHitRejectedThisFrame++;
+											if (DebugGeomRejectSampleEnabled
+												&& DebugGeomRejectSampleEveryN > 0
+												&& (_geomHitRejectedThisFrame % DebugGeomRejectSampleEveryN) == 0)
+											{
+												GeomRejectSampleCause rejectCause = LogGeomRejectSample(
+													cid,
+													cname,
+													envelope,
+													geomCandidateInstanceIds,
+													geomCandidateInstanceCount,
+													geomEntities);
+												switch (rejectCause)
+												{
+													case GeomRejectSampleCause.CidNotInGeometryList:
+														_geomRejectSampleCidNotInGeometryList++;
+														break;
+													case GeomRejectSampleCause.CidInGeometryListNotInCandidates:
+														_geomRejectSampleCidInGeometryListNotInCandidates++;
+														break;
+													case GeomRejectSampleCause.CandidateContainsCid:
+														_geomRejectSampleCandidateContainsCid++;
+														break;
+												}
+											}
+											didHit = false;
+											cid = 0;
+											cname = "<none>";
+										}
+									}
+
 									FinalizeHybridQuickRayMissCache(didHit, narrowphaseHitDistAlongRay);
 									if (budgetStop) break;
 
@@ -4569,6 +4798,10 @@ public partial class GrinFilmCamera : Node
 							break;
 					}
 					if (budgetStop) break;
+
+					// geomPixNoCand rule: increment once per pixel only when every Pass2 segment had zero candidates.
+					if (noCandidatesThisPixel && !hadCandidatesThisPixel)
+						_geomPixelNoCandidatesThisFrame++;
 
 					if (useHybridBroadphase && noCandidatesThisPixel && !hadCandidatesThisPixel)
 					{
@@ -5205,6 +5438,22 @@ public partial class GrinFilmCamera : Node
 				_hybridFallbackHitCountThisFrame,
 				_hybridFallbackMissCountThisFrame,
 				_hybridNoCandidateCountThisFrame,
+				_geomCandidatesTotalThisFrame,
+				_geomCandidatesSegmentsThisFrame,
+				_geomSegmentsQueriedThisFrame,
+				_geomSegZeroCandidatesThisFrame,
+				_geomPixelNoCandidatesThisFrame,
+				_geomHitAcceptedThisFrame,
+				_geomHitRejectedThisFrame,
+				pass2SampledSegments,
+				pass2RadiusSum,
+				pass2RadiusMax,
+				pass2EnvDiagSum,
+				pass2CandidateCount0,
+				pass2CandidateCount1To2,
+				pass2CandidateCount3To8,
+				pass2CandidateCount9To32,
+				pass2CandidateCount33Plus,
 				avgStepsPerTracedPixel,
 				healthExitReason);
 			bool stalledNow = _renderHealthStallSteps >= RenderHealthStallThreshold;
@@ -5238,6 +5487,159 @@ public partial class GrinFilmCamera : Node
 			Variant.Type.Int => (int)v,
 			_ => fallback
 		};
+	}
+
+	private static void SortLongSpan(Span<long> data, int count)
+	{
+		if (count <= 1) return;
+		for (int i = 1; i < count; i++)
+		{
+			long key = data[i];
+			int j = i - 1;
+			while (j >= 0 && data[j] > key)
+			{
+				data[j + 1] = data[j];
+				j--;
+			}
+			data[j + 1] = key;
+		}
+	}
+
+	private static bool ContainsSortedLong(Span<long> data, int count, long value)
+	{
+		int lo = 0;
+		int hi = count - 1;
+		while (lo <= hi)
+		{
+			int mid = lo + ((hi - lo) >> 1);
+			long m = data[mid];
+			if (m == value) return true;
+			if (m < value) lo = mid + 1;
+			else hi = mid - 1;
+		}
+		return false;
+	}
+
+	private static int DedupSortedLong(Span<long> data, int count)
+	{
+		if (count <= 1) return count;
+		int w = 1;
+		long prev = data[0];
+		for (int r = 1; r < count; r++)
+		{
+			long v = data[r];
+			if (v != prev)
+			{
+				data[w++] = v;
+				prev = v;
+			}
+		}
+		return w;
+	}
+
+	private enum GeomRejectSampleCause
+	{
+		CidNotInGeometryList = 0,
+		CidInGeometryListNotInCandidates = 1,
+		CandidateContainsCid = 2
+	}
+
+	private GeomRejectSampleCause LogGeomRejectSample(
+		ulong cid,
+		string cname,
+		in Aabb3 envelope,
+		Span<long> candidateIds,
+		int candidateCount,
+		GeometryEntitySOA geomEntities)
+	{
+		var envMin = envelope.Min;
+		var envMax = envelope.Max;
+		float envDiag = envelope.Extents.Length();
+		long cidLong = unchecked((long)cid);
+		bool candidateHasCid = false;
+		int candidateScanCount = Math.Min(candidateCount, candidateIds.Length);
+		for (int i = 0; i < candidateScanCount; i++)
+		{
+			if (candidateIds[i] == cidLong)
+			{
+				candidateHasCid = true;
+				break;
+			}
+		}
+
+		int foundGeomIndex = -1;
+		if (geomEntities != null)
+		{
+			var ids = geomEntities.GodotInstanceIds;
+			for (int i = 0; i < ids.Length; i++)
+			{
+				if (ids[i] == cidLong)
+				{
+					foundGeomIndex = i;
+					break;
+				}
+			}
+		}
+
+		GeomRejectSampleCause cause;
+		if (foundGeomIndex < 0) cause = GeomRejectSampleCause.CidNotInGeometryList;
+		else if (candidateHasCid) cause = GeomRejectSampleCause.CandidateContainsCid;
+		else cause = GeomRejectSampleCause.CidInGeometryListNotInCandidates;
+
+		var sb = new StringBuilder(256);
+		sb.Append("[GeomRejectSample] cid=").Append(cid)
+			.Append(" cname=").Append(cname ?? "<null>")
+			.Append(" cause=")
+			.Append(cause == GeomRejectSampleCause.CidNotInGeometryList
+				? "CID_NOT_IN_GEOMETRY_LIST"
+				: cause == GeomRejectSampleCause.CandidateContainsCid
+					? "CID_IN_CANDIDATES_UNEXPECTED"
+					: "CID_IN_GEOMETRY_LIST_NOT_IN_CANDIDATES")
+			.Append(" envDiag=").Append(envDiag.ToString("0.###"))
+			.Append(" envMin=(").Append(envMin.X.ToString("0.###")).Append(",").Append(envMin.Y.ToString("0.###")).Append(",").Append(envMin.Z.ToString("0.###")).Append(")")
+			.Append(" envMax=(").Append(envMax.X.ToString("0.###")).Append(",").Append(envMax.Y.ToString("0.###")).Append(",").Append(envMax.Z.ToString("0.###")).Append(")")
+			.Append(" candCount=").Append(candidateCount)
+			.Append(" candHasCid=").Append(candidateHasCid ? "1" : "0")
+			.Append(" cidInGeometryList=").Append(foundGeomIndex >= 0 ? "1" : "0");
+
+		if (foundGeomIndex >= 0 && geomEntities != null && (uint)foundGeomIndex < (uint)geomEntities.WorldBounds.Length)
+		{
+			var geomBounds = geomEntities.WorldBounds[foundGeomIndex];
+			var geomMin = geomBounds.Min;
+			var geomMax = geomBounds.Max;
+			sb.Append(" geomIndex=").Append(foundGeomIndex)
+				.Append(" geomAabbMin=(").Append(geomMin.X.ToString("0.###")).Append(",").Append(geomMin.Y.ToString("0.###")).Append(",").Append(geomMin.Z.ToString("0.###")).Append(")")
+				.Append(" geomAabbMax=(").Append(geomMax.X.ToString("0.###")).Append(",").Append(geomMax.Y.ToString("0.###")).Append(",").Append(geomMax.Z.ToString("0.###")).Append(")");
+		}
+
+		int previewCount = Math.Min(8, candidateCount);
+		sb.Append(" candIds=[");
+		for (int i = 0; i < previewCount; i++)
+		{
+			if (i > 0) sb.Append(",");
+			sb.Append(candidateIds[i]);
+		}
+		sb.Append("]");
+		if (candidateCount > previewCount)
+		{
+			ulong hash = HashLongSpanFNV(candidateIds, candidateCount);
+			sb.Append(" candHash=0x").Append(hash.ToString("X"));
+		}
+
+		GD.Print(sb.ToString());
+		return cause;
+	}
+
+	private static ulong HashLongSpanFNV(ReadOnlySpan<long> data, int count)
+	{
+		ulong hash = 1469598103934665603UL;
+		int n = Math.Min(count, data.Length);
+		for (int i = 0; i < n; i++)
+		{
+			hash ^= unchecked((ulong)data[i]);
+			hash *= 1099511628211UL;
+		}
+		return hash;
 	}
 
 	private RayBeamRenderer.FieldSourceSnap[] GetFieldSourceSnaps(in EffectiveConfig cfg, int frameIndex, out bool hasSources, out bool cacheRefreshed)
@@ -5323,6 +5725,14 @@ public partial class GrinFilmCamera : Node
 		if (_fieldSourceNodes.Length < count) Array.Resize(ref _fieldSourceNodes, count);
 		if (_fieldSourceXforms.Length < count) Array.Resize(ref _fieldSourceXforms, count);
 		if (_fieldSourceIds.Length < count) Array.Resize(ref _fieldSourceIds, count);
+	}
+
+	private void EnsureGeomScratchCapacity(int n)
+	{
+		if (_geomCandidatesScratch.Length < n)
+			_geomCandidatesScratch = new int[n];
+		if (_geomCandidateInstanceIdsScratch.Length < n)
+			_geomCandidateInstanceIdsScratch = new long[n];
 	}
 
 	private static bool TransformEqualApprox(Transform3D a, Transform3D b)
@@ -6194,6 +6604,7 @@ public partial class GrinFilmCamera : Node
 			Pass2CollisionStrideFar = Pass2CollisionStrideFar,
 			Pass2CollisionStrideFarStartT = Pass2CollisionStrideFarStartT,
 			MinSegLenForStrideSkip = MinSegLenForStrideSkip,
+			Pass2GeomEnvelopeRadiusScale = Mathf.Max(1.0f, Pass2GeomEnvelopeRadiusScale),
 			Pass2HitBackFaces = Pass2HitBackFaces,
 			Pass2HitFromInside = Pass2HitFromInside,
 			Pass2ForceOnInstability = Pass2ForceOnInstability,
@@ -6450,6 +6861,7 @@ public partial class GrinFilmCamera : Node
 		hash.Add(cfg.Pass2CollisionStrideFar);
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.Pass2CollisionStrideFarStartT));
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.MinSegLenForStrideSkip));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.Pass2GeomEnvelopeRadiusScale));
 		hash.Add(cfg.Pass2HitBackFaces);
 		hash.Add(cfg.Pass2HitFromInside);
 		hash.Add(cfg.Pass2ForceOnInstability);
@@ -6493,7 +6905,7 @@ public partial class GrinFilmCamera : Node
 			$"minSeg={cfg.SoftGate.MinSegmentLength:0.###} attempts={cfg.SoftGate.MaxAttemptsPerFrame} sub={cfg.SoftGate.MaxSubdividedCallsPerFrame} " +
 			$"stride={cfg.Film.PixelStride} resScale={cfg.Film.ResolutionScale:0.###} rows={cfg.Film.RowsPerFrame} " +
 			$"stepLen={cfg.RayMarch.StepLength:0.###} collRad={cfg.RayMarch.CollisionRadius:0.###} mask=0x{cfg.RayMarch.CollisionMask:X8} " +
-			$"maxDist={cfg.Film.MaxDistance:0.###}");
+			$"envRadScale={cfg.Pass2GeomEnvelopeRadiusScale:0.###} maxDist={cfg.Film.MaxDistance:0.###}");
 	}
 
 	private static int ComputeSharedSnapshotHash(in RayBeamRenderer.SharedSnapshot snap)
@@ -6607,6 +7019,22 @@ public partial class GrinFilmCamera : Node
 		long totalHybridFallbackHits = 0;
 		long totalHybridFallbackMisses = 0;
 		long totalHybridNoCandidates = 0;
+		long totalGeomCandidates = 0;
+		long totalGeomCandidateSegments = 0;
+		long totalGeomSegmentsQueried = 0;
+		long totalGeomSegZeroCandidates = 0;
+		long totalGeomPixelNoCandidates = 0;
+		long totalGeomHitAccepted = 0;
+		long totalGeomHitRejected = 0;
+		long totalPass2SampledSegments = 0;
+		double totalPass2RadiusSum = 0.0;
+		float totalPass2RadiusMax = 0f;
+		double totalPass2EnvDiagSum = 0.0;
+		long totalPass2CandidateCount0 = 0;
+		long totalPass2CandidateCount1To2 = 0;
+		long totalPass2CandidateCount3To8 = 0;
+		long totalPass2CandidateCount9To32 = 0;
+		long totalPass2CandidateCount33Plus = 0;
 		string topExit = "none";
 		int topExitCount = 0;
 		var exitCounts = new System.Collections.Generic.Dictionary<string, int>(StringComparer.Ordinal);
@@ -6621,6 +7049,22 @@ public partial class GrinFilmCamera : Node
 			totalHybridFallbackHits += s.HybridFallbackHitCount;
 			totalHybridFallbackMisses += s.HybridFallbackMissCount;
 			totalHybridNoCandidates += s.HybridNoCandidateCount;
+			totalGeomCandidates += s.GeomCandidatesTotal;
+			totalGeomCandidateSegments += s.GeomCandidatesSegments;
+			totalGeomSegmentsQueried += s.GeomSegmentsQueried;
+			totalGeomSegZeroCandidates += s.GeomSegZeroCandidates;
+			totalGeomPixelNoCandidates += s.GeomPixelNoCandidates;
+			totalGeomHitAccepted += s.GeomHitAccepted;
+			totalGeomHitRejected += s.GeomHitRejected;
+			totalPass2SampledSegments += s.Pass2SampledSegments;
+			totalPass2RadiusSum += s.Pass2RadiusSum;
+			if (s.Pass2RadiusMax > totalPass2RadiusMax) totalPass2RadiusMax = s.Pass2RadiusMax;
+			totalPass2EnvDiagSum += s.Pass2EnvDiagSum;
+			totalPass2CandidateCount0 += s.Pass2CandidateCount0;
+			totalPass2CandidateCount1To2 += s.Pass2CandidateCount1To2;
+			totalPass2CandidateCount3To8 += s.Pass2CandidateCount3To8;
+			totalPass2CandidateCount9To32 += s.Pass2CandidateCount9To32;
+			totalPass2CandidateCount33Plus += s.Pass2CandidateCount33Plus;
 			if (!string.IsNullOrEmpty(s.BudgetExitReason))
 			{
 				exitCounts.TryGetValue(s.BudgetExitReason, out int count);
@@ -6638,12 +7082,59 @@ public partial class GrinFilmCamera : Node
 		}
 
 		float hitRate = totalTraced > 0 ? (float)totalHits / totalTraced : 0f;
+		double geomCandidatesAvg = totalGeomCandidateSegments > 0
+			? (double)totalGeomCandidates / totalGeomCandidateSegments
+			: 0.0;
+		double pass2RadiusAvg = totalPass2SampledSegments > 0
+			? totalPass2RadiusSum / totalPass2SampledSegments
+			: 0.0;
+		double pass2EnvDiagAvg = totalPass2SampledSegments > 0
+			? totalPass2EnvDiagSum / totalPass2SampledSegments
+			: 0.0;
+		bool geomCounterGuardEnabled = DebugLogConfig.EnableGeomRejectSample || DebugGeomCounterGuardEnabled;
+		if (geomCounterGuardEnabled && totalGeomSegZeroCandidates > totalGeomSegmentsQueried)
+		{
+			GD.PrintErr(
+				$"[RenderHealth][WARN] drift=geomSegZero segZero={totalGeomSegZeroCandidates} segQueried={totalGeomSegmentsQueried} " +
+				$"p2Samp={totalPass2SampledSegments} step={latest.StepIndex} row={latest.RowCursorAfter} bands={latest.BandsProcessed} window={window}");
+		}
+		string geomRejectSampleDominant = "none";
+		if (_geomRejectSampleCidNotInGeometryList >= _geomRejectSampleCidInGeometryListNotInCandidates
+			&& _geomRejectSampleCidNotInGeometryList >= _geomRejectSampleCandidateContainsCid
+			&& _geomRejectSampleCidNotInGeometryList > 0)
+		{
+			geomRejectSampleDominant = "CID_NOT_IN_GEOMETRY_LIST";
+		}
+		else if (_geomRejectSampleCidInGeometryListNotInCandidates >= _geomRejectSampleCandidateContainsCid
+			&& _geomRejectSampleCidInGeometryListNotInCandidates > 0)
+		{
+			geomRejectSampleDominant = "CID_IN_GEOMETRY_LIST_NOT_IN_CANDIDATES";
+		}
+		else if (_geomRejectSampleCandidateContainsCid > 0)
+		{
+			geomRejectSampleDominant = "CID_IN_CANDIDATES_UNEXPECTED";
+		}
 		string exitTag = string.IsNullOrEmpty(latest.BudgetExitReason) ? "none" : latest.BudgetExitReason;
 		GD.Print(
 			$"[RenderHealth] step={latest.StepIndex} lastRow={latest.RowCursorAfter} rowsAdv={latest.RowsAdvanced} bands={latest.BandsProcessed} " +
 			$"stalledSteps={_renderHealthStallSteps} exit={exitTag} topExit={topExit} hitRate={hitRate:0.###} " +
 			$"avgSteps={latest.AvgStepsPerTracedPixel:0.###} qray0={totalQuickRayZero} hybridFallback={totalHybridFallback} " +
-			$"hybridFallbackHit={totalHybridFallbackHits} hybridFallbackMiss={totalHybridFallbackMisses} noCandidates={totalHybridNoCandidates}");
+			$"hybridFallbackHit={totalHybridFallbackHits} hybridFallbackMiss={totalHybridFallbackMisses} noCandidates={totalHybridNoCandidates} " +
+			$"geomCandAvg={geomCandidatesAvg:0.###} geomSegZero={totalGeomSegZeroCandidates} geomPixNoCand={totalGeomPixelNoCandidates} " +
+			$"geomHitOk={totalGeomHitAccepted} geomHitReject={totalGeomHitRejected} " +
+			$"geomRejectSampleMissing={_geomRejectSampleCidNotInGeometryList} geomRejectSampleInList={_geomRejectSampleCidInGeometryListNotInCandidates} " +
+			$"geomRejectSampleCandHit={_geomRejectSampleCandidateContainsCid} geomRejectSampleDominant={geomRejectSampleDominant} " +
+			$"p2Samp={totalPass2SampledSegments} radAvg={pass2RadiusAvg:0.###} radMax={totalPass2RadiusMax:0.###} envDiagAvg={pass2EnvDiagAvg:0.###} " +
+			$"cand0={totalPass2CandidateCount0} cand1to2={totalPass2CandidateCount1To2} cand3to8={totalPass2CandidateCount3To8} " +
+			$"cand9to32={totalPass2CandidateCount9To32} cand33p={totalPass2CandidateCount33Plus}");
+	}
+
+	private static long ComputeCounterDelta(long current, ref long lastSample)
+	{
+		long delta = current - lastSample;
+		if (delta < 0) delta = current;
+		lastSample = current;
+		return delta;
 	}
 
 	private void RecordRenderHealthSample(
@@ -6657,10 +7148,29 @@ public partial class GrinFilmCamera : Node
 		int hybridFallbackHitCount,
 		int hybridFallbackMissCount,
 		int hybridNoCandidateCount,
+		long geomCandidatesTotal,
+		long geomCandidatesSegments,
+		long geomSegmentsQueried,
+		long geomSegZeroCandidates,
+		long geomPixelNoCandidates,
+		long geomHitAccepted,
+		long geomHitRejected,
+		long pass2SampledSegments,
+		double pass2RadiusSum,
+		float pass2RadiusMax,
+		double pass2EnvDiagSum,
+		long pass2CandidateCount0,
+		long pass2CandidateCount1To2,
+		long pass2CandidateCount3To8,
+		long pass2CandidateCount9To32,
+		long pass2CandidateCount33Plus,
 		double avgStepsPerTracedPixel,
 		string budgetExitReason)
 	{
 		_renderHealthStepIndex++;
+		long geomSegmentsQueriedDelta = ComputeCounterDelta(geomSegmentsQueried, ref _geomSegmentsQueriedLastSample);
+		long geomSegZeroCandidatesDelta = ComputeCounterDelta(geomSegZeroCandidates, ref _geomSegZeroCandidatesLastSample);
+		long geomPixelNoCandidatesDelta = ComputeCounterDelta(geomPixelNoCandidates, ref _geomPixelNoCandidatesLastSample);
 		int rowsAdvanced = 0;
 		int filmHLocal = _filmHeight;
 		if (filmHLocal > 0)
@@ -6684,6 +7194,22 @@ public partial class GrinFilmCamera : Node
 			HybridFallbackHitCount = hybridFallbackHitCount,
 			HybridFallbackMissCount = hybridFallbackMissCount,
 			HybridNoCandidateCount = hybridNoCandidateCount,
+			GeomCandidatesTotal = geomCandidatesTotal,
+			GeomCandidatesSegments = geomCandidatesSegments,
+			GeomSegmentsQueried = geomSegmentsQueriedDelta,
+			GeomSegZeroCandidates = geomSegZeroCandidatesDelta,
+			GeomPixelNoCandidates = geomPixelNoCandidatesDelta,
+			GeomHitAccepted = geomHitAccepted,
+			GeomHitRejected = geomHitRejected,
+			Pass2SampledSegments = pass2SampledSegments,
+			Pass2RadiusSum = pass2RadiusSum,
+			Pass2RadiusMax = pass2RadiusMax,
+			Pass2EnvDiagSum = pass2EnvDiagSum,
+			Pass2CandidateCount0 = pass2CandidateCount0,
+			Pass2CandidateCount1To2 = pass2CandidateCount1To2,
+			Pass2CandidateCount3To8 = pass2CandidateCount3To8,
+			Pass2CandidateCount9To32 = pass2CandidateCount9To32,
+			Pass2CandidateCount33Plus = pass2CandidateCount33Plus,
 			AvgStepsPerTracedPixel = avgStepsPerTracedPixel,
 			BudgetExitReason = budgetExitReason ?? string.Empty
 		};
@@ -6716,6 +7242,12 @@ public partial class GrinFilmCamera : Node
 			{
 				_renderHealthLastLogStep = _renderHealthStepIndex;
 				LogRenderHealth(in sample, stalled);
+				_geomSegmentsQueriedThisFrame = 0;
+				_geomSegZeroCandidatesThisFrame = 0;
+				_geomPixelNoCandidatesThisFrame = 0;
+				_geomSegmentsQueriedLastSample = 0;
+				_geomSegZeroCandidatesLastSample = 0;
+				_geomPixelNoCandidatesLastSample = 0;
 			}
 		}
 	}

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using RendererCore.Fields;
+using RendererCore.Geometry;
 
 namespace RendererCore.SceneSnapshot;
 
@@ -10,12 +11,15 @@ public sealed class SceneSnapshot
     public FieldEntitySOA Fields { get; init; } = new();
     public PackedParamBuffer FieldParams { get; init; } = new();
     public FieldTLAS FieldTLAS { get; init; }
+    public GeometryEntitySOA Geometry { get; init; } = new GeometryEntitySOA(0);
+    public GeometryTLAS GeometryTLAS { get; init; }
     public CurvatureBoundGrid CurvatureGrid { get; init; }
 
     public string DebugSummary()
     {
         var instanceCount = Instances?.Count ?? 0;
         var fieldCount = Fields?.Count ?? 0;
+        var geometryCount = Geometry?.Count ?? 0;
         var paramCount = FieldParams?.Data?.Length ?? 0;
         var grinCount = 0;
         var gordonCount = 0;
@@ -43,10 +47,14 @@ public sealed class SceneSnapshot
         }
 
         var summary = new StringBuilder();
-        summary.Append($"SceneSnapshot: Instances={instanceCount}, Fields={fieldCount}, FieldParams={paramCount}");
+        summary.Append($"SceneSnapshot: Instances={instanceCount}, Fields={fieldCount}, Geometry={geometryCount}, FieldParams={paramCount}");
         if (FieldTLAS != null)
         {
             summary.Append($", FieldTLASNodes={FieldTLAS.Nodes.Length}");
+        }
+        if (GeometryTLAS != null)
+        {
+            summary.Append($", GeometryTLASNodes={GeometryTLAS.Nodes.Length}");
         }
         summary.Append($", MetricModel(GRIN={grinCount}, GordonMetric={gordonCount}");
         if (otherMetricCount > 0)

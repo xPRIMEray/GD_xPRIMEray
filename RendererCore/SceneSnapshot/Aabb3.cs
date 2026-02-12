@@ -17,6 +17,19 @@ public readonly struct Aabb3
         Max = max;
     }
 
+    public static Aabb3 FromSegment(Vector3 a, Vector3 b)
+    {
+        var min = new Vector3(
+            MathF.Min(a.X, b.X),
+            MathF.Min(a.Y, b.Y),
+            MathF.Min(a.Z, b.Z));
+        var max = new Vector3(
+            MathF.Max(a.X, b.X),
+            MathF.Max(a.Y, b.Y),
+            MathF.Max(a.Z, b.Z));
+        return new Aabb3(min, max);
+    }
+
     public Aabb3 Encapsulate(Vector3 p)
     {
         var min = new Vector3(

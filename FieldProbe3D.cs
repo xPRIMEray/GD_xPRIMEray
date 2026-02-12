@@ -21,8 +21,7 @@ public partial class FieldProbe3D : Node3D
 	[Export] public float DtMax = 0.05f;
 
 	private const float Epsilon = 1e-6f;
-	private double _printTimer;
-	private double _busLogTimerSec;
+	private double _nextProbeLogTimeSec;
 
 	public override void _Process(double delta)
 	{
@@ -113,13 +112,11 @@ public partial class FieldProbe3D : Node3D
 
 	private void ThrottleBusReadLog(double delta, RendererCore.SceneSnapshot.SceneSnapshot snapshot, bool busHas, ulong busFrameId)
 	{
-		_busLogTimerSec += Math.Max(0.0, delta);
-		if (_busLogTimerSec < 1.0)
+		if (!TryConsumeProbeLogSlot())
 		{
 			return;
 		}
 
-		_busLogTimerSec -= 1.0;
 		var fieldsCount = snapshot.Fields?.Count ?? 0;
 		var gridOk = snapshot.CurvatureGrid != null ? "OK" : "NULL";
 		GD.Print($"[PROBE READ] frameId={busFrameId} busHas={busHas} grid={gridOk} fields={fieldsCount}");
@@ -127,16 +124,9 @@ public partial class FieldProbe3D : Node3D
 
 	private void ThrottlePrint(double delta, RendererCore.SceneSnapshot.SceneSnapshot snapshot, GdVector3 position, NumVector3 accel, float magnitude, string note)
 	{
-		var interval = Math.Max(0.0f, PrintIntervalSec);
-		if (interval > 0.0f)
+		if (!Print || !TryConsumeProbeLogSlot())
 		{
-			_printTimer += delta;
-			if (_printTimer < interval)
-			{
-				return;
-			}
-
-			_printTimer -= interval;
+			return;
 		}
 
 		var nodeName = Name.ToString();
@@ -155,20 +145,34 @@ public partial class FieldProbe3D : Node3D
 
 		var k = 0f;
 		var dt = 0f;
-		var gridInfo = " grid=NULL";
-		var gridDetails = "grid=NULL";
+		var gridInfo = "grid=NULL";
 		if (snapshot.CurvatureGrid != null)
 		{
 			var pWorld = ToNumerics(position);
 			k = snapshot.CurvatureGrid.LookupKmax(pWorld);
 			dt = StepPolicy.ComputeDt(k, EpsPos, DtMin, DtMax);
-			gridInfo = " grid=OK";
 			var inside = snapshot.CurvatureGrid.IsInside(pWorld);
-			gridDetails = $"grid=OK inside={inside} cs={snapshot.CurvatureGrid.CellSize:0.###} dims={snapshot.CurvatureGrid.DimX}x{snapshot.CurvatureGrid.DimY}x{snapshot.CurvatureGrid.DimZ}";
+			gridInfo = $"grid=OK inside={inside} cs={snapshot.CurvatureGrid.CellSize:0.###} dims={snapshot.CurvatureGrid.DimX}x{snapshot.CurvatureGrid.DimY}x{snapshot.CurvatureGrid.DimZ}";
 		}
 
-		GD.Print($"{prefix}: accel=({accel.X:0.###}, {accel.Y:0.###}, {accel.Z:0.###}) |mag|={magnitude:0.###} {fieldsInfo} K={k:0.000000} dt={dt:0.000000}{gridInfo}");
-		GD.Print($"{prefix}: {gridDetails}");
+		GD.Print($"{prefix}: accel=({accel.X:0.###}, {accel.Y:0.###}, {accel.Z:0.###}) |mag|={magnitude:0.###} {fieldsInfo} K={k:0.000000} dt={dt:0.000000} {gridInfo}");
+	}
+
+	private bool TryConsumeProbeLogSlot()
+	{
+		if (!DebugLogConfig.EnableProbeLog)
+		{
+			return false;
+		}
+
+		var now = Time.GetTicksMsec() * 0.001;
+		if (now < _nextProbeLogTimeSec)
+		{
+			return false;
+		}
+
+		_nextProbeLogTimeSec = now + Math.Max(0.05, DebugLogConfig.ProbeLogIntervalSec);
+		return true;
 	}
 
 	private static bool TryDebugDrawLine(GdVector3 start, GdVector3 end)

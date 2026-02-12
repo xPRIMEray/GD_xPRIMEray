@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3 uid="uid://0yko6oxwl0n7"]
+[gd_scene load_steps=21 format=3 uid="uid://0yko6oxwl0n7"]
 
 [ext_resource type="Script" uid="uid://cmss07txb211i" path="res://world_environment.gd" id="1_6uqi0"]
 [ext_resource type="Script" uid="uid://qebxtmehy4vg" path="res://options.gd" id="2_hjhvo"]
@@ -12,6 +12,7 @@
 [ext_resource type="Script" uid="uid://713wqufxods5" path="res://RayEmitter3D.cs" id="5_emitter"]
 [ext_resource type="Script" uid="uid://c0nlk0rn3oilh" path="res://FilmOverlay2D.cs" id="6_filmoverlay"]
 [ext_resource type="Script" uid="uid://vmh5vusla1nv" path="res://FieldSource3D.cs" id="8_xersf"]
+[ext_resource type="PackedScene" uid="uid://bielmrb2fmvd6" path="res://test_physics_room-sphere.tscn" id="12_b0q6j"]
 [ext_resource type="Script" uid="uid://dwiws7vsdgshx" path="res://FieldProbe3D.cs" id="13_0m0f1"]
 
 [sub_resource type="PhysicalSkyMaterial" id="PhysicalSkyMaterial_6cd1w"]
@@ -454,10 +455,10 @@ text = "Curvature Beta"
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
-min_value = -2.0
-max_value = 2.0
-step = 0.01
-value = 0.10000000000000009
+min_value = -0.5
+max_value = 0.5
+step = 0.001
+value = 0.5
 allow_greater = true
 allow_lesser = true
 tick_count = 20
@@ -553,6 +554,7 @@ SkyColor = Color(0.19793725, 0.19793722, 0.19793722, 1)
 FilmOpacity = 0.8
 ShadingMode = 1
 FlipNormalToCamera = false
+UpdateEveryFrame = false
 UpdateEveryFrameBudgetMs = 1000.0
 UpdateEveryFrameMaxRowsPerStep = 32
 RenderStepMaxMs = 10000
@@ -560,11 +562,9 @@ RenderStepMaxSegmentsPerFrame = 50000000
 TargetMsPerFrame = 500
 MinRowsPerFrame = 1
 MaxRowsPerFrameCap = 8
-EnableProfiling = false
-EnableFramePerf = false
+VerbosePerfLogs = true
+FramePerfVerbose = true
 FramePerfLogEveryNFrames = 5
-RenderStepPhaseLog = false
-RenderStepBandLog = false
 AutoRangeMin = 0.01
 AutoRangeMax = 50.0
 AutoRangeSafety = 1.2
@@ -600,9 +600,8 @@ SharedRbrHasRenderer = true
 SharedRbrFieldCenterIsCamera = false
 
 [node name="FieldProbe3D" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, -0.7284068, -0.6851449, 0, 0.6851449, -0.7284068, 2.9835694, 1.3838813, -1.051685)
+transform = Transform3D(1, 0, 0, 0, -0.7284068, -0.6851449, 0, 0.6851449, -0.7284068, 1.3337088, 0.13719916, 1.7617948)
 script = ExtResource("13_0m0f1")
-Print = true
 PrintIntervalSec = 5.0
 
 [node name="TestFieldA" type="Node3D" parent="."]
@@ -611,7 +610,7 @@ script = ExtResource("8_xersf")
 InnerRadius = 0.0
 OuterRadius = 5.0
 ROuter = 5.0
-Amp = 10.0
+Amp = 5.0
 CurveA = 10.0
 DebugDrawBounds = true
 DebugDrawInGame = true
@@ -624,7 +623,7 @@ script = ExtResource("8_xersf")
 InnerRadius = 0.0
 OuterRadius = 5.0
 ROuter = 5.0
-Amp = -20.0
+Amp = -10.0
 BoxExtents = Vector3(20, 20, 20)
 CurveA = 2.0
 DebugDrawBounds = true
@@ -634,7 +633,7 @@ DebugDrawInGame = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.7274027, 0.96604896, 0.18116665)
 script = ExtResource("8_xersf")
 ROuter = 5.0
-Amp = 15.0
+Amp = 7.0
 BoxExtents = Vector3(20, 20, 20)
 CurveA = 3.0
 DebugDrawBounds = true
@@ -644,7 +643,7 @@ DebugDrawInGame = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.66332006, 1.9320979, 0.7402365)
 script = ExtResource("8_xersf")
 ROuter = 5.0
-Amp = -15.0
+Amp = -7.0
 BoxExtents = Vector3(20, 20, 20)
 CurveA = 3.0
 DebugDrawBounds = true
@@ -672,14 +671,20 @@ FanYawDegrees = 360.0
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.011308312, -0.00152421, 0.021672606)
 visible = false
 
-[node name="TestPhysicsRoom" parent="." instance=ExtResource("4_00tp4")]
+[node name="TestPhysicsBox1" parent="." instance=ExtResource("4_00tp4")]
 transform = Transform3D(-2.9267077, 0.062589, -3.2043538, 0.25782096, 0.13378882, 3.1383374, 2.6280239, 0.056577086, -3.8764265, 1.3565156, 2.0819187, 0.6275604)
 
-[node name="TestPhysicsRoom2" parent="." instance=ExtResource("4_00tp4")]
-transform = Transform3D(0.6296023, 0.022610143, 4.43106, 0.86875576, -0.1430808, -1.7463846, 0.6325666, 0.17400047, -2.0118413, 0.23612988, 2.0896692, -0.05849552)
+[node name="TestPhysicsBox2" parent="." instance=ExtResource("4_00tp4")]
+transform = Transform3D(0.93962586, -0.14615324, -0.61478853, -0.36056325, -0.03727375, -4.8751254, 0.73373944, 0.16884725, -1.6083648, 1.0214466, 1.5375748, -1.2567942)
 
-[node name="TestPhysicsRoom3" parent="." instance=ExtResource("4_00tp4")]
-transform = Transform3D(0.6296023, 0.022610143, 4.43106, 0.86875576, -0.1430808, -1.7463846, 0.6325666, 0.17400047, -2.0118413, -0.21073341, 2.6500235, -1.0202246)
+[node name="TestPhysicsBox3" parent="." instance=ExtResource("4_00tp4")]
+transform = Transform3D(0.6296023, 0.022610143, 4.43106, 0.86875576, -0.1430808, -1.7463846, 0.6325666, 0.17400047, -2.0118413, -0.21073341, 2.6500235, -0.5922836)
+
+[node name="TestPhysicsBox4" parent="." instance=ExtResource("4_00tp4")]
+transform = Transform3D(0.93962586, -0.14615324, -0.61478853, -0.36056325, -0.03727375, -4.8751254, 0.73373944, 0.16884725, -1.6083648, 0.07150948, 1.7149134, 1.5798302)
+
+[node name="TestPhysicsSphere1" parent="." instance=ExtResource("12_b0q6j")]
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 1.4918662, 2.5508516, -0.7067733)
 
 [node name="CurvedLayer" type="CanvasLayer" parent="."]
 visible = false

@@ -2,15 +2,15 @@
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_qgsak"]
 
-[sub_resource type="BoxMesh" id="BoxMesh_qgsak"]
+[sub_resource type="BoxMesh" id="BoxMesh_shi3g"]
 
-[node name="TestPhysicsRoom" type="Node3D"]
+[node name="TestPhysicsRoom-item" type="Node3D"]
 
-[node name="Tablebody" type="StaticBody3D" parent="."]
+[node name="TableBody" type="StaticBody3D" parent="."]
 transform = Transform3D(0.3, 0, 0, 0, 0.3, 0, 0, 0, 0.3, 0, 0, 0)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Tablebody"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TableBody"]
 shape = SubResource("BoxShape3D_qgsak")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Tablebody"]
-mesh = SubResource("BoxMesh_qgsak")
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TableBody"]
+mesh = SubResource("BoxMesh_shi3g")

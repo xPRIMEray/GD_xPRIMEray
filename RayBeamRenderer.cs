@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using RendererCore.Fields;
 
 public partial class RayBeamRenderer : Node3D
 {
@@ -45,6 +46,12 @@ public partial class RayBeamRenderer : Node3D
 	/// <summary>Multiplier for step size when curvature is low.</summary>
 	// CONTROL FACTOR: Step size multiplier when curvature is low (>1 increases speed, reduces detail).
 	[Export] public float LowCurvatureStepBoost = 2.0f;
+	/// <summary>Safety factor for curvature-derived radius bounds.</summary>
+	// CONTROL FACTOR: Scales curvature-based radius bounds; higher = more conservative.
+	[Export] public float RadiusSafety = 3.0f;
+	/// <summary>Minimum radius bound for curved segments.</summary>
+	// CONTROL FACTOR: Lower bound on curvature-based radius bounds.
+	[Export] public float RadiusMin = 0.01f;
 
 	[ExportSubgroup("Field Sources")]
 	// Consumed by GrinFilmCamera.ResolveEffectiveConfig().
@@ -401,6 +408,7 @@ public partial class RayBeamRenderer : Node3D
 		public Vector3 A;
 		public Vector3 B;
 		public float TraveledB; // path length at end of segment (at B)
+		public float RadiusBound; // conservative curve deviation bound for this segment
 	}
 
 	public delegate bool SegmentCallback(in RaySeg seg, int segIndex);
@@ -1930,7 +1938,8 @@ public partial class RayBeamRenderer : Node3D
 				{
 					A = p,
 					B = next,
-					TraveledB = traveled
+					TraveledB = traveled,
+					RadiusBound = RadiusMin
 				};
 				outSegs[outOffset + written] = seg;
 				// DECISION: allow optional callback to terminate segment emission early.
@@ -1971,6 +1980,7 @@ public partial class RayBeamRenderer : Node3D
 		out int fieldGridMisses,
 		out int fieldGridFallbacks,
 		out int fieldSourceEvals,
+		CurvatureBoundGrid curvatureGrid,
 		FieldGrid3D fieldGrid = null)
 	{
 		// CROSS-CLASS CONTRACT: GrinFilmCamera calls this to build segments + optional pass-1 hit probes.
@@ -2024,6 +2034,9 @@ public partial class RayBeamRenderer : Node3D
 		float fieldStrength = FieldStrength;
 		float stepLength = StepLength;
 		float stepAdaptGain = StepAdaptGain;
+		float radiusSafety = RadiusSafety;
+		float radiusMin = RadiusMin;
+		bool useCurvatureGrid = curvatureGrid != null;
 		// CONTROL FACTOR: pass1ProbeEveryNSegments controls cadence-based probing.
 		int probeEvery = pass1ProbeEveryNSegments;
 		bool useProbeEvery = probeEvery > 0;
@@ -2162,11 +2175,25 @@ public partial class RayBeamRenderer : Node3D
 				if (written >= outCapacity) break;
 
 				int segIndex = written;
+				float radiusBound = radiusMin;
+				if (useCurvatureGrid)
+				{
+					var p0 = new System.Numerics.Vector3(p.X, p.Y, p.Z);
+					var p1 = new System.Numerics.Vector3(next.X, next.Y, next.Z);
+					float k0 = curvatureGrid.LookupKmax(p0);
+					float k1 = curvatureGrid.LookupKmax(p1);
+					float k = (k0 > k1) ? k0 : k1;
+					float dt = (next - p).Length();
+					float radius = radiusSafety * 0.5f * k * (dt * dt);
+					if (radius < radiusMin) radius = radiusMin;
+					radiusBound = radius;
+				}
 				RaySeg seg = new RaySeg
 				{
 					A = p,
 					B = next,
-					TraveledB = traveled
+					TraveledB = traveled,
+					RadiusBound = radiusBound
 				};
 				outSegs[outOffset + written] = seg;
 				written++;
