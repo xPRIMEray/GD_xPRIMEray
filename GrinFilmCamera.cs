@@ -877,6 +877,7 @@ public partial class GrinFilmCamera : Node
 	private const int RenderHealthStallThreshold = 10;
 	private const int RenderHealthPass2SampleEveryNSegments = 4096;
 	private const int RenderHealthMinSamplesForTrust = 64;
+	private const int RenderHealthMinModeSamplesForTrust = 8;
 	private const uint PruneAuditDeterministicMask = 31u; // 1/32 deterministic sampling gate.
 
 	private RenderHealthSample[] _renderHealthSamples = new RenderHealthSample[RenderHealthBufferSize];
@@ -7660,6 +7661,7 @@ public partial class GrinFilmCamera : Node
 	private void LogRenderHealth(in RenderHealthSample latest, bool stalled)
 	{
 		int window = Math.Min(_renderHealthCount, 10);
+		int modeWindowSamplesUsed = 0;
 		long totalTraced = 0;
 		long totalHits = 0;
 		long totalQuickRayZero = 0;
@@ -7713,6 +7715,7 @@ public partial class GrinFilmCamera : Node
 			totalHybridNoCandidates += s.HybridNoCandidateCount;
 			if (s.UseGeometryTLASPruning == latest.UseGeometryTLASPruning)
 			{
+				modeWindowSamplesUsed++;
 				totalTracedForGeomMode += s.TracedPixels;
 				totalGeomCandidates += s.GeomCandidatesTotal;
 				totalGeomCandidateSegments += s.GeomCandidatesSegments;
@@ -7774,13 +7777,32 @@ public partial class GrinFilmCamera : Node
 			? totalPass2EnvelopeInflationSum / totalPass2SampledSegments
 			: 0.0;
 		string geomPruneMode = latest.UseGeometryTLASPruning ? "on" : "off";
+		bool modeHasEnoughSamples = modeWindowSamplesUsed >= RenderHealthMinModeSamplesForTrust;
+		bool pruneOnHasEnoughP2Samples = !latest.UseGeometryTLASPruning
+			|| totalPass2SampledSegments >= RenderHealthMinSamplesForTrust;
 		bool pruneWindowUntrusted = _geomPruneSwitchedThisWindow == 1
-			|| totalPass2SampledSegments < RenderHealthMinSamplesForTrust;
+			|| !modeHasEnoughSamples
+			|| !pruneOnHasEnoughP2Samples;
 		bool pruneMetricsTrusted = !pruneWindowUntrusted;
 		bool showPruneOnMetrics = latest.UseGeometryTLASPruning && pruneMetricsTrusted;
-		string geomWindowTrustReason = pruneMetricsTrusted
-			? "ok"
-			: (_geomPruneSwitchedThisWindow == 1 ? "mode_switch" : "low_p2samp");
+		string geomWindowTrustReason;
+		if (pruneMetricsTrusted)
+		{
+			geomWindowTrustReason = "ok";
+		}
+		else if (_geomPruneSwitchedThisWindow == 1)
+		{
+			geomWindowTrustReason = "mode_switch";
+		}
+		else if (!modeHasEnoughSamples)
+		{
+			geomWindowTrustReason = "low_mode_samples";
+		}
+		else
+		{
+			geomWindowTrustReason = "low_p2samp";
+		}
+		int geomHealthPartial = pruneMetricsTrusted ? 0 : 1;
 		string geomCandAvgStr = showPruneOnMetrics
 			? geomCandidatesAvg.ToString("0.###")
 			: "na";
@@ -7881,7 +7903,7 @@ public partial class GrinFilmCamera : Node
 			$"geomPixProcessed={geomPixProcessedStr} geomPixHadAnyCandidates={geomPixHadAnyCandidatesStr} geomPixNoCand={geomPixNoCandStr} geomPixNoCandRatePct={geomPixNoCandRatePctStr} " +
 			$"geomHitOk={geomHitOkStr} geomHitReject={geomHitRejectStr} " +
 			$"geomPrune={geomPruneMode} geomRayTestsTotal={geomRayTestsTotalStr} geomRayTestsAccepted={geomRayTestsAcceptedStr} geomRayTestsRejected={geomRayTestsRejectedStr} " +
-			$"geomRayTestsPerPxOn={geomRayTestsPerPxOnStr} geomRayTestsPerPxOff={geomRayTestsPerPxOffStr} geomRayTestsSavedPct={geomRayTestsSavedPct} geomPruneSwitched={_geomPruneSwitchedThisWindow} geomTrusted={(pruneMetricsTrusted ? 1 : 0)} geomTrustReason={geomWindowTrustReason} " +
+			$"geomRayTestsPerPxOn={geomRayTestsPerPxOnStr} geomRayTestsPerPxOff={geomRayTestsPerPxOffStr} geomRayTestsSavedPct={geomRayTestsSavedPct} geomPruneSwitched={_geomPruneSwitchedThisWindow} geomTrusted={(pruneMetricsTrusted ? 1 : 0)} geomHealthPartial={geomHealthPartial} geomHealthModeSamples={modeWindowSamplesUsed} geomTrustReason={geomWindowTrustReason} " +
 			$"geomRejectSampleMissing={_geomRejectSampleCidNotInGeometryList} geomRejectSampleInList={_geomRejectSampleCidInGeometryListNotInCandidates} " +
 			$"geomRejectSampleCandHit={_geomRejectSampleCandidateContainsCid} geomRejectSampleDominant={geomRejectSampleDominant} " +
 			$"p2Samp={totalPass2SampledSegments} radAvg={pass2RadiusAvg:0.###} radMax={totalPass2RadiusMax:0.###} envDiagAvg={pass2EnvDiagAvg:0.###} envDiagMax={totalPass2EnvDiagMax:0.###} envInflAvg={pass2EnvelopeInflationAvg:0.###} envInflMax={totalPass2EnvelopeInflationMax:0.###} " +
