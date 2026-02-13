@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Text;
 using Godot;
 using RendererCore.Common;
 using RendererCore.Fields;
@@ -147,7 +148,13 @@ public static class SnapshotBuilder
         var geometryTlas = GeometryTLAS.Build(geometry);
 
         var visualIncluded = geometryCount - collisionIncluded;
-        MaybeLogSnapshot(geometryCount, collisionIncluded, visualIncluded, visualSkippedByCollisionPreference, collisionSkippedNonRaycast);
+        MaybeLogSnapshot(
+            geometryCount,
+            collisionIncluded,
+            visualIncluded,
+            visualSkippedByCollisionPreference,
+            collisionSkippedNonRaycast,
+            geometry);
 
         return new SceneSnapshot
         {
@@ -252,37 +259,17 @@ public static class SnapshotBuilder
 
     private static bool TryBuildCollisionObjectAabb(CollisionObject3D collision, out Aabb aabb)
     {
-        bool found = false;
+        var found = false;
         aabb = default;
-
-        var shapeNodes = new List<CollisionShape3D>();
-        CollectCollisionShapeNodes(collision, collision, shapeNodes);
-
-        foreach (var shapeNode in shapeNodes)
-        {
-            if (shapeNode.Disabled)
-            {
-                continue;
-            }
-
-            var shape = shapeNode.Shape;
-            if (shape == null)
-            {
-                continue;
-            }
-
-            if (TryGetShapeLocalAabb(shape, out var local))
-            {
-                var world = TransformAabb(local, shapeNode.GlobalTransform);
-                aabb = found ? UnionAabb(aabb, world) : world;
-                found = true;
-            }
-        }
-
+        AccumulateCollisionShapeAabb(collision, collision, ref found, ref aabb);
         return found;
     }
 
-    private static void CollectCollisionShapeNodes(CollisionObject3D rootCollision, Node root, List<CollisionShape3D> results)
+    private static void AccumulateCollisionShapeAabb(
+        CollisionObject3D rootCollision,
+        Node root,
+        ref bool found,
+        ref Aabb aabb)
     {
         if (root is CollisionObject3D collision && collision != rootCollision)
         {
@@ -291,12 +278,21 @@ public static class SnapshotBuilder
 
         if (root is CollisionShape3D shapeNode)
         {
-            results.Add(shapeNode);
+            if (!shapeNode.Disabled)
+            {
+                var shape = shapeNode.Shape;
+                if (shape != null && TryGetShapeLocalAabb(shape, out var local))
+                {
+                    var world = TransformAabb(local, shapeNode.GlobalTransform);
+                    aabb = found ? UnionAabb(aabb, world) : world;
+                    found = true;
+                }
+            }
         }
 
         foreach (Node child in root.GetChildren())
         {
-            CollectCollisionShapeNodes(rootCollision, child, results);
+            AccumulateCollisionShapeAabb(rootCollision, child, ref found, ref aabb);
         }
     }
 
@@ -408,7 +404,8 @@ public static class SnapshotBuilder
         int collisionIncluded,
         int visualIncluded,
         int visualSkippedByCollisionPreference,
-        int collisionSkippedNonRaycast)
+        int collisionSkippedNonRaycast,
+        GeometryEntitySOA geometry)
     {
         if (!DebugLogConfig.EnableSnapshotLog)
         {
@@ -425,6 +422,31 @@ public static class SnapshotBuilder
         GD.Print(
             $"[SNAPSHOT] geomCount={geometryCount} collisionIncluded={collisionIncluded} visualIncluded={visualIncluded} " +
             $"visualSkippedPref={visualSkippedByCollisionPreference} collisionSkippedNonRaycast={collisionSkippedNonRaycast}");
+        MaybeLogGeometryBoundsSamples(geometry);
+    }
+
+    private static void MaybeLogGeometryBoundsSamples(GeometryEntitySOA geometry)
+    {
+        if (geometry == null || geometry.Count <= 0 || geometry.WorldBounds == null || geometry.GodotInstanceIds == null)
+        {
+            GD.Print("[SNAPSHOT][Bounds] samples=0 (geometry list empty)");
+            return;
+        }
+
+        int count = Math.Min(3, Math.Min(geometry.Count, Math.Min(geometry.WorldBounds.Length, geometry.GodotInstanceIds.Length)));
+        var sb = new StringBuilder(256);
+        sb.Append("[SNAPSHOT][Bounds] samples=").Append(count);
+
+        for (int i = 0; i < count; i++)
+        {
+            ref readonly var bounds = ref geometry.WorldBounds[i];
+            long id = geometry.GodotInstanceIds[i];
+            sb.Append(" {id=").Append(id)
+              .Append(" min=(").Append(bounds.Min.X.ToString("0.###")).Append(',').Append(bounds.Min.Y.ToString("0.###")).Append(',').Append(bounds.Min.Z.ToString("0.###")).Append(')')
+              .Append(" max=(").Append(bounds.Max.X.ToString("0.###")).Append(',').Append(bounds.Max.Y.ToString("0.###")).Append(',').Append(bounds.Max.Z.ToString("0.###")).Append(")}");
+        }
+
+        GD.Print(sb.ToString());
     }
 
     private static NumVector3 ToNumerics(GdVector3 v)
