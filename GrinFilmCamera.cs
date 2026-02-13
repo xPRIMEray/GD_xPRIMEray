@@ -226,7 +226,9 @@ public partial class GrinFilmCamera : Node
 	[Export] public bool DebugGeomCounterGuardEnabled = false;
 	[Export(PropertyHint.Range, "1,100000,1")] public int GeomHitRejectWarnThresholdPerWindow = 128;
 	[Export] public bool DebugGeomPruneAuditEnabled = false;
-	[Export(PropertyHint.Range, "1,100000,1")] public int DebugGeomPruneAuditEveryNSegments = 8192;
+	[Export(PropertyHint.Range, "0,4096,1")] public int DebugGeomPruneAuditSamplesPerHealthWindow = 256;
+	[Export(PropertyHint.Range, "1,1024,1")] public int DebugGeomPruneAuditMaxExtraRayTestsPerSample = 128;
+	[Export] public bool DebugGeomPruneAuditOnlyWhenCandidateZero = true;
 	[Export(PropertyHint.Range, "0,64,1")] public int DebugGeomPruneAuditMaxMismatchLogsPerWindow = 3;
 
 
@@ -874,6 +876,8 @@ public partial class GrinFilmCamera : Node
 	private const int RenderHealthLogEveryNSteps = 30;
 	private const int RenderHealthStallThreshold = 10;
 	private const int RenderHealthPass2SampleEveryNSegments = 4096;
+	private const int RenderHealthMinSamplesForTrust = 64;
+	private const uint PruneAuditDeterministicMask = 31u; // 1/32 deterministic sampling gate.
 
 	private RenderHealthSample[] _renderHealthSamples = new RenderHealthSample[RenderHealthBufferSize];
 	private int _renderHealthWrite = 0;
@@ -885,7 +889,7 @@ public partial class GrinFilmCamera : Node
 	private string _renderHealthLastExitReason = "";
 	private bool _rowStallActive = false;
 	private int _renderHealthPass2SampleCounter = 0;
-	private int _geomPruneAuditSampleCounter = 0;
+	private int _geomPruneAuditSamplesTakenThisWindow = 0;
 
 	// band hit ROI history
 	private float[] _bandHitRate = Array.Empty<float>();
@@ -917,10 +921,17 @@ public partial class GrinFilmCamera : Node
 	private long _geomCandidatesSegmentsThisFrame = 0;
 	private long _geomSegmentsQueriedThisFrame = 0;
 	// RenderHealth counter accounting map:
+	// - geomSegQueried increment site: Pass2 TLAS block immediately after QueryAabb(...) when pass==0.
+	// - geomSegWithCandidates increment site: Pass2 TLAS block immediately after QueryAabb(...) when pass==0 && candCount>0.
 	// - geomSegZero increment site: Pass2 TLAS block immediately after QueryAabb(...) when pass==0 && candCount==0.
-	// - geomPixNoCand increment site: per-pixel Pass2 epilogue when TLAS pruning is active and noCandidatesThisPixel && !hadCandidatesThisPixel.
+	// - geomPixProcessed increment site: per-pixel Pass2 loop entry when TLAS pruning is active.
+	// - geomPixHadAnyCandidates increment site: per-pixel Pass2 epilogue when TLAS pruning is active and any pass-0 TLAS query returned candCount>0.
+	// - geomPixNoCand increment site: per-pixel Pass2 epilogue when TLAS pruning is active and no pass-0 TLAS query returned candCount>0.
 	// These counters are log-window counters and reset only when a RenderHealth line is printed.
+	private long _geomSegWithCandidatesThisFrame = 0;
 	private long _geomSegZeroCandidatesThisFrame = 0;
+	private long _geomPixelProcessedThisFrame = 0;
+	private long _geomPixelHadAnyCandidatesThisFrame = 0;
 	private long _geomPixelNoCandidatesThisFrame = 0;
 	private long _geomHitAcceptedThisFrame = 0;
 	private long _geomHitRejectedThisFrame = 0;
@@ -929,7 +940,10 @@ public partial class GrinFilmCamera : Node
 	private long _geomRayTestsRejectedThisFrame = 0;
 	private long _geomHitAcceptedLastSample = 0;
 	private long _geomHitRejectedLastSample = 0;
+	private long _geomSegWithCandidatesLastSample = 0;
 	private long _geomSegZeroCandidatesLastSample = 0;
+	private long _geomPixelProcessedLastSample = 0;
+	private long _geomPixelHadAnyCandidatesLastSample = 0;
 	private long _geomPixelNoCandidatesLastSample = 0;
 	private long _geomSegmentsQueriedLastSample = 0;
 	private long _geomRayTestsTotalLastSample = 0;
@@ -1241,7 +1255,9 @@ public partial class GrinFilmCamera : Node
 		public int DebugEveryNPixels;
 		public int DebugMaxFilmRays;
 		public bool DebugGeomPruneAuditEnabled;
-		public int DebugGeomPruneAuditEveryNSegments;
+		public int DebugGeomPruneAuditSamplesPerHealthWindow;
+		public int DebugGeomPruneAuditMaxExtraRayTestsPerSample;
+		public bool DebugGeomPruneAuditOnlyWhenCandidateZero;
 		public int DebugGeomPruneAuditMaxMismatchLogsPerWindow;
 		public bool EnableProfiling;
 		public bool VerbosePerfLogs;
@@ -1273,7 +1289,10 @@ public partial class GrinFilmCamera : Node
 		public long GeomCandidatesTotal;
 		public long GeomCandidatesSegments;
 		public long GeomSegmentsQueried;
+		public long GeomSegWithCandidates;
 		public long GeomSegZeroCandidates;
+		public long GeomPixelProcessed;
+		public long GeomPixelHadAnyCandidates;
 		public long GeomPixelNoCandidates;
 		public long GeomHitAccepted;
 		public long GeomHitRejected;
@@ -1285,6 +1304,8 @@ public partial class GrinFilmCamera : Node
 		public float Pass2RadiusMax;
 		public double Pass2EnvDiagSum;
 		public float Pass2EnvDiagMax;
+		public double Pass2EnvelopeInflationSum;
+		public float Pass2EnvelopeInflationMax;
 		public long Pass2CandidateCount0;
 		public long Pass2CandidateCount1To2;
 		public long Pass2CandidateCount3To8;
@@ -1883,6 +1904,8 @@ public partial class GrinFilmCamera : Node
 		float pass2RadiusMax = 0f;
 		double pass2EnvDiagSum = 0.0;
 		float pass2EnvDiagMax = 0f;
+		double pass2EnvelopeInflationSum = 0.0;
+		float pass2EnvelopeInflationMax = 0f;
 		long pass2CandidateCount0 = 0;
 		long pass2CandidateCount1To2 = 0;
 		long pass2CandidateCount3To8 = 0;
@@ -3178,16 +3201,19 @@ public partial class GrinFilmCamera : Node
 			if (framePerfEnabled) pass2Scope = new PerfScope(_framePerf, PerfStage.Pass2_Subdivide);
 			bool shadeTimingEnabled = statsEnabled || framePerfEnabled;
 
-			void RecordRenderHealthPass2Sample(float radius, float envDiag, int candidateCount)
+			void RecordRenderHealthPass2Sample(float radius, float envDiag, float envelopeInflation, int candidateCount)
 			{
 				if (float.IsNaN(radius) || float.IsInfinity(radius)) return;
 				if (float.IsNaN(envDiag) || float.IsInfinity(envDiag)) return;
+				if (float.IsNaN(envelopeInflation) || float.IsInfinity(envelopeInflation)) return;
 
 				pass2SampledSegments++;
 				pass2RadiusSum += radius;
 				if (radius > pass2RadiusMax) pass2RadiusMax = radius;
 				pass2EnvDiagSum += envDiag;
 				if (envDiag > pass2EnvDiagMax) pass2EnvDiagMax = envDiag;
+				pass2EnvelopeInflationSum += envelopeInflation;
+				if (envelopeInflation > pass2EnvelopeInflationMax) pass2EnvelopeInflationMax = envelopeInflation;
 
 				if (candidateCount >= 0)
 				{
@@ -3832,6 +3858,8 @@ public partial class GrinFilmCamera : Node
 						bandTracedPixels++;
 						processedPixelsThisBand++;
 						processedPixelsThisStep++;
+						if (useGeomTlasPruningForStep)
+							_geomPixelProcessedThisFrame++;
 
 						// DECISION: previous-hit flag for instability probes.
 						bool prevHadHit = cfg.Pass2ForceOnInstability
@@ -3851,6 +3879,7 @@ public partial class GrinFilmCamera : Node
 							bool softGateHitThisPixel = false;
 							bool softGateWatchdogTrippedThisPixel = false;
 						bool hadCandidatesThisPixel = false;
+						bool geomPixelHadAnyCandidatesThisPixel = false;
 						bool noCandidatesThisPixel = false;
 						bool useHybridBroadphase = broadphaseCfg.Policy == BroadphasePolicyMode.HybridQuickRayThenOverlap;
 						var geomTlas = geomTlasForStep;
@@ -3965,19 +3994,22 @@ public partial class GrinFilmCamera : Node
 								bool renderHealthSampleRecorded = false;
 								float renderHealthSampleRadius = 0f;
 								float renderHealthSampleEnvDiag = 0f;
+								float renderHealthSampleEnvelopeInflation = 0f;
 								Aabb3 envelope = default;
 								bool envelopeComputed = false;
 								if (useGeomTlasPruning || renderHealthSampleThisSeg)
 								{
 									var segANum = new System.Numerics.Vector3(segA.X, segA.Y, segA.Z);
 									var segBNum = new System.Numerics.Vector3(segB.X, segB.Y, segB.Z);
-									float geomEnvelopeRadius = seg.RadiusBound * Mathf.Max(1.0f, cfg.Pass2GeomEnvelopeRadiusScale);
+									float baseRadiusBound = Mathf.Max(0f, seg.RadiusBound);
+									float geomEnvelopeRadius = baseRadiusBound * Mathf.Max(1.0f, cfg.Pass2GeomEnvelopeRadiusScale);
 									float geomEnvelopeAabbExpand = Mathf.Max(0.0f, cfg.Pass2GeomEnvelopeAabbExpand);
 									envelope = Aabb3.FromSegment(segANum, segBNum).Expand(geomEnvelopeRadius);
 									if (geomEnvelopeAabbExpand > 0f)
 										envelope = envelope.Expand(geomEnvelopeAabbExpand);
 									envelopeComputed = true;
 									renderHealthSampleRadius = geomEnvelopeRadius;
+									renderHealthSampleEnvelopeInflation = Math.Max(0f, (geomEnvelopeRadius - baseRadiusBound) + geomEnvelopeAabbExpand);
 								}
 								if (renderHealthSampleThisSeg && envelopeComputed)
 								{
@@ -4018,11 +4050,7 @@ public partial class GrinFilmCamera : Node
 								Span<long> geomCandidateInstanceIds = default;
 								int geomCandidateInstanceCount = 0;
 								bool geomCandidatesActive = false;
-								bool pruneAuditSampleThisSeg = useGeomTlasPruning
-									&& cfg.DebugGeomPruneAuditEnabled
-									&& cfg.DebugGeomPruneAuditEveryNSegments > 0
-									&& pass == 0
-									&& (_geomPruneAuditSampleCounter++ % cfg.DebugGeomPruneAuditEveryNSegments) == 0;
+								bool pruneAuditSampleThisSeg = false;
 								bool pruneAuditBaselineComputed = false;
 								bool pruneAuditBaselineHit = false;
 								ulong pruneAuditBaselineCid = 0;
@@ -4031,7 +4059,31 @@ public partial class GrinFilmCamera : Node
 								bool pruneAuditContainmentComputed = false;
 								bool pruneAuditFalseNegCounted = false;
 								bool pruneAuditFalsePosCounted = false;
+								bool pruneAuditOnlyWhenCandidateZero = cfg.DebugGeomPruneAuditOnlyWhenCandidateZero;
+								int pruneAuditSampleBudget = Math.Max(0, cfg.DebugGeomPruneAuditSamplesPerHealthWindow);
+								int pruneAuditMaxExtraRayTestsPerSample = Math.Max(1, cfg.DebugGeomPruneAuditMaxExtraRayTestsPerSample);
 								int pruneAuditLogLimit = Math.Max(0, cfg.DebugGeomPruneAuditMaxMismatchLogsPerWindow);
+
+								bool TrySelectPruneAuditSample(int candidateCountForAudit)
+								{
+									if (pruneAuditSampleThisSeg)
+										return true;
+									if (!useGeomTlasPruning || !cfg.DebugGeomPruneAuditEnabled || pass != 0)
+										return false;
+									if (pruneAuditSampleBudget <= 0 || _geomPruneAuditSamplesTakenThisWindow >= pruneAuditSampleBudget)
+										return false;
+									bool candidateCountIsZero = candidateCountForAudit == 0;
+									if (pruneAuditOnlyWhenCandidateZero && !candidateCountIsZero)
+										return false;
+
+									uint sampleHash = HashPruneAuditSample(_frameIndex, _renderHealthStepIndex, globalPi, si, pass);
+									if ((sampleHash & PruneAuditDeterministicMask) != 0u)
+										return false;
+
+									pruneAuditSampleThisSeg = true;
+									_geomPruneAuditSamplesTakenThisWindow++;
+									return true;
+								}
 
 								bool EnsurePruneAuditBaselineHit()
 								{
@@ -4056,7 +4108,8 @@ public partial class GrinFilmCamera : Node
 											int sub = 1;
 											if (segLen > rayCfg.CollisionRaySubdivideThreshold)
 												sub = Mathf.CeilToInt(segLen / rayCfg.CollisionRaySubdivideThreshold);
-											sub = Mathf.Clamp(sub, 1, rayCfg.MaxCollisionSubsteps);
+											int auditSubMax = Math.Max(1, Math.Min(rayCfg.MaxCollisionSubsteps, pruneAuditMaxExtraRayTestsPerSample));
+											sub = Mathf.Clamp(sub, 1, auditSubMax);
 
 											if (cfg.UseAdaptiveSubsteps)
 											{
@@ -4064,7 +4117,7 @@ public partial class GrinFilmCamera : Node
 												float t = Mathf.Clamp(seg.TraveledB / Mathf.Max(0.001f, far), 0f, 1f);
 												float minSub = Mathf.Max(1f, sub * 0.25f);
 												float scaled = Mathf.Lerp(sub, minSub, t);
-												sub = Mathf.Clamp(Mathf.RoundToInt(scaled), 1, rayCfg.MaxCollisionSubsteps);
+												sub = Mathf.Clamp(Mathf.RoundToInt(scaled), 1, auditSubMax);
 											}
 
 											pruneAuditBaselineHit = RayBeamRenderer.SubdividedRayHit(
@@ -4175,6 +4228,8 @@ public partial class GrinFilmCamera : Node
 
 								void EvaluatePruneAuditCandidateCoverage(int candidateCountForAudit)
 								{
+									if (!TrySelectPruneAuditSample(candidateCountForAudit))
+										return;
 									if (!EnsurePruneAuditBaselineHit())
 										return;
 
@@ -4241,6 +4296,11 @@ public partial class GrinFilmCamera : Node
 										{
 											_geomSegZeroCandidatesThisFrame++;
 										}
+										else
+										{
+											_geomSegWithCandidatesThisFrame++;
+											geomPixelHadAnyCandidatesThisPixel = true;
+										}
 									}
 									if (geomCandidateCount > 0)
 									{
@@ -4268,7 +4328,7 @@ public partial class GrinFilmCamera : Node
 									EvaluatePruneAuditCandidateCoverage(geomCandidateInstanceCount);
 									if (renderHealthSampleThisSeg && !renderHealthSampleRecorded && envelopeComputed)
 									{
-										RecordRenderHealthPass2Sample(renderHealthSampleRadius, renderHealthSampleEnvDiag, geomCandidateInstanceCount);
+										RecordRenderHealthPass2Sample(renderHealthSampleRadius, renderHealthSampleEnvDiag, renderHealthSampleEnvelopeInflation, geomCandidateInstanceCount);
 										renderHealthSampleRecorded = true;
 									}
 									geomCandidatesActive = geomCandidateInstanceCount > 0;
@@ -4698,7 +4758,7 @@ public partial class GrinFilmCamera : Node
 									{
 										// TLAS pruning off restores pre-TLAS full narrowphase, so candidate histograms are intentionally NA.
 										int renderHealthCandidateCount = useGeomTlasPruning ? candidateCount : -1;
-										RecordRenderHealthPass2Sample(renderHealthSampleRadius, renderHealthSampleEnvDiag, renderHealthCandidateCount);
+										RecordRenderHealthPass2Sample(renderHealthSampleRadius, renderHealthSampleEnvDiag, renderHealthSampleEnvelopeInflation, renderHealthCandidateCount);
 										renderHealthSampleRecorded = true;
 									}
 
@@ -5230,10 +5290,14 @@ public partial class GrinFilmCamera : Node
 					}
 					if (budgetStop) break;
 
-					// geomPixNoCand rule: increment once per pixel only when every Pass2 segment had zero candidates.
-					// This counter is TLAS-pruning-only; prune-off has no TLAS candidate concept.
-					if (useGeomTlasPruningForStep && noCandidatesThisPixel && !hadCandidatesThisPixel)
-						_geomPixelNoCandidatesThisFrame++;
+					// TLAS-pruning-only per-pixel candidate counters are committed once, after Pass2 finishes for the pixel.
+					if (useGeomTlasPruningForStep)
+					{
+						if (geomPixelHadAnyCandidatesThisPixel)
+							_geomPixelHadAnyCandidatesThisFrame++;
+						else
+							_geomPixelNoCandidatesThisFrame++;
+					}
 
 					if (useHybridBroadphase && noCandidatesThisPixel && !hadCandidatesThisPixel)
 					{
@@ -5873,7 +5937,10 @@ public partial class GrinFilmCamera : Node
 				_geomCandidatesTotalThisFrame,
 				_geomCandidatesSegmentsThisFrame,
 				_geomSegmentsQueriedThisFrame,
+				_geomSegWithCandidatesThisFrame,
 				_geomSegZeroCandidatesThisFrame,
+				_geomPixelProcessedThisFrame,
+				_geomPixelHadAnyCandidatesThisFrame,
 				_geomPixelNoCandidatesThisFrame,
 				_geomHitAcceptedThisFrame,
 				_geomHitRejectedThisFrame,
@@ -5885,6 +5952,8 @@ public partial class GrinFilmCamera : Node
 				pass2RadiusMax,
 				pass2EnvDiagSum,
 				pass2EnvDiagMax,
+				pass2EnvelopeInflationSum,
+				pass2EnvelopeInflationMax,
 				pass2CandidateCount0,
 				pass2CandidateCount1To2,
 				pass2CandidateCount3To8,
@@ -6092,6 +6161,26 @@ public partial class GrinFilmCamera : Node
 			hash *= 1099511628211UL;
 		}
 		return hash;
+	}
+
+	private static uint HashPruneAuditSample(int frameIndex, int stepIndex, int pixelIndex, int segmentIndex, int pass)
+	{
+		unchecked
+		{
+			uint h = 2166136261u;
+			h = (h ^ (uint)frameIndex) * 16777619u;
+			h = (h ^ (uint)stepIndex) * 16777619u;
+			h = (h ^ (uint)pixelIndex) * 16777619u;
+			h = (h ^ (uint)segmentIndex) * 16777619u;
+			h = (h ^ (uint)pass) * 16777619u;
+			// Final avalanche to improve distribution on low-entropy inputs.
+			h ^= h >> 16;
+			h *= 2246822519u;
+			h ^= h >> 13;
+			h *= 3266489917u;
+			h ^= h >> 16;
+			return h;
+		}
 	}
 
 	private RayBeamRenderer.FieldSourceSnap[] GetFieldSourceSnaps(in EffectiveConfig cfg, int frameIndex, out bool hasSources, out bool cacheRefreshed)
@@ -7087,7 +7176,9 @@ public partial class GrinFilmCamera : Node
 			DebugEveryNPixels = DebugEveryNPixels,
 			DebugMaxFilmRays = DebugMaxFilmRays,
 			DebugGeomPruneAuditEnabled = DebugGeomPruneAuditEnabled,
-			DebugGeomPruneAuditEveryNSegments = DebugGeomPruneAuditEveryNSegments,
+			DebugGeomPruneAuditSamplesPerHealthWindow = Math.Max(0, DebugGeomPruneAuditSamplesPerHealthWindow),
+			DebugGeomPruneAuditMaxExtraRayTestsPerSample = Math.Max(1, DebugGeomPruneAuditMaxExtraRayTestsPerSample),
+			DebugGeomPruneAuditOnlyWhenCandidateZero = DebugGeomPruneAuditOnlyWhenCandidateZero,
 			DebugGeomPruneAuditMaxMismatchLogsPerWindow = DebugGeomPruneAuditMaxMismatchLogsPerWindow,
 			EnableProfiling = EnableProfiling,
 			VerbosePerfLogs = VerbosePerfLogs,
@@ -7352,7 +7443,9 @@ public partial class GrinFilmCamera : Node
 		hash.Add(cfg.DebugEveryNPixels);
 		hash.Add(cfg.DebugMaxFilmRays);
 		hash.Add(cfg.DebugGeomPruneAuditEnabled);
-		hash.Add(cfg.DebugGeomPruneAuditEveryNSegments);
+		hash.Add(cfg.DebugGeomPruneAuditSamplesPerHealthWindow);
+		hash.Add(cfg.DebugGeomPruneAuditMaxExtraRayTestsPerSample);
+		hash.Add(cfg.DebugGeomPruneAuditOnlyWhenCandidateZero);
 		hash.Add(cfg.DebugGeomPruneAuditMaxMismatchLogsPerWindow);
 		hash.Add(cfg.EnableProfiling);
 		hash.Add(cfg.VerbosePerfLogs);
@@ -7577,7 +7670,10 @@ public partial class GrinFilmCamera : Node
 		long totalGeomCandidates = 0;
 		long totalGeomCandidateSegments = 0;
 		long totalGeomSegmentsQueried = 0;
+		long totalGeomSegWithCandidates = 0;
 		long totalGeomSegZeroCandidates = 0;
+		long totalGeomPixelProcessed = 0;
+		long totalGeomPixelHadAnyCandidates = 0;
 		long totalGeomPixelNoCandidates = 0;
 		long totalGeomHitAccepted = 0;
 		long totalGeomHitRejected = 0;
@@ -7590,6 +7686,8 @@ public partial class GrinFilmCamera : Node
 		float totalPass2RadiusMax = 0f;
 		double totalPass2EnvDiagSum = 0.0;
 		float totalPass2EnvDiagMax = 0f;
+		double totalPass2EnvelopeInflationSum = 0.0;
+		float totalPass2EnvelopeInflationMax = 0f;
 		long totalPass2CandidateCount0 = 0;
 		long totalPass2CandidateCount1To2 = 0;
 		long totalPass2CandidateCount3To8 = 0;
@@ -7619,7 +7717,10 @@ public partial class GrinFilmCamera : Node
 				totalGeomCandidates += s.GeomCandidatesTotal;
 				totalGeomCandidateSegments += s.GeomCandidatesSegments;
 				totalGeomSegmentsQueried += s.GeomSegmentsQueried;
+				totalGeomSegWithCandidates += s.GeomSegWithCandidates;
 				totalGeomSegZeroCandidates += s.GeomSegZeroCandidates;
+				totalGeomPixelProcessed += s.GeomPixelProcessed;
+				totalGeomPixelHadAnyCandidates += s.GeomPixelHadAnyCandidates;
 				totalGeomPixelNoCandidates += s.GeomPixelNoCandidates;
 				totalGeomHitAccepted += s.GeomHitAccepted;
 				totalGeomHitRejected += s.GeomHitRejected;
@@ -7631,6 +7732,8 @@ public partial class GrinFilmCamera : Node
 				if (s.Pass2RadiusMax > totalPass2RadiusMax) totalPass2RadiusMax = s.Pass2RadiusMax;
 				totalPass2EnvDiagSum += s.Pass2EnvDiagSum;
 				if (s.Pass2EnvDiagMax > totalPass2EnvDiagMax) totalPass2EnvDiagMax = s.Pass2EnvDiagMax;
+				totalPass2EnvelopeInflationSum += s.Pass2EnvelopeInflationSum;
+				if (s.Pass2EnvelopeInflationMax > totalPass2EnvelopeInflationMax) totalPass2EnvelopeInflationMax = s.Pass2EnvelopeInflationMax;
 				totalPass2CandidateCount0 += s.Pass2CandidateCount0;
 				totalPass2CandidateCount1To2 += s.Pass2CandidateCount1To2;
 				totalPass2CandidateCount3To8 += s.Pass2CandidateCount3To8;
@@ -7667,26 +7770,52 @@ public partial class GrinFilmCamera : Node
 		double pass2EnvDiagAvg = totalPass2SampledSegments > 0
 			? totalPass2EnvDiagSum / totalPass2SampledSegments
 			: 0.0;
+		double pass2EnvelopeInflationAvg = totalPass2SampledSegments > 0
+			? totalPass2EnvelopeInflationSum / totalPass2SampledSegments
+			: 0.0;
 		string geomPruneMode = latest.UseGeometryTLASPruning ? "on" : "off";
-		string geomCandAvgStr = latest.UseGeometryTLASPruning
+		bool pruneWindowUntrusted = _geomPruneSwitchedThisWindow == 1
+			|| totalPass2SampledSegments < RenderHealthMinSamplesForTrust;
+		bool pruneMetricsTrusted = !pruneWindowUntrusted;
+		bool showPruneOnMetrics = latest.UseGeometryTLASPruning && pruneMetricsTrusted;
+		string geomWindowTrustReason = pruneMetricsTrusted
+			? "ok"
+			: (_geomPruneSwitchedThisWindow == 1 ? "mode_switch" : "low_p2samp");
+		string geomCandAvgStr = showPruneOnMetrics
 			? geomCandidatesAvg.ToString("0.###")
 			: "na";
-		string cand0Str = latest.UseGeometryTLASPruning ? totalPass2CandidateCount0.ToString() : "na";
-		string cand1to2Str = latest.UseGeometryTLASPruning ? totalPass2CandidateCount1To2.ToString() : "na";
-		string cand3to8Str = latest.UseGeometryTLASPruning ? totalPass2CandidateCount3To8.ToString() : "na";
-		string cand9to32Str = latest.UseGeometryTLASPruning ? totalPass2CandidateCount9To32.ToString() : "na";
-		string cand33PlusStr = latest.UseGeometryTLASPruning ? totalPass2CandidateCount33Plus.ToString() : "na";
-		string geomPruneAuditSampStr = latest.UseGeometryTLASPruning ? totalPruneAuditSamples.ToString() : "na";
-		string geomPruneAuditFalseNegStr = latest.UseGeometryTLASPruning ? totalPruneAuditFalseNeg.ToString() : "na";
-		string geomPruneAuditFalsePosStr = latest.UseGeometryTLASPruning ? totalPruneAuditFalsePos.ToString() : "na";
-		string geomPruneAuditCand0HitStr = latest.UseGeometryTLASPruning ? totalPruneAuditCandidateZeroButBaselineHit.ToString() : "na";
-		string geomPruneAuditFalseNegRateStr = latest.UseGeometryTLASPruning
+		string geomSegQueriedStr = showPruneOnMetrics ? totalGeomSegmentsQueried.ToString() : "na";
+		string geomSegWithCandidatesStr = showPruneOnMetrics ? totalGeomSegWithCandidates.ToString() : "na";
+		string geomSegZeroStr = showPruneOnMetrics ? totalGeomSegZeroCandidates.ToString() : "na";
+		string geomPixProcessedStr = showPruneOnMetrics ? totalGeomPixelProcessed.ToString() : "na";
+		string geomPixHadAnyCandidatesStr = showPruneOnMetrics ? totalGeomPixelHadAnyCandidates.ToString() : "na";
+		string geomPixNoCandStr = showPruneOnMetrics ? totalGeomPixelNoCandidates.ToString() : "na";
+		double geomSegZeroRatePct = 100.0 * totalGeomSegZeroCandidates / Math.Max(1L, totalGeomSegmentsQueried);
+		double geomPixNoCandRatePct = 100.0 * totalGeomPixelNoCandidates / Math.Max(1L, totalGeomPixelProcessed);
+		string geomSegZeroRatePctStr = showPruneOnMetrics ? geomSegZeroRatePct.ToString("0.00") : "na";
+		string geomPixNoCandRatePctStr = showPruneOnMetrics ? geomPixNoCandRatePct.ToString("0.00") : "na";
+		string cand0Str = showPruneOnMetrics ? totalPass2CandidateCount0.ToString() : "na";
+		string cand1to2Str = showPruneOnMetrics ? totalPass2CandidateCount1To2.ToString() : "na";
+		string cand3to8Str = showPruneOnMetrics ? totalPass2CandidateCount3To8.ToString() : "na";
+		string cand9to32Str = showPruneOnMetrics ? totalPass2CandidateCount9To32.ToString() : "na";
+		string cand33PlusStr = showPruneOnMetrics ? totalPass2CandidateCount33Plus.ToString() : "na";
+		string geomPruneAuditSampStr = showPruneOnMetrics ? totalPruneAuditSamples.ToString() : "na";
+		string geomPruneAuditFalseNegStr = showPruneOnMetrics ? totalPruneAuditFalseNeg.ToString() : "na";
+		string geomPruneAuditFalsePosStr = showPruneOnMetrics ? totalPruneAuditFalsePos.ToString() : "na";
+		string geomPruneAuditCand0HitStr = showPruneOnMetrics ? totalPruneAuditCandidateZeroButBaselineHit.ToString() : "na";
+		// FalseNegRate is defined as FalseNeg / Samp over the current RenderHealth window.
+		string geomPruneAuditFalseNegRateStr = showPruneOnMetrics
 			? ((double)totalPruneAuditFalseNeg / Math.Max(1L, totalPruneAuditSamples)).ToString("0.###")
 			: "na";
-		double geomRayTestsPerPixelOn = latest.UseGeometryTLASPruning && totalTracedForGeomMode > 0
+		string geomHitOkStr = pruneMetricsTrusted ? totalGeomHitAccepted.ToString() : "na";
+		string geomHitRejectStr = pruneMetricsTrusted ? totalGeomHitRejected.ToString() : "na";
+		string geomRayTestsTotalStr = pruneMetricsTrusted ? totalGeomRayTestsTotal.ToString() : "na";
+		string geomRayTestsAcceptedStr = pruneMetricsTrusted ? totalGeomRayTestsAccepted.ToString() : "na";
+		string geomRayTestsRejectedStr = pruneMetricsTrusted ? totalGeomRayTestsRejected.ToString() : "na";
+		double geomRayTestsPerPixelOn = latest.UseGeometryTLASPruning && pruneMetricsTrusted && totalTracedForGeomMode > 0
 			? (double)totalGeomRayTestsTotal / totalTracedForGeomMode
 			: -1.0;
-		double geomRayTestsPerPixelOffCurrent = !latest.UseGeometryTLASPruning && totalTracedForGeomMode > 0
+		double geomRayTestsPerPixelOffCurrent = !latest.UseGeometryTLASPruning && pruneMetricsTrusted && totalTracedForGeomMode > 0
 			? (double)totalGeomRayTestsTotal / totalTracedForGeomMode
 			: -1.0;
 		double geomRayTestsPerPixelOffBaseline = _geomRayTestsOffPerPixelBaselineReady
@@ -7694,6 +7823,7 @@ public partial class GrinFilmCamera : Node
 			: -1.0;
 		string geomRayTestsSavedPct = "na";
 		if (latest.UseGeometryTLASPruning
+			&& pruneMetricsTrusted
 			&& geomRayTestsPerPixelOn >= 0.0
 			&& geomRayTestsPerPixelOffBaseline > 0.0)
 		{
@@ -7705,17 +7835,21 @@ public partial class GrinFilmCamera : Node
 		double geomRayTestsPerPixelOffDisplay = latest.UseGeometryTLASPruning
 			? geomRayTestsPerPixelOffBaseline
 			: geomRayTestsPerPixelOffCurrent;
-		string geomRayTestsPerPxOnStr = geomRayTestsPerPixelOn >= 0.0 ? geomRayTestsPerPixelOn.ToString("0.###") : "na";
-		string geomRayTestsPerPxOffStr = geomRayTestsPerPixelOffDisplay > 0.0 ? geomRayTestsPerPixelOffDisplay.ToString("0.###") : "na";
+		string geomRayTestsPerPxOnStr = (pruneMetricsTrusted && geomRayTestsPerPixelOn >= 0.0) ? geomRayTestsPerPixelOn.ToString("0.###") : "na";
+		string geomRayTestsPerPxOffStr = (pruneMetricsTrusted && geomRayTestsPerPixelOffDisplay > 0.0) ? geomRayTestsPerPixelOffDisplay.ToString("0.###") : "na";
 		bool geomCounterGuardEnabled = DebugLogConfig.EnableGeomRejectSample || DebugGeomCounterGuardEnabled;
-		if (geomCounterGuardEnabled && totalGeomSegZeroCandidates > totalGeomSegmentsQueried)
+		bool geomSegZeroDrift = totalGeomSegZeroCandidates > totalGeomSegmentsQueried;
+		bool geomSegWithCandidatesDrift = totalGeomSegWithCandidates > totalGeomSegmentsQueried;
+		bool geomPixNoCandDrift = totalGeomPixelNoCandidates > totalGeomPixelProcessed;
+		if (geomCounterGuardEnabled && showPruneOnMetrics && (geomSegZeroDrift || geomSegWithCandidatesDrift || geomPixNoCandDrift))
 		{
 			GD.PrintErr(
-				$"[RenderHealth][WARN] drift=geomSegZero segZero={totalGeomSegZeroCandidates} segQueried={totalGeomSegmentsQueried} " +
-				$"p2Samp={totalPass2SampledSegments} step={latest.StepIndex} row={latest.RowCursorAfter} bands={latest.BandsProcessed} window={window}");
+				$"[RenderHealth][WARN] geomCounterSanity segZero={totalGeomSegZeroCandidates} segWithCandidates={totalGeomSegWithCandidates} segQueried={totalGeomSegmentsQueried} " +
+				$"pixNoCand={totalGeomPixelNoCandidates} pixProcessed={totalGeomPixelProcessed} drift(segZero={ (geomSegZeroDrift ? 1 : 0) },segWithCandidates={ (geomSegWithCandidatesDrift ? 1 : 0) },pixNoCand={ (geomPixNoCandDrift ? 1 : 0) }) " +
+				$"step={latest.StepIndex} rows={latest.RowCursorBefore}->{latest.RowCursorAfter} bands={latest.BandsProcessed} prune={geomPruneMode} window={window}");
 		}
 		int geomRejectWarnThreshold = Math.Max(1, GeomHitRejectWarnThresholdPerWindow);
-		if (totalGeomHitRejected >= geomRejectWarnThreshold)
+		if (pruneMetricsTrusted && totalGeomHitRejected >= geomRejectWarnThreshold)
 		{
 			GD.PrintErr(
 				$"[RenderHealth][WARN] geomHitRejectSpike reject={totalGeomHitRejected} threshold={geomRejectWarnThreshold} " +
@@ -7743,13 +7877,14 @@ public partial class GrinFilmCamera : Node
 			$"stalledSteps={_renderHealthStallSteps} exit={exitTag} topExit={topExit} hitRate={hitRate:0.###} " +
 			$"avgSteps={latest.AvgStepsPerTracedPixel:0.###} qray0={totalQuickRayZero} hybridFallback={totalHybridFallback} " +
 			$"hybridFallbackHit={totalHybridFallbackHits} hybridFallbackMiss={totalHybridFallbackMisses} noCandidates={totalHybridNoCandidates} " +
-			$"geomCandAvg={geomCandAvgStr} geomSegZero={totalGeomSegZeroCandidates} geomPixNoCand={totalGeomPixelNoCandidates} " +
-			$"geomHitOk={totalGeomHitAccepted} geomHitReject={totalGeomHitRejected} " +
-			$"geomPrune={geomPruneMode} geomRayTestsTotal={totalGeomRayTestsTotal} geomRayTestsAccepted={totalGeomRayTestsAccepted} geomRayTestsRejected={totalGeomRayTestsRejected} " +
-			$"geomRayTestsPerPxOn={geomRayTestsPerPxOnStr} geomRayTestsPerPxOff={geomRayTestsPerPxOffStr} geomRayTestsSavedPct={geomRayTestsSavedPct} geomPruneSwitched={_geomPruneSwitchedThisWindow} " +
+			$"geomCandAvg={geomCandAvgStr} geomSegQueried={geomSegQueriedStr} geomSegWithCandidates={geomSegWithCandidatesStr} geomSegZero={geomSegZeroStr} geomSegZeroRatePct={geomSegZeroRatePctStr} " +
+			$"geomPixProcessed={geomPixProcessedStr} geomPixHadAnyCandidates={geomPixHadAnyCandidatesStr} geomPixNoCand={geomPixNoCandStr} geomPixNoCandRatePct={geomPixNoCandRatePctStr} " +
+			$"geomHitOk={geomHitOkStr} geomHitReject={geomHitRejectStr} " +
+			$"geomPrune={geomPruneMode} geomRayTestsTotal={geomRayTestsTotalStr} geomRayTestsAccepted={geomRayTestsAcceptedStr} geomRayTestsRejected={geomRayTestsRejectedStr} " +
+			$"geomRayTestsPerPxOn={geomRayTestsPerPxOnStr} geomRayTestsPerPxOff={geomRayTestsPerPxOffStr} geomRayTestsSavedPct={geomRayTestsSavedPct} geomPruneSwitched={_geomPruneSwitchedThisWindow} geomTrusted={(pruneMetricsTrusted ? 1 : 0)} geomTrustReason={geomWindowTrustReason} " +
 			$"geomRejectSampleMissing={_geomRejectSampleCidNotInGeometryList} geomRejectSampleInList={_geomRejectSampleCidInGeometryListNotInCandidates} " +
 			$"geomRejectSampleCandHit={_geomRejectSampleCandidateContainsCid} geomRejectSampleDominant={geomRejectSampleDominant} " +
-			$"p2Samp={totalPass2SampledSegments} radAvg={pass2RadiusAvg:0.###} radMax={totalPass2RadiusMax:0.###} envDiagAvg={pass2EnvDiagAvg:0.###} envDiagMax={totalPass2EnvDiagMax:0.###} " +
+			$"p2Samp={totalPass2SampledSegments} radAvg={pass2RadiusAvg:0.###} radMax={totalPass2RadiusMax:0.###} envDiagAvg={pass2EnvDiagAvg:0.###} envDiagMax={totalPass2EnvDiagMax:0.###} envInflAvg={pass2EnvelopeInflationAvg:0.###} envInflMax={totalPass2EnvelopeInflationMax:0.###} " +
 			$"cand0={cand0Str} cand1to2={cand1to2Str} cand3to8={cand3to8Str} " +
 			$"cand9to32={cand9to32Str} cand33p={cand33PlusStr} " +
 			$"geomPruneAuditSamp={geomPruneAuditSampStr} geomPruneAuditFalseNeg={geomPruneAuditFalseNegStr} geomPruneAuditFalsePos={geomPruneAuditFalsePosStr} " +
@@ -7778,7 +7913,10 @@ public partial class GrinFilmCamera : Node
 		long geomCandidatesTotal,
 		long geomCandidatesSegments,
 		long geomSegmentsQueried,
+		long geomSegWithCandidates,
 		long geomSegZeroCandidates,
+		long geomPixelProcessed,
+		long geomPixelHadAnyCandidates,
 		long geomPixelNoCandidates,
 		long geomHitAccepted,
 		long geomHitRejected,
@@ -7790,6 +7928,8 @@ public partial class GrinFilmCamera : Node
 		float pass2RadiusMax,
 		double pass2EnvDiagSum,
 		float pass2EnvDiagMax,
+		double pass2EnvelopeInflationSum,
+		float pass2EnvelopeInflationMax,
 		long pass2CandidateCount0,
 		long pass2CandidateCount1To2,
 		long pass2CandidateCount3To8,
@@ -7812,7 +7952,10 @@ public partial class GrinFilmCamera : Node
 			_geomHitAcceptedLastSample = geomHitAccepted;
 			_geomHitRejectedLastSample = geomHitRejected;
 			_geomSegmentsQueriedLastSample = geomSegmentsQueried;
+			_geomSegWithCandidatesLastSample = geomSegWithCandidates;
 			_geomSegZeroCandidatesLastSample = geomSegZeroCandidates;
+			_geomPixelProcessedLastSample = geomPixelProcessed;
+			_geomPixelHadAnyCandidatesLastSample = geomPixelHadAnyCandidates;
 			_geomPixelNoCandidatesLastSample = geomPixelNoCandidates;
 			_geomRayTestsTotalLastSample = geomRayTestsTotal;
 			_geomRayTestsAcceptedLastSample = geomRayTestsAccepted;
@@ -7822,6 +7965,7 @@ public partial class GrinFilmCamera : Node
 			_geomPruneAuditFalsePosLastSample = pruneAuditFalsePos;
 			_geomPruneAuditCandidateZeroButBaselineHitLastSample = pruneAuditCandidateZeroButBaselineHit;
 			_geomPruneAuditMismatchLogsThisWindow = 0;
+			_geomPruneAuditSamplesTakenThisWindow = 0;
 
 			if (useGeometryTLASPruning)
 			{
@@ -7843,7 +7987,10 @@ public partial class GrinFilmCamera : Node
 
 		_renderHealthStepIndex++;
 		long geomSegmentsQueriedDelta = ComputeCounterDelta(geomSegmentsQueried, ref _geomSegmentsQueriedLastSample);
+		long geomSegWithCandidatesDelta = ComputeCounterDelta(geomSegWithCandidates, ref _geomSegWithCandidatesLastSample);
 		long geomSegZeroCandidatesDelta = ComputeCounterDelta(geomSegZeroCandidates, ref _geomSegZeroCandidatesLastSample);
+		long geomPixelProcessedDelta = ComputeCounterDelta(geomPixelProcessed, ref _geomPixelProcessedLastSample);
+		long geomPixelHadAnyCandidatesDelta = ComputeCounterDelta(geomPixelHadAnyCandidates, ref _geomPixelHadAnyCandidatesLastSample);
 		long geomPixelNoCandidatesDelta = ComputeCounterDelta(geomPixelNoCandidates, ref _geomPixelNoCandidatesLastSample);
 		long geomHitAcceptedDelta = ComputeCounterDelta(geomHitAccepted, ref _geomHitAcceptedLastSample);
 		long geomHitRejectedDelta = ComputeCounterDelta(geomHitRejected, ref _geomHitRejectedLastSample);
@@ -7880,7 +8027,10 @@ public partial class GrinFilmCamera : Node
 			GeomCandidatesTotal = geomCandidatesTotal,
 			GeomCandidatesSegments = geomCandidatesSegments,
 			GeomSegmentsQueried = geomSegmentsQueriedDelta,
+			GeomSegWithCandidates = geomSegWithCandidatesDelta,
 			GeomSegZeroCandidates = geomSegZeroCandidatesDelta,
+			GeomPixelProcessed = geomPixelProcessedDelta,
+			GeomPixelHadAnyCandidates = geomPixelHadAnyCandidatesDelta,
 			GeomPixelNoCandidates = geomPixelNoCandidatesDelta,
 			GeomHitAccepted = geomHitAcceptedDelta,
 			GeomHitRejected = geomHitRejectedDelta,
@@ -7892,6 +8042,8 @@ public partial class GrinFilmCamera : Node
 			Pass2RadiusMax = pass2RadiusMax,
 			Pass2EnvDiagSum = pass2EnvDiagSum,
 			Pass2EnvDiagMax = pass2EnvDiagMax,
+			Pass2EnvelopeInflationSum = pass2EnvelopeInflationSum,
+			Pass2EnvelopeInflationMax = pass2EnvelopeInflationMax,
 			Pass2CandidateCount0 = pass2CandidateCount0,
 			Pass2CandidateCount1To2 = pass2CandidateCount1To2,
 			Pass2CandidateCount3To8 = pass2CandidateCount3To8,
@@ -7952,10 +8104,16 @@ public partial class GrinFilmCamera : Node
 				_renderHealthLastLogStep = _renderHealthStepIndex;
 				LogRenderHealth(in sample, stalled);
 				_geomSegmentsQueriedThisFrame = 0;
+				_geomSegWithCandidatesThisFrame = 0;
 				_geomSegZeroCandidatesThisFrame = 0;
+				_geomPixelProcessedThisFrame = 0;
+				_geomPixelHadAnyCandidatesThisFrame = 0;
 				_geomPixelNoCandidatesThisFrame = 0;
 				_geomSegmentsQueriedLastSample = 0;
+				_geomSegWithCandidatesLastSample = 0;
 				_geomSegZeroCandidatesLastSample = 0;
+				_geomPixelProcessedLastSample = 0;
+				_geomPixelHadAnyCandidatesLastSample = 0;
 				_geomPixelNoCandidatesLastSample = 0;
 				_geomRayTestsTotalLastSample = 0;
 				_geomRayTestsAcceptedLastSample = 0;
@@ -7969,6 +8127,7 @@ public partial class GrinFilmCamera : Node
 				_geomPruneAuditFalsePosLastSample = 0;
 				_geomPruneAuditCandidateZeroButBaselineHitLastSample = 0;
 				_geomPruneAuditMismatchLogsThisWindow = 0;
+				_geomPruneAuditSamplesTakenThisWindow = 0;
 				_geomPruneSwitchedThisWindow = 0;
 			}
 		}
