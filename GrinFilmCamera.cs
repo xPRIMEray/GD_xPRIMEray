@@ -7816,23 +7816,15 @@ public partial class GrinFilmCamera : Node
 		string geomPruneEffective = geomPruneMode;
 		int geomPruneRequestedBit = latest.GeomPruneRequested ? 1 : 0;
 		bool modeHasEnoughSamples = modeWindowSamplesUsed >= RenderHealthMinModeSamplesForTrust;
-		bool geomWindowPartial = _geomPruneSwitchedThisWindow == 1
-			|| !modeHasEnoughSamples;
-		bool geomMetricsTrusted = !geomWindowPartial;
 		bool pruneOnHasEnoughP2Samples = totalPass2SampledSegments >= RenderHealthMinSamplesForTrust;
+		bool geomWindowPartial = _geomPruneSwitchedThisWindow == 1
+			|| !modeHasEnoughSamples
+			|| (latest.UseGeometryTLASPruning && !pruneOnHasEnoughP2Samples);
+		bool geomMetricsTrusted = !geomWindowPartial;
 		bool showPruneOnMetrics = latest.UseGeometryTLASPruning
-			&& geomMetricsTrusted
-			&& pruneOnHasEnoughP2Samples;
+			&& geomMetricsTrusted;
 		string geomWindowTrustReason;
-		if (!geomWindowPartial && latest.UseGeometryTLASPruning && !pruneOnHasEnoughP2Samples)
-		{
-			geomWindowTrustReason = "low_p2samp";
-		}
-		else if (geomMetricsTrusted)
-		{
-			geomWindowTrustReason = "ok";
-		}
-		else if (_geomPruneSwitchedThisWindow == 1)
+		if (_geomPruneSwitchedThisWindow == 1)
 		{
 			geomWindowTrustReason = "mode_switch";
 		}
@@ -7840,9 +7832,17 @@ public partial class GrinFilmCamera : Node
 		{
 			geomWindowTrustReason = "low_mode_samples";
 		}
-		else
+		else if (latest.UseGeometryTLASPruning && !pruneOnHasEnoughP2Samples)
 		{
 			geomWindowTrustReason = "low_p2samp";
+		}
+		else if (geomMetricsTrusted)
+		{
+			geomWindowTrustReason = "ok";
+		}
+		else
+		{
+			geomWindowTrustReason = "low_mode_samples";
 		}
 		int geomHealthPartial = geomMetricsTrusted ? 0 : 1;
 		string geomCandAvgStr = showPruneOnMetrics
@@ -7902,7 +7902,7 @@ public partial class GrinFilmCamera : Node
 			? geomRayTestsPerPixelOffBaseline
 			: geomRayTestsPerPixelOffCurrent;
 		string geomRayTestsPerPxOnStr = (geomMetricsTrusted && geomRayTestsPerPixelOn >= 0.0) ? geomRayTestsPerPixelOn.ToString("0.###") : "na";
-		string geomRayTestsPerPxOffStr = (geomMetricsTrusted && geomRayTestsPerPixelOffDisplay > 0.0) ? geomRayTestsPerPixelOffDisplay.ToString("0.###") : "na";
+		string geomRayTestsPerPxOffStr = (geomMetricsTrusted && geomRayTestsPerPixelOffDisplay >= 0.0) ? geomRayTestsPerPixelOffDisplay.ToString("0.###") : "na";
 		bool geomCounterGuardEnabled = DebugLogConfig.EnableGeomRejectSample || DebugGeomCounterGuardEnabled;
 		bool geomSegZeroDrift = totalGeomSegZeroCandidates > totalGeomSegmentsQueried;
 		bool geomSegWithCandidatesDrift = totalGeomSegWithCandidates > totalGeomSegmentsQueried;
