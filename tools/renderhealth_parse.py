@@ -4,10 +4,11 @@ import csv
 import re
 import sys
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 
 TOKEN_RE = re.compile(r"([A-Za-z0-9_]+)=([^\s]+)")
+RENDERHEALTH_PREFIX = "[RenderHealth]"
 
 
 def parse_num(value: Optional[str]) -> Optional[float]:
@@ -20,6 +21,12 @@ def parse_num(value: Optional[str]) -> Optional[float]:
         return float(v)
     except ValueError:
         return None
+
+
+def is_na_token(value: Optional[str]) -> bool:
+    if value is None:
+        return True
+    return value.strip().lower() in ("na", "nan", "")
 
 
 @dataclass
@@ -61,12 +68,28 @@ def fmt_mean(val: Optional[float], digits: int = 3) -> str:
 
 
 def sanitize_csv_value(value: Optional[str]) -> str:
-    if value is None:
+    if is_na_token(value):
         return ""
-    v = value.strip()
-    if v.lower() in ("na", "nan", ""):
-        return ""
-    return v
+    return value.strip()
+
+
+def parse_renderhealth_line(line: str) -> Optional[Dict[str, str]]:
+    text = line.strip()
+    if not text.startswith(RENDERHEALTH_PREFIX):
+        return None
+    return {k: v for k, v in TOKEN_RE.findall(text)}
+
+
+def iter_renderhealth_entries(lines: Iterable[str]) -> Iterable[Dict[str, str]]:
+    for raw in lines:
+        data = parse_renderhealth_line(raw)
+        if data is not None:
+            yield data
+
+
+def load_renderhealth_entries(path: str) -> List[Dict[str, str]]:
+    with open(path, "r", encoding="utf-8", errors="replace") as f:
+        return list(iter_renderhealth_entries(f))
 
 
 def is_trusted_window(data: Dict[str, str]) -> bool:
@@ -79,64 +102,67 @@ def is_trusted_window(data: Dict[str, str]) -> bool:
     return True
 
 
-def parse_renderhealth_file(path: str, require_trusted: bool) -> Tuple[Dict[str, ModeAgg], List[Dict[str, str]]]:
+def summarize_renderhealth_entries(
+    entries: Iterable[Dict[str, str]],
+    require_trusted: bool,
+) -> Tuple[Dict[str, ModeAgg], List[Dict[str, str]]]:
     groups: Dict[str, ModeAgg] = {"on": ModeAgg(), "off": ModeAgg()}
     rows: List[Dict[str, str]] = []
-    with open(path, "r", encoding="utf-8", errors="replace") as f:
-        for raw in f:
-            line = raw.strip()
-            if not line.startswith("[RenderHealth]"):
-                continue
-            data = {k: v for k, v in TOKEN_RE.findall(line)}
-            mode = data.get("geomPrune")
-            if mode not in groups:
-                continue
+    for data in entries:
+        mode = data.get("geomPrune")
+        if mode not in groups:
+            continue
 
-            trusted = is_trusted_window(data)
-            g = groups[mode]
-            g.windows += 1
-            if trusted:
-                g.trusted_windows += 1
-            else:
-                g.partial_windows += 1
+        trusted = is_trusted_window(data)
+        g = groups[mode]
+        g.windows += 1
+        if trusted:
+            g.trusted_windows += 1
+        else:
+            g.partial_windows += 1
 
-            rows.append(
-                {
-                    "step": sanitize_csv_value(data.get("step")),
-                    "geomPrune": sanitize_csv_value(data.get("geomPrune")),
-                    "geomTrusted": "1" if trusted else "0",
-                    "geomHealthPartial": sanitize_csv_value(data.get("geomHealthPartial")),
-                    "geomPruneSwitched": sanitize_csv_value(data.get("geomPruneSwitched")),
-                    "geomTrustReason": sanitize_csv_value(data.get("geomTrustReason")),
-                    "geomRayTestsPerPxOn": sanitize_csv_value(data.get("geomRayTestsPerPxOn")),
-                    "geomRayTestsPerPxOff": sanitize_csv_value(data.get("geomRayTestsPerPxOff")),
-                    "geomRayTestsSavedPct": sanitize_csv_value(data.get("geomRayTestsSavedPct")),
-                    "geomCandAvg": sanitize_csv_value(data.get("geomCandAvg")),
-                    "cand0": sanitize_csv_value(data.get("cand0")),
-                    "cand1to2": sanitize_csv_value(data.get("cand1to2")),
-                    "cand3to8": sanitize_csv_value(data.get("cand3to8")),
-                    "cand9to32": sanitize_csv_value(data.get("cand9to32")),
-                    "cand33p": sanitize_csv_value(data.get("cand33p")),
-                    "geomSegZeroRatePct": sanitize_csv_value(data.get("geomSegZeroRatePct")),
-                    "geomPixNoCandRatePct": sanitize_csv_value(data.get("geomPixNoCandRatePct")),
-                }
-            )
+        rows.append(
+            {
+                "step": sanitize_csv_value(data.get("step")),
+                "geomPrune": sanitize_csv_value(data.get("geomPrune")),
+                "geomTrusted": "1" if trusted else "0",
+                "geomHealthPartial": sanitize_csv_value(data.get("geomHealthPartial")),
+                "geomPruneSwitched": sanitize_csv_value(data.get("geomPruneSwitched")),
+                "geomTrustReason": sanitize_csv_value(data.get("geomTrustReason")),
+                "geomRayTestsPerPxOn": sanitize_csv_value(data.get("geomRayTestsPerPxOn")),
+                "geomRayTestsPerPxOff": sanitize_csv_value(data.get("geomRayTestsPerPxOff")),
+                "geomRayTestsSavedPct": sanitize_csv_value(data.get("geomRayTestsSavedPct")),
+                "geomCandAvg": sanitize_csv_value(data.get("geomCandAvg")),
+                "cand0": sanitize_csv_value(data.get("cand0")),
+                "cand1to2": sanitize_csv_value(data.get("cand1to2")),
+                "cand3to8": sanitize_csv_value(data.get("cand3to8")),
+                "cand9to32": sanitize_csv_value(data.get("cand9to32")),
+                "cand33p": sanitize_csv_value(data.get("cand33p")),
+                "geomSegZeroRatePct": sanitize_csv_value(data.get("geomSegZeroRatePct")),
+                "geomPixNoCandRatePct": sanitize_csv_value(data.get("geomPixNoCandRatePct")),
+            }
+        )
 
-            if require_trusted and not trusted:
-                continue
+        if require_trusted and not trusted:
+            continue
 
-            g.ray_on.add(parse_num(data.get("geomRayTestsPerPxOn")))
-            g.ray_off.add(parse_num(data.get("geomRayTestsPerPxOff")))
-            g.saved_pct.add(parse_num(data.get("geomRayTestsSavedPct")))
-            g.cand_avg.add(parse_num(data.get("geomCandAvg")))
-            g.seg_zero_rate.add(parse_num(data.get("geomSegZeroRatePct")))
-            g.pix_nocand_rate.add(parse_num(data.get("geomPixNoCandRatePct")))
+        g.ray_on.add(parse_num(data.get("geomRayTestsPerPxOn")))
+        g.ray_off.add(parse_num(data.get("geomRayTestsPerPxOff")))
+        g.saved_pct.add(parse_num(data.get("geomRayTestsSavedPct")))
+        g.cand_avg.add(parse_num(data.get("geomCandAvg")))
+        g.seg_zero_rate.add(parse_num(data.get("geomSegZeroRatePct")))
+        g.pix_nocand_rate.add(parse_num(data.get("geomPixNoCandRatePct")))
 
-            fn = parse_num(data.get("geomPruneAuditFalseNeg"))
-            fp = parse_num(data.get("geomPruneAuditFalsePos"))
-            g.audit_false_neg_total += int(fn) if fn is not None else 0
-            g.audit_false_pos_total += int(fp) if fp is not None else 0
+        fn = parse_num(data.get("geomPruneAuditFalseNeg"))
+        fp = parse_num(data.get("geomPruneAuditFalsePos"))
+        g.audit_false_neg_total += int(fn) if fn is not None else 0
+        g.audit_false_pos_total += int(fp) if fp is not None else 0
     return groups, rows
+
+
+def parse_renderhealth_file(path: str, require_trusted: bool) -> Tuple[Dict[str, ModeAgg], List[Dict[str, str]]]:
+    entries = load_renderhealth_entries(path)
+    return summarize_renderhealth_entries(entries, require_trusted)
 
 
 def print_summary(groups: Dict[str, ModeAgg], require_trusted: bool) -> None:
