@@ -959,7 +959,8 @@ public partial class GrinFilmCamera : Node
 	private int _geomPruneSwitchedThisWindow = 0;
 	// Baseline used only for "saved%" comparisons while pruning is ON.
 	// It is learned only while pruning is OFF and shown while pruning is ON.
-	// It is reset when entering OFF mode to relearn a mode-pure baseline.
+	// It is reset when entering OFF mode to relearn a mode-pure baseline,
+	// and becomes ready only after stable OFF windows (no switch + enough mode samples).
 	private double _geomRayTestsOffPerPixelBaseline = 0.0;
 	private bool _geomRayTestsOffPerPixelBaselineReady = false;
 	private long _geomPruneAuditSamplesThisFrame = 0;
@@ -1318,7 +1319,9 @@ public partial class GrinFilmCamera : Node
 		public long PruneAuditCandidateZeroButBaselineHit;
 		public double AvgStepsPerTracedPixel;
 		public string BudgetExitReason;
+		public bool GeomPruneRequested;
 		public bool UseGeometryTLASPruning;
+		public bool PruneAuditEnabled;
 	}
 
 	private enum SoftGateDecisionReason
@@ -1913,6 +1916,8 @@ public partial class GrinFilmCamera : Node
 		long pass2CandidateCount9To32 = 0;
 		long pass2CandidateCount33Plus = 0;
 		bool useGeomTlasPruningForStep = false;
+		bool geomPruneRequestedForStep = false;
+		bool geomHealthPartialForStep = true;
 		_geomCandidatesTotalThisFrame = 0;
 		_geomCandidatesSegmentsThisFrame = 0;
 
@@ -2529,9 +2534,16 @@ public partial class GrinFilmCamera : Node
 			var snap = FrameSnapshotBus.CurrentSnapshot;
 			var geomTlasForStep = snap?.GeometryTLAS;
 			var geomEntitiesForStep = snap?.Geometry;
-			bool effectivePruneActive = cfg.UseGeometryTLASPruning
+			geomPruneRequestedForStep = cfg.UseGeometryTLASPruning;
+			bool effectivePruneActive = geomPruneRequestedForStep
 				&& IsGeometryTLASUsable(geomTlasForStep, geomEntitiesForStep);
 			useGeomTlasPruningForStep = effectivePruneActive;
+			bool geomPruneSwitchingThisStep = _hasRenderHealthGeomPruneMode
+				&& _lastRenderHealthGeomPruneMode != useGeomTlasPruningForStep;
+			int modeWindowSamplesForStep = CountRenderHealthModeSamplesInWindow(useGeomTlasPruningForStep) + 1;
+			geomHealthPartialForStep = _geomPruneSwitchedThisWindow == 1
+				|| geomPruneSwitchingThisStep
+				|| modeWindowSamplesForStep < RenderHealthMinModeSamplesForTrust;
 			int geomCountForScratch = geomEntitiesForStep?.Count ?? 0;
 			EnsureGeomScratchCapacity(Math.Max(256, geomCountForScratch));
 
@@ -4070,6 +4082,8 @@ public partial class GrinFilmCamera : Node
 									if (pruneAuditSampleThisSeg)
 										return true;
 									if (!useGeomTlasPruning || !cfg.DebugGeomPruneAuditEnabled || pass != 0)
+										return false;
+									if (geomHealthPartialForStep)
 										return false;
 									if (pruneAuditSampleBudget <= 0 || _geomPruneAuditSamplesTakenThisWindow >= pruneAuditSampleBudget)
 										return false;
@@ -5966,7 +5980,9 @@ public partial class GrinFilmCamera : Node
 				_geomPruneAuditCandidateZeroButBaselineHitThisFrame,
 				avgStepsPerTracedPixel,
 				healthExitReason,
-				useGeomTlasPruningForStep);
+				useGeomTlasPruningForStep,
+				geomPruneRequestedForStep,
+				cfg.DebugGeomPruneAuditEnabled);
 			bool stalledNow = _renderHealthStallSteps >= RenderHealthStallThreshold;
 			if (stalledNow && !_rowStallActive)
 			{
@@ -7658,6 +7674,26 @@ public partial class GrinFilmCamera : Node
 		return _renderHealthSamples[idx];
 	}
 
+	private int CountRenderHealthModeSamplesInWindow(bool useGeometryTLASPruningMode, int maxWindow = 10)
+	{
+		int window = Math.Min(_renderHealthCount, maxWindow);
+		int count = 0;
+		for (int i = 0; i < window; i++)
+		{
+			RenderHealthSample s = GetRenderHealthSampleFromEnd(i);
+			if (s.UseGeometryTLASPruning == useGeometryTLASPruningMode)
+				count++;
+		}
+		return count;
+	}
+
+	/*
+	Acceptance checklist for RenderHealth logs:
+	(a) steady OFF: geomPruneRequested=0/1, geomPruneEffective=off, geometry totals/per-px valid only after stable OFF window; candidate/audit metrics are NA.
+	(b) steady ON: geomPruneRequested=1, geomPruneEffective=on, candidate hist/seg-pixel counters and audit metrics valid only in trusted windows.
+	(c) OFF->ON switch window: geomPruneSwitched=1, geomHealthPartial=1, geometry totals/per-px and saved% are NA.
+	(d) ON->OFF switch window: geomPruneSwitched=1, geomHealthPartial=1, geometry totals/per-px and baseline/saved% are NA; OFF baseline relearns after stable OFF windows.
+	*/
 	private void LogRenderHealth(in RenderHealthSample latest, bool stalled)
 	{
 		int window = Math.Min(_renderHealthCount, 10);
@@ -7777,16 +7813,22 @@ public partial class GrinFilmCamera : Node
 			? totalPass2EnvelopeInflationSum / totalPass2SampledSegments
 			: 0.0;
 		string geomPruneMode = latest.UseGeometryTLASPruning ? "on" : "off";
+		string geomPruneEffective = geomPruneMode;
+		int geomPruneRequestedBit = latest.GeomPruneRequested ? 1 : 0;
 		bool modeHasEnoughSamples = modeWindowSamplesUsed >= RenderHealthMinModeSamplesForTrust;
-		bool pruneOnHasEnoughP2Samples = !latest.UseGeometryTLASPruning
-			|| totalPass2SampledSegments >= RenderHealthMinSamplesForTrust;
-		bool pruneWindowUntrusted = _geomPruneSwitchedThisWindow == 1
-			|| !modeHasEnoughSamples
-			|| !pruneOnHasEnoughP2Samples;
-		bool pruneMetricsTrusted = !pruneWindowUntrusted;
-		bool showPruneOnMetrics = latest.UseGeometryTLASPruning && pruneMetricsTrusted;
+		bool geomWindowPartial = _geomPruneSwitchedThisWindow == 1
+			|| !modeHasEnoughSamples;
+		bool geomMetricsTrusted = !geomWindowPartial;
+		bool pruneOnHasEnoughP2Samples = totalPass2SampledSegments >= RenderHealthMinSamplesForTrust;
+		bool showPruneOnMetrics = latest.UseGeometryTLASPruning
+			&& geomMetricsTrusted
+			&& pruneOnHasEnoughP2Samples;
 		string geomWindowTrustReason;
-		if (pruneMetricsTrusted)
+		if (!geomWindowPartial && latest.UseGeometryTLASPruning && !pruneOnHasEnoughP2Samples)
+		{
+			geomWindowTrustReason = "low_p2samp";
+		}
+		else if (geomMetricsTrusted)
 		{
 			geomWindowTrustReason = "ok";
 		}
@@ -7802,7 +7844,7 @@ public partial class GrinFilmCamera : Node
 		{
 			geomWindowTrustReason = "low_p2samp";
 		}
-		int geomHealthPartial = pruneMetricsTrusted ? 0 : 1;
+		int geomHealthPartial = geomMetricsTrusted ? 0 : 1;
 		string geomCandAvgStr = showPruneOnMetrics
 			? geomCandidatesAvg.ToString("0.###")
 			: "na";
@@ -7821,23 +7863,24 @@ public partial class GrinFilmCamera : Node
 		string cand3to8Str = showPruneOnMetrics ? totalPass2CandidateCount3To8.ToString() : "na";
 		string cand9to32Str = showPruneOnMetrics ? totalPass2CandidateCount9To32.ToString() : "na";
 		string cand33PlusStr = showPruneOnMetrics ? totalPass2CandidateCount33Plus.ToString() : "na";
-		string geomPruneAuditSampStr = showPruneOnMetrics ? totalPruneAuditSamples.ToString() : "na";
-		string geomPruneAuditFalseNegStr = showPruneOnMetrics ? totalPruneAuditFalseNeg.ToString() : "na";
-		string geomPruneAuditFalsePosStr = showPruneOnMetrics ? totalPruneAuditFalsePos.ToString() : "na";
-		string geomPruneAuditCand0HitStr = showPruneOnMetrics ? totalPruneAuditCandidateZeroButBaselineHit.ToString() : "na";
+		bool pruneAuditActive = showPruneOnMetrics && latest.PruneAuditEnabled;
+		string geomPruneAuditSampStr = pruneAuditActive ? totalPruneAuditSamples.ToString() : "na";
+		string geomPruneAuditFalseNegStr = pruneAuditActive ? totalPruneAuditFalseNeg.ToString() : "na";
+		string geomPruneAuditFalsePosStr = pruneAuditActive ? totalPruneAuditFalsePos.ToString() : "na";
+		string geomPruneAuditCand0HitStr = pruneAuditActive ? totalPruneAuditCandidateZeroButBaselineHit.ToString() : "na";
 		// FalseNegRate is defined as FalseNeg / Samp over the current RenderHealth window.
-		string geomPruneAuditFalseNegRateStr = showPruneOnMetrics
+		string geomPruneAuditFalseNegRateStr = pruneAuditActive
 			? ((double)totalPruneAuditFalseNeg / Math.Max(1L, totalPruneAuditSamples)).ToString("0.###")
 			: "na";
-		string geomHitOkStr = pruneMetricsTrusted ? totalGeomHitAccepted.ToString() : "na";
-		string geomHitRejectStr = pruneMetricsTrusted ? totalGeomHitRejected.ToString() : "na";
-		string geomRayTestsTotalStr = pruneMetricsTrusted ? totalGeomRayTestsTotal.ToString() : "na";
-		string geomRayTestsAcceptedStr = pruneMetricsTrusted ? totalGeomRayTestsAccepted.ToString() : "na";
-		string geomRayTestsRejectedStr = pruneMetricsTrusted ? totalGeomRayTestsRejected.ToString() : "na";
-		double geomRayTestsPerPixelOn = latest.UseGeometryTLASPruning && pruneMetricsTrusted && totalTracedForGeomMode > 0
+		string geomHitOkStr = geomMetricsTrusted ? totalGeomHitAccepted.ToString() : "na";
+		string geomHitRejectStr = geomMetricsTrusted ? totalGeomHitRejected.ToString() : "na";
+		string geomRayTestsTotalStr = geomMetricsTrusted ? totalGeomRayTestsTotal.ToString() : "na";
+		string geomRayTestsAcceptedStr = geomMetricsTrusted ? totalGeomRayTestsAccepted.ToString() : "na";
+		string geomRayTestsRejectedStr = geomMetricsTrusted ? totalGeomRayTestsRejected.ToString() : "na";
+		double geomRayTestsPerPixelOn = latest.UseGeometryTLASPruning && geomMetricsTrusted && totalTracedForGeomMode > 0
 			? (double)totalGeomRayTestsTotal / totalTracedForGeomMode
 			: -1.0;
-		double geomRayTestsPerPixelOffCurrent = !latest.UseGeometryTLASPruning && pruneMetricsTrusted && totalTracedForGeomMode > 0
+		double geomRayTestsPerPixelOffCurrent = !latest.UseGeometryTLASPruning && geomMetricsTrusted && totalTracedForGeomMode > 0
 			? (double)totalGeomRayTestsTotal / totalTracedForGeomMode
 			: -1.0;
 		double geomRayTestsPerPixelOffBaseline = _geomRayTestsOffPerPixelBaselineReady
@@ -7845,9 +7888,10 @@ public partial class GrinFilmCamera : Node
 			: -1.0;
 		string geomRayTestsSavedPct = "na";
 		if (latest.UseGeometryTLASPruning
-			&& pruneMetricsTrusted
+			&& geomMetricsTrusted
 			&& geomRayTestsPerPixelOn >= 0.0
-			&& geomRayTestsPerPixelOffBaseline > 0.0)
+			&& geomRayTestsPerPixelOffBaseline > 0.0
+			&& _geomRayTestsOffPerPixelBaselineReady)
 		{
 			double savedPct = 100.0 * (1.0 - (geomRayTestsPerPixelOn / geomRayTestsPerPixelOffBaseline));
 			// Clamp to [0,100]: this metric is defined as "saved work", so negative regressions are reported as 0.
@@ -7857,8 +7901,8 @@ public partial class GrinFilmCamera : Node
 		double geomRayTestsPerPixelOffDisplay = latest.UseGeometryTLASPruning
 			? geomRayTestsPerPixelOffBaseline
 			: geomRayTestsPerPixelOffCurrent;
-		string geomRayTestsPerPxOnStr = (pruneMetricsTrusted && geomRayTestsPerPixelOn >= 0.0) ? geomRayTestsPerPixelOn.ToString("0.###") : "na";
-		string geomRayTestsPerPxOffStr = (pruneMetricsTrusted && geomRayTestsPerPixelOffDisplay > 0.0) ? geomRayTestsPerPixelOffDisplay.ToString("0.###") : "na";
+		string geomRayTestsPerPxOnStr = (geomMetricsTrusted && geomRayTestsPerPixelOn >= 0.0) ? geomRayTestsPerPixelOn.ToString("0.###") : "na";
+		string geomRayTestsPerPxOffStr = (geomMetricsTrusted && geomRayTestsPerPixelOffDisplay > 0.0) ? geomRayTestsPerPixelOffDisplay.ToString("0.###") : "na";
 		bool geomCounterGuardEnabled = DebugLogConfig.EnableGeomRejectSample || DebugGeomCounterGuardEnabled;
 		bool geomSegZeroDrift = totalGeomSegZeroCandidates > totalGeomSegmentsQueried;
 		bool geomSegWithCandidatesDrift = totalGeomSegWithCandidates > totalGeomSegmentsQueried;
@@ -7871,7 +7915,7 @@ public partial class GrinFilmCamera : Node
 				$"step={latest.StepIndex} rows={latest.RowCursorBefore}->{latest.RowCursorAfter} bands={latest.BandsProcessed} prune={geomPruneMode} window={window}");
 		}
 		int geomRejectWarnThreshold = Math.Max(1, GeomHitRejectWarnThresholdPerWindow);
-		if (pruneMetricsTrusted && totalGeomHitRejected >= geomRejectWarnThreshold)
+		if (geomMetricsTrusted && totalGeomHitRejected >= geomRejectWarnThreshold)
 		{
 			GD.PrintErr(
 				$"[RenderHealth][WARN] geomHitRejectSpike reject={totalGeomHitRejected} threshold={geomRejectWarnThreshold} " +
@@ -7902,8 +7946,8 @@ public partial class GrinFilmCamera : Node
 			$"geomCandAvg={geomCandAvgStr} geomSegQueried={geomSegQueriedStr} geomSegWithCandidates={geomSegWithCandidatesStr} geomSegZero={geomSegZeroStr} geomSegZeroRatePct={geomSegZeroRatePctStr} " +
 			$"geomPixProcessed={geomPixProcessedStr} geomPixHadAnyCandidates={geomPixHadAnyCandidatesStr} geomPixNoCand={geomPixNoCandStr} geomPixNoCandRatePct={geomPixNoCandRatePctStr} " +
 			$"geomHitOk={geomHitOkStr} geomHitReject={geomHitRejectStr} " +
-			$"geomPrune={geomPruneMode} geomRayTestsTotal={geomRayTestsTotalStr} geomRayTestsAccepted={geomRayTestsAcceptedStr} geomRayTestsRejected={geomRayTestsRejectedStr} " +
-			$"geomRayTestsPerPxOn={geomRayTestsPerPxOnStr} geomRayTestsPerPxOff={geomRayTestsPerPxOffStr} geomRayTestsSavedPct={geomRayTestsSavedPct} geomPruneSwitched={_geomPruneSwitchedThisWindow} geomTrusted={(pruneMetricsTrusted ? 1 : 0)} geomHealthPartial={geomHealthPartial} geomHealthModeSamples={modeWindowSamplesUsed} geomTrustReason={geomWindowTrustReason} " +
+			$"geomPrune={geomPruneMode} geomPruneRequested={geomPruneRequestedBit} geomPruneEffective={geomPruneEffective} geomRayTestsTotal={geomRayTestsTotalStr} geomRayTestsAccepted={geomRayTestsAcceptedStr} geomRayTestsRejected={geomRayTestsRejectedStr} " +
+			$"geomRayTestsPerPxOn={geomRayTestsPerPxOnStr} geomRayTestsPerPxOff={geomRayTestsPerPxOffStr} geomRayTestsSavedPct={geomRayTestsSavedPct} geomPruneSwitched={_geomPruneSwitchedThisWindow} geomTrusted={(geomMetricsTrusted ? 1 : 0)} geomHealthPartial={geomHealthPartial} geomHealthModeSamples={modeWindowSamplesUsed} geomTrustReason={geomWindowTrustReason} " +
 			$"geomRejectSampleMissing={_geomRejectSampleCidNotInGeometryList} geomRejectSampleInList={_geomRejectSampleCidInGeometryListNotInCandidates} " +
 			$"geomRejectSampleCandHit={_geomRejectSampleCandidateContainsCid} geomRejectSampleDominant={geomRejectSampleDominant} " +
 			$"p2Samp={totalPass2SampledSegments} radAvg={pass2RadiusAvg:0.###} radMax={totalPass2RadiusMax:0.###} envDiagAvg={pass2EnvDiagAvg:0.###} envDiagMax={totalPass2EnvDiagMax:0.###} envInflAvg={pass2EnvelopeInflationAvg:0.###} envInflMax={totalPass2EnvelopeInflationMax:0.###} " +
@@ -7963,7 +8007,9 @@ public partial class GrinFilmCamera : Node
 		long pruneAuditCandidateZeroButBaselineHit,
 		double avgStepsPerTracedPixel,
 		string budgetExitReason,
-		bool useGeometryTLASPruning)
+		bool useGeometryTLASPruning,
+		bool geomPruneRequested,
+		bool pruneAuditEnabled)
 	{
 		bool geomPruneSwitched = _hasRenderHealthGeomPruneMode
 			&& _lastRenderHealthGeomPruneMode != useGeometryTLASPruning;
@@ -8006,6 +8052,9 @@ public partial class GrinFilmCamera : Node
 		}
 		_lastRenderHealthGeomPruneMode = useGeometryTLASPruning;
 		_hasRenderHealthGeomPruneMode = true;
+		int modeWindowSamplesUsed = CountRenderHealthModeSamplesInWindow(useGeometryTLASPruning) + 1;
+		bool geomWindowPartial = _geomPruneSwitchedThisWindow == 1
+			|| modeWindowSamplesUsed < RenderHealthMinModeSamplesForTrust;
 
 		_renderHealthStepIndex++;
 		long geomSegmentsQueriedDelta = ComputeCounterDelta(geomSegmentsQueried, ref _geomSegmentsQueriedLastSample);
@@ -8077,7 +8126,9 @@ public partial class GrinFilmCamera : Node
 			PruneAuditCandidateZeroButBaselineHit = pruneAuditCandidateZeroButBaselineHitDelta,
 			AvgStepsPerTracedPixel = avgStepsPerTracedPixel,
 			BudgetExitReason = budgetExitReason ?? string.Empty,
-			UseGeometryTLASPruning = useGeometryTLASPruning
+			GeomPruneRequested = geomPruneRequested,
+			UseGeometryTLASPruning = useGeometryTLASPruning,
+			PruneAuditEnabled = pruneAuditEnabled
 		};
 
 		if (sample.UseGeometryTLASPruning)
@@ -8087,13 +8138,16 @@ public partial class GrinFilmCamera : Node
 		}
 		else
 		{
-			_geomRayTestsPruningOffTotal += sample.GeomRayTestsTotal;
-			_geomRayTestsPruningOffTracedPixels += sample.TracedPixels;
-			if (_geomRayTestsPruningOffTracedPixels > 0)
+			if (!geomWindowPartial)
 			{
-				// OFF-baseline is learned only while pruning is OFF.
-				_geomRayTestsOffPerPixelBaseline = (double)_geomRayTestsPruningOffTotal / _geomRayTestsPruningOffTracedPixels;
-				_geomRayTestsOffPerPixelBaselineReady = _geomRayTestsOffPerPixelBaseline > 0.0;
+				_geomRayTestsPruningOffTotal += sample.GeomRayTestsTotal;
+				_geomRayTestsPruningOffTracedPixels += sample.TracedPixels;
+				if (_geomRayTestsPruningOffTracedPixels > 0)
+				{
+					// OFF-baseline is learned only from stable OFF windows.
+					_geomRayTestsOffPerPixelBaseline = (double)_geomRayTestsPruningOffTotal / _geomRayTestsPruningOffTracedPixels;
+					_geomRayTestsOffPerPixelBaselineReady = _geomRayTestsOffPerPixelBaseline > 0.0;
+				}
 			}
 		}
 
