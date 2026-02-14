@@ -7751,6 +7751,7 @@ public partial class GrinFilmCamera : Node
 			totalHybridNoCandidates += s.HybridNoCandidateCount;
 			if (s.UseGeometryTLASPruning == latest.UseGeometryTLASPruning)
 			{
+				// Keep geom aggregates mode-pure: never mix ON/OFF samples in one RenderHealth line.
 				modeWindowSamplesUsed++;
 				totalTracedForGeomMode += s.TracedPixels;
 				totalGeomCandidates += s.GeomCandidatesTotal;
@@ -7874,6 +7875,7 @@ public partial class GrinFilmCamera : Node
 			: "na";
 		string geomHitOkStr = geomMetricsTrusted ? totalGeomHitAccepted.ToString() : "na";
 		string geomHitRejectStr = geomMetricsTrusted ? totalGeomHitRejected.ToString() : "na";
+		// Geometry totals/per-px are trust-gated to avoid misleading zeros in mode-switch windows.
 		string geomRayTestsTotalStr = geomMetricsTrusted ? totalGeomRayTestsTotal.ToString() : "na";
 		string geomRayTestsAcceptedStr = geomMetricsTrusted ? totalGeomRayTestsAccepted.ToString() : "na";
 		string geomRayTestsRejectedStr = geomMetricsTrusted ? totalGeomRayTestsRejected.ToString() : "na";
@@ -7898,6 +7900,10 @@ public partial class GrinFilmCamera : Node
 			savedPct = Math.Clamp(savedPct, 0.0, 100.0);
 			geomRayTestsSavedPct = savedPct.ToString("0.##");
 		}
+		// OFF-per-px display semantics:
+		// - prune OFF + trusted => current OFF per-px
+		// - prune ON + trusted + baseline ready => learned OFF baseline
+		// - otherwise => na
 		double geomRayTestsPerPixelOffDisplay = latest.UseGeometryTLASPruning
 			? geomRayTestsPerPixelOffBaseline
 			: geomRayTestsPerPixelOffCurrent;

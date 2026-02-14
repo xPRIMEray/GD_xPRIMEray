@@ -1,0 +1,17 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://c7v55rijbqxq0"
+
+[deps]
+
+files=["res://logs/renderhealth_b3.geomPrune.translation", "res://logs/renderhealth_b3.geomTrusted.translation", "res://logs/renderhealth_b3.geomHealthPartial.translation", "res://logs/renderhealth_b3.geomPruneSwitched.translation", "res://logs/renderhealth_b3.geomTrustReason.translation", "res://logs/renderhealth_b3.geomRayTestsPerPxOn.translation", "res://logs/renderhealth_b3.geomRayTestsPerPxOff.translation", "res://logs/renderhealth_b3.geomRayTestsSavedPct.translation", "res://logs/renderhealth_b3.geomCandAvg.translation", "res://logs/renderhealth_b3.cand0.translation", "res://logs/renderhealth_b3.cand1to2.translation", "res://logs/renderhealth_b3.cand3to8.translation", "res://logs/renderhealth_b3.cand9to32.translation", "res://logs/renderhealth_b3.cand33p.translation", "res://logs/renderhealth_b3.geomSegZeroRatePct.translation", "res://logs/renderhealth_b3.geomPixNoCandRatePct.translation"]
+
+source_file="res://logs/renderhealth_b3.csv"
+dest_files=["res://logs/renderhealth_b3.geomPrune.translation", "res://logs/renderhealth_b3.geomTrusted.translation", "res://logs/renderhealth_b3.geomHealthPartial.translation", "res://logs/renderhealth_b3.geomPruneSwitched.translation", "res://logs/renderhealth_b3.geomTrustReason.translation", "res://logs/renderhealth_b3.geomRayTestsPerPxOn.translation", "res://logs/renderhealth_b3.geomRayTestsPerPxOff.translation", "res://logs/renderhealth_b3.geomRayTestsSavedPct.translation", "res://logs/renderhealth_b3.geomCandAvg.translation", "res://logs/renderhealth_b3.cand0.translation", "res://logs/renderhealth_b3.cand1to2.translation", "res://logs/renderhealth_b3.cand3to8.translation", "res://logs/renderhealth_b3.cand9to32.translation", "res://logs/renderhealth_b3.cand33p.translation", "res://logs/renderhealth_b3.geomSegZeroRatePct.translation", "res://logs/renderhealth_b3.geomPixNoCandRatePct.translation"]
+
+[params]
+
+compress=true
+delimiter=0
