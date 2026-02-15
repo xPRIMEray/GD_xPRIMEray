@@ -878,6 +878,8 @@ public partial class GrinFilmCamera : Node
 	private const int RenderHealthPass2SampleEveryNSegments = 4096;
 	private const int RenderHealthMinSamplesForTrust = 64;
 	private const int RenderHealthMinModeSamplesForTrust = 8;
+	// Renderer throughput smoothing for overlay metrics (EMA over completed render frames).
+	private const double OverlayFpsEmaAlpha = 0.10;
 	private const uint PruneAuditDeterministicMask = 31u; // 1/32 deterministic sampling gate.
 
 	private RenderHealthSample[] _renderHealthSamples = new RenderHealthSample[RenderHealthBufferSize];
@@ -891,6 +893,10 @@ public partial class GrinFilmCamera : Node
 	private bool _rowStallActive = false;
 	private int _renderHealthPass2SampleCounter = 0;
 	private int _geomPruneAuditSamplesTakenThisWindow = 0;
+	private double _lastFrameRenderMs = 0.0;
+	private double _fpsEma = 0.0;
+	private bool _hasFpsEma = false;
+	private readonly StringBuilder _overlayHudSb = new StringBuilder(192);
 
 	// band hit ROI history
 	private float[] _bandHitRate = Array.Empty<float>();
@@ -1694,16 +1700,69 @@ public partial class GrinFilmCamera : Node
 		{
 			case RenderBackends.BackendMode.Core:
 				_coreBackend.RenderFrame(snapshot);
-				_legacyBackend.RenderFrame(snapshot);
+				RenderLegacyBackendTimed(snapshot);
 				break;
 			case RenderBackends.BackendMode.Compare:
 				// TODO: compare mode; for now keep legacy render to avoid breaking output.
-				_legacyBackend.RenderFrame(snapshot);
+				RenderLegacyBackendTimed(snapshot);
 				break;
 			default:
-				_legacyBackend.RenderFrame(snapshot);
+				RenderLegacyBackendTimed(snapshot);
 				break;
 		}
+	}
+
+	private void RenderLegacyBackendTimed(SceneSnapshot snapshot)
+	{
+		long t0 = Stopwatch.GetTimestamp();
+		_legacyBackend.RenderFrame(snapshot);
+		long t1 = Stopwatch.GetTimestamp();
+
+		double frameMs = (t1 - t0) * 1000.0 / Stopwatch.Frequency;
+		UpdateRenderThroughputMetrics(frameMs);
+		EmitRenderMetricsOverlay();
+	}
+
+	private void UpdateRenderThroughputMetrics(double frameMs)
+	{
+		if (!double.IsFinite(frameMs) || frameMs <= 0.0)
+			return;
+
+		_lastFrameRenderMs = frameMs;
+		double fpsNow = 1000.0 / frameMs;
+		if (!_hasFpsEma)
+		{
+			_fpsEma = fpsNow;
+			_hasFpsEma = true;
+		}
+		else
+		{
+			_fpsEma += (fpsNow - _fpsEma) * OverlayFpsEmaAlpha;
+		}
+	}
+
+	private void EmitRenderMetricsOverlay()
+	{
+		if (_filmOverlay == null || !GodotObject.IsInstanceValid(_filmOverlay))
+			return;
+
+		_overlayHudSb.Clear();
+		if (_renderHealthCount > 0)
+		{
+			RenderHealthSample latest = GetRenderHealthSampleFromEnd(0);
+			_overlayHudSb
+				.Append("RH step=").Append(latest.StepIndex)
+				.Append(" rowsAdv=").Append(latest.RowsAdvanced)
+				.Append(" hits=").Append(latest.Hits)
+				.Append(" ");
+		}
+
+		// fps = renderer throughput based on completed render-frame time (not engine FPS).
+		_overlayHudSb
+			.Append("fps=").Append(_fpsEma.ToString("0.0"))
+			.Append(" frameMs=").Append(_lastFrameRenderMs.ToString("0.0"));
+
+		DebugOverlayBus.AddText(new Vector2(16f, 24f), _overlayHudSb.ToString(), Colors.White);
 	}
 
 	private void ThrottleBusLog(double delta, SceneSnapshot snapshot)

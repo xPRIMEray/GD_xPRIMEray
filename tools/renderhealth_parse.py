@@ -4,11 +4,12 @@ import csv
 import re
 import sys
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, Iterator, List, Optional, TextIO, Tuple
 
 
 TOKEN_RE = re.compile(r"([A-Za-z0-9_]+)=([^\s]+)")
 RENDERHEALTH_PREFIX = "[RenderHealth]"
+RENDERHEALTH_PREFIX_RE = re.compile(r"\[RenderHealth\]")
 
 
 def parse_num(value: Optional[str]) -> Optional[float]:
@@ -26,7 +27,7 @@ def parse_num(value: Optional[str]) -> Optional[float]:
 def is_na_token(value: Optional[str]) -> bool:
     if value is None:
         return True
-    return value.strip().lower() in ("na", "nan", "")
+    return value.strip().lower() in ("na", "nan", "n/a", "none", "null", "")
 
 
 @dataclass
@@ -80,16 +81,45 @@ def parse_renderhealth_line(line: str) -> Optional[Dict[str, str]]:
     return {k: v for k, v in TOKEN_RE.findall(text)}
 
 
-def iter_renderhealth_entries(lines: Iterable[str]) -> Iterable[Dict[str, str]]:
-    for raw in lines:
+def iter_renderhealth_entries(segments: Iterable[str]) -> Iterable[Dict[str, str]]:
+    for raw in segments:
         data = parse_renderhealth_line(raw)
         if data is not None:
             yield data
 
 
-def load_renderhealth_entries(path: str) -> List[Dict[str, str]]:
+def iter_renderhealth_segments(stream: TextIO, chunk_size: int = 1024 * 1024) -> Iterator[str]:
+    buffer = ""
+    while True:
+        chunk = stream.read(chunk_size)
+        if not chunk:
+            break
+        buffer += chunk
+        while True:
+            starts = list(RENDERHEALTH_PREFIX_RE.finditer(buffer))
+            if len(starts) < 2:
+                break
+            first = starts[0].start()
+            second = starts[1].start()
+            segment = buffer[first:second].strip()
+            if segment:
+                yield segment
+            buffer = buffer[second:]
+
+    starts = list(RENDERHEALTH_PREFIX_RE.finditer(buffer))
+    if not starts:
+        return
+    for i, match in enumerate(starts):
+        start = match.start()
+        end = starts[i + 1].start() if (i + 1) < len(starts) else len(buffer)
+        segment = buffer[start:end].strip()
+        if segment:
+            yield segment
+
+
+def load_entries(path: str) -> List[Dict[str, str]]:
     with open(path, "r", encoding="utf-8", errors="replace") as f:
-        return list(iter_renderhealth_entries(f))
+        return list(iter_renderhealth_entries(iter_renderhealth_segments(f)))
 
 
 def is_trusted_window(data: Dict[str, str]) -> bool:
@@ -102,7 +132,7 @@ def is_trusted_window(data: Dict[str, str]) -> bool:
     return True
 
 
-def summarize_renderhealth_entries(
+def summarize_entries(
     entries: Iterable[Dict[str, str]],
     require_trusted: bool,
 ) -> Tuple[Dict[str, ModeAgg], List[Dict[str, str]]]:
@@ -161,8 +191,19 @@ def summarize_renderhealth_entries(
 
 
 def parse_renderhealth_file(path: str, require_trusted: bool) -> Tuple[Dict[str, ModeAgg], List[Dict[str, str]]]:
-    entries = load_renderhealth_entries(path)
-    return summarize_renderhealth_entries(entries, require_trusted)
+    entries = load_entries(path)
+    return summarize_entries(entries, require_trusted)
+
+
+def load_renderhealth_entries(path: str) -> List[Dict[str, str]]:
+    return load_entries(path)
+
+
+def summarize_renderhealth_entries(
+    entries: Iterable[Dict[str, str]],
+    require_trusted: bool,
+) -> Tuple[Dict[str, ModeAgg], List[Dict[str, str]]]:
+    return summarize_entries(entries, require_trusted)
 
 
 def print_summary(groups: Dict[str, ModeAgg], require_trusted: bool) -> None:
