@@ -554,7 +554,6 @@ SkyColor = Color(0.19793725, 0.19793722, 0.19793722, 1)
 FilmOpacity = 0.8
 ShadingMode = 1
 FlipNormalToCamera = false
-UpdateEveryFrame = false
 UpdateEveryFrameBudgetMs = 1000.0
 UpdateEveryFrameMaxRowsPerStep = 32
 RenderStepMaxMs = 10000

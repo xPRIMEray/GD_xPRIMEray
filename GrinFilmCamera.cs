@@ -878,8 +878,8 @@ public partial class GrinFilmCamera : Node
 	private const int RenderHealthPass2SampleEveryNSegments = 4096;
 	private const int RenderHealthMinSamplesForTrust = 64;
 	private const int RenderHealthMinModeSamplesForTrust = 8;
-	// Renderer throughput smoothing for overlay metrics (EMA over completed render frames).
-	private const double OverlayFpsEmaAlpha = 0.10;
+	// Renderer throughput smoothing for overlay metrics (EMA over RenderHealth emissions).
+	private const double OverlayRenderThroughputEmaAlpha = 0.20;
 	private const uint PruneAuditDeterministicMask = 31u; // 1/32 deterministic sampling gate.
 
 	private RenderHealthSample[] _renderHealthSamples = new RenderHealthSample[RenderHealthBufferSize];
@@ -894,9 +894,13 @@ public partial class GrinFilmCamera : Node
 	private int _renderHealthPass2SampleCounter = 0;
 	private int _geomPruneAuditSamplesTakenThisWindow = 0;
 	private double _lastFrameRenderMs = 0.0;
-	private double _fpsEma = 0.0;
-	private bool _hasFpsEma = false;
-	private readonly StringBuilder _overlayHudSb = new StringBuilder(192);
+	private readonly StringBuilder _overlayHudSb = new StringBuilder(256);
+	private long _lastRenderHealthEmissionTimestamp = 0;
+	private bool _hasLastRenderHealthEmissionTimestamp = false;
+	private double _rowsPerSecEma = 0.0;
+	private double _msPerRowEma = 0.0;
+	private bool _hasRenderThroughputEma = false;
+	private bool _renderThroughputWindowTrusted = false;
 
 	// band hit ROI history
 	private float[] _bandHitRate = Array.Empty<float>();
@@ -1718,27 +1722,49 @@ public partial class GrinFilmCamera : Node
 		_legacyBackend.RenderFrame(snapshot);
 		long t1 = Stopwatch.GetTimestamp();
 
-		double frameMs = (t1 - t0) * 1000.0 / Stopwatch.Frequency;
-		UpdateRenderThroughputMetrics(frameMs);
+		_lastFrameRenderMs = (t1 - t0) * 1000.0 / Stopwatch.Frequency;
 		EmitRenderMetricsOverlay();
 	}
 
-	private void UpdateRenderThroughputMetrics(double frameMs)
+	private void UpdateRenderThroughputMetricsFromRenderHealth(long rowsAdvancedInWindow, bool windowTrusted)
 	{
-		if (!double.IsFinite(frameMs) || frameMs <= 0.0)
+		long now = Stopwatch.GetTimestamp();
+		if (!_hasLastRenderHealthEmissionTimestamp)
+		{
+			_lastRenderHealthEmissionTimestamp = now;
+			_hasLastRenderHealthEmissionTimestamp = true;
+			_renderThroughputWindowTrusted = false;
+			return;
+		}
+
+		long deltaTicks = now - _lastRenderHealthEmissionTimestamp;
+		_lastRenderHealthEmissionTimestamp = now;
+		_renderThroughputWindowTrusted = false;
+		if (deltaTicks <= 0)
 			return;
 
-		_lastFrameRenderMs = frameMs;
-		double fpsNow = 1000.0 / frameMs;
-		if (!_hasFpsEma)
+		double elapsedSec = deltaTicks / (double)Stopwatch.Frequency;
+		if (!double.IsFinite(elapsedSec) || elapsedSec <= 0.0 || !windowTrusted || rowsAdvancedInWindow <= 0)
+			return;
+
+		double rowsPerSec = rowsAdvancedInWindow / elapsedSec;
+		double msPerRow = (elapsedSec * 1000.0) / rowsAdvancedInWindow;
+		if (!double.IsFinite(rowsPerSec) || !double.IsFinite(msPerRow) || rowsPerSec <= 0.0 || msPerRow <= 0.0)
+			return;
+
+		if (!_hasRenderThroughputEma)
 		{
-			_fpsEma = fpsNow;
-			_hasFpsEma = true;
+			_rowsPerSecEma = rowsPerSec;
+			_msPerRowEma = msPerRow;
+			_hasRenderThroughputEma = true;
 		}
 		else
 		{
-			_fpsEma += (fpsNow - _fpsEma) * OverlayFpsEmaAlpha;
+			_rowsPerSecEma += (rowsPerSec - _rowsPerSecEma) * OverlayRenderThroughputEmaAlpha;
+			_msPerRowEma += (msPerRow - _msPerRowEma) * OverlayRenderThroughputEmaAlpha;
 		}
+
+		_renderThroughputWindowTrusted = true;
 	}
 
 	private void EmitRenderMetricsOverlay()
@@ -1757,10 +1783,46 @@ public partial class GrinFilmCamera : Node
 				.Append(" ");
 		}
 
-		// fps = renderer throughput based on completed render-frame time (not engine FPS).
+		double engineFps = Engine.GetFramesPerSecond();
 		_overlayHudSb
-			.Append("fps=").Append(_fpsEma.ToString("0.0"))
-			.Append(" frameMs=").Append(_lastFrameRenderMs.ToString("0.0"));
+			.Append("engineFps=").Append(engineFps.ToString("0.0"))
+			.Append(" tickMs=").Append(_lastFrameRenderMs.ToString("0.0"))
+			.Append(" rows/s=");
+
+		bool hasTrustedThroughput = _renderThroughputWindowTrusted && _hasRenderThroughputEma;
+		if (hasTrustedThroughput)
+		{
+			_overlayHudSb.Append(_rowsPerSecEma.ToString("0.0"));
+		}
+		else
+		{
+			_overlayHudSb.Append("na");
+		}
+
+		_overlayHudSb.Append(" ms/row=");
+		if (hasTrustedThroughput)
+		{
+			_overlayHudSb.Append(_msPerRowEma.ToString("0.0"));
+		}
+		else
+		{
+			_overlayHudSb.Append("na");
+		}
+
+		_overlayHudSb.Append(" etaFullFilmSec=");
+		if (hasTrustedThroughput && _filmHeight > 0)
+		{
+			const double eps = 1e-6;
+			double etaFullFilmSec = _filmHeight / Math.Max(_rowsPerSecEma, eps);
+			if (double.IsFinite(etaFullFilmSec) && etaFullFilmSec >= 0.0)
+				_overlayHudSb.Append(etaFullFilmSec.ToString("0.0"));
+			else
+				_overlayHudSb.Append("na");
+		}
+		else
+		{
+			_overlayHudSb.Append("na");
+		}
 
 		DebugOverlayBus.AddText(new Vector2(16f, 24f), _overlayHudSb.ToString(), Colors.White);
 	}
@@ -7759,6 +7821,7 @@ public partial class GrinFilmCamera : Node
 		int modeWindowSamplesUsed = 0;
 		long totalTraced = 0;
 		long totalHits = 0;
+		long totalRowsAdvanced = 0;
 		long totalQuickRayZero = 0;
 		long totalHybridFallback = 0;
 		long totalHybridFallbackHits = 0;
@@ -7803,6 +7866,7 @@ public partial class GrinFilmCamera : Node
 			RenderHealthSample s = GetRenderHealthSampleFromEnd(i);
 			totalTraced += s.TracedPixels;
 			totalHits += s.Hits;
+			totalRowsAdvanced += s.RowsAdvanced;
 			totalQuickRayZero += s.QuickRayZeroCount;
 			totalHybridFallback += s.HybridFallbackCount;
 			totalHybridFallbackHits += s.HybridFallbackHitCount;
@@ -8003,6 +8067,7 @@ public partial class GrinFilmCamera : Node
 			geomRejectSampleDominant = "CID_IN_CANDIDATES_UNEXPECTED";
 		}
 		string exitTag = string.IsNullOrEmpty(latest.BudgetExitReason) ? "none" : latest.BudgetExitReason;
+		UpdateRenderThroughputMetricsFromRenderHealth(totalRowsAdvanced, geomMetricsTrusted);
 		GD.Print(
 			$"[RenderHealth] step={latest.StepIndex} lastRow={latest.RowCursorAfter} rowsAdv={latest.RowsAdvanced} bands={latest.BandsProcessed} " +
 			$"stalledSteps={_renderHealthStallSteps} exit={exitTag} topExit={topExit} hitRate={hitRate:0.###} " +
