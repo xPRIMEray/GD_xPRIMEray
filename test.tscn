@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3 uid="uid://0yko6oxwl0n7"]
+[gd_scene load_steps=22 format=3 uid="uid://0yko6oxwl0n7"]
 
 [ext_resource type="Script" uid="uid://cmss07txb211i" path="res://world_environment.gd" id="1_6uqi0"]
 [ext_resource type="Script" uid="uid://qebxtmehy4vg" path="res://options.gd" id="2_hjhvo"]
@@ -14,6 +14,7 @@
 [ext_resource type="Script" uid="uid://vmh5vusla1nv" path="res://FieldSource3D.cs" id="8_xersf"]
 [ext_resource type="PackedScene" uid="uid://bielmrb2fmvd6" path="res://test_physics_room-sphere.tscn" id="12_b0q6j"]
 [ext_resource type="Script" uid="uid://dwiws7vsdgshx" path="res://FieldProbe3D.cs" id="13_0m0f1"]
+[ext_resource type="Script" path="res://RendererCore/Testing/RenderTestRunner.cs" id="14_runtest"]
 
 [sub_resource type="PhysicalSkyMaterial" id="PhysicalSkyMaterial_6cd1w"]
 use_debanding = false
@@ -604,6 +605,13 @@ FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
 Pass2SoftGateMinSegLenSteps = 0.35
 SharedRbrHasRenderer = true
 SharedRbrFieldCenterIsCamera = false
+
+[node name="RenderTestRunner" type="Node" parent="."]
+script = ExtResource("14_runtest")
+FramesPerRun = 600
+WarmupFrames = 60
+GrinFilmCameraPath = NodePath("../GrinFilmCamera")
+TargetCameraPath = NodePath("../Camera3D")
 
 [node name="FieldProbe3D" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, -0.7284068, -0.6851449, 0, 0.6851449, -0.7284068, 1.3337088, 0.13719916, 1.7617948)

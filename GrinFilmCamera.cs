@@ -46,6 +46,48 @@ public partial class GrinFilmCamera : Node
 		Quality = 2
 	}
 
+	public enum TestCameraMode
+	{
+		None = 0,
+		Fixed = 1,
+		Orbit = 2
+	}
+
+	public struct TestRunConfig
+	{
+		public string Name;
+		public bool? UseGeometryTLASPruning;
+		public float? Pass2GeomEnvelopeRadiusScale;
+		public float? Pass2GeomEnvelopeAabbExpand;
+		public bool? UsePass2CollisionStride;
+		public int? Pass2CollisionStrideNear;
+		public int? Pass2CollisionStrideFar;
+		public float? Pass2CollisionStrideFarStartT;
+		public float? MinSegLenForStrideSkip;
+		public bool? Pass2SoftGateEnableQuickRayMiss;
+		public bool? Pass2SoftGateScoringEnabled;
+		public TestCameraMode CameraMode;
+		public Vector3 CameraFixedPosition;
+		public Vector3 CameraLookAt;
+		public float CameraOrbitRadius;
+		public float CameraOrbitHeight;
+		public float CameraOrbitPeriodFrames;
+	}
+
+	public struct TestRunDefaults
+	{
+		public bool UseGeometryTLASPruning;
+		public float Pass2GeomEnvelopeRadiusScale;
+		public float Pass2GeomEnvelopeAabbExpand;
+		public bool UsePass2CollisionStride;
+		public int Pass2CollisionStrideNear;
+		public int Pass2CollisionStrideFar;
+		public float Pass2CollisionStrideFarStartT;
+		public float MinSegLenForStrideSkip;
+		public bool Pass2SoftGateEnableQuickRayMiss;
+		public bool Pass2SoftGateScoringEnabled;
+	}
+
 	[ExportGroup("Presets")]
 
 	[ExportSubgroup("Scene Preset")]
@@ -901,6 +943,11 @@ public partial class GrinFilmCamera : Node
 	private double _msPerRowEma = 0.0;
 	private bool _hasRenderThroughputEma = false;
 	private bool _renderThroughputWindowTrusted = false;
+	private bool _testHasRenderHealthSnapshot = false;
+	private bool _testLastGeomTrusted = false;
+	private bool _testLastGeomSavedPctAvailable = false;
+	private double _testLastGeomSavedPct = 0.0;
+	private string _testLastGeomTrustReason = "na";
 
 	// band hit ROI history
 	private float[] _bandHitRate = Array.Empty<float>();
@@ -1724,6 +1771,69 @@ public partial class GrinFilmCamera : Node
 
 		_lastFrameRenderMs = (t1 - t0) * 1000.0 / Stopwatch.Frequency;
 		EmitRenderMetricsOverlay();
+	}
+
+	public TestRunDefaults CaptureTestRunDefaults()
+	{
+		return new TestRunDefaults
+		{
+			UseGeometryTLASPruning = UseGeometryTLASPruning,
+			Pass2GeomEnvelopeRadiusScale = Pass2GeomEnvelopeRadiusScale,
+			Pass2GeomEnvelopeAabbExpand = Pass2GeomEnvelopeAabbExpand,
+			UsePass2CollisionStride = UsePass2CollisionStride,
+			Pass2CollisionStrideNear = Pass2CollisionStrideNear,
+			Pass2CollisionStrideFar = Pass2CollisionStrideFar,
+			Pass2CollisionStrideFarStartT = Pass2CollisionStrideFarStartT,
+			MinSegLenForStrideSkip = MinSegLenForStrideSkip,
+			Pass2SoftGateEnableQuickRayMiss = Pass2SoftGateEnableQuickRayMiss,
+			Pass2SoftGateScoringEnabled = Pass2SoftGateScoringEnabled
+		};
+	}
+
+	public void ApplyTestRunConfig(in TestRunConfig run)
+	{
+		if (run.UseGeometryTLASPruning.HasValue) UseGeometryTLASPruning = run.UseGeometryTLASPruning.Value;
+		if (run.Pass2GeomEnvelopeRadiusScale.HasValue) Pass2GeomEnvelopeRadiusScale = Mathf.Max(1.0f, run.Pass2GeomEnvelopeRadiusScale.Value);
+		if (run.Pass2GeomEnvelopeAabbExpand.HasValue) Pass2GeomEnvelopeAabbExpand = Mathf.Max(0.0f, run.Pass2GeomEnvelopeAabbExpand.Value);
+		if (run.UsePass2CollisionStride.HasValue) UsePass2CollisionStride = run.UsePass2CollisionStride.Value;
+		if (run.Pass2CollisionStrideNear.HasValue) Pass2CollisionStrideNear = Math.Max(1, run.Pass2CollisionStrideNear.Value);
+		if (run.Pass2CollisionStrideFar.HasValue) Pass2CollisionStrideFar = Math.Max(1, run.Pass2CollisionStrideFar.Value);
+		if (run.Pass2CollisionStrideFarStartT.HasValue) Pass2CollisionStrideFarStartT = Mathf.Clamp(run.Pass2CollisionStrideFarStartT.Value, 0.0f, 1.0f);
+		if (run.MinSegLenForStrideSkip.HasValue) MinSegLenForStrideSkip = Mathf.Max(0.0f, run.MinSegLenForStrideSkip.Value);
+		if (run.Pass2SoftGateEnableQuickRayMiss.HasValue) Pass2SoftGateEnableQuickRayMiss = run.Pass2SoftGateEnableQuickRayMiss.Value;
+		if (run.Pass2SoftGateScoringEnabled.HasValue) Pass2SoftGateScoringEnabled = run.Pass2SoftGateScoringEnabled.Value;
+	}
+
+	public void RestoreTestRunDefaults(in TestRunDefaults defaults)
+	{
+		UseGeometryTLASPruning = defaults.UseGeometryTLASPruning;
+		Pass2GeomEnvelopeRadiusScale = defaults.Pass2GeomEnvelopeRadiusScale;
+		Pass2GeomEnvelopeAabbExpand = defaults.Pass2GeomEnvelopeAabbExpand;
+		UsePass2CollisionStride = defaults.UsePass2CollisionStride;
+		Pass2CollisionStrideNear = defaults.Pass2CollisionStrideNear;
+		Pass2CollisionStrideFar = defaults.Pass2CollisionStrideFar;
+		Pass2CollisionStrideFarStartT = defaults.Pass2CollisionStrideFarStartT;
+		MinSegLenForStrideSkip = defaults.MinSegLenForStrideSkip;
+		Pass2SoftGateEnableQuickRayMiss = defaults.Pass2SoftGateEnableQuickRayMiss;
+		Pass2SoftGateScoringEnabled = defaults.Pass2SoftGateScoringEnabled;
+	}
+
+	public void GetLatestFrameMetricsForTesting(out double frameMs, out bool hasSegsPerPixel, out double segsPerPixel)
+	{
+		frameMs = _lastFrameRenderMs;
+		hasSegsPerPixel = _framePerf.RaysTraced > 0;
+		segsPerPixel = hasSegsPerPixel
+			? (double)_framePerf.SegmentsTested / Math.Max(1L, _framePerf.RaysTraced)
+			: 0.0;
+	}
+
+	public bool TryGetLatestRenderHealthForTesting(out bool trusted, out bool savedPctAvailable, out double savedPct, out string trustReason)
+	{
+		trusted = _testLastGeomTrusted;
+		savedPctAvailable = _testLastGeomSavedPctAvailable;
+		savedPct = _testLastGeomSavedPct;
+		trustReason = _testLastGeomTrustReason;
+		return _testHasRenderHealthSnapshot;
 	}
 
 	private void UpdateRenderThroughputMetricsFromRenderHealth(long rowsAdvancedInWindow, bool windowTrusted)
@@ -8012,6 +8122,8 @@ public partial class GrinFilmCamera : Node
 			? _geomRayTestsOffPerPixelBaseline
 			: -1.0;
 		string geomRayTestsSavedPct = "na";
+		bool geomSavedPctAvailableForTest = false;
+		double geomSavedPctForTest = 0.0;
 		if (latest.UseGeometryTLASPruning
 			&& geomMetricsTrusted
 			&& geomRayTestsPerPixelOn >= 0.0
@@ -8022,6 +8134,8 @@ public partial class GrinFilmCamera : Node
 			// Clamp to [0,100]: this metric is defined as "saved work", so negative regressions are reported as 0.
 			savedPct = Math.Clamp(savedPct, 0.0, 100.0);
 			geomRayTestsSavedPct = savedPct.ToString("0.##");
+			geomSavedPctAvailableForTest = true;
+			geomSavedPctForTest = savedPct;
 		}
 		// OFF-per-px display semantics:
 		// - prune OFF + trusted => current OFF per-px
@@ -8068,6 +8182,11 @@ public partial class GrinFilmCamera : Node
 		}
 		string exitTag = string.IsNullOrEmpty(latest.BudgetExitReason) ? "none" : latest.BudgetExitReason;
 		UpdateRenderThroughputMetricsFromRenderHealth(totalRowsAdvanced, geomMetricsTrusted);
+		_testHasRenderHealthSnapshot = true;
+		_testLastGeomTrusted = geomMetricsTrusted;
+		_testLastGeomSavedPctAvailable = geomSavedPctAvailableForTest;
+		_testLastGeomSavedPct = geomSavedPctForTest;
+		_testLastGeomTrustReason = geomWindowTrustReason;
 		GD.Print(
 			$"[RenderHealth] step={latest.StepIndex} lastRow={latest.RowCursorAfter} rowsAdv={latest.RowsAdvanced} bands={latest.BandsProcessed} " +
 			$"stalledSteps={_renderHealthStallSteps} exit={exitTag} topExit={topExit} hitRate={hitRate:0.###} " +

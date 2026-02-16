@@ -10,6 +10,38 @@ from renderhealth_parse import is_na_token, is_trusted_window, load_entries, par
 
 RAY_FIELDS = ("geomRayTestsPerPxOn", "geomRayTestsPerPxOff", "geomRayTestsSavedPct")
 CAND_BUCKET_FIELDS = ("cand0", "cand1to2", "cand3to8", "cand9to32", "cand33p")
+PRUNING_ONLY_COUNTERS = ("geomPixProcessed", "geomPixNoCand", "geomPixHadAnyCandidates")
+COUNT_FIELDS_NONNEG = (
+    "rowsAdv",
+    "bands",
+    "qray0",
+    "hybridFallback",
+    "hybridFallbackHit",
+    "hybridFallbackMiss",
+    "noCandidates",
+    "geomSegQueried",
+    "geomSegWithCandidates",
+    "geomSegZero",
+    "geomPixProcessed",
+    "geomPixHadAnyCandidates",
+    "geomPixNoCand",
+    "geomHitOk",
+    "geomHitReject",
+    "geomRayTestsTotal",
+    "geomRayTestsAccepted",
+    "geomRayTestsRejected",
+    "p2Samp",
+    "cand0",
+    "cand1to2",
+    "cand3to8",
+    "cand9to32",
+    "cand33p",
+    "geomPruneAuditSamp",
+    "geomPruneAuditFalseNeg",
+    "geomPruneAuditFalsePos",
+    "geomPruneAuditCand0Hit",
+)
+RATIO_FIELDS_01 = ("hitRate", "geomPruneAuditFalseNegRate")
 PRUNE_ON_ONLY_FIELDS = (
     "geomCandAvg",
     "geomSegQueried",
@@ -27,6 +59,16 @@ PRUNE_ON_ONLY_FIELDS = (
     "geomPruneAuditFalseNegRate",
     *CAND_BUCKET_FIELDS,
 )
+TRUST_GATED_FIELDS = (
+    *RAY_FIELDS,
+    *PRUNE_ON_ONLY_FIELDS,
+    "geomHitOk",
+    "geomHitReject",
+    "geomRayTestsTotal",
+    "geomRayTestsAccepted",
+    "geomRayTestsRejected",
+)
+UNTRUSTED_REASONS = ("mode_switch", "low_mode_samples", "low_p2samp")
 
 
 def to_int(value: Optional[str], default: int = 0) -> int:
@@ -107,6 +149,7 @@ def validate_entry(
     switched = to_int(data.get("geomPruneSwitched")) == 1
     partial = to_int(data.get("geomHealthPartial")) == 1
     geom_trusted_token = parse_num(data.get("geomTrusted"))
+    trust_reason = (data.get("geomTrustReason") or "").strip().lower()
 
     stats.windows += 1
     if trusted:
@@ -125,6 +168,21 @@ def validate_entry(
         )
         _fields_are_na(data, RAY_FIELDS, path, index, "switch window")
         _fields_are_na(data, PRUNE_ON_ONLY_FIELDS, path, index, "switch window")
+        require(
+            trust_reason in ("", "mode_switch"),
+            path,
+            index,
+            data,
+            "switch window should report geomTrustReason=mode_switch",
+        )
+        mode_samples = parse_num(data.get("geomHealthModeSamples"))
+        require(
+            mode_samples is None or mode_samples <= 1.0,
+            path,
+            index,
+            data,
+            "switch window requires mode-window reset (geomHealthModeSamples should be <= 1)",
+        )
 
     # B) prune=off trusted windows: no candidate metrics, off baseline must be present.
     if mode == "off" and trusted:
@@ -159,6 +217,18 @@ def validate_entry(
         )
         off_val = parse_num(data.get("geomRayTestsPerPxOff"))
         require(off_val is not None and off_val >= 0.0, path, index, data, "geomRayTestsPerPxOff must be >= 0")
+
+    # C0) prune=off windows must not increment pruning-only counters.
+    if mode == "off":
+        for key in PRUNING_ONLY_COUNTERS:
+            val = parse_num(data.get(key))
+            require(
+                val is None or val == 0.0,
+                path,
+                index,
+                data,
+                f"prune=off must keep {key} at NA/0",
+            )
 
     # C) prune=on trusted windows: candidate metrics present; saved% only with valid OFF baseline.
     if mode == "on" and trusted:
@@ -198,6 +268,18 @@ def validate_entry(
             stats.on_saved_sum += saved
             stats.on_saved_count += 1
 
+    # C2) saved% can only be numeric when OFF baseline exists.
+    saved_global = parse_num(data.get("geomRayTestsSavedPct"))
+    off_baseline_global = parse_num(data.get("geomRayTestsPerPxOff"))
+    if saved_global is not None:
+        require(
+            off_baseline_global is not None and off_baseline_global > 0.0,
+            path,
+            index,
+            data,
+            "geomRayTestsSavedPct requires geomRayTestsPerPxOff baseline > 0",
+        )
+
     if mode == "off" and trusted:
         off = parse_num(data.get("geomRayTestsPerPxOff"))
         if off is not None:
@@ -217,6 +299,24 @@ def validate_entry(
                 f"{path}: audit mismatch without --allow-audit-mismatch; "
                 f"geomPruneAuditFalseNeg={fn_i} geomPruneAuditFalsePos={fp_i}; {_ctx(data, index)}"
             )
+
+    # E) ratio fields must be in [0,1] when present.
+    for key in RATIO_FIELDS_01:
+        val = parse_num(data.get(key))
+        if val is None:
+            continue
+        require(0.0 <= val <= 1.0, path, index, data, f"{key} must be in [0,1]")
+
+    # F) count fields must never be negative.
+    for key in COUNT_FIELDS_NONNEG:
+        val = parse_num(data.get(key))
+        if val is None:
+            continue
+        require(val >= 0.0, path, index, data, f"{key} must be >= 0")
+
+    # G) Explicit untrusted reasons must emit trust-gated fields as NA.
+    if trust_reason in UNTRUSTED_REASONS:
+        _fields_are_na(data, TRUST_GATED_FIELDS, path, index, f"untrusted reason={trust_reason}")
 
     stats.pass_count += 1
 

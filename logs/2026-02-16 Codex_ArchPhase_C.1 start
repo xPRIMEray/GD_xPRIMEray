@@ -1,0 +1,750 @@
+mplemented C.1 as an additive harness with scene hook, run matrix runner, test config API on GrinFilmCamera, and stronger log regression checks.
+
+Hook + Invoke
+
+Hooked runner into test.tscn as node RenderTestRunner at test.tscn (line 609), script res://RendererCore/Testing/RenderTestRunner.cs.
+Manual run: set RenderTestRunner.AutoStart=true in scene and run test.tscn.
+CLI/headless:
+test.tscn -- --render-test
+Parse/regress logs:
+your_run.log"
+your_run.log"
+Patch (all changed files)
+
+diff --git a/GrinFilmCamera.cs b/GrinFilmCamera.cs
+index 49974d9..84b1cf8 100644
+--- a/GrinFilmCamera.cs
++++ b/GrinFilmCamera.cs
+@@ -46,6 +46,48 @@ public partial class GrinFilmCamera : Node
+ 		Quality = 2
+ 	}
+ 
++	public enum TestCameraMode
++	{
++		None = 0,
++		Fixed = 1,
++		Orbit = 2
++	}
++
++	public struct TestRunConfig
++	{
++		public string Name;
++		public bool? UseGeometryTLASPruning;
++		public float? Pass2GeomEnvelopeRadiusScale;
++		public float? Pass2GeomEnvelopeAabbExpand;
++		public bool? UsePass2CollisionStride;
++		public int? Pass2CollisionStrideNear;
++		public int? Pass2CollisionStrideFar;
++		public float? Pass2CollisionStrideFarStartT;
++		public float? MinSegLenForStrideSkip;
++		public bool? Pass2SoftGateEnableQuickRayMiss;
++		public bool? Pass2SoftGateScoringEnabled;
++		public TestCameraMode CameraMode;
++		public Vector3 CameraFixedPosition;
++		public Vector3 CameraLookAt;
++		public float CameraOrbitRadius;
++		public float CameraOrbitHeight;
++		public float CameraOrbitPeriodFrames;
++	}
++
++	public struct TestRunDefaults
++	{
++		public bool UseGeometryTLASPruning;
++		public float Pass2GeomEnvelopeRadiusScale;
++		public float Pass2GeomEnvelopeAabbExpand;
++		public bool UsePass2CollisionStride;
++		public int Pass2CollisionStrideNear;
++		public int Pass2CollisionStrideFar;
++		public float Pass2CollisionStrideFarStartT;
++		public float MinSegLenForStrideSkip;
++		public bool Pass2SoftGateEnableQuickRayMiss;
++		public bool Pass2SoftGateScoringEnabled;
++	}
++
+ 	[ExportGroup("Presets")]
+ 
+ 	[ExportSubgroup("Scene Preset")]
+@@ -901,6 +943,11 @@ public partial class GrinFilmCamera : Node
+ 	private double _msPerRowEma = 0.0;
+ 	private bool _hasRenderThroughputEma = false;
+ 	private bool _renderThroughputWindowTrusted = false;
++	private bool _testHasRenderHealthSnapshot = false;
++	private bool _testLastGeomTrusted = false;
++	private bool _testLastGeomSavedPctAvailable = false;
++	private double _testLastGeomSavedPct = 0.0;
++	private string _testLastGeomTrustReason = "na";
+ 
+ 	// band hit ROI history
+ 	private float[] _bandHitRate = Array.Empty<float>();
+@@ -1726,6 +1773,69 @@ public partial class GrinFilmCamera : Node
+ 		EmitRenderMetricsOverlay();
+ 	}
+ 
++	public TestRunDefaults CaptureTestRunDefaults()
++	{
++		return new TestRunDefaults
++		{
++			UseGeometryTLASPruning = UseGeometryTLASPruning,
++			Pass2GeomEnvelopeRadiusScale = Pass2GeomEnvelopeRadiusScale,
++			Pass2GeomEnvelopeAabbExpand = Pass2GeomEnvelopeAabbExpand,
++			UsePass2CollisionStride = UsePass2CollisionStride,
++			Pass2CollisionStrideNear = Pass2CollisionStrideNear,
++			Pass2CollisionStrideFar = Pass2CollisionStrideFar,
++			Pass2CollisionStrideFarStartT = Pass2CollisionStrideFarStartT,
++			MinSegLenForStrideSkip = MinSegLenForStrideSkip,
++			Pass2SoftGateEnableQuickRayMiss = Pass2SoftGateEnableQuickRayMiss,
++			Pass2SoftGateScoringEnabled = Pass2SoftGateScoringEnabled
++		};
++	}
++
++	public void ApplyTestRunConfig(in TestRunConfig run)
++	{
++		if (run.UseGeometryTLASPruning.HasValue) UseGeometryTLASPruning = run.UseGeometryTLASPruning.Value;
++		if (run.Pass2GeomEnvelopeRadiusScale.HasValue) Pass2GeomEnvelopeRadiusScale = Mathf.Max(1.0f, run.Pass2GeomEnvelopeRadiusScale.Value);
++		if (run.Pass2GeomEnvelopeAabbExpand.HasValue) Pass2GeomEnvelopeAabbExpand = Mathf.Max(0.0f, run.Pass2GeomEnvelopeAabbExpand.Value);
++		if (run.UsePass2CollisionStride.HasValue) UsePass2CollisionStride = run.UsePass2CollisionStride.Value;
++		if (run.Pass2CollisionStrideNear.HasValue) Pass2CollisionStrideNear = Math.Max(1, run.Pass2CollisionStrideNear.Value);
++		if (run.Pass2CollisionStrideFar.HasValue) Pass2CollisionStrideFar = Math.Max(1, run.Pass2CollisionStrideFar.Value);
++		if (run.Pass2CollisionStrideFarStartT.HasValue) Pass2CollisionStrideFarStartT = Mathf.Clamp(run.Pass2CollisionStrideFarStartT.Value, 0.0f, 1.0f);
++		if (run.MinSegLenForStrideSkip.HasValue) MinSegLenForStrideSkip = Mathf.Max(0.0f, run.MinSegLenForStrideSkip.Value);
++		if (run.Pass2SoftGateEnableQuickRayMiss.HasValue) Pass2SoftGateEnableQuickRayMiss = run.Pass2SoftGateEnableQuickRayMiss.Value;
++		if (run.Pass2SoftGateScoringEnabled.HasValue) Pass2SoftGateScoringEnabled = run.Pass2SoftGateScoringEnabled.Value;
++	}
++
++	public void RestoreTestRunDefaults(in TestRunDefaults defaults)
++	{
++		UseGeometryTLASPruning = defaults.UseGeometryTLASPruning;
++		Pass2GeomEnvelopeRadiusScale = defaults.Pass2GeomEnvelopeRadiusScale;
++		Pass2GeomEnvelopeAabbExpand = defaults.Pass2GeomEnvelopeAabbExpand;
++		UsePass2CollisionStride = defaults.UsePass2CollisionStride;
++		Pass2CollisionStrideNear = defaults.Pass2CollisionStrideNear;
++		Pass2CollisionStrideFar = defaults.Pass2CollisionStrideFar;
++		Pass2CollisionStrideFarStartT = defaults.Pass2CollisionStrideFarStartT;
++		MinSegLenForStrideSkip = defaults.MinSegLenForStrideSkip;
++		Pass2SoftGateEnableQuickRayMiss = defaults.Pass2SoftGateEnableQuickRayMiss;
++		Pass2SoftGateScoringEnabled = defaults.Pass2SoftGateScoringEnabled;
++	}
++
++	public void GetLatestFrameMetricsForTesting(out double frameMs, out bool hasSegsPerPixel, out double segsPerPixel)
++	{
++		frameMs = _lastFrameRenderMs;
++		hasSegsPerPixel = _framePerf.RaysTraced > 0;
++		segsPerPixel = hasSegsPerPixel
++			? (double)_framePerf.SegmentsTested / Math.Max(1L, _framePerf.RaysTraced)
++			: 0.0;
++	}
++
++	public bool TryGetLatestRenderHealthForTesting(out bool trusted, out bool savedPctAvailable, out double savedPct, out string trustReason)
++	{
++		trusted = _testLastGeomTrusted;
++		savedPctAvailable = _testLastGeomSavedPctAvailable;
++		savedPct = _testLastGeomSavedPct;
++		trustReason = _testLastGeomTrustReason;
++		return _testHasRenderHealthSnapshot;
++	}
++
+ 	private void UpdateRenderThroughputMetricsFromRenderHealth(long rowsAdvancedInWindow, bool windowTrusted)
+ 	{
+ 		long now = Stopwatch.GetTimestamp();
+@@ -8012,6 +8122,8 @@ public partial class GrinFilmCamera : Node
+ 			? _geomRayTestsOffPerPixelBaseline
+ 			: -1.0;
+ 		string geomRayTestsSavedPct = "na";
++		bool geomSavedPctAvailableForTest = false;
++		double geomSavedPctForTest = 0.0;
+ 		if (latest.UseGeometryTLASPruning
+ 			&& geomMetricsTrusted
+ 			&& geomRayTestsPerPixelOn >= 0.0
+@@ -8022,6 +8134,8 @@ public partial class GrinFilmCamera : Node
+ 			// Clamp to [0,100]: this metric is defined as "saved work", so negative regressions are reported as 0.
+ 			savedPct = Math.Clamp(savedPct, 0.0, 100.0);
+ 			geomRayTestsSavedPct = savedPct.ToString("0.##");
++			geomSavedPctAvailableForTest = true;
++			geomSavedPctForTest = savedPct;
+ 		}
+@@ -8068,6 +8182,11 @@ public partial class GrinFilmCamera : Node
+ 		}
+ 		string exitTag = string.IsNullOrEmpty(latest.BudgetExitReason) ? "none" : latest.BudgetExitReason;
+ 		UpdateRenderThroughputMetricsFromRenderHealth(totalRowsAdvanced, geomMetricsTrusted);
++		_testHasRenderHealthSnapshot = true;
++		_testLastGeomTrusted = geomMetricsTrusted;
++		_testLastGeomSavedPctAvailable = geomSavedPctAvailableForTest;
++		_testLastGeomSavedPct = geomSavedPctForTest;
++		_testLastGeomTrustReason = geomWindowTrustReason;
+ 		GD.Print(
+ 			$"[RenderHealth] step={latest.StepIndex} lastRow={latest.RowCursorAfter} rowsAdv={latest.RowsAdvanced} bands={latest.BandsProcessed} " +
+diff --git a/RendererCore/Testing/RenderTestRunner.cs b/RendererCore/Testing/RenderTestRunner.cs
+new file mode 100644
+index 0000000..6b635a5
+--- /dev/null
++++ b/RendererCore/Testing/RenderTestRunner.cs
+@@ -0,0 +1,334 @@
++using Godot;
++using System;
++using System.Collections.Generic;
++
++public partial class RenderTestRunner : Node
++{
++	[ExportGroup("Run Control")]
++	[Export] public bool AutoStart = false;
++	[Export] public bool AutoQuitOnComplete = false;
++	[Export] public bool StartWhenCmdArgPresent = true;
++	[Export] public string CmdArgToken = "--render-test";
++	[Export(PropertyHint.Range, "1,100000,1")] public int FramesPerRun = 600;
++	[Export(PropertyHint.Range, "0,100000,1")] public int WarmupFrames = 60;
++
++	[ExportGroup("Node Paths")]
++	[Export] public NodePath GrinFilmCameraPath = "../GrinFilmCamera";
++	[Export] public NodePath TargetCameraPath = "../Camera3D";
++
++	private GrinFilmCamera _film;
++	private Camera3D _camera;
++	private bool _matrixRunning = false;
++	private bool _defaultsCaptured = false;
++	private bool _cameraTransformCaptured = false;
++	private GrinFilmCamera.TestRunDefaults _defaults;
++	private Vector3 _cameraOriginalPosition;
++	private Basis _cameraOriginalBasis;
++	private readonly List<GrinFilmCamera.TestRunConfig> _runs = new List<GrinFilmCamera.TestRunConfig>();
++	private readonly List<double> _frameMsSamples = new List<double>(1024);
++	private int _runIndex = -1;
++	private int _runFrameIndex = 0;
++	private double _runFrameMsSum = 0.0;
++	private double _runSegsPerPxSum = 0.0;
++	private int _runSegsPerPxCount = 0;
++	private ulong _runSeriesId = 0;
++
++	public override void _Ready()
++	{
++		ProcessPriority = 100;
++		if (AutoStart || (StartWhenCmdArgPresent && HasCmdArgToken()))
++		{
++			CallDeferred(nameof(StartDefaultMatrix));
++		}
++	}
++
++	public override void _Process(double delta)
++	{
++		if (!_matrixRunning || _film == null || !GodotObject.IsInstanceValid(_film))
++		{
++			return;
++		}
++
++		if (_runIndex < 0 || _runIndex >= _runs.Count)
++		{
++			FinishMatrix();
++			return;
++		}
++
++		GrinFilmCamera.TestRunConfig run = _runs[_runIndex];
++		ApplyDeterministicCamera(run, _runFrameIndex);
++
++		_film.GetLatestFrameMetricsForTesting(out double frameMs, out bool hasSegsPerPixel, out double segsPerPixel);
++		if (_runFrameIndex >= WarmupFrames && double.IsFinite(frameMs) && frameMs >= 0.0)
++		{
++			_frameMsSamples.Add(frameMs);
++			_runFrameMsSum += frameMs;
++			if (hasSegsPerPixel && double.IsFinite(segsPerPixel) && segsPerPixel >= 0.0)
++			{
++				_runSegsPerPxSum += segsPerPixel;
++				_runSegsPerPxCount++;
++			}
++		}
++
++		_runFrameIndex++;
++		if (_runFrameIndex >= FramesPerRun)
++		{
++			FinishRun();
++			StartNextRun();
++		}
++	}
++
++	public void StartDefaultMatrix()
++	{
++		if (_matrixRunning)
++		{
++			GD.Print("[RenderTest] matrix already running.");
++			return;
++		}
++
++		_film = GetNodeOrNull<GrinFilmCamera>(GrinFilmCameraPath);
++		if (_film == null || !GodotObject.IsInstanceValid(_film))
++		{
++			GD.PrintErr($"[RenderTest] missing GrinFilmCamera at path={GrinFilmCameraPath}");
++			return;
++		}
++
++		_camera = GetNodeOrNull<Camera3D>(TargetCameraPath);
++		if (_camera == null || !GodotObject.IsInstanceValid(_camera))
++		{
++			GD.PrintErr($"[RenderTest] missing Camera3D at path={TargetCameraPath}");
++			return;
++		}
++
++		_defaults = _film.CaptureTestRunDefaults();
++		_defaultsCaptured = true;
++		_cameraOriginalPosition = _camera.GlobalPosition;
++		_cameraOriginalBasis = _camera.GlobalTransform.Basis;
++		_cameraTransformCaptured = true;
++
++		_runs.Clear();
++		_runs.AddRange(BuildDefaultRuns());
++		if (_runs.Count == 0)
++		{
++			GD.PrintErr("[RenderTest] run matrix is empty.");
++			return;
++		}
++
++		_runSeriesId = (ulong)Time.GetUnixTimeFromSystem();
++		_matrixRunning = true;
++		_runIndex = -1;
++		_runFrameIndex = 0;
++		GD.Print($"[RenderTest][MATRIX START] id={_runSeriesId} runs={_runs.Count} framesPerRun={FramesPerRun} warmup={WarmupFrames}");
++		StartNextRun();
++	}
++
++	private void StartNextRun()
++	{
++		_runIndex++;
++		if (_runIndex >= _runs.Count)
++		{
++			FinishMatrix();
++			return;
++		}
++
++		GrinFilmCamera.TestRunConfig run = _runs[_runIndex];
++		_film.ApplyTestRunConfig(in run);
++		_runFrameIndex = 0;
++		_frameMsSamples.Clear();
++		_runFrameMsSum = 0.0;
++		_runSegsPerPxSum = 0.0;
++		_runSegsPerPxCount = 0;
++		GD.Print(
++			$"[RenderTest][RUN START] matrix={_runSeriesId} idx={_runIndex + 1}/{_runs.Count} name={Sanitize(run.Name)} " +
++			$"frames={FramesPerRun} warmup={WarmupFrames} prune={(run.UseGeometryTLASPruning.HasValue ? (run.UseGeometryTLASPruning.Value ? "on" : "off") : "inherit")}");
++	}
++
++	private void FinishRun()
++	{
++		GrinFilmCamera.TestRunConfig run = _runs[_runIndex];
++		int sampleCount = _frameMsSamples.Count;
++		double meanMs = sampleCount > 0 ? (_runFrameMsSum / sampleCount) : 0.0;
++		double p95Ms = ComputeP95Ms(_frameMsSamples);
++		string meanMsStr = sampleCount > 0 ? meanMs.ToString("0.###") : "na";
++		string p95MsStr = sampleCount > 0 ? p95Ms.ToString("0.###") : "na";
++		string meanSegStr = _runSegsPerPxCount > 0 ? (_runSegsPerPxSum / _runSegsPerPxCount).ToString("0.###") : "na";
++
++		bool hasRh = _film.TryGetLatestRenderHealthForTesting(out bool trusted, out bool savedPctAvailable, out double savedPct, out string trustReason);
++		string trustReasonOut = hasRh ? Sanitize(trustReason) : "no_renderhealth";
++		string savedPctStr = (hasRh && trusted && savedPctAvailable && double.IsFinite(savedPct))
++			? savedPct.ToString("0.##")
++			: "na";
++
++		GD.Print(
++			$"[RenderTest][RUN SUMMARY] matrix={_runSeriesId} idx={_runIndex + 1}/{_runs.Count} name={Sanitize(run.Name)} " +
++			$"samples={sampleCount} meanMsPerFrame={meanMsStr} p95MsPerFrame={p95MsStr} meanSegsPerPixel={meanSegStr} " +
++			$"geomTrusted={(hasRh && trusted ? 1 : 0)} geomTrustReason={trustReasonOut} geomRayTestsSavedPct={savedPctStr}");
++		GD.Print(
++			$"[RenderTest][RUN END] matrix={_runSeriesId} idx={_runIndex + 1}/{_runs.Count} name={Sanitize(run.Name)} " +
++			$"frames={FramesPerRun} warmup={WarmupFrames} samples={sampleCount}");
++
++		if (_defaultsCaptured)
++		{
++			_film.RestoreTestRunDefaults(in _defaults);
++		}
++	}
++
++	private void FinishMatrix()
++	{
++		if (!_matrixRunning)
++		{
++			return;
++		}
++
++		_matrixRunning = false;
++		if (_defaultsCaptured && _film != null && GodotObject.IsInstanceValid(_film))
++		{
++			_film.RestoreTestRunDefaults(in _defaults);
++		}
++		if (_cameraTransformCaptured && _camera != null && GodotObject.IsInstanceValid(_camera))
++		{
++			_camera.GlobalTransform = new Transform3D(_cameraOriginalBasis, _cameraOriginalPosition);
++		}
++
++		GD.Print($"[RenderTest][MATRIX END] id={_runSeriesId} runs={_runs.Count}");
++		if (AutoQuitOnComplete)
++		{
++			GetTree().Quit(0);
++		}
++	}
++
++	private List<GrinFilmCamera.TestRunConfig> BuildDefaultRuns()
++	{
++		Vector3 camPos = _camera.GlobalPosition;
++		Vector3 lookAt = camPos + (-_camera.GlobalTransform.Basis.Z) * 3.0f;
++		const float orbitRadius = 2.8f;
++		const float orbitHeight = 1.2f;
++		const float orbitPeriodFrames = 300f;
++
++		return new List<GrinFilmCamera.TestRunConfig>
++		{
++			new GrinFilmCamera.TestRunConfig
++			{
++				Name = "baseline_prune_off",
++				UseGeometryTLASPruning = false,
++				UsePass2CollisionStride = false,
++				Pass2SoftGateEnableQuickRayMiss = false,
++				CameraMode = GrinFilmCamera.TestCameraMode.Orbit,
++				CameraLookAt = lookAt,
++				CameraFixedPosition = camPos,
++				CameraOrbitRadius = orbitRadius,
++				CameraOrbitHeight = orbitHeight,
++				CameraOrbitPeriodFrames = orbitPeriodFrames
++			},
++			new GrinFilmCamera.TestRunConfig
++			{
++				Name = "prune_on_default",
++				UseGeometryTLASPruning = true,
++				UsePass2CollisionStride = true,
++				Pass2SoftGateEnableQuickRayMiss = true,
++				CameraMode = GrinFilmCamera.TestCameraMode.Orbit,
++				CameraLookAt = lookAt,
++				CameraFixedPosition = camPos,
++				CameraOrbitRadius = orbitRadius,
++				CameraOrbitHeight = orbitHeight,
++				CameraOrbitPeriodFrames = orbitPeriodFrames
++			},
++			new GrinFilmCamera.TestRunConfig
++			{
++				Name = "prune_on_tight_env",
++				UseGeometryTLASPruning = true,
++				Pass2GeomEnvelopeRadiusScale = 1.02f,
++				Pass2GeomEnvelopeAabbExpand = 0.01f,
++				UsePass2CollisionStride = true,
++				Pass2CollisionStrideNear = 1,
++				Pass2CollisionStrideFar = 4,
++				Pass2CollisionStrideFarStartT = 0.35f,
++				MinSegLenForStrideSkip = 0.25f,
++				Pass2SoftGateEnableQuickRayMiss = true,
++				CameraMode = GrinFilmCamera.TestCameraMode.Orbit,
++				CameraLookAt = lookAt,
++				CameraFixedPosition = camPos,
++				CameraOrbitRadius = orbitRadius,
++				CameraOrbitHeight = orbitHeight,
++				CameraOrbitPeriodFrames = orbitPeriodFrames
++			}
++		};
++	}
++
++	private void ApplyDeterministicCamera(in GrinFilmCamera.TestRunConfig run, int frameIndex)
++	{
++		if (_camera == null || !GodotObject.IsInstanceValid(_camera))
++		{
++			return;
++		}
++
++		if (run.CameraMode == GrinFilmCamera.TestCameraMode.Fixed)
++		{
++			_camera.GlobalPosition = run.CameraFixedPosition;
++			Vector3 toTarget = run.CameraLookAt - run.CameraFixedPosition;
++			if (toTarget.LengthSquared() > 1e-8f)
++			{
++				_camera.LookAt(run.CameraLookAt, Vector3.Up);
++			}
++			return;
++		}
++
++		if (run.CameraMode == GrinFilmCamera.TestCameraMode.Orbit)
++		{
++			float period = MathF.Max(1.0f, run.CameraOrbitPeriodFrames);
++			float phase = (frameIndex % (int)period) / period;
++			float angle = phase * Mathf.Tau;
++			float radius = MathF.Max(0.1f, run.CameraOrbitRadius);
++			Vector3 center = run.CameraLookAt;
++			Vector3 pos = new Vector3(
++				center.X + MathF.Cos(angle) * radius,
++				center.Y + run.CameraOrbitHeight,
++				center.Z + MathF.Sin(angle) * radius);
++			_camera.GlobalPosition = pos;
++			_camera.LookAt(center, Vector3.Up);
++		}
++	}
++
++	private bool HasCmdArgToken()
++	{
++		string token = (CmdArgToken ?? string.Empty).Trim();
++		if (token.Length == 0)
++		{
++			return false;
++		}
++
++		foreach (string arg in OS.GetCmdlineUserArgs())
++		{
++			if (string.Equals(arg, token, StringComparison.Ordinal))
++			{
++				return true;
++			}
++		}
++
++		return false;
++	}
++
++	private static double ComputeP95Ms(List<double> samples)
++	{
++		if (samples == null || samples.Count <= 0)
++		{
++			return 0.0;
++		}
++
++		double[] ordered = samples.ToArray();
++		Array.Sort(ordered);
++		int idx = (int)Math.Ceiling(ordered.Length * 0.95) - 1;
++		if (idx < 0) idx = 0;
++		if (idx >= ordered.Length) idx = ordered.Length - 1;
++		return ordered[idx];
++	}
++
++	private static string Sanitize(string value)
++	{
++		if (string.IsNullOrWhiteSpace(value))
++		{
++			return "unnamed";
++		}
++		return value.Trim().Replace(' ', '_');
++	}
++}
+diff --git a/test.tscn b/test.tscn
+index 74311ed..4d064c8 100644
+--- a/test.tscn
++++ b/test.tscn
+@@ -1,4 +1,4 @@
+-[gd_scene load_steps=21 format=3 uid="uid://0yko6oxwl0n7"]
++[gd_scene load_steps=22 format=3 uid="uid://0yko6oxwl0n7"]
+@@ -14,6 +14,7 @@
+ [ext_resource type="Script" uid="uid://vmh5vusla1nv" path="res://FieldSource3D.cs" id="8_xersf"]
+ [ext_resource type="PackedScene" uid="uid://bielmrb2fmvd6" path="res://test_physics_room-sphere.tscn" id="12_b0q6j"]
+ [ext_resource type="Script" uid="uid://dwiws7vsdgshx" path="res://FieldProbe3D.cs" id="13_0m0f1"]
++[ext_resource type="Script" path="res://RendererCore/Testing/RenderTestRunner.cs" id="14_runtest"]
+@@ -605,6 +606,13 @@ Pass2SoftGateMinSegLenSteps = 0.35
+ SharedRbrHasRenderer = true
+ SharedRbrFieldCenterIsCamera = false
+ 
++[node name="RenderTestRunner" type="Node" parent="."]
++script = ExtResource("14_runtest")
++FramesPerRun = 600
++WarmupFrames = 60
++GrinFilmCameraPath = NodePath("../GrinFilmCamera")
++TargetCameraPath = NodePath("../Camera3D")
++
+ [node name="FieldProbe3D" type="Node3D" parent="."]
+diff --git a/tools/renderhealth_regress.py b/tools/renderhealth_regress.py
+index dbfae3a..676e1d3 100644
+--- a/tools/renderhealth_regress.py
++++ b/tools/renderhealth_regress.py
+@@ -10,6 +10,38 @@ from renderhealth_parse import is_na_token, is_trusted_window, load_entries, par
+ RAY_FIELDS = ("geomRayTestsPerPxOn", "geomRayTestsPerPxOff", "geomRayTestsSavedPct")
+ CAND_BUCKET_FIELDS = ("cand0", "cand1to2", "cand3to8", "cand9to32", "cand33p")
++PRUNING_ONLY_COUNTERS = ("geomPixProcessed", "geomPixNoCand", "geomPixHadAnyCandidates")
++COUNT_FIELDS_NONNEG = (
++    "rowsAdv",
++    "bands",
++    "qray0",
++    "hybridFallback",
++    "hybridFallbackHit",
++    "hybridFallbackMiss",
++    "noCandidates",
++    "geomSegQueried",
++    "geomSegWithCandidates",
++    "geomSegZero",
++    "geomPixProcessed",
++    "geomPixHadAnyCandidates",
++    "geomPixNoCand",
++    "geomHitOk",
++    "geomHitReject",
++    "geomRayTestsTotal",
++    "geomRayTestsAccepted",
++    "geomRayTestsRejected",
++    "p2Samp",
++    "cand0",
++    "cand1to2",
++    "cand3to8",
++    "cand9to32",
++    "cand33p",
++    "geomPruneAuditSamp",
++    "geomPruneAuditFalseNeg",
++    "geomPruneAuditFalsePos",
++    "geomPruneAuditCand0Hit",
++)
++RATIO_FIELDS_01 = ("hitRate", "geomPruneAuditFalseNegRate")
+@@ -27,6 +59,16 @@ PRUNE_ON_ONLY_FIELDS = (
+     "geomPruneAuditFalseNegRate",
+     *CAND_BUCKET_FIELDS,
+ )
++TRUST_GATED_FIELDS = (
++    *RAY_FIELDS,
++    *PRUNE_ON_ONLY_FIELDS,
++    "geomHitOk",
++    "geomHitReject",
++    "geomRayTestsTotal",
++    "geomRayTestsAccepted",
++    "geomRayTestsRejected",
++)
++UNTRUSTED_REASONS = ("mode_switch", "low_mode_samples", "low_p2samp")
+@@ -107,6 +149,7 @@ def validate_entry(
+     switched = to_int(data.get("geomPruneSwitched")) == 1
+     partial = to_int(data.get("geomHealthPartial")) == 1
+     geom_trusted_token = parse_num(data.get("geomTrusted"))
++    trust_reason = (data.get("geomTrustReason") or "").strip().lower()
+@@ -125,6 +168,21 @@ def validate_entry(
+         )
+         _fields_are_na(data, RAY_FIELDS, path, index, "switch window")
+         _fields_are_na(data, PRUNE_ON_ONLY_FIELDS, path, index, "switch window")
++        require(
++            trust_reason in ("", "mode_switch"),
++            path,
++            index,
++            data,
++            "switch window should report geomTrustReason=mode_switch",
++        )
++        mode_samples = parse_num(data.get("geomHealthModeSamples"))
++        require(
++            mode_samples is None or mode_samples <= 1.0,
++            path,
++            index,
++            data,
++            "switch window requires mode-window reset (geomHealthModeSamples should be <= 1)",
++        )
+@@ -160,6 +218,18 @@ def validate_entry(
+         off_val = parse_num(data.get("geomRayTestsPerPxOff"))
+         require(off_val is not None and off_val >= 0.0, path, index, data, "geomRayTestsPerPxOff must be >= 0")
+ 
++    # C0) prune=off windows must not increment pruning-only counters.
++    if mode == "off":
++        for key in PRUNING_ONLY_COUNTERS:
++            val = parse_num(data.get(key))
++            require(
++                val is None or val == 0.0,
++                path,
++                index,
++                data,
++                f"prune=off must keep {key} at NA/0",
++            )
++
+@@ -198,6 +268,18 @@ def validate_entry(
+         if saved is not None:
+             stats.on_saved_sum += saved
+             stats.on_saved_count += 1
++
++    # C2) saved% can only be numeric when OFF baseline exists.
++    saved_global = parse_num(data.get("geomRayTestsSavedPct"))
++    off_baseline_global = parse_num(data.get("geomRayTestsPerPxOff"))
++    if saved_global is not None:
++        require(
++            off_baseline_global is not None and off_baseline_global > 0.0,
++            path,
++            index,
++            data,
++            "geomRayTestsSavedPct requires geomRayTestsPerPxOff baseline > 0",
++        )
+@@ -218,6 +300,24 @@ def validate_entry(
+                 f"geomPruneAuditFalseNeg={fn_i} geomPruneAuditFalsePos={fp_i}; {_ctx(data, index)}"
+             )
+ 
++    # E) ratio fields must be in [0,1] when present.
++    for key in RATIO_FIELDS_01:
++        val = parse_num(data.get(key))
++        if val is None:
++            continue
++        require(0.0 <= val <= 1.0, path, index, data, f"{key} must be in [0,1]")
++
++    # F) count fields must never be negative.
++    for key in COUNT_FIELDS_NONNEG:
++        val = parse_num(data.get(key))
++        if val is None:
++            continue
++        require(val >= 0.0, path, index, data, f"{key} must be >= 0")
++
++    # G) Explicit untrusted reasons must emit trust-gated fields as NA.
++    if trust_reason in UNTRUSTED_REASONS:
++        _fields_are_na(data, TRUST_GATED_FIELDS, path, index, f"untrusted reason={trust_reason}")
++
+     stats.pass_count += 1
+diff --git a/tools/README_test_harness.md b/tools/README_test_harness.md
+new file mode 100644
+index 0000000..51ed5f0
+--- /dev/null
++++ b/tools/README_test_harness.md
+@@ -0,0 +1,66 @@
++# Performance + Trust Test Harness
++
++This repo now includes a repeatable run-matrix harness for RenderHealth regression testing.
++
++## Scene Hook
++
++- Scene: `test.tscn`
++- New node: `RenderTestRunner` (`res://RendererCore/Testing/RenderTestRunner.cs`)
++- Target paths:
++  - `GrinFilmCameraPath = ../GrinFilmCamera`
++  - `TargetCameraPath = ../Camera3D`
++
++By default, `AutoStart` is `false`, so normal runs are unchanged.
++
++## Run Matrix Behavior
++
++Each run:
++- applies a named `TestRunConfig` override set on `GrinFilmCamera`
++- optionally drives deterministic camera motion (`Fixed` or `Orbit`)
++- runs `FramesPerRun` frames, ignoring first `WarmupFrames`
++- prints robust markers:
++  - `[RenderTest][RUN START] ...`
++  - `[RenderTest][RUN SUMMARY] ...`
++  - `[RenderTest][RUN END] ...`
++
++Matrix markers:
++- `[RenderTest][MATRIX START] ...`
++- `[RenderTest][MATRIX END] ...`
++
++`RUN SUMMARY` fields include:
++- `meanMsPerFrame`
++- `p95MsPerFrame` (approx percentile from collected frame ms samples)
++- `meanSegsPerPixel` (or `na`)
++- `geomRayTestsSavedPct` only when trusted; otherwise `na`
++
++## How To Run
++
++## Editor/manual
++
++1. Open `test.tscn`.
++2. Select `RenderTestRunner`.
++3. Set `AutoStart=true` (optional) and configure frame counts.
++4. Run scene and capture output log.
++
++## CLI/headless-friendly
++
++Use `--render-test` cmd arg so the runner auto-starts:
++
++```powershell
++godot4 --headless --path . --scene res://test.tscn -- --render-test
++```
++
++If your binary is `godot`, use that instead of `godot4`.
++
++Set `AutoQuitOnComplete=true` on `RenderTestRunner` when running in CI.
++
++## Parse + Regression Checks
++
++Use the existing parser and the updated regression harness:
++
++```powershell
++python tools/renderhealth_parse.py "logs\your_run.log"
++python tools/renderhealth_regress.py "logs\your_run.log"
++```
++
++`renderhealth_regress.py` exits non-zero on invariant failures and prints clear failure reasons.
+Validation I ran:
+
+dotnet build "Physical Light and Camera Units.csproj" -nologo succeeded (warnings only).
+python -m py_compile ... could not complete because an existing locked tools/__pycache__ file in this workspace denied write/delete access.
+Note: there are unrelated/generated .godot/mono/temp and tools/__pycache__ file changes in working tree from build/tool execution that I could not clean due index/file lock permissions; I did not include those in the patch above.
+
+
