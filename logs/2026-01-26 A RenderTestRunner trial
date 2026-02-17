@@ -1,0 +1,286 @@
+Godot Engine v4.5.1.stable.mono.official.f62fdbde1 - https://godotengine.org
+OpenGL API 3.3.0 Core Profile Context 25.11.1.251104 - Compatibility - Using Device: ATI Technologies Inc. - AMD Radeon RX 6700 XT
+
+✅ GrinFilmCamera READY: /root/TestHarness/GrinFilmCamera
+[RBRRef][Startup] configured path=../RayBeamRenderer
+[RBRRef] resolved ok name=RayBeamRenderer
+[RBRRef][Startup] resolved=True
+RayBeamRenderer found? True
+  ERROR: GrinFilmCamera: UpdateEveryFrame is false; FrameSnapshotBus will not update.
+[BroadphaseEffective] mode=Policy policy=None quick=False overlap=False reason=policy
+[SharedSnap] steps=400 stepLen=0.05 minStep=0.001 maxStep=0.3 collEvery=1 collRad=0.03 mask=0x0000FFFF debug=Off
+[EffectiveCfg] broadphase=Policy(policy) policy=None quick=0 overlap=0 softgate=0 score=1 minSeg=0.1 attempts=5000 sub=10000 stride=1 resScale=1 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF envRadScale=1.1 envAabbExpand=0 geomPrune=1 maxDist=50
+FilmView found? True
+[RBRRef][Startup] HasRenderer(after mirror)=True
+✅ GrinFilmCamera ready. Rendering film.
+[DBG] dbgMesh inTree=True parent=RayBeamRenderer world=(0, 0, 0)
+Rebuild ENTER
+Rebuild on node: /root/TestHarness/RayBeamRenderer  TerminateTrailOnHit=True StopOnHit=False RequireHitToRender=False
+READY node: /root/TestHarness/RayBeamRenderer  Script=<CSharpScript#-9223372011118525052>  TerminateTrailOnHit=True
+RayBeamRenderer: field sources in group = 0
+[RenderTestRunner][INIT] mode=normal startupDelayFrames=0 scene=res://test.tscn
+[RenderTest][MATRIX START] id=1771370654 runs=5 framesPerRun=6 warmup=2
+[MATRIX START] runs=5 framesPerRun=6 warmup=2 scene=res://test.tscn
+[RenderTest][RUN START] matrix=1771370654 idx=1/5 name=baseline_prune_off frames=6 warmup=2 prune=off
+[RUN START] name=baseline_prune_off prune=off stride=off envScale=inherit aabbExpand=inherit updateEveryFrame=on
+[SNAPSHOT] geomCount=2 collisionIncluded=0 visualIncluded=2 visualSkippedPref=0 collisionSkippedNonRaycast=0
+[SNAPSHOT][Bounds] samples=2 {id=26390562198 min=(-0.02,-0.02,-0.02) max=(0.02,0.02,0.02)} {id=26306676113 min=(-0.02,-0.02,-0.02) max=(0.02,0.02,0.02)}
+[EffectiveCfg] broadphase=Policy(policy) policy=None quick=0 overlap=0 softgate=0 score=1 minSeg=0.1 attempts=5000 sub=10000 stride=1 resScale=1 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF envRadScale=1.1 envAabbExpand=0 geomPrune=0 maxDist=50
+[RenderStep] phase=enter frame=1 row=0 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+Toggles: AdaptiveSubsteps=0 SingleProbeSubdivide=0 BandHitSkip=0 RequireHit=0 StopOnHit=0 TerminateTrailOnHit=1 UpdateEveryFrame=1
+[Cfg] Pass2SoftGateEnableQuickRayMiss=0 Pass2SoftGateScoringEnabled=1 Pass2SoftGateMinSegmentLength=0.1 Pass2SoftGateScoreThreshold=1 Pass2SoftGateScoreTurnAngleWeight=1 Pass2SoftGateScorePrevHitLostBonus=0.75 Pass2SoftGateRandomProbeChance=0.01 Pass2SoftGateScoreBudgetPerFrame=32 Pass2SoftGateMaxAttemptsPerPixel=2 Pass2SoftGateMaxAttemptsPerFrame=5000 Pass2SoftGateMaxSubdividedCallsPerFrame=10000 UpdateEveryFrame=1
+[RenderStep] phase=pass1-start frame=1 row=0 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=2
+[RenderStep] phase=pass1-end frame=1 row=0 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=128
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=1 rowStart=0 bandH=8 committed=0 pendingPass2=1 ms=128
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[0,8) rowCursor=0 elapsedMs=129 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[0,8) rowCursor=0->8 elapsedMs=129 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=1 y=[0,8) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderStep] phase=enter frame=1 row=8 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=1 row=8 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=1 row=8 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=133
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=1 rowStart=8 bandH=8 committed=0 pendingPass2=1 ms=133
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[8,16) rowCursor=8 elapsedMs=133 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[8,16) rowCursor=8->16 elapsedMs=133 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=1 y=[8,16) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderStep] phase=enter frame=1 row=16 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=1 row=16 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=1 row=16 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=233
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=1 rowStart=16 bandH=8 committed=0 pendingPass2=1 ms=233
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[16,24) rowCursor=16 elapsedMs=233 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[16,24) rowCursor=16->24 elapsedMs=233 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=1 y=[16,24) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderStep] phase=enter frame=1 row=24 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=1 row=24 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=1 row=24 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=169
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=1 rowStart=24 bandH=8 committed=0 pendingPass2=1 ms=169
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[24,32) rowCursor=24 elapsedMs=169 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[24,32) rowCursor=24->32 elapsedMs=169 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=1 y=[24,32) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderStep] phase=enter frame=1 row=32 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=1 row=32 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=1 row=32 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=197
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=1 rowStart=32 bandH=8 committed=0 pendingPass2=1 ms=197
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[32,40) rowCursor=32 elapsedMs=197 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[32,40) rowCursor=32->40 elapsedMs=197 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=1 y=[32,40) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderStep] phase=enter frame=1 row=40 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=1 row=40 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=1 row=40 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=146
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=1 rowStart=40 bandH=8 committed=0 pendingPass2=1 ms=146
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[40,48) rowCursor=40 elapsedMs=146 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[40,48) rowCursor=40->48 elapsedMs=146 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=1 y=[40,48) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderTest][RUN SUMMARY] matrix=1771370654 idx=1/5 name=baseline_prune_off samples=4 meanMsPerFrame=186.946 p95MsPerFrame=233.148 meanSegsPerPixel=na geomTrusted=0 geomTrustReason=no_renderhealth geomRayTestsSavedPct=na
+[RenderTest][RUN END] matrix=1771370654 idx=1/5 name=baseline_prune_off frames=6 warmup=2 samples=4
+[RUN END] name=baseline_prune_off frames=6 samples=4 meanMs=186.946 p95Ms=233.148
+[RenderTest][RUN START] matrix=1771370654 idx=2/5 name=prune_on_default frames=6 warmup=2 prune=on
+[RUN START] name=prune_on_default prune=on stride=on(inherit->inherit) envScale=inherit aabbExpand=inherit updateEveryFrame=on
+[SNAPSHOT] geomCount=2 collisionIncluded=0 visualIncluded=2 visualSkippedPref=0 collisionSkippedNonRaycast=0
+[SNAPSHOT][Bounds] samples=2 {id=26390562198 min=(-0.02,-0.02,-0.02) max=(0.02,0.02,0.02)} {id=26306676113 min=(-0.02,-0.02,-0.02) max=(0.02,0.02,0.02)}
+[EffectiveCfg] broadphase=Policy(policy) policy=None quick=0 overlap=0 softgate=1 score=1 minSeg=0.1 attempts=5000 sub=10000 stride=1 resScale=1 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF envRadScale=1.1 envAabbExpand=0 geomPrune=1 maxDist=50
+[RenderStep] phase=enter frame=1 row=48 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=1 row=48 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=1 row=48 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=200
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=1 rowStart=48 bandH=8 committed=0 pendingPass2=1 ms=200
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[48,56) rowCursor=48 elapsedMs=200 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[48,56) rowCursor=48->56 elapsedMs=200 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=1 y=[48,56) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderStep] phase=enter frame=1 row=56 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=1 row=56 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=1 row=56 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=142
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=1 rowStart=56 bandH=8 committed=0 pendingPass2=1 ms=142
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[56,64) rowCursor=56 elapsedMs=143 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[56,64) rowCursor=56->64 elapsedMs=143 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=1 y=[56,64) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderStep] phase=enter frame=1 row=64 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=1 row=64 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=1 row=64 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=210
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=1 rowStart=64 bandH=8 committed=0 pendingPass2=1 ms=211
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[64,72) rowCursor=64 elapsedMs=211 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[64,72) rowCursor=64->72 elapsedMs=211 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=1 y=[64,72) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[BUS SET] frameId=10 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=2, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
+[RenderStep] phase=enter frame=1 row=72 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=1 row=72 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=1 row=72 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=147
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=1 rowStart=72 bandH=8 committed=0 pendingPass2=1 ms=147
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[72,80) rowCursor=72 elapsedMs=147 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[72,80) rowCursor=72->80 elapsedMs=147 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=1 y=[72,80) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderStep] phase=enter frame=1 row=80 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=1 row=80 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=1 row=80 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=207
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=1 rowStart=80 bandH=8 committed=0 pendingPass2=1 ms=207
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[80,88) rowCursor=80 elapsedMs=207 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[80,88) rowCursor=80->88 elapsedMs=207 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=1 y=[80,88) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderStep] phase=enter frame=1 row=88 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=1 row=88 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=1 row=88 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=27
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=1 rowStart=88 bandH=2 committed=0 pendingPass2=1 ms=27
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[88,90) rowCursor=88 elapsedMs=27 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[88,90) rowCursor=88->0 elapsedMs=27 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=1 y=[88,90) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderTest][RUN SUMMARY] matrix=1771370654 idx=2/5 name=prune_on_default samples=4 meanMsPerFrame=148.468 p95MsPerFrame=211.121 meanSegsPerPixel=na geomTrusted=0 geomTrustReason=no_renderhealth geomRayTestsSavedPct=na
+[RenderTest][RUN END] matrix=1771370654 idx=2/5 name=prune_on_default frames=6 warmup=2 samples=4
+[RUN END] name=prune_on_default frames=6 samples=4 meanMs=148.468 p95Ms=211.121
+[RenderTest][RUN START] matrix=1771370654 idx=3/5 name=prune_on_tight_env frames=6 warmup=2 prune=on
+[RUN START] name=prune_on_tight_env prune=on stride=on(1->4) envScale=1.02 aabbExpand=0.01 updateEveryFrame=on
+[EffectiveCfg] broadphase=Policy(policy) policy=None quick=0 overlap=0 softgate=1 score=1 minSeg=0.1 attempts=5000 sub=10000 stride=1 resScale=1 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF envRadScale=1.02 envAabbExpand=0.01 geomPrune=1 maxDist=50
+[RenderStep] phase=enter frame=2 row=0 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[Cfg] Pass2SoftGateEnableQuickRayMiss=1 Pass2SoftGateScoringEnabled=1 Pass2SoftGateMinSegmentLength=0.1 Pass2SoftGateScoreThreshold=1 Pass2SoftGateScoreTurnAngleWeight=1 Pass2SoftGateScorePrevHitLostBonus=0.75 Pass2SoftGateRandomProbeChance=0.01 Pass2SoftGateScoreBudgetPerFrame=32 Pass2SoftGateMaxAttemptsPerPixel=2 Pass2SoftGateMaxAttemptsPerFrame=5000 Pass2SoftGateMaxSubdividedCallsPerFrame=10000 UpdateEveryFrame=1
+[RenderStep] phase=pass1-start frame=2 row=0 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=2 row=0 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=330
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=2 rowStart=0 bandH=8 committed=0 pendingPass2=1 ms=330
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[0,8) rowCursor=0 elapsedMs=330 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[0,8) rowCursor=0->8 elapsedMs=330 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=2 y=[0,8) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[SNAPSHOT] geomCount=2 collisionIncluded=0 visualIncluded=2 visualSkippedPref=0 collisionSkippedNonRaycast=0
+[SNAPSHOT][Bounds] samples=2 {id=26390562198 min=(-0.02,-0.02,-0.02) max=(0.02,0.02,0.02)} {id=26306676113 min=(-0.02,-0.02,-0.02) max=(0.02,0.02,0.02)}
+[RenderStep] phase=enter frame=2 row=8 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=2 row=8 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=2 row=8 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=178
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=2 rowStart=8 bandH=8 committed=0 pendingPass2=1 ms=178
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[8,16) rowCursor=8 elapsedMs=178 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[8,16) rowCursor=8->16 elapsedMs=178 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=2 y=[8,16) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderStep] phase=enter frame=2 row=16 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=2 row=16 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=2 row=16 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=174
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=2 rowStart=16 bandH=8 committed=0 pendingPass2=1 ms=174
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[16,24) rowCursor=16 elapsedMs=174 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[16,24) rowCursor=16->24 elapsedMs=174 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=2 y=[16,24) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderStep] phase=enter frame=2 row=24 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=2 row=24 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=2 row=24 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=158
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=2 rowStart=24 bandH=8 committed=0 pendingPass2=1 ms=158
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[24,32) rowCursor=24 elapsedMs=158 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[24,32) rowCursor=24->32 elapsedMs=158 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=2 y=[24,32) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderStep] phase=enter frame=2 row=32 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=2 row=32 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=2 row=32 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=227
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=2 rowStart=32 bandH=8 committed=0 pendingPass2=1 ms=227
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[32,40) rowCursor=32 elapsedMs=227 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[32,40) rowCursor=32->40 elapsedMs=227 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=2 y=[32,40) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[BUS SET] frameId=18 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=2, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
+[RenderStep] phase=enter frame=2 row=40 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=2 row=40 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=2 row=40 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=151
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=2 rowStart=40 bandH=8 committed=0 pendingPass2=1 ms=151
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[40,48) rowCursor=40 elapsedMs=151 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[40,48) rowCursor=40->48 elapsedMs=151 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=2 y=[40,48) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderTest][RUN SUMMARY] matrix=1771370654 idx=3/5 name=prune_on_tight_env samples=4 meanMsPerFrame=178.31 p95MsPerFrame=227.632 meanSegsPerPixel=na geomTrusted=0 geomTrustReason=no_renderhealth geomRayTestsSavedPct=na
+[RenderTest][RUN END] matrix=1771370654 idx=3/5 name=prune_on_tight_env frames=6 warmup=2 samples=4
+[RUN END] name=prune_on_tight_env frames=6 samples=4 meanMs=178.31 p95Ms=227.632
+[RenderTest][RUN START] matrix=1771370654 idx=4/5 name=prune_on_loose_env frames=6 warmup=2 prune=on
+[RUN START] name=prune_on_loose_env prune=on stride=on(inherit->inherit) envScale=1.1 aabbExpand=0.05 updateEveryFrame=on
+[EffectiveCfg] broadphase=Policy(policy) policy=None quick=0 overlap=0 softgate=1 score=1 minSeg=0.1 attempts=5000 sub=10000 stride=1 resScale=1 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF envRadScale=1.1 envAabbExpand=0.05 geomPrune=1 maxDist=50
+[RenderStep] phase=enter frame=2 row=48 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=2 row=48 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=2 row=48 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=184
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=2 rowStart=48 bandH=8 committed=0 pendingPass2=1 ms=184
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[48,56) rowCursor=48 elapsedMs=184 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[48,56) rowCursor=48->56 elapsedMs=184 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=2 y=[48,56) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[SNAPSHOT] geomCount=2 collisionIncluded=0 visualIncluded=2 visualSkippedPref=0 collisionSkippedNonRaycast=0
+[SNAPSHOT][Bounds] samples=2 {id=26390562198 min=(-0.02,-0.02,-0.02) max=(0.02,0.02,0.02)} {id=26306676113 min=(-0.02,-0.02,-0.02) max=(0.02,0.02,0.02)}
+[RenderStep] phase=enter frame=2 row=56 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=2 row=56 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=2 row=56 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=237
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=2 rowStart=56 bandH=8 committed=0 pendingPass2=1 ms=238
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[56,64) rowCursor=56 elapsedMs=238 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[56,64) rowCursor=56->64 elapsedMs=238 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=2 y=[56,64) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderStep] phase=enter frame=2 row=64 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=2 row=64 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=2 row=64 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=148
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=2 rowStart=64 bandH=8 committed=0 pendingPass2=1 ms=148
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[64,72) rowCursor=64 elapsedMs=148 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[64,72) rowCursor=64->72 elapsedMs=148 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=2 y=[64,72) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderStep] phase=enter frame=2 row=72 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=2 row=72 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=2 row=72 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=187
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=2 rowStart=72 bandH=8 committed=0 pendingPass2=1 ms=187
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[72,80) rowCursor=72 elapsedMs=187 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[72,80) rowCursor=72->80 elapsedMs=187 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=2 y=[72,80) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderStep] phase=enter frame=2 row=80 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=2 row=80 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=2 row=80 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=238
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=2 rowStart=80 bandH=8 committed=0 pendingPass2=1 ms=238
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[80,88) rowCursor=80 elapsedMs=238 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[80,88) rowCursor=80->88 elapsedMs=238 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=2 y=[80,88) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderStep] phase=enter frame=2 row=88 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=2 row=88 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=2 row=88 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=29
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=2 rowStart=88 bandH=2 committed=0 pendingPass2=1 ms=29
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[88,90) rowCursor=88 elapsedMs=29 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[88,90) rowCursor=88->0 elapsedMs=29 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=2 y=[88,90) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderTest][RUN SUMMARY] matrix=1771370654 idx=4/5 name=prune_on_loose_env samples=4 meanMsPerFrame=151.094 p95MsPerFrame=238.727 meanSegsPerPixel=na geomTrusted=0 geomTrustReason=no_renderhealth geomRayTestsSavedPct=na
+[RenderTest][RUN END] matrix=1771370654 idx=4/5 name=prune_on_loose_env frames=6 warmup=2 samples=4
+[RUN END] name=prune_on_loose_env frames=6 samples=4 meanMs=151.094 p95Ms=238.727
+[RenderTest][RUN START] matrix=1771370654 idx=5/5 name=prune_on_stride_off frames=6 warmup=2 prune=on
+[RUN START] name=prune_on_stride_off prune=on stride=off envScale=inherit aabbExpand=inherit updateEveryFrame=on
+[EffectiveCfg] broadphase=Policy(policy) policy=None quick=0 overlap=0 softgate=1 score=1 minSeg=0.1 attempts=5000 sub=10000 stride=1 resScale=1 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF envRadScale=1.1 envAabbExpand=0 geomPrune=1 maxDist=50
+[RenderStep] phase=enter frame=3 row=0 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=3 row=0 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=3 row=0 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=156
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=3 rowStart=0 bandH=8 committed=0 pendingPass2=1 ms=156
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[0,8) rowCursor=0 elapsedMs=156 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[0,8) rowCursor=0->8 elapsedMs=156 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=3 y=[0,8) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[SNAPSHOT] geomCount=2 collisionIncluded=0 visualIncluded=2 visualSkippedPref=0 collisionSkippedNonRaycast=0
+[SNAPSHOT][Bounds] samples=2 {id=26390562198 min=(-0.02,-0.02,-0.02) max=(0.02,0.02,0.02)} {id=26306676113 min=(-0.02,-0.02,-0.02) max=(0.02,0.02,0.02)}
+[RenderStep] phase=enter frame=3 row=8 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=3 row=8 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=3 row=8 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=185
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=3 rowStart=8 bandH=8 committed=0 pendingPass2=1 ms=185
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[8,16) rowCursor=8 elapsedMs=185 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[8,16) rowCursor=8->16 elapsedMs=185 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=3 y=[8,16) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderStep] phase=enter frame=3 row=16 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=3 row=16 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=3 row=16 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=189
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=3 rowStart=16 bandH=8 committed=0 pendingPass2=1 ms=189
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[16,24) rowCursor=16 elapsedMs=189 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[16,24) rowCursor=16->24 elapsedMs=189 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=3 y=[16,24) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[BUS SET] frameId=28 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=2, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
+[RenderStep] phase=enter frame=3 row=24 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=3 row=24 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=3 row=24 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=204
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=3 rowStart=24 bandH=8 committed=0 pendingPass2=1 ms=204
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[24,32) rowCursor=24 elapsedMs=204 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[24,32) rowCursor=24->32 elapsedMs=204 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=3 y=[24,32) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderStep] phase=enter frame=3 row=32 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=3 row=32 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=3 row=32 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=275
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=3 rowStart=32 bandH=8 committed=0 pendingPass2=1 ms=275
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[32,40) rowCursor=32 elapsedMs=275 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[32,40) rowCursor=32->40 elapsedMs=275 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=3 y=[32,40) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderStep] phase=enter frame=3 row=40 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-start frame=3 row=40 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=0
+[RenderStep] phase=pass1-end frame=3 row=40 attempts=0/5000 sub=0/10000 pxCap=2 scoreCap=32 ms=148
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=3 rowStart=40 bandH=8 committed=0 pendingPass2=1 ms=148
+  ERROR: [RenderStep][STOP] reason=max_ms_after_pass1 phase=pass1-end y=[40,48) rowCursor=40 elapsedMs=148 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=pass1-end y=[40,48) rowCursor=40->48 elapsedMs=148 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BandSummary] frame=3 y=[40,48) hits=0 tracedPx=0 noCandPx=0 avgSteps=0.00 reasonDone=budget
+[RenderHealth] step=30 lastRow=48 rowsAdv=8 bands=0 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=na geomSegQueried=na geomSegWithCandidates=na geomSegZero=na geomSegZeroRatePct=na geomPixProcessed=na geomPixHadAnyCandidates=na geomPixNoCand=na geomPixNoCandRatePct=na geomHitOk=na geomHitReject=na geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=na geomRayTestsAccepted=na geomRayTestsRejected=na geomRayTestsPerPxOn=na geomRayTestsPerPxOff=na geomRayTestsSavedPct=na geomPruneSwitched=1 geomTrusted=0 geomHealthPartial=1 geomHealthModeSamples=10 geomTrustReason=mode_switch geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=0 radAvg=0 radMax=0 envDiagAvg=0 envDiagMax=0 envInflAvg=0 envInflMax=0 cand0=na cand1to2=na cand3to8=na cand9to32=na cand33p=na geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
+[RenderTest][RUN SUMMARY] matrix=1771370654 idx=5/5 name=prune_on_stride_off samples=4 meanMsPerFrame=204.792 p95MsPerFrame=275.469 meanSegsPerPixel=na geomTrusted=0 geomTrustReason=mode_switch geomRayTestsSavedPct=na
+[RenderTest][RUN END] matrix=1771370654 idx=5/5 name=prune_on_stride_off frames=6 warmup=2 samples=4
+[RUN END] name=prune_on_stride_off frames=6 samples=4 meanMs=204.792 p95Ms=275.469
+[RenderTest][MATRIX END] id=1771370654 runs=5
+[MATRIX END] totalRuns=5 elapsedMs=5525.915
+--- Debugging process stopped ---

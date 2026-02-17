@@ -1,3 +1,4 @@
+res://test.tscn
 res://addons/fieldsource_gizmo/FieldSourceGizmoPlugin.cs
 res://FilmOverlay2D.cs
 res://addons/fieldsource_gizmo/FieldSourceNodeGizmo.cs
@@ -11,4 +12,3 @@ res://GrinFilmCamera.cs
 res://addons/grin_inspector_help/GrinInspectorHelpInspector.cs
 res://FieldSource3D.cs
 res://FieldProbe3D.cs
-res://test.tscn

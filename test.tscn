@@ -9,6 +9,7 @@
 
 [node name="GrinFilmCamera" type="Node" parent="."]
 script = ExtResource("1_grin")
+UpdateEveryFrame = false
 UpdateEveryFrameMaxRowsPerStep = 256
 RayBeamRendererPath = NodePath("../RayBeamRenderer")
 FilmViewPath = NodePath("../CanvasLayer/FilmView")
@@ -19,6 +20,10 @@ current = true
 
 [node name="RenderTestRunner" type="Node" parent="."]
 script = ExtResource("2_runner")
+AutoStart = true
+AutoQuitOnComplete = true
+FramesPerRun = 6
+WarmupFrames = 2
 
 [node name="RayBeamRenderer" type="Node3D" parent="."]
 visible = false

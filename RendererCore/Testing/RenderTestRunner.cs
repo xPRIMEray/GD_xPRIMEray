@@ -1,9 +1,19 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 public partial class RenderTestRunner : Node
 {
+	private enum HarnessState
+	{
+		Idle = 0,
+		Init = 1,
+		MatrixStart = 2,
+		RunApply = 3,
+		RunMeasure = 4
+	}
+
 	[ExportGroup("Run Control")]
 	[Export] public bool AutoStart = false;
 	[Export] public bool AutoQuitOnComplete = false;
@@ -32,11 +42,30 @@ public partial class RenderTestRunner : Node
 	private double _runSegsPerPxSum = 0.0;
 	private int _runSegsPerPxCount = 0;
 	private ulong _runSeriesId = 0;
+	private long _matrixStartTimestamp = 0;
+	private bool _renderTestMode = false;
+	private bool _startupDependencyErrorLogged = false;
+	private HarnessState _harnessState = HarnessState.Idle;
+	private int _startupDelayFramesRemaining = 0;
+	private int _interRunDelayFramesRemaining = 0;
 
 	public override void _Ready()
 	{
 		ProcessPriority = 100;
-		if (AutoStart || (StartWhenCmdArgPresent && HasCmdArgToken()))
+		_renderTestMode = IsRenderTestMode();
+		bool hasToken = HasCmdArgToken();
+		bool shouldStart = AutoStart || (StartWhenCmdArgPresent && hasToken);
+
+		if (_renderTestMode)
+		{
+			GD.Print($"[RenderTestRunner] TokenDetected={hasToken} shouldStart={shouldStart}");
+			if (!shouldStart)
+			{
+				GD.Print($"[RenderTestRunner] Not starting matrix: StartWhenCmdArgPresent={StartWhenCmdArgPresent} AutoStart={AutoStart} HasToken={hasToken}");
+			}
+		}
+
+		if (shouldStart)
 		{
 			CallDeferred(nameof(StartDefaultMatrix));
 		}
@@ -44,7 +73,66 @@ public partial class RenderTestRunner : Node
 
 	public override void _Process(double delta)
 	{
-		if (!_matrixRunning || _film == null || !GodotObject.IsInstanceValid(_film))
+		if (!_matrixRunning)
+		{
+			return;
+		}
+
+		if (_film == null || !GodotObject.IsInstanceValid(_film))
+		{
+			HandleMissingDependenciesAndAbort();
+			if (_renderTestMode)
+			{
+				return;
+			}
+			FinishMatrix();
+			return;
+		}
+
+		if (_harnessState == HarnessState.Init)
+		{
+			_film.UpdateEveryFrame = false;
+			string scenePath = GetTree().CurrentScene?.SceneFilePath ?? "null";
+			GD.Print($"[RenderTestRunner][INIT] mode={( _renderTestMode ? "render-test" : "normal")} startupDelayFrames={_startupDelayFramesRemaining} scene={scenePath}");
+			_harnessState = HarnessState.MatrixStart;
+			return;
+		}
+
+		if (_harnessState == HarnessState.MatrixStart)
+		{
+			if (_startupDelayFramesRemaining > 0)
+			{
+				_startupDelayFramesRemaining--;
+				return;
+			}
+
+			PrintMatrixStartLogs();
+			_runIndex = 0;
+			_harnessState = HarnessState.RunApply;
+			return;
+		}
+
+		if (_harnessState == HarnessState.RunApply)
+		{
+			if (_interRunDelayFramesRemaining > 0)
+			{
+				_interRunDelayFramesRemaining--;
+				return;
+			}
+
+			if (_runIndex < 0 || _runIndex >= _runs.Count)
+			{
+				FinishMatrix();
+				return;
+			}
+
+			_film.UpdateEveryFrame = false;
+			PrepareRun(_runs[_runIndex]);
+			_harnessState = HarnessState.RunMeasure;
+			return;
+		}
+
+		if (_harnessState != HarnessState.RunMeasure)
 		{
 			return;
 		}
@@ -73,14 +161,17 @@ public partial class RenderTestRunner : Node
 		_runFrameIndex++;
 		if (_runFrameIndex >= FramesPerRun)
 		{
+			_film.UpdateEveryFrame = false;
 			FinishRun();
-			StartNextRun();
+			_runIndex++;
+			_interRunDelayFramesRemaining = _renderTestMode ? 1 : 0;
+			_harnessState = HarnessState.RunApply;
 		}
 	}
 
 	public void StartDefaultMatrix()
 	{
-		if (_matrixRunning)
+		if (_matrixRunning || _harnessState != HarnessState.Idle)
 		{
 			GD.Print("[RenderTest] matrix already running.");
 			return;
@@ -89,15 +180,31 @@ public partial class RenderTestRunner : Node
 		_film = GetNodeOrNull<GrinFilmCamera>(GrinFilmCameraPath);
 		if (_film == null || !GodotObject.IsInstanceValid(_film))
 		{
-			GD.PrintErr($"[RenderTest] missing GrinFilmCamera at path={GrinFilmCameraPath}");
+			HandleMissingDependenciesAndAbort();
 			return;
 		}
 
 		_camera = GetNodeOrNull<Camera3D>(TargetCameraPath);
 		if (_camera == null || !GodotObject.IsInstanceValid(_camera))
 		{
-			GD.PrintErr($"[RenderTest] missing Camera3D at path={TargetCameraPath}");
+			HandleMissingDependenciesAndAbort();
 			return;
+		}
+
+		if (_renderTestMode && !_film.SharedRbrHasRenderer)
+		{
+			HandleMissingDependenciesAndAbort();
+			return;
+		}
+
+		if (_renderTestMode)
+		{
+			_film.UpdateEveryFrame = false;
+			_startupDelayFramesRemaining = 2;
+		}
+		else
+		{
+			_startupDelayFramesRemaining = 0;
 		}
 
 		_defaults = _film.CaptureTestRunDefaults();
@@ -114,25 +221,28 @@ public partial class RenderTestRunner : Node
 			return;
 		}
 
-		_runSeriesId = (ulong)Time.GetUnixTimeFromSystem();
 		_matrixRunning = true;
+		_harnessState = HarnessState.Init;
+		_interRunDelayFramesRemaining = 0;
 		_runIndex = -1;
 		_runFrameIndex = 0;
-		GD.Print($"[RenderTest][MATRIX START] id={_runSeriesId} runs={_runs.Count} framesPerRun={FramesPerRun} warmup={WarmupFrames}");
-		StartNextRun();
 	}
 
-	private void StartNextRun()
+	private void PrintMatrixStartLogs()
 	{
-		_runIndex++;
-		if (_runIndex >= _runs.Count)
-		{
-			FinishMatrix();
-			return;
-		}
+		_runSeriesId = (ulong)Time.GetUnixTimeFromSystem();
+		_runFrameIndex = 0;
+		_matrixStartTimestamp = Stopwatch.GetTimestamp();
+		string scenePath = GetTree().CurrentScene?.SceneFilePath ?? "null";
+		GD.Print($"[RenderTest][MATRIX START] id={_runSeriesId} runs={_runs.Count} framesPerRun={FramesPerRun} warmup={WarmupFrames}");
+		GD.Print($"[MATRIX START] runs={_runs.Count} framesPerRun={FramesPerRun} warmup={WarmupFrames} scene={scenePath}");
+	}
 
-		GrinFilmCamera.TestRunConfig run = _runs[_runIndex];
+	private void PrepareRun(GrinFilmCamera.TestRunConfig run)
+	{
 		_film.ApplyTestRunConfig(in run);
+		bool runWantsUpdateEveryFrame = run.UpdateEveryFrame ?? (_defaultsCaptured ? _defaults.UpdateEveryFrame : true);
+		_film.UpdateEveryFrame = runWantsUpdateEveryFrame;
 		_runFrameIndex = 0;
 		_frameMsSamples.Clear();
 		_runFrameMsSum = 0.0;
@@ -141,6 +251,12 @@ public partial class RenderTestRunner : Node
 		GD.Print(
 			$"[RenderTest][RUN START] matrix={_runSeriesId} idx={_runIndex + 1}/{_runs.Count} name={Sanitize(run.Name)} " +
 			$"frames={FramesPerRun} warmup={WarmupFrames} prune={(run.UseGeometryTLASPruning.HasValue ? (run.UseGeometryTLASPruning.Value ? "on" : "off") : "inherit")}");
+		GD.Print(
+			$"[RUN START] name={Sanitize(run.Name)} " +
+			$"prune={FormatNullableBool(run.UseGeometryTLASPruning)} " +
+			$"stride={FormatStride(run)} envScale={FormatNullableFloat(run.Pass2GeomEnvelopeRadiusScale)} " +
+			$"aabbExpand={FormatNullableFloat(run.Pass2GeomEnvelopeAabbExpand)} " +
+			$"updateEveryFrame={(runWantsUpdateEveryFrame ? "on" : "off")}");
 	}
 
 	private void FinishRun()
@@ -166,6 +282,9 @@ public partial class RenderTestRunner : Node
 		GD.Print(
 			$"[RenderTest][RUN END] matrix={_runSeriesId} idx={_runIndex + 1}/{_runs.Count} name={Sanitize(run.Name)} " +
 			$"frames={FramesPerRun} warmup={WarmupFrames} samples={sampleCount}");
+		GD.Print(
+			$"[RUN END] name={Sanitize(run.Name)} frames={FramesPerRun} samples={sampleCount} " +
+			$"meanMs={meanMsStr} p95Ms={p95MsStr}");
 
 		if (_defaultsCaptured)
 		{
@@ -181,6 +300,9 @@ public partial class RenderTestRunner : Node
 		}
 
 		_matrixRunning = false;
+		_harnessState = HarnessState.Idle;
+		_startupDelayFramesRemaining = 0;
+		_interRunDelayFramesRemaining = 0;
 		if (_defaultsCaptured && _film != null && GodotObject.IsInstanceValid(_film))
 		{
 			_film.RestoreTestRunDefaults(in _defaults);
@@ -190,7 +312,17 @@ public partial class RenderTestRunner : Node
 			_camera.GlobalTransform = new Transform3D(_cameraOriginalBasis, _cameraOriginalPosition);
 		}
 
+		double elapsedMs = ComputeElapsedMs(_matrixStartTimestamp);
 		GD.Print($"[RenderTest][MATRIX END] id={_runSeriesId} runs={_runs.Count}");
+		GD.Print($"[MATRIX END] totalRuns={_runs.Count} elapsedMs={elapsedMs:0.###}");
+
+		if (_renderTestMode)
+		{
+			GD.Print("[RenderTestRunner] Quitting (render-test mode).");
+			GetTree().Quit(0);
+			return;
+		}
+
 		if (AutoQuitOnComplete)
 		{
 			GetTree().Quit(0);
@@ -324,6 +456,11 @@ public partial class RenderTestRunner : Node
 
 	private bool HasCmdArgToken()
 	{
+		if (IsRenderTestMode())
+		{
+			return true;
+		}
+
 		string token = (CmdArgToken ?? string.Empty).Trim();
 		if (token.Length == 0)
 		{
@@ -339,6 +476,111 @@ public partial class RenderTestRunner : Node
 		}
 
 		return false;
+	}
+
+	private bool IsRenderTestMode()
+	{
+		foreach (string arg in OS.GetCmdlineUserArgs())
+		{
+			if (string.IsNullOrWhiteSpace(arg))
+			{
+				continue;
+			}
+
+			string token = arg.Trim();
+			if (string.Equals(token, "--render-test", StringComparison.OrdinalIgnoreCase)
+				|| string.Equals(token, "--rendertest", StringComparison.OrdinalIgnoreCase)
+				|| string.Equals(token, "render-test", StringComparison.OrdinalIgnoreCase))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private void HandleMissingDependenciesAndAbort()
+	{
+		if (_startupDependencyErrorLogged)
+		{
+			return;
+		}
+
+		_startupDependencyErrorLogged = true;
+		bool missingFilm = _film == null || !GodotObject.IsInstanceValid(_film);
+		bool missingCamera = _camera == null || !GodotObject.IsInstanceValid(_camera);
+		bool missingRbrInRenderTest = _renderTestMode && !missingFilm && !_film.SharedRbrHasRenderer;
+		string rbrPath = (!missingFilm && _film != null) ? _film.RayBeamRendererPath.ToString() : "unknown";
+
+		if (missingFilm)
+		{
+			GD.PrintErr($"[RenderTestRunner] ERROR: Missing GrinFilmCamera at GrinFilmCameraPath={GrinFilmCameraPath}");
+		}
+		if (missingCamera)
+		{
+			GD.PrintErr($"[RenderTestRunner] ERROR: Missing Camera3D at TargetCameraPath={TargetCameraPath}");
+		}
+		if (missingRbrInRenderTest)
+		{
+			GD.PrintErr($"[RenderTestRunner] ERROR: Missing RayBeamRenderer in render-test mode: RayBeamRendererPath={rbrPath} SharedRbrHasRenderer=false");
+		}
+
+		if (_renderTestMode)
+		{
+			GD.Print("[RenderTestRunner] Quitting (render-test mode).");
+			GetTree().Quit(1);
+		}
+	}
+
+	private static string FormatNullableBool(bool? value)
+	{
+		if (!value.HasValue)
+		{
+			return "inherit";
+		}
+		return value.Value ? "on" : "off";
+	}
+
+	private static string FormatNullableFloat(float? value)
+	{
+		if (!value.HasValue)
+		{
+			return "inherit";
+		}
+		return value.Value.ToString("0.###");
+	}
+
+	private static string FormatStride(in GrinFilmCamera.TestRunConfig run)
+	{
+		if (!run.UsePass2CollisionStride.HasValue)
+		{
+			return "inherit";
+		}
+
+		if (!run.UsePass2CollisionStride.Value)
+		{
+			return "off";
+		}
+
+		string nearStr = run.Pass2CollisionStrideNear.HasValue ? run.Pass2CollisionStrideNear.Value.ToString() : "inherit";
+		string farStr = run.Pass2CollisionStrideFar.HasValue ? run.Pass2CollisionStrideFar.Value.ToString() : "inherit";
+		return $"on({nearStr}->{farStr})";
+	}
+
+	private static double ComputeElapsedMs(long startTimestamp)
+	{
+		if (startTimestamp <= 0)
+		{
+			return 0.0;
+		}
+
+		long delta = Stopwatch.GetTimestamp() - startTimestamp;
+		if (delta <= 0)
+		{
+			return 0.0;
+		}
+
+		return (delta * 1000.0) / Stopwatch.Frequency;
 	}
 
 	private static double ComputeP95Ms(List<double> samples)
