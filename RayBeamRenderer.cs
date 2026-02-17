@@ -341,6 +341,8 @@ public partial class RayBeamRenderer : Node3D
 	private MultiMeshInstance3D _mmi;
 	private MultiMesh _mm;
 	private StandardMaterial3D _mat;
+	private Camera3D _cachedCamera;
+	private bool _cameraResolved;
 
 	private float _lastBeta = float.NaN;
 	private float _lastGamma = float.NaN;
@@ -477,6 +479,18 @@ public partial class RayBeamRenderer : Node3D
 		// EFFECT: skip all setup when multimesh is already valid and in the tree.
 		if (_mmi != null && IsInstanceValid(_mmi) && _mmi.IsInsideTree())
 			return;
+
+		// Resolve camera binding once on main thread; worker paths must not touch SceneTree.
+		if (CameraPath != null && !CameraPath.IsEmpty)
+			_cachedCamera = GetNodeOrNull<Camera3D>(CameraPath);
+		else
+			_cachedCamera = GetViewport()?.GetCamera3D();
+		_cameraResolved = _cachedCamera != null;
+		if (!_cameraResolved)
+		{
+			string cameraBinding = (CameraPath != null && !CameraPath.IsEmpty) ? CameraPath.ToString() : "<viewport active camera>";
+			GD.PushError($"[RayBeamRenderer] Camera binding missing in _Ready. CameraPath={cameraBinding} node={GetPath()}");
+		}
 
 		// ===== Output / Debug =====
 		// 1) MultiMesh Instance (billboards for ray samples)
@@ -658,11 +672,8 @@ public partial class RayBeamRenderer : Node3D
 
 	public Camera3D GetCamera()
 	{
-		// DECISION: use override path if set; otherwise use viewport camera.
-		if (CameraPath != null && !CameraPath.IsEmpty)
-			return GetNodeOrNull<Camera3D>(CameraPath);
-
-		return GetViewport()?.GetCamera3D();
+		// Return only the cached camera; never touch SceneTree here.
+		return _cachedCamera;
 	}
 
 	private void Rebuild()

@@ -1085,6 +1085,7 @@ public partial class GrinFilmCamera : Node
 	private RandomNumberGenerator _rng = new RandomNumberGenerator();
 	private volatile int _renderStepActive = 0;
 	private bool _renderStepReentryWarned = false;
+	private bool _renderStepMissingRbrCameraWarned = false;
 	private bool _rowsRangeWarningIssued = false;
 	private int _stuckBandStartRow = -1;
 	private int _stuckBandEndRow = -1;
@@ -2760,6 +2761,21 @@ public partial class GrinFilmCamera : Node
 				return;
 			} else{}
 
+			// DECISION: validate cached RayBeamRenderer camera on main thread before worker pass.
+			Camera3D rbrCam = _rbr.GetCamera();
+			if (rbrCam == null)
+			{
+				if (!_renderStepMissingRbrCameraWarned)
+				{
+					_renderStepMissingRbrCameraWarned = true;
+					GD.PushError("[RenderStep] RayBeamRenderer cached camera is null. Ensure RayBeamRenderer.CameraPath resolves in _Ready.");
+				}
+				AbortRenderStep("RayBeamRenderer camera cache is null");
+				EnsureForwardProgress("no_rbr_camera", true, _rowCursor, bandHits, true);
+				return;
+			}
+			_renderStepMissingRbrCameraWarned = false;
+
 			// DECISION: log toggle snapshots only at frame start.
 			if (frameStart)
 			{
@@ -3137,7 +3153,7 @@ public partial class GrinFilmCamera : Node
 			int jobs = Mathf.Clamp(OS.GetProcessorCount() / 2, 2, 8);
 
 			var basisLocal = basis; // capture for lambda
-			Camera3D pass1Cam = _rbr.GetCamera() ?? _cam;
+			Camera3D pass1Cam = rbrCam;
 			Vector3 pass1CamPos = pass1Cam != null ? pass1Cam.GlobalPosition : Vector3.Zero;
 			float pass1PxPerRad = 0f;
 			if (rayCfg.UseScreenSpaceCollisionCadence && pass1Cam != null)
