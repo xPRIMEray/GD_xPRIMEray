@@ -1,0 +1,734 @@
+[gd_scene load_steps=22 format=3 uid="uid://d4jiw6q07it0h"]
+
+[ext_resource type="Script" uid="uid://cmss07txb211i" path="res://world_environment.gd" id="1_6uqi0"]
+[ext_resource type="Script" uid="uid://qebxtmehy4vg" path="res://options.gd" id="2_hjhvo"]
+[ext_resource type="Script" uid="uid://chuvuh6fkc2ux" path="res://CurvedCamera.cs" id="2_ppyta"]
+[ext_resource type="Script" uid="uid://b3y1shfx51f53" path="res://GrinFilmCamera.cs" id="3_77dp3"]
+[ext_resource type="Script" uid="uid://26voemlp0vg4" path="res://RayViz.cs" id="3_rayviz"]
+[ext_resource type="PackedScene" uid="uid://bnmjiwr2ptb5w" path="res://living_room.glb" id="3_xersf"]
+[ext_resource type="PackedScene" uid="uid://cfrsfdrw017ic" path="res://test_physics_room.tscn" id="4_00tp4"]
+[ext_resource type="Script" uid="uid://dg2asfleehqsw" path="res://RayBeamRenderer.cs" id="4_raybeam"]
+[ext_resource type="Shader" uid="uid://gu1m7wtw117i" path="res://curved_view.gdshader" id="4_ykrsh"]
+[ext_resource type="Script" uid="uid://713wqufxods5" path="res://RayEmitter3D.cs" id="5_emitter"]
+[ext_resource type="Script" uid="uid://c0nlk0rn3oilh" path="res://FilmOverlay2D.cs" id="6_filmoverlay"]
+[ext_resource type="Script" uid="uid://vmh5vusla1nv" path="res://FieldSource3D.cs" id="8_xersf"]
+[ext_resource type="PackedScene" uid="uid://bielmrb2fmvd6" path="res://test_physics_room-sphere.tscn" id="12_b0q6j"]
+[ext_resource type="Script" uid="uid://dwiws7vsdgshx" path="res://FieldProbe3D.cs" id="13_0m0f1"]
+[ext_resource type="Script" uid="uid://dg263rv7q0mtq" path="res://RendererCore/Testing/RenderTestRunner.cs" id="14_runtest"]
+
+[sub_resource type="PhysicalSkyMaterial" id="PhysicalSkyMaterial_6cd1w"]
+use_debanding = false
+
+[sub_resource type="Sky" id="Sky_i7d6m"]
+sky_material = SubResource("PhysicalSkyMaterial_6cd1w")
+
+[sub_resource type="Environment" id="Environment_3p42x"]
+background_mode = 2
+sky = SubResource("Sky_i7d6m")
+tonemap_mode = 4
+sdfgi_use_occlusion = true
+sdfgi_cascades = 2
+sdfgi_min_cell_size = 0.15
+sdfgi_y_scale = 0
+glow_enabled = true
+
+[sub_resource type="CameraAttributesPhysical" id="CameraAttributesPhysical_n2bnf"]
+auto_exposure_enabled = true
+auto_exposure_speed = 1.0
+
+[sub_resource type="CameraAttributesPhysical" id="CameraAttributesPhysical_drxnu"]
+auto_exposure_enabled = true
+auto_exposure_speed = 1.0
+frustum_focal_length = 25.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_g14j6"]
+shader = ExtResource("4_ykrsh")
+shader_parameter/beta = 0.0
+shader_parameter/gamma = 2.0
+shader_parameter/warp_scale = 0.4
+
+[node name="Node3D" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_3p42x")
+camera_attributes = SubResource("CameraAttributesPhysical_n2bnf")
+script = ExtResource("1_6uqi0")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.887673, -0.456539, 0.0600684, 0.273782, -0.418382, 0.866025, -0.370243, 0.785193, 0.496379, 0, 0, 0)
+light_angular_distance = 0.5
+light_bake_mode = 1
+shadow_enabled = true
+shadow_blur = 1.8
+directional_shadow_mode = 0
+directional_shadow_blend_splits = true
+directional_shadow_fade_start = 1.0
+directional_shadow_max_distance = 15.0
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(-0.6809938, 0.025999924, -0.7318275, -0.0048712944, 0.9991866, 0.040031426, 0.732273, 0.030826097, -0.6803132, -2.5910883, 2.9862595, -2.3466272)
+attributes = SubResource("CameraAttributesPhysical_drxnu")
+current = true
+script = ExtResource("2_ppyta")
+
+[node name="CanvasLayerUI" type="CanvasLayer" parent="."]
+layer = 0
+
+[node name="Options" type="Control" parent="CanvasLayerUI" node_paths=PackedStringArray("sun", "world_environment")]
+modulate = Color(1, 1, 1, 0.13333334)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_hjhvo")
+sun = NodePath("../../DirectionalLight3D")
+world_environment = NodePath("../../WorldEnvironment")
+
+[node name="Light" type="VBoxContainer" parent="CanvasLayerUI/Options"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 516.0
+offset_bottom = 69.0
+
+[node name="TimeOfDay" type="HBoxContainer" parent="CanvasLayerUI/Options/Light"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Label" type="Label" parent="CanvasLayerUI/Options/Light/TimeOfDay"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "Time of Day"
+vertical_alignment = 1
+
+[node name="HSlider" type="HSlider" parent="CanvasLayerUI/Options/Light/TimeOfDay"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 1410.0
+value = 840.0
+
+[node name="Value" type="Label" parent="CanvasLayerUI/Options/Light/TimeOfDay"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "14:00"
+vertical_alignment = 1
+
+[node name="SunIntensity" type="HBoxContainer" parent="CanvasLayerUI/Options/Light"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Label" type="Label" parent="CanvasLayerUI/Options/Light/SunIntensity"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "Sun Intensity"
+vertical_alignment = 1
+
+[node name="HSlider" type="HSlider" parent="CanvasLayerUI/Options/Light/SunIntensity"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 200000.0
+step = 2000.0
+value = 100000.0
+
+[node name="Value" type="Label" parent="CanvasLayerUI/Options/Light/SunIntensity"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "100000 lux"
+vertical_alignment = 1
+
+[node name="Lightbulb1Intensity" type="HBoxContainer" parent="CanvasLayerUI/Options/Light"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Label" type="Label" parent="CanvasLayerUI/Options/Light/Lightbulb1Intensity"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "Lightbulb 1 Intensity"
+vertical_alignment = 1
+
+[node name="HSlider" type="HSlider" parent="CanvasLayerUI/Options/Light/Lightbulb1Intensity"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 3000.0
+step = 50.0
+value = 800.0
+
+[node name="Value" type="Label" parent="CanvasLayerUI/Options/Light/Lightbulb1Intensity"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "800 lm"
+vertical_alignment = 1
+
+[node name="Lightbulb1Temperature" type="HBoxContainer" parent="CanvasLayerUI/Options/Light"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Label" type="Label" parent="CanvasLayerUI/Options/Light/Lightbulb1Temperature"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 14
+text = "Lightbulb 1 Temperature"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HSlider" type="HSlider" parent="CanvasLayerUI/Options/Light/Lightbulb1Temperature"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 1000.0
+max_value = 15000.0
+step = 100.0
+value = 5000.0
+
+[node name="Value" type="Label" parent="CanvasLayerUI/Options/Light/Lightbulb1Temperature"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "5000 K"
+vertical_alignment = 1
+
+[node name="Lightbulb2Intensity" type="HBoxContainer" parent="CanvasLayerUI/Options/Light"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Label" type="Label" parent="CanvasLayerUI/Options/Light/Lightbulb2Intensity"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "Lightbulb 2 Intensity"
+vertical_alignment = 1
+
+[node name="HSlider" type="HSlider" parent="CanvasLayerUI/Options/Light/Lightbulb2Intensity"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 3000.0
+step = 50.0
+value = 800.0
+
+[node name="Value" type="Label" parent="CanvasLayerUI/Options/Light/Lightbulb2Intensity"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "800 lm"
+vertical_alignment = 1
+
+[node name="Lightbulb2Temperature" type="HBoxContainer" parent="CanvasLayerUI/Options/Light"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Label" type="Label" parent="CanvasLayerUI/Options/Light/Lightbulb2Temperature"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 14
+text = "Lightbulb 2 Temperature"
+vertical_alignment = 1
+
+[node name="HSlider" type="HSlider" parent="CanvasLayerUI/Options/Light/Lightbulb2Temperature"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 1000.0
+max_value = 15000.0
+step = 100.0
+value = 5000.0
+
+[node name="Value" type="Label" parent="CanvasLayerUI/Options/Light/Lightbulb2Temperature"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "5000 K"
+vertical_alignment = 1
+
+[node name="SDFGI" type="CheckButton" parent="CanvasLayerUI/Options/Light"]
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "SDF Global Illumination"
+
+[node name="Camera" type="VBoxContainer" parent="CanvasLayerUI/Options"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -42.0
+offset_right = 516.0
+offset_bottom = -16.0
+grow_vertical = 0
+
+[node name="FocusDistance" type="HBoxContainer" parent="CanvasLayerUI/Options/Camera"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Label" type="Label" parent="CanvasLayerUI/Options/Camera/FocusDistance"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "Focus Distance"
+
+[node name="HSlider" type="HSlider" parent="CanvasLayerUI/Options/Camera/FocusDistance"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 0.5
+max_value = 20.0
+step = 0.1
+value = 20.0
+
+[node name="Value" type="Label" parent="CanvasLayerUI/Options/Camera/FocusDistance"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "10 m"
+
+[node name="FocalLength" type="HBoxContainer" parent="CanvasLayerUI/Options/Camera"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Label" type="Label" parent="CanvasLayerUI/Options/Camera/FocalLength"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "Focal Length"
+
+[node name="HSlider" type="HSlider" parent="CanvasLayerUI/Options/Camera/FocalLength"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 2.0
+value = 20.0
+
+[node name="Value" type="Label" parent="CanvasLayerUI/Options/Camera/FocalLength"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "20 mm"
+
+[node name="Aperture" type="HBoxContainer" parent="CanvasLayerUI/Options/Camera"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Label" type="Label" parent="CanvasLayerUI/Options/Camera/Aperture"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "Aperture"
+
+[node name="HSlider" type="HSlider" parent="CanvasLayerUI/Options/Camera/Aperture"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 0.5
+max_value = 64.0
+step = 0.5
+value = 16.0
+
+[node name="Value" type="Label" parent="CanvasLayerUI/Options/Camera/Aperture"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "16.0 f-stop"
+
+[node name="ShutterSpeed" type="HBoxContainer" parent="CanvasLayerUI/Options/Camera"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Label" type="Label" parent="CanvasLayerUI/Options/Camera/ShutterSpeed"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "Shutter Speed"
+
+[node name="HSlider" type="HSlider" parent="CanvasLayerUI/Options/Camera/ShutterSpeed"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 10.0
+max_value = 2000.0
+step = 10.0
+value = 100.0
+
+[node name="Value" type="Label" parent="CanvasLayerUI/Options/Camera/ShutterSpeed"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "1/100"
+
+[node name="Sensitivity" type="HBoxContainer" parent="CanvasLayerUI/Options/Camera"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Label" type="Label" parent="CanvasLayerUI/Options/Camera/Sensitivity"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "Sensitivity"
+
+[node name="HSlider" type="HSlider" parent="CanvasLayerUI/Options/Camera/Sensitivity"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 50.0
+max_value = 6400.0
+step = 50.0
+value = 100.0
+
+[node name="Value" type="Label" parent="CanvasLayerUI/Options/Camera/Sensitivity"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "100 ISO"
+
+[node name="AutoexposureSpeed" type="HBoxContainer" parent="CanvasLayerUI/Options/Camera"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Label" type="Label" parent="CanvasLayerUI/Options/Camera/AutoexposureSpeed"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "Auto Exposure Speed"
+
+[node name="HSlider" type="HSlider" parent="CanvasLayerUI/Options/Camera/AutoexposureSpeed"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 10.0
+step = 0.1
+value = 1.0
+
+[node name="Value" type="Label" parent="CanvasLayerUI/Options/Camera/AutoexposureSpeed"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "1.0"
+
+[node name="CurvatureBeta" type="HBoxContainer" parent="CanvasLayerUI/Options/Camera"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CanvasLayerUI/Options/Camera/CurvatureBeta"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "Curvature Beta"
+
+[node name="HSlider" type="HSlider" parent="CanvasLayerUI/Options/Camera/CurvatureBeta"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = -0.5
+max_value = 0.5
+step = 0.001
+value = 0.5
+allow_greater = true
+allow_lesser = true
+tick_count = 20
+
+[node name="Value" type="Label" parent="CanvasLayerUI/Options/Camera/CurvatureBeta"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "0.0"
+
+[node name="CurvatureGamma" type="HBoxContainer" parent="CanvasLayerUI/Options/Camera"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CanvasLayerUI/Options/Camera/CurvatureGamma"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "Curvature Gamma"
+
+[node name="HSlider" type="HSlider" parent="CanvasLayerUI/Options/Camera/CurvatureGamma"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 10.0
+step = 0.01
+value = 1.0
+allow_greater = true
+allow_lesser = true
+tick_count = 20
+ticks_on_borders = true
+
+[node name="Value" type="Label" parent="CanvasLayerUI/Options/Camera/CurvatureGamma"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "2.0"
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+layer = -2
+
+[node name="FilmView" type="TextureRect" parent="CanvasLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_behavior_recursive = 1
+metadata/_edit_use_anchors_ = true
+
+[node name="FilmOverlay2D" type="TextureRect" parent="CanvasLayer"]
+modulate = Color(1, 1, 1, 0.60784316)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_behavior_recursive = 1
+script = ExtResource("6_filmoverlay")
+DrawFilmGradientNormals = true
+RayWidth = 2.0
+FilmGradientScale = 30.0
+
+[node name="RayBeamRenderer" type="Node3D" parent="."]
+visible = false
+script = ExtResource("4_raybeam")
+CameraPath = NodePath("../Camera3D")
+StepsPerRay = 400
+StepLength = 0.05
+MinStepLength = 0.001
+MaxStepLength = 0.3
+LowCurvaturePerpAccel = 0.3
+BendScale = 1.0
+FieldCenter = Vector3(0, 1.5, 0)
+FieldCenterIsCamera = false
+DebugMode = 0
+DebugNormalLen = 0.295
+Alpha = 1.0
+UpdateEveryFrame = false
+
+[node name="GrinFilmCamera" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3563714, 2.303526, -2.0074396)
+script = ExtResource("3_77dp3")
+Preset = 0
+ApplyPresetOnReady = true
+QualityMode = 4
+Width = 1280
+Height = 720
+FilmResolutionScale = 0.3
+SkyColor = Color(0.19793725, 0.19793722, 0.19793722, 1)
+FilmOpacity = 0.8
+ShadingMode = 1
+FlipNormalToCamera = false
+UpdateEveryFrame = false
+UpdateEveryFrameBudgetMs = 1000.0
+UpdateEveryFrameMaxRowsPerStep = 32
+RenderStepMaxMs = 10000
+RenderStepMaxSegmentsPerFrame = 50000000
+TargetMsPerFrame = 500
+MinRowsPerFrame = 1
+MaxRowsPerFrameCap = 8
+EnableProfiling = false
+EnableFramePerf = false
+FramePerfLogEveryNFrames = 5
+RenderStepPhaseLog = false
+RenderStepBandLog = false
+DebugGeomRejectSampleEnabled = true
+DebugGeomCounterGuardEnabled = true
+DebugGeomPruneAuditEnabled = true
+AutoRangeMin = 0.01
+AutoRangeMax = 50.0
+AutoRangeSafety = 1.2
+BandSkipFrames = 1
+Pass1DoHitTest = false
+BroadphasePolicy = 2
+UseBroadphasePolicy = true
+BroadphaseMargin = 0.1
+BroadphaseMaxResults = 16
+UsePass2CollisionStride = true
+MinSegLenForStrideSkip = 0.25
+Pass2GeomEnvelopeRadiusScale = 1.02
+Pass2GeomEnvelopeAabbExpand = 0.01
+Pass2HitBackFaces = true
+Pass2ForceIfPrevHitLost = true
+Pass2SoftGateEnableQuickRayMiss = true
+DisableSoftGateOnOverload = false
+Pass2SoftGateMaxAttemptsPerPixel = 6
+Pass2SoftGateMaxAttemptsPerFrame = 300
+Pass2SoftGateMaxAttemptsPerFrameMax = 600
+Pass2SoftGateMaxSubdividedCallsPerFrame = 500
+Pass2SoftGateWatchdogMs = 5000.0
+Pass2SoftGateScoringEnabled = false
+Pass2SoftGateScoreBudgetPerFrame = 256
+Pass2SoftGateMinSegmentLength = 0.08
+Pass2SoftGateScoreThreshold = 0.05
+Pass2SoftGateRandomProbeChance = 0.0
+Pass2SoftGateDebugEnabled = false
+DebugEveryNPixels = 30
+RayBeamRendererPath = NodePath("../RayBeamRenderer")
+FilmViewPath = NodePath("../CanvasLayer/FilmView")
+FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
+Pass2SoftGateMinSegLenSteps = 0.35
+SharedRbrHasRenderer = true
+SharedRbrFieldCenterIsCamera = false
+
+[node name="RenderTestRunner" type="Node" parent="."]
+script = ExtResource("14_runtest")
+
+[node name="FieldProbe3D" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -0.7284068, -0.6851449, 0, 0.6851449, -0.7284068, 1.3337088, 0.13719916, 1.7617948)
+script = ExtResource("13_0m0f1")
+PrintIntervalSec = 5.0
+
+[node name="TestFieldA" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.8231258, 0, -0.5646266)
+script = ExtResource("8_xersf")
+InnerRadius = 0.0
+OuterRadius = 5.0
+ROuter = 5.0
+Amp = 2.5
+CurveA = 10.0
+DebugDrawBounds = true
+DebugDrawInGame = true
+DebugRingSegments = 16
+DebugLineWidth = 3.0
+
+[node name="TestFieldB" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.857697, 0.7269521, 1.515573)
+script = ExtResource("8_xersf")
+InnerRadius = 0.0
+OuterRadius = 5.0
+ROuter = 5.0
+Amp = -5.0
+BoxExtents = Vector3(20, 20, 20)
+CurveA = 2.0
+DebugDrawBounds = true
+DebugDrawInGame = true
+
+[node name="TestFieldC" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.7274027, 0.96604896, 0.18116665)
+script = ExtResource("8_xersf")
+ROuter = 5.0
+Amp = 3.5
+BoxExtents = Vector3(20, 20, 20)
+CurveA = 3.0
+DebugDrawBounds = true
+DebugDrawInGame = true
+
+[node name="TestFieldD" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.66332006, 1.9320979, 0.7402365)
+script = ExtResource("8_xersf")
+ROuter = 5.0
+Amp = -4.0
+BoxExtents = Vector3(20, 20, 20)
+CurveA = 3.0
+DebugDrawBounds = true
+DebugDrawInGame = true
+
+[node name="FieldSource3D" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.41781783, 1.8735187, -0.49812222)
+script = ExtResource("8_xersf")
+Enabled = false
+Strength = 0.005
+Softening = 2.115
+InnerRadius = 0.1
+OuterRadius = 2.0
+DebugDrawInGame = true
+
+[node name="Emitter1" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
+script = ExtResource("5_emitter")
+Rays = 17
+SpreadDegrees = 59.975
+MaxDistance = 50.0
+FanYawDegrees = 360.0
+
+[node name="living_room" parent="." instance=ExtResource("3_xersf")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.011308312, -0.00152421, 0.021672606)
+visible = false
+
+[node name="TestPhysicsBox1" parent="." instance=ExtResource("4_00tp4")]
+transform = Transform3D(-2.9267077, 0.062589, -3.2043538, 0.25782096, 0.13378882, 3.1383374, 2.6280239, 0.056577086, -3.8764265, 1.3565156, 2.0819187, 0.6275604)
+
+[node name="TestPhysicsBox2" parent="." instance=ExtResource("4_00tp4")]
+transform = Transform3D(0.93962586, -0.14615324, -0.61478853, -0.36056325, -0.03727375, -4.8751254, 0.73373944, 0.16884725, -1.6083648, 1.0214466, 1.5375748, -1.2567942)
+
+[node name="TestPhysicsBox3" parent="." instance=ExtResource("4_00tp4")]
+transform = Transform3D(0.6296023, 0.022610143, 4.43106, 0.86875576, -0.1430808, -1.7463846, 0.6325666, 0.17400047, -2.0118413, -0.21073341, 2.6500235, -0.5922836)
+
+[node name="TestPhysicsBox4" parent="." instance=ExtResource("4_00tp4")]
+transform = Transform3D(0.93962586, -0.14615324, -0.61478853, -0.36056325, -0.03727375, -4.8751254, 0.73373944, 0.16884725, -1.6083648, 0.07150948, 1.7149134, 1.5798302)
+
+[node name="TestPhysicsSphere1" parent="." instance=ExtResource("12_b0q6j")]
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 1.4918662, 2.5508516, -0.7067733)
+
+[node name="CurvedLayer" type="CanvasLayer" parent="."]
+visible = false
+
+[node name="CurvedOverlay" type="ColorRect" parent="CurvedLayer"]
+visible = false
+material = SubResource("ShaderMaterial_g14j6")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="RayViz" type="MeshInstance3D" parent="."]
+visible = false
+script = ExtResource("3_rayviz")
+
+[node name="FieldGrp_A" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -0.5)
+
+[connection signal="value_changed" from="CanvasLayerUI/Options/Light/TimeOfDay/HSlider" to="CanvasLayerUI/Options" method="_on_time_of_day_value_changed"]
+[connection signal="value_changed" from="CanvasLayerUI/Options/Light/SunIntensity/HSlider" to="CanvasLayerUI/Options" method="_on_sun_intensity_value_changed"]
+[connection signal="value_changed" from="CanvasLayerUI/Options/Light/Lightbulb1Intensity/HSlider" to="CanvasLayerUI/Options" method="_on_lightbulb1_intensity_value_changed"]
+[connection signal="value_changed" from="CanvasLayerUI/Options/Light/Lightbulb1Temperature/HSlider" to="CanvasLayerUI/Options" method="_on_lightbulb1_temperature_value_changed"]
+[connection signal="value_changed" from="CanvasLayerUI/Options/Light/Lightbulb2Intensity/HSlider" to="CanvasLayerUI/Options" method="_on_lightbulb2_intensity_value_changed"]
+[connection signal="value_changed" from="CanvasLayerUI/Options/Light/Lightbulb2Temperature/HSlider" to="CanvasLayerUI/Options" method="_on_lightbulb2_temperature_value_changed"]
+[connection signal="toggled" from="CanvasLayerUI/Options/Light/SDFGI" to="CanvasLayerUI/Options" method="_on_sdfgi_button_toggled"]
+[connection signal="value_changed" from="CanvasLayerUI/Options/Camera/FocusDistance/HSlider" to="CanvasLayerUI/Options" method="_on_focus_distance_value_changed"]
+[connection signal="value_changed" from="CanvasLayerUI/Options/Camera/FocalLength/HSlider" to="CanvasLayerUI/Options" method="_on_focal_length_value_changed"]
+[connection signal="value_changed" from="CanvasLayerUI/Options/Camera/Aperture/HSlider" to="CanvasLayerUI/Options" method="_on_aperture_value_changed"]
+[connection signal="value_changed" from="CanvasLayerUI/Options/Camera/ShutterSpeed/HSlider" to="CanvasLayerUI/Options" method="_on_shutter_speed_value_changed"]
+[connection signal="value_changed" from="CanvasLayerUI/Options/Camera/Sensitivity/HSlider" to="CanvasLayerUI/Options" method="_on_sensitivity_value_changed"]
+[connection signal="value_changed" from="CanvasLayerUI/Options/Camera/AutoexposureSpeed/HSlider" to="CanvasLayerUI/Options" method="_on_autoexposure_speed_value_changed"]
+[connection signal="value_changed" from="CanvasLayerUI/Options/Camera/CurvatureBeta/HSlider" to="CanvasLayerUI/Options" method="_on_curvature_beta_value_changed"]
+[connection signal="value_changed" from="CanvasLayerUI/Options/Camera/CurvatureGamma/HSlider" to="CanvasLayerUI/Options" method="_on_curvature_gamma_value_changed"]

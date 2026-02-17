@@ -1,15 +1,15 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1771181754
+::res://::1771363677
 camera_3d.gd::GDScript::3454241889599487331::1765502409::0::1::::<>Camera3D<><>0<>0<><>::
 CurvedCamera.cs::CSharpScript::5306762016452856891::1771027735::0::1::::CurvedCamera<>Camera3D<><>0<>0<><>::
-curved_ray_postprocess.gdshader::Shader::3282317646427007636::1771181739::0::1::::<><><>0<>0<><>::
-curved_view.gdshader::Shader::464022403874803904::1771181739::0::1::::<><><>0<>0<><>::
+curved_ray_postprocess.gdshader::Shader::3282317646427007636::1771363253::0::1::::<><><>0<>0<><>::
+curved_view.gdshader::Shader::464022403874803904::1771363253::0::1::::<><><>0<>0<><>::
 FieldGrid3D.cs::CSharpScript::7908573473413055030::1769106792::0::1::::<><><>0<>0<><>::
 FieldProbe3D.cs::CSharpScript::8721301265289845037::1770690900::0::1::::<>Node3D<><>0<>0<><>::
 FieldSource3D.cs::CSharpScript::1499217976932918695::1770574062::0::1::::<>Node3D<><>0<>0<><>::
 FilmOverlay2D.cs::CSharpScript::6555086453973335341::1770576576::0::1::::<>TextureRect<><>0<>0<><>::
 film_render_report.md::TextFile::-1::1768615916::0::1::::<><><>0<>0<><>::
-GrinFilmCamera.cs::CSharpScript::4402864534231265276::1771181691::0::1::::<>Node<><>0<>0<><>::
+GrinFilmCamera.cs::CSharpScript::4402864534231265276::1771272713::0::1::::<>Node<><>0<>0<><>::
 HitPayload.cs::CSharpScript::280919923161781190::1768341163::0::1::::<><><>0<>0<><>::
 icon.webp::CompressedTexture2D::7652332113619774721::1765152170::1765341495::1::::<><><>0<>0<>a07731b734edb7cd369d6df2a233f967<>res://.godot/imported/icon.webp-e94f9a68b0f625a567a797079e4d325f.ctex::
 living_room.blend::PackedScene::2720710171365729848::1765152170::1769475798::1::::<><><>0<>0<>39eadc92c0ab092d9bd44a592332f275<>res://.godot/imported/living_room.blend-8461f99131ec7142fa79e355dcd58c5f.scn::
@@ -22,8 +22,10 @@ RayBeamRenderer.cs::CSharpScript::7636165736354380146::1770667573::0::1::::<>Nod
 RayEmitter3D.cs::CSharpScript::2301457052814117006::1765754681::0::1::::<>Node3D<><>0<>0<><>::
 RayViz.cs::CSharpScript::1960394775717387093::1766971803::0::1::::<>MeshInstance3D<><>0<>0<><>::
 README.md::TextFile::-1::1765152170::0::1::::<><><>0<>0<><>::
-test.tscn::PackedScene::1804899979016569558::1771181739::0::1::::<><><>0<>0<><>::uid://cmss07txb211i::::res://world_environment.gd<>uid://qebxtmehy4vg::::res://options.gd<>uid://chuvuh6fkc2ux::::res://CurvedCamera.cs<>uid://b3y1shfx51f53::::res://GrinFilmCamera.cs<>uid://26voemlp0vg4::::res://RayViz.cs<>uid://bnmjiwr2ptb5w::::res://living_room.glb<>uid://cfrsfdrw017ic::::res://test_physics_room.tscn<>uid://dg2asfleehqsw::::res://RayBeamRenderer.cs<>uid://gu1m7wtw117i::::res://curved_view.gdshader<>uid://713wqufxods5::::res://RayEmitter3D.cs<>uid://c0nlk0rn3oilh::::res://FilmOverlay2D.cs<>uid://vmh5vusla1nv::::res://FieldSource3D.cs<>uid://bielmrb2fmvd6::::res://test_physics_room-sphere.tscn<>uid://dwiws7vsdgshx::::res://FieldProbe3D.cs
-test_physics_room-sphere.tscn::PackedScene::2956879155936580137::1770834746::0::1::::<><><>0<>0<><>::
+test - New.tscn::PackedScene::7387454594058818676::1771363578::0::1::::<><><>0<>0<><>::uid://b3y1shfx51f53::::res://GrinFilmCamera.cs<>uid://dg263rv7q0mtq::::res://RendererCore/Testing/RenderTestRunner.cs
+test.tscn::PackedScene::7387454594058818676::1771363578::0::1::::<><><>0<>0<><>::uid://b3y1shfx51f53::::res://GrinFilmCamera.cs<>uid://dg263rv7q0mtq::::res://RendererCore/Testing/RenderTestRunner.cs
+test_BB.tscn::PackedScene::9213844593896530437::1771363488::0::1::::<><><>0<>0<><>::uid://cmss07txb211i::::res://world_environment.gd<>uid://qebxtmehy4vg::::res://options.gd<>uid://chuvuh6fkc2ux::::res://CurvedCamera.cs<>uid://b3y1shfx51f53::::res://GrinFilmCamera.cs<>uid://26voemlp0vg4::::res://RayViz.cs<>uid://bnmjiwr2ptb5w::::res://living_room.glb<>uid://cfrsfdrw017ic::::res://test_physics_room.tscn<>uid://dg2asfleehqsw::::res://RayBeamRenderer.cs<>uid://gu1m7wtw117i::::res://curved_view.gdshader<>uid://713wqufxods5::::res://RayEmitter3D.cs<>uid://c0nlk0rn3oilh::::res://FilmOverlay2D.cs<>uid://vmh5vusla1nv::::res://FieldSource3D.cs<>uid://bielmrb2fmvd6::::res://test_physics_room-sphere.tscn<>uid://dwiws7vsdgshx::::res://FieldProbe3D.cs<>uid://dg263rv7q0mtq::::res://RendererCore/Testing/RenderTestRunner.cs
+test_physics_room-sphere.tscn::PackedScene::2956879155936580137::1771363382::0::1::::<><><>0<>0<><>::
 test_physics_room.tscn::PackedScene::5159982027100473458::1770834254::0::1::::<><><>0<>0<><>::
 world_environment.gd::GDScript::5653405552479017196::1765512348::0::1::::<>WorldEnvironment<><>0<>0<><>::
 ::res://addons/::1768963499
@@ -72,7 +74,7 @@ spec_wormhole_scene_graph_1.md::TextFile::-1::1771013075::0::1::::<><><>0<>0<><>
 ::res://GodotAdapter/::1770435036
 README.md::TextFile::-1::1770434268::0::1::::<><><>0<>0<><>::
 SnapshotBuilder.cs::CSharpScript::907470010122517097::1770934870::0::1::::<><><>0<>0<><>::
-::res://logs/::1771108228
+::res://logs/::1771363025
 2026-01-26 A SoftGate remove every N.txt::TextFile::-1::1769452841::0::1::::<><><>0<>0<><>::
 2026-02-05 a.txt::TextFile::-1::1770350014::0::1::::<><><>0<>0<><>::
 renderhealth_b3.cand0.translation::OptimizedTranslation::2718231992747466094::1771038007::0::1::::<><><>0<>0<><>::
@@ -92,7 +94,7 @@ renderhealth_b3.geomRayTestsSavedPct.translation::OptimizedTranslation::62475563
 renderhealth_b3.geomSegZeroRatePct.translation::OptimizedTranslation::6448222738464808463::1771038007::0::1::::<><><>0<>0<><>::
 renderhealth_b3.geomTrusted.translation::OptimizedTranslation::4925922860322094889::1771038007::0::1::::<><><>0<>0<><>::
 renderhealth_b3.geomTrustReason.translation::OptimizedTranslation::7639828115136534112::1771038007::0::1::::<><><>0<>0<><>::
-xvba_debug.log::TextFile::-1::1771180995::0::1::::<><><>0<>0<><>::
+xvba_debug.log::TextFile::-1::1771353769::0::1::::<><><>0<>0<><>::
 ::res://RenderBackends/::1770435036
 BackendMode.cs::CSharpScript::5629502595819456376::1770434331::0::1::::<><><>0<>0<><>::
 BackendSelector.cs::CSharpScript::601133064289022643::1770434331::0::1::::<><><>0<>0<><>::
@@ -100,7 +102,7 @@ CoreBackend.cs::CSharpScript::850231876682207311::1770434743::0::1::::<><><>0<>0
 IRenderBackend.cs::CSharpScript::3033879978035522865::1770434331::0::1::::<><><>0<>0<><>::
 LegacyBackend.cs::CSharpScript::7062859234618390545::1770833137::0::1::::<><><>0<>0<><>::
 README.md::TextFile::-1::1770434268::0::1::::<><><>0<>0<><>::
-::res://RendererCore/::1770934918
+::res://RendererCore/::1771271209
 README.md::TextFile::-1::1770434268::0::1::::<><><>0<>0<><>::
 ::res://RendererCore/Accel/::1770434255
 ::res://RendererCore/Common/::1770700432
@@ -128,6 +130,9 @@ InstanceSOA.cs::CSharpScript::1372505243475474522::1770434528::0::1::::<><><>0<>
 PackedParamBuffer.cs::CSharpScript::66447789637838239::1770434528::0::1::::<><><>0<>0<><>::
 SceneSnapshot.cs::CSharpScript::5926773438069709820::1770672485::0::1::::<><><>0<>0<><>::
 ::res://RendererCore/Scheduler/::1770434255
-::res://tools/::1771044204
+::res://RendererCore/Testing/::1771277671
+RenderTestRunner.cs::CSharpScript::7638066468086366158::1771272727::0::1::::<>Node<><>0<>0<><>::
+::res://tools/::1771271268
 README_renderhealth.md::TextFile::-1::1771108663::0::1::::<><><>0<>0<><>::
-::res://tools/__pycache__/::1771108670
+README_test_harness.md::TextFile::-1::1771271268::0::1::::<><><>0<>0<><>::
+::res://tools/__pycache__/::1771271287
