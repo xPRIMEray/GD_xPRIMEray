@@ -321,13 +321,16 @@ public partial class RenderTestRunner : Node
 		if (_renderTestMode)
 		{
 			GD.Print("[RenderTestRunner] Quitting (render-test mode).");
-			GetTree().Quit(0);
+			StopFilmRenderingForExitIfNeeded();
+			GD.Print("[RenderTestRunner] Requesting deferred quit code=0");
+			CallDeferred(nameof(QuitDeferred), 0);
 			return;
 		}
 
 		if (AutoQuitOnComplete)
 		{
-			GetTree().Quit(0);
+			GD.Print("[RenderTestRunner] Requesting deferred quit code=0");
+			CallDeferred(nameof(QuitDeferred), 0);
 		}
 	}
 
@@ -530,8 +533,26 @@ public partial class RenderTestRunner : Node
 		if (_renderTestMode)
 		{
 			GD.Print("[RenderTestRunner] Quitting (render-test mode).");
-			GetTree().Quit(1);
+			StopFilmRenderingForExitIfNeeded();
+			GD.Print("[RenderTestRunner] Requesting deferred quit code=1");
+			CallDeferred(nameof(QuitDeferred), 1);
 		}
+	}
+
+	private void StopFilmRenderingForExitIfNeeded()
+	{
+		if (_film == null || !GodotObject.IsInstanceValid(_film))
+		{
+			return;
+		}
+
+		_film.UpdateEveryFrame = false;
+		_film.SetProcess(false);
+	}
+
+	private void QuitDeferred(int code)
+	{
+		GetTree().Quit(code);
 	}
 
 	private static string FormatNullableBool(bool? value)
