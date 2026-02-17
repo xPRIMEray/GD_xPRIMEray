@@ -51,10 +51,12 @@ public partial class RenderTestRunner : Node
 
 	public override void _Ready()
 	{
+		GD.Print("[RenderTestRunner] _Ready reached.");
+
 		ProcessPriority = 100;
-		_renderTestMode = IsRenderTestMode();
 		bool hasToken = HasCmdArgToken();
 		bool shouldStart = AutoStart || (StartWhenCmdArgPresent && hasToken);
+		_renderTestMode = IsRenderTestMode() || shouldStart;
 
 		if (_renderTestMode)
 		{
@@ -456,11 +458,6 @@ public partial class RenderTestRunner : Node
 
 	private bool HasCmdArgToken()
 	{
-		if (IsRenderTestMode())
-		{
-			return true;
-		}
-
 		string token = (CmdArgToken ?? string.Empty).Trim();
 		if (token.Length == 0)
 		{
@@ -469,7 +466,12 @@ public partial class RenderTestRunner : Node
 
 		foreach (string arg in OS.GetCmdlineUserArgs())
 		{
-			if (string.Equals(arg, token, StringComparison.Ordinal))
+			if (string.IsNullOrWhiteSpace(arg))
+			{
+				continue;
+			}
+
+			if (string.Equals(arg.Trim(), token, StringComparison.Ordinal))
 			{
 				return true;
 			}
