@@ -1,0 +1,143 @@
+I’m going to inspect RenderTestRunner.cs, GrinFilmCamera.cs, and the current test.tscn to identify compile errors and how test defaults/config are wired, then I’ll patch all three files in one pass and verify the diff.
+
+I confirmed the target files exist; next I’m reading the relevant sections around run config/defaults and the harness scene to make precise edits without disturbing unrelated logic.
+
+I’ve identified where to patch run defaults/config and the matrix builder. Next I’ll edit GrinFilmCamera.cs and RenderTestRunner.cs, then replace test.tscn with a minimal harness scene that preserves the current scene UID so project.godot still resolves it.
+
+I have enough context and I’m starting edits now: adding UpdateEveryFrame into test run config/default capture-restore in GrinFilmCamera.cs, expanding the 5-run default matrix in RenderTestRunner.cs, and replacing test.tscn with a minimal standalone harness scene.
+
+Edits are in place. I’m running a build check now to verify the harness changes compile cleanly and catch any regressions before I share the final diff.
+
+diff --git a/GrinFilmCamera.cs b/GrinFilmCamera.cs
+index 84b1cf8..d7133b1 100644
+--- a/GrinFilmCamera.cs
++++ b/GrinFilmCamera.cs
+@@ -56,6 +56,7 @@ public partial class GrinFilmCamera : Node
+ 	public struct TestRunConfig
+ 	{
+ 		public string Name;
++		public bool? UpdateEveryFrame;
+ 		public bool? UseGeometryTLASPruning;
+ 		public float? Pass2GeomEnvelopeRadiusScale;
+ 		public float? Pass2GeomEnvelopeAabbExpand;
+@@ -76,6 +77,7 @@ public partial class GrinFilmCamera : Node
+ 
+ 	public struct TestRunDefaults
+ 	{
++		public bool UpdateEveryFrame;
+ 		public bool UseGeometryTLASPruning;
+ 		public float Pass2GeomEnvelopeRadiusScale;
+ 		public float Pass2GeomEnvelopeAabbExpand;
+@@ -1777,6 +1779,7 @@ public partial class GrinFilmCamera : Node
+ 	{
+ 		return new TestRunDefaults
+ 		{
++			UpdateEveryFrame = UpdateEveryFrame,
+ 			UseGeometryTLASPruning = UseGeometryTLASPruning,
+ 			Pass2GeomEnvelopeRadiusScale = Pass2GeomEnvelopeRadiusScale,
+ 			Pass2GeomEnvelopeAabbExpand = Pass2GeomEnvelopeAabbExpand,
+@@ -1792,6 +1795,7 @@ public partial class GrinFilmCamera : Node
+ 
+ 	public void ApplyTestRunConfig(in TestRunConfig run)
+ 	{
++		UpdateEveryFrame = run.UpdateEveryFrame ?? true;
+ 		if (run.UseGeometryTLASPruning.HasValue) UseGeometryTLASPruning = run.UseGeometryTLASPruning.Value;
+ 		if (run.Pass2GeomEnvelopeRadiusScale.HasValue) Pass2GeomEnvelopeRadiusScale = Mathf.Max(1.0f, run.Pass2GeomEnvelopeRadiusScale.Value);
+ 		if (run.Pass2GeomEnvelopeAabbExpand.HasValue) Pass2GeomEnvelopeAabbExpand = Mathf.Max(0.0f, run.Pass2GeomEnvelopeAabbExpand.Value);
+@@ -1806,6 +1810,7 @@ public partial class GrinFilmCamera : Node
+ 
+ 	public void RestoreTestRunDefaults(in TestRunDefaults defaults)
+ 	{
++		UpdateEveryFrame = defaults.UpdateEveryFrame;
+ 		UseGeometryTLASPruning = defaults.UseGeometryTLASPruning;
+ 		Pass2GeomEnvelopeRadiusScale = defaults.Pass2GeomEnvelopeRadiusScale;
+ 		Pass2GeomEnvelopeAabbExpand = defaults.Pass2GeomEnvelopeAabbExpand;
+diff --git a/RendererCore/Testing/RenderTestRunner.cs b/RendererCore/Testing/RenderTestRunner.cs
+index 6b635a5..9c3eb20 100644
+--- a/RendererCore/Testing/RenderTestRunner.cs
++++ b/RendererCore/Testing/RenderTestRunner.cs
+@@ -210,6 +210,7 @@ public partial class RenderTestRunner : Node
+ 			new GrinFilmCamera.TestRunConfig
+ 			{
+ 				Name = "baseline_prune_off",
++				UpdateEveryFrame = true,
+ 				UseGeometryTLASPruning = false,
+ 				UsePass2CollisionStride = false,
+ 				Pass2SoftGateEnableQuickRayMiss = false,
+@@ -223,6 +224,7 @@ public partial class RenderTestRunner : Node
+ 			new GrinFilmCamera.TestRunConfig
+ 			{
+ 				Name = "prune_on_default",
++				UpdateEveryFrame = true,
+ 				UseGeometryTLASPruning = true,
+ 				UsePass2CollisionStride = true,
+ 				Pass2SoftGateEnableQuickRayMiss = true,
+@@ -236,6 +238,7 @@ public partial class RenderTestRunner : Node
+ 			new GrinFilmCamera.TestRunConfig
+ 			{
+ 				Name = "prune_on_tight_env",
++				UpdateEveryFrame = true,
+ 				UseGeometryTLASPruning = true,
+ 				Pass2GeomEnvelopeRadiusScale = 1.02f,
+ 				Pass2GeomEnvelopeAabbExpand = 0.01f,
+@@ -251,6 +254,36 @@ public partial class RenderTestRunner : Node
+ 				CameraOrbitRadius = orbitRadius,
+ 				CameraOrbitHeight = orbitHeight,
+ 				CameraOrbitPeriodFrames = orbitPeriodFrames
++			},
++			new GrinFilmCamera.TestRunConfig
++			{
++				Name = "prune_on_loose_env",
++				UpdateEveryFrame = true,
++				UseGeometryTLASPruning = true,
++				Pass2GeomEnvelopeRadiusScale = 1.10f,
++				Pass2GeomEnvelopeAabbExpand = 0.05f,
++				UsePass2CollisionStride = true,
++				Pass2SoftGateEnableQuickRayMiss = true,
++				CameraMode = GrinFilmCamera.TestCameraMode.Orbit,
++				CameraLookAt = lookAt,
++				CameraFixedPosition = camPos,
++				CameraOrbitRadius = orbitRadius,
++				CameraOrbitHeight = orbitHeight,
++				CameraOrbitPeriodFrames = orbitPeriodFrames
++			},
++			new GrinFilmCamera.TestRunConfig
++			{
++				Name = "prune_on_stride_off",
++				UpdateEveryFrame = true,
++				UseGeometryTLASPruning = true,
++				UsePass2CollisionStride = false,
++				Pass2SoftGateEnableQuickRayMiss = true,
++				CameraMode = GrinFilmCamera.TestCameraMode.Orbit,
++				CameraLookAt = lookAt,
++				CameraFixedPosition = camPos,
++				CameraOrbitRadius = orbitRadius,
++				CameraOrbitHeight = orbitHeight,
++				CameraOrbitPeriodFrames = orbitPeriodFrames
+ 			}
+ 		};
+ 	}
+diff --git a/test.tscn b/test.tscn
+index 4d064c8..45325ac 100644
+--- a/test.tscn
++++ b/test.tscn
+@@ -1,737 +1,17 @@
+-[previous scene content removed]
++[gd_scene load_steps=3 format=3 uid="uid://0yko6oxwl0n7"]
++
++[ext_resource type="Script" path="res://GrinFilmCamera.cs" id="1_grin"]
++[ext_resource type="Script" path="res://RendererCore/Testing/RenderTestRunner.cs" id="2_runner"]
++
++[node name="TestHarness" type="Node3D"]
++
++[node name="GrinFilmCamera" type="Node" parent="."]
++script = ExtResource("1_grin")
++
++[node name="Camera3D" type="Camera3D" parent="."]
++current = true
++
++[node name="RenderTestRunner" type="Node" parent="."]
++script = ExtResource("2_runner")
++GrinFilmCameraPath = NodePath("../GrinFilmCamera")
++TargetCameraPath = NodePath("../Camera3D")
+Build check: dotnet build "Physical Light and Camera Units.csproj" passed with 0 errors (warnings only).

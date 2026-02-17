@@ -748,3 +748,18 @@ python -m py_compile ... could not complete because an existing locked tools/__p
 Note: there are unrelated/generated .godot/mono/temp and tools/__pycache__ file changes in working tree from build/tool execution that I could not clean due index/file lock permissions; I did not include those in the patch above.
 
 
+5 files changed
++628
+-1
+Undo
+
+Review
+GrinFilmCamera.cs
++119
+-0
+
+Review
+RendererCore/Testing/RenderTestRunner.cs
+test.tscn
+tools/README_test_harness.md
+tools/renderhealth_regress.py

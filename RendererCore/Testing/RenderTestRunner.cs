@@ -210,6 +210,7 @@ public partial class RenderTestRunner : Node
 			new GrinFilmCamera.TestRunConfig
 			{
 				Name = "baseline_prune_off",
+				UpdateEveryFrame = true,
 				UseGeometryTLASPruning = false,
 				UsePass2CollisionStride = false,
 				Pass2SoftGateEnableQuickRayMiss = false,
@@ -223,6 +224,7 @@ public partial class RenderTestRunner : Node
 			new GrinFilmCamera.TestRunConfig
 			{
 				Name = "prune_on_default",
+				UpdateEveryFrame = true,
 				UseGeometryTLASPruning = true,
 				UsePass2CollisionStride = true,
 				Pass2SoftGateEnableQuickRayMiss = true,
@@ -236,6 +238,7 @@ public partial class RenderTestRunner : Node
 			new GrinFilmCamera.TestRunConfig
 			{
 				Name = "prune_on_tight_env",
+				UpdateEveryFrame = true,
 				UseGeometryTLASPruning = true,
 				Pass2GeomEnvelopeRadiusScale = 1.02f,
 				Pass2GeomEnvelopeAabbExpand = 0.01f,
@@ -244,6 +247,36 @@ public partial class RenderTestRunner : Node
 				Pass2CollisionStrideFar = 4,
 				Pass2CollisionStrideFarStartT = 0.35f,
 				MinSegLenForStrideSkip = 0.25f,
+				Pass2SoftGateEnableQuickRayMiss = true,
+				CameraMode = GrinFilmCamera.TestCameraMode.Orbit,
+				CameraLookAt = lookAt,
+				CameraFixedPosition = camPos,
+				CameraOrbitRadius = orbitRadius,
+				CameraOrbitHeight = orbitHeight,
+				CameraOrbitPeriodFrames = orbitPeriodFrames
+			},
+			new GrinFilmCamera.TestRunConfig
+			{
+				Name = "prune_on_loose_env",
+				UpdateEveryFrame = true,
+				UseGeometryTLASPruning = true,
+				Pass2GeomEnvelopeRadiusScale = 1.10f,
+				Pass2GeomEnvelopeAabbExpand = 0.05f,
+				UsePass2CollisionStride = true,
+				Pass2SoftGateEnableQuickRayMiss = true,
+				CameraMode = GrinFilmCamera.TestCameraMode.Orbit,
+				CameraLookAt = lookAt,
+				CameraFixedPosition = camPos,
+				CameraOrbitRadius = orbitRadius,
+				CameraOrbitHeight = orbitHeight,
+				CameraOrbitPeriodFrames = orbitPeriodFrames
+			},
+			new GrinFilmCamera.TestRunConfig
+			{
+				Name = "prune_on_stride_off",
+				UpdateEveryFrame = true,
+				UseGeometryTLASPruning = true,
+				UsePass2CollisionStride = false,
 				Pass2SoftGateEnableQuickRayMiss = true,
 				CameraMode = GrinFilmCamera.TestCameraMode.Orbit,
 				CameraLookAt = lookAt,

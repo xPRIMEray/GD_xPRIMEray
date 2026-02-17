@@ -56,6 +56,7 @@ public partial class GrinFilmCamera : Node
 	public struct TestRunConfig
 	{
 		public string Name;
+		public bool? UpdateEveryFrame;
 		public bool? UseGeometryTLASPruning;
 		public float? Pass2GeomEnvelopeRadiusScale;
 		public float? Pass2GeomEnvelopeAabbExpand;
@@ -76,6 +77,7 @@ public partial class GrinFilmCamera : Node
 
 	public struct TestRunDefaults
 	{
+		public bool UpdateEveryFrame;
 		public bool UseGeometryTLASPruning;
 		public float Pass2GeomEnvelopeRadiusScale;
 		public float Pass2GeomEnvelopeAabbExpand;
@@ -1777,6 +1779,7 @@ public partial class GrinFilmCamera : Node
 	{
 		return new TestRunDefaults
 		{
+			UpdateEveryFrame = UpdateEveryFrame,
 			UseGeometryTLASPruning = UseGeometryTLASPruning,
 			Pass2GeomEnvelopeRadiusScale = Pass2GeomEnvelopeRadiusScale,
 			Pass2GeomEnvelopeAabbExpand = Pass2GeomEnvelopeAabbExpand,
@@ -1792,6 +1795,7 @@ public partial class GrinFilmCamera : Node
 
 	public void ApplyTestRunConfig(in TestRunConfig run)
 	{
+		UpdateEveryFrame = run.UpdateEveryFrame ?? true;
 		if (run.UseGeometryTLASPruning.HasValue) UseGeometryTLASPruning = run.UseGeometryTLASPruning.Value;
 		if (run.Pass2GeomEnvelopeRadiusScale.HasValue) Pass2GeomEnvelopeRadiusScale = Mathf.Max(1.0f, run.Pass2GeomEnvelopeRadiusScale.Value);
 		if (run.Pass2GeomEnvelopeAabbExpand.HasValue) Pass2GeomEnvelopeAabbExpand = Mathf.Max(0.0f, run.Pass2GeomEnvelopeAabbExpand.Value);
@@ -1806,6 +1810,7 @@ public partial class GrinFilmCamera : Node
 
 	public void RestoreTestRunDefaults(in TestRunDefaults defaults)
 	{
+		UpdateEveryFrame = defaults.UpdateEveryFrame;
 		UseGeometryTLASPruning = defaults.UseGeometryTLASPruning;
 		Pass2GeomEnvelopeRadiusScale = defaults.Pass2GeomEnvelopeRadiusScale;
 		Pass2GeomEnvelopeAabbExpand = defaults.Pass2GeomEnvelopeAabbExpand;
