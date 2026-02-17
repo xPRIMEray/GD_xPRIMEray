@@ -8,7 +8,49 @@
 		{
 			"extras":{
 				"luxcore":{
-					"devices":{}
+					"devices":{
+						"devices_hash":"opencl.device.0.platform.name = \"Advanced Micro Devices, Inc.\"\nopencl.device.0.platform.version = \"OpenCL 2.0 AMD-APP (3652.0)\"\nopencl.device.0.name = \"gfx1031\"\nopencl.device.0.type = \"OPENCL_GPU\"\nopencl.device.0.units = 20\nopencl.device.0.clock = 2424\nopencl.device.0.nativevectorwidthfloat = 1\nopencl.device.0.maxmemory = 12868124672\nopencl.device.0.maxmemoryallocsize = 10937905971\nopencl.device.0.localmemory = 65536\nopencl.device.0.constmemory = 10937905971\nopencl.device.1.platform.name = \"Advanced Micro Devices, Inc.\"\nopencl.device.1.platform.version = \"OpenCL 2.0 AMD-APP (3652.0)\"\nopencl.device.1.name = \"gfx1036\"\nopencl.device.1.type = \"OPENCL_GPU\"\nopencl.device.1.units = 1\nopencl.device.1.clock = 2200\nopencl.device.1.nativevectorwidthfloat = 1\nopencl.device.1.maxmemory = 19519422464\nopencl.device.1.maxmemoryallocsize = 16135168819\nopencl.device.1.localmemory = 65536\nopencl.device.1.constmemory = 16135168819\n",
+						"devices":[
+							{
+								"name":"gfx1031",
+								"type":"OPENCL_GPU"
+							},
+							{
+								"name":"gfx1036",
+								"type":"OPENCL_GPU"
+							}
+						]
+					},
+					"config":{
+						"filesaver_path":"/tmp\\",
+						"photongi":{
+							"file_path":"//living_room.pgi"
+						},
+						"envlight_cache":{
+							"file_path":"//living_room.env"
+						},
+						"dls_cache":{
+							"file_path":"//living_room.dlsc"
+						}
+					}
+				},
+				"luxcoreOL":{
+					"ui":{
+						"assetbar_on":0,
+						"turn_off":0,
+						"ToC_loaded":0
+					},
+					"on_search":0,
+					"search_category":"",
+					"model":{
+						"thumbnails_loaded":0
+					},
+					"scene":{
+						"thumbnails_loaded":0
+					},
+					"material":{
+						"thumbnails_loaded":0
+					}
 				}
 			},
 			"name":"Scene",

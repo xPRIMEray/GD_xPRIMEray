@@ -1,11 +1,2 @@
 Node3D
-TextureRect
-CanvasLayer
-MeshInstance3D
-CollisionShape3D
-StaticBody3D
-ColorRect
 Node
-HSlider
-Label
-HBoxContainer

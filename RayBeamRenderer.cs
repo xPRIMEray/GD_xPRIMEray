@@ -656,7 +656,7 @@ public partial class RayBeamRenderer : Node3D
 		Rebuild();
 	}
 
-	private Camera3D GetCamera()
+	public Camera3D GetCamera()
 	{
 		// DECISION: use override path if set; otherwise use viewport camera.
 		if (CameraPath != null && !CameraPath.IsEmpty)
@@ -1959,6 +1959,9 @@ public partial class RayBeamRenderer : Node3D
 	public int BuildRaySegmentsCamera_Pass1(
 		PhysicsDirectSpaceState3D space,
 		ref PhysicsRayQueryParameters3D quickRayParams,
+		Camera3D cam,
+		float camPixelsPerRadian,
+		Vector3 camPosSnapshot,
 		Vector3 origin, Vector3 dir, Vector3 bendDir,
 		Vector3 center, float beta, float gamma,
 		FieldSourceSnap[] fieldSnaps, bool hasSources,
@@ -1997,12 +2000,12 @@ public partial class RayBeamRenderer : Node3D
 		int ce = ceBase;
 		int stepsSinceEmit = 0;
 
-		// camera data for screen-space cadence
-		Camera3D cam = GetCamera();
-		// DECISION: compute pixels-per-radian only when cadence is enabled and camera exists.
-		float pxPerRad = (UseScreenSpaceCollisionCadence && cam != null) ? GetPixelsPerRadian(cam) : 0f;
+		// camera snapshots are captured on the main thread by the caller.
+		bool hasCam = cam != null;
+		// DECISION: use caller-provided snapshot only when cadence is enabled and camera exists.
+		float pxPerRad = (UseScreenSpaceCollisionCadence && hasCam) ? camPixelsPerRadian : 0f;
 		// DECISION: fall back to origin if camera is missing.
-		Vector3 camPos = (cam != null) ? cam.GlobalPosition : Vector3.Zero;
+		Vector3 camPos = hasCam ? camPosSnapshot : Vector3.Zero;
 
 		// CONTROL FACTOR: MinStepLength/MaxStepLength clamp adaptive step size.
 		float minStep = Mathf.Max(0.0001f, Mathf.Min(MinStepLength, MaxStepLength));

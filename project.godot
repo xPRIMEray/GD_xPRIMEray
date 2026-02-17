@@ -15,7 +15,7 @@ config/description="This demo showcases a physical light and camera units setup.
 This allows you to use real world units for lights (lumen, lux, Kelvin)
 and cameras (shutter speed, aperture, ISO sensitivity)."
 config/tags=PackedStringArray("3d", "demo", "official", "rendering")
-run/main_scene="uid://0yko6oxwl0n7"
+run/main_scene="uid://t2xyvpcd8ste"
 config/features=PackedStringArray("4.5", "C#")
 config/icon="res://icon.webp"
 

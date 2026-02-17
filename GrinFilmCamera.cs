@@ -1085,6 +1085,7 @@ public partial class GrinFilmCamera : Node
 	private RandomNumberGenerator _rng = new RandomNumberGenerator();
 	private volatile int _renderStepActive = 0;
 	private bool _renderStepReentryWarned = false;
+	private bool _rowsRangeWarningIssued = false;
 	private int _stuckBandStartRow = -1;
 	private int _stuckBandEndRow = -1;
 	private int _stuckBandRepeats = 0;
@@ -2841,7 +2842,18 @@ public partial class GrinFilmCamera : Node
 					? Math.Max(1, cfg.RenderStepMaxSegmentsPerFrame / Math.Max(1, filmW * maxSeg))
 					: int.MaxValue;
 				int cappedRows = Math.Min(rowsPerFrame, Math.Min(maxRowsByPixel, maxRowsBySeg));
-				rowsPerFrame = Mathf.Clamp(cappedRows, Mathf.Max(1, cfg.MinRowsPerFrame), maxRowsPerFrame);
+				int minRows = Mathf.Max(1, cfg.MinRowsPerFrame);
+				int maxRows = maxRowsPerFrame;
+				if (maxRows < minRows)
+				{
+					if (!_rowsRangeWarningIssued)
+					{
+						GD.PushWarning($"[RenderStep] Invalid rows-per-frame range: minRows={minRows} > maxRows={maxRows}. Forcing maxRows=minRows.");
+						_rowsRangeWarningIssued = true;
+					}
+					maxRows = minRows;
+				}
+				rowsPerFrame = Mathf.Clamp(cappedRows, minRows, maxRows);
 				// DECISION: keep adaptive state in sync.
 				if (rowsPerFrame != _adaptiveRowsPerFrame)
 					_adaptiveRowsPerFrame = rowsPerFrame;
@@ -3125,7 +3137,18 @@ public partial class GrinFilmCamera : Node
 			int jobs = Mathf.Clamp(OS.GetProcessorCount() / 2, 2, 8);
 
 			var basisLocal = basis; // capture for lambda
-			Vector3 camPos = _cam.GlobalPosition;
+			Camera3D pass1Cam = _rbr.GetCamera() ?? _cam;
+			Vector3 pass1CamPos = pass1Cam != null ? pass1Cam.GlobalPosition : Vector3.Zero;
+			float pass1PxPerRad = 0f;
+			if (rayCfg.UseScreenSpaceCollisionCadence && pass1Cam != null)
+			{
+				float pass1FovY = Mathf.DegToRad(pass1Cam.Fov);
+				var pass1Vp = pass1Cam.GetViewport();
+				float pass1VpHeight = pass1Vp != null ? pass1Vp.GetVisibleRect().Size.Y : 720f;
+				pass1VpHeight = Mathf.Max(1f, pass1VpHeight);
+				float pass1FocalPx = (pass1VpHeight * 0.5f) / Mathf.Max(1e-6f, Mathf.Tan(pass1FovY * 0.5f));
+				pass1PxPerRad = pass1FocalPx;
+			}
 
 			ulong a0 = Time.GetTicksUsec(); // before Parallel.For
 			ulong a1 = a0;
@@ -3213,7 +3236,8 @@ public partial class GrinFilmCamera : Node
 						int count = _rbr.BuildRaySegmentsCamera_Pass1(
 							space,
 							ref local.QuickRayParams,
-							camPos, dirWorld, bendDir,
+							pass1Cam, pass1PxPerRad, pass1CamPos,
+							pass1CamPos, dirWorld, bendDir,
 							center, beta, gamma,
 							fieldSnaps, hasSources,
 							farForSim,
@@ -3411,7 +3435,7 @@ public partial class GrinFilmCamera : Node
 			int pass2FlagsKey = (pass2Flags.HitBackFaces ? 1 : 0) | (pass2Flags.HitFromInside ? 2 : 0);
 			int pass2QuickRayMissLogRemaining = cfg.Pass2LogQuickRayMissSamples;
 
-			Vector3 camPosPass2 = camPos;
+			Vector3 camPosPass2 = _cam.GlobalPosition;
 			bool useOverlap = effOverlap;
 			bool useQuickRay = effQuickRay;
 
