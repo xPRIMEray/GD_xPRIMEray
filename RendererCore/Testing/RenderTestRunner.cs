@@ -32,8 +32,7 @@ public partial class RenderTestRunner : Node
 	private bool _defaultsCaptured = false;
 	private bool _cameraTransformCaptured = false;
 	private GrinFilmCamera.TestRunDefaults _defaults;
-	private Vector3 _cameraOriginalPosition;
-	private Basis _cameraOriginalBasis;
+	private Transform3D _cameraOriginalTransform;
 	private readonly List<GrinFilmCamera.TestRunConfig> _runs = new List<GrinFilmCamera.TestRunConfig>();
 	private readonly List<double> _frameMsSamples = new List<double>(1024);
 	private int _runIndex = -1;
@@ -129,6 +128,7 @@ public partial class RenderTestRunner : Node
 			}
 
 			_film.UpdateEveryFrame = false;
+			RestoreCapturedCameraTransformIfNeeded();
 			PrepareRun(_runs[_runIndex]);
 			_harnessState = HarnessState.RunMeasure;
 			return;
@@ -146,7 +146,14 @@ public partial class RenderTestRunner : Node
 		}
 
 		GrinFilmCamera.TestRunConfig run = _runs[_runIndex];
-		ApplyDeterministicCamera(run, _runFrameIndex);
+		if (_renderTestMode)
+		{
+			RestoreCapturedCameraTransformIfNeeded();
+		}
+		else
+		{
+			ApplyDeterministicCamera(run, _runFrameIndex);
+		}
 
 		_film.GetLatestFrameMetricsForTesting(out double frameMs, out bool hasSegsPerPixel, out double segsPerPixel);
 		if (_runFrameIndex >= WarmupFrames && double.IsFinite(frameMs) && frameMs >= 0.0)
@@ -211,9 +218,12 @@ public partial class RenderTestRunner : Node
 
 		_defaults = _film.CaptureTestRunDefaults();
 		_defaultsCaptured = true;
-		_cameraOriginalPosition = _camera.GlobalPosition;
-		_cameraOriginalBasis = _camera.GlobalTransform.Basis;
+		_cameraOriginalTransform = _camera.GlobalTransform;
 		_cameraTransformCaptured = true;
+		if (_renderTestMode)
+		{
+			GD.Print("[RenderTestRunner] Captured camera transform for deterministic tests.");
+		}
 
 		_runs.Clear();
 		_runs.AddRange(BuildDefaultRuns());
@@ -311,7 +321,7 @@ public partial class RenderTestRunner : Node
 		}
 		if (_cameraTransformCaptured && _camera != null && GodotObject.IsInstanceValid(_camera))
 		{
-			_camera.GlobalTransform = new Transform3D(_cameraOriginalBasis, _cameraOriginalPosition);
+			_camera.GlobalTransform = _cameraOriginalTransform;
 		}
 
 		double elapsedMs = ComputeElapsedMs(_matrixStartTimestamp);
@@ -553,6 +563,16 @@ public partial class RenderTestRunner : Node
 	private void QuitDeferred(int code)
 	{
 		GetTree().Quit(code);
+	}
+
+	private void RestoreCapturedCameraTransformIfNeeded()
+	{
+		if (!_renderTestMode || !_cameraTransformCaptured || _camera == null || !GodotObject.IsInstanceValid(_camera))
+		{
+			return;
+		}
+
+		_camera.GlobalTransform = _cameraOriginalTransform;
 	}
 
 	private static string FormatNullableBool(bool? value)

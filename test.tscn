@@ -1,29 +1,27 @@
-[gd_scene load_steps=5 format=3 uid="uid://t2xyvpcd8ste"]
+[gd_scene load_steps=7 format=3 uid="uid://t2xyvpcd8ste"]
 
 [ext_resource type="Script" uid="uid://b3y1shfx51f53" path="res://GrinFilmCamera.cs" id="1_grin"]
 [ext_resource type="Script" uid="uid://dg263rv7q0mtq" path="res://RendererCore/Testing/RenderTestRunner.cs" id="2_runner"]
 [ext_resource type="Script" uid="uid://dg2asfleehqsw" path="res://RayBeamRenderer.cs" id="3_6uqi0"]
 [ext_resource type="Script" uid="uid://c0nlk0rn3oilh" path="res://FilmOverlay2D.cs" id="4_ppyta"]
 
+[sub_resource type="BoxMesh" id="BoxMesh_lri3f"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hbixh"]
+
 [node name="TestHarness" type="Node3D"]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+current = true
 
 [node name="GrinFilmCamera" type="Node" parent="."]
 script = ExtResource("1_grin")
+FilmResolutionScale = 0.25
 UpdateEveryFrame = false
 UpdateEveryFrameMaxRowsPerStep = 256
 RayBeamRendererPath = NodePath("../RayBeamRenderer")
 FilmViewPath = NodePath("../CanvasLayer/FilmView")
 FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
-
-[node name="Camera3D" type="Camera3D" parent="."]
-current = true
-
-[node name="RenderTestRunner" type="Node" parent="."]
-script = ExtResource("2_runner")
-AutoStart = true
-AutoQuitOnComplete = true
-FramesPerRun = 6
-WarmupFrames = 2
 
 [node name="RayBeamRenderer" type="Node3D" parent="."]
 visible = false
@@ -63,7 +61,24 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_behavior_recursive = 1
 script = ExtResource("4_ppyta")
+CameraPath = NodePath("../../Camera3D")
 DrawFilmGradientNormals = true
 RayWidth = 2.0
 FilmGradientScale = 30.0
 metadata/_edit_use_anchors_ = true
+
+[node name="RenderTestRunner" type="Node" parent="."]
+script = ExtResource("2_runner")
+AutoStart = true
+AutoQuitOnComplete = true
+FramesPerRun = 300
+WarmupFrames = 30
+
+[node name="TestTarget" type="StaticBody3D" parent="."]
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, -5)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TestTarget"]
+mesh = SubResource("BoxMesh_lri3f")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TestTarget"]
+shape = SubResource("BoxShape3D_hbixh")

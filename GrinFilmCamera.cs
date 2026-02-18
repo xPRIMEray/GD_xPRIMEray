@@ -7957,8 +7957,8 @@ public partial class GrinFilmCamera : Node
 		for (int i = 0; i < window; i++)
 		{
 			RenderHealthSample s = GetRenderHealthSampleFromEnd(i);
-			if (s.UseGeometryTLASPruning == useGeometryTLASPruningMode)
-				count++;
+			if (s.UseGeometryTLASPruning != useGeometryTLASPruningMode) break;
+			count++;
 		}
 		return count;
 	}
@@ -8027,41 +8027,44 @@ public partial class GrinFilmCamera : Node
 			totalHybridFallbackHits += s.HybridFallbackHitCount;
 			totalHybridFallbackMisses += s.HybridFallbackMissCount;
 			totalHybridNoCandidates += s.HybridNoCandidateCount;
-			if (s.UseGeometryTLASPruning == latest.UseGeometryTLASPruning)
+			// Mode switch -> reset mode-window counters to avoid mixed-window stats; required by regress invariants.
+			// Only aggregate contiguous newest samples from the current prune mode.
+			if (s.UseGeometryTLASPruning != latest.UseGeometryTLASPruning)
 			{
-				// Keep geom aggregates mode-pure: never mix ON/OFF samples in one RenderHealth line.
-				modeWindowSamplesUsed++;
-				totalTracedForGeomMode += s.TracedPixels;
-				totalGeomCandidates += s.GeomCandidatesTotal;
-				totalGeomCandidateSegments += s.GeomCandidatesSegments;
-				totalGeomSegmentsQueried += s.GeomSegmentsQueried;
-				totalGeomSegWithCandidates += s.GeomSegWithCandidates;
-				totalGeomSegZeroCandidates += s.GeomSegZeroCandidates;
-				totalGeomPixelProcessed += s.GeomPixelProcessed;
-				totalGeomPixelHadAnyCandidates += s.GeomPixelHadAnyCandidates;
-				totalGeomPixelNoCandidates += s.GeomPixelNoCandidates;
-				totalGeomHitAccepted += s.GeomHitAccepted;
-				totalGeomHitRejected += s.GeomHitRejected;
-				totalGeomRayTestsTotal += s.GeomRayTestsTotal;
-				totalGeomRayTestsAccepted += s.GeomRayTestsAccepted;
-				totalGeomRayTestsRejected += s.GeomRayTestsRejected;
-				totalPass2SampledSegments += s.Pass2SampledSegments;
-				totalPass2RadiusSum += s.Pass2RadiusSum;
-				if (s.Pass2RadiusMax > totalPass2RadiusMax) totalPass2RadiusMax = s.Pass2RadiusMax;
-				totalPass2EnvDiagSum += s.Pass2EnvDiagSum;
-				if (s.Pass2EnvDiagMax > totalPass2EnvDiagMax) totalPass2EnvDiagMax = s.Pass2EnvDiagMax;
-				totalPass2EnvelopeInflationSum += s.Pass2EnvelopeInflationSum;
-				if (s.Pass2EnvelopeInflationMax > totalPass2EnvelopeInflationMax) totalPass2EnvelopeInflationMax = s.Pass2EnvelopeInflationMax;
-				totalPass2CandidateCount0 += s.Pass2CandidateCount0;
-				totalPass2CandidateCount1To2 += s.Pass2CandidateCount1To2;
-				totalPass2CandidateCount3To8 += s.Pass2CandidateCount3To8;
-				totalPass2CandidateCount9To32 += s.Pass2CandidateCount9To32;
-				totalPass2CandidateCount33Plus += s.Pass2CandidateCount33Plus;
-				totalPruneAuditSamples += s.PruneAuditSamples;
-				totalPruneAuditFalseNeg += s.PruneAuditFalseNeg;
-				totalPruneAuditFalsePos += s.PruneAuditFalsePos;
-				totalPruneAuditCandidateZeroButBaselineHit += s.PruneAuditCandidateZeroButBaselineHit;
+				break;
 			}
+			// Keep geom aggregates mode-pure: never mix ON/OFF samples in one RenderHealth line.
+			modeWindowSamplesUsed++;
+			totalTracedForGeomMode += s.TracedPixels;
+			totalGeomCandidates += s.GeomCandidatesTotal;
+			totalGeomCandidateSegments += s.GeomCandidatesSegments;
+			totalGeomSegmentsQueried += s.GeomSegmentsQueried;
+			totalGeomSegWithCandidates += s.GeomSegWithCandidates;
+			totalGeomSegZeroCandidates += s.GeomSegZeroCandidates;
+			totalGeomPixelProcessed += s.GeomPixelProcessed;
+			totalGeomPixelHadAnyCandidates += s.GeomPixelHadAnyCandidates;
+			totalGeomPixelNoCandidates += s.GeomPixelNoCandidates;
+			totalGeomHitAccepted += s.GeomHitAccepted;
+			totalGeomHitRejected += s.GeomHitRejected;
+			totalGeomRayTestsTotal += s.GeomRayTestsTotal;
+			totalGeomRayTestsAccepted += s.GeomRayTestsAccepted;
+			totalGeomRayTestsRejected += s.GeomRayTestsRejected;
+			totalPass2SampledSegments += s.Pass2SampledSegments;
+			totalPass2RadiusSum += s.Pass2RadiusSum;
+			if (s.Pass2RadiusMax > totalPass2RadiusMax) totalPass2RadiusMax = s.Pass2RadiusMax;
+			totalPass2EnvDiagSum += s.Pass2EnvDiagSum;
+			if (s.Pass2EnvDiagMax > totalPass2EnvDiagMax) totalPass2EnvDiagMax = s.Pass2EnvDiagMax;
+			totalPass2EnvelopeInflationSum += s.Pass2EnvelopeInflationSum;
+			if (s.Pass2EnvelopeInflationMax > totalPass2EnvelopeInflationMax) totalPass2EnvelopeInflationMax = s.Pass2EnvelopeInflationMax;
+			totalPass2CandidateCount0 += s.Pass2CandidateCount0;
+			totalPass2CandidateCount1To2 += s.Pass2CandidateCount1To2;
+			totalPass2CandidateCount3To8 += s.Pass2CandidateCount3To8;
+			totalPass2CandidateCount9To32 += s.Pass2CandidateCount9To32;
+			totalPass2CandidateCount33Plus += s.Pass2CandidateCount33Plus;
+			totalPruneAuditSamples += s.PruneAuditSamples;
+			totalPruneAuditFalseNeg += s.PruneAuditFalseNeg;
+			totalPruneAuditFalsePos += s.PruneAuditFalsePos;
+			totalPruneAuditCandidateZeroButBaselineHit += s.PruneAuditCandidateZeroButBaselineHit;
 			if (!string.IsNullOrEmpty(s.BudgetExitReason))
 			{
 				exitCounts.TryGetValue(s.BudgetExitReason, out int count);
@@ -8096,10 +8099,32 @@ public partial class GrinFilmCamera : Node
 		int geomPruneRequestedBit = latest.GeomPruneRequested ? 1 : 0;
 		bool modeHasEnoughSamples = modeWindowSamplesUsed >= RenderHealthMinModeSamplesForTrust;
 		bool pruneOnHasEnoughP2Samples = totalPass2SampledSegments >= RenderHealthMinSamplesForTrust;
+		bool hasGeomSamples = totalPass2SampledSegments > 0
+			|| totalGeomPixelProcessed > 0
+			|| totalGeomSegmentsQueried > 0;
 		bool geomWindowPartial = _geomPruneSwitchedThisWindow == 1
 			|| !modeHasEnoughSamples
+			|| !hasGeomSamples
 			|| (latest.UseGeometryTLASPruning && !pruneOnHasEnoughP2Samples);
-		bool geomMetricsTrusted = !geomWindowPartial;
+		bool geomWindowTrusted = !geomWindowPartial;
+		bool geomModeHasPixelDenominator = totalGeomPixelProcessed > 0;
+		double geomRayTestsPerPixelOn = (latest.UseGeometryTLASPruning && geomModeHasPixelDenominator)
+			? (double)totalGeomRayTestsTotal / totalGeomPixelProcessed
+			: double.NaN;
+		double geomRayTestsPerPixelOffCurrent = (!latest.UseGeometryTLASPruning && geomModeHasPixelDenominator)
+			? (double)totalGeomRayTestsTotal / totalGeomPixelProcessed
+			: double.NaN;
+		bool geomRayTestsPerPixelOnNumeric = latest.UseGeometryTLASPruning
+			&& geomModeHasPixelDenominator
+			&& double.IsFinite(geomRayTestsPerPixelOn);
+		bool geomRayTestsPerPixelOffCurrentNumeric = !latest.UseGeometryTLASPruning
+			&& geomModeHasPixelDenominator
+			&& double.IsFinite(geomRayTestsPerPixelOffCurrent);
+		bool geomModeMetricNumeric = latest.UseGeometryTLASPruning
+			? geomRayTestsPerPixelOnNumeric
+			: geomRayTestsPerPixelOffCurrentNumeric;
+		// Trusted requires samples present and numeric per-mode metric; avoids trusted-with-na failures in regress.
+		bool geomMetricsTrusted = geomWindowTrusted && geomModeMetricNumeric;
 		bool showPruneOnMetrics = latest.UseGeometryTLASPruning
 			&& geomMetricsTrusted;
 		string geomWindowTrustReason;
@@ -8111,9 +8136,17 @@ public partial class GrinFilmCamera : Node
 		{
 			geomWindowTrustReason = "low_mode_samples";
 		}
+		else if (!hasGeomSamples)
+		{
+			geomWindowTrustReason = "no_geom_samples";
+		}
 		else if (latest.UseGeometryTLASPruning && !pruneOnHasEnoughP2Samples)
 		{
 			geomWindowTrustReason = "low_p2samp";
+		}
+		else if (!geomModeMetricNumeric)
+		{
+			geomWindowTrustReason = latest.UseGeometryTLASPruning ? "missing_on_metric" : "missing_off_metric";
 		}
 		else if (geomMetricsTrusted)
 		{
@@ -8157,12 +8190,6 @@ public partial class GrinFilmCamera : Node
 		string geomRayTestsTotalStr = geomMetricsTrusted ? totalGeomRayTestsTotal.ToString() : "na";
 		string geomRayTestsAcceptedStr = geomMetricsTrusted ? totalGeomRayTestsAccepted.ToString() : "na";
 		string geomRayTestsRejectedStr = geomMetricsTrusted ? totalGeomRayTestsRejected.ToString() : "na";
-		double geomRayTestsPerPixelOn = latest.UseGeometryTLASPruning && geomMetricsTrusted && totalTracedForGeomMode > 0
-			? (double)totalGeomRayTestsTotal / totalTracedForGeomMode
-			: -1.0;
-		double geomRayTestsPerPixelOffCurrent = !latest.UseGeometryTLASPruning && geomMetricsTrusted && totalTracedForGeomMode > 0
-			? (double)totalGeomRayTestsTotal / totalTracedForGeomMode
-			: -1.0;
 		double geomRayTestsPerPixelOffBaseline = _geomRayTestsOffPerPixelBaselineReady
 			? _geomRayTestsOffPerPixelBaseline
 			: -1.0;
@@ -8189,8 +8216,11 @@ public partial class GrinFilmCamera : Node
 		double geomRayTestsPerPixelOffDisplay = latest.UseGeometryTLASPruning
 			? geomRayTestsPerPixelOffBaseline
 			: geomRayTestsPerPixelOffCurrent;
-		string geomRayTestsPerPxOnStr = (geomMetricsTrusted && geomRayTestsPerPixelOn >= 0.0) ? geomRayTestsPerPixelOn.ToString("0.###") : "na";
-		string geomRayTestsPerPxOffStr = (geomMetricsTrusted && geomRayTestsPerPixelOffDisplay >= 0.0) ? geomRayTestsPerPixelOffDisplay.ToString("0.###") : "na";
+		bool geomRayTestsPerPixelOffDisplayNumeric = latest.UseGeometryTLASPruning
+			? (double.IsFinite(geomRayTestsPerPixelOffDisplay) && geomRayTestsPerPixelOffDisplay >= 0.0)
+			: geomRayTestsPerPixelOffCurrentNumeric;
+		string geomRayTestsPerPxOnStr = (geomMetricsTrusted && geomRayTestsPerPixelOnNumeric) ? geomRayTestsPerPixelOn.ToString("0.###") : "na";
+		string geomRayTestsPerPxOffStr = (geomMetricsTrusted && geomRayTestsPerPixelOffDisplayNumeric) ? geomRayTestsPerPixelOffDisplay.ToString("0.###") : "na";
 		bool geomCounterGuardEnabled = DebugLogConfig.EnableGeomRejectSample || DebugGeomCounterGuardEnabled;
 		bool geomSegZeroDrift = totalGeomSegZeroCandidates > totalGeomSegmentsQueried;
 		bool geomSegWithCandidatesDrift = totalGeomSegWithCandidates > totalGeomSegmentsQueried;
@@ -8310,6 +8340,7 @@ public partial class GrinFilmCamera : Node
 		if (geomPruneSwitched)
 		{
 			_geomPruneSwitchedThisWindow = 1;
+			// Mode switch -> reset mode-window counters to avoid mixed-window stats; required by regress invariants.
 			// Rebase cumulative counters at mode transition so deltas stay mode-pure.
 			_geomHitAcceptedLastSample = geomHitAccepted;
 			_geomHitRejectedLastSample = geomHitRejected;
@@ -8467,7 +8498,8 @@ public partial class GrinFilmCamera : Node
 
 		bool stalled = _renderHealthStallSteps >= RenderHealthStallThreshold;
 		bool cadenceLog = (_renderHealthStepIndex % RenderHealthLogEveryNSteps) == 0;
-		if (stalled || cadenceLog)
+		bool forceModeSwitchLog = geomPruneSwitched;
+		if (stalled || cadenceLog || forceModeSwitchLog)
 		{
 			if (_renderHealthLastLogStep != _renderHealthStepIndex)
 			{
