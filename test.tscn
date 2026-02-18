@@ -6,8 +6,10 @@
 [ext_resource type="Script" uid="uid://c0nlk0rn3oilh" path="res://FilmOverlay2D.cs" id="4_ppyta"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_lri3f"]
+size = Vector3(5, 5, 1)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_hbixh"]
+size = Vector3(5, 5, 1)
 
 [node name="TestHarness" type="Node3D"]
 
@@ -16,9 +18,13 @@ current = true
 
 [node name="GrinFilmCamera" type="Node" parent="."]
 script = ExtResource("1_grin")
-FilmResolutionScale = 0.25
 UpdateEveryFrame = false
-UpdateEveryFrameMaxRowsPerStep = 256
+UpdateEveryFrameBudgetMs = 160.0
+UpdateEveryFrameMaxRowsPerStep = 1024
+RenderStepMaxSegmentsPerFrame = 200000000
+TargetMsPerFrame = 50
+MaxRowsPerFrameCap = 1024
+BroadphasePolicy = 2
 RayBeamRendererPath = NodePath("../RayBeamRenderer")
 FilmViewPath = NodePath("../CanvasLayer/FilmView")
 FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
@@ -75,7 +81,7 @@ FramesPerRun = 300
 WarmupFrames = 30
 
 [node name="TestTarget" type="StaticBody3D" parent="."]
-transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, -5)
+transform = Transform3D(-0.64278764, 0.3237444, 0.69427204, 0, 0.90630776, -0.42261827, -0.76604444, -0.2716538, -0.5825634, 0, 0, -5)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="TestTarget"]
 mesh = SubResource("BoxMesh_lri3f")

@@ -605,6 +605,9 @@ public partial class GrinFilmCamera : Node
 	/// <summary>Max debug summary logs per frame when enabled.</summary>
 	// CONTROL FACTOR: Cap on per-frame summary logs.
 	[Export(PropertyHint.Range, "0,8,1")] public int Pass2SoftGateDebugSummaryLogLimitPerFrame = 1;
+	// Toggle for extended rolling performance suffix on the on-screen RenderHealth HUD.
+	[Export] public bool DebugRenderHealthRollingOverlay = true;
+	[Export(PropertyHint.Range, "0.5,2.0,0.1")] public float RenderHealthRollingWindowSec = 1.0f;
 #endregion
 
 
@@ -924,6 +927,7 @@ public partial class GrinFilmCamera : Node
 	private const int RenderHealthMinModeSamplesForTrust = 8;
 	// Renderer throughput smoothing for overlay metrics (EMA over RenderHealth emissions).
 	private const double OverlayRenderThroughputEmaAlpha = 0.20;
+	private const int OverlayRollingCapacity = 256;
 	private const uint PruneAuditDeterministicMask = 31u; // 1/32 deterministic sampling gate.
 
 	private RenderHealthSample[] _renderHealthSamples = new RenderHealthSample[RenderHealthBufferSize];
@@ -945,11 +949,15 @@ public partial class GrinFilmCamera : Node
 	private double _msPerRowEma = 0.0;
 	private bool _hasRenderThroughputEma = false;
 	private bool _renderThroughputWindowTrusted = false;
+	private readonly OverlayRollingWindow _overlayRolling = new OverlayRollingWindow(OverlayRollingCapacity);
 	private bool _testHasRenderHealthSnapshot = false;
 	private bool _testLastGeomTrusted = false;
 	private bool _testLastGeomSavedPctAvailable = false;
 	private double _testLastGeomSavedPct = 0.0;
 	private string _testLastGeomTrustReason = "na";
+	private bool _renderHealthTestTrustEnforcementEnabled = false;
+	private int _renderHealthTestMinGeomPixProcessedPerWindow = 0;
+	private long _renderHealthTestMinGeomRayTestsTotalPerWindow = 0;
 
 	// band hit ROI history
 	private float[] _bandHitRate = Array.Empty<float>();
@@ -1383,6 +1391,153 @@ public partial class GrinFilmCamera : Node
 		public bool GeomPruneRequested;
 		public bool UseGeometryTLASPruning;
 		public bool PruneAuditEnabled;
+		public double StepWallMs;
+	}
+
+	private struct OverlayRollingSnapshot
+	{
+		public int Steps;
+		public double StepMsTotal;
+		public long RowsAdvanced;
+		public long Hits;
+		public long RayTests;
+		public int RayTestsSamples;
+		public double ElapsedSec;
+	}
+
+	private sealed class OverlayRollingWindow
+	{
+		private readonly long[] _timestamps;
+		private readonly double[] _stepMs;
+		private readonly int[] _rowsAdvanced;
+		private readonly int[] _hits;
+		private readonly long[] _rayTests;
+		private readonly byte[] _hasRayTests;
+		private int _head;
+		private int _count;
+		private int _steps;
+		private int _rayTestsSamples;
+		private double _sumStepMs;
+		private long _sumRowsAdvanced;
+		private long _sumHits;
+		private long _sumRayTests;
+		private long _windowTicks;
+
+		public OverlayRollingWindow(int capacity)
+		{
+			int cap = Math.Max(8, capacity);
+			_timestamps = new long[cap];
+			_stepMs = new double[cap];
+			_rowsAdvanced = new int[cap];
+			_hits = new int[cap];
+			_rayTests = new long[cap];
+			_hasRayTests = new byte[cap];
+			_windowTicks = (long)(Stopwatch.Frequency * 1.0);
+		}
+
+		public void SetWindowSeconds(double seconds)
+		{
+			double clamped = Math.Clamp(seconds, 0.5, 2.0);
+			long ticks = (long)(Stopwatch.Frequency * clamped);
+			_windowTicks = Math.Max(1L, ticks);
+		}
+
+		public void Reset()
+		{
+			_head = 0;
+			_count = 0;
+			_steps = 0;
+			_rayTestsSamples = 0;
+			_sumStepMs = 0.0;
+			_sumRowsAdvanced = 0;
+			_sumHits = 0;
+			_sumRayTests = 0;
+		}
+
+		public void AddSample(long nowTicks, double stepWallMs, int rowsAdvanced, int hits, bool hasRayTests, long rayTests)
+		{
+			Trim(nowTicks);
+			if (_count == _timestamps.Length)
+				RemoveHead();
+
+			int idx = (_head + _count) % _timestamps.Length;
+			_timestamps[idx] = nowTicks;
+			_stepMs[idx] = stepWallMs;
+			_rowsAdvanced[idx] = rowsAdvanced;
+			_hits[idx] = hits;
+			_rayTests[idx] = rayTests;
+			_hasRayTests[idx] = hasRayTests ? (byte)1 : (byte)0;
+			_count++;
+			_steps++;
+			_sumStepMs += stepWallMs;
+			_sumRowsAdvanced += rowsAdvanced;
+			_sumHits += hits;
+			if (hasRayTests)
+			{
+				_sumRayTests += rayTests;
+				_rayTestsSamples++;
+			}
+			Trim(nowTicks);
+		}
+
+		public OverlayRollingSnapshot Snapshot(long nowTicks)
+		{
+			Trim(nowTicks);
+			double elapsedSec = 0.0;
+			if (_count > 0)
+			{
+				long oldestTs = _timestamps[_head];
+				long elapsedTicks = nowTicks - oldestTs;
+				if (elapsedTicks > 0)
+					elapsedSec = elapsedTicks / (double)Stopwatch.Frequency;
+			}
+
+			return new OverlayRollingSnapshot
+			{
+				Steps = _steps,
+				StepMsTotal = _sumStepMs,
+				RowsAdvanced = _sumRowsAdvanced,
+				Hits = _sumHits,
+				RayTests = _sumRayTests,
+				RayTestsSamples = _rayTestsSamples,
+				ElapsedSec = elapsedSec
+			};
+		}
+
+		private void Trim(long nowTicks)
+		{
+			while (_count > 0)
+			{
+				long oldestTs = _timestamps[_head];
+				long age = nowTicks - oldestTs;
+				if (age <= _windowTicks)
+					break;
+				RemoveHead();
+			}
+		}
+
+		private void RemoveHead()
+		{
+			if (_count <= 0)
+				return;
+
+			_sumStepMs -= _stepMs[_head];
+			_sumRowsAdvanced -= _rowsAdvanced[_head];
+			_sumHits -= _hits[_head];
+			_steps--;
+			if (_hasRayTests[_head] != 0)
+			{
+				_sumRayTests -= _rayTests[_head];
+				_rayTestsSamples--;
+			}
+
+			_head = (_head + 1) % _timestamps.Length;
+			_count--;
+			if (_count == 0)
+			{
+				_head = 0;
+			}
+		}
 	}
 
 	private enum SoftGateDecisionReason
@@ -1843,6 +1998,83 @@ public partial class GrinFilmCamera : Node
 		return _testHasRenderHealthSnapshot;
 	}
 
+	public void ResetRenderHealthOverlayRollingForRunStart()
+	{
+		ResetRenderHealthOverlayWindowState();
+	}
+
+	public void ConfigureRenderHealthTrustEnforcementForTesting(bool enabled, int minGeomPixProcessedPerWindow, long minGeomRayTestsTotalPerWindow)
+	{
+		_renderHealthTestTrustEnforcementEnabled = enabled;
+		_renderHealthTestMinGeomPixProcessedPerWindow = enabled ? Math.Max(0, minGeomPixProcessedPerWindow) : 0;
+		_renderHealthTestMinGeomRayTestsTotalPerWindow = enabled ? Math.Max(0L, minGeomRayTestsTotalPerWindow) : 0L;
+	}
+
+	public void ResetRenderHealthWindowForRunStart()
+	{
+		ResetRenderHealthOverlayWindowState();
+		_renderHealthWrite = 0;
+		_renderHealthCount = 0;
+		_renderHealthStallSteps = 0;
+		_renderHealthLastRowCursor = -1;
+		_renderHealthLastExitReason = "";
+		_renderHealthPass2SampleCounter = 0;
+		_geomPruneSwitchedThisWindow = 0;
+		_hasRenderHealthGeomPruneMode = false;
+		_lastRenderHealthGeomPruneMode = false;
+		_geomSegmentsQueriedThisFrame = 0;
+		_geomSegWithCandidatesThisFrame = 0;
+		_geomSegZeroCandidatesThisFrame = 0;
+		_geomPixelProcessedThisFrame = 0;
+		_geomPixelHadAnyCandidatesThisFrame = 0;
+		_geomPixelNoCandidatesThisFrame = 0;
+		_geomHitAcceptedThisFrame = 0;
+		_geomHitRejectedThisFrame = 0;
+		_geomRayTestsTotalThisFrame = 0;
+		_geomRayTestsAcceptedThisFrame = 0;
+		_geomRayTestsRejectedThisFrame = 0;
+		_geomHitAcceptedLastSample = 0;
+		_geomHitRejectedLastSample = 0;
+		_geomSegmentsQueriedLastSample = 0;
+		_geomSegWithCandidatesLastSample = 0;
+		_geomSegZeroCandidatesLastSample = 0;
+		_geomPixelProcessedLastSample = 0;
+		_geomPixelHadAnyCandidatesLastSample = 0;
+		_geomPixelNoCandidatesLastSample = 0;
+		_geomRayTestsTotalLastSample = 0;
+		_geomRayTestsAcceptedLastSample = 0;
+		_geomRayTestsRejectedLastSample = 0;
+		_geomPruneAuditSamplesThisFrame = 0;
+		_geomPruneAuditFalseNegThisFrame = 0;
+		_geomPruneAuditFalsePosThisFrame = 0;
+		_geomPruneAuditCandidateZeroButBaselineHitThisFrame = 0;
+		_geomPruneAuditSamplesLastSample = 0;
+		_geomPruneAuditFalseNegLastSample = 0;
+		_geomPruneAuditFalsePosLastSample = 0;
+		_geomPruneAuditCandidateZeroButBaselineHitLastSample = 0;
+		_geomPruneAuditMismatchLogsThisWindow = 0;
+		_geomPruneAuditSamplesTakenThisWindow = 0;
+		_geomRejectSampleCidNotInGeometryList = 0;
+		_geomRejectSampleCidInGeometryListNotInCandidates = 0;
+		_geomRejectSampleCandidateContainsCid = 0;
+		_testHasRenderHealthSnapshot = false;
+		_testLastGeomTrusted = false;
+		_testLastGeomSavedPctAvailable = false;
+		_testLastGeomSavedPct = 0.0;
+		_testLastGeomTrustReason = "na";
+	}
+
+	private void ResetRenderHealthOverlayWindowState()
+	{
+		_overlayRolling.Reset();
+		_lastRenderHealthEmissionTimestamp = 0;
+		_hasLastRenderHealthEmissionTimestamp = false;
+		_rowsPerSecEma = 0.0;
+		_msPerRowEma = 0.0;
+		_hasRenderThroughputEma = false;
+		_renderThroughputWindowTrusted = false;
+	}
+
 	private void UpdateRenderThroughputMetricsFromRenderHealth(long rowsAdvancedInWindow, bool windowTrusted)
 	{
 		long now = Stopwatch.GetTimestamp();
@@ -1889,6 +2121,23 @@ public partial class GrinFilmCamera : Node
 		if (_filmOverlay == null || !GodotObject.IsInstanceValid(_filmOverlay))
 			return;
 
+		_overlayRolling.SetWindowSeconds(RenderHealthRollingWindowSec);
+		long now = Stopwatch.GetTimestamp();
+		OverlayRollingSnapshot rolling = _overlayRolling.Snapshot(now);
+		double elapsedSec = rolling.ElapsedSec;
+		if ((!double.IsFinite(elapsedSec) || elapsedSec <= 0.0) && rolling.StepMsTotal > 0.0)
+			elapsedSec = rolling.StepMsTotal / 1000.0;
+		bool hasElapsed = elapsedSec > 0.0 && double.IsFinite(elapsedSec);
+		bool hasSteps = rolling.Steps > 0;
+		bool hasRows = rolling.RowsAdvanced > 0 && hasElapsed;
+		double rollingRowsPerSec = hasRows ? (rolling.RowsAdvanced / elapsedSec) : 0.0;
+		double rollingMsPerRow = hasRows ? (rolling.StepMsTotal / rolling.RowsAdvanced) : 0.0;
+		double rollingMsPerStep = hasSteps ? (rolling.StepMsTotal / rolling.Steps) : 0.0;
+		double rollingStepsPerSec = hasSteps && hasElapsed ? (rolling.Steps / elapsedSec) : 0.0;
+		double rollingHitsPerSec = hasSteps && hasElapsed ? (rolling.Hits / elapsedSec) : 0.0;
+		bool hasRayTestsRate = rolling.RayTestsSamples > 0 && hasElapsed;
+		double rollingRayTestsPerSec = hasRayTestsRate ? (rolling.RayTests / elapsedSec) : 0.0;
+
 		_overlayHudSb.Clear();
 		if (_renderHealthCount > 0)
 		{
@@ -1906,10 +2155,9 @@ public partial class GrinFilmCamera : Node
 			.Append(" tickMs=").Append(_lastFrameRenderMs.ToString("0.0"))
 			.Append(" rows/s=");
 
-		bool hasTrustedThroughput = _renderThroughputWindowTrusted && _hasRenderThroughputEma;
-		if (hasTrustedThroughput)
+		if (hasRows && double.IsFinite(rollingRowsPerSec) && rollingRowsPerSec > 0.0)
 		{
-			_overlayHudSb.Append(_rowsPerSecEma.ToString("0.0"));
+			_overlayHudSb.Append(rollingRowsPerSec.ToString("0.0"));
 		}
 		else
 		{
@@ -1917,9 +2165,9 @@ public partial class GrinFilmCamera : Node
 		}
 
 		_overlayHudSb.Append(" ms/row=");
-		if (hasTrustedThroughput)
+		if (hasRows && double.IsFinite(rollingMsPerRow) && rollingMsPerRow > 0.0)
 		{
-			_overlayHudSb.Append(_msPerRowEma.ToString("0.0"));
+			_overlayHudSb.Append(rollingMsPerRow.ToString("0.0"));
 		}
 		else
 		{
@@ -1927,10 +2175,9 @@ public partial class GrinFilmCamera : Node
 		}
 
 		_overlayHudSb.Append(" etaFullFilmSec=");
-		if (hasTrustedThroughput && _filmHeight > 0)
+		if (_filmHeight > 0 && hasRows && rollingRowsPerSec > 0.0)
 		{
-			const double eps = 1e-6;
-			double etaFullFilmSec = _filmHeight / Math.Max(_rowsPerSecEma, eps);
+			double etaFullFilmSec = _filmHeight / rollingRowsPerSec;
 			if (double.IsFinite(etaFullFilmSec) && etaFullFilmSec >= 0.0)
 				_overlayHudSb.Append(etaFullFilmSec.ToString("0.0"));
 			else
@@ -1939,6 +2186,42 @@ public partial class GrinFilmCamera : Node
 		else
 		{
 			_overlayHudSb.Append("na");
+		}
+
+		if (DebugRenderHealthRollingOverlay)
+		{
+			_overlayHudSb.Append(" rolling: ms/step=");
+			if (hasSteps && double.IsFinite(rollingMsPerStep) && rollingMsPerStep >= 0.0)
+				_overlayHudSb.Append(rollingMsPerStep.ToString("0.0"));
+			else
+				_overlayHudSb.Append("na");
+
+			_overlayHudSb.Append(" steps/s=");
+			if (hasSteps && hasElapsed && double.IsFinite(rollingStepsPerSec) && rollingStepsPerSec >= 0.0)
+				_overlayHudSb.Append(rollingStepsPerSec.ToString("0.0"));
+			else
+				_overlayHudSb.Append("na");
+
+			_overlayHudSb.Append(" rows/s=");
+			if (hasRows && double.IsFinite(rollingRowsPerSec) && rollingRowsPerSec > 0.0)
+				_overlayHudSb.Append(rollingRowsPerSec.ToString("0.0"));
+			else
+				_overlayHudSb.Append("na");
+
+			_overlayHudSb.Append(" ms/row=");
+			if (hasRows && double.IsFinite(rollingMsPerRow) && rollingMsPerRow > 0.0)
+				_overlayHudSb.Append(rollingMsPerRow.ToString("0.0"));
+			else
+				_overlayHudSb.Append("na");
+
+			_overlayHudSb.Append(" hits/s=");
+			if (hasSteps && hasElapsed && double.IsFinite(rollingHitsPerSec) && rollingHitsPerSec >= 0.0)
+				_overlayHudSb.Append(rollingHitsPerSec.ToString("0.0"));
+			else
+				_overlayHudSb.Append("na");
+
+			if (hasRayTestsRate && double.IsFinite(rollingRayTestsPerSec) && rollingRayTestsPerSec >= 0.0)
+				_overlayHudSb.Append(" rayTests/s=").Append(rollingRayTestsPerSec.ToString("0.0"));
 		}
 
 		DebugOverlayBus.AddText(new Vector2(16f, 24f), _overlayHudSb.ToString(), Colors.White);
@@ -1987,6 +2270,7 @@ public partial class GrinFilmCamera : Node
 		}
 
 		ResolveEffectiveConfig(out EffectiveConfig cfg);
+		long renderStepStartTimestamp = Stopwatch.GetTimestamp();
 		bool researchAppliedRayMarchClamp = false;
 		RayBeamRenderer.SharedSnapshot researchRestoreSnapshot = cfg.SharedRaySnapshot;
 		try
@@ -6211,6 +6495,8 @@ public partial class GrinFilmCamera : Node
 			double avgStepsPerTracedPixel = bandTracedPixels > 0
 				? (double)pass1StepsIntegrated / bandTracedPixels
 				: 0.0;
+			long renderStepEndTimestamp = Stopwatch.GetTimestamp();
+			double renderStepWallMs = (renderStepEndTimestamp - renderStepStartTimestamp) * 1000.0 / Stopwatch.Frequency;
 			string healthExitReason = budgetStop
 				? budgetStopReason
 				: (renderStepAbortLogged ? renderStepAbortReason : "");
@@ -6255,6 +6541,7 @@ public partial class GrinFilmCamera : Node
 				_geomPruneAuditFalsePosThisFrame,
 				_geomPruneAuditCandidateZeroButBaselineHitThisFrame,
 				avgStepsPerTracedPixel,
+				renderStepWallMs,
 				healthExitReason,
 				useGeomTlasPruningForStep,
 				geomPruneRequestedForStep,
@@ -6847,6 +7134,7 @@ public partial class GrinFilmCamera : Node
 
 		_filmWidth = targetW;
 		_filmHeight = targetH;
+		ResetRenderHealthOverlayWindowState();
 		_img = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
 		_img.Fill(cfg.SkyColor);
 		_tex = ImageTexture.CreateFromImage(_img);
@@ -8102,9 +8390,15 @@ public partial class GrinFilmCamera : Node
 		bool hasGeomSamples = totalPass2SampledSegments > 0
 			|| totalGeomPixelProcessed > 0
 			|| totalGeomSegmentsQueried > 0;
+		bool testTrustGeomPixMet = !_renderHealthTestTrustEnforcementEnabled
+			|| totalGeomPixelProcessed >= _renderHealthTestMinGeomPixProcessedPerWindow;
+		bool testTrustGeomRayTestsMet = !_renderHealthTestTrustEnforcementEnabled
+			|| totalGeomRayTestsTotal >= _renderHealthTestMinGeomRayTestsTotalPerWindow;
+		bool testTrustGeomWorkMet = testTrustGeomPixMet && testTrustGeomRayTestsMet;
 		bool geomWindowPartial = _geomPruneSwitchedThisWindow == 1
 			|| !modeHasEnoughSamples
 			|| !hasGeomSamples
+			|| !testTrustGeomWorkMet
 			|| (latest.UseGeometryTLASPruning && !pruneOnHasEnoughP2Samples);
 		bool geomWindowTrusted = !geomWindowPartial;
 		bool geomModeHasPixelDenominator = totalGeomPixelProcessed > 0;
@@ -8139,6 +8433,14 @@ public partial class GrinFilmCamera : Node
 		else if (!hasGeomSamples)
 		{
 			geomWindowTrustReason = "no_geom_samples";
+		}
+		else if (!testTrustGeomPixMet)
+		{
+			geomWindowTrustReason = "low_geom_pix";
+		}
+		else if (!testTrustGeomRayTestsMet)
+		{
+			geomWindowTrustReason = "low_raytests";
 		}
 		else if (latest.UseGeometryTLASPruning && !pruneOnHasEnoughP2Samples)
 		{
@@ -8330,6 +8632,7 @@ public partial class GrinFilmCamera : Node
 		long pruneAuditFalsePos,
 		long pruneAuditCandidateZeroButBaselineHit,
 		double avgStepsPerTracedPixel,
+		double stepWallMs,
 		string budgetExitReason,
 		bool useGeometryTLASPruning,
 		bool geomPruneRequested,
@@ -8339,6 +8642,7 @@ public partial class GrinFilmCamera : Node
 			&& _lastRenderHealthGeomPruneMode != useGeometryTLASPruning;
 		if (geomPruneSwitched)
 		{
+			ResetRenderHealthOverlayWindowState();
 			_geomPruneSwitchedThisWindow = 1;
 			// Mode switch -> reset mode-window counters to avoid mixed-window stats; required by regress invariants.
 			// Rebase cumulative counters at mode transition so deltas stay mode-pure.
@@ -8454,7 +8758,22 @@ public partial class GrinFilmCamera : Node
 			GeomPruneRequested = geomPruneRequested,
 			UseGeometryTLASPruning = useGeometryTLASPruning,
 			PruneAuditEnabled = pruneAuditEnabled
+			,
+			StepWallMs = stepWallMs
 		};
+
+		if (double.IsFinite(stepWallMs) && stepWallMs >= 0.0)
+		{
+			bool hasRayTests = sample.GeomRayTestsTotal > 0;
+			long nowTicks = Stopwatch.GetTimestamp();
+			_overlayRolling.AddSample(
+				nowTicks,
+				stepWallMs,
+				Math.Max(0, sample.RowsAdvanced),
+				Math.Max(0, sample.Hits),
+				hasRayTests,
+				Math.Max(0L, sample.GeomRayTestsTotal));
+		}
 
 		if (sample.UseGeometryTLASPruning)
 		{
