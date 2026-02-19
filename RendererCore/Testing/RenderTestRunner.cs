@@ -75,6 +75,8 @@ public partial class RenderTestRunner : Node
 	private FieldInfo _rhSampleGeomRayTestsField;
 	private FieldInfo _rhSampleHitsField;
 	private FieldInfo _rhSampleTracedField;
+	private int _renderTestMinGeomPixForTrust = RenderTestMinGeomPixProcessedPerWindow;
+	private long _renderTestMinGeomRayTestsForTrust = RenderTestMinGeomRayTestsTotalPerWindow;
 
 	public override void _Ready()
 	{
@@ -295,6 +297,12 @@ public partial class RenderTestRunner : Node
 			_renderTestResolutionScaleCaptured = true;
 		}
 		_film.FilmResolutionScale = MathF.Max(_film.FilmResolutionScale, RenderTestMeasurementResolutionScale);
+		float effectiveScale = Mathf.Clamp(_film.FilmResolutionScale, 0.01f, 1.0f);
+		int scaledFilmW = Mathf.Max(8, Mathf.RoundToInt(_film.Width * effectiveScale));
+		int scaledFilmH = Mathf.Max(8, Mathf.RoundToInt(_film.Height * effectiveScale));
+		long expectedScaledPixels = Math.Max(1L, (long)scaledFilmW * scaledFilmH);
+		_renderTestMinGeomPixForTrust = Math.Max(RenderTestMinGeomPixProcessedPerWindow, (int)(expectedScaledPixels / 4L));
+		_renderTestMinGeomRayTestsForTrust = RenderTestMinGeomRayTestsTotalPerWindow;
 		if (!_renderTestFramesPerRunCaptured)
 		{
 			_renderTestOriginalFramesPerRun = FramesPerRun;
@@ -351,8 +359,11 @@ public partial class RenderTestRunner : Node
 		rbr.UpdateEveryFrame = false;
 		_film.ConfigureRenderHealthTrustEnforcementForTesting(
 			enabled: true,
-			minGeomPixProcessedPerWindow: RenderTestMinGeomPixProcessedPerWindow,
-			minGeomRayTestsTotalPerWindow: RenderTestMinGeomRayTestsTotalPerWindow);
+			minGeomPixProcessedPerWindow: _renderTestMinGeomPixForTrust,
+			minGeomRayTestsTotalPerWindow: _renderTestMinGeomRayTestsForTrust);
+		GD.Print(
+			$"[RenderTestRunner] Trust target (render-test): scaledFilm={scaledFilmW}x{scaledFilmH} " +
+			$"scaledPixels={expectedScaledPixels} minGeomPix={_renderTestMinGeomPixForTrust} minRayTests={_renderTestMinGeomRayTestsForTrust}");
 
 		_baselineApplied = true;
 		GD.Print("[RenderTestRunner] Applied bbNew baseline profile (render-test mode).");
@@ -420,8 +431,8 @@ public partial class RenderTestRunner : Node
 		if (_renderTestMode)
 		{
 			GD.Print(
-				$"[RenderTestRunner] Trust enforcement: minGeomPix={RenderTestMinGeomPixProcessedPerWindow} " +
-				$"minRayTests={RenderTestMinGeomRayTestsTotalPerWindow} resScale={_film.FilmResolutionScale:0.###} " +
+				$"[RenderTestRunner] Trust enforcement: minGeomPix={_renderTestMinGeomPixForTrust} " +
+				$"minRayTests={_renderTestMinGeomRayTestsForTrust} resScale={_film.FilmResolutionScale:0.###} " +
 				$"stride={(_film.UsePass2CollisionStride ? "on" : "off")}");
 		}
 	}

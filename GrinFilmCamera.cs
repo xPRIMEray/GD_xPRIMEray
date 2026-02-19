@@ -992,7 +992,10 @@ public partial class GrinFilmCamera : Node
 	// - geomSegQueried increment site: Pass2 TLAS block immediately after QueryAabb(...) when pass==0.
 	// - geomSegWithCandidates increment site: Pass2 TLAS block immediately after QueryAabb(...) when pass==0 && candCount>0.
 	// - geomSegZero increment site: Pass2 TLAS block immediately after QueryAabb(...) when pass==0 && candCount==0.
-	// - geomPixProcessed increment site: per-pixel Pass2 loop entry when TLAS pruning is active.
+	// - geomPixProcessed increment site: first Pass2 geometry query attempt per pixel (TLAS/overlap/ray/sweep),
+	//   regardless of prune mode.
+	//   Prior behavior only incremented in prune-ON pixel entry, which kept prune-OFF windows at 0 and forced
+	//   trust-gated OFF per-pixel metrics (geomRayTestsPerPxOff) to remain NA.
 	// - geomPixHadAnyCandidates increment site: per-pixel Pass2 epilogue when TLAS pruning is active and any pass-0 TLAS query returned candCount>0.
 	// - geomPixNoCand increment site: per-pixel Pass2 epilogue when TLAS pruning is active and no pass-0 TLAS query returned candCount>0.
 	// These counters are log-window counters and reset only when a RenderHealth line is printed.
@@ -4431,8 +4434,6 @@ public partial class GrinFilmCamera : Node
 						bandTracedPixels++;
 						processedPixelsThisBand++;
 						processedPixelsThisStep++;
-						if (useGeomTlasPruningForStep)
-							_geomPixelProcessedThisFrame++;
 
 						// DECISION: previous-hit flag for instability probes.
 						bool prevHadHit = cfg.Pass2ForceOnInstability
@@ -4458,6 +4459,16 @@ public partial class GrinFilmCamera : Node
 						var geomTlas = geomTlasForStep;
 						var geomEntities = geomEntitiesForStep;
 						bool useGeomTlasPruning = useGeomTlasPruningForStep;
+						bool geomPixelWorkCountedThisPixel = false;
+						void MarkGeomPixelProcessedForWork()
+						{
+							// Keep geomPixProcessed mode-agnostic: count the first actual geometry query attempt per pixel.
+							// This avoids prune-OFF windows staying at zero solely because prune-ON entry gating was used.
+							if (geomPixelWorkCountedThisPixel)
+								return;
+							_geomPixelProcessedThisFrame++;
+							geomPixelWorkCountedThisPixel = true;
+						}
 
 						bool hadHit = false;
 						float hitDistance = 0f;
@@ -4669,6 +4680,7 @@ public partial class GrinFilmCamera : Node
 										_geomPruneAuditSamplesThisFrame++;
 										if (rayCfg.UseSphereSweepCollision)
 										{
+											MarkGeomPixelProcessedForWork();
 											pruneAuditBaselineHit = RayBeamRenderer.SweepSegmentHit(
 												space,
 												segA,
@@ -4695,6 +4707,7 @@ public partial class GrinFilmCamera : Node
 												sub = Mathf.Clamp(Mathf.RoundToInt(scaled), 1, auditSubMax);
 											}
 
+											MarkGeomPixelProcessedForWork();
 											pruneAuditBaselineHit = RayBeamRenderer.SubdividedRayHit(
 												space,
 												segA,
@@ -4862,6 +4875,7 @@ public partial class GrinFilmCamera : Node
 								if (useGeomTlasPruning)
 								{
 									Span<int> geomCandidates = _geomCandidatesScratch;
+									MarkGeomPixelProcessedForWork();
 									int geomCandidateCount = geomTlas.QueryAabb(envelope, geomCandidates);
 									if (pass == 0)
 									{
@@ -4922,6 +4936,7 @@ public partial class GrinFilmCamera : Node
 										pass2StrideSum += pass2Stride;
 										pass2StrideCount++;
 									}
+									MarkGeomPixelProcessedForWork();
 									didHit = RayBeamRenderer.SweepSegmentHit(space, segA, segB, rayCfg.CollisionMask, rayCfg.CollisionRadius, out hp);
 									if ((statsEnabled || framePerfEnabled) && !segCounted)
 									{
@@ -4964,6 +4979,7 @@ public partial class GrinFilmCamera : Node
 										Vector3 mid = (p0 + p1) * 0.5f;
 
 										_overlapQuery.Transform = new Transform3D(Basis.Identity, mid);
+										MarkGeomPixelProcessedForWork();
 										var overlaps = localSpace.IntersectShape(_overlapQuery, broadphaseCfg.MaxResults);
 										if (statsEnabled) _perfFrame.IntersectShapeCalls++;
 										if (bandCountersEnabled) bandPhysicsQueries++;
@@ -5126,6 +5142,7 @@ public partial class GrinFilmCamera : Node
 										if (framePerfEnabled) _framePerf.CacheMisses++;
 										_quickRayParams.From = p0;
 										_quickRayParams.To = p1;
+										MarkGeomPixelProcessedForWork();
 										var hit0 = localSpace.IntersectRay(_quickRayParams);
 										_geomRayTestsTotalThisFrame++;
 										if (statsEnabled) _perfFrame.IntersectRayCalls++;
@@ -5475,6 +5492,7 @@ public partial class GrinFilmCamera : Node
 											if (framePerfEnabled) _framePerf.CacheMisses++;
 											_quickRayParams.From = segA;
 											_quickRayParams.To = segB;
+											MarkGeomPixelProcessedForWork();
 											var hit0 = space.IntersectRay(_quickRayParams);
 											_geomRayTestsTotalThisFrame++;
 											if (statsEnabled) _perfFrame.IntersectRayCalls++;
@@ -5628,6 +5646,7 @@ public partial class GrinFilmCamera : Node
 												return false;
 											}
 										}
+										MarkGeomPixelProcessedForWork();
 										didHit = RayBeamRenderer.SubdividedRayHit(
 												space, segA, segB,
 												rayCfg.CollisionMask,
@@ -8581,6 +8600,13 @@ public partial class GrinFilmCamera : Node
 			$"cand9to32={cand9to32Str} cand33p={cand33PlusStr} " +
 			$"geomPruneAuditSamp={geomPruneAuditSampStr} geomPruneAuditFalseNeg={geomPruneAuditFalseNegStr} geomPruneAuditFalsePos={geomPruneAuditFalsePosStr} " +
 			$"geomPruneAuditCand0Hit={geomPruneAuditCand0HitStr} geomPruneAuditFalseNegRate={geomPruneAuditFalseNegRateStr}");
+		if (_renderHealthTestTrustEnforcementEnabled)
+		{
+			GD.Print(
+				$"[RenderHealth][TrustGateDebug] geomPixProcessedRaw={totalGeomPixelProcessed} geomRayTestsTotalRaw={totalGeomRayTestsTotal} " +
+				$"trustGeomPixMet={(testTrustGeomPixMet ? 1 : 0)} trustRayTestsMet={(testTrustGeomRayTestsMet ? 1 : 0)} " +
+				$"minGeomPix={_renderHealthTestMinGeomPixProcessedPerWindow} minRayTests={_renderHealthTestMinGeomRayTestsTotalPerWindow}");
+		}
 	}
 
 	private static long ComputeCounterDelta(long current, ref long lastSample)
