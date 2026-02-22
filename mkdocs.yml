@@ -1,0 +1,43 @@
+site_name: xPRIMEray Wiki
+repo_url: https://github.com/AetherTopologist/GD_xPRIMEray
+repo_name: AetherTopologist/GD_xPRIMEray
+
+# KEY: use your existing folder
+docs_dir: Docs
+
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.sections
+    - navigation.indexes
+    - content.code.copy
+    - search.suggest
+    - search.highlight
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Architecture:
+      - Overview: architecture_overview.md
+      - Ray Renderer Review: architecture_review_ray_renderer.md
+      - Charter v3 (Claude/Grok): _xPRIMEray_arch_charter_v3-ChatClaudeGrokCoherencePass2.md
+  - Specs:
+      - SPEC_INDEX: SPEC_INDEX.md
+      - BVH Acceleration: spec_bvh_acceleration.md
+      - Curved Ray Chunks: spec_curved_ray_chunks.md
+      - Field Extraction Rules: spec_field_extraction_rules.md
+      - Field System GRIN: spec_field_system_grin.md
+      - Metric Models (GRIN vs Gordon): spec_metric_models_grin_vs_gordon.md
+      - Ray Transport Interfaces: spec_ray_transport_interfaces_1.md
+      - Rendering Backends: spec_rendering_backends_1.md
+      - Research Mode: spec_research_mode_1.md
+      - Scene Snapshot Layout: spec_scene_snapshot_data_layout.md
+      - Scheduler Task Graph: spec_scheduler_task_graph.md
+      - Telemetry Debug: spec_telemetry_debug_1.md
+      - Wormhole Scene Graph: spec_wormhole_scene_graph_1.md
+  - Property Surface: PropertySurface.md

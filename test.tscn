@@ -6,10 +6,10 @@
 [ext_resource type="Script" uid="uid://c0nlk0rn3oilh" path="res://FilmOverlay2D.cs" id="4_ppyta"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_lri3f"]
-size = Vector3(5, 5, 1)
+size = Vector3(12, 12, 2)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_hbixh"]
-size = Vector3(5, 5, 1)
+size = Vector3(12, 12, 2)
 
 [node name="TestHarness" type="Node3D"]
 
@@ -77,14 +77,15 @@ metadata/_edit_use_anchors_ = true
 script = ExtResource("2_runner")
 AutoStart = true
 AutoQuitOnComplete = true
+Fixture = 1
 FramesPerRun = 300
 WarmupFrames = 30
 
-[node name="TestTarget" type="StaticBody3D" parent="."]
-transform = Transform3D(-0.64278764, 0.3237444, 0.69427204, 0, 0.90630776, -0.42261827, -0.76604444, -0.2716538, -0.5825634, 0, 0, -5)
+[node name="fixture_hit" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -8)
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="TestTarget"]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="fixture_hit"]
 mesh = SubResource("BoxMesh_lri3f")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TestTarget"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="fixture_hit"]
 shape = SubResource("BoxShape3D_hbixh")

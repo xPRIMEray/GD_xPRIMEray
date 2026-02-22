@@ -250,6 +250,8 @@ public partial class FilmOverlay2D : TextureRect
 		{
 			var font = GetThemeDefaultFont();
 			int fontSize = GetThemeDefaultFontSize();
+			float lineHeight = font != null ? Mathf.Max(1f, font.GetHeight(fontSize)) : (fontSize + 4f);
+			Vector2 viewportSize = GetViewportRect().Size;
 
 			foreach (var item in DebugOverlayBus.Items)
 			{
@@ -268,7 +270,35 @@ public partial class FilmOverlay2D : TextureRect
 						if (font != null)
 						{
 							Vector2 pos = ScreenToLocal(item.Pos);
-							DrawString(font, pos, item.Text, HorizontalAlignment.Left, -1f, fontSize, item.Color);
+							float maxWidth = Mathf.Max(1f, viewportSize.X - item.Pos.X - 16f);
+							float maxHeight = viewportSize.Y - item.Pos.Y - 4f;
+							int maxLines = lineHeight > 0f
+								? Math.Max(0, Mathf.FloorToInt(maxHeight / lineHeight))
+								: 0;
+							if (maxLines <= 0)
+								break;
+							string[] rawLines = (item.Text ?? string.Empty).Split('\n');
+							int renderedLineIndex = 0;
+
+							for (int lineIndex = 0; lineIndex < rawLines.Length; lineIndex++)
+							{
+								if (renderedLineIndex >= maxLines)
+									break;
+
+								string rawLine = rawLines[lineIndex] ?? string.Empty;
+								if (rawLine.EndsWith('\r'))
+									rawLine = rawLine.TrimEnd('\r');
+								foreach (string wrapped in WrapOverlayLine(font, fontSize, rawLine, maxWidth))
+								{
+									if (renderedLineIndex >= maxLines)
+										break;
+									Vector2 drawPos = pos + new Vector2(0f, renderedLineIndex * lineHeight);
+									if (drawPos.Y > viewportSize.Y)
+										break;
+									DrawString(font, drawPos, wrapped, HorizontalAlignment.Left, -1f, fontSize, item.Color);
+									renderedLineIndex++;
+								}
+							}
 						}
 						else
 						{
@@ -339,5 +369,88 @@ public partial class FilmOverlay2D : TextureRect
 	private static float Luma(Color c)
 	{
 		return (c.R * 0.2126f) + (c.G * 0.7152f) + (c.B * 0.0722f);
+	}
+
+	private static System.Collections.Generic.IEnumerable<string> WrapOverlayLine(Font font, int fontSize, string line, float maxWidth)
+	{
+		if (string.IsNullOrEmpty(line))
+		{
+			yield return string.Empty;
+			yield break;
+		}
+
+		if (!float.IsFinite(maxWidth) || maxWidth <= 1f || MeasureTextWidth(font, fontSize, line) <= maxWidth)
+		{
+			yield return line;
+			yield break;
+		}
+
+		string[] words = line.Split(' ');
+		string current = string.Empty;
+		for (int i = 0; i < words.Length; i++)
+		{
+			string word = words[i];
+			string candidate = current.Length == 0 ? word : $"{current} {word}";
+			if (current.Length > 0 && MeasureTextWidth(font, fontSize, candidate) <= maxWidth)
+			{
+				current = candidate;
+				continue;
+			}
+
+			if (current.Length > 0)
+			{
+				yield return current;
+				current = string.Empty;
+			}
+
+			if (MeasureTextWidth(font, fontSize, word) <= maxWidth)
+			{
+				current = word;
+				continue;
+			}
+
+			foreach (string chunk in HardSplitOverlayWord(font, fontSize, word, maxWidth))
+				yield return chunk;
+		}
+
+		if (current.Length > 0)
+			yield return current;
+	}
+
+	private static System.Collections.Generic.IEnumerable<string> HardSplitOverlayWord(Font font, int fontSize, string word, float maxWidth)
+	{
+		if (string.IsNullOrEmpty(word))
+		{
+			yield return string.Empty;
+			yield break;
+		}
+
+		int start = 0;
+		while (start < word.Length)
+		{
+			int len = 1;
+			int bestLen = 1;
+			while ((start + len) <= word.Length)
+			{
+				string chunk = word.Substring(start, len);
+				if (MeasureTextWidth(font, fontSize, chunk) <= maxWidth)
+				{
+					bestLen = len;
+					len++;
+					continue;
+				}
+				break;
+			}
+
+			yield return word.Substring(start, bestLen);
+			start += bestLen;
+		}
+	}
+
+	private static float MeasureTextWidth(Font font, int fontSize, string text)
+	{
+		if (string.IsNullOrEmpty(text))
+			return 0f;
+		return font.GetStringSize(text, HorizontalAlignment.Left, -1, fontSize).X;
 	}
 }

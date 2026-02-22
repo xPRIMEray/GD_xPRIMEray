@@ -1,0 +1,117 @@
+{
+  "runs": [
+    {
+      "runName": "baseline_prune_off",
+      "pruneMode": "off",
+      "meanMs": "31.911",
+      "p95Ms": "51.460",
+      "totalWindows": 10,
+      "trustedWindows": 10,
+      "pctLowRaytests": "0.000",
+      "meanPerPxOffNumeric": "67.674",
+      "meanPerPxOnNumeric": "na",
+      "meanSavedPctNumeric": "na",
+      "meanP2Samp": "9744.500",
+      "meanHitRate": "0.750",
+      "effectiveCfgShort": "broadphase=Policy(policy);policy=QuickRayOnly;quick=1;overlap=0;softgate=0;score=0;stride=2;resScale=0.25;rows=8;geomPrune=0;maxDist=50"
+    },
+    {
+      "runName": "prune_on_default",
+      "pruneMode": "on",
+      "meanMs": "5.163",
+      "p95Ms": "5.902",
+      "totalWindows": 10,
+      "trustedWindows": 10,
+      "pctLowRaytests": "0.000",
+      "meanPerPxOffNumeric": "75.496",
+      "meanPerPxOnNumeric": "2.445",
+      "meanSavedPctNumeric": "96.758",
+      "meanP2Samp": "9808.600",
+      "meanHitRate": "0.750",
+      "effectiveCfgShort": "broadphase=Policy(policy);policy=QuickRayOnly;quick=1;overlap=0;softgate=1;score=0;stride=2;resScale=0.25;rows=8;geomPrune=1;maxDist=50"
+    },
+    {
+      "runName": "prune_on_tight_env",
+      "pruneMode": "on",
+      "meanMs": "4.911",
+      "p95Ms": "5.864",
+      "totalWindows": 10,
+      "trustedWindows": 10,
+      "pctLowRaytests": "0.000",
+      "meanPerPxOffNumeric": "75.496",
+      "meanPerPxOnNumeric": "1.922",
+      "meanSavedPctNumeric": "97.456",
+      "meanP2Samp": "9716.700",
+      "meanHitRate": "0.750",
+      "effectiveCfgShort": "broadphase=Policy(policy);policy=QuickRayOnly;quick=1;overlap=0;softgate=1;score=0;stride=2;resScale=0.25;rows=8;geomPrune=1;maxDist=50"
+    },
+    {
+      "runName": "prune_on_loose_env",
+      "pruneMode": "on",
+      "meanMs": "5.335",
+      "p95Ms": "6.168",
+      "totalWindows": 10,
+      "trustedWindows": 10,
+      "pctLowRaytests": "0.000",
+      "meanPerPxOffNumeric": "75.496",
+      "meanPerPxOnNumeric": "2.845",
+      "meanSavedPctNumeric": "96.232",
+      "meanP2Samp": "9808.600",
+      "meanHitRate": "0.750",
+      "effectiveCfgShort": "broadphase=Policy(policy);policy=QuickRayOnly;quick=1;overlap=0;softgate=1;score=0;stride=2;resScale=0.25;rows=8;geomPrune=1;maxDist=50"
+    },
+    {
+      "runName": "prune_on_stride_off",
+      "pruneMode": "on",
+      "meanMs": "4.727",
+      "p95Ms": "5.627",
+      "totalWindows": 10,
+      "trustedWindows": 10,
+      "pctLowRaytests": "0.000",
+      "meanPerPxOffNumeric": "75.496",
+      "meanPerPxOnNumeric": "1.922",
+      "meanSavedPctNumeric": "97.456",
+      "meanP2Samp": "9716.700",
+      "meanHitRate": "0.750",
+      "effectiveCfgShort": "broadphase=Policy(policy);policy=QuickRayOnly;quick=1;overlap=0;softgate=1;score=0;stride=2;resScale=0.25;rows=8;geomPrune=1;maxDist=50"
+    },
+    {
+      "runName": "straight_prune_off",
+      "pruneMode": "off",
+      "meanMs": "32.850",
+      "p95Ms": "52.541",
+      "totalWindows": 10,
+      "trustedWindows": 10,
+      "pctLowRaytests": "0.000",
+      "meanPerPxOffNumeric": "67.660",
+      "meanPerPxOnNumeric": "na",
+      "meanSavedPctNumeric": "na",
+      "meanP2Samp": "9708.400",
+      "meanHitRate": "0.750",
+      "effectiveCfgShort": "broadphase=Policy(policy);policy=OverlapOnly;quick=0;overlap=1;softgate=0;score=0;stride=2;resScale=0.25;rows=8;geomPrune=0;maxDist=50"
+    },
+    {
+      "runName": "straight_prune_on",
+      "pruneMode": "on",
+      "meanMs": "5.270",
+      "p95Ms": "6.268",
+      "totalWindows": 10,
+      "trustedWindows": 10,
+      "pctLowRaytests": "0.000",
+      "meanPerPxOffNumeric": "74.660",
+      "meanPerPxOnNumeric": "2.438",
+      "meanSavedPctNumeric": "96.737",
+      "meanP2Samp": "9815.900",
+      "meanHitRate": "0.750",
+      "effectiveCfgShort": "broadphase=Policy(policy);policy=QuickRayOnly;quick=1;overlap=0;softgate=1;score=0;stride=2;resScale=0.25;rows=8;geomPrune=1;maxDist=50"
+    }
+  ],
+  "global": {
+    "totalRuns": 7,
+    "totalWindows": 70,
+    "trustReasonHistogram": {
+      "ok": 70
+    }
+  },
+  "worst_windows": []
+}

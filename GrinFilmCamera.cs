@@ -954,10 +954,26 @@ public partial class GrinFilmCamera : Node
 	private bool _testLastGeomTrusted = false;
 	private bool _testLastGeomSavedPctAvailable = false;
 	private double _testLastGeomSavedPct = 0.0;
+	private bool _testLastGeomPerPxOnAvailable = false;
+	private double _testLastGeomPerPxOn = 0.0;
+	private bool _testLastGeomPerPxOffAvailable = false;
+	private double _testLastGeomPerPxOff = 0.0;
+	private long _testLastGeomPixProcessedRaw = 0;
+	private long _testLastGeomRayTestsTotalRaw = 0;
+	private long _testLastGeomPixNoCandRaw = 0;
+	private long _testLastP2SampRaw = 0;
+	private bool _testLastGeomSegZeroRatePctAvailable = false;
+	private double _testLastGeomSegZeroRatePct = 0.0;
+	private string _testLastTopExit = "na";
 	private string _testLastGeomTrustReason = "na";
+	private bool _testLastTrustGeomPixMet = false;
+	private bool _testLastTrustRayTestsMet = false;
+	private bool _testLastTrustP2Met = false;
 	private bool _renderHealthTestTrustEnforcementEnabled = false;
 	private int _renderHealthTestMinGeomPixProcessedPerWindow = 0;
 	private long _renderHealthTestMinGeomRayTestsTotalPerWindow = 0;
+	private int _renderHealthTestPass2SampleEveryNSegmentsOverride = 0;
+	private int _renderHealthTestMinPass2SamplesForTrustOverride = 0;
 
 	// band hit ROI history
 	private float[] _bandHitRate = Array.Empty<float>();
@@ -2006,11 +2022,18 @@ public partial class GrinFilmCamera : Node
 		ResetRenderHealthOverlayWindowState();
 	}
 
-	public void ConfigureRenderHealthTrustEnforcementForTesting(bool enabled, int minGeomPixProcessedPerWindow, long minGeomRayTestsTotalPerWindow)
+	public void ConfigureRenderHealthTrustEnforcementForTesting(
+		bool enabled,
+		int minGeomPixProcessedPerWindow,
+		long minGeomRayTestsTotalPerWindow,
+		int pass2SampleEveryNSegmentsOverride = 0,
+		int minPass2SamplesForTrustOverride = 0)
 	{
 		_renderHealthTestTrustEnforcementEnabled = enabled;
 		_renderHealthTestMinGeomPixProcessedPerWindow = enabled ? Math.Max(0, minGeomPixProcessedPerWindow) : 0;
 		_renderHealthTestMinGeomRayTestsTotalPerWindow = enabled ? Math.Max(0L, minGeomRayTestsTotalPerWindow) : 0L;
+		_renderHealthTestPass2SampleEveryNSegmentsOverride = enabled ? Math.Max(0, pass2SampleEveryNSegmentsOverride) : 0;
+		_renderHealthTestMinPass2SamplesForTrustOverride = enabled ? Math.Max(0, minPass2SamplesForTrustOverride) : 0;
 	}
 
 	public void ResetRenderHealthWindowForRunStart()
@@ -2065,6 +2088,9 @@ public partial class GrinFilmCamera : Node
 		_testLastGeomSavedPctAvailable = false;
 		_testLastGeomSavedPct = 0.0;
 		_testLastGeomTrustReason = "na";
+		_testLastTrustGeomPixMet = false;
+		_testLastTrustRayTestsMet = false;
+		_testLastTrustP2Met = false;
 	}
 
 	private void ResetRenderHealthOverlayWindowState()
@@ -2138,96 +2164,130 @@ public partial class GrinFilmCamera : Node
 		double rollingMsPerStep = hasSteps ? (rolling.StepMsTotal / rolling.Steps) : 0.0;
 		double rollingStepsPerSec = hasSteps && hasElapsed ? (rolling.Steps / elapsedSec) : 0.0;
 		double rollingHitsPerSec = hasSteps && hasElapsed ? (rolling.Hits / elapsedSec) : 0.0;
-		bool hasRayTestsRate = rolling.RayTestsSamples > 0 && hasElapsed;
-		double rollingRayTestsPerSec = hasRayTestsRate ? (rolling.RayTests / elapsedSec) : 0.0;
+		double rollingRayTestsPerSec = hasElapsed && rolling.RayTestsSamples > 0 ? (rolling.RayTests / elapsedSec) : 0.0;
 
 		_overlayHudSb.Clear();
-		if (_renderHealthCount > 0)
-		{
-			RenderHealthSample latest = GetRenderHealthSampleFromEnd(0);
-			_overlayHudSb
-				.Append("RH step=").Append(latest.StepIndex)
-				.Append(" rowsAdv=").Append(latest.RowsAdvanced)
-				.Append(" hits=").Append(latest.Hits)
-				.Append(" ");
-		}
+		var lines = new System.Collections.Generic.List<string>(6);
+		RenderHealthSample latest = default;
+		bool hasLatest = _renderHealthCount > 0;
+		if (hasLatest)
+			latest = GetRenderHealthSampleFromEnd(0);
 
 		double engineFps = Engine.GetFramesPerSecond();
-		_overlayHudSb
-			.Append("engineFps=").Append(engineFps.ToString("0.0"))
-			.Append(" tickMs=").Append(_lastFrameRenderMs.ToString("0.0"))
-			.Append(" rows/s=");
+		string FmtInt(bool has, int value) => has ? value.ToString() : "na";
+		string FmtLong(bool has, long value) => has ? value.ToString() : "na";
+		string FmtBool01(bool has, bool value) => has ? (value ? "1" : "0") : "na";
+		string FmtDouble(bool has, double value, string fmt)
+			=> (has && double.IsFinite(value)) ? value.ToString(fmt) : "na";
 
-		if (hasRows && double.IsFinite(rollingRowsPerSec) && rollingRowsPerSec > 0.0)
-		{
-			_overlayHudSb.Append(rollingRowsPerSec.ToString("0.0"));
-		}
-		else
-		{
-			_overlayHudSb.Append("na");
-		}
-
-		_overlayHudSb.Append(" ms/row=");
-		if (hasRows && double.IsFinite(rollingMsPerRow) && rollingMsPerRow > 0.0)
-		{
-			_overlayHudSb.Append(rollingMsPerRow.ToString("0.0"));
-		}
-		else
-		{
-			_overlayHudSb.Append("na");
-		}
-
-		_overlayHudSb.Append(" etaFullFilmSec=");
+		string rowsPerSecText = (hasRows && double.IsFinite(rollingRowsPerSec) && rollingRowsPerSec > 0.0)
+			? rollingRowsPerSec.ToString("0.0")
+			: "na";
+		string msPerRowText = (hasRows && double.IsFinite(rollingMsPerRow) && rollingMsPerRow > 0.0)
+			? rollingMsPerRow.ToString("0.0")
+			: "na";
+		string msPerStepText = (hasSteps && double.IsFinite(rollingMsPerStep) && rollingMsPerStep >= 0.0)
+			? rollingMsPerStep.ToString("0.0")
+			: "na";
+		string stepsPerSecText = (hasSteps && hasElapsed && double.IsFinite(rollingStepsPerSec) && rollingStepsPerSec >= 0.0)
+			? rollingStepsPerSec.ToString("0.0")
+			: "na";
+		string hitsPerSecText = (hasSteps && hasElapsed && double.IsFinite(rollingHitsPerSec) && rollingHitsPerSec >= 0.0)
+			? rollingHitsPerSec.ToString("0.0")
+			: "na";
+		string rayTestsPerSecText = (hasElapsed && rolling.RayTestsSamples > 0 && double.IsFinite(rollingRayTestsPerSec) && rollingRayTestsPerSec >= 0.0)
+			? rollingRayTestsPerSec.ToString("0.0")
+			: "na";
+		string etaText = "na";
+		double etaFullFilmSec = 0.0;
 		if (_filmHeight > 0 && hasRows && rollingRowsPerSec > 0.0)
 		{
-			double etaFullFilmSec = _filmHeight / rollingRowsPerSec;
+			etaFullFilmSec = _filmHeight / rollingRowsPerSec;
 			if (double.IsFinite(etaFullFilmSec) && etaFullFilmSec >= 0.0)
-				_overlayHudSb.Append(etaFullFilmSec.ToString("0.0"));
-			else
-				_overlayHudSb.Append("na");
+				etaText = etaFullFilmSec.ToString("0.0");
 		}
-		else
+		bool latestHasHitRate = hasLatest && latest.TracedPixels > 0;
+		double latestHitRate = latestHasHitRate ? (double)latest.Hits / latest.TracedPixels : 0.0;
+
+		_overlayHudSb.Append("RH step=").Append(FmtInt(hasLatest, latest.StepIndex))
+			.Append(" row=").Append(FmtInt(hasLatest, latest.RowCursorAfter))
+			.Append(" adv=").Append(FmtInt(hasLatest, latest.RowsAdvanced))
+			.Append(" bands=").Append(FmtInt(hasLatest, latest.BandsProcessed))
+			.Append(" hitRate=").Append(FmtDouble(latestHasHitRate, latestHitRate, "0.000"))
+			.Append(" fps=").Append(FmtDouble(double.IsFinite(engineFps) && engineFps >= 0.0, engineFps, "0.0"))
+			.Append(" tickMs=").Append(FmtDouble(double.IsFinite(_lastFrameRenderMs) && _lastFrameRenderMs >= 0.0, _lastFrameRenderMs, "0.0"))
+			.Append(" eta=").Append(etaText);
+		lines.Add(_overlayHudSb.ToString());
+
+		_overlayHudSb.Clear();
+		_overlayHudSb.Append("roll ms/step=").Append(msPerStepText)
+			.Append(" steps/s=").Append(stepsPerSecText)
+			.Append(" rows/s=").Append(rowsPerSecText)
+			.Append(" ms/row=").Append(msPerRowText)
+			.Append(" hits/s=").Append(hitsPerSecText)
+			.Append(" rayTests/s=").Append(rayTestsPerSecText);
+		lines.Add(_overlayHudSb.ToString());
+
+		_overlayHudSb.Clear();
+		_overlayHudSb.Append("prune=").Append(hasLatest ? (latest.UseGeometryTLASPruning ? "on" : "off") : "na")
+			.Append(" trusted=").Append(FmtBool01(_testHasRenderHealthSnapshot, _testLastGeomTrusted))
+			.Append(" reason=").Append(_testHasRenderHealthSnapshot ? _testLastGeomTrustReason : "na")
+			.Append(" perPxOff=").Append(FmtDouble(_testHasRenderHealthSnapshot && _testLastGeomPerPxOffAvailable, _testLastGeomPerPxOff, "0.000"))
+			.Append(" perPxOn=").Append(FmtDouble(_testHasRenderHealthSnapshot && _testLastGeomPerPxOnAvailable, _testLastGeomPerPxOn, "0.000"))
+			.Append(" saved%=").Append(FmtDouble(_testHasRenderHealthSnapshot && _testLastGeomSavedPctAvailable, _testLastGeomSavedPct, "0.00"));
+		lines.Add(_overlayHudSb.ToString());
+
+		if (_renderHealthTestTrustEnforcementEnabled || DebugRenderHealthRollingOverlay)
 		{
-			_overlayHudSb.Append("na");
+			int minP2 = GetRenderHealthMinP2SamplesForTrustEffective();
+			int p2Every = RenderHealthPass2SampleEveryNSegments;
+			if (_renderHealthTestTrustEnforcementEnabled && _renderHealthTestPass2SampleEveryNSegmentsOverride > 0)
+				p2Every = _renderHealthTestPass2SampleEveryNSegmentsOverride;
+			p2Every = Math.Max(1, p2Every);
+			_overlayHudSb.Clear();
+			_overlayHudSb.Append("gate metPix=").Append(FmtBool01(_testHasRenderHealthSnapshot, _testLastTrustGeomPixMet))
+				.Append(" metRay=").Append(FmtBool01(_testHasRenderHealthSnapshot, _testLastTrustRayTestsMet))
+				.Append(" metP2=").Append(FmtBool01(_testHasRenderHealthSnapshot, _testLastTrustP2Met))
+				.Append(" minPix=").Append(_renderHealthTestMinGeomPixProcessedPerWindow)
+				.Append(" minRay=").Append(_renderHealthTestMinGeomRayTestsTotalPerWindow)
+				.Append(" minP2=").Append(minP2)
+				.Append(" p2Every=").Append(p2Every);
+			lines.Add(_overlayHudSb.ToString());
 		}
 
-		if (DebugRenderHealthRollingOverlay)
+		if (_renderHealthTestTrustEnforcementEnabled)
 		{
-			_overlayHudSb.Append(" rolling: ms/step=");
-			if (hasSteps && double.IsFinite(rollingMsPerStep) && rollingMsPerStep >= 0.0)
-				_overlayHudSb.Append(rollingMsPerStep.ToString("0.0"));
-			else
-				_overlayHudSb.Append("na");
-
-			_overlayHudSb.Append(" steps/s=");
-			if (hasSteps && hasElapsed && double.IsFinite(rollingStepsPerSec) && rollingStepsPerSec >= 0.0)
-				_overlayHudSb.Append(rollingStepsPerSec.ToString("0.0"));
-			else
-				_overlayHudSb.Append("na");
-
-			_overlayHudSb.Append(" rows/s=");
-			if (hasRows && double.IsFinite(rollingRowsPerSec) && rollingRowsPerSec > 0.0)
-				_overlayHudSb.Append(rollingRowsPerSec.ToString("0.0"));
-			else
-				_overlayHudSb.Append("na");
-
-			_overlayHudSb.Append(" ms/row=");
-			if (hasRows && double.IsFinite(rollingMsPerRow) && rollingMsPerRow > 0.0)
-				_overlayHudSb.Append(rollingMsPerRow.ToString("0.0"));
-			else
-				_overlayHudSb.Append("na");
-
-			_overlayHudSb.Append(" hits/s=");
-			if (hasSteps && hasElapsed && double.IsFinite(rollingHitsPerSec) && rollingHitsPerSec >= 0.0)
-				_overlayHudSb.Append(rollingHitsPerSec.ToString("0.0"));
-			else
-				_overlayHudSb.Append("na");
-
-			if (hasRayTestsRate && double.IsFinite(rollingRayTestsPerSec) && rollingRayTestsPerSec >= 0.0)
-				_overlayHudSb.Append(" rayTests/s=").Append(rollingRayTestsPerSec.ToString("0.0"));
+			_overlayHudSb.Clear();
+			_overlayHudSb.Append("raw pix=").Append(FmtLong(_testHasRenderHealthSnapshot, _testLastGeomPixProcessedRaw))
+				.Append(" rays=").Append(FmtLong(_testHasRenderHealthSnapshot, _testLastGeomRayTestsTotalRaw))
+				.Append(" p2=").Append(FmtLong(_testHasRenderHealthSnapshot, _testLastP2SampRaw))
+				.Append(" noCand=").Append(FmtLong(_testHasRenderHealthSnapshot, _testLastGeomPixNoCandRaw))
+				.Append(" seg0%=").Append(FmtDouble(_testHasRenderHealthSnapshot && _testLastGeomSegZeroRatePctAvailable, _testLastGeomSegZeroRatePct, "0.00"));
+			lines.Add(_overlayHudSb.ToString());
 		}
 
-		DebugOverlayBus.AddText(new Vector2(16f, 24f), _overlayHudSb.ToString(), Colors.White);
+		bool showDiag = DebugRenderHealthRollingOverlay
+			|| !_testHasRenderHealthSnapshot
+			|| !string.Equals(_testLastGeomTrustReason, "ok", StringComparison.Ordinal);
+		if (showDiag)
+		{
+			string exitText = hasLatest
+				? (string.IsNullOrEmpty(latest.BudgetExitReason) ? "none" : latest.BudgetExitReason)
+				: "na";
+			_overlayHudSb.Clear();
+			_overlayHudSb.Append("diag qray0=").Append(FmtInt(hasLatest, latest.QuickRayZeroCount))
+				.Append(" hybridFB=").Append(FmtInt(hasLatest, latest.HybridFallbackCount))
+				.Append(" exit=").Append(exitText)
+				.Append(" topExit=").Append(_testHasRenderHealthSnapshot ? _testLastTopExit : "na")
+				.Append(" stalled=").Append(FmtInt(hasLatest, _renderHealthStallSteps));
+			lines.Add(_overlayHudSb.ToString());
+		}
+
+		if (lines.Count > 6)
+			lines.RemoveRange(6, lines.Count - 6);
+
+		Vector2 overlayBasePos = new Vector2(16f, 24f);
+		DebugOverlayBus.AddText(overlayBasePos, string.Join("\n", lines), Colors.White);
 	}
 
 	private void ThrottleBusLog(double delta, SceneSnapshot snapshot)
@@ -2443,6 +2503,7 @@ public partial class GrinFilmCamera : Node
 		bool useGeomTlasPruningForStep = false;
 		bool geomPruneRequestedForStep = false;
 		bool geomHealthPartialForStep = true;
+		int renderHealthPass2SampleEveryForStep = Math.Max(1, RenderHealthPass2SampleEveryNSegments);
 		_geomCandidatesTotalThisFrame = 0;
 		_geomCandidatesSegmentsThisFrame = 0;
 
@@ -3081,6 +3142,7 @@ public partial class GrinFilmCamera : Node
 			bool geomPruneSwitchingThisStep = _hasRenderHealthGeomPruneMode
 				&& _lastRenderHealthGeomPruneMode != useGeomTlasPruningForStep;
 			int modeWindowSamplesForStep = CountRenderHealthModeSamplesInWindow(useGeomTlasPruningForStep) + 1;
+			renderHealthPass2SampleEveryForStep = GetRenderHealthPass2SampleEveryForStep(useGeomTlasPruningForStep);
 			geomHealthPartialForStep = _geomPruneSwitchedThisWindow == 1
 				|| geomPruneSwitchingThisStep
 				|| modeWindowSamplesForStep < RenderHealthMinModeSamplesForTrust;
@@ -4574,7 +4636,7 @@ public partial class GrinFilmCamera : Node
 								}
 
 								bool renderHealthSampleThisSeg = pass == 0
-									&& (_renderHealthPass2SampleCounter++ % RenderHealthPass2SampleEveryNSegments) == 0;
+									&& (_renderHealthPass2SampleCounter++ % renderHealthPass2SampleEveryForStep) == 0;
 								bool renderHealthSampleRecorded = false;
 								float renderHealthSampleRadius = 0f;
 								float renderHealthSampleEnvDiag = 0f;
@@ -8270,6 +8332,38 @@ public partial class GrinFilmCamera : Node
 		return count;
 	}
 
+	private int GetRenderHealthMinP2SamplesForTrustEffective()
+	{
+		if (_renderHealthTestTrustEnforcementEnabled && _renderHealthTestMinPass2SamplesForTrustOverride > 0)
+			return Math.Max(1, _renderHealthTestMinPass2SamplesForTrustOverride);
+		return RenderHealthMinSamplesForTrust;
+	}
+
+	private int GetRenderHealthPass2SampleEveryForStep(bool useGeometryTLASPruningMode)
+	{
+		int sampleEvery = RenderHealthPass2SampleEveryNSegments;
+		if (_renderHealthTestTrustEnforcementEnabled && _renderHealthTestPass2SampleEveryNSegmentsOverride > 0)
+			sampleEvery = _renderHealthTestPass2SampleEveryNSegmentsOverride;
+		sampleEvery = Math.Max(1, sampleEvery);
+		if (!_renderHealthTestTrustEnforcementEnabled)
+			return sampleEvery;
+
+		int minP2 = GetRenderHealthMinP2SamplesForTrustEffective();
+		int window = Math.Min(_renderHealthCount, 10);
+		long modeP2Samples = 0;
+		for (int i = 0; i < window; i++)
+		{
+			RenderHealthSample s = GetRenderHealthSampleFromEnd(i);
+			if (s.UseGeometryTLASPruning != useGeometryTLASPruningMode)
+				break;
+			modeP2Samples += Math.Max(0L, s.Pass2SampledSegments);
+		}
+
+		if (modeP2Samples < minP2)
+			sampleEvery = Math.Min(sampleEvery, 8);
+		return sampleEvery;
+	}
+
 	/*
 	Acceptance checklist for RenderHealth logs:
 	(a) steady OFF: geomPruneRequested=0/1, geomPruneEffective=off, geometry totals/per-px valid only after stable OFF window; candidate/audit metrics are NA.
@@ -8405,7 +8499,12 @@ public partial class GrinFilmCamera : Node
 		string geomPruneEffective = geomPruneMode;
 		int geomPruneRequestedBit = latest.GeomPruneRequested ? 1 : 0;
 		bool modeHasEnoughSamples = modeWindowSamplesUsed >= RenderHealthMinModeSamplesForTrust;
-		bool pruneOnHasEnoughP2Samples = totalPass2SampledSegments >= RenderHealthMinSamplesForTrust;
+		int minP2 = GetRenderHealthMinP2SamplesForTrustEffective();
+		int trustCfgSampleEvery = RenderHealthPass2SampleEveryNSegments;
+		if (_renderHealthTestTrustEnforcementEnabled && _renderHealthTestPass2SampleEveryNSegmentsOverride > 0)
+			trustCfgSampleEvery = _renderHealthTestPass2SampleEveryNSegmentsOverride;
+		trustCfgSampleEvery = Math.Max(1, trustCfgSampleEvery);
+		bool pruneOnHasEnoughP2Samples = totalPass2SampledSegments >= minP2;
 		bool hasGeomSamples = totalPass2SampledSegments > 0
 			|| totalGeomPixelProcessed > 0
 			|| totalGeomSegmentsQueried > 0;
@@ -8549,7 +8648,7 @@ public partial class GrinFilmCamera : Node
 		if (geomCounterGuardEnabled && showPruneOnMetrics && (geomSegZeroDrift || geomSegWithCandidatesDrift || geomPixNoCandDrift))
 		{
 			GD.PrintErr(
-				$"[RenderHealth][WARN] geomCounterSanity segZero={totalGeomSegZeroCandidates} segWithCandidates={totalGeomSegWithCandidates} segQueried={totalGeomSegmentsQueried} " +
+				$"[RenderHealth][Warn] geomCounterSanity segZero={totalGeomSegZeroCandidates} segWithCandidates={totalGeomSegWithCandidates} segQueried={totalGeomSegmentsQueried} " +
 				$"pixNoCand={totalGeomPixelNoCandidates} pixProcessed={totalGeomPixelProcessed} drift(segZero={ (geomSegZeroDrift ? 1 : 0) },segWithCandidates={ (geomSegWithCandidatesDrift ? 1 : 0) },pixNoCand={ (geomPixNoCandDrift ? 1 : 0) }) " +
 				$"step={latest.StepIndex} rows={latest.RowCursorBefore}->{latest.RowCursorAfter} bands={latest.BandsProcessed} prune={geomPruneMode} window={window}");
 		}
@@ -8557,7 +8656,7 @@ public partial class GrinFilmCamera : Node
 		if (geomMetricsTrusted && totalGeomHitRejected >= geomRejectWarnThreshold)
 		{
 			GD.PrintErr(
-				$"[RenderHealth][WARN] geomHitRejectSpike reject={totalGeomHitRejected} threshold={geomRejectWarnThreshold} " +
+				$"[RenderHealth][Warn] geomHitRejectSpike reject={totalGeomHitRejected} threshold={geomRejectWarnThreshold} " +
 				$"mode={geomPruneMode} window={window} step={latest.StepIndex} row={latest.RowCursorAfter}");
 		}
 		string geomRejectSampleDominant = "none";
@@ -8582,7 +8681,21 @@ public partial class GrinFilmCamera : Node
 		_testLastGeomTrusted = geomMetricsTrusted;
 		_testLastGeomSavedPctAvailable = geomSavedPctAvailableForTest;
 		_testLastGeomSavedPct = geomSavedPctForTest;
+		_testLastGeomPerPxOnAvailable = geomMetricsTrusted && geomRayTestsPerPixelOnNumeric;
+		_testLastGeomPerPxOn = _testLastGeomPerPxOnAvailable ? geomRayTestsPerPixelOn : 0.0;
+		_testLastGeomPerPxOffAvailable = geomMetricsTrusted && geomRayTestsPerPixelOffDisplayNumeric;
+		_testLastGeomPerPxOff = _testLastGeomPerPxOffAvailable ? geomRayTestsPerPixelOffDisplay : 0.0;
+		_testLastGeomPixProcessedRaw = totalGeomPixelProcessed;
+		_testLastGeomRayTestsTotalRaw = totalGeomRayTestsTotal;
+		_testLastGeomPixNoCandRaw = totalGeomPixelNoCandidates;
+		_testLastP2SampRaw = totalPass2SampledSegments;
+		_testLastGeomSegZeroRatePctAvailable = totalGeomSegmentsQueried > 0;
+		_testLastGeomSegZeroRatePct = _testLastGeomSegZeroRatePctAvailable ? geomSegZeroRatePct : 0.0;
+		_testLastTopExit = string.IsNullOrEmpty(topExit) ? "none" : topExit;
 		_testLastGeomTrustReason = geomWindowTrustReason;
+		_testLastTrustGeomPixMet = testTrustGeomPixMet;
+		_testLastTrustRayTestsMet = testTrustGeomRayTestsMet;
+		_testLastTrustP2Met = totalPass2SampledSegments >= minP2;
 		GD.Print(
 			$"[RenderHealth] step={latest.StepIndex} lastRow={latest.RowCursorAfter} rowsAdv={latest.RowsAdvanced} bands={latest.BandsProcessed} " +
 			$"stalledSteps={_renderHealthStallSteps} exit={exitTag} topExit={topExit} hitRate={hitRate:0.###} " +
@@ -8603,9 +8716,19 @@ public partial class GrinFilmCamera : Node
 		if (_renderHealthTestTrustEnforcementEnabled)
 		{
 			GD.Print(
+				$"[RenderHealth][GeomCoverage] step={latest.StepIndex} geomPrune={geomPruneMode} " +
+				$"geomPixProcessedRaw={totalGeomPixelProcessed} geomRayTestsTotalRaw={totalGeomRayTestsTotal} " +
+				$"pass2PixelsRaw={totalGeomPixelProcessed} geomPixHadAnyCandidatesRaw={totalGeomPixelHadAnyCandidates} " +
+				$"geomPixNoCandRaw={totalGeomPixelNoCandidates} p2SampRaw={totalPass2SampledSegments}");
+		}
+		if (_renderHealthTestTrustEnforcementEnabled)
+		{
+			GD.Print(
 				$"[RenderHealth][TrustGateDebug] geomPixProcessedRaw={totalGeomPixelProcessed} geomRayTestsTotalRaw={totalGeomRayTestsTotal} " +
 				$"trustGeomPixMet={(testTrustGeomPixMet ? 1 : 0)} trustRayTestsMet={(testTrustGeomRayTestsMet ? 1 : 0)} " +
 				$"minGeomPix={_renderHealthTestMinGeomPixProcessedPerWindow} minRayTests={_renderHealthTestMinGeomRayTestsTotalPerWindow}");
+			GD.Print(
+				$"[RenderHealth][TrustCfg] p2SampleEveryNSeg={trustCfgSampleEvery} minP2SamplesForTrust={minP2}");
 		}
 	}
 

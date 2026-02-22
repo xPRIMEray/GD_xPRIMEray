@@ -6,6 +6,12 @@ using System.Reflection;
 
 public partial class RenderTestRunner : Node
 {
+	public enum RenderTestFixture
+	{
+		Default = 0,
+		Straight = 1
+	}
+
 	private enum HarnessState
 	{
 		Idle = 0,
@@ -20,6 +26,7 @@ public partial class RenderTestRunner : Node
 	[Export] public bool AutoQuitOnComplete = false;
 	[Export] public bool StartWhenCmdArgPresent = true;
 	[Export] public string CmdArgToken = "--render-test";
+	[Export] public RenderTestFixture Fixture = RenderTestFixture.Default;
 	// Defaults aligned with test_bbNew.tscn.
 	[Export(PropertyHint.Range, "1,100000,1")] public int FramesPerRun = 30;
 	[Export(PropertyHint.Range, "0,100000,1")] public int WarmupFrames = 3;
@@ -30,8 +37,17 @@ public partial class RenderTestRunner : Node
 
 	private const int RenderTestMinGeomPixProcessedPerWindow = 1024;
 	private const long RenderTestMinGeomRayTestsTotalPerWindow = 4096L;
-	private const float RenderTestMeasurementResolutionScale = 1.0f;
+	private const float RenderTestTrustRollingWindowSec = 10.0f;
+	private const float RenderTestBbNewResolutionScale = 0.25f;
+	private const string RenderTestDefaultScenePath = "res://test.tscn";
+	private const string RenderTestStraightScenePath = "res://test-straight.tscn";
+	private const string RenderTestStraightArgToken = "--render-test-straight";
+	private const string RenderTestStraightSceneHint = "straight";
+	private const string RenderTestFixtureArgPrefix = "--render-test-fixture=";
 	private const int RenderTestMinFramesPerRun = 90;
+	private const int RenderTestStatsFullFrameEveryNSteps = 8;
+	private const int RenderTestTrustPass2SampleEveryNSegments = 8;
+	private const int RenderTestTrustMinP2Samples = 8;
 	private static readonly long RenderTestLiveLogIntervalTicks = Stopwatch.Frequency;
 
 	private GrinFilmCamera _film;
@@ -62,12 +78,14 @@ public partial class RenderTestRunner : Node
 	private int _renderTestOriginalFramesPerRun = 0;
 	private long _renderTestNextLiveLogTimestamp = 0;
 	private string _renderTestLiveRunName = "unnamed";
+	private bool _renderTestHasSeenRenderHealthSnapshot = false;
 	private bool _rhLiveReflectionReady = false;
 	private bool _rhLiveReflectionFailed = false;
 	private FieldInfo _rhCountField;
 	private FieldInfo _rhWriteField;
 	private FieldInfo _rhSamplesField;
 	private Type _rhSampleType;
+	private FieldInfo _rhSampleStepField;
 	private FieldInfo _rhSampleRowField;
 	private FieldInfo _rhSampleRowsAdvField;
 	private FieldInfo _rhSampleBandsField;
@@ -75,8 +93,22 @@ public partial class RenderTestRunner : Node
 	private FieldInfo _rhSampleGeomRayTestsField;
 	private FieldInfo _rhSampleHitsField;
 	private FieldInfo _rhSampleTracedField;
+	private FieldInfo _rhGeomOnTotalField;
+	private FieldInfo _rhGeomOnTracedField;
+	private FieldInfo _rhGeomOffTotalField;
+	private FieldInfo _rhGeomOffTracedField;
+	private FieldInfo _rhGeomOffBaselineField;
+	private FieldInfo _rhGeomOffBaselineReadyField;
 	private int _renderTestMinGeomPixForTrust = RenderTestMinGeomPixProcessedPerWindow;
 	private long _renderTestMinGeomRayTestsForTrust = RenderTestMinGeomRayTestsTotalPerWindow;
+	private int _renderTestStatsScaledFilmW = 0;
+	private int _renderTestStatsScaledFilmH = 0;
+	private int _renderTestStatsRowsPerStep = 0;
+	private bool _renderTestTrustStraightMode = false;
+	private int _renderTestTrustPass2Every = RenderTestTrustPass2SampleEveryNSegments;
+	private int _renderTestTrustMinP2 = RenderTestTrustMinP2Samples;
+	private bool _straightFixtureSceneActive = false;
+	private RenderTestFixture _requestedFixture = RenderTestFixture.Default;
 
 	public override void _Ready()
 	{
@@ -86,6 +118,7 @@ public partial class RenderTestRunner : Node
 		bool hasToken = HasCmdArgToken();
 		bool shouldStart = AutoStart || (StartWhenCmdArgPresent && hasToken);
 		_renderTestMode = IsRenderTestMode() || shouldStart;
+		_requestedFixture = GetRequestedFixture();
 
 		if (_renderTestMode)
 		{
@@ -98,6 +131,16 @@ public partial class RenderTestRunner : Node
 
 		if (shouldStart)
 		{
+			if (_renderTestMode)
+			{
+				string desiredScenePath = GetScenePathForFixture(_requestedFixture);
+				if (!IsCurrentScenePath(desiredScenePath))
+				{
+					GD.Print($"[RenderTestRunner] Switching to fixture scene: fixture={_requestedFixture} path={desiredScenePath}");
+					CallDeferred(nameof(SwitchToFixtureSceneDeferred), desiredScenePath);
+					return;
+				}
+			}
 			CallDeferred(nameof(StartDefaultMatrix));
 		}
 	}
@@ -258,6 +301,7 @@ public partial class RenderTestRunner : Node
 		}
 
 		_runs.Clear();
+		_straightFixtureSceneActive = IsStraightFixtureSceneActive();
 		_runs.AddRange(BuildDefaultRuns());
 		if (_runs.Count == 0)
 		{
@@ -296,13 +340,21 @@ public partial class RenderTestRunner : Node
 			_renderTestOriginalResolutionScale = _film.FilmResolutionScale;
 			_renderTestResolutionScaleCaptured = true;
 		}
-		_film.FilmResolutionScale = MathF.Max(_film.FilmResolutionScale, RenderTestMeasurementResolutionScale);
-		float effectiveScale = Mathf.Clamp(_film.FilmResolutionScale, 0.01f, 1.0f);
-		int scaledFilmW = Mathf.Max(8, Mathf.RoundToInt(_film.Width * effectiveScale));
-		int scaledFilmH = Mathf.Max(8, Mathf.RoundToInt(_film.Height * effectiveScale));
+		_film.FilmResolutionScale = MathF.Max(RenderTestBbNewResolutionScale, 0.01f);
+		float effectiveScale = MathF.Max(_film.FilmResolutionScale, 0.01f);
+		_film.RenderHealthRollingWindowSec = RenderTestTrustRollingWindowSec;
+		int scaledFilmW = Mathf.Max(8, Mathf.CeilToInt(_film.Width * effectiveScale));
+		int scaledFilmH = Mathf.Max(8, Mathf.CeilToInt(_film.Height * effectiveScale));
+		int statsRowsPerStep = ComputeStatsFriendlyRowsPerStep(scaledFilmH);
 		long expectedScaledPixels = Math.Max(1L, (long)scaledFilmW * scaledFilmH);
 		_renderTestMinGeomPixForTrust = Math.Max(RenderTestMinGeomPixProcessedPerWindow, (int)(expectedScaledPixels / 4L));
-		_renderTestMinGeomRayTestsForTrust = RenderTestMinGeomRayTestsTotalPerWindow;
+		_renderTestTrustStraightMode = IsStraightFixtureModeForTrust();
+		long minRayTestsDefault = Math.Max(RenderTestMinGeomRayTestsTotalPerWindow, (long)_renderTestMinGeomPixForTrust);
+		long minRayTestsStraight = Math.Max(1024L, (long)_renderTestMinGeomPixForTrust * 2L);
+		_renderTestMinGeomRayTestsForTrust = _renderTestTrustStraightMode ? minRayTestsStraight : minRayTestsDefault;
+		_renderTestStatsScaledFilmW = scaledFilmW;
+		_renderTestStatsScaledFilmH = scaledFilmH;
+		_renderTestStatsRowsPerStep = statsRowsPerStep;
 		if (!_renderTestFramesPerRunCaptured)
 		{
 			_renderTestOriginalFramesPerRun = FramesPerRun;
@@ -315,7 +367,10 @@ public partial class RenderTestRunner : Node
 		_film.FlipNormalToCamera = false;
 		_film.UpdateEveryFrame = false;
 		_film.UpdateEveryFrameBudgetMs = 2000f;
-		_film.UpdateEveryFrameMaxRowsPerStep = 1024;
+		_film.UpdateEveryFrameMaxRowsPerStep = statsRowsPerStep;
+		_film.RowsPerFrame = statsRowsPerStep;
+		_film.MinRowsPerFrame = Math.Min(_film.MinRowsPerFrame, statsRowsPerStep);
+		_film.MaxRowsPerFrameCap = statsRowsPerStep;
 		_film.RenderStepMaxMs = 20000;
 		_film.RenderStepMaxSegmentsPerFrame = 50000000;
 		_film.TargetMsPerFrame = 1000;
@@ -357,10 +412,21 @@ public partial class RenderTestRunner : Node
 		rbr.DebugNormalLen = 0.295f;
 		rbr.Alpha = 1.0f;
 		rbr.UpdateEveryFrame = false;
+		_renderTestTrustPass2Every = RenderTestTrustPass2SampleEveryNSegments;
+		_renderTestTrustMinP2 = RenderTestTrustMinP2Samples;
 		_film.ConfigureRenderHealthTrustEnforcementForTesting(
 			enabled: true,
 			minGeomPixProcessedPerWindow: _renderTestMinGeomPixForTrust,
-			minGeomRayTestsTotalPerWindow: _renderTestMinGeomRayTestsForTrust);
+			minGeomRayTestsTotalPerWindow: _renderTestMinGeomRayTestsForTrust,
+			pass2SampleEveryNSegmentsOverride: _renderTestTrustPass2Every,
+			minPass2SamplesForTrustOverride: _renderTestTrustMinP2);
+		GD.Print(
+			$"[RenderTestRunner] RenderHealth overrides: p2Every={_renderTestTrustPass2Every} minP2={_renderTestTrustMinP2}");
+		const bool trustEnforcementEnabled = true;
+		GD.Print(
+			$"[RenderTestRunner] Render-test baseline: scaledFilmPx={expectedScaledPixels} rowsPerStep={statsRowsPerStep} " +
+			$"minGeomPix={_renderTestMinGeomPixForTrust} minRayTests={_renderTestMinGeomRayTestsForTrust} " +
+			$"trustEnforcement={(trustEnforcementEnabled ? "on" : "off")}");
 		GD.Print(
 			$"[RenderTestRunner] Trust target (render-test): scaledFilm={scaledFilmW}x{scaledFilmH} " +
 			$"scaledPixels={expectedScaledPixels} minGeomPix={_renderTestMinGeomPixForTrust} minRayTests={_renderTestMinGeomRayTestsForTrust}");
@@ -410,10 +476,15 @@ public partial class RenderTestRunner : Node
 	{
 		_film.ResetRenderHealthWindowForRunStart();
 		_film.ApplyTestRunConfig(in run);
+		if (_renderTestMode && IsStraightRun(run.Name))
+		{
+			ApplyStraightRunOverrides(in run);
+		}
 		bool runWantsUpdateEveryFrame = run.UpdateEveryFrame ?? (_defaultsCaptured ? _defaults.UpdateEveryFrame : true);
 		_film.UpdateEveryFrame = runWantsUpdateEveryFrame;
 		_renderTestLiveRunName = Sanitize(run.Name);
 		_renderTestNextLiveLogTimestamp = 0;
+		_renderTestHasSeenRenderHealthSnapshot = false;
 		_runFrameIndex = 0;
 		_frameMsSamples.Clear();
 		_runFrameMsSum = 0.0;
@@ -431,10 +502,42 @@ public partial class RenderTestRunner : Node
 		if (_renderTestMode)
 		{
 			GD.Print(
-				$"[RenderTestRunner] Trust enforcement: minGeomPix={_renderTestMinGeomPixForTrust} " +
-				$"minRayTests={_renderTestMinGeomRayTestsForTrust} resScale={_film.FilmResolutionScale:0.###} " +
-				$"stride={(_film.UsePass2CollisionStride ? "on" : "off")}");
+				$"[RenderTestRunner] Trust enforcement (mode={(_renderTestTrustStraightMode ? "straight" : "default")}): " +
+				$"scaledFilm={_renderTestStatsScaledFilmW}x{_renderTestStatsScaledFilmH} " +
+				$"minGeomPix={_renderTestMinGeomPixForTrust} minRayTests={_renderTestMinGeomRayTestsForTrust} " +
+				$"minP2={_renderTestTrustMinP2} p2Every={_renderTestTrustPass2Every} " +
+				$"rollingSec={_film.RenderHealthRollingWindowSec:0.###}");
+			GD.Print(
+				$"[RenderHealth][StatsMode] scaledFilm={_renderTestStatsScaledFilmW}x{_renderTestStatsScaledFilmH} " +
+				$"rowsPerStep={_renderTestStatsRowsPerStep} fullFrameEveryNSteps<={RenderTestStatsFullFrameEveryNSteps}");
+			if (IsStraightRun(run.Name))
+			{
+				string camPos = _camera != null && GodotObject.IsInstanceValid(_camera)
+					? _camera.GlobalPosition.ToString()
+					: "na";
+				Vector3 target = (_camera != null && GodotObject.IsInstanceValid(_camera))
+					? (_camera.GlobalPosition + (-_camera.GlobalTransform.Basis.Z) * 5.0f)
+					: Vector3.Zero;
+				float bendScale = 0.0f;
+				if (TryGetSharedRayBeamRenderer(out RayBeamRenderer straightRbr) && GodotObject.IsInstanceValid(straightRbr))
+				{
+					bendScale = straightRbr.BendScale;
+				}
+				GD.Print($"[RenderTestRunner] Straight fixture: camera={camPos} target={target} bendScale={bendScale:0.###}");
+			}
 		}
+	}
+
+	private static int ComputeStatsFriendlyRowsPerStep(int scaledFilmH)
+	{
+		int h = Math.Max(1, scaledFilmH);
+		int n = Math.Max(1, RenderTestStatsFullFrameEveryNSteps);
+		int rows = (h + n - 1) / n;
+		if (h > 1 && rows >= h)
+		{
+			rows = h - 1;
+		}
+		return Math.Max(1, rows);
 	}
 
 	private void FinishRun()
@@ -527,7 +630,7 @@ public partial class RenderTestRunner : Node
 		const float orbitHeight = 1.2f;
 		const float orbitPeriodFrames = 300f;
 
-		return new List<GrinFilmCamera.TestRunConfig>
+		List<GrinFilmCamera.TestRunConfig> runs = new List<GrinFilmCamera.TestRunConfig>
 		{
 			new GrinFilmCamera.TestRunConfig
 			{
@@ -608,6 +711,42 @@ public partial class RenderTestRunner : Node
 				CameraOrbitPeriodFrames = orbitPeriodFrames
 			}
 		};
+
+		if (_straightFixtureSceneActive)
+		{
+			Vector3 straightCamPos = new Vector3(0f, 0f, 5f);
+			Vector3 straightLookAt = Vector3.Zero;
+			runs.Add(new GrinFilmCamera.TestRunConfig
+			{
+				Name = "straight_prune_off",
+				UpdateEveryFrame = true,
+				UseGeometryTLASPruning = false,
+				UsePass2CollisionStride = false,
+				Pass2SoftGateEnableQuickRayMiss = false,
+				CameraMode = GrinFilmCamera.TestCameraMode.Fixed,
+				CameraLookAt = straightLookAt,
+				CameraFixedPosition = straightCamPos,
+				CameraOrbitRadius = 0f,
+				CameraOrbitHeight = 0f,
+				CameraOrbitPeriodFrames = 1f
+			});
+			runs.Add(new GrinFilmCamera.TestRunConfig
+			{
+				Name = "straight_prune_on",
+				UpdateEveryFrame = true,
+				UseGeometryTLASPruning = true,
+				UsePass2CollisionStride = true,
+				Pass2SoftGateEnableQuickRayMiss = true,
+				CameraMode = GrinFilmCamera.TestCameraMode.Fixed,
+				CameraLookAt = straightLookAt,
+				CameraFixedPosition = straightCamPos,
+				CameraOrbitRadius = 0f,
+				CameraOrbitHeight = 0f,
+				CameraOrbitPeriodFrames = 1f
+			});
+		}
+
+		return runs;
 	}
 
 	private void ApplyDeterministicCamera(in GrinFilmCamera.TestRunConfig run, int frameIndex)
@@ -668,6 +807,120 @@ public partial class RenderTestRunner : Node
 		return false;
 	}
 
+	private bool IsStraightFixtureSceneActive()
+	{
+		return IsStraightFixtureModeForTrust();
+	}
+
+	private bool IsStraightFixtureModeForTrust()
+	{
+		if (HasCmdArg(RenderTestStraightArgToken))
+		{
+			return true;
+		}
+		if (_requestedFixture == RenderTestFixture.Straight)
+		{
+			return true;
+		}
+
+		string currentPath = GetTree().CurrentScene?.SceneFilePath ?? string.Empty;
+		if (PathLooksStraightFixture(currentPath))
+		{
+			return true;
+		}
+
+		string expectedPath = GetScenePathForFixture(_requestedFixture);
+		return PathLooksStraightFixture(expectedPath);
+	}
+
+	private static bool PathLooksStraightFixture(string scenePath)
+	{
+		if (string.IsNullOrWhiteSpace(scenePath))
+		{
+			return false;
+		}
+
+		return scenePath.IndexOf(RenderTestStraightSceneHint, StringComparison.OrdinalIgnoreCase) >= 0;
+	}
+
+	private static bool HasCmdArg(string expectedToken)
+	{
+		if (string.IsNullOrWhiteSpace(expectedToken))
+		{
+			return false;
+		}
+
+		foreach (string arg in OS.GetCmdlineUserArgs())
+		{
+			if (string.IsNullOrWhiteSpace(arg))
+			{
+				continue;
+			}
+
+			if (string.Equals(arg.Trim(), expectedToken, StringComparison.OrdinalIgnoreCase))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private RenderTestFixture GetRequestedFixture()
+	{
+		if (TryGetFixtureFromCmdArgs(out RenderTestFixture fromArgs))
+		{
+			return fromArgs;
+		}
+
+		return Fixture;
+	}
+
+	private bool TryGetFixtureFromCmdArgs(out RenderTestFixture fixture)
+	{
+		fixture = RenderTestFixture.Default;
+		foreach (string arg in OS.GetCmdlineUserArgs())
+		{
+			if (string.IsNullOrWhiteSpace(arg))
+			{
+				continue;
+			}
+
+			string trimmed = arg.Trim();
+			if (!trimmed.StartsWith(RenderTestFixtureArgPrefix, StringComparison.OrdinalIgnoreCase))
+			{
+				continue;
+			}
+
+			string value = trimmed.Substring(RenderTestFixtureArgPrefix.Length).Trim();
+			if (string.Equals(value, "straight", StringComparison.OrdinalIgnoreCase))
+			{
+				fixture = RenderTestFixture.Straight;
+				return true;
+			}
+			if (string.Equals(value, "default", StringComparison.OrdinalIgnoreCase))
+			{
+				fixture = RenderTestFixture.Default;
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private static string GetScenePathForFixture(RenderTestFixture fixture)
+	{
+		return fixture == RenderTestFixture.Straight
+			? RenderTestStraightScenePath
+			: RenderTestDefaultScenePath;
+	}
+
+	private bool IsCurrentScenePath(string scenePath)
+	{
+		string current = GetTree().CurrentScene?.SceneFilePath ?? string.Empty;
+		return string.Equals(current, scenePath, StringComparison.OrdinalIgnoreCase);
+	}
+
 	private bool IsRenderTestMode()
 	{
 		foreach (string arg in OS.GetCmdlineUserArgs())
@@ -687,6 +940,22 @@ public partial class RenderTestRunner : Node
 		}
 
 		return false;
+	}
+
+	private void SwitchToFixtureSceneDeferred(string scenePath)
+	{
+		Error err = GetTree().ChangeSceneToFile(scenePath);
+		if (err == Error.Ok)
+		{
+			return;
+		}
+
+		GD.PrintErr($"[RenderTestRunner] ERROR: Failed to switch to fixture scene: path={scenePath} err={(int)err}");
+		if (_renderTestMode)
+		{
+			StopFilmRenderingForExitIfNeeded();
+			CallDeferred(nameof(QuitDeferred), 1);
+		}
 	}
 
 	private void HandleMissingDependenciesAndAbort()
@@ -757,6 +1026,18 @@ public partial class RenderTestRunner : Node
 			return;
 		}
 
+		bool hasRenderHealth = _film.TryGetLatestRenderHealthForTesting(out bool geomTrustedRaw, out _, out _, out string geomTrustReasonRaw);
+		if (hasRenderHealth && !_renderTestHasSeenRenderHealthSnapshot)
+		{
+			_renderTestHasSeenRenderHealthSnapshot = true;
+			int readyStep = -1;
+			if (TryGetLatestRenderHealthLiveSnapshot(out RenderHealthLiveSnapshot readySnap))
+			{
+				readyStep = readySnap.Step;
+			}
+			GD.Print($"[RenderTestRunner] RenderHealth snapshot ready at step={(readyStep >= 0 ? readyStep.ToString() : "na")} frame={_runFrameIndex + 1}");
+		}
+
 		long now = Stopwatch.GetTimestamp();
 		if (_renderTestNextLiveLogTimestamp > 0 && now < _renderTestNextLiveLogTimestamp)
 		{
@@ -764,9 +1045,9 @@ public partial class RenderTestRunner : Node
 		}
 		_renderTestNextLiveLogTimestamp = now + RenderTestLiveLogIntervalTicks;
 
-		bool hasRenderHealth = _film.TryGetLatestRenderHealthForTesting(out bool geomTrusted, out _, out _, out string geomTrustReason);
+		bool geomTrusted = hasRenderHealth && geomTrustedRaw;
 		int geomHealthPartial = geomTrusted ? 0 : 1;
-		string trustReasonOut = hasRenderHealth ? Sanitize(geomTrustReason) : "no_renderhealth";
+		string trustReasonOut = hasRenderHealth ? Sanitize(geomTrustReasonRaw) : "warming_up";
 
 		string lastRow = "na";
 		string rowsAdv = "na";
@@ -791,6 +1072,14 @@ public partial class RenderTestRunner : Node
 			$"lastRow={lastRow} rowsAdv={rowsAdv} bands={bands} " +
 			$"geomPixProcessed={geomPixProcessed} geomRayTestsTotal={geomRayTestsTotal} " +
 			$"geomTrusted={(geomTrusted ? 1 : 0)} geomHealthPartial={geomHealthPartial} geomTrustReason={trustReasonOut} hitRate={hitRate}");
+		if (IsStraightRun(run.Name))
+		{
+			string perPxOff = "na";
+			string perPxOn = "na";
+			TryGetRenderHealthPerPixelMetrics(out perPxOff, out perPxOn);
+			string stepStr = snap.Step >= 0 ? snap.Step.ToString() : "na";
+			GD.Print($"[RenderHealth][StraightDebug] step={stepStr} hitRate={hitRate} perPxOff={perPxOff} perPxOn={perPxOn}");
+		}
 	}
 
 	private bool TryGetLatestRenderHealthLiveSnapshot(out RenderHealthLiveSnapshot snap)
@@ -833,6 +1122,7 @@ public partial class RenderTestRunner : Node
 
 		snap = new RenderHealthLiveSnapshot
 		{
+			Step = ReadIntField(_rhSampleStepField, boxedSample),
 			LastRow = ReadIntField(_rhSampleRowField, boxedSample),
 			RowsAdv = ReadIntField(_rhSampleRowsAdvField, boxedSample),
 			Bands = ReadIntField(_rhSampleBandsField, boxedSample),
@@ -864,19 +1154,27 @@ public partial class RenderTestRunner : Node
 		_rhSampleType = filmType.GetNestedType("RenderHealthSample", BindingFlags.NonPublic);
 		if (_rhSampleType != null)
 		{
+			_rhSampleStepField = _rhSampleType.GetField("StepIndex", BindingFlags.Instance | BindingFlags.Public);
 			_rhSampleRowField = _rhSampleType.GetField("RowCursorAfter", BindingFlags.Instance | BindingFlags.Public);
 			_rhSampleRowsAdvField = _rhSampleType.GetField("RowsAdvanced", BindingFlags.Instance | BindingFlags.Public);
 			_rhSampleBandsField = _rhSampleType.GetField("BandsProcessed", BindingFlags.Instance | BindingFlags.Public);
 			_rhSampleGeomPixField = _rhSampleType.GetField("GeomPixelProcessed", BindingFlags.Instance | BindingFlags.Public);
-			_rhSampleGeomRayTestsField = _rhSampleType.GetField("GeomRayTestsTotal", BindingFlags.Instance | BindingFlags.Public);
-			_rhSampleHitsField = _rhSampleType.GetField("Hits", BindingFlags.Instance | BindingFlags.Public);
-			_rhSampleTracedField = _rhSampleType.GetField("TracedPixels", BindingFlags.Instance | BindingFlags.Public);
-		}
+		_rhSampleGeomRayTestsField = _rhSampleType.GetField("GeomRayTestsTotal", BindingFlags.Instance | BindingFlags.Public);
+		_rhSampleHitsField = _rhSampleType.GetField("Hits", BindingFlags.Instance | BindingFlags.Public);
+		_rhSampleTracedField = _rhSampleType.GetField("TracedPixels", BindingFlags.Instance | BindingFlags.Public);
+	}
+	_rhGeomOnTotalField = filmType.GetField("_geomRayTestsPruningOnTotal", flags);
+	_rhGeomOnTracedField = filmType.GetField("_geomRayTestsPruningOnTracedPixels", flags);
+	_rhGeomOffTotalField = filmType.GetField("_geomRayTestsPruningOffTotal", flags);
+	_rhGeomOffTracedField = filmType.GetField("_geomRayTestsPruningOffTracedPixels", flags);
+	_rhGeomOffBaselineField = filmType.GetField("_geomRayTestsOffPerPixelBaseline", flags);
+	_rhGeomOffBaselineReadyField = filmType.GetField("_geomRayTestsOffPerPixelBaselineReady", flags);
 
 		_rhLiveReflectionReady =
 			_rhCountField != null
 			&& _rhWriteField != null
 			&& _rhSamplesField != null
+			&& _rhSampleStepField != null
 			&& _rhSampleRowField != null
 			&& _rhSampleRowsAdvField != null
 			&& _rhSampleBandsField != null
@@ -911,8 +1209,95 @@ public partial class RenderTestRunner : Node
 		return 0L;
 	}
 
+	private static double ReadDoubleField(FieldInfo field, object target)
+	{
+		if (field == null)
+		{
+			return 0.0;
+		}
+		object value = field.GetValue(target);
+		if (value is double d) return d;
+		if (value is float f) return f;
+		return 0.0;
+	}
+
+	private bool TryGetRenderHealthPerPixelMetrics(out string perPxOff, out string perPxOn)
+	{
+		perPxOff = "na";
+		perPxOn = "na";
+		if (_film == null || !GodotObject.IsInstanceValid(_film) || !EnsureRenderHealthLiveReflection())
+		{
+			return false;
+		}
+
+		long onTotal = ReadLongField(_rhGeomOnTotalField, _film);
+		long onTraced = ReadLongField(_rhGeomOnTracedField, _film);
+		long offTotal = ReadLongField(_rhGeomOffTotalField, _film);
+		long offTraced = ReadLongField(_rhGeomOffTracedField, _film);
+
+		bool hasAny = false;
+		if (onTraced > 0)
+		{
+			double perPx = onTotal / (double)onTraced;
+			if (double.IsFinite(perPx) && perPx >= 0.0)
+			{
+				perPxOn = perPx.ToString("0.###");
+				hasAny = true;
+			}
+		}
+		if (offTraced > 0)
+		{
+			double perPx = offTotal / (double)offTraced;
+			if (double.IsFinite(perPx) && perPx >= 0.0)
+			{
+				perPxOff = perPx.ToString("0.###");
+				hasAny = true;
+			}
+		}
+		else if (_rhGeomOffBaselineReadyField != null
+			&& _rhGeomOffBaselineField != null
+			&& _rhGeomOffBaselineReadyField.GetValue(_film) is bool ready
+			&& ready)
+		{
+			double baseline = ReadDoubleField(_rhGeomOffBaselineField, _film);
+			if (double.IsFinite(baseline) && baseline >= 0.0)
+			{
+				perPxOff = baseline.ToString("0.###");
+				hasAny = true;
+			}
+		}
+
+		return hasAny;
+	}
+
+	private void ApplyStraightRunOverrides(in GrinFilmCamera.TestRunConfig run)
+	{
+		if (!TryGetSharedRayBeamRenderer(out RayBeamRenderer rbr) || !GodotObject.IsInstanceValid(rbr))
+		{
+			return;
+		}
+
+		rbr.BendScale = 0.0f;
+		rbr.FieldCenterIsCamera = true;
+		rbr.UpdateEveryFrame = false;
+		_film.BroadphaseControlMode = GrinFilmCamera.BroadphaseMode.Policy;
+		_film.BroadphasePolicy = (run.UseGeometryTLASPruning ?? false)
+			? GrinFilmCamera.BroadphasePolicyMode.QuickRayOnly
+			: GrinFilmCamera.BroadphasePolicyMode.OverlapOnly;
+	}
+
+	private static bool IsStraightRun(string runName)
+	{
+		if (string.IsNullOrWhiteSpace(runName))
+		{
+			return false;
+		}
+		return runName.Trim().StartsWith("straight_", StringComparison.OrdinalIgnoreCase);
+	}
+
 	private struct RenderHealthLiveSnapshot
 	{
+		public int Step;
 		public int LastRow;
 		public int RowsAdv;
 		public int Bands;
