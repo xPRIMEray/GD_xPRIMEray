@@ -144,6 +144,8 @@ public partial class RenderTestRunner : Node
 	private FieldInfo _rhGeomOffTracedField;
 	private FieldInfo _rhGeomOffBaselineField;
 	private FieldInfo _rhGeomOffBaselineReadyField;
+	private PropertyInfo _smartScaleFilmRowCursorProp;
+	private PropertyInfo _smartScaleFilmHeightProp;
 	private FieldInfo _smartScaleFilmRowCursorField;
 	private FieldInfo _smartScaleFilmHeightField;
 	private int _renderTestMinGeomPixForTrust = RenderTestMinGeomPixProcessedPerWindow;
@@ -3272,6 +3274,29 @@ public partial class RenderTestRunner : Node
 		return TryReadIntField(field, target, out value, out _);
 	}
 
+	private static bool TryReadIntProperty(PropertyInfo property, object target, out int value, out bool known)
+	{
+		value = 0;
+		known = false;
+		if (!TryReadPropertyValue(property, target, out object raw))
+		{
+			return false;
+		}
+		if (raw is int i)
+		{
+			value = i;
+			known = true;
+			return true;
+		}
+		if (raw is long l && l >= int.MinValue && l <= int.MaxValue)
+		{
+			value = (int)l;
+			known = true;
+			return true;
+		}
+		return false;
+	}
+
 	private static bool TryReadIntField(FieldInfo field, object target, out int value, out bool known)
 	{
 		value = 0;
@@ -3374,6 +3399,24 @@ public partial class RenderTestRunner : Node
 		try
 		{
 			value = field.GetValue(target);
+			return true;
+		}
+		catch
+		{
+			return false;
+		}
+	}
+
+	private static bool TryReadPropertyValue(PropertyInfo property, object target, out object value)
+	{
+		value = null;
+		if (property == null || target == null)
+		{
+			return false;
+		}
+		try
+		{
+			value = property.GetValue(target);
 			return true;
 		}
 		catch
@@ -3672,8 +3715,14 @@ public partial class RenderTestRunner : Node
 		EnsureSmartScaleFilmProbeReflection();
 		if (_smartScaleFilmProbeReflectionReady)
 		{
-			TryReadIntField(_smartScaleFilmRowCursorField, _film, out rowCursor, out rowCursorKnown);
-			TryReadIntField(_smartScaleFilmHeightField, _film, out filmHeight, out filmHeightKnown);
+			if (!TryReadIntProperty(_smartScaleFilmRowCursorProp, _film, out rowCursor, out rowCursorKnown))
+			{
+				TryReadIntField(_smartScaleFilmRowCursorField, _film, out rowCursor, out rowCursorKnown);
+			}
+			if (!TryReadIntProperty(_smartScaleFilmHeightProp, _film, out filmHeight, out filmHeightKnown))
+			{
+				TryReadIntField(_smartScaleFilmHeightField, _film, out filmHeight, out filmHeightKnown);
+			}
 			if (rowCursorKnown || filmHeightKnown)
 			{
 				return true;
@@ -3699,12 +3748,17 @@ public partial class RenderTestRunner : Node
 		_smartScaleFilmProbeReflectionTried = true;
 		try
 		{
-			const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+			const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 			Type filmType = typeof(GrinFilmCamera);
+			_smartScaleFilmRowCursorProp = filmType.GetProperty("FilmRowCursor", flags);
+			_smartScaleFilmHeightProp = filmType.GetProperty("FilmHeightRows", flags);
 			_smartScaleFilmRowCursorField = filmType.GetField("_rowCursor", flags);
 			_smartScaleFilmHeightField = filmType.GetField("_filmHeight", flags);
 			_smartScaleFilmProbeReflectionReady =
-				_smartScaleFilmRowCursorField != null || _smartScaleFilmHeightField != null;
+				_smartScaleFilmRowCursorProp != null
+				|| _smartScaleFilmHeightProp != null
+				|| _smartScaleFilmRowCursorField != null
+				|| _smartScaleFilmHeightField != null;
 		}
 		catch
 		{

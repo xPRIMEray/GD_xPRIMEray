@@ -182,6 +182,19 @@ public partial class GrinFilmCamera : Node
 		Enabled = false
 	};
 
+	/// <summary>
+	/// Scanline-truth read-only aliases.
+	/// These provide canonical film iteration semantics without renaming internal fields.
+	/// Intended for telemetry, SmartScale, and harness inspection.
+	/// </summary>
+	// Public scanline-truth aliases for diagnostics/harnesses. Internal field names stay intact.
+	public int FilmRowCursor => _rowCursor;
+	public int FilmHeightRows => _filmHeight;
+	public int FilmWidthPixels => _filmWidth;
+	public int BandHeightRowsResolved => _bandHeightRowsResolved > 0
+		? _bandHeightRowsResolved
+		: Math.Max(1, _adaptiveRowsPerFrame > 0 ? _adaptiveRowsPerFrame : RowsPerFrame);
+
 
 	[ExportGroup("Budgets & Watchdogs")]
 
@@ -1116,6 +1129,7 @@ public partial class GrinFilmCamera : Node
 	private bool _renderStepReentryWarned = false;
 	private bool _renderStepMissingRbrCameraWarned = false;
 	private bool _rowsRangeWarningIssued = false;
+	private int _bandHeightRowsResolved = 0;
 	private int _stuckBandStartRow = -1;
 	private int _stuckBandEndRow = -1;
 	private int _stuckBandRepeats = 0;
@@ -3243,6 +3257,7 @@ public partial class GrinFilmCamera : Node
 				yEnd = Mathf.Min(filmH, _rowCursor + rowsPerFrame);
 				bandH = yEnd - yStart;
 			}
+			_bandHeightRowsResolved = Math.Max(1, rowsPerFrame);
 			budgetStopRowStart = yStart;
 			budgetStopRowCursor = yStart;
 			budgetStopRowEnd = yStart;
