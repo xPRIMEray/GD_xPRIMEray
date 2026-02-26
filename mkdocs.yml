@@ -1,43 +1,65 @@
-site_name: xPRIMEray Wiki
-repo_url: https://github.com/AetherTopologist/GD_xPRIMEray
+site_name: GD_xPRIMEray
+site_description: Curved Ray Transport Engine for GRIN Fields (Godot 4.x) — hybrid symbolic–numeric propagation.
+site_author: AetherTopologist
 repo_name: AetherTopologist/GD_xPRIMEray
-
-# KEY: use your existing folder
-docs_dir: Docs
+repo_url: https://github.com/AetherTopologist/GD_xPRIMEray
+edit_uri: edit/main/docs/
 
 theme:
   name: material
+  language: en
   features:
     - navigation.instant
-    - navigation.sections
-    - navigation.indexes
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.top
+    - navigation.footer
+    - toc.follow
     - content.code.copy
+    - content.action.edit
     - search.suggest
     - search.highlight
+  palette:
+    - scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+    - scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+  icon:
+    repo: fontawesome/brands/github
 
 markdown_extensions:
   - admonition
+  - attr_list
+  - md_in_html
+  - tables
   - toc:
       permalink: true
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.details
+
+plugins:
+  - search
+  - git-revision-date-localized:
+      enable_creation_date: true
+
+# Mermaid diagrams in markdown (```mermaid)
+extra_javascript:
+  - https://unpkg.com/mermaid@10/dist/mermaid.min.js
 
 nav:
   - Home: index.md
-  - Architecture:
-      - Overview: architecture_overview.md
-      - Ray Renderer Review: architecture_review_ray_renderer.md
-      - Charter v3 (Claude/Grok): _xPRIMEray_arch_charter_v3-ChatClaudeGrokCoherencePass2.md
-  - Specs:
-      - SPEC_INDEX: SPEC_INDEX.md
-      - BVH Acceleration: spec_bvh_acceleration.md
-      - Curved Ray Chunks: spec_curved_ray_chunks.md
-      - Field Extraction Rules: spec_field_extraction_rules.md
-      - Field System GRIN: spec_field_system_grin.md
-      - Metric Models (GRIN vs Gordon): spec_metric_models_grin_vs_gordon.md
-      - Ray Transport Interfaces: spec_ray_transport_interfaces_1.md
-      - Rendering Backends: spec_rendering_backends_1.md
-      - Research Mode: spec_research_mode_1.md
-      - Scene Snapshot Layout: spec_scene_snapshot_data_layout.md
-      - Scheduler Task Graph: spec_scheduler_task_graph.md
-      - Telemetry Debug: spec_telemetry_debug_1.md
-      - Wormhole Scene Graph: spec_wormhole_scene_graph_1.md
-  - Property Surface: PropertySurface.md
+  - Core:
+      - Architecture: architecture.md
+      - Transport Model: transport_model.md
+      - Integrators: integrators.md
+  - Verification:
+      - Validation: validation.md
+  - Project:
+      - Roadmap: roadmap.md

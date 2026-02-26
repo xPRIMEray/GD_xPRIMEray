@@ -33,14 +33,18 @@ This transforms the rendering engine into a controllable physical simulation env
 
 ## Documentation
 
-- [Architecture](architecture.md)
-- [Transport Model](transport_model.md)
-- [Integrators](integrators.md)
-- [Validation Framework](validation.md)
+- [Architecture](architecture.md): field injection, transport loop, gating hierarchy
+- [Transport Model](transport_model.md): curvature definition, stepping logic, intersection semantics
+- [Integrators](integrators.md): RK4 and stability controls
+- [Validation Framework](validation.md): baseline comparisons, convergence metrics, regression harness
 - [Roadmap](roadmap.md)
 
 ---
 
+
 ## Visual Overview
 
+![System Architecture](assets/fig_01_architecture.png)
+
+## Figures
 ![System Architecture](assets/fig_01_architecture.png)
