@@ -78,4 +78,4 @@ Licensed under MIT — recommended for both academic and creative use.
 
 If used in academic work, please cite accordingly.
 
-![Screenshot](screenshots/physical_light_camera_units.webp)
+![Screenshot](screenshots/2026-02-26_GenericScene-4fields-5obj.png)
