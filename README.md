@@ -79,3 +79,7 @@ Licensed under MIT — recommended for both academic and creative use.
 If used in academic work, please cite accordingly.
 
 ![Screenshot](screenshots/2026-02-26_GenericScene-4fields-5obj.png)
+
+![Screenshot](screenshots/2026-02-26_GenericScene-4fields-5obj_camera-highmove.png)
+
+![Screenshot](screenshots/2026-02-26_GenericScene-4fields-5obj_negCurvature.png)
