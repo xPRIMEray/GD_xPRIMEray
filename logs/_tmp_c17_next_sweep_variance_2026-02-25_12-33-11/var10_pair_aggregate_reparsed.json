@@ -1,0 +1,62 @@
+[
+    {
+        "baseline_name":  "baseline_prune_off",
+        "repeats":  5,
+        "pass":  0,
+        "fail":  5,
+        "defer":  0,
+        "shadow_trust_1":  0,
+        "shadow_trust_0":  5,
+        "overhead_mean":  -41.84,
+        "overhead_min":  -44.21,
+        "overhead_max":  -40.76
+    },
+    {
+        "baseline_name":  "prune_on_default",
+        "repeats":  5,
+        "pass":  0,
+        "fail":  0,
+        "defer":  5,
+        "shadow_trust_1":  5,
+        "shadow_trust_0":  0,
+        "overhead_mean":  -1.716,
+        "overhead_min":  -3.2,
+        "overhead_max":  -0.73
+    },
+    {
+        "baseline_name":  "prune_on_loose_env",
+        "repeats":  5,
+        "pass":  5,
+        "fail":  0,
+        "defer":  0,
+        "shadow_trust_1":  5,
+        "shadow_trust_0":  0,
+        "overhead_mean":  0.788,
+        "overhead_min":  -0.74,
+        "overhead_max":  2.94
+    },
+    {
+        "baseline_name":  "prune_on_stride_off",
+        "repeats":  5,
+        "pass":  1,
+        "fail":  1,
+        "defer":  3,
+        "shadow_trust_1":  4,
+        "shadow_trust_0":  1,
+        "overhead_mean":  0.338,
+        "overhead_min":  -0.52,
+        "overhead_max":  1
+    },
+    {
+        "baseline_name":  "prune_on_tight_env",
+        "repeats":  5,
+        "pass":  0,
+        "fail":  0,
+        "defer":  5,
+        "shadow_trust_1":  5,
+        "shadow_trust_0":  0,
+        "overhead_mean":  -0.81,
+        "overhead_min":  -1.56,
+        "overhead_max":  -0.08
+    }
+]

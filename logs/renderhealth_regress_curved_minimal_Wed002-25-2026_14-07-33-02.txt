@@ -1,0 +1,164 @@
+PASS: logs\render_test_curved_minimal_Wed002-25-2026_14-07-33-02.txt windows=100, trusted=65, partial=35
+ON trusted mean per-px-on=4.774
+OFF trusted mean per-px-off=137.503
+ON saved% mean (baseline-ready)=96.907
+Audit totals: falseNeg=0 falsePos=0
+
+summary: pass=1 fail=0
+
+DOE summary:
+A) TrustReason histogram (global)
+  ok: 65
+  low_raytests: 25
+  low_geom_pix: 10
+
+A) TrustReason histogram (per run)
+  baseline_prune_off: ok=10
+  baseline_prune_off_shadow: low_geom_pix=10
+  prune_on_default: ok=7, low_raytests=3
+  prune_on_default_shadow: ok=8, low_raytests=2
+  prune_on_tight_env: low_raytests=6, ok=4
+  prune_on_tight_env_shadow: ok=6, low_raytests=4
+  prune_on_loose_env: ok=10
+  prune_on_loose_env_shadow: ok=10
+  prune_on_stride_off: low_raytests=6, ok=4
+  prune_on_stride_off_shadow: ok=6, low_raytests=4
+
+B) Trust flip timeline
+  baseline_prune_off: firstTrustedStep=30 trusted_windows=10/10 (100.0%)
+  baseline_prune_off_shadow: firstTrustedStep=none trusted_windows=0/10 (0.0%)
+  prune_on_default: firstTrustedStep=660 trusted_windows=7/10 (70.0%)
+  prune_on_default_shadow: firstTrustedStep=930 trusted_windows=8/10 (80.0%)
+  prune_on_tight_env: firstTrustedStep=1290 trusted_windows=4/10 (40.0%)
+  prune_on_tight_env_shadow: firstTrustedStep=1530 trusted_windows=6/10 (60.0%)
+  prune_on_loose_env: firstTrustedStep=1830 trusted_windows=10/10 (100.0%)
+  prune_on_loose_env_shadow: firstTrustedStep=2130 trusted_windows=10/10 (100.0%)
+  prune_on_stride_off: firstTrustedStep=2490 trusted_windows=4/10 (40.0%)
+  prune_on_stride_off_shadow: firstTrustedStep=2730 trusted_windows=6/10 (60.0%)
+
+C) low_raytests diagnostics: count=25
+  run=prune_on_default step=630 geomRayTestsTotalRaw=3994.0 minRayTests=4096.0 geomPixProcessedRaw=1120.0 minGeomPix=1024.0 candPix/noCand=139/981 rayTestsPerGeomPix=3.566 candRate=0.124 noCandRate=0.876
+  run=prune_on_default step=750 geomRayTestsTotalRaw=3994.0 minRayTests=4096.0 geomPixProcessedRaw=1120.0 minGeomPix=1024.0 candPix/noCand=139/981 rayTestsPerGeomPix=3.566 candRate=0.124 noCandRate=0.876
+  run=prune_on_default step=870 geomRayTestsTotalRaw=3994.0 minRayTests=4096.0 geomPixProcessedRaw=1120.0 minGeomPix=1024.0 candPix/noCand=139/981 rayTestsPerGeomPix=3.566 candRate=0.124 noCandRate=0.876
+  run=prune_on_default_shadow step=990 geomRayTestsTotalRaw=3994.0 minRayTests=4096.0 geomPixProcessedRaw=1120.0 minGeomPix=1024.0 candPix/noCand=139/981 rayTestsPerGeomPix=3.566 candRate=0.124 noCandRate=0.876
+  run=prune_on_default_shadow step=1110 geomRayTestsTotalRaw=3994.0 minRayTests=4096.0 geomPixProcessedRaw=1120.0 minGeomPix=1024.0 candPix/noCand=139/981 rayTestsPerGeomPix=3.566 candRate=0.124 noCandRate=0.876
+
+D) Top 10 worst trust failures by deficit
+  run=prune_on_tight_env step=1230 raytestsDeficit=134.000 geomPixDeficit=0.000 p2Deficit=na
+  run=prune_on_tight_env step=1350 raytestsDeficit=134.000 geomPixDeficit=0.000 p2Deficit=na
+  run=prune_on_tight_env step=1470 raytestsDeficit=134.000 geomPixDeficit=0.000 p2Deficit=na
+  run=prune_on_tight_env_shadow step=1590 raytestsDeficit=134.000 geomPixDeficit=0.000 p2Deficit=na
+  run=prune_on_tight_env_shadow step=1710 raytestsDeficit=134.000 geomPixDeficit=0.000 p2Deficit=na
+  run=prune_on_stride_off step=2430 raytestsDeficit=134.000 geomPixDeficit=0.000 p2Deficit=na
+  run=prune_on_stride_off step=2550 raytestsDeficit=134.000 geomPixDeficit=0.000 p2Deficit=na
+  run=prune_on_stride_off step=2670 raytestsDeficit=134.000 geomPixDeficit=0.000 p2Deficit=na
+  run=prune_on_stride_off_shadow step=2790 raytestsDeficit=134.000 geomPixDeficit=0.000 p2Deficit=na
+  run=prune_on_stride_off_shadow step=2910 raytestsDeficit=134.000 geomPixDeficit=0.000 p2Deficit=na
+
+RUN REPORT
+  run=baseline_prune_off frames=300 warmup=30 samples=270 windows=10 trusted=10 partial=0
+    firstTrustedStep=30 lastTrustedStep=300
+    topReasons=ok=10
+    perPxOff(mean,p95)=137.503,176.816 perPxOn(mean,p95)=na,na savedPctMean=na
+  run=baseline_prune_off_shadow frames=300 warmup=30 samples=270 windows=10 trusted=0 partial=10
+    firstTrustedStep=na lastTrustedStep=na
+    topReasons=low_geom_pix=10
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=na,na savedPctMean=na
+  run=prune_on_default frames=300 warmup=30 samples=270 windows=10 trusted=7 partial=3
+    firstTrustedStep=660 lastTrustedStep=900
+    topReasons=ok=7, low_raytests=3
+    perPxOff(mean,p95)=154.306,154.306 perPxOn(mean,p95)=4.441,5.495 savedPctMean=97.124
+    low_raytests examples:
+      step=630 geomRayTestsTotalRaw=3994 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1120 minGeomPix=1024
+      step=750 geomRayTestsTotalRaw=3994 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1120 minGeomPix=1024
+      step=870 geomRayTestsTotalRaw=3994 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1120 minGeomPix=1024
+  run=prune_on_default_shadow frames=300 warmup=30 samples=270 windows=10 trusted=8 partial=2
+    firstTrustedStep=930 lastTrustedStep=1200
+    topReasons=ok=8, low_raytests=2
+    perPxOff(mean,p95)=154.306,154.306 perPxOn(mean,p95)=4.723,5.495 savedPctMean=96.941
+    low_raytests examples:
+      step=990 geomRayTestsTotalRaw=3994 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1120 minGeomPix=1024
+      step=1110 geomRayTestsTotalRaw=3994 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1120 minGeomPix=1024
+  run=prune_on_tight_env frames=300 warmup=30 samples=270 windows=10 trusted=4 partial=6
+    firstTrustedStep=1290 lastTrustedStep=1440
+    topReasons=low_raytests=6, ok=4
+    perPxOff(mean,p95)=154.306,154.306 perPxOn(mean,p95)=5.075,5.448 savedPctMean=96.710
+    low_raytests examples:
+      step=1230 geomRayTestsTotalRaw=3962 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1120 minGeomPix=1024
+      step=1260 geomRayTestsTotalRaw=4072 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024
+      step=1350 geomRayTestsTotalRaw=3962 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1120 minGeomPix=1024
+  run=prune_on_tight_env_shadow frames=300 warmup=30 samples=270 windows=10 trusted=6 partial=4
+    firstTrustedStep=1530 lastTrustedStep=1800
+    topReasons=ok=6, low_raytests=4
+    perPxOff(mean,p95)=154.306,154.306 perPxOn(mean,p95)=5.075,5.448 savedPctMean=96.710
+    low_raytests examples:
+      step=1590 geomRayTestsTotalRaw=3962 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1120 minGeomPix=1024
+      step=1620 geomRayTestsTotalRaw=4072 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024
+      step=1710 geomRayTestsTotalRaw=3962 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1120 minGeomPix=1024
+  run=prune_on_loose_env frames=300 warmup=30 samples=270 windows=10 trusted=10 partial=0
+    firstTrustedStep=1830 lastTrustedStep=2100
+    topReasons=ok=10
+    perPxOff(mean,p95)=154.306,154.306 perPxOn(mean,p95)=4.446,5.801 savedPctMean=97.119
+  run=prune_on_loose_env_shadow frames=300 warmup=30 samples=270 windows=10 trusted=10 partial=0
+    firstTrustedStep=2130 lastTrustedStep=2400
+    topReasons=ok=10
+    perPxOff(mean,p95)=154.306,154.306 perPxOn(mean,p95)=4.775,5.801 savedPctMean=96.906
+  run=prune_on_stride_off frames=300 warmup=30 samples=270 windows=10 trusted=4 partial=6
+    firstTrustedStep=2490 lastTrustedStep=2640
+    topReasons=low_raytests=6, ok=4
+    perPxOff(mean,p95)=154.306,154.306 perPxOn(mean,p95)=5.075,5.448 savedPctMean=96.710
+    low_raytests examples:
+      step=2430 geomRayTestsTotalRaw=3962 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1120 minGeomPix=1024
+      step=2460 geomRayTestsTotalRaw=4072 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024
+      step=2550 geomRayTestsTotalRaw=3962 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1120 minGeomPix=1024
+  run=prune_on_stride_off_shadow frames=300 warmup=30 samples=270 windows=10 trusted=6 partial=4
+    firstTrustedStep=2730 lastTrustedStep=3000
+    topReasons=ok=6, low_raytests=4
+    perPxOff(mean,p95)=154.306,154.306 perPxOn(mean,p95)=5.073,5.448 savedPctMean=96.712
+    low_raytests examples:
+      step=2790 geomRayTestsTotalRaw=3962 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1120 minGeomPix=1024
+      step=2820 geomRayTestsTotalRaw=4072 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024
+      step=2910 geomRayTestsTotalRaw=3962 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1120 minGeomPix=1024
+
+REASON HISTOGRAM
+  reasons:
+    ok: 65
+    low_raytests: 25
+    low_geom_pix: 10
+  trusted: trusted=1=65 trusted=0=35
+  prune: prune=on=80 prune=off=20
+  trustGateDebug metPix=1 metRay=0: 25
+
+=== AutoCal Shadow Eval Summary (C1.1 g.3) ===
+Coverage
+  total_runs=10
+  runs_with_shadow_eval=5
+  coverage_pct=50.0%
+Verdicts
+  pass_count=2
+  fail_count=1
+  defer_count=2
+  missing_count=0
+Overhead (overhead_pct_est, numeric only)
+  count=5
+  mean=-7.692
+  median=0.060
+  p90=0.460
+  p95=0.480
+  max=0.500
+Top offenders (overhead_pct_est desc)
+  run_id=3 mode=on fixture=FieldHeavy overhead_pct_est=0.500 baseline_elapsed_msec=4019.906 shadow_elapsed_msec=4040.132 verdict=pass
+  run_id=7 mode=on fixture=FieldHeavy overhead_pct_est=0.400 baseline_elapsed_msec=4010.545 shadow_elapsed_msec=4026.545 verdict=pass
+  run_id=9 mode=on fixture=FieldHeavy overhead_pct_est=0.060 baseline_elapsed_msec=4010.306 shadow_elapsed_msec=4012.725 verdict=defer
+  run_id=5 mode=on fixture=FieldHeavy overhead_pct_est=-0.620 baseline_elapsed_msec=4038.026 shadow_elapsed_msec=4012.927 verdict=defer
+  run_id=1 mode=off fixture=FieldHeavy overhead_pct_est=-38.800 baseline_elapsed_msec=22283.543 shadow_elapsed_msec=13637.010 verdict=fail
+Trust sanity
+  baseline_trust_eq_1_and_shadow_trust_ne_1=1
+  fail_count_inferred_due_to_shadow_trust=1
+  shadow_trust_counts=0=1, 1=4
+
+AutoCal decision binding diagnostic
+  missing_decision_count=0
+
+CSV written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.csv
+JSON written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.json

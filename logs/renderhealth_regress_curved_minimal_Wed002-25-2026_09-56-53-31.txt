@@ -1,0 +1,59 @@
+PASS: logs\render_test_curved_minimal_Wed002-25-2026_09-56-53-31.txt windows=0, trusted=0, partial=0
+ON trusted mean per-px-on=na
+OFF trusted mean per-px-off=na
+ON saved% mean (baseline-ready)=na
+Audit totals: falseNeg=0 falsePos=0
+
+summary: pass=1 fail=0
+
+DOE summary:
+A) TrustReason histogram (global)
+  none
+
+A) TrustReason histogram (per run)
+
+B) Trust flip timeline
+
+C) low_raytests diagnostics: count=0
+
+D) Top 10 worst trust failures by deficit
+  none
+
+RUN REPORT
+  none
+
+REASON HISTOGRAM
+  reasons: none
+  trusted: trusted=1=0 trusted=0=0
+  prune: prune=on=0 prune=off=0
+  trustGateDebug metPix=1 metRay=0: 0
+
+=== AutoCal Shadow Eval Summary (C1.1 g.3) ===
+Coverage
+  total_runs=0
+  runs_with_shadow_eval=0
+  coverage_pct=0.0%
+Verdicts
+  pass_count=0
+  fail_count=0
+  defer_count=0
+  missing_count=0
+Overhead (overhead_pct_est, numeric only)
+  count=0
+  mean=na
+  median=na
+  p90=na
+  p95=na
+  max=na
+Top offenders (overhead_pct_est desc)
+  none
+Trust sanity
+  baseline_trust_eq_1_and_shadow_trust_ne_1=0
+  fail_count_inferred_due_to_shadow_trust=0
+  shadow_trust_counts=none
+
+AutoCal decision binding diagnostic
+  missing_decision_count=0
+
+CSV written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.csv
+JSON written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.json

@@ -28,9 +28,9 @@ RayBeamRenderer: field sources in group = 0
 [PresetApply] reason=process quality=1 perf=0 user=1 scene=1 preset=Walk perfPreset=None quality=Barebones resScale=0.25 stride=2 rows=8 broadphaseMode=Policy broadphasePolicy=QuickRayOnly
 [BroadphaseEffective] mode=Policy policy=QuickRayOnly quick=True overlap=False reason=policy
 [RenderTestRunner][INIT] mode=render-test startupDelayFrames=2 scene=res://test.tscn
-[RenderTest][MATRIX START] id=1771793201 runs=5 framesPerRun=300 warmup=30
+[RenderTest][MATRIX START] id=1771974020 runs=5 framesPerRun=300 warmup=30
 [MATRIX START] runs=5 framesPerRun=300 warmup=30 scene=res://test.tscn
-[RenderTest][RUN START] matrix=1771793201 idx=1/5 name=baseline_prune_off frames=300 warmup=30 prune=off
+[RenderTest][RUN START] matrix=1771974020 idx=1/5 name=baseline_prune_off frames=300 warmup=30 prune=off
 [RUN START] name=baseline_prune_off prune=off stride=off envScale=inherit aabbExpand=inherit updateEveryFrame=on
 [RenderTestRunner] Trust enforcement (mode=default): scaledFilm=80x45 minGeomPix=1024 minRayTests=4096 minP2=8 p2Every=8 rollingSec=10
 [RenderHealth][StatsMode] scaledFilm=80x45 rowsPerStep=6 fullFrameEveryNSteps<=8
@@ -43,129 +43,129 @@ Toggles: AdaptiveSubsteps=0 SingleProbeSubdivide=0 BandHitSkip=0 RequireHit=0 St
 [FrameReset] reason=completed prevRow=45 frame=1
 [BUS SET] frameId=12 grid=OK fields=0
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
-[RenderTestLive] name=baseline_prune_off frame=12/300 lastRow=24 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=13957 geomTrusted=0 geomHealthPartial=1 geomTrustReason=warming_up hitRate=0.625
+[RenderTestLive] name=baseline_prune_off frame=13/300 lastRow=30 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=13535 geomTrusted=0 geomHealthPartial=1 geomTrustReason=warming_up hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=2
 [FrameReset] reason=completed prevRow=45 frame=3
-[BUS SET] frameId=29 grid=OK fields=0
-SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [RenderHealth] step=30 lastRow=36 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=na geomSegQueried=na geomSegWithCandidates=na geomSegZero=na geomSegZeroRatePct=na geomPixProcessed=na geomPixHadAnyCandidates=na geomPixNoCand=na geomPixNoCandRatePct=na geomHitOk=725 geomHitReject=0 geomPrune=off geomPruneRequested=0 geomPruneEffective=off geomRayTestsTotal=114920 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=na geomRayTestsPerPxOff=99.069 geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=14365 radAvg=0.01 radMax=0.01 envDiagAvg=0.165 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=na cand1to2=na cand3to8=na cand9to32=na cand33p=na geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=30 geomPrune=off geomPixProcessedRaw=1160 geomRayTestsTotalRaw=114920 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=0 geomPixNoCandRaw=0 p2SampRaw=14365
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=114920 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [RenderTestRunner] RenderHealth snapshot ready at step=30 frame=30
-[RenderTestLive] name=baseline_prune_off frame=30/300 lastRow=36 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=11605 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[BUS SET] frameId=32 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=4
+[RenderTestLive] name=baseline_prune_off frame=33/300 lastRow=6 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=12261 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=5
 [FrameReset] reason=completed prevRow=45 frame=6
-[BUS SET] frameId=49 grid=OK fields=0
+[BUS SET] frameId=53 grid=OK fields=0
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
-[RenderTestLive] name=baseline_prune_off frame=51/300 lastRow=18 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=11372 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[RenderTestLive] name=baseline_prune_off frame=54/300 lastRow=36 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=11470 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=7
 [RenderHealth] step=60 lastRow=24 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=na geomSegQueried=na geomSegWithCandidates=na geomSegZero=na geomSegZeroRatePct=na geomPixProcessed=na geomPixHadAnyCandidates=na geomPixNoCand=na geomPixNoCandRatePct=na geomHitOk=725 geomHitReject=0 geomPrune=off geomPruneRequested=0 geomPruneEffective=off geomRayTestsTotal=111884 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=na geomRayTestsPerPxOff=96.452 geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13986 radAvg=0.01 radMax=0.01 envDiagAvg=0.165 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=na cand1to2=na cand3to8=na cand9to32=na cand33p=na geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=60 geomPrune=off geomPixProcessedRaw=1160 geomRayTestsTotalRaw=111884 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=0 geomPixNoCandRaw=0 p2SampRaw=13986
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=111884 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=8
-[BUS SET] frameId=70 grid=OK fields=0
-SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=9
-[RenderTestLive] name=baseline_prune_off frame=72/300 lastRow=0 rowsAdv=3 bands=1 geomPixProcessed=80 geomRayTestsTotal=8174 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[BUS SET] frameId=74 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
+[RenderTestLive] name=baseline_prune_off frame=75/300 lastRow=18 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=11372 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=10
 [FrameReset] reason=completed prevRow=45 frame=11
 [RenderHealth] step=90 lastRow=12 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=na geomSegQueried=na geomSegWithCandidates=na geomSegZero=na geomSegZeroRatePct=na geomPixProcessed=na geomPixHadAnyCandidates=na geomPixNoCand=na geomPixNoCandRatePct=na geomHitOk=725 geomHitReject=0 geomPrune=off geomPruneRequested=0 geomPruneEffective=off geomRayTestsTotal=113203 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=na geomRayTestsPerPxOff=97.589 geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=14150 radAvg=0.01 radMax=0.01 envDiagAvg=0.166 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=na cand1to2=na cand3to8=na cand9to32=na cand33p=na geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=90 geomPrune=off geomPixProcessedRaw=1160 geomRayTestsTotalRaw=113203 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=0 geomPixNoCandRaw=0 p2SampRaw=14150
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=113203 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
-[BUS SET] frameId=91 grid=OK fields=0
+[BUS SET] frameId=94 grid=OK fields=0
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
-[RenderTestLive] name=baseline_prune_off frame=93/300 lastRow=30 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=11240 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=12
+[RenderTestLive] name=baseline_prune_off frame=97/300 lastRow=6 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=12216 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=13
-[BUS SET] frameId=111 grid=OK fields=0
-SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=14
-[RenderTestLive] name=baseline_prune_off frame=114/300 lastRow=12 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=11717 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[BUS SET] frameId=115 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
+[RenderTestLive] name=baseline_prune_off frame=119/300 lastRow=42 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=11869 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=15
 [RenderHealth] step=120 lastRow=0 rowsAdv=3 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=na geomSegQueried=na geomSegWithCandidates=na geomSegZero=na geomSegZeroRatePct=na geomPixProcessed=na geomPixHadAnyCandidates=na geomPixNoCand=na geomPixNoCandRatePct=na geomHitOk=700 geomHitReject=0 geomPrune=off geomPruneRequested=0 geomPruneEffective=off geomRayTestsTotal=109313 geomRayTestsAccepted=700 geomRayTestsRejected=0 geomRayTestsPerPxOn=na geomRayTestsPerPxOff=97.601 geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13664 radAvg=0.01 radMax=0.01 envDiagAvg=0.166 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=na cand1to2=na cand3to8=na cand9to32=na cand33p=na geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=120 geomPrune=off geomPixProcessedRaw=1120 geomRayTestsTotalRaw=109313 pass2PixelsRaw=1120 geomPixHadAnyCandidatesRaw=0 geomPixNoCandRaw=0 p2SampRaw=13664
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1120 geomRayTestsTotalRaw=109313 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=16
-[BUS SET] frameId=131 grid=OK fields=0
+[BUS SET] frameId=136 grid=OK fields=0
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
-[RenderTestLive] name=baseline_prune_off frame=135/300 lastRow=42 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=11869 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=17
+[RenderTestLive] name=baseline_prune_off frame=140/300 lastRow=24 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=11212 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=18
 [RenderHealth] step=150 lastRow=36 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=na geomSegQueried=na geomSegWithCandidates=na geomSegZero=na geomSegZeroRatePct=na geomPixProcessed=na geomPixHadAnyCandidates=na geomPixNoCand=na geomPixNoCandRatePct=na geomHitOk=725 geomHitReject=0 geomPrune=off geomPruneRequested=0 geomPruneEffective=off geomRayTestsTotal=111980 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=na geomRayTestsPerPxOff=96.534 geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13997 radAvg=0.01 radMax=0.01 envDiagAvg=0.165 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=na cand1to2=na cand3to8=na cand9to32=na cand33p=na geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=150 geomPrune=off geomPixProcessedRaw=1160 geomRayTestsTotalRaw=111980 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=0 geomPixNoCandRaw=0 p2SampRaw=13997
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=111980 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
-[BUS SET] frameId=152 grid=OK fields=0
-SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=19
-[RenderTestLive] name=baseline_prune_off frame=156/300 lastRow=24 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=11212 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
-[FrameReset] reason=completed prevRow=45 frame=20
-[FrameReset] reason=completed prevRow=45 frame=21
-[BUS SET] frameId=173 grid=OK fields=0
+[BUS SET] frameId=157 grid=OK fields=0
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
+[FrameReset] reason=completed prevRow=45 frame=20
+[RenderTestLive] name=baseline_prune_off frame=162/300 lastRow=12 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=11717 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[FrameReset] reason=completed prevRow=45 frame=21
 [FrameReset] reason=completed prevRow=45 frame=22
-[RenderTestLive] name=baseline_prune_off frame=178/300 lastRow=12 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=11717 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[BUS SET] frameId=178 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [RenderHealth] step=180 lastRow=24 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=na geomSegQueried=na geomSegWithCandidates=na geomSegZero=na geomSegZeroRatePct=na geomPixProcessed=na geomPixHadAnyCandidates=na geomPixNoCand=na geomPixNoCandRatePct=na geomHitOk=725 geomHitReject=0 geomPrune=off geomPruneRequested=0 geomPruneEffective=off geomRayTestsTotal=111854 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=na geomRayTestsPerPxOff=96.426 geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13982 radAvg=0.01 radMax=0.01 envDiagAvg=0.165 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=na cand1to2=na cand3to8=na cand9to32=na cand33p=na geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=180 geomPrune=off geomPixProcessedRaw=1160 geomRayTestsTotalRaw=111854 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=0 geomPixNoCandRaw=0 p2SampRaw=13982
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=111854 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
+[RenderTestLive] name=baseline_prune_off frame=183/300 lastRow=42 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=11869 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=23
 [FrameReset] reason=completed prevRow=45 frame=24
-[BUS SET] frameId=194 grid=OK fields=0
+[BUS SET] frameId=199 grid=OK fields=0
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
-[RenderTestLive] name=baseline_prune_off frame=199/300 lastRow=42 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=11869 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=25
+[RenderTestLive] name=baseline_prune_off frame=204/300 lastRow=24 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=11212 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=26
 [RenderHealth] step=210 lastRow=12 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=na geomSegQueried=na geomSegWithCandidates=na geomSegZero=na geomSegZeroRatePct=na geomPixProcessed=na geomPixHadAnyCandidates=na geomPixNoCand=na geomPixNoCandRatePct=na geomHitOk=725 geomHitReject=0 geomPrune=off geomPruneRequested=0 geomPruneEffective=off geomRayTestsTotal=113203 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=na geomRayTestsPerPxOff=97.589 geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=14151 radAvg=0.01 radMax=0.01 envDiagAvg=0.166 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=na cand1to2=na cand3to8=na cand9to32=na cand33p=na geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=210 geomPrune=off geomPixProcessedRaw=1160 geomRayTestsTotalRaw=113203 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=0 geomPixNoCandRaw=0 p2SampRaw=14151
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=113203 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
-[BUS SET] frameId=215 grid=OK fields=0
-SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=27
-[RenderTestLive] name=baseline_prune_off frame=220/300 lastRow=24 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=11212 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[BUS SET] frameId=219 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=28
+[RenderTestLive] name=baseline_prune_off frame=224/300 lastRow=0 rowsAdv=3 bands=1 geomPixProcessed=80 geomRayTestsTotal=8174 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=29
-[BUS SET] frameId=235 grid=OK fields=0
+[BUS SET] frameId=238 grid=OK fields=0
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=30
 [RenderHealth] step=240 lastRow=0 rowsAdv=3 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=na geomSegQueried=na geomSegWithCandidates=na geomSegZero=na geomSegZeroRatePct=na geomPixProcessed=na geomPixHadAnyCandidates=na geomPixNoCand=na geomPixNoCandRatePct=na geomHitOk=700 geomHitReject=0 geomPrune=off geomPruneRequested=0 geomPruneEffective=off geomRayTestsTotal=109313 geomRayTestsAccepted=700 geomRayTestsRejected=0 geomRayTestsPerPxOn=na geomRayTestsPerPxOff=97.601 geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13664 radAvg=0.01 radMax=0.01 envDiagAvg=0.166 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=na cand1to2=na cand3to8=na cand9to32=na cand33p=na geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=240 geomPrune=off geomPixProcessedRaw=1120 geomRayTestsTotalRaw=109313 pass2PixelsRaw=1120 geomPixHadAnyCandidatesRaw=0 geomPixNoCandRaw=0 p2SampRaw=13664
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1120 geomRayTestsTotalRaw=109313 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
-[RenderTestLive] name=baseline_prune_off frame=241/300 lastRow=6 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=12216 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[RenderTestLive] name=baseline_prune_off frame=244/300 lastRow=24 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=11212 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=31
-[BUS SET] frameId=256 grid=OK fields=0
-SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=32
-[RenderTestLive] name=baseline_prune_off frame=262/300 lastRow=36 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=11470 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[BUS SET] frameId=258 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=33
+[RenderTestLive] name=baseline_prune_off frame=265/300 lastRow=6 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=12216 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [RenderHealth] step=270 lastRow=36 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=na geomSegQueried=na geomSegWithCandidates=na geomSegZero=na geomSegZeroRatePct=na geomPixProcessed=na geomPixHadAnyCandidates=na geomPixNoCand=na geomPixNoCandRatePct=na geomHitOk=725 geomHitReject=0 geomPrune=off geomPruneRequested=0 geomPruneEffective=off geomRayTestsTotal=111980 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=na geomRayTestsPerPxOff=96.534 geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13998 radAvg=0.01 radMax=0.01 envDiagAvg=0.165 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=na cand1to2=na cand3to8=na cand9to32=na cand33p=na geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=270 geomPrune=off geomPixProcessedRaw=1160 geomRayTestsTotalRaw=111980 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=0 geomPixNoCandRaw=0 p2SampRaw=13998
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=111980 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=34
-[BUS SET] frameId=277 grid=OK fields=0
+[BUS SET] frameId=279 grid=OK fields=0
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=35
-[RenderTestLive] name=baseline_prune_off frame=283/300 lastRow=18 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=11372 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[RenderTestLive] name=baseline_prune_off frame=286/300 lastRow=36 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=11470 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=36
 [FrameReset] reason=completed prevRow=45 frame=37
-[BUS SET] frameId=298 grid=OK fields=0
+[BUS SET] frameId=300 grid=OK fields=0
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [RenderHealth] step=300 lastRow=24 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=na geomSegQueried=na geomSegWithCandidates=na geomSegZero=na geomSegZeroRatePct=na geomPixProcessed=na geomPixHadAnyCandidates=na geomPixNoCand=na geomPixNoCandRatePct=na geomHitOk=725 geomHitReject=0 geomPrune=off geomPruneRequested=0 geomPruneEffective=off geomRayTestsTotal=111854 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=na geomRayTestsPerPxOff=96.426 geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13982 radAvg=0.01 radMax=0.01 envDiagAvg=0.165 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=na cand1to2=na cand3to8=na cand9to32=na cand33p=na geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=300 geomPrune=off geomPixProcessedRaw=1160 geomRayTestsTotalRaw=111854 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=0 geomPixNoCandRaw=0 p2SampRaw=13982
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=111854 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
-[RenderTest][RUN SUMMARY] matrix=1771793201 idx=1/5 name=baseline_prune_off samples=270 meanMsPerFrame=45.933 p95MsPerFrame=63.186 meanSegsPerPixel=na geomTrusted=1 geomTrustReason=ok geomRayTestsSavedPct=na
-[RenderTest][RUN END] matrix=1771793201 idx=1/5 name=baseline_prune_off frames=300 warmup=30 samples=270
-[RUN END] name=baseline_prune_off frames=300 samples=270 meanMs=45.933 p95Ms=63.186
-[RenderTest][RUN START] matrix=1771793201 idx=2/5 name=prune_on_default frames=300 warmup=30 prune=on
+[RenderTest][RUN SUMMARY] matrix=1771974020 idx=1/5 name=baseline_prune_off samples=270 meanMsPerFrame=46.794 p95MsPerFrame=65.433 meanSegsPerPixel=na geomTrusted=1 geomTrustReason=ok geomRayTestsSavedPct=na
+[RenderTest][RUN END] matrix=1771974020 idx=1/5 name=baseline_prune_off frames=300 warmup=30 samples=270
+[RUN END] name=baseline_prune_off frames=300 samples=270 meanMs=46.794 p95Ms=65.433
+[RenderTest][RUN START] matrix=1771974020 idx=2/5 name=prune_on_default frames=300 warmup=30 prune=on
 [RUN START] name=prune_on_default prune=on stride=on(inherit->inherit) envScale=inherit aabbExpand=inherit updateEveryFrame=on
 [RenderTestRunner] Trust enforcement (mode=default): scaledFilm=80x45 minGeomPix=1024 minRayTests=4096 minP2=8 p2Every=8 rollingSec=10
 [RenderHealth][StatsMode] scaledFilm=80x45 rowsPerStep=6 fullFrameEveryNSteps<=8
@@ -182,7 +182,7 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [RenderTestRunner] RenderHealth snapshot ready at step=330 frame=30
 [FrameReset] reason=completed prevRow=45 frame=42
-[BUS SET] frameId=337 grid=OK fields=0
+[BUS SET] frameId=341 grid=OK fields=0
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [RenderTestLive] name=prune_on_default frame=42/300 lastRow=36 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9381 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=43
@@ -194,7 +194,7 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=46
 [FrameReset] reason=completed prevRow=45 frame=47
-[BUS SET] frameId=379 grid=OK fields=0
+[BUS SET] frameId=382 grid=OK fields=0
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=48
 [RenderTestLive] name=prune_on_default frame=86/300 lastRow=12 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9726 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
@@ -210,10 +210,10 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [RenderHealth][GeomCoverage] step=420 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=91987 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1161 geomPixNoCandRaw=0 p2SampRaw=14055
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=91987 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
-[BUS SET] frameId=422 grid=OK fields=0
+[BUS SET] frameId=424 grid=OK fields=0
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=53
-[RenderTestLive] name=prune_on_default frame=128/300 lastRow=24 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=8980 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[RenderTestLive] name=prune_on_default frame=129/300 lastRow=30 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9041 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=54
 [FrameReset] reason=completed prevRow=45 frame=55
 [FrameReset] reason=completed prevRow=45 frame=56
@@ -222,10 +222,10 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=93883 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=57
-[BUS SET] frameId=463 grid=OK fields=0
-SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=58
-[RenderTestLive] name=prune_on_default frame=170/300 lastRow=36 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9381 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[BUS SET] frameId=467 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
+[RenderTestLive] name=prune_on_default frame=171/300 lastRow=42 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9943 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=59
 [FrameReset] reason=completed prevRow=45 frame=60
 [RenderHealth] step=480 lastRow=0 rowsAdv=3 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=503697 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.611 geomSegQueried=109916 geomSegWithCandidates=95679 geomSegZero=14237 geomSegZeroRatePct=12.95 geomPixProcessed=1120 geomPixHadAnyCandidates=1122 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=700 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=90712 geomRayTestsAccepted=700 geomRayTestsRejected=0 geomRayTestsPerPxOn=80.993 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=25.26 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13739 radAvg=0.01 radMax=0.01 envDiagAvg=0.166 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=1797 cand1to2=0 cand3to8=11942 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
@@ -235,14 +235,14 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [FrameReset] reason=completed prevRow=45 frame=61
 [FrameReset] reason=completed prevRow=45 frame=62
 [FrameReset] reason=completed prevRow=45 frame=63
-[BUS SET] frameId=505 grid=OK fields=0
+[BUS SET] frameId=509 grid=OK fields=0
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [RenderHealth] step=510 lastRow=36 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=465904 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.594 geomSegQueried=112567 geomSegWithCandidates=97335 geomSegZero=15232 geomSegZeroRatePct=13.53 geomPixProcessed=1160 geomPixHadAnyCandidates=1161 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=92173 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=79.459 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=26.68 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=14071 radAvg=0.01 radMax=0.01 envDiagAvg=0.165 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=1902 cand1to2=0 cand3to8=12169 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=510 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=92173 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1161 geomPixNoCandRaw=0 p2SampRaw=14071
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=92173 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=64
-[RenderTestLive] name=prune_on_default frame=213/300 lastRow=6 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=10406 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[RenderTestLive] name=prune_on_default frame=214/300 lastRow=12 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9726 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=65
 [FrameReset] reason=completed prevRow=45 frame=66
 [FrameReset] reason=completed prevRow=45 frame=67
@@ -251,10 +251,10 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=91987 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=68
-[BUS SET] frameId=547 grid=OK fields=0
+[BUS SET] frameId=551 grid=OK fields=0
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=69
-[RenderTestLive] name=prune_on_default frame=255/300 lastRow=18 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9256 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[RenderTestLive] name=prune_on_default frame=256/300 lastRow=24 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=8980 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=70
 [FrameReset] reason=completed prevRow=45 frame=71
 [RenderHealth] step=570 lastRow=12 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=388976 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.61 geomSegQueried=113812 geomSegWithCandidates=99030 geomSegZero=14782 geomSegZeroRatePct=12.99 geomPixProcessed=1160 geomPixHadAnyCandidates=1161 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=93883 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=80.934 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=25.32 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=14227 radAvg=0.01 radMax=0.01 envDiagAvg=0.166 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=1846 cand1to2=0 cand3to8=12381 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
@@ -263,19 +263,19 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=72
 [FrameReset] reason=completed prevRow=45 frame=73
-[BUS SET] frameId=589 grid=OK fields=0
-SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=74
-[RenderTestLive] name=prune_on_default frame=297/300 lastRow=30 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9041 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[BUS SET] frameId=594 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
+[RenderTestLive] name=prune_on_default frame=298/300 lastRow=36 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9381 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=75
 [RenderHealth] step=600 lastRow=0 rowsAdv=3 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=503697 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.611 geomSegQueried=109916 geomSegWithCandidates=95679 geomSegZero=14237 geomSegZeroRatePct=12.95 geomPixProcessed=1120 geomPixHadAnyCandidates=1122 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=700 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=90712 geomRayTestsAccepted=700 geomRayTestsRejected=0 geomRayTestsPerPxOn=80.993 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=25.26 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13740 radAvg=0.01 radMax=0.01 envDiagAvg=0.166 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=1742 cand1to2=0 cand3to8=11998 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=600 geomPrune=on geomPixProcessedRaw=1120 geomRayTestsTotalRaw=90712 pass2PixelsRaw=1120 geomPixHadAnyCandidatesRaw=1122 geomPixNoCandRaw=0 p2SampRaw=13740
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1120 geomRayTestsTotalRaw=90712 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
-[RenderTest][RUN SUMMARY] matrix=1771793201 idx=2/5 name=prune_on_default samples=270 meanMsPerFrame=22.195 p95MsPerFrame=49.358 meanSegsPerPixel=na geomTrusted=1 geomTrustReason=ok geomRayTestsSavedPct=25.26
-[RenderTest][RUN END] matrix=1771793201 idx=2/5 name=prune_on_default frames=300 warmup=30 samples=270
-[RUN END] name=prune_on_default frames=300 samples=270 meanMs=22.195 p95Ms=49.358
-[RenderTest][RUN START] matrix=1771793201 idx=3/5 name=prune_on_tight_env frames=300 warmup=30 prune=on
+[RenderTest][RUN SUMMARY] matrix=1771974020 idx=2/5 name=prune_on_default samples=270 meanMsPerFrame=22.36 p95MsPerFrame=49.291 meanSegsPerPixel=na geomTrusted=1 geomTrustReason=ok geomRayTestsSavedPct=25.26
+[RenderTest][RUN END] matrix=1771974020 idx=2/5 name=prune_on_default frames=300 warmup=30 samples=270
+[RUN END] name=prune_on_default frames=300 samples=270 meanMs=22.36 p95Ms=49.291
+[RenderTest][RUN START] matrix=1771974020 idx=3/5 name=prune_on_tight_env frames=300 warmup=30 prune=on
 [RUN START] name=prune_on_tight_env prune=on stride=on(1->4) envScale=1.02 aabbExpand=0.01 updateEveryFrame=on
 [RenderTestRunner] Trust enforcement (mode=default): scaledFilm=80x45 minGeomPix=1024 minRayTests=4096 minP2=8 p2Every=8 rollingSec=10
 [RenderHealth][StatsMode] scaledFilm=80x45 rowsPerStep=6 fullFrameEveryNSteps<=8
@@ -289,11 +289,11 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=91597 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [RenderTestRunner] RenderHealth snapshot ready at step=630 frame=30
-[BUS SET] frameId=632 grid=OK fields=0
-SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=79
+[BUS SET] frameId=637 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=80
-[RenderTestLive] name=prune_on_tight_env frame=44/300 lastRow=24 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=8929 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[RenderTestLive] name=prune_on_tight_env frame=45/300 lastRow=30 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=8989 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=81
 [FrameReset] reason=completed prevRow=45 frame=82
 [RenderHealth] step=660 lastRow=24 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=427683 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.591 geomSegQueried=111854 geomSegWithCandidates=96586 geomSegZero=15268 geomSegZeroRatePct=13.65 geomPixProcessed=1160 geomPixHadAnyCandidates=1160 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=91412 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=78.803 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=27.28 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13981 radAvg=0.01 radMax=0.01 envDiagAvg=0.165 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=1933 cand1to2=0 cand3to8=12048 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
@@ -302,27 +302,27 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=83
 [FrameReset] reason=completed prevRow=45 frame=84
-[BUS SET] frameId=674 grid=OK fields=0
+[BUS SET] frameId=680 grid=OK fields=0
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=85
-[RenderTestLive] name=prune_on_tight_env frame=87/300 lastRow=42 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9878 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=86
 [RenderHealth] step=690 lastRow=12 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=388871 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.609 geomSegQueried=113203 geomSegWithCandidates=98432 geomSegZero=14771 geomSegZeroRatePct=13.05 geomPixProcessed=1160 geomPixHadAnyCandidates=1160 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=93285 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=80.418 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=25.79 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=14150 radAvg=0.01 radMax=0.01 envDiagAvg=0.166 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=1855 cand1to2=0 cand3to8=12295 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=690 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=93285 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1160 geomPixNoCandRaw=0 p2SampRaw=14150
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=93285 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
+[RenderTestLive] name=prune_on_tight_env frame=90/300 lastRow=12 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9663 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=87
 [FrameReset] reason=completed prevRow=45 frame=88
 [FrameReset] reason=completed prevRow=45 frame=89
-[BUS SET] frameId=716 grid=OK fields=0
-SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=90
 [RenderHealth] step=720 lastRow=0 rowsAdv=3 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=503487 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.61 geomSegQueried=109313 geomSegWithCandidates=95098 geomSegZero=14215 geomSegZeroRatePct=13.00 geomPixProcessed=1120 geomPixHadAnyCandidates=1120 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=700 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=90131 geomRayTestsAccepted=700 geomRayTestsRejected=0 geomRayTestsPerPxOn=80.474 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=25.74 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13664 radAvg=0.01 radMax=0.01 envDiagAvg=0.166 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=1787 cand1to2=0 cand3to8=11877 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=720 geomPrune=on geomPixProcessedRaw=1120 geomRayTestsTotalRaw=90131 pass2PixelsRaw=1120 geomPixHadAnyCandidatesRaw=1120 geomPixNoCandRaw=0 p2SampRaw=13664
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1120 geomRayTestsTotalRaw=90131 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
+[BUS SET] frameId=723 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=91
-[RenderTestLive] name=prune_on_tight_env frame=129/300 lastRow=6 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=10337 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[RenderTestLive] name=prune_on_tight_env frame=133/300 lastRow=30 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=8989 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=92
 [FrameReset] reason=completed prevRow=45 frame=93
 [RenderHealth] step=750 lastRow=36 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=465799 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.592 geomSegQueried=111980 geomSegWithCandidates=96759 geomSegZero=15221 geomSegZeroRatePct=13.59 geomPixProcessed=1160 geomPixHadAnyCandidates=1160 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=91597 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=78.963 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=27.14 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13997 radAvg=0.01 radMax=0.01 envDiagAvg=0.165 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=1940 cand1to2=0 cand3to8=12057 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
@@ -330,12 +330,12 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=91597 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=94
-[BUS SET] frameId=759 grid=OK fields=0
-SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=95
+[BUS SET] frameId=766 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=96
-[RenderTestLive] name=prune_on_tight_env frame=173/300 lastRow=30 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=8989 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=97
+[RenderTestLive] name=prune_on_tight_env frame=176/300 lastRow=0 rowsAdv=3 bands=1 geomPixProcessed=80 geomRayTestsTotal=6968 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [RenderHealth] step=780 lastRow=24 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=427683 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.591 geomSegQueried=111854 geomSegWithCandidates=96586 geomSegZero=15268 geomSegZeroRatePct=13.65 geomPixProcessed=1160 geomPixHadAnyCandidates=1160 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=91412 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=78.803 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=27.28 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13982 radAvg=0.01 radMax=0.01 envDiagAvg=0.165 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=1932 cand1to2=0 cand3to8=12050 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=780 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=91412 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1160 geomPixNoCandRaw=0 p2SampRaw=13982
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=91412 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
@@ -343,15 +343,15 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [FrameReset] reason=completed prevRow=45 frame=98
 [FrameReset] reason=completed prevRow=45 frame=99
 [FrameReset] reason=completed prevRow=45 frame=100
-[BUS SET] frameId=802 grid=OK fields=0
-SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=101
+[BUS SET] frameId=809 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [RenderHealth] step=810 lastRow=12 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=388871 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.609 geomSegQueried=113203 geomSegWithCandidates=98432 geomSegZero=14771 geomSegZeroRatePct=13.05 geomPixProcessed=1160 geomPixHadAnyCandidates=1160 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=93285 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=80.418 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=25.79 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=14151 radAvg=0.01 radMax=0.01 envDiagAvg=0.166 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=1855 cand1to2=0 cand3to8=12296 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=810 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=93285 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1160 geomPixNoCandRaw=0 p2SampRaw=14151
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=93285 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
-[RenderTestLive] name=prune_on_tight_env frame=215/300 lastRow=42 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9878 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=102
+[RenderTestLive] name=prune_on_tight_env frame=220/300 lastRow=24 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=8929 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=103
 [FrameReset] reason=completed prevRow=45 frame=104
 [FrameReset] reason=completed prevRow=45 frame=105
@@ -359,11 +359,11 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [RenderHealth][GeomCoverage] step=840 geomPrune=on geomPixProcessedRaw=1120 geomRayTestsTotalRaw=90131 pass2PixelsRaw=1120 geomPixHadAnyCandidatesRaw=1120 geomPixNoCandRaw=0 p2SampRaw=13664
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1120 geomRayTestsTotalRaw=90131 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
-[BUS SET] frameId=844 grid=OK fields=0
-SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=106
+[BUS SET] frameId=852 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=107
-[RenderTestLive] name=prune_on_tight_env frame=258/300 lastRow=12 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9663 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[RenderTestLive] name=prune_on_tight_env frame=263/300 lastRow=42 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9878 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=108
 [RenderHealth] step=870 lastRow=36 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=465799 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.592 geomSegQueried=111980 geomSegWithCandidates=96759 geomSegZero=15221 geomSegZeroRatePct=13.59 geomPixProcessed=1160 geomPixHadAnyCandidates=1160 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=91597 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=78.963 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=27.14 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13998 radAvg=0.01 radMax=0.01 envDiagAvg=0.165 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=1899 cand1to2=0 cand3to8=12099 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=870 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=91597 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1160 geomPixNoCandRaw=0 p2SampRaw=13998
@@ -371,18 +371,18 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=109
 [FrameReset] reason=completed prevRow=45 frame=110
-[BUS SET] frameId=887 grid=OK fields=0
-SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=111
+[BUS SET] frameId=895 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=112
 [RenderHealth] step=900 lastRow=24 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=427683 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.591 geomSegQueried=111854 geomSegWithCandidates=96586 geomSegZero=15268 geomSegZeroRatePct=13.65 geomPixProcessed=1160 geomPixHadAnyCandidates=1160 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=91412 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=78.803 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=27.28 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13982 radAvg=0.01 radMax=0.01 envDiagAvg=0.165 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=1885 cand1to2=0 cand3to8=12097 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=900 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=91412 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1160 geomPixNoCandRaw=0 p2SampRaw=13982
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=91412 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
-[RenderTest][RUN SUMMARY] matrix=1771793201 idx=3/5 name=prune_on_tight_env samples=270 meanMsPerFrame=21.676 p95MsPerFrame=49.004 meanSegsPerPixel=na geomTrusted=1 geomTrustReason=ok geomRayTestsSavedPct=27.28
-[RenderTest][RUN END] matrix=1771793201 idx=3/5 name=prune_on_tight_env frames=300 warmup=30 samples=270
-[RUN END] name=prune_on_tight_env frames=300 samples=270 meanMs=21.676 p95Ms=49.004
-[RenderTest][RUN START] matrix=1771793201 idx=4/5 name=prune_on_loose_env frames=300 warmup=30 prune=on
+[RenderTest][RUN SUMMARY] matrix=1771974020 idx=3/5 name=prune_on_tight_env samples=270 meanMsPerFrame=21.783 p95MsPerFrame=48.484 meanSegsPerPixel=na geomTrusted=1 geomTrustReason=ok geomRayTestsSavedPct=27.28
+[RenderTest][RUN END] matrix=1771974020 idx=3/5 name=prune_on_tight_env frames=300 warmup=30 samples=270
+[RUN END] name=prune_on_tight_env frames=300 samples=270 meanMs=21.783 p95Ms=48.484
+[RenderTest][RUN START] matrix=1771974020 idx=4/5 name=prune_on_loose_env frames=300 warmup=30 prune=on
 [RUN START] name=prune_on_loose_env prune=on stride=on(inherit->inherit) envScale=1.1 aabbExpand=0.05 updateEveryFrame=on
 [RenderTestRunner] Trust enforcement (mode=default): scaledFilm=80x45 minGeomPix=1024 minRayTests=4096 minP2=8 p2Every=8 rollingSec=10
 [RenderHealth][StatsMode] scaledFilm=80x45 rowsPerStep=6 fullFrameEveryNSteps<=8
@@ -392,14 +392,14 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [FrameReset] reason=completed prevRow=45 frame=114
 [FrameReset] reason=completed prevRow=45 frame=115
 [FrameReset] reason=completed prevRow=45 frame=116
-[BUS SET] frameId=929 grid=OK fields=0
-SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [RenderHealth] step=930 lastRow=12 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=389911 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.617 geomSegQueried=113812 geomSegWithCandidates=99265 geomSegZero=14547 geomSegZeroRatePct=12.78 geomPixProcessed=1160 geomPixHadAnyCandidates=1161 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=94118 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=81.136 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=25.13 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=14226 radAvg=0.011 radMax=0.011 envDiagAvg=0.305 envDiagMax=0.311 envInflAvg=0.051 envInflMax=0.051 cand0=1834 cand1to2=0 cand3to8=12392 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=930 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=94118 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1161 geomPixNoCandRaw=0 p2SampRaw=14226
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=94118 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [RenderTestRunner] RenderHealth snapshot ready at step=930 frame=30
 [FrameReset] reason=completed prevRow=45 frame=117
+[BUS SET] frameId=937 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [RenderTestLive] name=prune_on_loose_env frame=43/300 lastRow=42 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9969 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=118
 [FrameReset] reason=completed prevRow=45 frame=119
@@ -409,9 +409,9 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1120 geomRayTestsTotalRaw=90944 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=121
-[BUS SET] frameId=970 grid=OK fields=0
-SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=122
+[BUS SET] frameId=980 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=123
 [RenderTestLive] name=prune_on_loose_env frame=85/300 lastRow=6 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=10433 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [RenderHealth] step=990 lastRow=36 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=467026 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.6 geomSegQueried=112567 geomSegWithCandidates=97568 geomSegZero=14999 geomSegZeroRatePct=13.32 geomPixProcessed=1160 geomPixHadAnyCandidates=1161 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=92406 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=79.66 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=26.49 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=14071 radAvg=0.011 radMax=0.011 envDiagAvg=0.304 envDiagMax=0.311 envInflAvg=0.051 envInflMax=0.051 cand0=1874 cand1to2=0 cand3to8=12197 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
@@ -421,15 +421,15 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [FrameReset] reason=completed prevRow=45 frame=124
 [FrameReset] reason=completed prevRow=45 frame=125
 [FrameReset] reason=completed prevRow=45 frame=126
-[BUS SET] frameId=1013 grid=OK fields=0
-SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=127
+[BUS SET] frameId=1019 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [RenderHealth] step=1020 lastRow=24 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=428816 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.599 geomSegQueried=112440 geomSegWithCandidates=97396 geomSegZero=15044 geomSegZeroRatePct=13.38 geomPixProcessed=1160 geomPixHadAnyCandidates=1161 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=92222 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=79.502 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=26.64 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=14055 radAvg=0.011 radMax=0.011 envDiagAvg=0.303 envDiagMax=0.311 envInflAvg=0.051 envInflMax=0.051 cand0=1908 cand1to2=0 cand3to8=12147 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=1020 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=92222 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1161 geomPixNoCandRaw=0 p2SampRaw=14055
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=92222 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=128
-[RenderTestLive] name=prune_on_loose_env frame=128/300 lastRow=24 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9004 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[RenderTestLive] name=prune_on_loose_env frame=126/300 lastRow=12 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9747 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=129
 [FrameReset] reason=completed prevRow=45 frame=130
 [FrameReset] reason=completed prevRow=45 frame=131
@@ -437,11 +437,11 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [RenderHealth][GeomCoverage] step=1050 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=94118 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1161 geomPixNoCandRaw=0 p2SampRaw=14227
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=94118 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
-[BUS SET] frameId=1054 grid=OK fields=0
-SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=132
+[BUS SET] frameId=1060 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=133
-[RenderTestLive] name=prune_on_loose_env frame=170/300 lastRow=36 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9403 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[RenderTestLive] name=prune_on_loose_env frame=167/300 lastRow=18 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9280 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=134
 [FrameReset] reason=completed prevRow=45 frame=135
 [RenderHealth] step=1080 lastRow=0 rowsAdv=3 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=504912 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.618 geomSegQueried=109916 geomSegWithCandidates=95911 geomSegZero=14005 geomSegZeroRatePct=12.74 geomPixProcessed=1120 geomPixHadAnyCandidates=1122 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=700 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=90944 geomRayTestsAccepted=700 geomRayTestsRejected=0 geomRayTestsPerPxOn=81.2 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=25.07 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13739 radAvg=0.011 radMax=0.011 envDiagAvg=0.305 envDiagMax=0.311 envInflAvg=0.051 envInflMax=0.051 cand0=1765 cand1to2=0 cand3to8=11974 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
@@ -449,28 +449,28 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1120 geomRayTestsTotalRaw=90944 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=136
-[BUS SET] frameId=1096 grid=OK fields=0
-SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=137
+[BUS SET] frameId=1100 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=138
+[RenderTestLive] name=prune_on_loose_env frame=209/300 lastRow=30 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9065 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [RenderHealth] step=1110 lastRow=36 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=467026 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.6 geomSegQueried=112567 geomSegWithCandidates=97568 geomSegZero=14999 geomSegZeroRatePct=13.32 geomPixProcessed=1160 geomPixHadAnyCandidates=1161 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=92406 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=79.66 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=26.49 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=14071 radAvg=0.011 radMax=0.011 envDiagAvg=0.304 envDiagMax=0.311 envInflAvg=0.051 envInflMax=0.051 cand0=1873 cand1to2=0 cand3to8=12198 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=1110 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=92406 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1161 geomPixNoCandRaw=0 p2SampRaw=14071
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=92406 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=139
-[RenderTestLive] name=prune_on_loose_env frame=212/300 lastRow=0 rowsAdv=3 bands=1 geomPixProcessed=80 geomRayTestsTotal=7037 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=140
 [FrameReset] reason=completed prevRow=45 frame=141
 [FrameReset] reason=completed prevRow=45 frame=142
-[BUS SET] frameId=1138 grid=OK fields=0
-SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [RenderHealth] step=1140 lastRow=24 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=428816 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.599 geomSegQueried=112440 geomSegWithCandidates=97396 geomSegZero=15044 geomSegZeroRatePct=13.38 geomPixProcessed=1160 geomPixHadAnyCandidates=1161 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=92222 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=79.502 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=26.64 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=14055 radAvg=0.011 radMax=0.011 envDiagAvg=0.303 envDiagMax=0.311 envInflAvg=0.051 envInflMax=0.051 cand0=1868 cand1to2=0 cand3to8=12187 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=1140 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=92222 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1161 geomPixNoCandRaw=0 p2SampRaw=14055
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=92222 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
+[BUS SET] frameId=1142 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=143
+[RenderTestLive] name=prune_on_loose_env frame=251/300 lastRow=42 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9969 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=144
-[RenderTestLive] name=prune_on_loose_env frame=255/300 lastRow=18 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9280 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=145
 [FrameReset] reason=completed prevRow=45 frame=146
 [RenderHealth] step=1170 lastRow=12 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=389911 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.617 geomSegQueried=113812 geomSegWithCandidates=99265 geomSegZero=14547 geomSegZeroRatePct=12.78 geomPixProcessed=1160 geomPixHadAnyCandidates=1161 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=94118 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=81.136 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=25.13 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=14227 radAvg=0.011 radMax=0.011 envDiagAvg=0.305 envDiagMax=0.311 envInflAvg=0.051 envInflMax=0.051 cand0=1818 cand1to2=0 cand3to8=12409 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
@@ -478,20 +478,20 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=94118 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=147
-[BUS SET] frameId=1179 grid=OK fields=0
+[BUS SET] frameId=1182 grid=OK fields=0
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=148
 [FrameReset] reason=completed prevRow=45 frame=149
-[RenderTestLive] name=prune_on_loose_env frame=297/300 lastRow=30 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9065 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[RenderTestLive] name=prune_on_loose_env frame=292/300 lastRow=0 rowsAdv=3 bands=1 geomPixProcessed=80 geomRayTestsTotal=7037 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=150
 [RenderHealth] step=1200 lastRow=0 rowsAdv=3 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=504912 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.618 geomSegQueried=109916 geomSegWithCandidates=95911 geomSegZero=14005 geomSegZeroRatePct=12.74 geomPixProcessed=1120 geomPixHadAnyCandidates=1122 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=700 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=90944 geomRayTestsAccepted=700 geomRayTestsRejected=0 geomRayTestsPerPxOn=81.2 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=25.07 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13740 radAvg=0.011 radMax=0.011 envDiagAvg=0.305 envDiagMax=0.311 envInflAvg=0.051 envInflMax=0.051 cand0=1716 cand1to2=0 cand3to8=12024 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=1200 geomPrune=on geomPixProcessedRaw=1120 geomRayTestsTotalRaw=90944 pass2PixelsRaw=1120 geomPixHadAnyCandidatesRaw=1122 geomPixNoCandRaw=0 p2SampRaw=13740
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1120 geomRayTestsTotalRaw=90944 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
-[RenderTest][RUN SUMMARY] matrix=1771793201 idx=4/5 name=prune_on_loose_env samples=270 meanMsPerFrame=22.337 p95MsPerFrame=49.485 meanSegsPerPixel=na geomTrusted=1 geomTrustReason=ok geomRayTestsSavedPct=25.07
-[RenderTest][RUN END] matrix=1771793201 idx=4/5 name=prune_on_loose_env frames=300 warmup=30 samples=270
-[RUN END] name=prune_on_loose_env frames=300 samples=270 meanMs=22.337 p95Ms=49.485
-[RenderTest][RUN START] matrix=1771793201 idx=5/5 name=prune_on_stride_off frames=300 warmup=30 prune=on
+[RenderTest][RUN SUMMARY] matrix=1771974020 idx=4/5 name=prune_on_loose_env samples=270 meanMsPerFrame=22.826 p95MsPerFrame=49.905 meanSegsPerPixel=na geomTrusted=1 geomTrustReason=ok geomRayTestsSavedPct=25.07
+[RenderTest][RUN END] matrix=1771974020 idx=4/5 name=prune_on_loose_env frames=300 warmup=30 samples=270
+[RUN END] name=prune_on_loose_env frames=300 samples=270 meanMs=22.826 p95Ms=49.905
+[RenderTest][RUN START] matrix=1771974020 idx=5/5 name=prune_on_stride_off frames=300 warmup=30 prune=on
 [RUN START] name=prune_on_stride_off prune=on stride=off envScale=inherit aabbExpand=inherit updateEveryFrame=on
 [RenderTestRunner] Trust enforcement (mode=default): scaledFilm=80x45 minGeomPix=1024 minRayTests=4096 minP2=8 p2Every=8 rollingSec=10
 [RenderHealth][StatsMode] scaledFilm=80x45 rowsPerStep=6 fullFrameEveryNSteps<=8
@@ -499,7 +499,7 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [RenderTestLive] name=prune_on_stride_off frame=1/300 lastRow=6 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=10337 geomTrusted=0 geomHealthPartial=1 geomTrustReason=warming_up hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=151
 [FrameReset] reason=completed prevRow=45 frame=152
-[BUS SET] frameId=1222 grid=OK fields=0
+[BUS SET] frameId=1224 grid=OK fields=0
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=153
 [RenderHealth] step=1230 lastRow=36 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=465799 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.592 geomSegQueried=111980 geomSegWithCandidates=96759 geomSegZero=15221 geomSegZeroRatePct=13.59 geomPixProcessed=1160 geomPixHadAnyCandidates=1160 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=91597 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=78.963 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=27.14 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13997 radAvg=0.01 radMax=0.01 envDiagAvg=0.165 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=1910 cand1to2=0 cand3to8=12087 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
@@ -509,7 +509,7 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [RenderTestRunner] RenderHealth snapshot ready at step=1230 frame=30
 [FrameReset] reason=completed prevRow=45 frame=154
 [FrameReset] reason=completed prevRow=45 frame=155
-[RenderTestLive] name=prune_on_stride_off frame=44/300 lastRow=24 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=8929 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[RenderTestLive] name=prune_on_stride_off frame=43/300 lastRow=18 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9198 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=156
 [FrameReset] reason=completed prevRow=45 frame=157
 [RenderHealth] step=1260 lastRow=24 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=427683 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.591 geomSegQueried=111854 geomSegWithCandidates=96586 geomSegZero=15268 geomSegZeroRatePct=13.65 geomPixProcessed=1160 geomPixHadAnyCandidates=1160 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=91412 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=78.803 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=27.28 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13981 radAvg=0.01 radMax=0.01 envDiagAvg=0.165 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=1933 cand1to2=0 cand3to8=12048 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
@@ -521,7 +521,7 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=159
 [FrameReset] reason=completed prevRow=45 frame=160
-[RenderTestLive] name=prune_on_stride_off frame=87/300 lastRow=42 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9878 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[RenderTestLive] name=prune_on_stride_off frame=85/300 lastRow=30 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=8989 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=161
 [RenderHealth] step=1290 lastRow=12 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=388871 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.609 geomSegQueried=113203 geomSegWithCandidates=98432 geomSegZero=14771 geomSegZeroRatePct=13.05 geomPixProcessed=1160 geomPixHadAnyCandidates=1160 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=93285 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=80.418 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=25.79 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=14150 radAvg=0.01 radMax=0.01 envDiagAvg=0.166 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=1855 cand1to2=0 cand3to8=12295 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=1290 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=93285 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1160 geomPixNoCandRaw=0 p2SampRaw=14150
@@ -529,7 +529,7 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=162
 [FrameReset] reason=completed prevRow=45 frame=163
-[BUS SET] frameId=1308 grid=OK fields=0
+[BUS SET] frameId=1307 grid=OK fields=0
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=164
 [FrameReset] reason=completed prevRow=45 frame=165
@@ -538,7 +538,7 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1120 geomRayTestsTotalRaw=90131 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=166
-[RenderTestLive] name=prune_on_stride_off frame=131/300 lastRow=18 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9198 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[RenderTestLive] name=prune_on_stride_off frame=129/300 lastRow=6 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=10337 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=167
 [FrameReset] reason=completed prevRow=45 frame=168
 [RenderHealth] step=1350 lastRow=36 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=465799 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.592 geomSegQueried=111980 geomSegWithCandidates=96759 geomSegZero=15221 geomSegZeroRatePct=13.59 geomPixProcessed=1160 geomPixHadAnyCandidates=1160 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=91597 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=78.963 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=27.14 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13997 radAvg=0.01 radMax=0.01 envDiagAvg=0.165 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=1940 cand1to2=0 cand3to8=12057 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
@@ -550,27 +550,27 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [FrameReset] reason=completed prevRow=45 frame=169
 [FrameReset] reason=completed prevRow=45 frame=170
 [FrameReset] reason=completed prevRow=45 frame=171
-[RenderTestLive] name=prune_on_stride_off frame=174/300 lastRow=36 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9323 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[RenderTestLive] name=prune_on_stride_off frame=171/300 lastRow=18 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9198 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=172
 [RenderHealth] step=1380 lastRow=24 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=427683 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.591 geomSegQueried=111854 geomSegWithCandidates=96586 geomSegZero=15268 geomSegZeroRatePct=13.65 geomPixProcessed=1160 geomPixHadAnyCandidates=1160 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=91412 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=78.803 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=27.28 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13982 radAvg=0.01 radMax=0.01 envDiagAvg=0.165 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=1932 cand1to2=0 cand3to8=12050 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=1380 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=91412 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1160 geomPixNoCandRaw=0 p2SampRaw=13982
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=91412 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=173
-[FrameReset] reason=completed prevRow=45 frame=174
-[BUS SET] frameId=1395 grid=OK fields=0
+[BUS SET] frameId=1392 grid=OK fields=0
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
+[FrameReset] reason=completed prevRow=45 frame=174
 [FrameReset] reason=completed prevRow=45 frame=175
 [FrameReset] reason=completed prevRow=45 frame=176
 [RenderHealth] step=1410 lastRow=12 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=388871 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.609 geomSegQueried=113203 geomSegWithCandidates=98432 geomSegZero=14771 geomSegZeroRatePct=13.05 geomPixProcessed=1160 geomPixHadAnyCandidates=1160 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=93285 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=80.418 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=25.79 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=14151 radAvg=0.01 radMax=0.01 envDiagAvg=0.166 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=1855 cand1to2=0 cand3to8=12296 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=1410 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=93285 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1160 geomPixNoCandRaw=0 p2SampRaw=14151
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=93285 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
+[RenderTestLive] name=prune_on_stride_off frame=214/300 lastRow=36 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9323 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=177
-[RenderTestLive] name=prune_on_stride_off frame=217/300 lastRow=6 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=10337 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=178
 [FrameReset] reason=completed prevRow=45 frame=179
-[BUS SET] frameId=1438 grid=OK fields=0
+[BUS SET] frameId=1434 grid=OK fields=0
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
 [FrameReset] reason=completed prevRow=45 frame=180
 [RenderHealth] step=1440 lastRow=0 rowsAdv=3 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=503487 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.61 geomSegQueried=109313 geomSegWithCandidates=95098 geomSegZero=14215 geomSegZeroRatePct=13.00 geomPixProcessed=1120 geomPixHadAnyCandidates=1120 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=700 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=90131 geomRayTestsAccepted=700 geomRayTestsRejected=0 geomRayTestsPerPxOn=80.474 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=25.74 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13664 radAvg=0.01 radMax=0.01 envDiagAvg=0.166 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=1784 cand1to2=0 cand3to8=11880 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
@@ -579,26 +579,27 @@ SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=181
 [FrameReset] reason=completed prevRow=45 frame=182
-[RenderTestLive] name=prune_on_stride_off frame=262/300 lastRow=36 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9323 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[RenderTestLive] name=prune_on_stride_off frame=258/300 lastRow=12 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=9663 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
 [FrameReset] reason=completed prevRow=45 frame=183
 [RenderHealth] step=1470 lastRow=36 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=465799 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.592 geomSegQueried=111980 geomSegWithCandidates=96759 geomSegZero=15221 geomSegZeroRatePct=13.59 geomPixProcessed=1160 geomPixHadAnyCandidates=1160 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=91597 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=78.963 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=27.14 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13998 radAvg=0.01 radMax=0.01 envDiagAvg=0.165 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=1899 cand1to2=0 cand3to8=12099 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=1470 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=91597 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1160 geomPixNoCandRaw=0 p2SampRaw=13998
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=91597 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=184
-[FrameReset] reason=completed prevRow=45 frame=185
-[BUS SET] frameId=1481 grid=OK fields=0
+[BUS SET] frameId=1477 grid=OK fields=0
 SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
+[FrameReset] reason=completed prevRow=45 frame=185
 [FrameReset] reason=completed prevRow=45 frame=186
 [FrameReset] reason=completed prevRow=45 frame=187
 [RenderHealth] step=1500 lastRow=24 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.625 avgSteps=0 qray0=427683 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=2.591 geomSegQueried=111854 geomSegWithCandidates=96586 geomSegZero=15268 geomSegZeroRatePct=13.65 geomPixProcessed=1160 geomPixHadAnyCandidates=1160 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=725 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=91412 geomRayTestsAccepted=725 geomRayTestsRejected=0 geomRayTestsPerPxOn=78.803 geomRayTestsPerPxOff=108.371 geomRayTestsSavedPct=27.28 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=13982 radAvg=0.01 radMax=0.01 envDiagAvg=0.165 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=1885 cand1to2=0 cand3to8=12097 cand9to32=0 cand33p=0 geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=1500 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=91412 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1160 geomPixNoCandRaw=0 p2SampRaw=13982
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=91412 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
-[RenderTest][RUN SUMMARY] matrix=1771793201 idx=5/5 name=prune_on_stride_off samples=270 meanMsPerFrame=21.457 p95MsPerFrame=48.462 meanSegsPerPixel=na geomTrusted=1 geomTrustReason=ok geomRayTestsSavedPct=27.28
-[RenderTest][RUN END] matrix=1771793201 idx=5/5 name=prune_on_stride_off frames=300 warmup=30 samples=270
-[RUN END] name=prune_on_stride_off frames=300 samples=270 meanMs=21.457 p95Ms=48.462
-[RenderTest][MATRIX END] id=1771793201 runs=5
-[MATRIX END] totalRuns=5 elapsedMs=43691.954
+[RenderTestLive] name=prune_on_stride_off frame=300/300 lastRow=24 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=8929 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.625
+[RenderTest][RUN SUMMARY] matrix=1771974020 idx=5/5 name=prune_on_stride_off samples=270 meanMsPerFrame=22.009 p95MsPerFrame=49.675 meanSegsPerPixel=na geomTrusted=1 geomTrustReason=ok geomRayTestsSavedPct=27.28
+[RenderTest][RUN END] matrix=1771974020 idx=5/5 name=prune_on_stride_off frames=300 warmup=30 samples=270
+[RUN END] name=prune_on_stride_off frames=300 samples=270 meanMs=22.009 p95Ms=49.675
+[RenderTest][MATRIX END] id=1771974020 runs=5
+[MATRIX END] totalRuns=5 elapsedMs=43829.832
 [RenderTestRunner] Quitting (render-test mode).
 [RenderTestRunner] Requesting deferred quit code=0

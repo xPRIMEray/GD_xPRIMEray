@@ -1,0 +1,6 @@
+[RenderTest][RUN START] name=baseline prune=on run_id=baseline_1 frames=4 warmup=1
+[RenderTestRunner][AutoCalMeta] canonical_signature_hash64=0x1234 preset_hash64=0x4567 scene_archetype=lab
+[RenderTest][RUN SUMMARY] name=baseline run_id=baseline_1 meanMsPerFrame=10.5 p95MsPerFrame=12.0 samples=4
+[RenderTestRunner][AutoCalShadowEval] baseline_run_id=baseline_1 canonical_signature_hash64=1234 scene_signature_hash64=0x999 verdict=pass overhead_pct_est=4.25 shadow_trust=1 shadow_run_id=shadow_1
+[RenderTestRunner][AutoCalDecision] canonical_signature_hash64=0x1234 preset_hash64=4567 decision=accept reason=within_budget overhead_pct_est=4.25 shadow_trust=1 verdict=pass
+[RenderTest][RUN END] name=baseline run_id=baseline_1 meanMs=10.5 p95Ms=12.0 frames=4 warmup=1 samples=4

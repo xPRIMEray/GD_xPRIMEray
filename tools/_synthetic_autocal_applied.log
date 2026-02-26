@@ -1,0 +1,5 @@
+[RenderTest][RUN START] name=test_run run_id=7 prune=on frames=10 warmup=1
+[RenderTestRunner][AutoCalMeta] scene_archetype=lab canonical_signature_hash64=0xabc preset_hash64=0x222 preset_is_noop=0 probe_elapsed_msec=12.5 probe_exit_reason=done
+[RenderTest][RUN SUMMARY] name=test_run run_id=7 meanMsPerFrame=16.7 p95MsPerFrame=17.2 samples=10
+[RenderTestRunner][AutoCalAppliedRun] run_id=7 applied=1 canonical_signature_hash64=0xabc preset_hash64=0x222 apply_scope=next_run
+[RenderTest][RUN END] name=test_run run_id=7 meanMs=16.7 p95Ms=17.2 frames=10 warmup=1 samples=10

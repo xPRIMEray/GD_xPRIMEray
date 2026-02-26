@@ -1,0 +1,31 @@
+Godot Engine v4.5.1.stable.mono.official.f62fdbde1 - https://godotengine.org
+OpenGL API 3.3.0 Core Profile Context 25.11.1.251104 - Compatibility - Using Device: ATI Technologies Inc. - AMD Radeon RX 6700 XT
+
+✅ GrinFilmCamera READY: /root/TestHarness/GrinFilmCamera
+[RBRRef][Startup] configured path=../RayBeamRenderer
+[RBRRef] resolved ok name=RayBeamRenderer
+[RBRRef][Startup] resolved=True
+RayBeamRenderer found? True
+GrinFilmCamera: UpdateEveryFrame is false; FrameSnapshotBus will not update.
+[BroadphaseEffective] mode=Policy policy=OverlapOnly quick=False overlap=True reason=policy
+[SharedSnap] steps=400 stepLen=0.05 minStep=0.001 maxStep=0.3 collEvery=1 collRad=0.03 mask=0x0000FFFF debug=Off
+[EffectiveCfg] broadphase=Policy(policy) policy=OverlapOnly quick=0 overlap=1 softgate=0 score=1 minSeg=0.1 attempts=5000 sub=10000 stride=1 resScale=1 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF envRadScale=1.1 envAabbExpand=0 geomPrune=1 maxDist=50
+FilmView found? True
+[RBRRef][Startup] HasRenderer(after mirror)=True
+✅ GrinFilmCamera ready. Rendering film.
+[DBG] dbgMesh inTree=True parent=RayBeamRenderer world=(0, 0, 0)
+[RenderTestRunner] _Ready reached.
+[RenderTestRunner][CLIFlags] autocal=1 shadow_eval=1 autocal_verbose=1 autocal_apply=0
+[RenderTestRunner] TokenDetected=False shouldStart=True
+[RenderTestRunner] Switching to fixture scene: fixture=CurvedMinimal path=res://test-curved-minimal.tscn
+[RayBeamRenderer] rebuild deferred: not in tree
+Fatal error.
+0xC0000005
+   at Godot.NativeInterop.NativeFuncs.godotsharp_method_bind_call(IntPtr, IntPtr, Godot.NativeInterop.godot_variant**, Int32, Godot.NativeInterop.godot_variant_call_error ByRef)
+   at Godot.NativeCalls.godot_icall_2_875(IntPtr, IntPtr, Godot.NativeInterop.godot_string_name, System.ReadOnlySpan`1<Godot.Variant>, Godot.NativeInterop.godot_string_name)
+   at Godot.GodotObject.CallDeferred(Godot.StringName, Godot.Variant[])
+   at RayBeamRenderer+<DoRebuildDeferred>d__96.MoveNext()
+   at System.Runtime.CompilerServices.AsyncVoidMethodBuilder.Start[[System.__Canon, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]](System.__Canon ByRef)
+   at RayBeamRenderer.DoRebuildDeferred()
+   at RayBeamRenderer.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name ByRef, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant ByRef)
+   at Godot.Bridge.CSharpInstanceBridge.Call(IntPtr, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, Int32, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*)

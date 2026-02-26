@@ -349,6 +349,12 @@ public partial class RayBeamRenderer : Node3D
 
 	private bool _rebuildInProgress = false;
 	private bool _rebuildQueued = false;
+	private long _rebuildRequestId = 0;
+	private bool _lifecycleInTree = false;
+	private readonly HashSet<long> _lifecycleDebugExecutedDeferredTokens = new();
+	private int _lifecycleDebugQueuedOutOfTreeCount = 0;
+	private int _lifecycleDebugDuplicateDeferredTokenExecCount = 0;
+	private int _lifecycleDebugDeferredTokenExecCount = 0;
 
 	// --- Change detection cache ---
 	private Vector3 _lastCamPos = new Vector3(float.NaN, float.NaN, float.NaN);
@@ -473,6 +479,16 @@ public partial class RayBeamRenderer : Node3D
 	/////////////////////////
 	/////////////////////////
 	// ===== Core Update Loop =====
+	public override void _EnterTree()
+	{
+		_lifecycleInTree = true;
+	}
+
+	public override void _ExitTree()
+	{
+		_lifecycleInTree = false;
+	}
+
 	public override async void _Ready()
 	{
 		// DECISION: guard against double-init if _Ready runs again (scene reloads, etc.)
@@ -647,6 +663,51 @@ public partial class RayBeamRenderer : Node3D
 		}
 	}
 
+	public readonly struct LifecycleStressDebugSnapshot
+	{
+		public readonly int QueuedOutOfTreeCount;
+		public readonly int DuplicateDeferredTokenExecCount;
+		public readonly int DeferredTokenExecCount;
+		public readonly long LatestRequestId;
+		public readonly bool LifecycleInTree;
+		public readonly bool InsideTree;
+
+		public LifecycleStressDebugSnapshot(
+			int queuedOutOfTreeCount,
+			int duplicateDeferredTokenExecCount,
+			int deferredTokenExecCount,
+			long latestRequestId,
+			bool lifecycleInTree,
+			bool insideTree)
+		{
+			QueuedOutOfTreeCount = queuedOutOfTreeCount;
+			DuplicateDeferredTokenExecCount = duplicateDeferredTokenExecCount;
+			DeferredTokenExecCount = deferredTokenExecCount;
+			LatestRequestId = latestRequestId;
+			LifecycleInTree = lifecycleInTree;
+			InsideTree = insideTree;
+		}
+	}
+
+	public LifecycleStressDebugSnapshot GetLifecycleStressDebugSnapshot()
+	{
+		return new LifecycleStressDebugSnapshot(
+			_lifecycleDebugQueuedOutOfTreeCount,
+			_lifecycleDebugDuplicateDeferredTokenExecCount,
+			_lifecycleDebugDeferredTokenExecCount,
+			_rebuildRequestId,
+			_lifecycleInTree,
+			IsInsideTree());
+	}
+
+	public void ResetLifecycleStressDebugCounters()
+	{
+		_lifecycleDebugQueuedOutOfTreeCount = 0;
+		_lifecycleDebugDuplicateDeferredTokenExecCount = 0;
+		_lifecycleDebugDeferredTokenExecCount = 0;
+		_lifecycleDebugExecutedDeferredTokens.Clear();
+	}
+
 	private void RequestRebuild()
 	{
 		// DECISION: if a rebuild is already running, just queue another.
@@ -658,16 +719,115 @@ public partial class RayBeamRenderer : Node3D
 		// DECISION: avoid double-queuing.
 		if (_rebuildQueued) return;
 
-		_rebuildQueued = true;
-		CallDeferred(nameof(DoRebuildDeferred));
+		QueueDeferredRebuild();
 	}
 
-	private async void DoRebuildDeferred()
+	private void QueueDeferredRebuild()
 	{
-		_rebuildQueued = false;
-		// DECISION: wait for physics frame so collision queries are safe.
-		await ToSignal(GetTree(), SceneTree.SignalName.PhysicsFrame);
-		Rebuild();
+		if (!_lifecycleInTree || !IsInsideTree() || GetTree() == null)
+		{
+			_lifecycleDebugQueuedOutOfTreeCount++;
+		}
+		_rebuildQueued = true;
+		long requestId = unchecked(++_rebuildRequestId);
+		CallDeferred(nameof(DoRebuildDeferred), requestId);
+	}
+
+	private async void DoRebuildDeferred(long requestId)
+	{
+		bool handedOffToRebuild = false;
+		try
+		{
+			if (!GodotObject.IsInstanceValid(this))
+			{
+				if (DebugRender)
+					GD.Print("[RayBeamRenderer] DoRebuildDeferred abandon reason=freed");
+				return;
+			}
+
+			if (requestId != _rebuildRequestId)
+				return;
+
+			if (DebugRender)
+				GD.Print($"[RayBeamRenderer] DoRebuildDeferred enter id={requestId}");
+
+			if (IsQueuedForDeletion())
+			{
+				if (DebugRender)
+					GD.Print("[RayBeamRenderer] DoRebuildDeferred abandon reason=queued_for_delete");
+				return;
+			}
+
+			if (!_lifecycleInTree)
+			{
+				if (DebugRender)
+					GD.Print("[RayBeamRenderer] DoRebuildDeferred abandon reason=detached");
+				return;
+			}
+
+			if (!IsInsideTree())
+			{
+				if (DebugRender)
+					GD.Print("[RayBeamRenderer] DoRebuildDeferred abandon reason=detached");
+				return;
+			}
+			var tree = GetTree();
+			if (tree == null)
+			{
+				if (DebugRender)
+					GD.Print("[RayBeamRenderer] DoRebuildDeferred abandon reason=detached");
+				return;
+			}
+
+			// DECISION: ProcessFrame is safer than PhysicsFrame during scene switches / teardown.
+			await ToSignal(tree, SceneTree.SignalName.ProcessFrame);
+
+			if (!GodotObject.IsInstanceValid(this))
+			{
+				if (DebugRender)
+					GD.Print("[RayBeamRenderer] DoRebuildDeferred abandon reason=freed");
+				return;
+			}
+
+			if (requestId != _rebuildRequestId)
+				return;
+
+			if (IsQueuedForDeletion())
+			{
+				if (DebugRender)
+					GD.Print("[RayBeamRenderer] DoRebuildDeferred abandon reason=queued_for_delete");
+				return;
+			}
+
+			if (!_lifecycleInTree)
+			{
+				if (DebugRender)
+					GD.Print("[RayBeamRenderer] DoRebuildDeferred abandon reason=detached");
+				return;
+			}
+
+			if (!IsInsideTree() || GetTree() == null)
+			{
+				if (DebugRender)
+					GD.Print("[RayBeamRenderer] DoRebuildDeferred abandon reason=detached");
+				return;
+			}
+
+			// Clear only at handoff to Rebuild(); requests arriving during Rebuild() can re-set this flag.
+			if (!_lifecycleDebugExecutedDeferredTokens.Add(requestId))
+			{
+				_lifecycleDebugDuplicateDeferredTokenExecCount++;
+			}
+			_lifecycleDebugDeferredTokenExecCount++;
+			_rebuildQueued = false;
+			handedOffToRebuild = true;
+			Rebuild();
+		}
+		finally
+		{
+			if (!handedOffToRebuild && GodotObject.IsInstanceValid(this) && requestId == _rebuildRequestId)
+				_rebuildQueued = false;
+		}
 	}
 
 	public Camera3D GetCamera()
@@ -678,6 +838,18 @@ public partial class RayBeamRenderer : Node3D
 
 	private void Rebuild()
 	{
+		// DECISION: Rebuild can be requested during startup / scene transitions before this node is attached.
+		if (!_lifecycleInTree || !IsInsideTree() || GetTree() == null)
+		{
+			if (!_rebuildQueued)
+			{
+				if (DebugRender)
+					GD.Print("[RayBeamRenderer] rebuild deferred: not in tree");
+				QueueDeferredRebuild();
+			}
+			return;
+		}
+
 		GD.Print("Rebuild ENTER");
 		GD.Print($"Rebuild on node: {GetPath()}  TerminateTrailOnHit={TerminateTrailOnHit} StopOnHit={StopOnHit} RequireHitToRender={RequireHitToRender}");
 		GD.Print($"READY node: {GetPath()}  Script={GetScript()}  TerminateTrailOnHit={TerminateTrailOnHit}");

@@ -67,6 +67,7 @@ public partial class GrinFilmCamera : Node
 		public float? MinSegLenForStrideSkip;
 		public bool? Pass2SoftGateEnableQuickRayMiss;
 		public bool? Pass2SoftGateScoringEnabled;
+		public int? TargetMsPerFrame;
 		public TestCameraMode CameraMode;
 		public Vector3 CameraFixedPosition;
 		public Vector3 CameraLookAt;
@@ -88,6 +89,7 @@ public partial class GrinFilmCamera : Node
 		public float MinSegLenForStrideSkip;
 		public bool Pass2SoftGateEnableQuickRayMiss;
 		public bool Pass2SoftGateScoringEnabled;
+		public int TargetMsPerFrame;
 	}
 
 	[ExportGroup("Presets")]
@@ -1965,7 +1967,8 @@ public partial class GrinFilmCamera : Node
 			Pass2CollisionStrideFarStartT = Pass2CollisionStrideFarStartT,
 			MinSegLenForStrideSkip = MinSegLenForStrideSkip,
 			Pass2SoftGateEnableQuickRayMiss = Pass2SoftGateEnableQuickRayMiss,
-			Pass2SoftGateScoringEnabled = Pass2SoftGateScoringEnabled
+			Pass2SoftGateScoringEnabled = Pass2SoftGateScoringEnabled,
+			TargetMsPerFrame = TargetMsPerFrame
 		};
 	}
 
@@ -1982,6 +1985,7 @@ public partial class GrinFilmCamera : Node
 		if (run.MinSegLenForStrideSkip.HasValue) MinSegLenForStrideSkip = Mathf.Max(0.0f, run.MinSegLenForStrideSkip.Value);
 		if (run.Pass2SoftGateEnableQuickRayMiss.HasValue) Pass2SoftGateEnableQuickRayMiss = run.Pass2SoftGateEnableQuickRayMiss.Value;
 		if (run.Pass2SoftGateScoringEnabled.HasValue) Pass2SoftGateScoringEnabled = run.Pass2SoftGateScoringEnabled.Value;
+		if (run.TargetMsPerFrame.HasValue) TargetMsPerFrame = Math.Max(1, run.TargetMsPerFrame.Value);
 	}
 
 	public void RestoreTestRunDefaults(in TestRunDefaults defaults)
@@ -1997,6 +2001,7 @@ public partial class GrinFilmCamera : Node
 		MinSegLenForStrideSkip = defaults.MinSegLenForStrideSkip;
 		Pass2SoftGateEnableQuickRayMiss = defaults.Pass2SoftGateEnableQuickRayMiss;
 		Pass2SoftGateScoringEnabled = defaults.Pass2SoftGateScoringEnabled;
+		TargetMsPerFrame = defaults.TargetMsPerFrame;
 	}
 
 	public void GetLatestFrameMetricsForTesting(out double frameMs, out bool hasSegsPerPixel, out double segsPerPixel)

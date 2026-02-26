@@ -78,6 +78,10 @@ TRUST_GATE_DEBUG_PREFIX = "[RenderHealth][TrustGateDebug]"
 GEOM_COVERAGE_PREFIX = "[RenderHealth][GeomCoverage]"
 TRUST_CFG_PREFIX = "[RenderHealth][TrustCfg]"
 EFFECTIVE_CFG_PREFIX = "[EffectiveCfg]"
+AUTOCAL_META_PREFIX = "[RenderTestRunner][AutoCalMeta]"
+AUTOCAL_SHADOW_EVAL_PREFIX = "[RenderTestRunner][AutoCalShadowEval]"
+AUTOCAL_DECISION_PREFIX = "[RenderTestRunner][AutoCalDecision]"
+AUTOCAL_APPLIED_RUN_PREFIX = "[RenderTestRunner][AutoCalAppliedRun]"
 RUN_START_PREFIX = "[RenderTest][RUN START]"
 RUN_END_PREFIX = "[RenderTest][RUN END]"
 RUN_SUMMARY_PREFIX = "[RenderTest][RUN SUMMARY]"
@@ -124,6 +128,7 @@ class WindowSnapshot:
 class RunAggregate:
     name: str
     log_path: str
+    run_id: Optional[str] = None
     prune_mode: Optional[str] = None
     mean_ms: Optional[float] = None
     p95_ms: Optional[float] = None
@@ -132,6 +137,10 @@ class RunAggregate:
     samples: Optional[int] = None
     effective_cfg: Dict[str, str] = field(default_factory=dict)
     latest_trust_cfg: Dict[str, str] = field(default_factory=dict)
+    auto_cal: Dict[str, str] = field(default_factory=dict)
+    auto_cal_applied: Dict[str, Any] = field(default_factory=dict)
+    shadow_eval: Dict[str, str] = field(default_factory=dict)
+    auto_cal_decision: Dict[str, Any] = field(default_factory=dict)
     windows: List[WindowSnapshot] = field(default_factory=list)
     _last_window_idx: Optional[int] = None
     _step_to_idx: Dict[int, int] = field(default_factory=dict)
@@ -235,6 +244,63 @@ def parse_tokens(line: str) -> Dict[str, str]:
             continue
         key, value = token.split("=", 1)
         data[key] = value
+    return data
+
+
+def _parse_hash64_hex(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    v = value.strip()
+    if not v:
+        return None
+    try:
+        n = int(v, 16) if v.lower().startswith("0x") else int(v, 16)
+    except ValueError:
+        return None
+    return f"0x{(n & 0xFFFFFFFFFFFFFFFF):016x}"
+
+
+def _parse_auto_cal_meta(line: str) -> Dict[str, str]:
+    data = parse_tokens(line)
+    canonical_hash = _parse_hash64_hex(data.get("canonical_signature_hash64"))
+    if canonical_hash is not None:
+        data["canonical_signature_hash64"] = canonical_hash
+    return data
+
+
+def _parse_auto_cal_shadow_eval(line: str) -> Dict[str, str]:
+    data = parse_tokens(line)
+    for key in ("scene_signature_hash64", "canonical_signature_hash64"):
+        norm = _parse_hash64_hex(data.get(key))
+        if norm is not None:
+            data[key] = norm
+    return data
+
+
+def _parse_auto_cal_decision(line: str) -> Dict[str, Any]:
+    raw = parse_tokens(line)
+    data: Dict[str, Any] = {}
+    for key, value in raw.items():
+        if is_na_token(value):
+            data[key] = None
+        else:
+            data[key] = value
+    for key in ("canonical_signature_hash64", "preset_hash64"):
+        norm = _parse_hash64_hex(data.get(key))
+        if norm is not None:
+            data[key] = norm
+    return data
+
+
+def _parse_auto_cal_applied_run(line: str) -> Dict[str, Any]:
+    raw = parse_tokens(line)
+    data: Dict[str, Any] = {}
+    for key, value in raw.items():
+        data[key] = None if is_na_token(value) else value
+    for key in ("canonical_signature_hash64", "preset_hash64"):
+        norm = _parse_hash64_hex(data.get(key))
+        if norm is not None:
+            data[key] = norm
     return data
 
 
@@ -527,7 +593,71 @@ def _ensure_run(
 def parse_doe_runs(path: str) -> List[RunAggregate]:
     runs: List[RunAggregate] = []
     run_by_name: Dict[str, RunAggregate] = {}
+    run_by_id: Dict[str, RunAggregate] = {}
     current: Optional[RunAggregate] = None
+    latest_auto_cal: Dict[str, str] = {}
+    latest_shadow_eval: Dict[str, str] = {}
+    latest_auto_cal_decision: Dict[str, Any] = {}
+    auto_cal_decision_by_canonical: Dict[str, Dict[str, Any]] = {}
+    auto_cal_decision_by_run_id: Dict[str, Dict[str, Any]] = {}
+    applied_run_by_id: Dict[str, Dict[str, Any]] = {}
+
+    def _run_canonical_signature_hash64(run: RunAggregate) -> Optional[str]:
+        for value in (
+            run.auto_cal.get("canonical_signature_hash64"),
+            run.shadow_eval.get("canonical_signature_hash64"),
+        ):
+            norm = _parse_hash64_hex(value)
+            if norm is not None:
+                return norm
+        return None
+
+    def _attach_best_decision_to_run(run: RunAggregate, allow_latest_fallback: bool = True) -> bool:
+        if not (run.shadow_eval or {}):
+            return False
+        run_canonical = _run_canonical_signature_hash64(run)
+        if run_canonical:
+            decision = auto_cal_decision_by_canonical.get(run_canonical)
+            if decision:
+                run.auto_cal_decision = dict(decision)
+                return True
+        if run.run_id:
+            decision = auto_cal_decision_by_run_id.get(str(run.run_id))
+            if decision:
+                run.auto_cal_decision = dict(decision)
+                return True
+        if allow_latest_fallback and latest_auto_cal_decision:
+            latest_baseline_run_id = latest_shadow_eval.get("baseline_run_id")
+            latest_decision_run_id = latest_auto_cal_decision.get("baseline_run_id") or latest_auto_cal_decision.get("run_id")
+            if run.run_id and (str(run.run_id) == str(latest_baseline_run_id) or str(run.run_id) == str(latest_decision_run_id)):
+                run.auto_cal_decision = dict(latest_auto_cal_decision)
+                return True
+        return False
+
+    def _retro_attach_decision_to_existing_runs(decision: Dict[str, Any]) -> None:
+        canonical = _parse_hash64_hex(decision.get("canonical_signature_hash64"))
+        attached_any = False
+        if canonical:
+            for run in runs:
+                if _run_canonical_signature_hash64(run) == canonical and (run.shadow_eval or {}):
+                    run.auto_cal_decision = dict(decision)
+                    attached_any = True
+        if attached_any:
+            return
+        decision_run_id = decision.get("baseline_run_id") or decision.get("run_id")
+        if decision_run_id:
+            target = run_by_id.get(str(decision_run_id))
+            if target is not None and (target.shadow_eval or {}):
+                target.auto_cal_decision = dict(decision)
+
+    def _attach_applied_run_to_run(run: RunAggregate) -> bool:
+        if not run.run_id:
+            return False
+        applied = applied_run_by_id.get(run.run_id)
+        if not applied:
+            return False
+        run.auto_cal_applied = dict(applied)
+        return True
 
     with open(path, "r", encoding="utf-8", errors="replace") as f:
         for raw_line in f:
@@ -541,12 +671,19 @@ def parse_doe_runs(path: str) -> List[RunAggregate]:
                 current = RunAggregate(
                     name=name,
                     log_path=path,
+                    run_id=data.get("run_id"),
                     prune_mode=_norm_mode(data.get("prune")),
                     frames=to_int(data.get("frames"), default=0) if parse_num(data.get("frames")) is not None else None,
                     warmup=to_int(data.get("warmup"), default=0) if parse_num(data.get("warmup")) is not None else None,
+                    auto_cal=dict(latest_auto_cal),
                 )
                 runs.append(current)
                 run_by_name[name] = current
+                if current.run_id:
+                    run_by_id[current.run_id] = current
+                    _attach_applied_run_to_run(current)
+                    if current.shadow_eval:
+                        _attach_best_decision_to_run(current, allow_latest_fallback=False)
                 continue
 
             if line.startswith(RUN_SUMMARY_PREFIX):
@@ -554,6 +691,13 @@ def parse_doe_runs(path: str) -> List[RunAggregate]:
                 name = data.get("name")
                 target = run_by_name.get(name) if name else current
                 if target is not None:
+                    run_id = data.get("run_id")
+                    if run_id:
+                        target.run_id = run_id
+                        run_by_id[run_id] = target
+                        _attach_applied_run_to_run(target)
+                        if target.shadow_eval:
+                            _attach_best_decision_to_run(target, allow_latest_fallback=False)
                     mm = parse_num(data.get("meanMsPerFrame"))
                     pp = parse_num(data.get("p95MsPerFrame"))
                     ss = parse_num(data.get("samples"))
@@ -563,6 +707,56 @@ def parse_doe_runs(path: str) -> List[RunAggregate]:
                         target.p95_ms = pp
                     if ss is not None:
                         target.samples = int(ss)
+                    baseline_run_id = latest_shadow_eval.get("baseline_run_id")
+                    if baseline_run_id and target.run_id == baseline_run_id:
+                        target.shadow_eval = dict(latest_shadow_eval)
+                        _attach_best_decision_to_run(target)
+                continue
+
+            if line.startswith(AUTOCAL_META_PREFIX):
+                latest_auto_cal = _parse_auto_cal_meta(line)
+                target = _ensure_run(current, runs, path, create_if_missing=False)
+                if target is not None:
+                    target.auto_cal.update(latest_auto_cal)
+                    if target.shadow_eval:
+                        _attach_best_decision_to_run(target, allow_latest_fallback=False)
+                continue
+
+            if line.startswith(AUTOCAL_SHADOW_EVAL_PREFIX):
+                latest_shadow_eval = _parse_auto_cal_shadow_eval(line)
+                baseline_run_id = latest_shadow_eval.get("baseline_run_id")
+                if baseline_run_id:
+                    target = run_by_id.get(baseline_run_id)
+                    if target is not None:
+                        target.shadow_eval = dict(latest_shadow_eval)
+                        _attach_best_decision_to_run(target)
+                continue
+
+            if line.startswith(AUTOCAL_DECISION_PREFIX):
+                latest_auto_cal_decision = _parse_auto_cal_decision(line)
+                canonical = _parse_hash64_hex(latest_auto_cal_decision.get("canonical_signature_hash64"))
+                if canonical is not None:
+                    latest_auto_cal_decision["canonical_signature_hash64"] = canonical
+                    auto_cal_decision_by_canonical[canonical] = dict(latest_auto_cal_decision)
+                preset_hash = _parse_hash64_hex(latest_auto_cal_decision.get("preset_hash64"))
+                if preset_hash is not None:
+                    latest_auto_cal_decision["preset_hash64"] = preset_hash
+                for key in ("baseline_run_id", "run_id"):
+                    decision_run_id = latest_auto_cal_decision.get(key)
+                    if decision_run_id is not None:
+                        auto_cal_decision_by_run_id[str(decision_run_id)] = dict(latest_auto_cal_decision)
+                _retro_attach_decision_to_existing_runs(latest_auto_cal_decision)
+                continue
+
+            if line.startswith(AUTOCAL_APPLIED_RUN_PREFIX):
+                applied = _parse_auto_cal_applied_run(line)
+                run_id = applied.get("run_id")
+                if run_id is not None:
+                    run_id_str = str(run_id)
+                    applied_run_by_id[run_id_str] = dict(applied)
+                    target = run_by_id.get(run_id_str)
+                    if target is not None:
+                        target.auto_cal_applied = dict(applied)
                 continue
 
             if line.startswith(RUN_END_PREFIX):
@@ -570,6 +764,13 @@ def parse_doe_runs(path: str) -> List[RunAggregate]:
                 end_name = data.get("name")
                 target = run_by_name.get(end_name) if end_name else current
                 if target is not None:
+                    run_id = data.get("run_id")
+                    if run_id:
+                        target.run_id = run_id
+                        run_by_id[run_id] = target
+                        _attach_applied_run_to_run(target)
+                        if target.shadow_eval:
+                            _attach_best_decision_to_run(target, allow_latest_fallback=False)
                     mm = parse_num(data.get("meanMs"))
                     pp = parse_num(data.get("p95Ms"))
                     ff = parse_num(data.get("frames"))
@@ -761,6 +962,114 @@ def _cfg_short(cfg: Dict[str, str]) -> str:
     return ";".join(parts)
 
 
+def _auto_cal_notes(value: Optional[str]) -> str:
+    if value is None or value == "-":
+        return ""
+    return value[:120]
+
+
+def _auto_cal_csv_fields(run: RunAggregate) -> Dict[str, str]:
+    data = run.auto_cal or {}
+    return {
+        "scene_signature_hash64": data.get("scene_signature_hash64", ""),
+        "scene_archetype": data.get("scene_archetype", ""),
+        "canonical_signature_hash64": data.get("canonical_signature_hash64", ""),
+        "canonical_signature_kind": data.get("canonical_signature_kind", ""),
+        "probe_elapsed_msec": data.get("probe_elapsed_msec", ""),
+        "probe_exit_reason": data.get("probe_exit_reason", ""),
+        "preset_hash64": data.get("preset_hash64", ""),
+        "preset_is_noop": data.get("preset_is_noop", ""),
+        "preset_notes": _auto_cal_notes(data.get("preset_notes")),
+    }
+
+
+def _auto_cal_json_obj(run: RunAggregate) -> Optional[Dict[str, Any]]:
+    data = run.auto_cal or {}
+    if not data:
+        return None
+    probe_elapsed = parse_num(data.get("probe_elapsed_msec"))
+    preset_is_noop_num = parse_num(data.get("preset_is_noop"))
+    return {
+        "scene_signature_hash64": data.get("scene_signature_hash64"),
+        "scene_archetype": data.get("scene_archetype"),
+        "canonical_signature_hash64": data.get("canonical_signature_hash64"),
+        "canonical_signature_kind": data.get("canonical_signature_kind"),
+        "probe_elapsed_msec": probe_elapsed if probe_elapsed is not None else data.get("probe_elapsed_msec"),
+        "probe_exit_reason": data.get("probe_exit_reason"),
+        "preset_hash64": data.get("preset_hash64"),
+        "preset_is_noop": (bool(int(preset_is_noop_num)) if preset_is_noop_num is not None else data.get("preset_is_noop")),
+        "preset_notes": _auto_cal_notes(data.get("preset_notes")),
+    }
+
+
+def _shadow_eval_csv_fields(run: RunAggregate) -> Dict[str, str]:
+    data = run.shadow_eval or {}
+    return {
+        "shadow_eval_verdict": data.get("verdict", ""),
+        "shadow_eval_overhead_pct_est": data.get("overhead_pct_est", ""),
+        "shadow_eval_baseline_elapsed_msec": data.get("baseline_elapsed_msec", ""),
+        "shadow_eval_shadow_elapsed_msec": data.get("shadow_elapsed_msec", ""),
+        "shadow_eval_shadow_trust": data.get("shadow_trust", ""),
+        "shadow_eval_shadow_run_id": data.get("shadow_run_id", ""),
+        "shadow_eval_skip_reason": data.get("skip_reason", ""),
+        "shadow_eval_scene_signature_hash64": data.get("scene_signature_hash64", ""),
+        "shadow_eval_canonical_signature_hash64": data.get("canonical_signature_hash64", ""),
+    }
+
+
+def _shadow_eval_json_obj(run: RunAggregate) -> Optional[Dict[str, Any]]:
+    data = run.shadow_eval or {}
+    if not data:
+        return None
+    return dict(data)
+
+
+def _auto_cal_decision_csv_fields(run: RunAggregate) -> Dict[str, str]:
+    data = run.auto_cal_decision or {}
+    return {
+        "auto_cal_decision": str(data.get("decision", "") or ""),
+        "auto_cal_decision_reason": str(data.get("reason", "") or ""),
+        "auto_cal_decision_overhead_pct_est": str(data.get("overhead_pct_est", "") or ""),
+        "auto_cal_decision_shadow_trust": str(data.get("shadow_trust", "") or ""),
+        "auto_cal_decision_verdict": str(data.get("verdict", "") or ""),
+        "auto_cal_decision_preset_hash64": str(data.get("preset_hash64", "") or ""),
+        "auto_cal_decision_canonical_signature_hash64": str(data.get("canonical_signature_hash64", "") or ""),
+    }
+
+
+def _auto_cal_decision_json_obj(run: RunAggregate) -> Optional[Dict[str, Any]]:
+    data = run.auto_cal_decision or {}
+    if not data:
+        return None
+    out = dict(data)
+    for key in ("overhead_pct_est", "shadow_trust"):
+        num = parse_num(out.get(key))
+        if num is not None:
+            out[key] = num
+    return out
+
+
+def _auto_cal_applied_csv_fields(run: RunAggregate) -> Dict[str, str]:
+    data = run.auto_cal_applied or {}
+    return {
+        "auto_cal_applied": str(data.get("applied", "") or ""),
+        "auto_cal_applied_scope": str(data.get("apply_scope", "") or ""),
+        "auto_cal_applied_canonical_signature_hash64": str(data.get("canonical_signature_hash64", "") or ""),
+        "auto_cal_applied_preset_hash64": str(data.get("preset_hash64", "") or ""),
+    }
+
+
+def _auto_cal_applied_json_obj(run: RunAggregate) -> Optional[Dict[str, Any]]:
+    data = run.auto_cal_applied or {}
+    if not data:
+        return None
+    out = dict(data)
+    applied_num = parse_num(out.get("applied"))
+    if applied_num is not None:
+        out["applied"] = bool(int(applied_num))
+    return out
+
+
 def _step_sort_key(step: Optional[int]) -> int:
     return -1 if step is None else step
 
@@ -803,6 +1112,153 @@ def _collect_reason_hist(summary: DoeSummary) -> Counter:
         for w in run.windows:
             hist[_window_reason(w)] += 1
     return hist
+
+
+def _norm_text_token(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    v = value.strip()
+    if not v or is_na_token(v):
+        return None
+    return v
+
+
+def _first_present_value(*values: Optional[str]) -> Optional[str]:
+    for value in values:
+        v = _norm_text_token(value)
+        if v is not None:
+            return v
+    return None
+
+
+def _shadow_eval_mode_label(run: RunAggregate) -> str:
+    mode = run.prune_mode
+    if mode is None:
+        mode = _norm_mode(run.effective_cfg.get("geomPrune")) if run.effective_cfg else None
+    return mode or "na"
+
+
+def print_shadow_eval_summary(summary: DoeSummary) -> None:
+    print("=== AutoCal Shadow Eval Summary (C1.1 g.3) ===")
+
+    total_runs = len(summary.runs)
+    runs_with_shadow_eval = sum(1 for run in summary.runs if (run.shadow_eval or {}))
+    coverage_pct = (100.0 * runs_with_shadow_eval / total_runs) if total_runs else 0.0
+    print("Coverage")
+    print(f"  total_runs={total_runs}")
+    print(f"  runs_with_shadow_eval={runs_with_shadow_eval}")
+    print(f"  coverage_pct={coverage_pct:.1f}%")
+
+    verdict_counts: Counter = Counter()
+    overhead_vals: List[float] = []
+    top_rows: List[Dict[str, Any]] = []
+    baseline_trust_1_shadow_not_1 = 0
+    inferred_fail_due_to_shadow_trust = 0
+    shadow_trust_hist: Counter = Counter()
+
+    for run_index, run in enumerate(summary.runs, start=1):
+        data = run.shadow_eval or {}
+        if not data:
+            continue
+
+        verdict = (_norm_text_token(data.get("verdict")) or "").lower()
+        if verdict in ("pass", "fail", "defer"):
+            verdict_counts[verdict] += 1
+        else:
+            verdict_counts["missing"] += 1
+
+        overhead = parse_num(data.get("overhead_pct_est"))
+        if overhead is not None:
+            overhead_vals.append(overhead)
+            top_rows.append(
+                {
+                    "run_index": run_index,
+                    "run_name": run.name,
+                    "run_id": _norm_text_token(run.run_id),
+                    "mode": _shadow_eval_mode_label(run),
+                    "fixture": _first_present_value(
+                        data.get("fixture"),
+                        run.auto_cal.get("fixture"),
+                        run.auto_cal.get("scene_archetype"),
+                        run.auto_cal.get("scene"),
+                        run.effective_cfg.get("fixture") if run.effective_cfg else None,
+                        run.effective_cfg.get("scene") if run.effective_cfg else None,
+                    ),
+                    "transport": _first_present_value(
+                        data.get("transport_model"),
+                        data.get("transport"),
+                        run.auto_cal.get("transport_model"),
+                        run.auto_cal.get("transport"),
+                        run.effective_cfg.get("transport_model") if run.effective_cfg else None,
+                        run.effective_cfg.get("transport") if run.effective_cfg else None,
+                    ),
+                    "overhead": overhead,
+                    "baseline_ms": parse_num(data.get("baseline_elapsed_msec")),
+                    "shadow_ms": parse_num(data.get("shadow_elapsed_msec")),
+                    "verdict": verdict or "missing",
+                }
+            )
+
+        baseline_trust = parse_num(data.get("baseline_trust"))
+        shadow_trust = parse_num(data.get("shadow_trust"))
+        shadow_trust_label = _norm_text_token(data.get("shadow_trust")) or "missing"
+        shadow_trust_hist[shadow_trust_label] += 1
+        if baseline_trust == 1 and shadow_trust != 1:
+            baseline_trust_1_shadow_not_1 += 1
+        if verdict == "fail" and baseline_trust == 1 and shadow_trust == 0:
+            inferred_fail_due_to_shadow_trust += 1
+
+    print("Verdicts")
+    print(f"  pass_count={verdict_counts.get('pass', 0)}")
+    print(f"  fail_count={verdict_counts.get('fail', 0)}")
+    print(f"  defer_count={verdict_counts.get('defer', 0)}")
+    print(f"  missing_count={verdict_counts.get('missing', 0)}")
+
+    print("Overhead (overhead_pct_est, numeric only)")
+    print(f"  count={len(overhead_vals)}")
+    print(f"  mean={_fmt_opt(mean_num(overhead_vals))}")
+    print(f"  median={_fmt_opt(_percentile(overhead_vals, 50.0))}")
+    print(f"  p90={_fmt_opt(_percentile(overhead_vals, 90.0))}")
+    print(f"  p95={_fmt_opt(_percentile(overhead_vals, 95.0))}")
+    print(f"  max={_fmt_opt(max(overhead_vals) if overhead_vals else None)}")
+
+    print("Top offenders (overhead_pct_est desc)")
+    if not top_rows:
+        print("  none")
+    else:
+        top_rows.sort(key=lambda row: row["overhead"], reverse=True)
+        for row in top_rows[:10]:
+            id_part = f"run_id={row['run_id']}" if row["run_id"] else f"run_index={row['run_index']}"
+            mode_part = f" mode={row['mode']}" if row.get("mode") else ""
+            fixture_part = f" fixture={row['fixture']}" if row.get("fixture") else ""
+            transport_part = f" transport={row['transport']}" if row.get("transport") else ""
+            print(
+                "  "
+                f"{id_part}{mode_part}{fixture_part}{transport_part} "
+                f"overhead_pct_est={row['overhead']:.3f} "
+                f"baseline_elapsed_msec={_fmt_opt(row['baseline_ms'])} "
+                f"shadow_elapsed_msec={_fmt_opt(row['shadow_ms'])} "
+                f"verdict={row['verdict']}"
+            )
+
+    print("Trust sanity")
+    print(f"  baseline_trust_eq_1_and_shadow_trust_ne_1={baseline_trust_1_shadow_not_1}")
+    print(f"  fail_count_inferred_due_to_shadow_trust={inferred_fail_due_to_shadow_trust}")
+    if shadow_trust_hist:
+        parts = [f"{k}={v}" for k, v in sorted(shadow_trust_hist.items(), key=lambda kv: str(kv[0]))]
+        print("  shadow_trust_counts=" + ", ".join(parts))
+    else:
+        print("  shadow_trust_counts=none")
+    print("")
+
+
+def print_auto_cal_decision_binding_diagnostic(summary: DoeSummary) -> None:
+    missing_runs = [run for run in summary.runs if (run.shadow_eval or {}) and not (run.auto_cal_decision or {})]
+    print("AutoCal decision binding diagnostic")
+    print(f"  missing_decision_count={len(missing_runs)}")
+    if missing_runs:
+        print("  top_missing_decision_run_ids=" + ", ".join((run.run_id or "na") for run in missing_runs[:10]))
+    print("")
 
 
 def print_global_summary(summary: DoeSummary) -> None:
@@ -1054,6 +1510,35 @@ def write_doe_artifacts(summary: DoeSummary) -> Dict[str, str]:
         "meanP2Samp",
         "meanHitRate",
         "effectiveCfgShort",
+        "scene_signature_hash64",
+        "scene_archetype",
+        "canonical_signature_hash64",
+        "canonical_signature_kind",
+        "probe_elapsed_msec",
+        "probe_exit_reason",
+        "preset_hash64",
+        "preset_is_noop",
+        "preset_notes",
+        "shadow_eval_verdict",
+        "shadow_eval_overhead_pct_est",
+        "shadow_eval_baseline_elapsed_msec",
+        "shadow_eval_shadow_elapsed_msec",
+        "shadow_eval_shadow_trust",
+        "shadow_eval_shadow_run_id",
+        "shadow_eval_skip_reason",
+        "shadow_eval_scene_signature_hash64",
+        "shadow_eval_canonical_signature_hash64",
+        "auto_cal_decision",
+        "auto_cal_decision_reason",
+        "auto_cal_decision_overhead_pct_est",
+        "auto_cal_decision_shadow_trust",
+        "auto_cal_decision_verdict",
+        "auto_cal_decision_preset_hash64",
+        "auto_cal_decision_canonical_signature_hash64",
+        "auto_cal_applied",
+        "auto_cal_applied_scope",
+        "auto_cal_applied_canonical_signature_hash64",
+        "auto_cal_applied_preset_hash64",
     ]
     run_rows: List[Dict[str, Any]] = []
 
@@ -1090,23 +1575,26 @@ def write_doe_artifacts(summary: DoeSummary) -> Dict[str, str]:
         if prune_mode is None and run.windows:
             prune_mode = _norm_mode(run.windows[0].renderhealth.get("geomPrune"))
 
-        run_rows.append(
-            {
-                "runName": run.name,
-                "pruneMode": prune_mode or "",
-                "meanMs": _fmt_opt(run.mean_ms),
-                "p95Ms": _fmt_opt(run.p95_ms),
-                "totalWindows": total_windows,
-                "trustedWindows": trusted_windows,
-                "pctLowRaytests": _fmt_opt((100.0 * low_count / total_windows) if total_windows else None),
-                "meanPerPxOffNumeric": _fmt_opt(mean_num(per_px_off_vals)),
-                "meanPerPxOnNumeric": _fmt_opt(mean_num(per_px_on_vals)),
-                "meanSavedPctNumeric": _fmt_opt(mean_num(saved_vals)),
-                "meanP2Samp": _fmt_opt(mean_num(p2_vals)),
-                "meanHitRate": _fmt_opt(mean_num(hit_vals)),
-                "effectiveCfgShort": _cfg_short(run.effective_cfg),
-            }
-        )
+        row = {
+            "runName": run.name,
+            "pruneMode": prune_mode or "",
+            "meanMs": _fmt_opt(run.mean_ms),
+            "p95Ms": _fmt_opt(run.p95_ms),
+            "totalWindows": total_windows,
+            "trustedWindows": trusted_windows,
+            "pctLowRaytests": _fmt_opt((100.0 * low_count / total_windows) if total_windows else None),
+            "meanPerPxOffNumeric": _fmt_opt(mean_num(per_px_off_vals)),
+            "meanPerPxOnNumeric": _fmt_opt(mean_num(per_px_on_vals)),
+            "meanSavedPctNumeric": _fmt_opt(mean_num(saved_vals)),
+            "meanP2Samp": _fmt_opt(mean_num(p2_vals)),
+            "meanHitRate": _fmt_opt(mean_num(hit_vals)),
+            "effectiveCfgShort": _cfg_short(run.effective_cfg),
+        }
+        row.update(_auto_cal_csv_fields(run))
+        row.update(_shadow_eval_csv_fields(run))
+        row.update(_auto_cal_decision_csv_fields(run))
+        row.update(_auto_cal_applied_csv_fields(run))
+        run_rows.append(row)
 
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=csv_fields)
@@ -1114,8 +1602,26 @@ def write_doe_artifacts(summary: DoeSummary) -> Dict[str, str]:
         for row in run_rows:
             writer.writerow(row)
 
+    json_run_rows: List[Dict[str, Any]] = []
+    for run, row in zip(summary.runs, run_rows):
+        row_json = dict(row)
+        auto_cal_json = _auto_cal_json_obj(run)
+        auto_cal_decision_json = _auto_cal_decision_json_obj(run)
+        auto_cal_applied_json = _auto_cal_applied_json_obj(run)
+        if auto_cal_json is not None and auto_cal_decision_json is not None:
+            auto_cal_json["decision"] = auto_cal_decision_json
+        if auto_cal_json is not None and auto_cal_applied_json is not None:
+            auto_cal_json["applied"] = auto_cal_applied_json
+        row_json["auto_cal"] = auto_cal_json
+        row_json["shadow_eval"] = _shadow_eval_json_obj(run)
+        if auto_cal_json is None and auto_cal_decision_json is not None:
+            row_json["auto_cal_decision"] = auto_cal_decision_json
+        if auto_cal_json is None and auto_cal_applied_json is not None:
+            row_json["auto_cal_applied"] = auto_cal_applied_json
+        json_run_rows.append(row_json)
+
     json_payload = {
-        "runs": run_rows,
+        "runs": json_run_rows,
         "global": {
             "totalRuns": len(summary.runs),
             "totalWindows": sum(len(run.windows) for run in summary.runs),
@@ -1186,6 +1692,8 @@ def main() -> int:
         print_doe_report(doe_summary)
         print_run_report(doe_summary)
         print_reason_histogram(doe_summary)
+    print_shadow_eval_summary(doe_summary)
+    print_auto_cal_decision_binding_diagnostic(doe_summary)
     try:
         artifacts = write_doe_artifacts(doe_summary)
         print(f"CSV written: {artifacts['csv']}")

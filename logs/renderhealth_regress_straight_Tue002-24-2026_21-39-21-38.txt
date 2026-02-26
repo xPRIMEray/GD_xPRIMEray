@@ -1,0 +1,101 @@
+PASS: logs\render_test_straight_Tue002-24-2026_21-39-21-38.txt windows=70, trusted=70, partial=0
+ON trusted mean per-px-on=2.315
+OFF trusted mean per-px-off=67.667
+ON saved% mean (baseline-ready)=96.928
+Audit totals: falseNeg=0 falsePos=0
+
+summary: pass=1 fail=0
+
+DOE summary:
+A) TrustReason histogram (global)
+  ok: 70
+
+A) TrustReason histogram (per run)
+  baseline_prune_off: ok=10
+  prune_on_default: ok=10
+  prune_on_tight_env: ok=10
+  prune_on_loose_env: ok=10
+  prune_on_stride_off: ok=10
+  straight_prune_off: ok=10
+  straight_prune_on: ok=10
+
+B) Trust flip timeline
+  baseline_prune_off: firstTrustedStep=30 trusted_windows=10/10 (100.0%)
+  prune_on_default: firstTrustedStep=330 trusted_windows=10/10 (100.0%)
+  prune_on_tight_env: firstTrustedStep=630 trusted_windows=10/10 (100.0%)
+  prune_on_loose_env: firstTrustedStep=930 trusted_windows=10/10 (100.0%)
+  prune_on_stride_off: firstTrustedStep=1230 trusted_windows=10/10 (100.0%)
+  straight_prune_off: firstTrustedStep=1530 trusted_windows=10/10 (100.0%)
+  straight_prune_on: firstTrustedStep=1830 trusted_windows=10/10 (100.0%)
+
+C) low_raytests diagnostics: count=0
+
+D) Top 10 worst trust failures by deficit
+  none
+
+RUN REPORT
+  run=baseline_prune_off frames=300 warmup=30 samples=270 windows=10 trusted=10 partial=0
+    firstTrustedStep=30 lastTrustedStep=300
+    topReasons=ok=10
+    perPxOff(mean,p95)=67.674,68.619 perPxOn(mean,p95)=na,na savedPctMean=na
+  run=prune_on_default frames=300 warmup=30 samples=270 windows=10 trusted=10 partial=0
+    firstTrustedStep=330 lastTrustedStep=600
+    topReasons=ok=10
+    perPxOff(mean,p95)=75.496,75.496 perPxOn(mean,p95)=2.445,2.459 savedPctMean=96.758
+  run=prune_on_tight_env frames=300 warmup=30 samples=270 windows=10 trusted=10 partial=0
+    firstTrustedStep=630 lastTrustedStep=900
+    topReasons=ok=10
+    perPxOff(mean,p95)=75.496,75.496 perPxOn(mean,p95)=1.922,1.928 savedPctMean=97.456
+  run=prune_on_loose_env frames=300 warmup=30 samples=270 windows=10 trusted=10 partial=0
+    firstTrustedStep=930 lastTrustedStep=1200
+    topReasons=ok=10
+    perPxOff(mean,p95)=75.496,75.496 perPxOn(mean,p95)=2.845,2.863 savedPctMean=96.232
+  run=prune_on_stride_off frames=300 warmup=30 samples=270 windows=10 trusted=10 partial=0
+    firstTrustedStep=1230 lastTrustedStep=1500
+    topReasons=ok=10
+    perPxOff(mean,p95)=75.496,75.496 perPxOn(mean,p95)=1.922,1.928 savedPctMean=97.456
+  run=straight_prune_off frames=300 warmup=30 samples=270 windows=10 trusted=10 partial=0
+    firstTrustedStep=1530 lastTrustedStep=1800
+    topReasons=ok=10
+    perPxOff(mean,p95)=67.660,68.046 perPxOn(mean,p95)=na,na savedPctMean=na
+  run=straight_prune_on frames=300 warmup=30 samples=270 windows=10 trusted=10 partial=0
+    firstTrustedStep=1830 lastTrustedStep=2100
+    topReasons=ok=10
+    perPxOff(mean,p95)=74.660,74.660 perPxOn(mean,p95)=2.438,2.459 savedPctMean=96.737
+
+REASON HISTOGRAM
+  reasons:
+    ok: 70
+  trusted: trusted=1=70 trusted=0=0
+  prune: prune=on=50 prune=off=20
+  trustGateDebug metPix=1 metRay=0: 0
+
+=== AutoCal Shadow Eval Summary (C1.1 g.3) ===
+Coverage
+  total_runs=7
+  runs_with_shadow_eval=7
+  coverage_pct=100.0%
+Verdicts
+  pass_count=0
+  fail_count=0
+  defer_count=7
+  missing_count=0
+Overhead (overhead_pct_est, numeric only)
+  count=0
+  mean=na
+  median=na
+  p90=na
+  p95=na
+  max=na
+Top offenders (overhead_pct_est desc)
+  none
+Trust sanity
+  baseline_trust_eq_1_and_shadow_trust_ne_1=7
+  fail_count_inferred_due_to_shadow_trust=0
+  shadow_trust_counts=missing=7
+
+AutoCal decision binding diagnostic
+  missing_decision_count=0
+
+CSV written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.csv
+JSON written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.json

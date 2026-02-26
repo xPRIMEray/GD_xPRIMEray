@@ -1,0 +1,46 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://UI/AutoCalPanel.gd" id="1_gd"]
+[ext_resource type="Script" path="res://UI/AutoCalPanelBridgeNode.cs" id="2_cs"]
+
+[node name="AutoCalPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(300, 0)
+script = ExtResource("1_gd")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+theme_override_constants/separation = 6
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+text = "Auto-Calibrate (Smart)"
+
+[node name="SmartEnabledCheck" type="CheckBox" parent="MarginContainer/VBoxContainer"]
+text = "Smart Enabled"
+
+[node name="ShadowEvalCheck" type="CheckBox" parent="MarginContainer/VBoxContainer"]
+text = "Shadow Eval (Proof)"
+
+[node name="AutoApplyCheck" type="CheckBox" parent="MarginContainer/VBoxContainer"]
+text = "Auto-Apply (Accepted Only)"
+
+[node name="VerboseCheck" type="CheckBox" parent="MarginContainer/VBoxContainer"]
+text = "Verbose Logs"
+
+[node name="FooterRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+theme_override_constants/separation = 8
+
+[node name="PreviewNowButton" type="Button" parent="MarginContainer/VBoxContainer/FooterRow"]
+text = "Preview Now"
+
+[node name="StatusLabel" type="Label" parent="MarginContainer/VBoxContainer/FooterRow"]
+size_flags_horizontal = 3
+text = "off"
+
+[node name="AutoCalBridgeNode" type="Node" parent="."]
+script = ExtResource("2_cs")
+

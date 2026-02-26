@@ -1,0 +1,47 @@
+
+Read-only Recon Report
+
+RenderTestRunner + RenderHealth gating + threshold/prune/cadence configs
+RenderTestRunner.cs (line 7) — RenderTestRunner (Godot Node) is the run harness.
+GrinFilmCamera.cs (line 56) — GrinFilmCamera.TestRunConfig (per-run prune/stride/env/soft-gate/camera knobs).
+GrinFilmCamera.cs (line 78) — GrinFilmCamera.TestRunDefaults (capture/restore baseline values for same knobs).
+GrinFilmCamera.cs (line 1954) / 1972 / 1987 — CaptureTestRunDefaults, ApplyTestRunConfig, RestoreTestRunDefaults.
+GrinFilmCamera.cs (lines 922-927) — RenderHealth cadence/trust/stall constants (RenderHealthLogEveryNSteps, RenderHealthStallThreshold, RenderHealthPass2SampleEveryNSegments, RenderHealthMinSamplesForTrust, RenderHealthMinModeSamplesForTrust).
+GrinFilmCamera.cs (line 2025) — ConfigureRenderHealthTrustEnforcementForTesting(...) (test-only trust thresholds incl. pass2 cadence/min samples override).
+GrinFilmCamera.cs (line 2039) — ResetRenderHealthWindowForRunStart() (resets RenderHealth counters/windows between runs).
+GrinFilmCamera.cs (line 1365) — RenderHealthSample (telemetry sample struct, not config).
+GrinFilmCamera.cs (line 8374) / 8743 — LogRenderHealth(...) and RecordRenderHealthSample(...) (actual RenderHealth gating/trust aggregation/log emission).
+RenderTestRunner.cs (lines 35-49) — harness-level trust constants (RenderTestMinGeomPixProcessedPerWindow, RenderTestMinGeomRayTestsTotalPerWindow, RenderTestTrustPass2SampleEveryNSegments, RenderTestTrustMinP2Samples, etc.).
+RenderTestRunner.cs (line 476), 551, 637 — PrepareRun, FinishRun, BuildDefaultRuns (run lifecycle + default matrix knob presets).
+GRIN / GR / Euclid model selection enum/config path
+FieldModels.cs (line 3) — MetricModel enum (GRIN, GordonMetric) for field-level metric behavior.
+FieldSource3D.cs (line 44) — exported FieldSource3D.MetricModel selector in scene authoring path.
+FieldSystem.cs (lines 103-104) — FieldSystem.AccelAt(...) reads metric model and applies GordonMetric sign flip.
+ResearchModeConfig.cs (line 12) — TransportModel enum (GRIN_Optical, Metric_NullGeodesic, Metric_Adapter_EffectiveMedium) for research transport mode.
+ResearchModeConfig.cs (line 42) / 47 — ResearchModeConfig.TransportModel.
+GrinFilmCamera.cs (lines 7980-7982), 8212 — research config merged/logged by GrinFilmCamera.
+No explicit runtime Euclid enum selector found (Euclidean appears as architecture concept/docs, not a transport enum).
+Existing per-run metadata logging (CSV/JSON hooks)
+Runtime structured per-run logs (no direct file write in runner):
+RenderTestRunner.cs (lines 472-473) — [RenderTest][MATRIX START], [MATRIX START]
+RenderTestRunner.cs (lines 495-502) — [RenderTest][RUN START], [RUN START]
+RenderTestRunner.cs (lines 568-576) — [RenderTest][RUN SUMMARY], [RenderTest][RUN END], [RUN END]
+RenderTestRunner.cs (lines 1079-1082) — [RenderTestLive]
+Offline CSV/JSON artifact hooks:
+renderhealth_regress.py (lines 81-83) — parses run prefixes (RUN_START_PREFIX, RUN_SUMMARY_PREFIX)
+renderhealth_regress.py (line 1038) — write_doe_artifacts(summary: DoeSummary)
+renderhealth_regress.py (lines 1040-1041) — writes renderhealth_summary.csv + renderhealth_summary.json
+renderhealth_parse.py (line 253) — write_csv(...) for parsed [RenderHealth] rows
+Cleanest insertion points for SceneAutoCalibrator scaffolding (no render behavior changes)
+Already scaffolded:
+SceneAutoCalibrator.cs (line 1) — SceneAutoCalibrator
+SceneSignature.cs (line 1) — SceneArchetype, SceneSignature
+CalibratedPreset.cs (line 1) — CalibratedPreset
+RenderTestRunner.cs (lines 531-536) — no-op autocal call gated by AutoCalEnabled
+Recommended non-behavioral insertion points:
+RenderTestRunner.cs (line 476) (PrepareRun) to collect/propose calibration and only log/store metadata (do not apply to _film).
+RenderTestRunner.cs (line 551) (FinishRun) to attach trusted RenderHealth snapshot-derived values into SceneSignature/summary metadata.
+RenderTestRunner.cs (line 1093) (TryGetLatestRenderHealthLiveSnapshot) as the safest source for live signature sampling without touching rendering.
+Prefer extending log lines + renderhealth_regress.py JSON/CSV exporters over engine-side file writes.
+
+

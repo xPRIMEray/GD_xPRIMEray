@@ -1,0 +1,7 @@
+{
+    "repeats":  5,
+    "pass_count_values":  "1,1,1,2,1",
+    "fail_count_values":  "1,1,1,1,2",
+    "defer_count_values":  "3,3,3,2,2",
+    "shadow_trust_counts_values":  "0=1, 1=4 | 0=1, 1=4 | 0=1, 1=4 | 0=1, 1=4 | 0=2, 1=3"
+}

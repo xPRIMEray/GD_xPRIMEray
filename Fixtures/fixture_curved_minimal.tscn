@@ -1,0 +1,37 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://FieldSource3D.cs" id="1_field"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_target"]
+radius = 0.6
+height = 1.2
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_target"]
+radius = 0.6
+
+[node name="FixtureCurvedMinimal" type="Node3D"]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.99026805, 0.1391731, 0, -0.1391731, 0.99026805, 0, 0.5, 5.5)
+current = true
+
+[node name="fixture_target" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -6)
+scale = Vector3(3.6, 3.6, 3.6)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="fixture_target"]
+mesh = SubResource("SphereMesh_target")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="fixture_target"]
+shape = SubResource("SphereShape3D_target")
+
+[node name="FieldSource3D" type="Node3D" parent="."]
+script = ExtResource("1_field")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9, 0.35, -1.2)
+Strength = 1.15
+Softening = 0.1
+OuterRadius = 4.5
+OverrideGamma = true
+Gamma = 2.0
+DebugDrawBounds = false
+DebugDrawInGame = false
