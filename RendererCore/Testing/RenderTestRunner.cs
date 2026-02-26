@@ -140,6 +140,8 @@ public partial class RenderTestRunner : Node
 	private ulong _runExecSequence = 0;
 	private bool _hasPendingShadowEvalBaselineResult = false;
 	private ShadowEvalRunMetrics _pendingShadowEvalBaselineResult;
+	private bool _hasPendingShadowEvalBaselineRunConfig = false;
+	private GrinFilmCamera.TestRunConfig _pendingShadowEvalBaselineRunConfig;
 	private bool _autoCalPresetReady = false;
 	private CalibratedPreset _autoCalPreset;
 	private int? _shadowPruneOffTargetMsOverride;
@@ -182,6 +184,7 @@ public partial class RenderTestRunner : Node
 	private struct ShadowEvalRunMetrics
 	{
 		public ulong RunId;
+		public string RunName;
 		public bool TrustKnown;
 		public bool Trusted;
 		public string TrustReason;
@@ -459,6 +462,7 @@ public partial class RenderTestRunner : Node
 		_shadowEvalDefaultsCaptured = false;
 		_activeRunConfigReady = false;
 		_hasPendingShadowEvalBaselineResult = false;
+		_hasPendingShadowEvalBaselineRunConfig = false;
 		ResetShadowEvalMatrixDecisionAggregate();
 		_autoCalAcceptedApplyActiveRun = false;
 		ClearPendingAcceptedAutoCalApply();
@@ -1014,6 +1018,10 @@ public partial class RenderTestRunner : Node
 		{
 			return;
 		}
+		if (IsShadowEvalPairGatingExcluded(in pairRecord))
+		{
+			return;
+		}
 
 		_shadowEvalMatrixDecisionAggregate.shadow_pair_count++;
 		_shadowEvalMatrixDecisionAggregate.last_baseline_run_id = baselineRunId;
@@ -1054,6 +1062,10 @@ public partial class RenderTestRunner : Node
 		{
 			return pairRecord;
 		}
+		if (IsShadowEvalPairGatingExcluded(in pairRecord))
+		{
+			return pairRecord;
+		}
 
 		if (pairRecord.decision != CalibrationDecision.Accept)
 		{
@@ -1083,7 +1095,35 @@ public partial class RenderTestRunner : Node
 		EmitShadowEvalDecisionLog(_shadowEvalMatrixDecisionAggregate.last_baseline_run_id, finalRecord);
 	}
 
-	private void EmitShadowEvalComparisonLog(ShadowEvalRunMetrics baseline, ShadowEvalRunMetrics shadow)
+	private bool ShouldExcludePruneOffBaselineFromGating(in GrinFilmCamera.TestRunConfig baselineRun, string dominantReason)
+	{
+		if (!string.Equals(baselineRun.Name, "baseline_prune_off", StringComparison.OrdinalIgnoreCase))
+		{
+			return false;
+		}
+
+		if (!_autoCalPresetReady ||
+			string.IsNullOrWhiteSpace(_autoCalPreset.notes) ||
+			_autoCalPreset.notes.IndexOf("fieldheavy:weak_signal", StringComparison.OrdinalIgnoreCase) < 0)
+		{
+			return false;
+		}
+
+		if (!string.Equals(dominantReason, "low_geom_pix", StringComparison.OrdinalIgnoreCase))
+		{
+			return false;
+		}
+
+		return !ResolveRunPruneEnabled(in baselineRun);
+	}
+
+	private static bool IsShadowEvalPairGatingExcluded(in CalibrationDecisionRecord pairRecord)
+	{
+		return string.Equals(pairRecord.verdict, "skip", StringComparison.OrdinalIgnoreCase) ||
+			string.Equals(pairRecord.reason, "baseline_unmeasurable_under_budget", StringComparison.OrdinalIgnoreCase);
+	}
+
+	private void EmitShadowEvalComparisonLog(in GrinFilmCamera.TestRunConfig baselineRun, ShadowEvalRunMetrics baseline, ShadowEvalRunMetrics shadow)
 	{
 		string baselineTrust = baseline.TrustKnown ? (baseline.Trusted ? "1" : "0") : "na";
 		string shadowTrust = shadow.TrustKnown ? (shadow.Trusted ? "1" : "0") : "na";
@@ -1146,9 +1186,90 @@ public partial class RenderTestRunner : Node
 			preset_hash64 = _autoCalPresetReady ? _autoCalPreset.hash64 : 0UL
 		};
 		CalibrationDecisionRecord pairRecord = CalibrationAcceptancePolicy.DecideFromShadowEval(in decisionInput);
+		bool gatingExcluded = ShouldExcludePruneOffBaselineFromGating(in baselineRun, dominantReason);
+		string skipReason = gatingExcluded ? "baseline_unmeasurable_under_budget" : null;
+		if (gatingExcluded)
+		{
+			pairRecord.decision = CalibrationDecision.Accept;
+			pairRecord.verdict = "skip";
+			pairRecord.reason = skipReason;
+		}
+		EmitShadowEvalComparisonJsonLog(
+			in baselineRun,
+			baseline,
+			shadow,
+			dominantReason,
+			dominantReasonDetail,
+			overheadPctEst,
+			in pairRecord,
+			gatingExcluded,
+			skipReason);
 		RecordShadowEvalMatrixPairDecision(baseline.RunId, in pairRecord);
 		CalibrationDecisionRecord emittedRecord = CoercePairDecisionForMatrixAggregation(in pairRecord);
-		EmitShadowEvalDecisionLog(baseline.RunId, emittedRecord, allowAcceptActions: !ShouldAggregateShadowEvalDecisionAcrossMatrix());
+		EmitShadowEvalDecisionLog(
+			baseline.RunId,
+			emittedRecord,
+			allowAcceptActions: !ShouldAggregateShadowEvalDecisionAcrossMatrix(),
+			skipReason: skipReason);
+	}
+
+	private void EmitShadowEvalComparisonJsonLog(
+		in GrinFilmCamera.TestRunConfig baselineRun,
+		ShadowEvalRunMetrics baseline,
+		ShadowEvalRunMetrics shadow,
+		string dominantReason,
+		string dominantReasonDetail,
+		string overheadPctEst,
+		in CalibrationDecisionRecord pairRecord,
+		bool gatingExcluded,
+		string skipReason)
+	{
+		string fixture = _requestedFixture.ToString();
+		string presetHash64 = _autoCalPresetReady ? $"0x{_autoCalPreset.hash64:x16}" : "na";
+		string canonicalHash64 = _autoCalCanonicalSignatureHash64Known ? $"0x{_autoCalCanonicalSignatureHash64:x16}" : "na";
+		string baselineName = string.IsNullOrWhiteSpace(baselineRun.Name) ? baseline.RunName : baselineRun.Name;
+		string shadowName = shadow.RunName;
+		string baselineTrustJson = baseline.TrustKnown ? (baseline.Trusted ? "1" : "0") : "null";
+		string shadowTrustJson = shadow.TrustKnown ? (shadow.Trusted ? "1" : "0") : "null";
+		string shadowTargetJson = shadow.TargetMsPerFrame > 0 ? shadow.TargetMsPerFrame.ToString() : "null";
+		string baselineGeomPixJson = baseline.GeomPixProcessedKnown ? baseline.GeomPixProcessed.ToString() : "null";
+		string shadowGeomPixJson = shadow.GeomPixProcessedKnown ? shadow.GeomPixProcessed.ToString() : "null";
+		string baselineGeomRaysJson = baseline.GeomRayTestsTotalKnown ? baseline.GeomRayTestsTotal.ToString() : "null";
+		string shadowGeomRaysJson = shadow.GeomRayTestsTotalKnown ? shadow.GeomRayTestsTotal.ToString() : "null";
+		string overheadJson = !string.IsNullOrWhiteSpace(overheadPctEst) && !string.Equals(overheadPctEst, "na", StringComparison.OrdinalIgnoreCase)
+			? overheadPctEst
+			: JsonString("na");
+		string pairVerdict = string.IsNullOrWhiteSpace(pairRecord.verdict) ? "na" : pairRecord.verdict;
+		string pairReason = string.IsNullOrWhiteSpace(pairRecord.reason) ? "na" : pairRecord.reason;
+
+		string json =
+			"{" +
+			$"\"fixture\":{JsonString(fixture)}," +
+			$"\"baseline_name\":{JsonString(baselineName)}," +
+			$"\"shadow_name\":{JsonString(shadowName)}," +
+			$"\"baseline_prune\":{(baseline.PruneEnabled ? "true" : "false")}," +
+			$"\"shadow_prune\":{(shadow.PruneEnabled ? "true" : "false")}," +
+			$"\"shadow_target_ms_per_frame\":{shadowTargetJson}," +
+			$"\"baseline_run_id\":{baseline.RunId}," +
+			$"\"shadow_run_id\":{shadow.RunId}," +
+			$"\"baseline_trust\":{baselineTrustJson}," +
+			$"\"shadow_trust\":{shadowTrustJson}," +
+			$"\"dominant_reason\":{JsonString(dominantReason)}," +
+			$"\"dominant_reason_detail\":{JsonString(dominantReasonDetail)}," +
+			$"\"overhead_pct_est\":{overheadJson}," +
+			$"\"gating_excluded\":{(gatingExcluded ? "true" : "false")}," +
+			$"\"skip_reason\":{JsonString(string.IsNullOrWhiteSpace(skipReason) ? "na" : skipReason)}," +
+			$"\"pair_decision\":{JsonString(FormatCalibrationDecision(pairRecord.decision))}," +
+			$"\"pair_reason\":{JsonString(pairReason)}," +
+			$"\"pair_verdict\":{JsonString(pairVerdict)}," +
+			$"\"preset_hash64\":{JsonString(presetHash64)}," +
+			$"\"canonical_signature_hash64\":{JsonString(canonicalHash64)}," +
+			$"\"baseline_geom_pix_processed\":{baselineGeomPixJson}," +
+			$"\"shadow_geom_pix_processed\":{shadowGeomPixJson}," +
+			$"\"baseline_geom_ray_tests_total\":{baselineGeomRaysJson}," +
+			$"\"shadow_geom_ray_tests_total\":{shadowGeomRaysJson}" +
+			"}";
+		GD.Print($"[RenderTestRunner][AutoCalShadowEvalJson] {json}");
 	}
 
 	private void EmitShadowEvalSkippedLog(ShadowEvalRunMetrics baseline, string skipReason)
@@ -1193,7 +1314,7 @@ public partial class RenderTestRunner : Node
 		EmitShadowEvalDecisionLog(baseline.RunId, emittedRecord, allowAcceptActions: !ShouldAggregateShadowEvalDecisionAcrossMatrix());
 	}
 
-	private void EmitShadowEvalDecisionLog(ulong baselineRunId, CalibrationDecisionRecord record, bool allowAcceptActions = true)
+	private void EmitShadowEvalDecisionLog(ulong baselineRunId, CalibrationDecisionRecord record, bool allowAcceptActions = true, string skipReason = null)
 	{
 		if (_autoCalDecisionLogDedupKeyValid &&
 			_autoCalDecisionLogDedupBaselineRunId == baselineRunId &&
@@ -1218,12 +1339,13 @@ public partial class RenderTestRunner : Node
 			: (record.shadow_trust.Value ? "1" : "0");
 		string verdict = string.IsNullOrWhiteSpace(record.verdict) ? "na" : Sanitize(record.verdict);
 		string dominantReason = ComputeDecisionDominantReasonToken(in record);
+		string skipReasonToken = string.IsNullOrWhiteSpace(skipReason) ? string.Empty : $" skip_reason={Sanitize(skipReason)}";
 		GD.Print(
 			$"[RenderTestRunner][AutoCalDecision] " +
 			$"canonical_signature_hash64=0x{record.canonical_signature_hash64:x16} " +
 			$"preset_hash64=0x{record.preset_hash64:x16} " +
 			$"decision={decision} reason={reason} dominant_reason={dominantReason} " +
-			$"overhead_pct_est={overheadPctEst} shadow_trust={shadowTrust} verdict={verdict}");
+			$"overhead_pct_est={overheadPctEst} shadow_trust={shadowTrust} verdict={verdict}{skipReasonToken}");
 		_lastAutoCalState.canonical_signature_hash64 = $"0x{record.canonical_signature_hash64:x16}";
 		_lastAutoCalState.preset_hash64 = $"0x{record.preset_hash64:x16}";
 		_lastAutoCalState.decision = decision;
@@ -1588,6 +1710,7 @@ public partial class RenderTestRunner : Node
 			ShadowEvalRunMetrics metrics = new ShadowEvalRunMetrics
 			{
 				RunId = runExecId,
+				RunName = run.Name ?? string.Empty,
 				TrustKnown = hasRh,
 				Trusted = hasRh && trusted,
 				TrustReason = hasRh ? (trustReason ?? string.Empty) : string.Empty,
@@ -1613,24 +1736,28 @@ public partial class RenderTestRunner : Node
 			{
 				if (_shadowEvalActiveRun)
 				{
-					if (_hasPendingShadowEvalBaselineResult)
+					if (_hasPendingShadowEvalBaselineResult && _hasPendingShadowEvalBaselineRunConfig)
 					{
-						EmitShadowEvalComparisonLog(_pendingShadowEvalBaselineResult, metrics);
+						EmitShadowEvalComparisonLog(in _pendingShadowEvalBaselineRunConfig, _pendingShadowEvalBaselineResult, metrics);
 					}
 					else
 					{
 						GD.PrintErr("[RenderTestRunner][AutoCalShadowEval] missing baseline metrics for shadow comparison.");
 					}
 					_hasPendingShadowEvalBaselineResult = false;
+					_hasPendingShadowEvalBaselineRunConfig = false;
 				}
 				else
 				{
 					_pendingShadowEvalBaselineResult = metrics;
 					_hasPendingShadowEvalBaselineResult = true;
+					_pendingShadowEvalBaselineRunConfig = run;
+					_hasPendingShadowEvalBaselineRunConfig = true;
 					if (_autoCalPresetReady && _autoCalPreset.IsNoOp)
 					{
 						_shadowEvalPendingForCurrentMatrixRun = false;
 						_hasPendingShadowEvalBaselineResult = false;
+						_hasPendingShadowEvalBaselineRunConfig = false;
 						EmitShadowEvalSkippedLog(metrics, "noop_preset");
 					}
 					else
@@ -1845,6 +1972,7 @@ public partial class RenderTestRunner : Node
 		_activeRunConfigReady = false;
 		_activeRunConfig = default;
 		_hasPendingShadowEvalBaselineResult = false;
+		_hasPendingShadowEvalBaselineRunConfig = false;
 		_autoCalPresetReady = false;
 		_autoCalPreset = default;
 		_autoCalProbeSignatureHash64Known = false;
@@ -2859,6 +2987,22 @@ public partial class RenderTestRunner : Node
 			return "unnamed";
 		}
 		return value.Trim().Replace(' ', '_');
+	}
+
+	private static string JsonString(string value)
+	{
+		if (value == null)
+		{
+			return "null";
+		}
+
+		string escaped = value
+			.Replace("\\", "\\\\", StringComparison.Ordinal)
+			.Replace("\"", "\\\"", StringComparison.Ordinal)
+			.Replace("\r", "\\r", StringComparison.Ordinal)
+			.Replace("\n", "\\n", StringComparison.Ordinal)
+			.Replace("\t", "\\t", StringComparison.Ordinal);
+		return $"\"{escaped}\"";
 	}
 
 	private static string FormatAutoCalNotesForLog(string value, int maxChars)
