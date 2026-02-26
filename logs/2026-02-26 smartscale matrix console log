@@ -1,0 +1,545 @@
+C:\godot\godot_xPRIMEray>run-smartscale-matrix.bat
+============================================================
+Running xPRIMEray SmartScale Render Test Matrix
+============================================================
+
+------------------------------------------------------------
+Running fixture: straight
+Mode: smartscale_calls60
+Log file: logs\render_test_straight_smartscale_calls60_Thu002-26-2026_17-01-14-23.txt
+------------------------------------------------------------
+PASS: logs\render_test_straight_smartscale_calls60_Thu002-26-2026_17-01-14-23.txt windows=6, trusted=4, partial=2
+ON trusted mean per-px-on=2.151
+OFF trusted mean per-px-off=na
+ON saved% mean (baseline-ready)=na
+Audit totals: falseNeg=0 falsePos=0
+
+summary: pass=1 fail=0
+
+DOE summary:
+A) TrustReason histogram (global)
+  ok: 4
+  low_raytests: 2
+
+A) TrustReason histogram (per run)
+  smartscale_baseline: ok=2
+  smartscale_step1_unlock: low_raytests=2
+  smartscale_step2_time20: ok=2
+
+B) Trust flip timeline
+  smartscale_baseline: firstTrustedStep=30 trusted_windows=2/2 (100.0%)
+  smartscale_step1_unlock: firstTrustedStep=none trusted_windows=0/2 (0.0%)
+  smartscale_step2_time20: firstTrustedStep=150 trusted_windows=2/2 (100.0%)
+
+C) low_raytests diagnostics: count=2
+  run=smartscale_step1_unlock step=90 geomRayTestsTotalRaw=0.0 minRayTests=2048.0 geomPixProcessedRaw=36000.0 minGeomPix=1024.0 candPix/noCand=27640/8360 rayTestsPerGeomPix=0.000 candRate=0.768 noCandRate=0.232
+  run=smartscale_step1_unlock step=120 geomRayTestsTotalRaw=0.0 minRayTests=2048.0 geomPixProcessedRaw=36000.0 minGeomPix=1024.0 candPix/noCand=27640/8360 rayTestsPerGeomPix=0.000 candRate=0.768 noCandRate=0.232
+
+D) Top 10 worst trust failures by deficit
+  run=smartscale_step1_unlock step=90 raytestsDeficit=2048.000 geomPixDeficit=0.000 p2Deficit=na
+  run=smartscale_step1_unlock step=120 raytestsDeficit=2048.000 geomPixDeficit=0.000 p2Deficit=na
+
+RUN REPORT
+  run=smartscale_baseline frames=60 warmup=3 samples=57 windows=2 trusted=2 partial=0
+    firstTrustedStep=30 lastTrustedStep=60
+    topReasons=ok=2
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=2.405,2.420 savedPctMean=na
+  run=smartscale_step1_unlock frames=60 warmup=3 samples=57 windows=2 trusted=0 partial=2
+    firstTrustedStep=na lastTrustedStep=na
+    topReasons=low_raytests=2
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=na,na savedPctMean=na
+    low_raytests examples:
+      step=90 geomRayTestsTotalRaw=0 minRayTests=2048 trustRayTestsMet=0 geomPixProcessedRaw=36000 minGeomPix=1024
+      step=120 geomRayTestsTotalRaw=0 minRayTests=2048 trustRayTestsMet=0 geomPixProcessedRaw=36000 minGeomPix=1024        
+  run=smartscale_step2_time20 frames=60 warmup=3 samples=57 windows=2 trusted=2 partial=0
+    firstTrustedStep=150 lastTrustedStep=180
+    topReasons=ok=2
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=1.897,1.898 savedPctMean=na
+
+REASON HISTOGRAM
+  reasons:
+    ok: 4
+    low_raytests: 2
+  trusted: trusted=1=4 trusted=0=2
+  prune: prune=on=6 prune=off=0
+  trustGateDebug metPix=1 metRay=0: 2
+
+=== AutoCal Shadow Eval Summary (C1.1 g.3) ===
+Coverage
+  total_runs=3
+  runs_with_shadow_eval=3
+  coverage_pct=100.0%
+Verdicts
+  pass_count=3
+  fail_count=0
+  defer_count=0
+  missing_count=0
+Overhead (overhead_pct_est, numeric only)
+  count=3
+  mean=0.000
+  median=0.000
+  p90=0.000
+  p95=0.000
+  max=0.000
+Top offenders (overhead_pct_est desc)
+  run_id=1 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=845.828 shadow_elapsed_msec=845.828 verdict=pass
+  run_id=2 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=8294.666 shadow_elapsed_msec=8294.666 verdict=pass
+  run_id=3 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=1501.770 shadow_elapsed_msec=1501.770 verdict=pass
+Trust sanity
+  baseline_trust_eq_1_and_shadow_trust_ne_1=0
+  fail_count_inferred_due_to_shadow_trust=0
+  shadow_trust_counts=0=1, 1=2
+
+AutoCal decision binding diagnostic
+  missing_decision_count=0
+
+CSV written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.csv
+JSON written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.json
+
+============================================================
+AutoCal Shadow Eval Summary (straight, smartscale_calls60)
+Source: logs\renderhealth_regress_straight_smartscale_calls60_Thu002-26-2026_17-01-14-23.txt
+============================================================
+=== AutoCal Shadow Eval Summary (C1.1 g.3) ===
+Coverage
+  total_runs=3
+  runs_with_shadow_eval=3
+  coverage_pct=100.0%
+Verdicts
+  pass_count=3
+  fail_count=0
+  defer_count=0
+  missing_count=0
+Overhead (overhead_pct_est, numeric only)
+  count=3
+  mean=0.000
+  median=0.000
+  p90=0.000
+  p95=0.000
+  max=0.000
+Top offenders (overhead_pct_est desc)
+  run_id=1 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=845.828 shadow_elapsed_msec=845.828 verdict=pass
+  run_id=2 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=8294.666 shadow_elapsed_msec=8294.666 verdict=pass
+  run_id=3 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=1501.770 shadow_elapsed_msec=1501.770 verdict=pass
+Trust sanity
+  baseline_trust_eq_1_and_shadow_trust_ne_1=0
+  fail_count_inferred_due_to_shadow_trust=0
+  shadow_trust_counts=0=1, 1=2
+
+
+
+------------------------------------------------------------
+Running fixture: curved_minimal
+Mode: smartscale_calls60
+Log file: logs\render_test_curved_minimal_smartscale_calls60_Thu002-26-2026_17-01-14-23.txt
+------------------------------------------------------------
+PASS: logs\render_test_curved_minimal_smartscale_calls60_Thu002-26-2026_17-01-14-23.txt windows=12, trusted=9, partial=3
+ON trusted mean per-px-on=4.420
+OFF trusted mean per-px-off=na
+ON saved% mean (baseline-ready)=na
+Audit totals: falseNeg=0 falsePos=0
+
+summary: pass=1 fail=0
+
+DOE summary:
+A) TrustReason histogram (global)
+  ok: 9
+  low_raytests: 3
+
+A) TrustReason histogram (per run)
+  smartscale_baseline: ok=2
+  smartscale_baseline_shadow: ok=1, low_raytests=1
+  smartscale_step1_unlock: low_raytests=2
+  smartscale_step1_unlock_shadow: ok=2
+  smartscale_step2_time20: ok=2
+  smartscale_step2_time20_shadow: ok=2
+
+B) Trust flip timeline
+  smartscale_baseline: firstTrustedStep=30 trusted_windows=2/2 (100.0%)
+  smartscale_baseline_shadow: firstTrustedStep=90 trusted_windows=1/2 (50.0%)
+  smartscale_step1_unlock: firstTrustedStep=none trusted_windows=0/2 (0.0%)
+  smartscale_step1_unlock_shadow: firstTrustedStep=210 trusted_windows=2/2 (100.0%)
+  smartscale_step2_time20: firstTrustedStep=270 trusted_windows=2/2 (100.0%)
+  smartscale_step2_time20_shadow: firstTrustedStep=330 trusted_windows=2/2 (100.0%)
+
+C) low_raytests diagnostics: count=3
+  run=smartscale_baseline_shadow step=120 geomRayTestsTotalRaw=3996.0 minRayTests=4096.0 geomPixProcessedRaw=1120.0 minGeomPix=1024.0 candPix/noCand=139/981 rayTestsPerGeomPix=3.568 candRate=0.124 noCandRate=0.876
+  run=smartscale_step1_unlock step=150 geomRayTestsTotalRaw=0.0 minRayTests=4096.0 geomPixProcessedRaw=36000.0 minGeomPix=1024.0 candPix/noCand=5640/30360 rayTestsPerGeomPix=0.000 candRate=0.157 noCandRate=0.843
+  run=smartscale_step1_unlock step=180 geomRayTestsTotalRaw=0.0 minRayTests=4096.0 geomPixProcessedRaw=36000.0 minGeomPix=1024.0 candPix/noCand=5640/30360 rayTestsPerGeomPix=0.000 candRate=0.157 noCandRate=0.843
+
+D) Top 10 worst trust failures by deficit
+  run=smartscale_step1_unlock step=150 raytestsDeficit=4096.000 geomPixDeficit=0.000 p2Deficit=na
+  run=smartscale_step1_unlock step=180 raytestsDeficit=4096.000 geomPixDeficit=0.000 p2Deficit=na
+  run=smartscale_baseline_shadow step=120 raytestsDeficit=100.000 geomPixDeficit=0.000 p2Deficit=na
+
+RUN REPORT
+  run=smartscale_baseline frames=60 warmup=3 samples=57 windows=2 trusted=2 partial=0
+    firstTrustedStep=30 lastTrustedStep=60
+    topReasons=ok=2
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=5.102,5.643 savedPctMean=na
+  run=smartscale_baseline_shadow frames=60 warmup=3 samples=57 windows=2 trusted=1 partial=1
+    firstTrustedStep=90 lastTrustedStep=90
+    topReasons=ok=1, low_raytests=1
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=3.597,3.597 savedPctMean=na
+    low_raytests examples:
+      step=120 geomRayTestsTotalRaw=3996 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1120 minGeomPix=1024      
+  run=smartscale_step1_unlock frames=60 warmup=3 samples=57 windows=2 trusted=0 partial=2
+    firstTrustedStep=na lastTrustedStep=na
+    topReasons=low_raytests=2
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=na,na savedPctMean=na
+    low_raytests examples:
+      step=150 geomRayTestsTotalRaw=0 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=36000 minGeomPix=1024        
+      step=180 geomRayTestsTotalRaw=0 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=36000 minGeomPix=1024        
+  run=smartscale_step1_unlock_shadow frames=60 warmup=3 samples=57 windows=2 trusted=2 partial=0
+    firstTrustedStep=210 lastTrustedStep=240
+    topReasons=ok=2
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=4.450,4.715 savedPctMean=na
+  run=smartscale_step2_time20 frames=60 warmup=3 samples=57 windows=2 trusted=2 partial=0
+    firstTrustedStep=270 lastTrustedStep=300
+    topReasons=ok=2
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=4.427,4.427 savedPctMean=na
+  run=smartscale_step2_time20_shadow frames=60 warmup=3 samples=57 windows=2 trusted=2 partial=0
+    firstTrustedStep=330 lastTrustedStep=360
+    topReasons=ok=2
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=4.112,4.241 savedPctMean=na
+
+REASON HISTOGRAM
+  reasons:
+    ok: 9
+    low_raytests: 3
+  trusted: trusted=1=9 trusted=0=3
+  prune: prune=on=12 prune=off=0
+  trustGateDebug metPix=1 metRay=0: 3
+
+=== AutoCal Shadow Eval Summary (C1.1 g.3) ===
+Coverage
+  total_runs=6
+  runs_with_shadow_eval=3
+  coverage_pct=50.0%
+Verdicts
+  pass_count=1
+  fail_count=1
+  defer_count=1
+  missing_count=0
+Overhead (overhead_pct_est, numeric only)
+  count=3
+  mean=-39.913
+  median=-20.070
+  p90=-13.430
+  p95=-12.600
+  max=-11.770
+Top offenders (overhead_pct_est desc)
+  run_id=5 mode=on fixture=FieldHeavy overhead_pct_est=-11.770 baseline_elapsed_msec=1505.015 shadow_elapsed_msec=1327.924 verdict=pass
+  run_id=1 mode=on fixture=FieldHeavy overhead_pct_est=-20.070 baseline_elapsed_msec=1011.518 shadow_elapsed_msec=808.555 verdict=fail
+  run_id=3 mode=on fixture=FieldHeavy overhead_pct_est=-87.900 baseline_elapsed_msec=12529.757 shadow_elapsed_msec=1516.010 verdict=defer
+Trust sanity
+  baseline_trust_eq_1_and_shadow_trust_ne_1=1
+  fail_count_inferred_due_to_shadow_trust=1
+  shadow_trust_counts=0=1, 1=2
+
+AutoCal decision binding diagnostic
+  missing_decision_count=0
+
+CSV written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.csv
+JSON written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.json
+
+============================================================
+AutoCal Shadow Eval Summary (curved_minimal, smartscale_calls60)
+Source: logs\renderhealth_regress_curved_minimal_smartscale_calls60_Thu002-26-2026_17-01-14-23.txt
+============================================================
+=== AutoCal Shadow Eval Summary (C1.1 g.3) ===
+Coverage
+  total_runs=6
+  runs_with_shadow_eval=3
+  coverage_pct=50.0%
+Verdicts
+  pass_count=1
+  fail_count=1
+  defer_count=1
+  missing_count=0
+Overhead (overhead_pct_est, numeric only)
+  count=3
+  mean=-39.913
+  median=-20.070
+  p90=-13.430
+  p95=-12.600
+  max=-11.770
+Top offenders (overhead_pct_est desc)
+  run_id=5 mode=on fixture=FieldHeavy overhead_pct_est=-11.770 baseline_elapsed_msec=1505.015 shadow_elapsed_msec=1327.924 verdict=pass
+  run_id=1 mode=on fixture=FieldHeavy overhead_pct_est=-20.070 baseline_elapsed_msec=1011.518 shadow_elapsed_msec=808.555 verdict=fail
+  run_id=3 mode=on fixture=FieldHeavy overhead_pct_est=-87.900 baseline_elapsed_msec=12529.757 shadow_elapsed_msec=1516.010 verdict=defer
+Trust sanity
+  baseline_trust_eq_1_and_shadow_trust_ne_1=1
+  fail_count_inferred_due_to_shadow_trust=1
+  shadow_trust_counts=0=1, 1=2
+
+
+
+------------------------------------------------------------
+Running fixture: straight
+Mode: smartscale_rows256
+Log file: logs\render_test_straight_smartscale_rows256_Thu002-26-2026_17-01-14-23.txt
+------------------------------------------------------------
+PASS: logs\render_test_straight_smartscale_rows256_Thu002-26-2026_17-01-14-23.txt windows=4, trusted=1, partial=3
+ON trusted mean per-px-on=2.387
+OFF trusted mean per-px-off=na
+ON saved% mean (baseline-ready)=na
+Audit totals: falseNeg=0 falsePos=0
+
+summary: pass=1 fail=0
+
+DOE summary:
+A) TrustReason histogram (global)
+  low_mode_samples: 2
+  ok: 1
+  low_raytests: 1
+
+A) TrustReason histogram (per run)
+  smartscale_baseline: ok=1
+  smartscale_step1_unlock: low_raytests=1
+  smartscale_step2_time20: low_mode_samples=1
+  smartscale_step3_time30: low_mode_samples=1
+
+B) Trust flip timeline
+  smartscale_baseline: firstTrustedStep=30 trusted_windows=1/1 (100.0%)
+  smartscale_step1_unlock: firstTrustedStep=none trusted_windows=0/1 (0.0%)
+  smartscale_step2_time20: firstTrustedStep=none trusted_windows=0/1 (0.0%)
+  smartscale_step3_time30: firstTrustedStep=none trusted_windows=0/1 (0.0%)
+
+C) low_raytests diagnostics: count=1
+  run=smartscale_step1_unlock step=60 geomRayTestsTotalRaw=0.0 minRayTests=2048.0 geomPixProcessedRaw=36000.0 minGeomPix=1024.0 candPix/noCand=27640/8360 rayTestsPerGeomPix=0.000 candRate=0.768 noCandRate=0.232
+
+D) Top 10 worst trust failures by deficit
+  run=smartscale_step1_unlock step=60 raytestsDeficit=2048.000 geomPixDeficit=0.000 p2Deficit=na
+
+RUN REPORT
+  run=smartscale_baseline frames=60 warmup=3 samples=43 windows=1 trusted=1 partial=0
+    firstTrustedStep=30 lastTrustedStep=30
+    topReasons=ok=1
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=2.387,2.387 savedPctMean=na
+  run=smartscale_step1_unlock frames=60 warmup=3 samples=34 windows=1 trusted=0 partial=1
+    firstTrustedStep=na lastTrustedStep=na
+    topReasons=low_raytests=1
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=na,na savedPctMean=na
+    low_raytests examples:
+      step=60 geomRayTestsTotalRaw=0 minRayTests=2048 trustRayTestsMet=0 geomPixProcessedRaw=36000 minGeomPix=1024
+  run=smartscale_step2_time20 frames=60 warmup=3 samples=33 windows=1 trusted=0 partial=1
+    firstTrustedStep=na lastTrustedStep=na
+    topReasons=low_mode_samples=1
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=na,na savedPctMean=na
+  run=smartscale_step3_time30 frames=60 warmup=3 samples=20 windows=1 trusted=0 partial=1
+    firstTrustedStep=na lastTrustedStep=na
+    topReasons=low_mode_samples=1
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=na,na savedPctMean=na
+
+REASON HISTOGRAM
+  reasons:
+    low_mode_samples: 2
+    ok: 1
+    low_raytests: 1
+  trusted: trusted=1=1 trusted=0=3
+  prune: prune=on=4 prune=off=0
+  trustGateDebug metPix=1 metRay=0: 1
+
+=== AutoCal Shadow Eval Summary (C1.1 g.3) ===
+Coverage
+  total_runs=4
+  runs_with_shadow_eval=4
+  coverage_pct=100.0%
+Verdicts
+  pass_count=4
+  fail_count=0
+  defer_count=0
+  missing_count=0
+Overhead (overhead_pct_est, numeric only)
+  count=4
+  mean=0.000
+  median=0.000
+  p90=0.000
+  p95=0.000
+  max=0.000
+Top offenders (overhead_pct_est desc)
+  run_id=1 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=659.229 shadow_elapsed_msec=659.229 verdict=pass
+  run_id=2 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=5010.570 shadow_elapsed_msec=5010.570 verdict=pass
+  run_id=3 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=963.279 shadow_elapsed_msec=963.279 verdict=pass
+  run_id=4 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=873.446 shadow_elapsed_msec=873.446 verdict=pass
+Trust sanity
+  baseline_trust_eq_1_and_shadow_trust_ne_1=0
+  fail_count_inferred_due_to_shadow_trust=0
+  shadow_trust_counts=0=3, 1=1
+
+AutoCal decision binding diagnostic
+  missing_decision_count=0
+
+CSV written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.csv
+JSON written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.json
+
+============================================================
+AutoCal Shadow Eval Summary (straight, smartscale_rows256)
+Source: logs\renderhealth_regress_straight_smartscale_rows256_Thu002-26-2026_17-01-14-23.txt
+============================================================
+=== AutoCal Shadow Eval Summary (C1.1 g.3) ===
+Coverage
+  total_runs=4
+  runs_with_shadow_eval=4
+  coverage_pct=100.0%
+Verdicts
+  pass_count=4
+  fail_count=0
+  defer_count=0
+  missing_count=0
+Overhead (overhead_pct_est, numeric only)
+  count=4
+  mean=0.000
+  median=0.000
+  p90=0.000
+  p95=0.000
+  max=0.000
+Top offenders (overhead_pct_est desc)
+  run_id=1 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=659.229 shadow_elapsed_msec=659.229 verdict=pass
+  run_id=2 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=5010.570 shadow_elapsed_msec=5010.570 verdict=pass
+  run_id=3 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=963.279 shadow_elapsed_msec=963.279 verdict=pass
+  run_id=4 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=873.446 shadow_elapsed_msec=873.446 verdict=pass
+Trust sanity
+  baseline_trust_eq_1_and_shadow_trust_ne_1=0
+  fail_count_inferred_due_to_shadow_trust=0
+  shadow_trust_counts=0=3, 1=1
+
+
+
+------------------------------------------------------------
+Running fixture: curved_minimal
+Mode: smartscale_rows256
+Log file: logs\render_test_curved_minimal_smartscale_rows256_Thu002-26-2026_17-01-14-23.txt
+------------------------------------------------------------
+PASS: logs\render_test_curved_minimal_smartscale_rows256_Thu002-26-2026_17-01-14-23.txt windows=6, trusted=6, partial=0
+ON trusted mean per-px-on=4.043
+OFF trusted mean per-px-off=na
+ON saved% mean (baseline-ready)=na
+Audit totals: falseNeg=0 falsePos=0
+
+summary: pass=1 fail=0
+
+DOE summary:
+A) TrustReason histogram (global)
+  ok: 6
+
+A) TrustReason histogram (per run)
+  smartscale_baseline: ok=1
+  smartscale_baseline_shadow: ok=2
+  smartscale_step1_unlock: ok=1
+  smartscale_step1_unlock_shadow: ok=2
+
+B) Trust flip timeline
+  smartscale_baseline: firstTrustedStep=30 trusted_windows=1/1 (100.0%)
+  smartscale_baseline_shadow: firstTrustedStep=60 trusted_windows=2/2 (100.0%)
+  smartscale_step1_unlock: firstTrustedStep=120 trusted_windows=1/1 (100.0%)
+  smartscale_step1_unlock_shadow: firstTrustedStep=150 trusted_windows=2/2 (100.0%)
+
+C) low_raytests diagnostics: count=0
+
+D) Top 10 worst trust failures by deficit
+  none
+
+RUN REPORT
+  run=smartscale_baseline frames=60 warmup=3 samples=43 windows=1 trusted=1 partial=0
+    firstTrustedStep=30 lastTrustedStep=30
+    topReasons=ok=1
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=4.501,4.501 savedPctMean=na
+  run=smartscale_baseline_shadow frames=60 warmup=3 samples=57 windows=2 trusted=2 partial=0
+    firstTrustedStep=60 lastTrustedStep=90
+    topReasons=ok=2
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=4.650,5.598 savedPctMean=na
+  run=smartscale_step1_unlock frames=60 warmup=3 samples=28 windows=1 trusted=1 partial=0
+    firstTrustedStep=120 lastTrustedStep=120
+    topReasons=ok=1
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=0.443,0.443 savedPctMean=na
+  run=smartscale_step1_unlock_shadow frames=60 warmup=3 samples=57 windows=2 trusted=2 partial=0
+    firstTrustedStep=150 lastTrustedStep=180
+    topReasons=ok=2
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=5.008,5.346 savedPctMean=na
+
+REASON HISTOGRAM
+  reasons:
+    ok: 6
+  trusted: trusted=1=6 trusted=0=0
+  prune: prune=on=6 prune=off=0
+  trustGateDebug metPix=1 metRay=0: 0
+
+=== AutoCal Shadow Eval Summary (C1.1 g.3) ===
+Coverage
+  total_runs=4
+  runs_with_shadow_eval=2
+  coverage_pct=50.0%
+Verdicts
+  pass_count=2
+  fail_count=0
+  defer_count=0
+  missing_count=0
+Overhead (overhead_pct_est, numeric only)
+  count=2
+  mean=-40.815
+  median=-40.815
+  p90=-12.219
+  p95=-8.645
+  max=-5.070
+Top offenders (overhead_pct_est desc)
+  run_id=1 mode=on fixture=FieldHeavy overhead_pct_est=-5.070 baseline_elapsed_msec=850.954 shadow_elapsed_msec=807.815 verdict=pass
+  run_id=3 mode=on fixture=FieldHeavy overhead_pct_est=-76.560 baseline_elapsed_msec=6493.732 shadow_elapsed_msec=1522.201 verdict=pass
+Trust sanity
+  baseline_trust_eq_1_and_shadow_trust_ne_1=0
+  fail_count_inferred_due_to_shadow_trust=0
+  shadow_trust_counts=1=2
+
+AutoCal decision binding diagnostic
+  missing_decision_count=0
+
+CSV written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.csv
+JSON written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.json
+
+============================================================
+AutoCal Shadow Eval Summary (curved_minimal, smartscale_rows256)
+Source: logs\renderhealth_regress_curved_minimal_smartscale_rows256_Thu002-26-2026_17-01-14-23.txt
+============================================================
+=== AutoCal Shadow Eval Summary (C1.1 g.3) ===
+Coverage
+  total_runs=4
+  runs_with_shadow_eval=2
+  coverage_pct=50.0%
+Verdicts
+  pass_count=2
+  fail_count=0
+  defer_count=0
+  missing_count=0
+Overhead (overhead_pct_est, numeric only)
+  count=2
+  mean=-40.815
+  median=-40.815
+  p90=-12.219
+  p95=-8.645
+  max=-5.070
+Top offenders (overhead_pct_est desc)
+  run_id=1 mode=on fixture=FieldHeavy overhead_pct_est=-5.070 baseline_elapsed_msec=850.954 shadow_elapsed_msec=807.815 verdict=pass
+  run_id=3 mode=on fixture=FieldHeavy overhead_pct_est=-76.560 baseline_elapsed_msec=6493.732 shadow_elapsed_msec=1522.201 verdict=pass
+Trust sanity
+  baseline_trust_eq_1_and_shadow_trust_ne_1=0
+  fail_count_inferred_due_to_shadow_trust=0
+  shadow_trust_counts=1=2
+
+
+
+============================================================
+Final Summary
+============================================================
+1) straight calls60 log: logs\render_test_straight_smartscale_calls60_Thu002-26-2026_17-01-14-23.txt
+1) straight calls60 regress: logs\renderhealth_regress_straight_smartscale_calls60_Thu002-26-2026_17-01-14-23.txt
+2) curved_minimal calls60 log: logs\render_test_curved_minimal_smartscale_calls60_Thu002-26-2026_17-01-14-23.txt
+2) curved_minimal calls60 regress: logs\renderhealth_regress_curved_minimal_smartscale_calls60_Thu002-26-2026_17-01-14-23.txt
+3) straight rows256 log: logs\render_test_straight_smartscale_rows256_Thu002-26-2026_17-01-14-23.txt
+3) straight rows256 regress: logs\renderhealth_regress_straight_smartscale_rows256_Thu002-26-2026_17-01-14-23.txt
+4) curved_minimal rows256 log: logs\render_test_curved_minimal_smartscale_rows256_Thu002-26-2026_17-01-14-23.txt
+4) curved_minimal rows256 regress: logs\renderhealth_regress_curved_minimal_smartscale_rows256_Thu002-26-2026_17-01-14-23.txt
+
+Note: tools\renderhealth_summary.csv and tools\renderhealth_summary.json may be overwritten by later parser runs.
+
+Finished SmartScale matrix runs.
