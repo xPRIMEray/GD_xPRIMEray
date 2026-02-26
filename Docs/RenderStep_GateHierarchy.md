@@ -33,13 +33,14 @@ GrinFilmCamera.RenderStep()
 |  `- watchdog check -> abort/force advance
 +- PASS2 (main thread)
 |  +- per-pixel loop
-|  |  +- broadphase/TLAS prune envelope + candidate gate
+|  |  +- BVH/TLAS envelope build + QueryAabb candidate gate
 |  |  +- quick-ray / overlap / hybrid gates
 |  |  +- softgate scoring/budgets/watchdog gates (optional subdivide retry)
 |  |  +- pass2 stride gate (skip some segments)
 |  |  `- narrowphase (SweepSegmentHit / SubdividedRayHit), hit accept/reject vs TLAS candidates
+|  +- film shading + _img.SetPixel writes (per pixel / stride fill)
 |  +- budgetStop? (yield / incomplete mark / finalize depending reason)
-|  `- normal band commit + row advance
+|  `- normal band commit + row advance + _tex.Update(_img)
 `- Finally
    +- no-row-progress watchdog -> force row advance
    `- RecordRenderHealthSample(...) (geomPix/geomRays/p2Samp/etc.)
@@ -64,36 +65,38 @@ flowchart TD
   K -- yes --> K1[cache pending pass2 + finalize advance]
   K -- no --> L[PASS2 main-thread loop]
   J --> L
-  L --> M{budgetStop or watchdog?}
+  L --> L1[BVH/TLAS QueryAabb + broadphase + narrowphase]
+  L1 --> L2[Film shading + _img.SetPixel writes]
+  L2 --> M{budgetStop or watchdog?}
   M -- yes --> M1[yield / mark incomplete / finalize]
-  M -- no --> N[Commit band + advance rowCursor]
+  M -- no --> N[Commit band + row advance + _tex.Update]
   M1 --> O[finally: no-row-progress watchdog + render health sample]
   N --> O
 ```
 
 ## 2) Major Control Factors (what they cap / throttle)
 
-| Factor | Caps / throttles | Consumed at (file:line) | Notes |
-|---|---|---|---|
-| `Width`, `Height`, `FilmResolutionScale` | Runtime film dimensions (`_filmWidth/_filmHeight`) and total pixel workload | `GrinFilmCamera.cs:128`, `GrinFilmCamera.cs:130`, `GrinFilmCamera.cs:136`; resolved in `EnsureFilmImageSize` at `GrinFilmCamera.cs:7206` | `targetW/H = Base * ResolutionScale` |
-| `PixelStride` | Pass1 sampling density (skips pixels), traced-pixel count | `GrinFilmCamera.cs:139`; stride gate `GrinFilmCamera.cs:3575`; traced estimate `GrinFilmCamera.cs:2609` | Non-stride pixels are block-filled later |
-| `RowsPerFrame` | Base band height before adaptive/clamps | `GrinFilmCamera.cs:142`; rows calc `GrinFilmCamera.cs:3193` | Seed for adaptive rows |
-| `TargetMsPerFrame`, `MinRowsPerFrame`, `MaxRowsPerFrameCap` | Adaptive rows target and bounds | `GrinFilmCamera.cs:221`, `GrinFilmCamera.cs:224`, `GrinFilmCamera.cs:227`; apply at `GrinFilmCamera.cs:3193-3230`; update at `GrinFilmCamera.cs:6178-6188` | Affects future band size, not immediate hard stop |
-| `UpdateEveryFrameBudgetMs` | Per-call time budget clamp (when `UpdateEveryFrame`) | `GrinFilmCamera.cs:197`; clamp at `GrinFilmCamera.cs:2620-2627`; watchdog path `GrinFilmCamera.cs:2951-2962` | Tighter than `RenderStepMaxMs` wins |
-| `UpdateEveryFrameMaxRowsPerStep` | Hard row cap per call under `UpdateEveryFrame` | `GrinFilmCamera.cs:200`; applied at `GrinFilmCamera.cs:3203-3207` | Can block gains from higher target ms |
-| `RenderStepMaxMs` | Hard RenderStep watchdog time | `GrinFilmCamera.cs:206`; used in `effectiveMaxMs` and `CheckRenderStepWatchdog` `GrinFilmCamera.cs:2951-2972` | Non-`UpdateEveryFrame`: abort disables `UpdateEveryFrame` |
-| `RenderStepMaxPixelsPerFrame` | Band pixel cap | `GrinFilmCamera.cs:209`; pre-band cap `GrinFilmCamera.cs:3297-3313`; row pre-cap estimate `GrinFilmCamera.cs:3208-3210` | Can trigger `budgetStop("max_pixels")` |
-| `RenderStepMaxSegmentsPerFrame` | Band segment cap (`pixelCount * maxSeg`) | `GrinFilmCamera.cs:212`; pre-band cap `GrinFilmCamera.cs:3402-3419`; row pre-cap estimate `GrinFilmCamera.cs:3211-3213` | `maxSeg` comes from ray march settings |
-| `RenderStepNoRowProgressRepeatLimit` | Finally-block forced row advance watchdog | `GrinFilmCamera.cs:215`; trigger `GrinFilmCamera.cs:6566-6580` | Prevents repeated work without row cursor movement |
-| `UsePass2CollisionStride`, `Near/Far/FarStartT`, `MinSegLenForStrideSkip` | Pass2 segment test skipping cadence | exports `GrinFilmCamera.cs:460-472`; helper `ComputePass2CollisionStride` `GrinFilmCamera.cs:7066-7080`; skip gate `GrinFilmCamera.cs:5625-5653` | Skips narrowphase on some pass0 segments |
-| `UseGeometryTLASPruning`, `Pass2GeomEnvelopeRadiusScale`, `Pass2GeomEnvelopeAabbExpand` | Candidate pruning before narrowphase | exports `GrinFilmCamera.cs:473-481`; envelope+TLAS query `GrinFilmCamera.cs:4651-4664`, `GrinFilmCamera.cs:4942-4996` | Reduces narrowphase tests, can reject hits if too aggressive |
-| SoftGate core (`EnableQuickRayMiss`, `ScoringEnabled`) | Enables score-gated retry on quick-ray miss | exports `GrinFilmCamera.cs:528-530`, `GrinFilmCamera.cs:574-576`; gating path `GrinFilmCamera.cs:4214-4220` | Requires both flags on |
-| SoftGate budgets (`MaxAttemptsPerPixel`, `MaxAttemptsPerFrame`, `MaxSubdividedCallsPerFrame`, watchdog ms) | Caps soft-gated retry count/cost | exports `GrinFilmCamera.cs:537-564`; enforced `GrinFilmCamera.cs:4001-4154`, per-subdivide watchdog `GrinFilmCamera.cs:5764-5784` | Can trigger `softgate_attempt_cap` / `softgate_subdivide_cap` |
-| SoftGate scoring (`MinSegmentLength`, `ScoreThreshold`, weights, random, `ScoreBudgetPerFrame`) | Selects which quick-ray misses get subdivide retry | exports `GrinFilmCamera.cs:579-595`; scoring gate `GrinFilmCamera.cs:4237-4304` | `ScoreBudgetPerFrame` is an additional limiter |
-| `StepsPerRay`, `StepLength`, `MinStepLength`, `MaxStepLength`, `StepAdaptGain` | Ray integration step count and step size (pass1 ray segment generation) | exports `RayBeamRenderer.cs:28-42`; used in loops `RayBeamRenderer.cs:2236-2336` and `RayBeamRenderer.cs:1574-1647` | Directly affects `maxSeg` / segment density |
-| `LowCurvaturePerpAccel`, `LowCurvatureStepBoost` | Expands step size in low curvature -> fewer segments | exports `RayBeamRenderer.cs:43-48`; used at `RayBeamRenderer.cs:2294-2303` / `RayBeamRenderer.cs:2051-2060` | Can silently lower pass1 segment density |
-| `CollisionEveryNSteps`, screen-space cadence controls | Segment emission cadence in pass1 builder | exports `RayBeamRenderer.cs:82-84`, `RayBeamRenderer.cs:109-121`; used at `RayBeamRenderer.cs:2181-2184`, `RayBeamRenderer.cs:2308-2318`, emit gate `RayBeamRenderer.cs:2347-2355` | Fewer emitted segments => fewer pass2 opportunities |
-| `CollisionRaySubdivideThreshold`, `MaxCollisionSubsteps` | Narrowphase per-segment ray query count | exports `RayBeamRenderer.cs:97-102`; pass2 subdivide calc `GrinFilmCamera.cs:5691-5703` | Caps fidelity/cost of `SubdividedRayHit` |
+| Knob(s) | Default(s) | What it gates | Counters impacted (typical) | Typical failure signature | Consumed at (file:line) |
+|---|---|---|---|---|---|
+| `Width`, `Height`, `FilmResolutionScale` | `160`, `90`, `1.0` | Runtime film dimensions (`_filmWidth/_filmHeight`), total pixels per band | `pixelCount`, `bandTracedPixels`, `processedPixelsThisBand`, `_geomPixelProcessedThisFrame`, `_geomRayTests*`, film write count | `low_geom_pix`, low hits globally, budget stops before pass2 | exports `GrinFilmCamera.cs:128-136`; resolved `GrinFilmCamera.cs:7206-7223` |
+| `PixelStride` | `1` | Pass1 sampling density (skip non-stride pixels) and pass2 opportunity density | `bandTracedPixels`, `_perfFrame.TracedPixels`, `_geomPixelProcessedThisFrame`, `_geomRayTests*`, `bandHits` | `low_geom_pix`, blocky coverage, low hits with normal ms | export `GrinFilmCamera.cs:139`; traced estimate `GrinFilmCamera.cs:2609-2612`; stride gate `GrinFilmCamera.cs:3575-3587` |
+| `RowsPerFrame` | `8` | Base band height before adaptive/hard caps | `bandH`, `pixelCount`, `segTotal`, all band counters | Slow convergence with no cap logs | export `GrinFilmCamera.cs:142`; base rows `GrinFilmCamera.cs:3193` |
+| `TargetMsPerFrame`, `MinRowsPerFrame`, `MaxRowsPerFrameCap` | `16`, `4`, `256` | Adaptive rows target and bounds (future calls) | `rowsPerFrame`, `bandH`, indirect effect on all per-band counters | `TargetMsPerFrame` raised but rows stay bounded/clamped | exports `GrinFilmCamera.cs:221-227`; apply `GrinFilmCamera.cs:3193-3230`; feedback `GrinFilmCamera.cs:6178-6188` |
+| `UpdateEveryFrameBudgetMs` | `16f` | Per-call time budget clamp when `UpdateEveryFrame=true` | `budgetStop`, incomplete-band reuse, `rowsDone`, pass1/pass2 completion | `update_every_frame_budget`, `max_ms_after_pass1`, partial bands | export `GrinFilmCamera.cs:197`; clamp `GrinFilmCamera.cs:2620-2627`; watchdog `GrinFilmCamera.cs:2951-2962` |
+| `UpdateEveryFrameMaxRowsPerStep` | `2` | Hard row cap per call under `UpdateEveryFrame` | `rowsPerFrame`, `bandH`, `pixelCount`, all band counters | Higher target ms has little/no effect on hits | export `GrinFilmCamera.cs:200`; row clamp `GrinFilmCamera.cs:3203-3207` |
+| `RenderStepMaxMs` | `50` | Hard RenderStep watchdog time | `budgetStop` / abort, `UpdateEveryFrame` disable path, incomplete bands | `renderstep_max_ms`, watchdog abort, forced advance | export `GrinFilmCamera.cs:206`; effective max + watchdog `GrinFilmCamera.cs:2620-2627`, `GrinFilmCamera.cs:2951-2972` |
+| `RenderStepMaxPixelsPerFrame` | `2000000` | Hard band pixel cap (also row pre-cap in `UpdateEveryFrame`) | `pixelCount`, `rowsPerFrame`, downstream all counters | `max_pixels`, low `geomPix` despite low stride | export `GrinFilmCamera.cs:209`; row pre-cap `GrinFilmCamera.cs:3208-3210`; pre-band cap `GrinFilmCamera.cs:3297-3313` |
+| `RenderStepMaxSegmentsPerFrame` | `20000000` | Hard band segment cap (`pixelCount * maxSeg`) (also row pre-cap) | `segTotal`, `bandSegsIntegrated/Tested`, `bandPhysicsQueries`, `_geomRayTests*` | `max_segments`, pass2 under-traces even with pixels available | export `GrinFilmCamera.cs:212`; row pre-cap `GrinFilmCamera.cs:3211-3213`; pre-band cap `GrinFilmCamera.cs:3402-3419` |
+| `RenderStepNoRowProgressRepeatLimit` | `6` | Finally-block no-row-progress watchdog threshold | `_noRowProgressRepeats`, forced row advance, band continuity | repeated `guard_no_row_progress` forced advances | export `GrinFilmCamera.cs:215`; watchdog `GrinFilmCamera.cs:6558-6580` |
+| `UsePass2CollisionStride`, `Pass2CollisionStrideNear/Far/FarStartT`, `MinSegLenForStrideSkip` | `false`, `1/4/0.35`, `0` | Distance-based pass2 segment skip (narrowphase throttle) | `subRaysSkippedByPass2Stride`, `bandSegsTested`, `_geomRayTestsTotalThisFrame`, `bandHits` | `geomPixProcessed` normal but `geomRays` low | exports `GrinFilmCamera.cs:460-472`; helper `GrinFilmCamera.cs:7066-7080`; skip gate `GrinFilmCamera.cs:5625-5653` |
+| `UseGeometryTLASPruning`, `Pass2GeomEnvelopeRadiusScale`, `Pass2GeomEnvelopeAabbExpand` | `true`, `1.10`, `0.0` | BVH/TLAS candidate pruning before narrowphase | `_geomSegmentsQueriedThisFrame`, `_geomSegWithCandidates*`, `_geomCandidates*`, `geomPixHadAnyCandidates/NoCand`, `_geomRayTestsAccepted/Rejected`, `pass2SampledSegments` hist | high `geomPixNoCand`, high rejects, lower `geomRays` | exports `GrinFilmCamera.cs:473-481`; envelope `GrinFilmCamera.cs:4651-4664`; TLAS query/counters `GrinFilmCamera.cs:4942-4996` |
+| SoftGate core: `Pass2SoftGateEnableQuickRayMiss`, `Pass2SoftGateScoringEnabled` | `false`, `true` | Enables score-gated subdivide retries on quick-ray misses | `_softGate*`, `p2SoftGateAttempts/Hits`, `bandHits`, `_geomRayTestsTotalThisFrame` | quick-ray misses never recovered | exports `GrinFilmCamera.cs:528-530`, `GrinFilmCamera.cs:574-576`; gate `GrinFilmCamera.cs:4214-4220` |
+| SoftGate budgets: `MaxAttemptsPerPixel`, `MaxAttemptsPerFrame`, `MaxSubdividedCallsPerFrame`, `WatchdogMs` | `2`, `5000`, `10000`, `50f` | Caps softgate retry count/cost and per-subdivide runtime | `_softGateAttemptsUsedThisFrame`, `_softGateSubdividedCallsUsedThisFrame`, `softGateBudgetExceeded`, `budgetStopReason`, `bandHits` | `softgate_attempt_cap`, `softgate_subdivide_cap`, `guard_softgate_watchdog` | exports `GrinFilmCamera.cs:537-564`; enforce `GrinFilmCamera.cs:4001-4154`; watchdog `GrinFilmCamera.cs:5764-5784` |
+| SoftGate scoring: `MinSegmentLength`, `ScoreThreshold`, turn/prevLost/random, `ScoreBudgetPerFrame` | `0.2`, `1.0`, `1.0/0.75/0.01`, `32` | Selects which quick-ray misses are eligible for retry | `_softGateFrame.*Skip*`, `_softGateFrame.SoftGateAttempts/Hits`, `bandHits`, `_geomRayTestsTotalThisFrame` | softgate enabled but no attempts (`scoreTooLow`, `segLenTooShort`) | exports `GrinFilmCamera.cs:579-595`; scoring gate `GrinFilmCamera.cs:4237-4304` |
+| `StepsPerRay`, `StepLength`, `MinStepLength`, `MaxStepLength`, `StepAdaptGain` | `64`, `0.25`, `0.05`, `0.5`, `0.05` | Ray integration step count + adaptive step size in pass1 segment build | `maxSeg` (derived), `_segCountPerPixel`, `bandSegsIntegrated`, `segTotal`, `pass1StepsIntegrated` | `max_segments` cap or coarse paths / missed hits | exports `RayBeamRenderer.cs:28-42`; loops `RayBeamRenderer.cs:2236-2336`, `RayBeamRenderer.cs:1574-1647` |
+| `LowCurvaturePerpAccel`, `LowCurvatureStepBoost` | `0.05`, `2.0` | Enlarges steps in low curvature (fewer emitted segments) | `_segCountPerPixel`, `bandSegsIntegrated`, `segTotal`, `pass1StepsIntegrated` | low hits in gentle bends despite enough budget | exports `RayBeamRenderer.cs:43-48`; used `RayBeamRenderer.cs:2294-2303`, `RayBeamRenderer.cs:2051-2060` |
+| `CollisionEveryNSteps`, `UseScreenSpaceCollisionCadence`, `CollisionMaxErrorPixels`, `MinDepthForError`, `MinCollisionEveryNSteps` | `1`, `true`, `0.75`, `0.10`, `1` | Segment emission cadence in pass1 builder (`ce`) | `_segCountPerPixel`, `bandSegsIntegrated`, `segTotal`, pass2 opportunity count | low `bandSegsIntegrated` + low hits with normal pixel coverage | exports `RayBeamRenderer.cs:82-84`, `RayBeamRenderer.cs:109-121`; cadence use `RayBeamRenderer.cs:2181-2184`, `RayBeamRenderer.cs:2308-2318`, emit `RayBeamRenderer.cs:2347-2355` |
+| `CollisionRaySubdivideThreshold`, `MaxCollisionSubsteps` | `0.25`, `16` | Per-segment narrowphase fidelity/cost for subdivided ray tests | `_geomRayTestsTotalThisFrame`, `bandPhysicsQueries`, `_perfFrame.SubdividedRayQueries`, hit recovery on long segments | missed long-segment hits or expensive subdivides | exports `RayBeamRenderer.cs:97-102`; pass2 subdiv calc `GrinFilmCamera.cs:5691-5703` |
 
 ## 3) Where Coverage Metrics Are Affected (`geomPix`, `geomRays`, etc.)
 
@@ -164,6 +167,65 @@ flowchart TD
 | `geomRayTestsRejected` high | TLAS candidate mismatch / aggressive prune / ID-space mismatch symptoms; hits found by narrowphase but rejected by candidate set |
 | `p2Samp` low despite higher `TargetMsPerFrame` | `UpdateEveryFrameBudgetMs` or `RenderStepMaxMs` still tighter; `UpdateEveryFrameMaxRowsPerStep`; pixel/segment frame caps; softgate caps; pass1 timeout causing `max_ms_after_pass1` defer |
 
+## Max Hits Strategy (symptom -> first fix)
+
+Use this in order. The point is to clear hard gates before tuning softer heuristics.
+
+### If `low_geom_pix` / low `geomPixProcessed`
+
+1. Check hard caps first (these beat `TargetMsPerFrame`):
+   - `UpdateEveryFrameMaxRowsPerStep`
+   - `RenderStepMaxPixelsPerFrame`
+   - `RenderStepMaxSegmentsPerFrame`
+2. Increase sampling density:
+   - lower `PixelStride` (highest leverage if >1)
+   - raise `RowsPerFrame` and/or `MaxRowsPerFrameCap`
+3. Then relax time clamps:
+   - `UpdateEveryFrameBudgetMs`
+   - `RenderStepMaxMs`
+4. If you see `max_ms_after_pass1`, pass1 is consuming the budget before pass2.
+
+### If `geomPixProcessed` is normal but `geomRays` is low
+
+1. Disable or reduce pass2 stride skipping:
+   - `UsePass2CollisionStride=false` (A/B first)
+   - reduce `Pass2CollisionStrideFar`
+2. Check prune gating:
+   - `UseGeometryTLASPruning=false` (A/B)
+   - widen `Pass2GeomEnvelopeRadiusScale` / `Pass2GeomEnvelopeAabbExpand`
+3. Check softgate suppression of retry paths:
+   - enable softgate core (if off)
+   - lower `Pass2SoftGateScoreThreshold`
+   - raise softgate budgets (`ScoreBudgetPerFrame`, attempts/subdivides)
+
+### If `bandSegsIntegrated` is low (few pass2 opportunities)
+
+1. Increase ray/segment fidelity in pass1:
+   - `StepsPerRay` up
+   - `StepLength` down
+2. Reduce cadence skipping:
+   - lower `CollisionEveryNSteps`
+   - tighten screen-space cadence tolerance (`CollisionMaxErrorPixels`)
+3. Reduce low-curvature coarse stepping:
+   - lower `LowCurvatureStepBoost` or `LowCurvaturePerpAccel`
+
+### If `geomRayTestsRejected` is high
+
+1. Increase TLAS envelope conservativeness:
+   - `Pass2GeomEnvelopeRadiusScale`
+   - `Pass2GeomEnvelopeAabbExpand`
+2. A/B with `UseGeometryTLASPruning=false`
+3. Review prune-audit counters before widening further
+
+### If increasing `TargetMsPerFrame` does nothing
+
+Most likely blockers (in order):
+1. `UpdateEveryFrameMaxRowsPerStep`
+2. `RenderStepMaxPixelsPerFrame`
+3. `RenderStepMaxSegmentsPerFrame`
+4. `UpdateEveryFrameBudgetMs`
+5. `RenderStepMaxMs`
+
 ## Code Map (entry -> RayBeamRenderer)
 
 - `GrinFilmCamera.RenderStep()` entry: `GrinFilmCamera.cs:2324`
@@ -173,3 +235,6 @@ flowchart TD
 - Pass2 narrowphase calls from film loop:
   - `RayBeamRenderer.SweepSegmentHit(...)` e.g. `GrinFilmCamera.cs:5006-5008`
   - `RayBeamRenderer.SubdividedRayHit(...)` e.g. `GrinFilmCamera.cs:5717-5725`
+- Film writes / upload (downstream of pass2 hit decisions):
+  - `_img.SetPixel(...)` helper writes at `GrinFilmCamera.cs:7173`, `GrinFilmCamera.cs:7186`
+  - `_tex.Update(_img)` upload at `GrinFilmCamera.cs:6336`
