@@ -14,6 +14,12 @@ public partial class RenderTestRunner : Node
 		CurvedMinimal = 2
 	}
 
+	public enum SmartScaleMode
+	{
+		None = 0,
+		MaxHits = 1
+	}
+
 	private enum HarnessState
 	{
 		Idle = 0,
@@ -65,10 +71,16 @@ public partial class RenderTestRunner : Node
 	private const string LifecycleStressCyclesCmdArgPrefix = "--lifecycle-stress-cycles=";
 	private const string LifecycleStressFramesCmdArgPrefix = "--lifecycle-stress-frames=";
 	private const string LifecycleStressWarmupCmdArgPrefix = "--lifecycle-stress-warmup=";
+	private const string SmartScaleCmdArgPrefix = "--smartscale=";
+	private const string SmartScaleGoalCmdArgPrefix = "--smartscale-goal=";
+	private const string SmartScaleNoEarlyStopCmdArgPrefix = "--smartscale-no-early-stop=";
 	private const int RenderTestMinFramesPerRun = 90;
+	private const int SmartScaleProbeFramesPerRun = 60;
+	private const int SmartScaleProbeWarmupFrames = 3;
 	private const int RenderTestStatsFullFrameEveryNSteps = 8;
 	private const int RenderTestTrustPass2SampleEveryNSegments = 8;
 	private const int RenderTestTrustMinP2Samples = 8;
+	private const double SmartScaleSignificantGeomPixGainRatio = 1.15;
 	private static readonly long RenderTestLiveLogIntervalTicks = Stopwatch.Frequency;
 
 	private GrinFilmCamera _film;
@@ -114,6 +126,7 @@ public partial class RenderTestRunner : Node
 	private FieldInfo _rhSampleGeomRayTestsField;
 	private FieldInfo _rhSampleHitsField;
 	private FieldInfo _rhSampleTracedField;
+	private FieldInfo _rhSampleBudgetExitReasonField;
 	private FieldInfo _rhGeomOnTotalField;
 	private FieldInfo _rhGeomOnTracedField;
 	private FieldInfo _rhGeomOffTotalField;
@@ -165,6 +178,40 @@ public partial class RenderTestRunner : Node
 	private ulong _autoCalDecisionLogDedupPresetHash64 = 0UL;
 	private ShadowEvalMatrixDecisionAggregate _shadowEvalMatrixDecisionAggregate;
 	private bool _lifecycleStressMidCycleRendererNullObserved = false;
+	private SmartScaleMode _smartScaleMode = SmartScaleMode.None;
+	private bool _smartScaleConfigured = false;
+	private bool _smartScaleNoEarlyStop = false;
+	private bool _smartScaleAbortRemainingRuns = false;
+	private int _smartScaleLastObservedStep = int.MinValue;
+	private int _smartScaleBudgetStopCountCurrentRun = 0;
+	private bool _smartScaleResultEmitted = false;
+	private readonly List<SmartScaleProbeResult> _smartScaleProbeResults = new List<SmartScaleProbeResult>(4);
+
+	private struct SmartScaleProbeOverride
+	{
+		public string ProbeId;
+		public string Summary;
+		public int? PixelStride;
+		public bool? UsePass2CollisionStride;
+		public int? TargetMsPerFrame;
+		public float? UpdateEveryFrameBudgetMs;
+		public int? UpdateEveryFrameMaxRowsPerStep;
+		public int? RowsPerFrame;
+		public int? MaxRowsPerFrameCap;
+		public int? RenderStepMaxMs;
+		public int? RenderStepMaxPixelsPerFrame;
+		public int? RenderStepMaxSegmentsPerFrame;
+	}
+
+	private struct SmartScaleProbeResult
+	{
+		public string ProbeId;
+		public string EscalationLabel;
+		public string Summary;
+		public bool IsValid;
+		public string InvalidReason;
+		public ShadowEvalRunMetrics Metrics;
+	}
 
 	private sealed class LifecycleStressSessionState
 	{
@@ -199,6 +246,16 @@ public partial class RenderTestRunner : Node
 		public double ElapsedMs;
 		public bool PruneEnabled;
 		public int TargetMsPerFrame;
+		public int PixelStride;
+		public int UpdateEveryFrameMaxRowsPerStep;
+		public int RenderStepMaxPixelsPerFrame;
+		public int RenderStepMaxSegmentsPerFrame;
+		public int RenderStepMaxMs;
+		public float UpdateEveryFrameBudgetMs;
+		public bool EffectiveMaxMsKnown;
+		public float EffectiveMaxMs;
+		public int BudgetStopCount;
+		public bool BudgetStopCountKnown;
 	}
 
 	private struct ShadowEvalMatrixDecisionAggregate
@@ -233,7 +290,9 @@ public partial class RenderTestRunner : Node
 				$"shadow_eval={(EnableShadowCalibrationEvaluation ? 1 : 0)} " +
 				$"autocal_verbose={(AutoCalVerboseLogs ? 1 : 0)} " +
 				$"autocal_apply={(ApplyAutoCalibratedPreset ? 1 : 0)} " +
-				$"lifecycle_stress={(IsLifecycleStressActive() ? 1 : 0)}");
+				$"lifecycle_stress={(IsLifecycleStressActive() ? 1 : 0)} " +
+				$"smartscale={(IsSmartScaleActive() ? 1 : 0)} " +
+				$"smartscale_goal={_smartScaleMode.ToString().ToLowerInvariant()}");
 			GD.Print($"[RenderTestRunner] TokenDetected={hasToken} shouldStart={shouldStart}");
 			if (!shouldStart)
 			{
@@ -345,6 +404,7 @@ public partial class RenderTestRunner : Node
 		}
 
 		_film.GetLatestFrameMetricsForTesting(out double frameMs, out bool hasSegsPerPixel, out double segsPerPixel);
+		ObserveSmartScaleBudgetStopsForCurrentRun();
 		if (_runFrameIndex >= WarmupFrames && double.IsFinite(frameMs) && frameMs >= 0.0)
 		{
 			_frameMsSamples.Add(frameMs);
@@ -371,6 +431,10 @@ public partial class RenderTestRunner : Node
 			{
 				_shadowEvalActiveRun = false;
 				_runIndex++;
+				if (_smartScaleAbortRemainingRuns)
+				{
+					_runIndex = _runs.Count;
+				}
 			}
 			_interRunDelayFramesRemaining = _renderTestMode ? 1 : 0;
 			_harnessState = HarnessState.RunApply;
@@ -432,7 +496,15 @@ public partial class RenderTestRunner : Node
 
 		_runs.Clear();
 		_straightFixtureSceneActive = IsStraightFixtureSceneActive();
-		_runs.AddRange(BuildDefaultRuns());
+		if (IsSmartScaleActive())
+		{
+			ConfigureSmartScaleProbeSchedule();
+			_runs.AddRange(BuildSmartScaleRuns());
+		}
+		else
+		{
+			_runs.AddRange(BuildDefaultRuns());
+		}
 		if (IsLifecycleStressActive() && _runs.Count > 1)
 		{
 			GrinFilmCamera.TestRunConfig baselineRun = _runs[0];
@@ -465,6 +537,9 @@ public partial class RenderTestRunner : Node
 		_hasPendingShadowEvalBaselineRunConfig = false;
 		ResetShadowEvalMatrixDecisionAggregate();
 		_autoCalAcceptedApplyActiveRun = false;
+		_smartScaleAbortRemainingRuns = false;
+		_smartScaleResultEmitted = false;
+		_smartScaleProbeResults.Clear();
 		ClearPendingAcceptedAutoCalApply();
 	}
 
@@ -739,6 +814,7 @@ public partial class RenderTestRunner : Node
 		{
 			ApplyStraightRunOverrides(in _activeRunConfig);
 		}
+		ApplySmartScaleProbeOverridesIfNeeded(in _activeRunConfig);
 		bool runWantsUpdateEveryFrame = _activeRunConfig.UpdateEveryFrame ?? (_defaultsCaptured ? _defaults.UpdateEveryFrame : true);
 		_film.UpdateEveryFrame = runWantsUpdateEveryFrame;
 		_renderTestLiveRunName = Sanitize(_activeRunConfig.Name);
@@ -749,6 +825,8 @@ public partial class RenderTestRunner : Node
 		_runFrameMsSum = 0.0;
 		_runSegsPerPxSum = 0.0;
 		_runSegsPerPxCount = 0;
+		_smartScaleLastObservedStep = int.MinValue;
+		_smartScaleBudgetStopCountCurrentRun = 0;
 		_lifecycleStressMidCycleRendererNullObserved = false;
 		if (IsLifecycleStressActive() && TryGetSharedRayBeamRenderer(out RayBeamRenderer lifecycleRbr) && GodotObject.IsInstanceValid(lifecycleRbr))
 		{
@@ -763,6 +841,12 @@ public partial class RenderTestRunner : Node
 			$"stride={FormatStride(_activeRunConfig)} envScale={FormatNullableFloat(_activeRunConfig.Pass2GeomEnvelopeRadiusScale)} " +
 			$"aabbExpand={FormatNullableFloat(_activeRunConfig.Pass2GeomEnvelopeAabbExpand)} " +
 			$"updateEveryFrame={(runWantsUpdateEveryFrame ? "on" : "off")}");
+		if (TryGetSmartScaleProbeOverride(in _activeRunConfig, out SmartScaleProbeOverride smartProbe))
+		{
+			GD.Print(
+				$"[SmartScale][ProbeStart] probe={Sanitize(smartProbe.ProbeId)} run={Sanitize(_activeRunConfig.Name)} " +
+				$"summary={Sanitize(smartProbe.Summary)}");
+		}
 		if (_renderTestMode)
 		{
 			GD.Print(
@@ -1707,6 +1791,24 @@ public partial class RenderTestRunner : Node
 				$"meanMs={meanMsStr} p95Ms={p95MsStr}");
 
 			bool hasRhLiveSnapshot = TryGetLatestRenderHealthLiveSnapshot(out RenderHealthLiveSnapshot finalRhSnap);
+			bool filmValidForMetrics = _film != null && GodotObject.IsInstanceValid(_film);
+			int renderStepMaxMs = filmValidForMetrics ? Math.Max(0, _film.RenderStepMaxMs) : 0;
+			float updateEveryFrameBudgetMs = filmValidForMetrics ? Math.Max(0f, _film.UpdateEveryFrameBudgetMs) : 0f;
+			bool updateEveryFrameActive = filmValidForMetrics && _film.UpdateEveryFrame;
+			bool effectiveMaxMsKnown = filmValidForMetrics;
+			float effectiveMaxMs = 0f;
+			if (effectiveMaxMsKnown)
+			{
+				if (updateEveryFrameActive && updateEveryFrameBudgetMs > 0f)
+				{
+					float baseMax = renderStepMaxMs > 0 ? renderStepMaxMs : updateEveryFrameBudgetMs;
+					effectiveMaxMs = Math.Max(0f, Mathf.Min(baseMax, updateEveryFrameBudgetMs));
+				}
+				else
+				{
+					effectiveMaxMs = Math.Max(0f, renderStepMaxMs);
+				}
+			}
 			ShadowEvalRunMetrics metrics = new ShadowEvalRunMetrics
 			{
 				RunId = runExecId,
@@ -1715,17 +1817,29 @@ public partial class RenderTestRunner : Node
 				Trusted = hasRh && trusted,
 				TrustReason = hasRh ? (trustReason ?? string.Empty) : string.Empty,
 				TrustFlipEst = (hasRh && trusted) ? 1 : 0,
-				GeomPixProcessedKnown = hasRhLiveSnapshot,
+				GeomPixProcessedKnown = hasRhLiveSnapshot && finalRhSnap.GeomPixProcessedKnown,
 				GeomPixProcessed = hasRhLiveSnapshot ? finalRhSnap.GeomPixProcessed : 0L,
-				GeomRayTestsTotalKnown = hasRhLiveSnapshot,
+				GeomRayTestsTotalKnown = hasRhLiveSnapshot && finalRhSnap.GeomRayTestsTotalKnown,
 				GeomRayTestsTotal = hasRhLiveSnapshot ? finalRhSnap.GeomRayTestsTotal : 0L,
 				MeanMsKnown = sampleCount > 0 && double.IsFinite(meanMs) && meanMs >= 0.0,
 				MeanMs = meanMs,
 				ElapsedMsKnown = runElapsedKnown,
 				ElapsedMs = runElapsedMs,
 				PruneEnabled = ResolveRunPruneEnabled(in run),
-				TargetMsPerFrame = ResolveRunTargetMsPerFrame(in run)
+				TargetMsPerFrame = ResolveRunTargetMsPerFrame(in run),
+				PixelStride = filmValidForMetrics ? Math.Max(1, _film.PixelStride) : 0,
+				UpdateEveryFrameMaxRowsPerStep = filmValidForMetrics ? Math.Max(0, _film.UpdateEveryFrameMaxRowsPerStep) : 0,
+				RenderStepMaxPixelsPerFrame = filmValidForMetrics ? Math.Max(0, _film.RenderStepMaxPixelsPerFrame) : 0,
+				RenderStepMaxSegmentsPerFrame = filmValidForMetrics ? Math.Max(0, _film.RenderStepMaxSegmentsPerFrame) : 0,
+				RenderStepMaxMs = renderStepMaxMs,
+				UpdateEveryFrameBudgetMs = updateEveryFrameBudgetMs,
+				EffectiveMaxMsKnown = effectiveMaxMsKnown,
+				EffectiveMaxMs = effectiveMaxMs,
+				BudgetStopCount = _smartScaleBudgetStopCountCurrentRun,
+				BudgetStopCountKnown = IsSmartScaleActive()
 			};
+
+			MaybeRecordSmartScaleProbeResult(in run, in metrics);
 
 			if (IsLifecycleStressActive())
 			{
@@ -1960,6 +2074,7 @@ public partial class RenderTestRunner : Node
 		}
 
 		EmitShadowEvalMatrixFinalDecisionIfNeeded();
+		EmitSmartScaleResultIfNeeded();
 
 		_matrixRunning = false;
 		_harnessState = HarnessState.Idle;
@@ -1988,6 +2103,10 @@ public partial class RenderTestRunner : Node
 		ClearPendingAcceptedAutoCalApply();
 		_activeRunHarnessStopwatch.Reset();
 		_runExecSequence = 0;
+		_smartScaleConfigured = false;
+		_smartScaleAbortRemainingRuns = false;
+		_smartScaleLastObservedStep = int.MinValue;
+		_smartScaleBudgetStopCountCurrentRun = 0;
 		if (_defaultsCaptured && _film != null && GodotObject.IsInstanceValid(_film))
 		{
 			_film.RestoreTestRunDefaults(in _defaults);
@@ -2193,6 +2312,87 @@ public partial class RenderTestRunner : Node
 		return runs;
 	}
 
+	private List<GrinFilmCamera.TestRunConfig> BuildSmartScaleRuns()
+	{
+		Vector3 camPos = _camera.GlobalPosition;
+		Vector3 lookAt = camPos + (-_camera.GlobalTransform.Basis.Z) * 3.0f;
+		bool useFixed = _straightFixtureSceneActive;
+		Vector3 fixedPos = useFixed ? new Vector3(0f, 0f, 5f) : camPos;
+		Vector3 fixedLookAt = useFixed ? Vector3.Zero : lookAt;
+		const float orbitRadius = 2.8f;
+		const float orbitHeight = 1.2f;
+		const float orbitPeriodFrames = 300f;
+
+		GrinFilmCamera.TestCameraMode camMode = useFixed
+			? GrinFilmCamera.TestCameraMode.Fixed
+			: GrinFilmCamera.TestCameraMode.Orbit;
+		float camOrbitRadius = useFixed ? 0f : orbitRadius;
+		float camOrbitHeight = useFixed ? 0f : orbitHeight;
+		float camOrbitPeriod = useFixed ? 1f : orbitPeriodFrames;
+
+		return new List<GrinFilmCamera.TestRunConfig>
+		{
+			new GrinFilmCamera.TestRunConfig
+			{
+				Name = "smartscale_baseline",
+				UpdateEveryFrame = true,
+				UseGeometryTLASPruning = true,
+				UsePass2CollisionStride = true,
+				Pass2SoftGateEnableQuickRayMiss = true,
+				CameraMode = camMode,
+				CameraLookAt = fixedLookAt,
+				CameraFixedPosition = fixedPos,
+				CameraOrbitRadius = camOrbitRadius,
+				CameraOrbitHeight = camOrbitHeight,
+				CameraOrbitPeriodFrames = camOrbitPeriod
+			},
+			new GrinFilmCamera.TestRunConfig
+			{
+				Name = "smartscale_step1_unlock",
+				UpdateEveryFrame = true,
+				UseGeometryTLASPruning = true,
+				UsePass2CollisionStride = false,
+				Pass2SoftGateEnableQuickRayMiss = true,
+				CameraMode = camMode,
+				CameraLookAt = fixedLookAt,
+				CameraFixedPosition = fixedPos,
+				CameraOrbitRadius = camOrbitRadius,
+				CameraOrbitHeight = camOrbitHeight,
+				CameraOrbitPeriodFrames = camOrbitPeriod
+			},
+			new GrinFilmCamera.TestRunConfig
+			{
+				Name = "smartscale_step2_time20",
+				UpdateEveryFrame = true,
+				UseGeometryTLASPruning = true,
+				UsePass2CollisionStride = false,
+				Pass2SoftGateEnableQuickRayMiss = true,
+				TargetMsPerFrame = 20,
+				CameraMode = camMode,
+				CameraLookAt = fixedLookAt,
+				CameraFixedPosition = fixedPos,
+				CameraOrbitRadius = camOrbitRadius,
+				CameraOrbitHeight = camOrbitHeight,
+				CameraOrbitPeriodFrames = camOrbitPeriod
+			},
+			new GrinFilmCamera.TestRunConfig
+			{
+				Name = "smartscale_step3_time30",
+				UpdateEveryFrame = true,
+				UseGeometryTLASPruning = true,
+				UsePass2CollisionStride = false,
+				Pass2SoftGateEnableQuickRayMiss = true,
+				TargetMsPerFrame = 30,
+				CameraMode = camMode,
+				CameraLookAt = fixedLookAt,
+				CameraFixedPosition = fixedPos,
+				CameraOrbitRadius = camOrbitRadius,
+				CameraOrbitHeight = camOrbitHeight,
+				CameraOrbitPeriodFrames = camOrbitPeriod
+			}
+		};
+	}
+
 	private void ApplyDeterministicCamera(in GrinFilmCamera.TestRunConfig run, int frameIndex)
 	{
 		if (_camera == null || !GodotObject.IsInstanceValid(_camera))
@@ -2312,6 +2512,7 @@ public partial class RenderTestRunner : Node
 
 	private void ApplyStartupCliFlagOverrides()
 	{
+		ConfigureSmartScaleFromFlags();
 		if (TryGetBoolCmdArgValue(AutoCalCmdArgPrefix, out bool autoCalEnabled))
 		{
 			EnableSceneAutoCalibration = autoCalEnabled;
@@ -2333,6 +2534,33 @@ public partial class RenderTestRunner : Node
 		{
 			_shadowPruneOffTargetMsOverride = Math.Max(1, shadowPruneOffTargetMs);
 		}
+	}
+
+	private void ConfigureSmartScaleFromFlags()
+	{
+		_smartScaleMode = SmartScaleMode.None;
+		_smartScaleNoEarlyStop = false;
+		if (TryGetBoolCmdArgValue(SmartScaleNoEarlyStopCmdArgPrefix, out bool noEarlyStop))
+		{
+			_smartScaleNoEarlyStop = noEarlyStop;
+		}
+		if (!TryGetBoolCmdArgValue(SmartScaleCmdArgPrefix, out bool enabled) || !enabled)
+		{
+			return;
+		}
+
+		if (!TryGetStringCmdArgValue(SmartScaleGoalCmdArgPrefix, out string goal) || string.IsNullOrWhiteSpace(goal))
+		{
+			goal = "max_hits";
+		}
+
+		if (string.Equals(goal, "max_hits", StringComparison.OrdinalIgnoreCase))
+		{
+			_smartScaleMode = SmartScaleMode.MaxHits;
+			return;
+		}
+
+		GD.PrintErr($"[RenderTestRunner][SmartScale] Unsupported smartscale goal='{goal}'. Disabled.");
 	}
 
 	private void ConfigureLifecycleStressSessionFromFlags()
@@ -2395,6 +2623,34 @@ public partial class RenderTestRunner : Node
 				value = parsed;
 				return true;
 			}
+		}
+
+		return false;
+	}
+
+	private static bool TryGetStringCmdArgValue(string argPrefix, out string value)
+	{
+		value = string.Empty;
+		if (string.IsNullOrWhiteSpace(argPrefix))
+		{
+			return false;
+		}
+
+		foreach (string arg in OS.GetCmdlineUserArgs())
+		{
+			if (string.IsNullOrWhiteSpace(arg))
+			{
+				continue;
+			}
+
+			string trimmed = arg.Trim();
+			if (!trimmed.StartsWith(argPrefix, StringComparison.OrdinalIgnoreCase))
+			{
+				continue;
+			}
+
+			value = trimmed.Substring(argPrefix.Length).Trim();
+			return true;
 		}
 
 		return false;
@@ -2463,6 +2719,26 @@ public partial class RenderTestRunner : Node
 		}
 
 		return false;
+	}
+
+	private bool IsSmartScaleActive()
+	{
+		return _smartScaleMode != SmartScaleMode.None;
+	}
+
+	private void ConfigureSmartScaleProbeSchedule()
+	{
+		if (!IsSmartScaleActive() || _smartScaleConfigured)
+		{
+			return;
+		}
+
+		FramesPerRun = SmartScaleProbeFramesPerRun;
+		WarmupFrames = Math.Min(Math.Max(0, WarmupFrames), SmartScaleProbeWarmupFrames);
+		_smartScaleConfigured = true;
+		GD.Print(
+			$"[SmartScale] enabled=1 goal={_smartScaleMode.ToString().ToLowerInvariant()} " +
+			$"frames={FramesPerRun} warmup={WarmupFrames} no_early_stop={(_smartScaleNoEarlyStop ? 1 : 0)}");
 	}
 
 	private RenderTestFixture GetRequestedFixture()
@@ -2613,6 +2889,11 @@ public partial class RenderTestRunner : Node
 
 	private void QuitDeferred(int code)
 	{
+		if (code == 0)
+		{
+			System.Environment.ExitCode = 0;
+			GD.Print("[RenderTestRunner][ExitCode] forced=0 reason=harness_success");
+		}
 		GetTree().Quit(code);
 	}
 
@@ -2662,6 +2943,7 @@ public partial class RenderTestRunner : Node
 		string geomPixProcessed = "na";
 		string geomRayTestsTotal = "na";
 		string hitRate = "na";
+		string budgetStop = "na";
 		if (TryGetLatestRenderHealthLiveSnapshot(out RenderHealthLiveSnapshot snap))
 		{
 			lastRow = snap.LastRow.ToString();
@@ -2672,19 +2954,23 @@ public partial class RenderTestRunner : Node
 			hitRate = snap.Traced > 0
 				? ((double)snap.Hits / snap.Traced).ToString("0.###")
 				: "na";
+			budgetStop = (!snap.BudgetExitReasonKnown || string.IsNullOrWhiteSpace(snap.BudgetExitReason))
+				? "none"
+				: Sanitize(snap.BudgetExitReason);
 		}
 
 		GD.Print(
 			$"[RenderTestLive] name={_renderTestLiveRunName} frame={_runFrameIndex + 1}/{FramesPerRun} " +
 			$"lastRow={lastRow} rowsAdv={rowsAdv} bands={bands} " +
 			$"geomPixProcessed={geomPixProcessed} geomRayTestsTotal={geomRayTestsTotal} " +
-			$"geomTrusted={(geomTrusted ? 1 : 0)} geomHealthPartial={geomHealthPartial} geomTrustReason={trustReasonOut} hitRate={hitRate}");
+			$"geomTrusted={(geomTrusted ? 1 : 0)} geomHealthPartial={geomHealthPartial} geomTrustReason={trustReasonOut} " +
+			$"hitRate={hitRate} budgetStop={budgetStop}");
 		if (IsStraightRun(run.Name))
 		{
 			string perPxOff = "na";
 			string perPxOn = "na";
 			TryGetRenderHealthPerPixelMetrics(out perPxOff, out perPxOn);
-			string stepStr = snap.Step >= 0 ? snap.Step.ToString() : "na";
+			string stepStr = (snap.StepKnown && snap.Step >= 0) ? snap.Step.ToString() : "na";
 			GD.Print($"[RenderHealth][StraightDebug] step={stepStr} hitRate={hitRate} perPxOff={perPxOff} perPxOn={perPxOn}");
 		}
 	}
@@ -2702,15 +2988,15 @@ public partial class RenderTestRunner : Node
 			return false;
 		}
 
-		if (!(_rhCountField.GetValue(_film) is int count) || count <= 0)
+		if (!TryReadIntField(_rhCountField, _film, out int count) || count <= 0)
 		{
 			return false;
 		}
-		if (!(_rhWriteField.GetValue(_film) is int write))
+		if (!TryReadIntField(_rhWriteField, _film, out int write))
 		{
 			return false;
 		}
-		if (!(_rhSamplesField.GetValue(_film) is Array samples) || samples.Length <= 0)
+		if (!TryReadArrayField(_rhSamplesField, _film, out Array samples) || samples.Length <= 0)
 		{
 			return false;
 		}
@@ -2721,22 +3007,45 @@ public partial class RenderTestRunner : Node
 			idx += samples.Length;
 		}
 
-		object boxedSample = samples.GetValue(idx);
+		object boxedSample;
+		try
+		{
+			boxedSample = samples.GetValue(idx);
+		}
+		catch
+		{
+			return false;
+		}
 		if (boxedSample == null)
 		{
 			return false;
 		}
 
+		TryReadIntField(_rhSampleStepField, boxedSample, out int step, out bool stepKnown);
+		TryReadIntField(_rhSampleRowField, boxedSample, out int lastRow, out _);
+		TryReadIntField(_rhSampleRowsAdvField, boxedSample, out int rowsAdv, out _);
+		TryReadIntField(_rhSampleBandsField, boxedSample, out int bands, out _);
+		TryReadLongField(_rhSampleGeomPixField, boxedSample, out long geomPixProcessed, out bool geomPixKnown);
+		TryReadLongField(_rhSampleGeomRayTestsField, boxedSample, out long geomRayTestsTotal, out bool geomRayTestsKnown);
+		TryReadIntField(_rhSampleHitsField, boxedSample, out int hits, out _);
+		TryReadLongField(_rhSampleTracedField, boxedSample, out long traced, out _);
+		TryReadStringField(_rhSampleBudgetExitReasonField, boxedSample, out string budgetExitReason, out bool budgetExitReasonKnown);
+
 		snap = new RenderHealthLiveSnapshot
 		{
-			Step = ReadIntField(_rhSampleStepField, boxedSample),
-			LastRow = ReadIntField(_rhSampleRowField, boxedSample),
-			RowsAdv = ReadIntField(_rhSampleRowsAdvField, boxedSample),
-			Bands = ReadIntField(_rhSampleBandsField, boxedSample),
-			GeomPixProcessed = ReadLongField(_rhSampleGeomPixField, boxedSample),
-			GeomRayTestsTotal = ReadLongField(_rhSampleGeomRayTestsField, boxedSample),
-			Hits = ReadIntField(_rhSampleHitsField, boxedSample),
-			Traced = ReadLongField(_rhSampleTracedField, boxedSample)
+			Step = step,
+			StepKnown = stepKnown,
+			LastRow = lastRow,
+			RowsAdv = rowsAdv,
+			Bands = bands,
+			GeomPixProcessed = geomPixProcessed,
+			GeomPixProcessedKnown = geomPixKnown,
+			GeomRayTestsTotal = geomRayTestsTotal,
+			GeomRayTestsTotalKnown = geomRayTestsKnown,
+			Hits = hits,
+			Traced = traced,
+			BudgetExitReason = budgetExitReason ?? string.Empty,
+			BudgetExitReasonKnown = budgetExitReasonKnown
 		};
 		return true;
 	}
@@ -2766,16 +3075,17 @@ public partial class RenderTestRunner : Node
 			_rhSampleRowsAdvField = _rhSampleType.GetField("RowsAdvanced", BindingFlags.Instance | BindingFlags.Public);
 			_rhSampleBandsField = _rhSampleType.GetField("BandsProcessed", BindingFlags.Instance | BindingFlags.Public);
 			_rhSampleGeomPixField = _rhSampleType.GetField("GeomPixelProcessed", BindingFlags.Instance | BindingFlags.Public);
-		_rhSampleGeomRayTestsField = _rhSampleType.GetField("GeomRayTestsTotal", BindingFlags.Instance | BindingFlags.Public);
-		_rhSampleHitsField = _rhSampleType.GetField("Hits", BindingFlags.Instance | BindingFlags.Public);
-		_rhSampleTracedField = _rhSampleType.GetField("TracedPixels", BindingFlags.Instance | BindingFlags.Public);
-	}
-	_rhGeomOnTotalField = filmType.GetField("_geomRayTestsPruningOnTotal", flags);
-	_rhGeomOnTracedField = filmType.GetField("_geomRayTestsPruningOnTracedPixels", flags);
-	_rhGeomOffTotalField = filmType.GetField("_geomRayTestsPruningOffTotal", flags);
-	_rhGeomOffTracedField = filmType.GetField("_geomRayTestsPruningOffTracedPixels", flags);
-	_rhGeomOffBaselineField = filmType.GetField("_geomRayTestsOffPerPixelBaseline", flags);
-	_rhGeomOffBaselineReadyField = filmType.GetField("_geomRayTestsOffPerPixelBaselineReady", flags);
+			_rhSampleGeomRayTestsField = _rhSampleType.GetField("GeomRayTestsTotal", BindingFlags.Instance | BindingFlags.Public);
+			_rhSampleHitsField = _rhSampleType.GetField("Hits", BindingFlags.Instance | BindingFlags.Public);
+			_rhSampleTracedField = _rhSampleType.GetField("TracedPixels", BindingFlags.Instance | BindingFlags.Public);
+			_rhSampleBudgetExitReasonField = _rhSampleType.GetField("BudgetExitReason", BindingFlags.Instance | BindingFlags.Public);
+		}
+		_rhGeomOnTotalField = filmType.GetField("_geomRayTestsPruningOnTotal", flags);
+		_rhGeomOnTracedField = filmType.GetField("_geomRayTestsPruningOnTracedPixels", flags);
+		_rhGeomOffTotalField = filmType.GetField("_geomRayTestsPruningOffTotal", flags);
+		_rhGeomOffTracedField = filmType.GetField("_geomRayTestsPruningOffTracedPixels", flags);
+		_rhGeomOffBaselineField = filmType.GetField("_geomRayTestsOffPerPixelBaseline", flags);
+		_rhGeomOffBaselineReadyField = filmType.GetField("_geomRayTestsOffPerPixelBaselineReady", flags);
 
 		_rhLiveReflectionReady =
 			_rhCountField != null
@@ -2794,38 +3104,149 @@ public partial class RenderTestRunner : Node
 		return _rhLiveReflectionReady;
 	}
 
-	private static int ReadIntField(FieldInfo field, object target)
+	private static bool TryReadArrayField(FieldInfo field, object target, out Array value)
 	{
-		if (field == null)
+		value = null;
+		if (!TryReadFieldValue(field, target, out object raw))
 		{
-			return 0;
+			return false;
 		}
-		object value = field.GetValue(target);
-		return value is int i ? i : 0;
+		if (raw is Array arr)
+		{
+			value = arr;
+			return true;
+		}
+		return false;
 	}
 
-	private static long ReadLongField(FieldInfo field, object target)
+	private static bool TryReadBoolField(FieldInfo field, object target, out bool value)
 	{
-		if (field == null)
+		value = false;
+		if (!TryReadFieldValue(field, target, out object raw))
 		{
-			return 0L;
+			return false;
 		}
-		object value = field.GetValue(target);
-		if (value is long l) return l;
-		if (value is int i) return i;
-		return 0L;
+		if (raw is bool b)
+		{
+			value = b;
+			return true;
+		}
+		return false;
 	}
 
-	private static double ReadDoubleField(FieldInfo field, object target)
+	private static bool TryReadIntField(FieldInfo field, object target, out int value)
 	{
-		if (field == null)
+		return TryReadIntField(field, target, out value, out _);
+	}
+
+	private static bool TryReadIntField(FieldInfo field, object target, out int value, out bool known)
+	{
+		value = 0;
+		known = false;
+		if (!TryReadFieldValue(field, target, out object raw))
 		{
-			return 0.0;
+			return false;
 		}
-		object value = field.GetValue(target);
-		if (value is double d) return d;
-		if (value is float f) return f;
-		return 0.0;
+		if (raw is int i)
+		{
+			value = i;
+			known = true;
+			return true;
+		}
+		if (raw is long l && l >= int.MinValue && l <= int.MaxValue)
+		{
+			value = (int)l;
+			known = true;
+			return true;
+		}
+		return false;
+	}
+
+	private static bool TryReadLongField(FieldInfo field, object target, out long value)
+	{
+		return TryReadLongField(field, target, out value, out _);
+	}
+
+	private static bool TryReadLongField(FieldInfo field, object target, out long value, out bool known)
+	{
+		value = 0L;
+		known = false;
+		if (!TryReadFieldValue(field, target, out object raw))
+		{
+			return false;
+		}
+		if (raw is long l)
+		{
+			value = l;
+			known = true;
+			return true;
+		}
+		if (raw is int i)
+		{
+			value = i;
+			known = true;
+			return true;
+		}
+		return false;
+	}
+
+	private static bool TryReadDoubleField(FieldInfo field, object target, out double value)
+	{
+		return TryReadDoubleField(field, target, out value, out _);
+	}
+
+	private static bool TryReadDoubleField(FieldInfo field, object target, out double value, out bool known)
+	{
+		value = 0.0;
+		known = false;
+		if (!TryReadFieldValue(field, target, out object raw))
+		{
+			return false;
+		}
+		if (raw is double d)
+		{
+			value = d;
+			known = true;
+			return true;
+		}
+		if (raw is float f)
+		{
+			value = f;
+			known = true;
+			return true;
+		}
+		return false;
+	}
+
+	private static bool TryReadStringField(FieldInfo field, object target, out string value, out bool known)
+	{
+		value = string.Empty;
+		known = false;
+		if (!TryReadFieldValue(field, target, out object raw))
+		{
+			return false;
+		}
+		value = raw?.ToString() ?? string.Empty;
+		known = true;
+		return true;
+	}
+
+	private static bool TryReadFieldValue(FieldInfo field, object target, out object value)
+	{
+		value = null;
+		if (field == null || target == null)
+		{
+			return false;
+		}
+		try
+		{
+			value = field.GetValue(target);
+			return true;
+		}
+		catch
+		{
+			return false;
+		}
 	}
 
 	private bool TryGetRenderHealthPerPixelMetrics(out string perPxOff, out string perPxOn)
@@ -2837,10 +3258,10 @@ public partial class RenderTestRunner : Node
 			return false;
 		}
 
-		long onTotal = ReadLongField(_rhGeomOnTotalField, _film);
-		long onTraced = ReadLongField(_rhGeomOnTracedField, _film);
-		long offTotal = ReadLongField(_rhGeomOffTotalField, _film);
-		long offTraced = ReadLongField(_rhGeomOffTracedField, _film);
+		TryReadLongField(_rhGeomOnTotalField, _film, out long onTotal);
+		TryReadLongField(_rhGeomOnTracedField, _film, out long onTraced);
+		TryReadLongField(_rhGeomOffTotalField, _film, out long offTotal);
+		TryReadLongField(_rhGeomOffTracedField, _film, out long offTraced);
 
 		bool hasAny = false;
 		if (onTraced > 0)
@@ -2863,10 +3284,10 @@ public partial class RenderTestRunner : Node
 		}
 		else if (_rhGeomOffBaselineReadyField != null
 			&& _rhGeomOffBaselineField != null
-			&& _rhGeomOffBaselineReadyField.GetValue(_film) is bool ready
+			&& TryReadBoolField(_rhGeomOffBaselineReadyField, _film, out bool ready)
 			&& ready)
 		{
-			double baseline = ReadDoubleField(_rhGeomOffBaselineField, _film);
+			TryReadDoubleField(_rhGeomOffBaselineField, _film, out double baseline);
 			if (double.IsFinite(baseline) && baseline >= 0.0)
 			{
 				perPxOff = baseline.ToString("0.###");
@@ -2902,16 +3323,419 @@ public partial class RenderTestRunner : Node
 		return runName.Trim().StartsWith("straight_", StringComparison.OrdinalIgnoreCase);
 	}
 
+	private bool TryGetSmartScaleProbeOverride(in GrinFilmCamera.TestRunConfig run, out SmartScaleProbeOverride probe)
+	{
+		probe = default;
+		if (!IsSmartScaleActive() || _smartScaleMode != SmartScaleMode.MaxHits)
+		{
+			return false;
+		}
+
+		int fullRows = Math.Max(1, _renderTestStatsScaledFilmH > 0 ? _renderTestStatsScaledFilmH : 8);
+		int currentPxCap = (_film != null && GodotObject.IsInstanceValid(_film)) ? _film.RenderStepMaxPixelsPerFrame : 0;
+		int currentSegCap = (_film != null && GodotObject.IsInstanceValid(_film)) ? _film.RenderStepMaxSegmentsPerFrame : 0;
+		int raisedPixelCap = Math.Max(4_000_000, Math.Max(0, currentPxCap));
+		int raisedSegCap = Math.Max(100_000_000, Math.Max(0, currentSegCap));
+
+		if (string.Equals(run.Name, "smartscale_baseline", StringComparison.OrdinalIgnoreCase))
+		{
+			probe = new SmartScaleProbeOverride { ProbeId = "step0_baseline", Summary = "baseline" };
+			return true;
+		}
+		if (string.Equals(run.Name, "smartscale_step1_unlock", StringComparison.OrdinalIgnoreCase))
+		{
+			probe = new SmartScaleProbeOverride
+			{
+				ProbeId = "step1_pixel_unlock",
+				Summary = "pixel_throughput_unlock",
+				PixelStride = 1,
+				UsePass2CollisionStride = false,
+				UpdateEveryFrameMaxRowsPerStep = fullRows,
+				RowsPerFrame = fullRows,
+				MaxRowsPerFrameCap = fullRows,
+				RenderStepMaxPixelsPerFrame = raisedPixelCap,
+				RenderStepMaxSegmentsPerFrame = raisedSegCap
+			};
+			return true;
+		}
+		if (string.Equals(run.Name, "smartscale_step2_time20", StringComparison.OrdinalIgnoreCase))
+		{
+			probe = new SmartScaleProbeOverride
+			{
+				ProbeId = "step2_time_expand_20ms",
+				Summary = "time_expansion_20ms",
+				PixelStride = 1,
+				UsePass2CollisionStride = false,
+				TargetMsPerFrame = 20,
+				UpdateEveryFrameBudgetMs = 1000f,
+				RenderStepMaxMs = 1000,
+				UpdateEveryFrameMaxRowsPerStep = fullRows,
+				RowsPerFrame = fullRows,
+				MaxRowsPerFrameCap = fullRows,
+				RenderStepMaxPixelsPerFrame = raisedPixelCap,
+				RenderStepMaxSegmentsPerFrame = raisedSegCap
+			};
+			return true;
+		}
+		if (string.Equals(run.Name, "smartscale_step3_time30", StringComparison.OrdinalIgnoreCase))
+		{
+			probe = new SmartScaleProbeOverride
+			{
+				ProbeId = "step3_aggressive_30ms",
+				Summary = "aggressive_throughput_30ms",
+				PixelStride = 1,
+				UsePass2CollisionStride = false,
+				TargetMsPerFrame = 30,
+				UpdateEveryFrameBudgetMs = 1000f,
+				RenderStepMaxMs = 1000,
+				UpdateEveryFrameMaxRowsPerStep = fullRows,
+				RowsPerFrame = fullRows,
+				MaxRowsPerFrameCap = fullRows,
+				RenderStepMaxPixelsPerFrame = raisedPixelCap,
+				RenderStepMaxSegmentsPerFrame = raisedSegCap
+			};
+			return true;
+		}
+
+		return false;
+	}
+
+	private void ApplySmartScaleProbeOverridesIfNeeded(in GrinFilmCamera.TestRunConfig run)
+	{
+		if (_film == null || !GodotObject.IsInstanceValid(_film))
+		{
+			return;
+		}
+		if (!TryGetSmartScaleProbeOverride(in run, out SmartScaleProbeOverride probe))
+		{
+			return;
+		}
+
+		if (probe.PixelStride.HasValue) _film.PixelStride = Mathf.Clamp(probe.PixelStride.Value, 1, 8);
+		if (probe.UsePass2CollisionStride.HasValue) _film.UsePass2CollisionStride = probe.UsePass2CollisionStride.Value;
+		if (probe.TargetMsPerFrame.HasValue) _film.TargetMsPerFrame = Math.Max(1, probe.TargetMsPerFrame.Value);
+		if (probe.UpdateEveryFrameBudgetMs.HasValue) _film.UpdateEveryFrameBudgetMs = Math.Max(1f, probe.UpdateEveryFrameBudgetMs.Value);
+		if (probe.UpdateEveryFrameMaxRowsPerStep.HasValue) _film.UpdateEveryFrameMaxRowsPerStep = Math.Max(1, probe.UpdateEveryFrameMaxRowsPerStep.Value);
+		if (probe.RowsPerFrame.HasValue) _film.RowsPerFrame = Math.Max(1, probe.RowsPerFrame.Value);
+		if (probe.MaxRowsPerFrameCap.HasValue) _film.MaxRowsPerFrameCap = Math.Max(1, probe.MaxRowsPerFrameCap.Value);
+		if (probe.RenderStepMaxMs.HasValue) _film.RenderStepMaxMs = Math.Max(1, probe.RenderStepMaxMs.Value);
+		if (probe.RenderStepMaxPixelsPerFrame.HasValue) _film.RenderStepMaxPixelsPerFrame = Math.Max(0, probe.RenderStepMaxPixelsPerFrame.Value);
+		if (probe.RenderStepMaxSegmentsPerFrame.HasValue) _film.RenderStepMaxSegmentsPerFrame = Math.Max(0, probe.RenderStepMaxSegmentsPerFrame.Value);
+	}
+
+	private void ObserveSmartScaleBudgetStopsForCurrentRun()
+	{
+		if (!IsSmartScaleActive())
+		{
+			return;
+		}
+		if (!TryGetLatestRenderHealthLiveSnapshot(out RenderHealthLiveSnapshot snap))
+		{
+			return;
+		}
+		if (!snap.StepKnown || !snap.BudgetExitReasonKnown || snap.Step < 0 || snap.Step == _smartScaleLastObservedStep)
+		{
+			return;
+		}
+		_smartScaleLastObservedStep = snap.Step;
+		if (!string.IsNullOrWhiteSpace(snap.BudgetExitReason) &&
+			!string.Equals(snap.BudgetExitReason, "none", StringComparison.OrdinalIgnoreCase))
+		{
+			_smartScaleBudgetStopCountCurrentRun++;
+		}
+	}
+
+	private void MaybeRecordSmartScaleProbeResult(in GrinFilmCamera.TestRunConfig run, in ShadowEvalRunMetrics metrics)
+	{
+		if (!TryGetSmartScaleProbeOverride(in run, out SmartScaleProbeOverride probe))
+		{
+			return;
+		}
+
+		SmartScaleProbeResult result = new SmartScaleProbeResult
+		{
+			ProbeId = probe.ProbeId ?? (run.Name ?? string.Empty),
+			EscalationLabel = run.Name ?? string.Empty,
+			Summary = probe.Summary ?? string.Empty,
+			IsValid = metrics.TrustKnown && metrics.GeomPixProcessedKnown && metrics.GeomRayTestsTotalKnown,
+			InvalidReason = BuildSmartScaleInvalidProbeReason(in metrics),
+			Metrics = metrics
+		};
+		_smartScaleProbeResults.Add(result);
+
+		string trustToken = metrics.TrustKnown ? (metrics.Trusted ? "1" : "0") : "na";
+		string geomToken = metrics.GeomPixProcessedKnown ? metrics.GeomPixProcessed.ToString() : "na";
+		GD.Print(
+			$"[SmartScale][ProbeResult] probe={Sanitize(result.ProbeId)} valid={(result.IsValid ? 1 : 0)} " +
+			$"invalid_reason={Sanitize(result.IsValid ? "none" : (result.InvalidReason ?? "unknown"))} trust={trustToken} " +
+			$"geomPixProcessedRaw={geomToken} budgetStopCount={metrics.BudgetStopCount} " +
+			$"targetMs={metrics.TargetMsPerFrame} stride={metrics.PixelStride} rows={metrics.UpdateEveryFrameMaxRowsPerStep}");
+
+		if (!result.IsValid)
+		{
+			GD.Print(
+				$"[SmartScale][Decision] early_stop=0 reason=probe_invalid no_early_stop={(_smartScaleNoEarlyStop ? 1 : 0)} " +
+				$"probe={Sanitize(result.ProbeId)} invalid_reason={Sanitize(result.InvalidReason ?? "unknown")}");
+			return;
+		}
+
+		if (_smartScaleProbeResults.Count == 1 && metrics.TrustKnown && metrics.Trusted)
+		{
+			if (_smartScaleNoEarlyStop)
+			{
+				GD.Print("[SmartScale][Decision] early_stop=0 reason=baseline_trusted_suppressed no_early_stop=1");
+			}
+			else
+			{
+				_smartScaleAbortRemainingRuns = true;
+				GD.Print("[SmartScale][Decision] early_stop=1 reason=baseline_trusted no_early_stop=0");
+			}
+			return;
+		}
+
+		if (_smartScaleProbeResults.Count >= 2 &&
+			TryGetSmartScaleBaselineResult(out SmartScaleProbeResult baseline) &&
+			TrySelectBestSmartScaleProbe(out SmartScaleProbeResult best) &&
+			string.Equals(best.ProbeId, result.ProbeId, StringComparison.Ordinal))
+		{
+			long baseGeom = baseline.Metrics.GeomPixProcessedKnown ? baseline.Metrics.GeomPixProcessed : 0L;
+			long bestGeom = result.Metrics.GeomPixProcessedKnown ? result.Metrics.GeomPixProcessed : 0L;
+			bool significant = baseGeom > 0 && bestGeom >= (long)Math.Ceiling(baseGeom * SmartScaleSignificantGeomPixGainRatio);
+			if (result.Metrics.TrustKnown && result.Metrics.Trusted && significant)
+			{
+				_smartScaleAbortRemainingRuns = true;
+				GD.Print(
+					$"[SmartScale][Decision] early_stop=1 reason=trusted_significant_gain no_early_stop={(_smartScaleNoEarlyStop ? 1 : 0)} " +
+					$"baseline_geomPix={baseGeom} best_geomPix={bestGeom}");
+			}
+		}
+	}
+
+	private bool TryGetSmartScaleBaselineResult(out SmartScaleProbeResult baseline)
+	{
+		baseline = default;
+		for (int i = 0; i < _smartScaleProbeResults.Count; i++)
+		{
+			if (string.Equals(_smartScaleProbeResults[i].ProbeId, "step0_baseline", StringComparison.OrdinalIgnoreCase))
+			{
+				baseline = _smartScaleProbeResults[i];
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static string BuildSmartScaleInvalidProbeReason(in ShadowEvalRunMetrics metrics)
+	{
+		if (metrics.TrustKnown && metrics.GeomPixProcessedKnown && metrics.GeomRayTestsTotalKnown)
+		{
+			return "none";
+		}
+
+		System.Text.StringBuilder sb = new System.Text.StringBuilder();
+		if (!metrics.TrustKnown) sb.Append("trust");
+		if (!metrics.GeomPixProcessedKnown)
+		{
+			if (sb.Length > 0) sb.Append('+');
+			sb.Append("geom_pix");
+		}
+		if (!metrics.GeomRayTestsTotalKnown)
+		{
+			if (sb.Length > 0) sb.Append('+');
+			sb.Append("geom_ray_tests");
+		}
+		return sb.Length > 0 ? sb.ToString() : "unknown";
+	}
+
+	private static int GetSmartScaleTrustRank(in ShadowEvalRunMetrics metrics)
+	{
+		if (!metrics.TrustKnown) return 0;
+		return metrics.Trusted ? 2 : 1;
+	}
+
+	private static bool IsSmartScaleProbeBetter(in SmartScaleProbeResult candidate, in SmartScaleProbeResult incumbent)
+	{
+		int cTrust = GetSmartScaleTrustRank(in candidate.Metrics);
+		int iTrust = GetSmartScaleTrustRank(in incumbent.Metrics);
+		if (cTrust != iTrust) return cTrust > iTrust;
+
+		long cGeom = candidate.Metrics.GeomPixProcessedKnown ? candidate.Metrics.GeomPixProcessed : 0L;
+		long iGeom = incumbent.Metrics.GeomPixProcessedKnown ? incumbent.Metrics.GeomPixProcessed : 0L;
+		if (cGeom != iGeom) return cGeom > iGeom;
+
+		int cBudget = Math.Max(0, candidate.Metrics.BudgetStopCount);
+		int iBudget = Math.Max(0, incumbent.Metrics.BudgetStopCount);
+		if (cBudget != iBudget) return cBudget < iBudget;
+
+		return candidate.Metrics.RunId < incumbent.Metrics.RunId;
+	}
+
+	private bool TrySelectBestSmartScaleProbe(out SmartScaleProbeResult best)
+	{
+		best = default;
+		if (_smartScaleProbeResults.Count == 0)
+		{
+			return false;
+		}
+
+		int bestIndex = -1;
+		for (int i = 0; i < _smartScaleProbeResults.Count; i++)
+		{
+			if (!_smartScaleProbeResults[i].IsValid)
+			{
+				continue;
+			}
+			best = _smartScaleProbeResults[i];
+			bestIndex = i;
+			break;
+		}
+		if (bestIndex < 0)
+		{
+			return false;
+		}
+
+		for (int i = bestIndex + 1; i < _smartScaleProbeResults.Count; i++)
+		{
+			SmartScaleProbeResult candidate = _smartScaleProbeResults[i];
+			if (!candidate.IsValid)
+			{
+				continue;
+			}
+			if (IsSmartScaleProbeBetter(in candidate, in best))
+			{
+				best = candidate;
+			}
+		}
+		return true;
+	}
+
+	private void EmitSmartScaleResultIfNeeded()
+	{
+		if (!IsSmartScaleActive() || _smartScaleResultEmitted)
+		{
+			return;
+		}
+		_smartScaleResultEmitted = true;
+
+		if (!TrySelectBestSmartScaleProbe(out SmartScaleProbeResult best))
+		{
+			return;
+		}
+
+		TryGetSmartScaleBaselineResult(out SmartScaleProbeResult baseline);
+		string baselineTrustJson = baseline.Metrics.TrustKnown ? (baseline.Metrics.Trusted ? "1" : "0") : "null";
+		string bestTrustJson = best.Metrics.TrustKnown ? (best.Metrics.Trusted ? "1" : "0") : "null";
+		string baselineGeomJson = baseline.Metrics.GeomPixProcessedKnown ? baseline.Metrics.GeomPixProcessed.ToString() : "null";
+		string bestGeomJson = best.Metrics.GeomPixProcessedKnown ? best.Metrics.GeomPixProcessed.ToString() : "null";
+		string pathJson = BuildSmartScaleEscalationPathJson();
+		string cameraSig = BuildSmartScaleCameraSignature();
+		string confidence = ComputeSmartScaleConfidenceHeuristic(in baseline, in best);
+		string updateBudgetMs = best.Metrics.UpdateEveryFrameBudgetMs.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+		string finalEffectiveMaxMsJson = best.Metrics.EffectiveMaxMsKnown
+			? best.Metrics.EffectiveMaxMs.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+			: "null";
+		string finalEffectiveMaxMsKnownJson = best.Metrics.EffectiveMaxMsKnown ? "true" : "false";
+
+		string json =
+			"{" +
+			$"\"fixture\":{JsonString(_requestedFixture.ToString())}," +
+			$"\"camera_signature\":{JsonString(cameraSig)}," +
+			"\"goal\":\"max_hits\"," +
+			$"\"baseline_geomPix\":{baselineGeomJson}," +
+			$"\"best_geomPix\":{bestGeomJson}," +
+			$"\"baseline_trust\":{baselineTrustJson}," +
+			$"\"best_trust\":{bestTrustJson}," +
+			$"\"escalation_path\":{pathJson}," +
+			$"\"final_target_ms_per_frame\":{best.Metrics.TargetMsPerFrame}," +
+			$"\"final_effective_max_ms_known\":{finalEffectiveMaxMsKnownJson}," +
+			$"\"final_effective_max_ms\":{finalEffectiveMaxMsJson}," +
+			$"\"final_rows\":{best.Metrics.UpdateEveryFrameMaxRowsPerStep}," +
+			$"\"final_stride\":{best.Metrics.PixelStride}," +
+			"\"final_caps\":{" +
+				$"\"renderstep_max_ms\":{best.Metrics.RenderStepMaxMs}," +
+				$"\"update_every_frame_budget_ms\":{updateBudgetMs}," +
+				$"\"renderstep_max_pixels_per_frame\":{best.Metrics.RenderStepMaxPixelsPerFrame}," +
+				$"\"renderstep_max_segments_per_frame\":{best.Metrics.RenderStepMaxSegmentsPerFrame}" +
+			"}," +
+			$"\"confidence_heuristic\":{JsonString(confidence)}" +
+			"}";
+		GD.Print($"[SmartScaleResult] {json}");
+		GD.Print(
+			$"[SmartScale][Summary] probes={_smartScaleProbeResults.Count} best={Sanitize(best.ProbeId)} " +
+			$"best_trust={(best.Metrics.TrustKnown ? (best.Metrics.Trusted ? 1 : 0) : -1)} " +
+			$"best_geomPix={(best.Metrics.GeomPixProcessedKnown ? best.Metrics.GeomPixProcessed : -1)} " +
+			$"budgetStops={best.Metrics.BudgetStopCount}");
+	}
+
+	private string BuildSmartScaleEscalationPathJson()
+	{
+		if (_smartScaleProbeResults.Count == 0)
+		{
+			return "[]";
+		}
+
+		System.Text.StringBuilder sb = new System.Text.StringBuilder();
+		sb.Append('[');
+		for (int i = 0; i < _smartScaleProbeResults.Count; i++)
+		{
+			if (i > 0) sb.Append(',');
+			SmartScaleProbeResult r = _smartScaleProbeResults[i];
+			sb.Append('{')
+				.Append("\"probe\":").Append(JsonString(r.ProbeId)).Append(',')
+				.Append("\"valid\":").Append(r.IsValid ? "1" : "0").Append(',')
+				.Append("\"invalid_reason\":").Append(JsonString(r.IsValid ? "none" : (r.InvalidReason ?? "unknown"))).Append(',')
+				.Append("\"trust\":").Append(r.Metrics.TrustKnown ? (r.Metrics.Trusted ? "1" : "0") : "null").Append(',')
+				.Append("\"geomPix\":").Append(r.Metrics.GeomPixProcessedKnown ? r.Metrics.GeomPixProcessed.ToString() : "null").Append(',')
+				.Append("\"budgetStops\":").Append(r.Metrics.BudgetStopCount)
+				.Append('}');
+		}
+		sb.Append(']');
+		return sb.ToString();
+	}
+
+	private string BuildSmartScaleCameraSignature()
+	{
+		if (!_cameraTransformCaptured)
+		{
+			return $"fixture={_requestedFixture}|cam=na";
+		}
+
+		Vector3 pos = _cameraOriginalTransform.Origin;
+		Vector3 fwd = -_cameraOriginalTransform.Basis.Z;
+		return string.Format(
+			System.Globalization.CultureInfo.InvariantCulture,
+			"fixture={0}|pos=({1:0.###},{2:0.###},{3:0.###})|fwd=({4:0.###},{5:0.###},{6:0.###})",
+			_requestedFixture, pos.X, pos.Y, pos.Z, fwd.X, fwd.Y, fwd.Z);
+	}
+
+	private string ComputeSmartScaleConfidenceHeuristic(in SmartScaleProbeResult baseline, in SmartScaleProbeResult best)
+	{
+		bool bestTrusted = best.Metrics.TrustKnown && best.Metrics.Trusted;
+		long baseGeom = baseline.Metrics.GeomPixProcessedKnown ? Math.Max(0L, baseline.Metrics.GeomPixProcessed) : 0L;
+		long bestGeom = best.Metrics.GeomPixProcessedKnown ? Math.Max(0L, best.Metrics.GeomPixProcessed) : 0L;
+		double gain = baseGeom > 0 ? (double)bestGeom / baseGeom : (bestGeom > 0 ? 999.0 : 1.0);
+		int budgetStops = Math.Max(0, best.Metrics.BudgetStopCount);
+		if (bestTrusted && gain >= 1.25 && budgetStops <= 2) return "high";
+		if (bestTrusted && gain >= 1.05) return "medium";
+		if (bestTrusted) return "low";
+		return "exploratory";
+	}
+
 	private struct RenderHealthLiveSnapshot
 	{
 		public int Step;
+		public bool StepKnown;
 		public int LastRow;
 		public int RowsAdv;
 		public int Bands;
 		public long GeomPixProcessed;
+		public bool GeomPixProcessedKnown;
 		public long GeomRayTestsTotal;
+		public bool GeomRayTestsTotalKnown;
 		public int Hits;
 		public long Traced;
+		public string BudgetExitReason;
+		public bool BudgetExitReasonKnown;
 	}
 
 	private static string FormatNullableBool(bool? value)
