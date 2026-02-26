@@ -20,6 +20,12 @@ public partial class RenderTestRunner : Node
 		MaxHits = 1
 	}
 
+	private enum SmartScaleProbeBudgetMode
+	{
+		RenderStepCalls = 0,
+		RowsAdvanced = 1
+	}
+
 	private enum HarnessState
 	{
 		Idle = 0,
@@ -74,6 +80,9 @@ public partial class RenderTestRunner : Node
 	private const string SmartScaleCmdArgPrefix = "--smartscale=";
 	private const string SmartScaleGoalCmdArgPrefix = "--smartscale-goal=";
 	private const string SmartScaleNoEarlyStopCmdArgPrefix = "--smartscale-no-early-stop=";
+	private const string SmartScaleBudgetCmdArgPrefix = "--smartscale-budget=";
+	private const string SmartScaleBudgetNCmdArgPrefix = "--smartscale-budget-n=";
+	private const string SmartScaleRowsPerRunCmdArgPrefix = "--smartscale-rows-per-run=";
 	private const int RenderTestMinFramesPerRun = 90;
 	private const int SmartScaleProbeFramesPerRun = 60;
 	private const int SmartScaleProbeWarmupFrames = 3;
@@ -114,6 +123,8 @@ public partial class RenderTestRunner : Node
 	private bool _renderTestHasSeenRenderHealthSnapshot = false;
 	private bool _rhLiveReflectionReady = false;
 	private bool _rhLiveReflectionFailed = false;
+	private bool _smartScaleFilmProbeReflectionReady = false;
+	private bool _smartScaleFilmProbeReflectionTried = false;
 	private FieldInfo _rhCountField;
 	private FieldInfo _rhWriteField;
 	private FieldInfo _rhSamplesField;
@@ -133,6 +144,8 @@ public partial class RenderTestRunner : Node
 	private FieldInfo _rhGeomOffTracedField;
 	private FieldInfo _rhGeomOffBaselineField;
 	private FieldInfo _rhGeomOffBaselineReadyField;
+	private FieldInfo _smartScaleFilmRowCursorField;
+	private FieldInfo _smartScaleFilmHeightField;
 	private int _renderTestMinGeomPixForTrust = RenderTestMinGeomPixProcessedPerWindow;
 	private long _renderTestMinGeomRayTestsForTrust = RenderTestMinGeomRayTestsTotalPerWindow;
 	private int _renderTestStatsScaledFilmW = 0;
@@ -182,8 +195,20 @@ public partial class RenderTestRunner : Node
 	private bool _smartScaleConfigured = false;
 	private bool _smartScaleNoEarlyStop = false;
 	private bool _smartScaleAbortRemainingRuns = false;
+	private SmartScaleProbeBudgetMode _smartScaleProbeBudgetMode = SmartScaleProbeBudgetMode.RenderStepCalls;
+	private int _smartScaleProbeRowsPerRun = SmartScaleProbeFramesPerRun;
 	private int _smartScaleLastObservedStep = int.MinValue;
 	private int _smartScaleBudgetStopCountCurrentRun = 0;
+	private int _smartScaleRenderStepCallsCurrentRun = 0;
+	private int _smartScaleBandsCommittedCurrentRun = 0;
+	private int _smartScaleRowsAdvancedTotalCurrentRun = 0;
+	private bool _smartScaleScanlineCountersCoarseCurrentRun = false;
+	private bool _smartScaleRowCursorStartKnownCurrentRun = false;
+	private int _smartScaleRowCursorStartCurrentRun = 0;
+	private bool _smartScaleRowCursorEndKnownCurrentRun = false;
+	private int _smartScaleRowCursorEndCurrentRun = 0;
+	private bool _smartScaleFilmHeightKnownCurrentRun = false;
+	private int _smartScaleFilmHeightCurrentRun = 0;
 	private bool _smartScaleResultEmitted = false;
 	private readonly List<SmartScaleProbeResult> _smartScaleProbeResults = new List<SmartScaleProbeResult>(4);
 
@@ -256,6 +281,16 @@ public partial class RenderTestRunner : Node
 		public float EffectiveMaxMs;
 		public int BudgetStopCount;
 		public bool BudgetStopCountKnown;
+		public int RenderStepCalls;
+		public int BandsCommitted;
+		public int RowsAdvancedTotal;
+		public bool ScanlineCountersCoarse;
+		public bool RowCursorStartKnown;
+		public int RowCursorStart;
+		public bool RowCursorEndKnown;
+		public int RowCursorEnd;
+		public bool FilmHeightKnown;
+		public int FilmHeight;
 	}
 
 	private struct ShadowEvalMatrixDecisionAggregate
@@ -418,7 +453,11 @@ public partial class RenderTestRunner : Node
 		MaybeEmitRenderTestLive(run);
 
 		_runFrameIndex++;
-		if (_runFrameIndex >= FramesPerRun)
+		bool smartScaleProbeUsesBudget = IsSmartScaleActive() && TryGetSmartScaleProbeOverride(in run, out _);
+		bool reachedRunBudget = smartScaleProbeUsesBudget
+			? HasReachedSmartScaleProbeBudgetForCurrentRun()
+			: (_runFrameIndex >= FramesPerRun);
+		if (reachedRunBudget)
 		{
 			_film.UpdateEveryFrame = false;
 			FinishRun();
@@ -827,6 +866,17 @@ public partial class RenderTestRunner : Node
 		_runSegsPerPxCount = 0;
 		_smartScaleLastObservedStep = int.MinValue;
 		_smartScaleBudgetStopCountCurrentRun = 0;
+		_smartScaleRenderStepCallsCurrentRun = 0;
+		_smartScaleBandsCommittedCurrentRun = 0;
+		_smartScaleRowsAdvancedTotalCurrentRun = 0;
+		_smartScaleScanlineCountersCoarseCurrentRun = false;
+		_smartScaleRowCursorStartKnownCurrentRun = false;
+		_smartScaleRowCursorStartCurrentRun = 0;
+		_smartScaleRowCursorEndKnownCurrentRun = false;
+		_smartScaleRowCursorEndCurrentRun = 0;
+		_smartScaleFilmHeightKnownCurrentRun = false;
+		_smartScaleFilmHeightCurrentRun = 0;
+		CaptureSmartScaleProbeCursorAndFilmHeightAtRunBoundary(isRunStart: true);
 		_lifecycleStressMidCycleRendererNullObserved = false;
 		if (IsLifecycleStressActive() && TryGetSharedRayBeamRenderer(out RayBeamRenderer lifecycleRbr) && GodotObject.IsInstanceValid(lifecycleRbr))
 		{
@@ -843,9 +893,16 @@ public partial class RenderTestRunner : Node
 			$"updateEveryFrame={(runWantsUpdateEveryFrame ? "on" : "off")}");
 		if (TryGetSmartScaleProbeOverride(in _activeRunConfig, out SmartScaleProbeOverride smartProbe))
 		{
+			string budgetMode = GetSmartScaleProbeBudgetModeToken();
+			int budgetN = GetSmartScaleProbeBudgetN();
 			GD.Print(
 				$"[SmartScale][ProbeStart] probe={Sanitize(smartProbe.ProbeId)} run={Sanitize(_activeRunConfig.Name)} " +
-				$"summary={Sanitize(smartProbe.Summary)}");
+				$"summary={Sanitize(smartProbe.Summary)} budget_mode={budgetMode} budget_n={budgetN} " +
+				$"renderstep_calls={_smartScaleRenderStepCallsCurrentRun} bands_committed={_smartScaleBandsCommittedCurrentRun} " +
+				$"rows_advanced_total={_smartScaleRowsAdvancedTotalCurrentRun} " +
+				$"row_cursor_start={(_smartScaleRowCursorStartKnownCurrentRun ? _smartScaleRowCursorStartCurrentRun.ToString() : "na")} " +
+				$"row_cursor_end={(_smartScaleRowCursorEndKnownCurrentRun ? _smartScaleRowCursorEndCurrentRun.ToString() : "na")} " +
+				$"film_height={(_smartScaleFilmHeightKnownCurrentRun ? _smartScaleFilmHeightCurrentRun.ToString() : "na")}");
 		}
 		if (_renderTestMode)
 		{
@@ -1792,6 +1849,8 @@ public partial class RenderTestRunner : Node
 
 			bool hasRhLiveSnapshot = TryGetLatestRenderHealthLiveSnapshot(out RenderHealthLiveSnapshot finalRhSnap);
 			bool filmValidForMetrics = _film != null && GodotObject.IsInstanceValid(_film);
+			CaptureSmartScaleProbeCursorAndFilmHeightAtRunBoundary(isRunStart: false);
+			ApplySmartScaleCoarseCounterFallbackIfNeeded();
 			int renderStepMaxMs = filmValidForMetrics ? Math.Max(0, _film.RenderStepMaxMs) : 0;
 			float updateEveryFrameBudgetMs = filmValidForMetrics ? Math.Max(0f, _film.UpdateEveryFrameBudgetMs) : 0f;
 			bool updateEveryFrameActive = filmValidForMetrics && _film.UpdateEveryFrame;
@@ -1836,7 +1895,17 @@ public partial class RenderTestRunner : Node
 				EffectiveMaxMsKnown = effectiveMaxMsKnown,
 				EffectiveMaxMs = effectiveMaxMs,
 				BudgetStopCount = _smartScaleBudgetStopCountCurrentRun,
-				BudgetStopCountKnown = IsSmartScaleActive()
+				BudgetStopCountKnown = IsSmartScaleActive(),
+				RenderStepCalls = _smartScaleRenderStepCallsCurrentRun,
+				BandsCommitted = _smartScaleBandsCommittedCurrentRun,
+				RowsAdvancedTotal = _smartScaleRowsAdvancedTotalCurrentRun,
+				ScanlineCountersCoarse = _smartScaleScanlineCountersCoarseCurrentRun,
+				RowCursorStartKnown = _smartScaleRowCursorStartKnownCurrentRun,
+				RowCursorStart = _smartScaleRowCursorStartCurrentRun,
+				RowCursorEndKnown = _smartScaleRowCursorEndKnownCurrentRun,
+				RowCursorEnd = _smartScaleRowCursorEndCurrentRun,
+				FilmHeightKnown = _smartScaleFilmHeightKnownCurrentRun,
+				FilmHeight = _smartScaleFilmHeightCurrentRun
 			};
 
 			MaybeRecordSmartScaleProbeResult(in run, in metrics);
@@ -2107,6 +2176,13 @@ public partial class RenderTestRunner : Node
 		_smartScaleAbortRemainingRuns = false;
 		_smartScaleLastObservedStep = int.MinValue;
 		_smartScaleBudgetStopCountCurrentRun = 0;
+		_smartScaleRenderStepCallsCurrentRun = 0;
+		_smartScaleBandsCommittedCurrentRun = 0;
+		_smartScaleRowsAdvancedTotalCurrentRun = 0;
+		_smartScaleRowCursorStartKnownCurrentRun = false;
+		_smartScaleRowCursorStartCurrentRun = 0;
+		_smartScaleRowCursorEndKnownCurrentRun = false;
+		_smartScaleRowCursorEndCurrentRun = 0;
 		if (_defaultsCaptured && _film != null && GodotObject.IsInstanceValid(_film))
 		{
 			_film.RestoreTestRunDefaults(in _defaults);
@@ -2540,9 +2616,36 @@ public partial class RenderTestRunner : Node
 	{
 		_smartScaleMode = SmartScaleMode.None;
 		_smartScaleNoEarlyStop = false;
+		_smartScaleProbeBudgetMode = SmartScaleProbeBudgetMode.RenderStepCalls;
+		_smartScaleProbeRowsPerRun = SmartScaleProbeFramesPerRun;
 		if (TryGetBoolCmdArgValue(SmartScaleNoEarlyStopCmdArgPrefix, out bool noEarlyStop))
 		{
 			_smartScaleNoEarlyStop = noEarlyStop;
+		}
+		if (TryGetStringCmdArgValue(SmartScaleBudgetCmdArgPrefix, out string budgetModeRaw) &&
+			!string.IsNullOrWhiteSpace(budgetModeRaw))
+		{
+			string budgetMode = budgetModeRaw.Trim();
+			if (string.Equals(budgetMode, "renderstep_calls", StringComparison.OrdinalIgnoreCase))
+			{
+				_smartScaleProbeBudgetMode = SmartScaleProbeBudgetMode.RenderStepCalls;
+			}
+			else if (string.Equals(budgetMode, "rows_advanced", StringComparison.OrdinalIgnoreCase))
+			{
+				_smartScaleProbeBudgetMode = SmartScaleProbeBudgetMode.RowsAdvanced;
+			}
+			else
+			{
+				GD.PrintErr($"[RenderTestRunner][SmartScale] Unsupported smartscale budget='{budgetModeRaw}'. Using renderstep_calls.");
+			}
+		}
+		if (TryGetIntCmdArgValue(SmartScaleBudgetNCmdArgPrefix, out int cliBudgetN))
+		{
+			_smartScaleProbeRowsPerRun = Math.Max(1, cliBudgetN);
+		}
+		else if (TryGetIntCmdArgValue(SmartScaleRowsPerRunCmdArgPrefix, out int cliRowsPerRun))
+		{
+			_smartScaleProbeRowsPerRun = Math.Max(1, cliRowsPerRun);
 		}
 		if (!TryGetBoolCmdArgValue(SmartScaleCmdArgPrefix, out bool enabled) || !enabled)
 		{
@@ -2726,6 +2829,15 @@ public partial class RenderTestRunner : Node
 		return _smartScaleMode != SmartScaleMode.None;
 	}
 
+	private bool HasReachedSmartScaleProbeBudgetForCurrentRun()
+	{
+		if (_smartScaleProbeBudgetMode == SmartScaleProbeBudgetMode.RowsAdvanced)
+		{
+			return _smartScaleRowsAdvancedTotalCurrentRun >= GetSmartScaleProbeBudgetN();
+		}
+		return _smartScaleRenderStepCallsCurrentRun >= GetSmartScaleProbeBudgetN();
+	}
+
 	private void ConfigureSmartScaleProbeSchedule()
 	{
 		if (!IsSmartScaleActive() || _smartScaleConfigured)
@@ -2736,9 +2848,30 @@ public partial class RenderTestRunner : Node
 		FramesPerRun = SmartScaleProbeFramesPerRun;
 		WarmupFrames = Math.Min(Math.Max(0, WarmupFrames), SmartScaleProbeWarmupFrames);
 		_smartScaleConfigured = true;
+		string budgetMode = GetSmartScaleProbeBudgetModeToken();
+		int budgetN = GetSmartScaleProbeBudgetN();
 		GD.Print(
 			$"[SmartScale] enabled=1 goal={_smartScaleMode.ToString().ToLowerInvariant()} " +
-			$"frames={FramesPerRun} warmup={WarmupFrames} no_early_stop={(_smartScaleNoEarlyStop ? 1 : 0)}");
+			$"budget_mode={budgetMode} budget_n={budgetN} " +
+			$"renderstep_calls_per_run={Math.Max(1, FramesPerRun)} rows_advanced_per_run={Math.Max(1, _smartScaleProbeRowsPerRun)} " +
+			$"warmup={WarmupFrames} cli_frames_per_run_interpretation=renderstep_calls no_early_stop={(_smartScaleNoEarlyStop ? 1 : 0)}");
+	}
+
+	private string GetSmartScaleProbeBudgetModeToken()
+	{
+		return _smartScaleProbeBudgetMode == SmartScaleProbeBudgetMode.RowsAdvanced
+			? "rows_advanced"
+			: "renderstep_calls";
+	}
+
+	private int GetSmartScaleProbeBudgetN()
+	{
+		if (_smartScaleProbeBudgetMode == SmartScaleProbeBudgetMode.RowsAdvanced)
+		{
+			return Math.Max(1, _smartScaleProbeRowsPerRun);
+		}
+		// Backward compatibility: FramesPerRun remains the source of the renderstep_calls budget unless explicitly changed elsewhere.
+		return Math.Max(1, FramesPerRun);
 	}
 
 	private RenderTestFixture GetRequestedFixture()
@@ -3438,10 +3571,144 @@ public partial class RenderTestRunner : Node
 			return;
 		}
 		_smartScaleLastObservedStep = snap.Step;
+		_smartScaleRenderStepCallsCurrentRun++;
+		_smartScaleBandsCommittedCurrentRun += Math.Max(0, snap.Bands);
+		_smartScaleRowsAdvancedTotalCurrentRun += Math.Max(0, snap.RowsAdv);
+		if (!_smartScaleRowCursorStartKnownCurrentRun)
+		{
+			int inferredStart = snap.LastRow - Math.Max(0, snap.RowsAdv);
+			if (inferredStart < 0)
+			{
+				inferredStart = 0;
+			}
+			_smartScaleRowCursorStartCurrentRun = inferredStart;
+			_smartScaleRowCursorStartKnownCurrentRun = true;
+		}
+		_smartScaleRowCursorEndCurrentRun = snap.LastRow;
+		_smartScaleRowCursorEndKnownCurrentRun = true;
+		if (!_smartScaleFilmHeightKnownCurrentRun)
+		{
+			CaptureSmartScaleProbeCursorAndFilmHeightAtRunBoundary(isRunStart: false);
+		}
 		if (!string.IsNullOrWhiteSpace(snap.BudgetExitReason) &&
 			!string.Equals(snap.BudgetExitReason, "none", StringComparison.OrdinalIgnoreCase))
 		{
 			_smartScaleBudgetStopCountCurrentRun++;
+		}
+	}
+
+	private void CaptureSmartScaleProbeCursorAndFilmHeightAtRunBoundary(bool isRunStart)
+	{
+		if (_film == null || !GodotObject.IsInstanceValid(_film))
+		{
+			return;
+		}
+
+		if (!TryReadSmartScaleFilmProbeState(out int rowCursor, out bool rowCursorKnown, out int filmHeight, out bool filmHeightKnown))
+		{
+			return;
+		}
+
+		if (filmHeightKnown)
+		{
+			_smartScaleFilmHeightCurrentRun = Math.Max(0, filmHeight);
+			_smartScaleFilmHeightKnownCurrentRun = true;
+		}
+
+		if (!rowCursorKnown)
+		{
+			return;
+		}
+
+		int clampedRow = Math.Max(0, rowCursor);
+		if (_smartScaleFilmHeightKnownCurrentRun)
+		{
+			clampedRow = Mathf.Clamp(clampedRow, 0, Math.Max(0, _smartScaleFilmHeightCurrentRun));
+		}
+
+		if (isRunStart || !_smartScaleRowCursorStartKnownCurrentRun)
+		{
+			_smartScaleRowCursorStartCurrentRun = clampedRow;
+			_smartScaleRowCursorStartKnownCurrentRun = true;
+		}
+
+		_smartScaleRowCursorEndCurrentRun = clampedRow;
+		_smartScaleRowCursorEndKnownCurrentRun = true;
+	}
+
+	private void ApplySmartScaleCoarseCounterFallbackIfNeeded()
+	{
+		if (_smartScaleBandsCommittedCurrentRun > 0 || _smartScaleRowsAdvancedTotalCurrentRun > 0)
+		{
+			return;
+		}
+		if (!_smartScaleRowCursorStartKnownCurrentRun || !_smartScaleRowCursorEndKnownCurrentRun)
+		{
+			return;
+		}
+
+		int delta = _smartScaleRowCursorEndCurrentRun - _smartScaleRowCursorStartCurrentRun;
+		if (delta <= 0)
+		{
+			return;
+		}
+
+		_smartScaleRowsAdvancedTotalCurrentRun = delta;
+		_smartScaleBandsCommittedCurrentRun = 1;
+		_smartScaleScanlineCountersCoarseCurrentRun = true;
+	}
+
+	private bool TryReadSmartScaleFilmProbeState(out int rowCursor, out bool rowCursorKnown, out int filmHeight, out bool filmHeightKnown)
+	{
+		rowCursor = 0;
+		rowCursorKnown = false;
+		filmHeight = 0;
+		filmHeightKnown = false;
+		if (_film == null || !GodotObject.IsInstanceValid(_film))
+		{
+			return false;
+		}
+
+		EnsureSmartScaleFilmProbeReflection();
+		if (_smartScaleFilmProbeReflectionReady)
+		{
+			TryReadIntField(_smartScaleFilmRowCursorField, _film, out rowCursor, out rowCursorKnown);
+			TryReadIntField(_smartScaleFilmHeightField, _film, out filmHeight, out filmHeightKnown);
+			if (rowCursorKnown || filmHeightKnown)
+			{
+				return true;
+			}
+		}
+
+		if (TryGetLatestRenderHealthLiveSnapshot(out RenderHealthLiveSnapshot snap))
+		{
+			rowCursor = Math.Max(0, snap.LastRow);
+			rowCursorKnown = true;
+			return true;
+		}
+
+		return false;
+	}
+
+	private void EnsureSmartScaleFilmProbeReflection()
+	{
+		if (_smartScaleFilmProbeReflectionTried)
+		{
+			return;
+		}
+		_smartScaleFilmProbeReflectionTried = true;
+		try
+		{
+			const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+			Type filmType = typeof(GrinFilmCamera);
+			_smartScaleFilmRowCursorField = filmType.GetField("_rowCursor", flags);
+			_smartScaleFilmHeightField = filmType.GetField("_filmHeight", flags);
+			_smartScaleFilmProbeReflectionReady =
+				_smartScaleFilmRowCursorField != null || _smartScaleFilmHeightField != null;
+		}
+		catch
+		{
+			_smartScaleFilmProbeReflectionReady = false;
 		}
 	}
 
@@ -3465,10 +3732,18 @@ public partial class RenderTestRunner : Node
 
 		string trustToken = metrics.TrustKnown ? (metrics.Trusted ? "1" : "0") : "na";
 		string geomToken = metrics.GeomPixProcessedKnown ? metrics.GeomPixProcessed.ToString() : "na";
+		string budgetMode = GetSmartScaleProbeBudgetModeToken();
+		int budgetN = GetSmartScaleProbeBudgetN();
 		GD.Print(
 			$"[SmartScale][ProbeResult] probe={Sanitize(result.ProbeId)} valid={(result.IsValid ? 1 : 0)} " +
 			$"invalid_reason={Sanitize(result.IsValid ? "none" : (result.InvalidReason ?? "unknown"))} trust={trustToken} " +
-			$"geomPixProcessedRaw={geomToken} budgetStopCount={metrics.BudgetStopCount} " +
+			$"geomPixProcessedRaw={geomToken} budget_mode={budgetMode} budget_n={budgetN} budgetStopCount={metrics.BudgetStopCount} " +
+			$"renderstep_calls={metrics.RenderStepCalls} bands_committed={metrics.BandsCommitted} " +
+			$"rows_advanced_total={metrics.RowsAdvancedTotal} " +
+			$"scanline_counters_coarse={(metrics.ScanlineCountersCoarse ? 1 : 0)} " +
+			$"row_cursor_start={(metrics.RowCursorStartKnown ? metrics.RowCursorStart.ToString() : "na")} " +
+			$"row_cursor_end={(metrics.RowCursorEndKnown ? metrics.RowCursorEnd.ToString() : "na")} " +
+			$"film_height={(metrics.FilmHeightKnown ? metrics.FilmHeight.ToString() : "na")} " +
 			$"targetMs={metrics.TargetMsPerFrame} stride={metrics.PixelStride} rows={metrics.UpdateEveryFrameMaxRowsPerStep}");
 
 		if (!result.IsValid)
@@ -3635,12 +3910,19 @@ public partial class RenderTestRunner : Node
 			? best.Metrics.EffectiveMaxMs.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
 			: "null";
 		string finalEffectiveMaxMsKnownJson = best.Metrics.EffectiveMaxMsKnown ? "true" : "false";
+		string budgetModeJson = JsonString(GetSmartScaleProbeBudgetModeToken());
+		int budgetN = GetSmartScaleProbeBudgetN();
+		string finalRowCursorStartJson = best.Metrics.RowCursorStartKnown ? best.Metrics.RowCursorStart.ToString() : "null";
+		string finalRowCursorEndJson = best.Metrics.RowCursorEndKnown ? best.Metrics.RowCursorEnd.ToString() : "null";
+		string finalFilmHeightJson = best.Metrics.FilmHeightKnown ? best.Metrics.FilmHeight.ToString() : "null";
 
 		string json =
 			"{" +
 			$"\"fixture\":{JsonString(_requestedFixture.ToString())}," +
 			$"\"camera_signature\":{JsonString(cameraSig)}," +
 			"\"goal\":\"max_hits\"," +
+			$"\"budget_mode\":{budgetModeJson}," +
+			$"\"budget_n\":{budgetN}," +
 			$"\"baseline_geomPix\":{baselineGeomJson}," +
 			$"\"best_geomPix\":{bestGeomJson}," +
 			$"\"baseline_trust\":{baselineTrustJson}," +
@@ -3651,6 +3933,13 @@ public partial class RenderTestRunner : Node
 			$"\"final_effective_max_ms\":{finalEffectiveMaxMsJson}," +
 			$"\"final_rows\":{best.Metrics.UpdateEveryFrameMaxRowsPerStep}," +
 			$"\"final_stride\":{best.Metrics.PixelStride}," +
+			$"\"renderstep_calls\":{best.Metrics.RenderStepCalls}," +
+			$"\"bands_committed\":{best.Metrics.BandsCommitted}," +
+			$"\"rows_advanced_total\":{best.Metrics.RowsAdvancedTotal}," +
+			$"\"scanline_counters_coarse\":{(best.Metrics.ScanlineCountersCoarse ? "true" : "false")}," +
+			$"\"row_cursor_start\":{finalRowCursorStartJson}," +
+			$"\"row_cursor_end\":{finalRowCursorEndJson}," +
+			$"\"film_height\":{finalFilmHeightJson}," +
 			"\"final_caps\":{" +
 				$"\"renderstep_max_ms\":{best.Metrics.RenderStepMaxMs}," +
 				$"\"update_every_frame_budget_ms\":{updateBudgetMs}," +
@@ -3686,7 +3975,14 @@ public partial class RenderTestRunner : Node
 				.Append("\"invalid_reason\":").Append(JsonString(r.IsValid ? "none" : (r.InvalidReason ?? "unknown"))).Append(',')
 				.Append("\"trust\":").Append(r.Metrics.TrustKnown ? (r.Metrics.Trusted ? "1" : "0") : "null").Append(',')
 				.Append("\"geomPix\":").Append(r.Metrics.GeomPixProcessedKnown ? r.Metrics.GeomPixProcessed.ToString() : "null").Append(',')
-				.Append("\"budgetStops\":").Append(r.Metrics.BudgetStopCount)
+				.Append("\"budgetStops\":").Append(r.Metrics.BudgetStopCount).Append(',')
+				.Append("\"renderstep_calls\":").Append(r.Metrics.RenderStepCalls).Append(',')
+				.Append("\"bands_committed\":").Append(r.Metrics.BandsCommitted).Append(',')
+				.Append("\"rows_advanced_total\":").Append(r.Metrics.RowsAdvancedTotal).Append(',')
+				.Append("\"scanline_counters_coarse\":").Append(r.Metrics.ScanlineCountersCoarse ? "true" : "false").Append(',')
+				.Append("\"row_cursor_start\":").Append(r.Metrics.RowCursorStartKnown ? r.Metrics.RowCursorStart.ToString() : "null").Append(',')
+				.Append("\"row_cursor_end\":").Append(r.Metrics.RowCursorEndKnown ? r.Metrics.RowCursorEnd.ToString() : "null").Append(',')
+				.Append("\"film_height\":").Append(r.Metrics.FilmHeightKnown ? r.Metrics.FilmHeight.ToString() : "null")
 				.Append('}');
 		}
 		sb.Append(']');
