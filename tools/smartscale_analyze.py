@@ -2,10 +2,12 @@
 import argparse
 import csv
 import io
+import json
 import os
+import re
 import statistics
 from collections import Counter
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 
 COLUMNS = [
@@ -36,6 +38,9 @@ COLUMNS = [
 ]
 
 TARGET_CLASSES = ("trusted", "near_trusted", "productive_partial", "untrusted")
+SMARTSCALE_RESULT_RE = re.compile(r"\[SmartScaleResult\]\s*(\{.*\})\s*$")
+SMARTSCALE_PROBE_TAG = "[SmartScale][ProbeResult]"
+TOKEN_RE = re.compile(r"([A-Za-z0-9_]+)=([^\s]+)")
 
 
 def parse_float(value: Optional[str]) -> Optional[float]:
@@ -64,19 +69,16 @@ def normalize_class(value: Optional[str]) -> str:
     return aliases.get(text, text)
 
 
-def read_rows(path: str) -> List[Dict[str, str]]:
-    if not os.path.exists(path):
-        return []
+def parse_kv_tokens(line: str) -> Dict[str, str]:
+    out: Dict[str, str] = {}
+    for key, value in TOKEN_RE.findall(line):
+        out[key] = value
+    return out
 
-    try:
-        with open(path, "rb") as handle:
-            raw = handle.read()
-    except OSError:
-        return []
 
+def decode_text(raw: bytes) -> str:
     if not raw:
-        return []
-
+        return ""
     text = ""
     for enc in ("utf-8", "utf-16", "utf-16-le", "utf-16-be"):
         try:
@@ -87,13 +89,18 @@ def read_rows(path: str) -> List[Dict[str, str]]:
             break
     if not text:
         text = raw.decode("utf-8", errors="replace")
-    text = text.lstrip("\ufeff")
+    return text.lstrip("\ufeff")
 
-    reader = csv.reader(io.StringIO(text))
-    raw_rows = [row for row in reader if any(cell.strip() for cell in row)]
+
+def rows_from_text(text: str) -> Tuple[List[Dict[str, str]], Optional[str]]:
+    try:
+        reader = csv.reader(io.StringIO(text))
+        raw_rows = [row for row in reader if any(cell.strip() for cell in row)]
+    except csv.Error as exc:
+        return ([], f"CSV parse error: {exc}")
 
     if not raw_rows:
-        return []
+        return ([], None)
 
     has_header = raw_rows[0] == COLUMNS
     data_rows = raw_rows[1:] if has_header else raw_rows
@@ -105,7 +112,21 @@ def read_rows(path: str) -> List[Dict[str, str]]:
             if idx < len(raw):
                 row[name] = raw[idx].strip()
         rows.append(row)
-    return rows
+    return (rows, None)
+
+
+def read_rows(path: str) -> Tuple[List[Dict[str, str]], Optional[str]]:
+    if not os.path.exists(path):
+        return ([], f"CSV not found: {path}")
+
+    try:
+        with open(path, "rb") as handle:
+            raw = handle.read()
+    except OSError as exc:
+        return ([], f"Failed to read CSV: {exc}")
+
+    text = decode_text(raw)
+    return rows_from_text(text)
 
 
 def fmt_num(value: Optional[float], digits: int = 3) -> str:
@@ -114,7 +135,7 @@ def fmt_num(value: Optional[float], digits: int = 3) -> str:
     return f"{value:.{digits}f}"
 
 
-def mean_median(rows: List[Dict[str, str]], key: str) -> (Optional[float], Optional[float]):
+def mean_median(rows: List[Dict[str, str]], key: str) -> Tuple[Optional[float], Optional[float]]:
     vals = [v for v in (parse_float(row.get(key)) for row in rows) if v is not None]
     if not vals:
         return (None, None)
@@ -141,7 +162,7 @@ def print_class_percentages(rows: List[Dict[str, str]]) -> None:
         print(f"  {cls}: {pct:.1f}% ({count}/{total})")
 
 
-def print_summary(rows: List[Dict[str, str],], label: str) -> None:
+def print_summary(rows: List[Dict[str, str]], label: str) -> None:
     print(f"=== {label} ===")
     print(f"total_rows: {len(rows)}")
 
@@ -173,12 +194,88 @@ def print_summary(rows: List[Dict[str, str],], label: str) -> None:
     print("")
 
 
+def run_selftest() -> int:
+    sample_log = """
+[SmartScale][ProbeResult] probe=trusted trust=1 probe_class=trusted geomPix=11600 max_p2SampRaw=120 max_geomRayTestsTotalRaw=460 raytest_deficit=0
+[SmartScale][ProbeResult] probe=near_trusted trust=0 probe_class=near_trusted geomPix=10800 max_p2SampRaw=112 max_geomRayTestsTotalRaw=500 raytest_deficit=5
+[SmartScale][Summary] best=trusted best_geomPix=11600 best_trust=1 budget_mode=renderstep_calls budget_n=60 budgetStops=0
+[SmartScaleResult] {"fixture":"Straight","camera_signature":"camA","goal":"max_hits","budget_mode":"renderstep_calls","budget_n":60,"best_probe":"trusted","best_trust":1,"best_probe_class":"trusted","best_geomPix":11600,"final_target_ms_per_frame":16.6,"final_effective_max_ms":16.6,"final_rows":72,"final_stride":1,"renderstep_calls":60,"rows_advanced_total":2048,"bands_committed":17,"scanline_counters_coarse":true}
+""".strip().splitlines()
+
+    result: Dict[str, Any] = {}
+    probe: Dict[str, str] = {}
+    for line in sample_log:
+        if SMARTSCALE_PROBE_TAG in line and not probe:
+            probe = parse_kv_tokens(line)
+        match = SMARTSCALE_RESULT_RE.search(line.strip())
+        if not match:
+            continue
+        try:
+            parsed = json.loads(match.group(1).strip())
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, dict):
+            result = parsed
+
+    row = {name: "" for name in COLUMNS}
+    row["timestamp"] = "2026-02-27T12:00:00"
+    row["log_path"] = "selftest.log"
+    row["fixture"] = str(result.get("fixture", ""))
+    row["camera_signature"] = str(result.get("camera_signature", ""))
+    row["goal"] = str(result.get("goal", ""))
+    row["budget_mode"] = str(result.get("budget_mode", ""))
+    row["budget_n"] = str(result.get("budget_n", ""))
+    row["best_probe"] = str(result.get("best_probe", probe.get("probe", "")))
+    row["best_trust"] = str(result.get("best_trust", probe.get("trust", "")))
+    row["best_probe_class"] = str(result.get("best_probe_class", probe.get("probe_class", "")))
+    row["best_geomPix"] = str(result.get("best_geomPix", probe.get("geomPix", "")))
+    row["best_raytest_deficit"] = probe.get("raytest_deficit", "")
+    row["best_max_geomRayTestsTotalRaw"] = probe.get("max_geomRayTestsTotalRaw", "")
+    row["best_max_p2SampRaw"] = probe.get("max_p2SampRaw", "")
+
+    buf = io.StringIO()
+    writer = csv.writer(buf, lineterminator="\n")
+    writer.writerow(COLUMNS)
+    writer.writerow([row[col] for col in COLUMNS])
+
+    parsed_rows, error = rows_from_text(buf.getvalue())
+    if error:
+        print(f"SELFTEST FAIL: {error}")
+        return 1
+    if len(parsed_rows) != 1:
+        print("SELFTEST FAIL: expected 1 row")
+        return 1
+    parsed = parsed_rows[0]
+    checks = [
+        parsed.get("best_probe") == "trusted",
+        normalize_class(parsed.get("best_probe_class")) == "trusted",
+        parse_float(parsed.get("best_geomPix")) == 11600.0,
+    ]
+    if not all(checks):
+        print("SELFTEST FAIL: parsed fields mismatch")
+        return 1
+    print("SELFTEST PASS")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Quick analytics for SmartScale extractor CSV output.")
-    parser.add_argument("csv_path", help="path to extractor CSV")
+    parser.add_argument("--selftest", default="0", help="set to 1 to run internal parser self-test")
+    parser.add_argument("csv_path", nargs="?", help="path to extractor CSV")
     args = parser.parse_args()
 
-    rows = read_rows(args.csv_path)
+    run_selftest_mode = str(args.selftest).strip().lower() in ("1", "true", "yes", "on")
+    if run_selftest_mode:
+        return run_selftest()
+
+    if not args.csv_path:
+        print("Missing csv_path.")
+        return 2
+
+    rows, error = read_rows(args.csv_path)
+    if error:
+        print(error)
+        return 1
     if not rows:
         print("No rows found.")
         return 0

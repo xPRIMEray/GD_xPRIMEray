@@ -268,7 +268,7 @@ def derive_probe_class(best_probe_class: Any, best_trust: Any) -> Any:
     return "trusted" if int(trust_val) == 1 else "untrusted"
 
 
-def build_record(log_path: str) -> Dict[str, Any]:
+def build_record_from_lines(log_path: str, lines: List[str]) -> Dict[str, Any]:
     record: Dict[str, Any] = {key: None for key in COLUMNS}
     abs_path = os.path.abspath(log_path) if log_path and log_path.upper() != "NUL" else log_path
     record["timestamp"] = extract_timestamp_from_filename(log_path) if log_path else datetime.now().isoformat(
@@ -279,7 +279,6 @@ def build_record(log_path: str) -> Dict[str, Any]:
     if not log_path or log_path.upper() == "NUL":
         return record
 
-    lines = read_lines(log_path)
     result = parse_last_smartscale_result(lines)
     summary = parse_last_summary(lines)
     probe_entries = parse_probe_results(lines)
@@ -390,6 +389,17 @@ def build_record(log_path: str) -> Dict[str, Any]:
     return record
 
 
+def build_record(log_path: str) -> Dict[str, Any]:
+    if not log_path or log_path.upper() == "NUL":
+        return build_record_from_lines(log_path, [])
+    try:
+        lines = read_lines(log_path)
+        return build_record_from_lines(log_path, lines)
+    except Exception:
+        # Keep extractor never-throw for production log pipelines.
+        return build_record_from_lines(log_path, [])
+
+
 def print_csv_header() -> None:
     writer = csv.writer(sys.stdout, lineterminator="\n")
     writer.writerow(COLUMNS)
@@ -400,6 +410,29 @@ def print_csv_row(record: Dict[str, Any]) -> None:
     writer.writerow([csv_cell(record.get(col)) for col in COLUMNS])
 
 
+def run_selftest() -> int:
+    sample_log = """
+[SmartScale][ProbeResult] probe=trusted trust=1 probe_class=trusted geomPix=11600 max_p2SampRaw=120 max_geomRayTestsTotalRaw=460 rows=72 stride=1 budgetStops=0 budget_mode=renderstep_calls budget_n=60
+[SmartScale][ProbeResult] probe=near_trusted trust=0 probe_class=near_trusted geomPix=10800 max_p2SampRaw=112 max_geomRayTestsTotalRaw=500 rows=68 stride=1 budgetStops=1 budget_mode=renderstep_calls budget_n=60
+[SmartScale][Summary] best=trusted best_geomPix=11600 best_trust=1 budget_mode=renderstep_calls budget_n=60 budgetStops=0
+[SmartScaleResult] {"fixture":"Straight","camera_signature":"camA","goal":"max_hits","budget_mode":"renderstep_calls","budget_n":60,"best_probe":"trusted","best_trust":1,"best_probe_class":"trusted","best_geomPix":11600,"final_target_ms_per_frame":16.6,"final_effective_max_ms":16.6,"final_rows":72,"final_stride":1,"renderstep_calls":60,"rows_advanced_total":2048,"bands_committed":17,"scanline_counters_coarse":true}
+""".strip().splitlines()
+
+    record = build_record_from_lines("logs\\render_test_straight_2026-02-27_12-00-00.txt", sample_log)
+    checks = [
+        record.get("best_probe") == "trusted",
+        record.get("fixture") == "Straight",
+        record.get("budget_mode") == "renderstep_calls",
+        to_float(record.get("best_geomPix")) == 11600.0,
+        record.get("best_probe_class") == "trusted",
+    ]
+    if all(checks):
+        print("SELFTEST PASS")
+        return 0
+    print("SELFTEST FAIL")
+    return 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Extract SmartScale summary data from a Godot log.")
     parser.add_argument("--json", action="store_true", dest="emit_json", help="emit JSON object to stdout")
@@ -408,10 +441,15 @@ def main() -> int:
         default="0",
         help="set to 1 to emit CSV header before row output",
     )
+    parser.add_argument("--selftest", default="0", help="set to 1 to run internal parser self-test")
     parser.add_argument("log_path", nargs="?", default="", help="path to a single run log")
     args = parser.parse_args()
 
     emit_header = str(args.print_header).strip().lower() in ("1", "true", "yes", "on")
+    run_selftest_mode = str(args.selftest).strip().lower() in ("1", "true", "yes", "on")
+
+    if run_selftest_mode:
+        return run_selftest()
 
     if args.emit_json:
         record = build_record(args.log_path)

@@ -28,7 +28,7 @@ set "SUMMARY_FILE=logs\smartscale_runs_summary.txt"
 set "SMARTSCALE_ARGS=--smartscale=1 --smartscale-goal=max_hits --smartscale-no-early-stop=1 --smartscale-budget=%BUDGET_MODE% --smartscale-budget-n=%BUDGET_N%"
 
 if not exist "%CSV_FILE%" (
-    python tools\smartscale_extract.py --print-header=1 NUL > "%CSV_FILE%"
+    python "tools\smartscale_extract.py" --print-header=1 NUL > "%CSV_FILE%"
     if errorlevel 1 (
         echo ERROR: Failed to initialize CSV header in %CSV_FILE%
         exit /b 1
@@ -36,7 +36,7 @@ if not exist "%CSV_FILE%" (
 ) else (
     for %%I in ("%CSV_FILE%") do (
         if %%~zI EQU 0 (
-            python tools\smartscale_extract.py --print-header=1 NUL > "%CSV_FILE%"
+            python "tools\smartscale_extract.py" --print-header=1 NUL > "%CSV_FILE%"
             if errorlevel 1 (
                 echo ERROR: Failed to initialize CSV header in %CSV_FILE%
                 exit /b 1
@@ -63,7 +63,7 @@ for /L %%R in (1,1,%REPEAT_N%) do (
     if errorlevel 1 goto :fail
 )
 
-python tools\smartscale_analyze.py "%CSV_FILE%" > "%SUMMARY_FILE%"
+python "tools\smartscale_analyze.py" "%CSV_FILE%" > "%SUMMARY_FILE%"
 if errorlevel 1 (
     echo ERROR: Failed to generate summary: %SUMMARY_FILE%
     goto :fail
@@ -101,21 +101,30 @@ echo Running fixture=%FIXTURE% repeat=%REPEAT_IDX%
 echo Log=%LOG_FILE%
 echo ------------------------------------------------------------
 
-"%GODOT_EXE%" --path . -- --render-test-fixture=%FIXTURE% --autocal=1 --shadow-eval=1 --autocal-verbose=1 --autocal-apply=0 %SMARTSCALE_ARGS% > "%LOG_FILE%" 2>&1
+"%GODOT_EXE%" ^
+    --path "." ^
+    -- ^
+    --render-test-fixture=%FIXTURE% ^
+    --autocal=1 ^
+    --shadow-eval=1 ^
+    --autocal-verbose=1 ^
+    --autocal-apply=0 ^
+    %SMARTSCALE_ARGS% ^
+    > "%LOG_FILE%" 2>&1
 if errorlevel 1 (
     echo ERROR: Godot run failed fixture=%FIXTURE% repeat=%REPEAT_IDX%
     echo FAILED_LOG=%LOG_FILE%
     endlocal & set "FAILED_FIXTURE=%FIXTURE%" & set "FAILED_REPEAT=%REPEAT_IDX%" & set "FAILED_LOG=%LOG_FILE%" & exit /b 1
 )
 
-python tools\smartscale_extract.py "%LOG_FILE%" >> "%CSV_FILE%"
+python "tools\smartscale_extract.py" "%LOG_FILE%" >> "%CSV_FILE%"
 if errorlevel 1 (
     echo ERROR: CSV extraction failed fixture=%FIXTURE% repeat=%REPEAT_IDX%
     echo FAILED_LOG=%LOG_FILE%
     endlocal & set "FAILED_FIXTURE=%FIXTURE%" & set "FAILED_REPEAT=%REPEAT_IDX%" & set "FAILED_LOG=%LOG_FILE%" & exit /b 1
 )
 
-python tools\smartscale_extract.py --json "%LOG_FILE%" >> "%JSONL_FILE%"
+python "tools\smartscale_extract.py" --json "%LOG_FILE%" >> "%JSONL_FILE%"
 if errorlevel 1 (
     echo ERROR: JSONL extraction failed fixture=%FIXTURE% repeat=%REPEAT_IDX%
     echo FAILED_LOG=%LOG_FILE%
