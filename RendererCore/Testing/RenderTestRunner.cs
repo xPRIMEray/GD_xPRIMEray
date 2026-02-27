@@ -144,6 +144,9 @@ public partial class RenderTestRunner : Node
 	private FieldInfo _rhGeomOffTracedField;
 	private FieldInfo _rhGeomOffBaselineField;
 	private FieldInfo _rhGeomOffBaselineReadyField;
+	private FieldInfo _rhTestHasSnapshotField;
+	private FieldInfo _rhTestGeomPixRawField;
+	private FieldInfo _rhTestGeomRayRawField;
 	private PropertyInfo _smartScaleFilmRowCursorProp;
 	private PropertyInfo _smartScaleFilmHeightProp;
 	private FieldInfo _smartScaleFilmRowCursorField;
@@ -3254,6 +3257,20 @@ public partial class RenderTestRunner : Node
 		TryReadIntField(_rhSampleHitsField, boxedSample, out int hits, out _);
 		TryReadLongField(_rhSampleTracedField, boxedSample, out long traced, out _);
 		TryReadStringField(_rhSampleBudgetExitReasonField, boxedSample, out string budgetExitReason, out bool budgetExitReasonKnown);
+		if (TryReadLongField(_rhTestGeomPixRawField, _film, out long geomPixProcessedRaw, out bool geomPixRawKnown)
+			&& geomPixRawKnown
+			&& geomPixProcessedRaw > 0)
+		{
+			geomPixProcessed = geomPixProcessedRaw;
+			geomPixKnown = true;
+		}
+		if (TryReadLongField(_rhTestGeomRayRawField, _film, out long geomRayTestsTotalRaw, out bool geomRayRawKnown)
+			&& geomRayRawKnown
+			&& geomRayTestsTotalRaw > 0)
+		{
+			geomRayTestsTotal = geomRayTestsTotalRaw;
+			geomRayTestsKnown = true;
+		}
 
 		snap = new RenderHealthLiveSnapshot
 		{
@@ -3310,6 +3327,9 @@ public partial class RenderTestRunner : Node
 		_rhGeomOffTracedField = filmType.GetField("_geomRayTestsPruningOffTracedPixels", flags);
 		_rhGeomOffBaselineField = filmType.GetField("_geomRayTestsOffPerPixelBaseline", flags);
 		_rhGeomOffBaselineReadyField = filmType.GetField("_geomRayTestsOffPerPixelBaselineReady", flags);
+		_rhTestHasSnapshotField = filmType.GetField("_testHasRenderHealthSnapshot", flags);
+		_rhTestGeomPixRawField = filmType.GetField("_testLastGeomPixProcessedRaw", flags);
+		_rhTestGeomRayRawField = filmType.GetField("_testLastGeomRayTestsTotalRaw", flags);
 
 		_rhLiveReflectionReady =
 			_rhCountField != null

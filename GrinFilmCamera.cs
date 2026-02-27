@@ -4770,6 +4770,7 @@ public partial class GrinFilmCamera : Node
 												rayCfg.CollisionMask,
 												rayCfg.CollisionRadius,
 												out _);
+											_geomRayTestsTotalThisFrame++;
 											pruneAuditBaselineCid = 0;
 										}
 										else
@@ -4800,10 +4801,12 @@ public partial class GrinFilmCamera : Node
 												out _,
 												out pruneAuditBaselineCid,
 												out _,
-												out _,
+												out int pruneAuditRayQueries,
 												includeColliderName: false,
 												hitBackFaces: pass2Flags.HitBackFaces,
 												hitFromInside: pass2Flags.HitFromInside);
+											if (pruneAuditRayQueries > 0)
+												_geomRayTestsTotalThisFrame += pruneAuditRayQueries;
 										}
 										pruneAuditBaselineComputed = true;
 									}
@@ -5020,6 +5023,7 @@ public partial class GrinFilmCamera : Node
 									}
 									MarkGeomPixelProcessedForWork();
 									didHit = RayBeamRenderer.SweepSegmentHit(space, segA, segB, rayCfg.CollisionMask, rayCfg.CollisionRadius, out hp);
+									_geomRayTestsTotalThisFrame++;
 									if ((statsEnabled || framePerfEnabled) && !segCounted)
 									{
 										if (statsEnabled) _perfFrame.SegsTested++;
@@ -8738,6 +8742,7 @@ public partial class GrinFilmCamera : Node
 			GD.Print(
 				$"[RenderHealth][GeomCoverage] step={latest.StepIndex} geomPrune={geomPruneMode} " +
 				$"geomPixProcessedRaw={totalGeomPixelProcessed} geomRayTestsTotalRaw={totalGeomRayTestsTotal} " +
+				$"geomSegQueriedRaw={totalGeomSegmentsQueried} " +
 				$"pass2PixelsRaw={totalGeomPixelProcessed} geomPixHadAnyCandidatesRaw={totalGeomPixelHadAnyCandidates} " +
 				$"geomPixNoCandRaw={totalGeomPixelNoCandidates} p2SampRaw={totalPass2SampledSegments}");
 		}
