@@ -1,0 +1,744 @@
+C:\godot\godot_xPRIMEray>run-smartscale-matrix.bat
+============================================================
+Running xPRIMEray SmartScale Render Test Matrix
+============================================================
+
+------------------------------------------------------------
+Running fixture: straight
+Mode: smartscale_calls60
+Log file: logs\render_test_straight_smartscale_calls60_Thu002-26-2026_19-17-17-87.txt
+------------------------------------------------------------
+============================================================
+Post-Run Log Tail (straight, smartscale_calls60)
+Source: logs\render_test_straight_smartscale_calls60_Thu002-26-2026_19-17-17-87.txt
+============================================================
+[FrameReset] reason=completed prevRow=45 frame=69
+[BUS SET] frameId=132 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
+[FrameReset] reason=completed prevRow=45 frame=70
+[FrameReset] reason=completed prevRow=45 frame=71
+[FrameReset] reason=completed prevRow=45 frame=72
+[RenderHealth] step=150 lastRow=43 rowsAdv=7 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.75 avgSteps=0 qray0=11060 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=0.051 geomSegQueried=486048 geomSegWithCandidates=8252 geomSegZero=477796 geomSegZeroRatePct=98.30 geomPixProcessed=7200 geomPixHadAnyCandidates=5528 geomPixNoCand=1672 geomPixNoCandRatePct=23.22 geomHitOk=5400 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=13652 geomRayTestsAccepted=5400 geomRayTestsRejected=0 geomRayTestsPerPxOn=1.896 geomRayTestsPerPxOff=na geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=60756 radAvg=0.01 radMax=0.01 envDiagAvg=0.166 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=59696 cand1to2=0 cand3to8=1060 cand9to32=0 cand33p=0 geomPruneAuditSamp=0 geomPruneAuditFalseNeg=0 geomPruneAuditFalsePos=0 geomPruneAuditCand0Hit=0 geomPruneAuditFalseNegRate=0
+[RenderHealth][GeomCoverage] step=150 geomPrune=on geomPixProcessedRaw=7200 geomRayTestsTotalRaw=13652 geomSegQueriedRaw=486048 pass2PixelsRaw=7200 geomPixHadAnyCandidatesRaw=5528 geomPixNoCandRaw=1672 p2SampRaw=60756
+[RenderHealth][TrustGateDebug] geomPixProcessedRaw=7200 geomRayTestsTotalRaw=13652 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=2048
+[RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
+[RenderTestRunner] RenderHealth snapshot ready at step=150 frame=30
+[FrameReset] reason=completed prevRow=45 frame=73
+[FrameReset] reason=completed prevRow=45 frame=74
+[SmartScale][Live] fixture=straight run=smartscale_step2_time20 probe=step2 budget_mode=renderstep_calls budget_n=60 renderstep_calls=38 rows_advanced_total=358 trust_window=1/0/na geomPixProcessedRaw=7200 geomRayTestsTotalRaw=13652 budget_exit_reason=none
+[RenderTestLive] name=smartscale_step2_time20 frame=38/60 lastRow=43 rowsAdv=43 bands=1 geomPixProcessed=7200 geomRayTestsTotal=13652 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.75 budgetStop=none
+[FrameReset] reason=completed prevRow=45 frame=75
+[FrameReset] reason=completed prevRow=45 frame=76
+[BUS SET] frameId=166 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
+[FrameReset] reason=completed prevRow=45 frame=77
+[FrameReset] reason=completed prevRow=45 frame=78
+[FrameReset] reason=completed prevRow=45 frame=79
+[RenderHealth] step=180 lastRow=6 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.75 avgSteps=0 qray0=8214 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=0.051 geomSegQueried=349218 geomSegWithCandidates=5886 geomSegZero=343332 geomSegZeroRatePct=98.31 geomPixProcessed=5120 geomPixHadAnyCandidates=3932 geomPixNoCand=1188 geomPixNoCandRatePct=23.20 geomHitOk=3840 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=9726 geomRayTestsAccepted=3840 geomRayTestsRejected=0 geomRayTestsPerPxOn=1.9 geomRayTestsPerPxOff=na geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=43652 radAvg=0.01 radMax=0.01 envDiagAvg=0.166 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=42887 cand1to2=0 cand3to8=765 cand9to32=0 cand33p=0 geomPruneAuditSamp=0 geomPruneAuditFalseNeg=0 geomPruneAuditFalsePos=0 geomPruneAuditCand0Hit=0 geomPruneAuditFalseNegRate=0
+[RenderHealth][GeomCoverage] step=180 geomPrune=on geomPixProcessedRaw=5120 geomRayTestsTotalRaw=9726 geomSegQueriedRaw=349218 pass2PixelsRaw=5120 geomPixHadAnyCandidatesRaw=3932 geomPixNoCandRaw=1188 p2SampRaw=43652
+[RenderHealth][TrustGateDebug] geomPixProcessedRaw=5120 geomRayTestsTotalRaw=9726 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=2048
+[RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
+[RenderTest][RUN SUMMARY] matrix=1772155040 idx=3/4 name=smartscale_step2_time20 samples=57 meanMsPerFrame=26.988 p95MsPerFrame=67.077 meanSegsPerPixel=na geomTrusted=1 geomTrustReason=ok geomRayTestsSavedPct=na
+[RenderTest][RUN END] matrix=1772155040 idx=3/4 name=smartscale_step2_time20 run_id=3 frames=60 warmup=3 samples=57        
+[RUN END] name=smartscale_step2_time20 run_id=3 frames=60 samples=57 meanMs=26.988 p95Ms=67.077
+[SmartScale][ProbeResult] probe=step2_time_expand_20ms valid=1 invalid_reason=none trust=1 geomPixProcessedRaw=5120 budget_mode=renderstep_calls budget_n=60 budgetStopCount=0 renderstep_calls=60 bands_committed=60 rows_advanced_total=546 scanline_counters_coarse=0 row_cursor_start=0 row_cursor_end=6 film_height=45 targetMs=20 stride=1 rows=45
+[SmartScale][Decision] early_stop=1 reason=trusted_significant_gain no_early_stop=1 baseline_geomPix=1160 best_geomPix=5120
+[RenderTestRunner][AutoCalShadowEval] baseline_run_id=3 shadow_run_id=na baseline_trust=1 shadow_trust=1 trust_flip_baseline=0 trust_flip_shadow=na dominant_reason=unknown dominant_reason_detail=na shadow_target_ms_per_frame=na baseline_prune=on shadow_prune=on scene_signature_hash64=0xb62f04781f50f5a3 canonical_signature_hash64=0xc7b258b16ce26d1e baseline_elapsed_msec=1853.15 shadow_elapsed_msec=1853.15 overhead_pct_est=0.0 verdict=pass skip_reason=noop_preset
+[RenderTestRunner][AutoCalDecision] canonical_signature_hash64=0xc7b258b16ce26d1e preset_hash64=0x5260d91c24228765 decision=defer reason=verdict_defer dominant_reason=unknown overhead_pct_est=na shadow_trust=na verdict=defer
+[SmartScaleResult] {"fixture":"Straight","camera_signature":"fixture=Straight|pos=(0,0,5)|fwd=(-0,-0,-1)","goal":"max_hits","budget_mode":"renderstep_calls","budget_n":60,"baseline_geomPix":1160,"best_geomPix":5120,"baseline_trust":1,"best_trust":1,"escalation_path":[{"probe":"step0_baseline","valid":1,"invalid_reason":"none","trust":1,"geomPix":1160,"budgetStops":0,"renderstep_calls":60,"bands_committed":60,"rows_advanced_total":339,"scanline_counters_coarse":false,"row_cursor_start":0,"row_cursor_end":24,"film_height":45},{"probe":"step1_pixel_unlock","valid":1,"invalid_reason":"none","trust":0,"geomPix":36000,"budgetStops":0,"renderstep_calls":60,"bands_committed":60,"rows_advanced_total":426,"scanline_counters_coarse":false,"row_cursor_start":24,"row_cursor_end":0,"film_height":45},{"probe":"step2_time_expand_20ms","valid":1,"invalid_reason":"none","trust":1,"geomPix":5120,"budgetStops":0,"renderstep_calls":60,"bands_committed":60,"rows_advanced_total":546,"scanline_counters_coarse":false,"row_cursor_start":0,"row_cursor_end":6,"film_height":45}],"final_target_ms_per_frame":20,"final_effective_max_ms_known":true,"final_effective_max_ms":1000,"final_rows":45,"final_stride":1,"renderstep_calls":60,"bands_committed":60,"rows_advanced_total":546,"scanline_counters_coarse":false,"row_cursor_start":0,"row_cursor_end":6,"film_height":45,"final_caps":{"renderstep_max_ms":1000,"update_every_frame_budget_ms":1000,"renderstep_max_pixels_per_frame":4000000,"renderstep_max_segments_per_frame":100000000},"confidence_heuristic":"high"}
+[SmartScale][Summary] probes=3 best=step2_time_expand_20ms best_trust=1 best_geomPix=5120 budgetStops=0
+[RenderTest][MATRIX END] id=1772155040 runs=4
+[MATRIX END] totalRuns=4 elapsedMs=11477.232
+[RenderTestRunner] Quitting (render-test mode).
+[RenderTestRunner] Requesting deferred quit code=0
+[RenderTestRunner][ExitCode] forced=0 reason=harness_success
+
+[Extract] [SmartScaleResult]
+[SmartScaleResult] {"fixture":"Straight","camera_signature":"fixture=Straight|pos=(0,0,5)|fwd=(-0,-0,-1)","goal":"max_hits","budget_mode":"renderstep_calls","budget_n":60,"baseline_geomPix":1160,"best_geomPix":5120,"baseline_trust":1,"best_trust":1,"escalation_path":[{"probe":"step0_baseline","valid":1,"invalid_reason":"none","trust":1,"geomPix":1160,"budgetStops":0,"renderstep_calls":60,"bands_committed":60,"rows_advanced_total":339,"scanline_counters_coarse":false,"row_cursor_start":0,"row_cursor_end":24,"film_height":45},{"probe":"step1_pixel_unlock","valid":1,"invalid_reason":"none","trust":0,"geomPix":36000,"budgetStops":0,"renderstep_calls":60,"bands_committed":60,"rows_advanced_total":426,"scanline_counters_coarse":false,"row_cursor_start":24,"row_cursor_end":0,"film_height":45},{"probe":"step2_time_expand_20ms","valid":1,"invalid_reason":"none","trust":1,"geomPix":5120,"budgetStops":0,"renderstep_calls":60,"bands_committed":60,"rows_advanced_total":546,"scanline_counters_coarse":false,"row_cursor_start":0,"row_cursor_end":6,"film_height":45}],"final_target_ms_per_frame":20,"final_effective_max_ms_known":true,"final_effective_max_ms":1000,"final_rows":45,"final_stride":1,"renderstep_calls":60,"bands_committed":60,"rows_advanced_total":546,"scanline_counters_coarse":false,"row_cursor_start":0,"row_cursor_end":6,"film_height":45,"final_caps":{"renderstep_max_ms":1000,"update_every_frame_budget_ms":1000,"renderstep_max_pixels_per_frame":4000000,"renderstep_max_segments_per_frame":100000000},"confidence_heuristic":"high"}
+[Extract] [SmartScale][Summary]
+[SmartScale][Summary] probes=3 best=step2_time_expand_20ms best_trust=1 best_geomPix=5120 budgetStops=0
+[Extract] last 6 [SmartScale][ProbeResult]
+[SmartScale][ProbeResult] probe=step0_baseline valid=1 invalid_reason=none trust=1 geomPixProcessedRaw=1160 budget_mode=renderstep_calls budget_n=60 budgetStopCount=0 renderstep_calls=60 bands_committed=60 rows_advanced_total=339 scanline_counters_coarse=0 row_cursor_start=0 row_cursor_end=24 film_height=45 targetMs=1000 stride=2 rows=6
+[SmartScale][ProbeResult] probe=step1_pixel_unlock valid=1 invalid_reason=none trust=0 geomPixProcessedRaw=36000 budget_mode=renderstep_calls budget_n=60 budgetStopCount=0 renderstep_calls=60 bands_committed=60 rows_advanced_total=426 scanline_counters_coarse=0 row_cursor_start=24 row_cursor_end=0 film_height=45 targetMs=1000 stride=1 rows=45
+[SmartScale][ProbeResult] probe=step2_time_expand_20ms valid=1 invalid_reason=none trust=1 geomPixProcessedRaw=5120 budget_mode=renderstep_calls budget_n=60 budgetStopCount=0 renderstep_calls=60 bands_committed=60 rows_advanced_total=546 scanline_counters_coarse=0 row_cursor_start=0 row_cursor_end=6 film_height=45 targetMs=20 stride=1 rows=45
+[Extract] last 6 [AutoCalShadowEval] decisions
+(not found)
+
+PASS: logs\render_test_straight_smartscale_calls60_Thu002-26-2026_19-17-17-87.txt windows=6, trusted=4, partial=2
+ON trusted mean per-px-on=2.151
+OFF trusted mean per-px-off=na
+ON saved% mean (baseline-ready)=na
+Audit totals: falseNeg=0 falsePos=0
+
+summary: pass=1 fail=0
+
+DOE summary:
+A) TrustReason histogram (global)
+  ok: 4
+  low_raytests: 2
+
+A) TrustReason histogram (per run)
+  smartscale_baseline: ok=2
+  smartscale_step1_unlock: low_raytests=2
+  smartscale_step2_time20: ok=2
+
+B) Trust flip timeline
+  smartscale_baseline: firstTrustedStep=30 trusted_windows=2/2 (100.0%)
+  smartscale_step1_unlock: firstTrustedStep=none trusted_windows=0/2 (0.0%)
+  smartscale_step2_time20: firstTrustedStep=150 trusted_windows=2/2 (100.0%)
+
+C) low_raytests diagnostics: count=2
+  run=smartscale_step1_unlock step=90 geomRayTestsTotalRaw=0.0 minRayTests=2048.0 geomPixProcessedRaw=36000.0 minGeomPix=1024.0 candPix/noCand=27640/8360 rayTestsPerGeomPix=0.000 candRate=0.768 noCandRate=0.232
+  run=smartscale_step1_unlock step=120 geomRayTestsTotalRaw=0.0 minRayTests=2048.0 geomPixProcessedRaw=36000.0 minGeomPix=1024.0 candPix/noCand=27640/8360 rayTestsPerGeomPix=0.000 candRate=0.768 noCandRate=0.232
+
+D) Top 10 worst trust failures by deficit
+  run=smartscale_step1_unlock step=90 raytestsDeficit=2048.000 geomPixDeficit=0.000 p2Deficit=na
+  run=smartscale_step1_unlock step=120 raytestsDeficit=2048.000 geomPixDeficit=0.000 p2Deficit=na
+
+RUN REPORT
+  run=smartscale_baseline frames=60 warmup=3 samples=57 windows=2 trusted=2 partial=0
+    firstTrustedStep=30 lastTrustedStep=60
+    topReasons=ok=2
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=2.405,2.420 savedPctMean=na
+  run=smartscale_step1_unlock frames=60 warmup=3 samples=57 windows=2 trusted=0 partial=2
+    firstTrustedStep=na lastTrustedStep=na
+    topReasons=low_raytests=2
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=na,na savedPctMean=na
+    low_raytests examples:
+      step=90 geomRayTestsTotalRaw=0 minRayTests=2048 trustRayTestsMet=0 geomPixProcessedRaw=36000 minGeomPix=1024
+      step=120 geomRayTestsTotalRaw=0 minRayTests=2048 trustRayTestsMet=0 geomPixProcessedRaw=36000 minGeomPix=1024        
+  run=smartscale_step2_time20 frames=60 warmup=3 samples=57 windows=2 trusted=2 partial=0
+    firstTrustedStep=150 lastTrustedStep=180
+    topReasons=ok=2
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=1.898,1.900 savedPctMean=na
+
+REASON HISTOGRAM
+  reasons:
+    ok: 4
+    low_raytests: 2
+  trusted: trusted=1=4 trusted=0=2
+  prune: prune=on=6 prune=off=0
+  trustGateDebug metPix=1 metRay=0: 2
+
+=== AutoCal Shadow Eval Summary (C1.1 g.3) ===
+Coverage
+  total_runs=3
+  runs_with_shadow_eval=3
+  coverage_pct=100.0%
+Verdicts
+  pass_count=3
+  fail_count=0
+  defer_count=0
+  missing_count=0
+Overhead (overhead_pct_est, numeric only)
+  count=3
+  mean=0.000
+  median=0.000
+  p90=0.000
+  p95=0.000
+  max=0.000
+Top offenders (overhead_pct_est desc)
+  run_id=1 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=872.545 shadow_elapsed_msec=872.545 verdict=pass
+  run_id=2 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=8708.683 shadow_elapsed_msec=8708.683 verdict=pass
+  run_id=3 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=1853.150 shadow_elapsed_msec=1853.150 verdict=pass
+Trust sanity
+  baseline_trust_eq_1_and_shadow_trust_ne_1=0
+  fail_count_inferred_due_to_shadow_trust=0
+  shadow_trust_counts=0=1, 1=2
+
+AutoCal decision binding diagnostic
+  missing_decision_count=0
+
+CSV written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.csv
+JSON written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.json
+
+============================================================
+AutoCal Shadow Eval Summary (straight, smartscale_calls60)
+Source: logs\renderhealth_regress_straight_smartscale_calls60_Thu002-26-2026_19-17-17-87.txt
+============================================================
+=== AutoCal Shadow Eval Summary (C1.1 g.3) ===
+Coverage
+  total_runs=3
+  runs_with_shadow_eval=3
+  coverage_pct=100.0%
+Verdicts
+  pass_count=3
+  fail_count=0
+  defer_count=0
+  missing_count=0
+Overhead (overhead_pct_est, numeric only)
+  count=3
+  mean=0.000
+  median=0.000
+  p90=0.000
+  p95=0.000
+  max=0.000
+Top offenders (overhead_pct_est desc)
+  run_id=1 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=872.545 shadow_elapsed_msec=872.545 verdict=pass
+  run_id=2 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=8708.683 shadow_elapsed_msec=8708.683 verdict=pass
+  run_id=3 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=1853.150 shadow_elapsed_msec=1853.150 verdict=pass
+Trust sanity
+  baseline_trust_eq_1_and_shadow_trust_ne_1=0
+  fail_count_inferred_due_to_shadow_trust=0
+  shadow_trust_counts=0=1, 1=2
+
+
+
+------------------------------------------------------------
+Running fixture: curved_minimal
+Mode: smartscale_calls60
+Log file: logs\render_test_curved_minimal_smartscale_calls60_Thu002-26-2026_19-17-17-87.txt
+------------------------------------------------------------
+============================================================
+Post-Run Log Tail (curved_minimal, smartscale_calls60)
+Source: logs\render_test_curved_minimal_smartscale_calls60_Thu002-26-2026_19-17-17-87.txt
+============================================================
+[RenderTest][RUN START] matrix=1772155054 idx=3/4 name=smartscale_step2_time20_shadow frames=60 warmup=3 prune=on
+[RUN START] name=smartscale_step2_time20_shadow prune=on stride=off envScale=inherit aabbExpand=inherit updateEveryFrame=on
+[RenderTestRunner] Trust enforcement (mode=default): scaledFilm=80x45 minGeomPix=1024 minRayTests=4096 minP2=8 p2Every=8 rollingSec=10
+[RenderHealth][StatsMode] scaledFilm=80x45 rowsPerStep=6 fullFrameEveryNSteps<=8
+[EffectiveCfg] broadphase=Policy(policy) policy=QuickRayOnly quick=1 overlap=0 softgate=1 score=0 minSeg=0.1 attempts=1200 sub=2000 stride=1 resScale=0.25 rows=45 stepLen=0.05 collRad=0.03 mask=0x0000FFFF envRadScale=1.02 envAabbExpand=0.01 geomPrune=1 maxDist=50
+[SmartScale][Live] fixture=curved_minimal run=smartscale_step2_time20_shadow probe=baseline budget_mode=renderstep_calls budget_n=60 renderstep_calls=1 rows_advanced_total=4 trust_window=na/na/na geomPixProcessedRaw=3600 geomRayTestsTotalRaw=15936 budget_exit_reason=none
+[RenderTestLive] name=smartscale_step2_time20_shadow frame=1/60 lastRow=19 rowsAdv=4 bands=1 geomPixProcessed=3600 geomRayTestsTotal=15936 geomTrusted=0 geomHealthPartial=1 geomTrustReason=warming_up hitRate=0.125 budgetStop=none
+[FrameReset] reason=completed prevRow=45 frame=87
+[BUS SET] frameId=320 grid=OK fields=1
+SceneSnapshot: Instances=0, Fields=1, Geometry=3, FieldParams=8, FieldTLASNodes=1, GeometryTLASNodes=1, MetricModel(GRIN=1, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1, FirstFields=[0:(rInner=3, rOuter=4.5, amp=1.15, curveType=1, shapeType=0)]
+[FrameReset] reason=completed prevRow=45 frame=88
+[FrameReset] reason=completed prevRow=45 frame=89
+[RenderHealth] step=330 lastRow=0 rowsAdv=4 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.029 avgSteps=0 qray0=106220 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=0.103 geomSegQueried=461348 geomSegWithCandidates=15832 geomSegZero=445516 geomSegZeroRatePct=96.57 geomPixProcessed=3600 geomPixHadAnyCandidates=564 geomPixNoCand=3036 geomPixNoCandRatePct=84.33 geomHitOk=104 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=15936 geomRayTestsAccepted=104 geomRayTestsRejected=0 geomRayTestsPerPxOn=4.427 geomRayTestsPerPxOff=na geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=57668 radAvg=0.014 radMax=0.018 envDiagAvg=0.178 envDiagMax=0.196 envInflAvg=0.01 envInflMax=0.01 cand0=55706 cand1to2=0 cand3to8=1962 cand9to32=0 cand33p=0 geomPruneAuditSamp=0 geomPruneAuditFalseNeg=0 geomPruneAuditFalsePos=0 geomPruneAuditCand0Hit=0 geomPruneAuditFalseNegRate=0
+[RenderHealth][GeomCoverage] step=330 geomPrune=on geomPixProcessedRaw=3600 geomRayTestsTotalRaw=15936 geomSegQueriedRaw=461348 pass2PixelsRaw=3600 geomPixHadAnyCandidatesRaw=564 geomPixNoCandRaw=3036 p2SampRaw=57668
+[RenderHealth][TrustGateDebug] geomPixProcessedRaw=3600 geomRayTestsTotalRaw=15936 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
+[RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
+[RenderTestRunner] RenderHealth snapshot ready at step=330 frame=30
+[FrameReset] reason=completed prevRow=45 frame=90
+[SmartScale][Live] fixture=curved_minimal run=smartscale_step2_time20_shadow probe=baseline budget_mode=renderstep_calls budget_n=60 renderstep_calls=45 rows_advanced_total=182 trust_window=1/0/na geomPixProcessedRaw=3600 geomRayTestsTotalRaw=15936 budget_exit_reason=none
+[RenderTestLive] name=smartscale_step2_time20_shadow frame=45/60 lastRow=17 rowsAdv=4 bands=1 geomPixProcessed=3600 geomRayTestsTotal=15936 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.075 budgetStop=none
+[FrameReset] reason=completed prevRow=45 frame=91
+[RenderHealth] step=360 lastRow=32 rowsAdv=4 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.033 avgSteps=0 qray0=86666 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=0.116 geomSegQueried=409748 geomSegWithCandidates=15832 geomSegZero=393916 geomSegZeroRatePct=96.14 geomPixProcessed=3200 geomPixHadAnyCandidates=564 geomPixNoCand=2636 geomPixNoCandRatePct=82.38 geomHitOk=104 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=15936 geomRayTestsAccepted=104 geomRayTestsRejected=0 geomRayTestsPerPxOn=4.98 geomRayTestsPerPxOff=na geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=51219 radAvg=0.014 radMax=0.018 envDiagAvg=0.177 envDiagMax=0.196 envInflAvg=0.01 envInflMax=0.01 cand0=49231 cand1to2=0 cand3to8=1988 cand9to32=0 cand33p=0 geomPruneAuditSamp=0 geomPruneAuditFalseNeg=0 geomPruneAuditFalsePos=0 geomPruneAuditCand0Hit=0 geomPruneAuditFalseNegRate=0
+[RenderHealth][GeomCoverage] step=360 geomPrune=on geomPixProcessedRaw=3200 geomRayTestsTotalRaw=15936 geomSegQueriedRaw=409748 pass2PixelsRaw=3200 geomPixHadAnyCandidatesRaw=564 geomPixNoCandRaw=2636 p2SampRaw=51219
+[RenderHealth][TrustGateDebug] geomPixProcessedRaw=3200 geomRayTestsTotalRaw=15936 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
+[RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
+[RenderTest][RUN SUMMARY] matrix=1772155054 idx=3/4 name=smartscale_step2_time20_shadow samples=57 meanMsPerFrame=20.4 p95MsPerFrame=38.397 meanSegsPerPixel=na geomTrusted=1 geomTrustReason=ok geomRayTestsSavedPct=na
+[RenderTest][RUN END] matrix=1772155054 idx=3/4 name=smartscale_step2_time20_shadow run_id=6 frames=60 warmup=3 samples=57 
+[RUN END] name=smartscale_step2_time20_shadow run_id=6 frames=60 samples=57 meanMs=20.4 p95Ms=38.397
+[RenderTestRunner][AutoCalShadowEval] baseline_run_id=5 shadow_run_id=6 baseline_trust=1 shadow_trust=1 trust_flip_baseline=0 trust_flip_shadow=0 dominant_reason=unknown dominant_reason_detail=na shadow_target_ms_per_frame=10 baseline_prune=on shadow_prune=on scene_signature_hash64=0x3a8385b347b5dbc8 canonical_signature_hash64=0x6a29a7ab9754d1e0 baseline_elapsed_msec=1515.433 shadow_elapsed_msec=1401 overhead_pct_est=-7.55 verdict=pass
+[RenderTestRunner][AutoCalShadowEvalJson] {"fixture":"CurvedMinimal","baseline_name":"smartscale_step2_time20","shadow_name":"smartscale_step2_time20_shadow","baseline_prune":true,"shadow_prune":true,"shadow_target_ms_per_frame":10,"baseline_run_id":5,"shadow_run_id":6,"baseline_trust":1,"shadow_trust":1,"dominant_reason":"unknown","dominant_reason_detail":"na","overhead_pct_est":-7.55,"gating_excluded":false,"skip_reason":"na","pair_decision":"accept","pair_reason":"accept","pair_verdict":"pass","preset_hash64":"0xdb26fc215b3bf904","canonical_signature_hash64":"0x6a29a7ab9754d1e0","baseline_geom_pix_processed":3600,"shadow_geom_pix_processed":3200,"baseline_geom_ray_tests_total":15936,"shadow_geom_ray_tests_total":15936}       
+[RenderTestRunner][AutoCalDecision] canonical_signature_hash64=0x6a29a7ab9754d1e0 preset_hash64=0xdb26fc215b3bf904 decision=accept reason=accept dominant_reason=unknown overhead_pct_est=-7.55 shadow_trust=1 verdict=pass
+[RenderTestRunner][AutoCalApplyPreview] canonical_signature_hash64=0x6a29a7ab9754d1e0 preset_hash64=0xdb26fc215b3bf904 decision=accept reason=accept preview_changes=target_ms_per_frame:10
+[RenderTestRunner][AutoCalApply] canonical_signature_hash64=0x6a29a7ab9754d1e0 preset_hash64=0xdb26fc215b3bf904 apply_scope=next_run status=skipped reason=flag_off
+[SmartScaleResult] {"fixture":"CurvedMinimal","camera_signature":"fixture=CurvedMinimal|pos=(0,0.5,5.5)|fwd=(-0,-0.139,-0.99)","goal":"max_hits","budget_mode":"renderstep_calls","budget_n":60,"baseline_geomPix":1160,"best_geomPix":3600,"baseline_trust":1,"best_trust":1,"escalation_path":[{"probe":"step0_baseline","valid":1,"invalid_reason":"none","trust":1,"geomPix":1160,"budgetStops":0,"renderstep_calls":60,"bands_committed":60,"rows_advanced_total":339,"scanline_counters_coarse":false,"row_cursor_start":0,"row_cursor_end":24,"film_height":45},{"probe":"step1_pixel_unlock","valid":1,"invalid_reason":"none","trust":0,"geomPix":36000,"budgetStops":0,"renderstep_calls":60,"bands_committed":60,"rows_advanced_total":450,"scanline_counters_coarse":false,"row_cursor_start":0,"row_cursor_end":0,"film_height":45},{"probe":"step2_time_expand_20ms","valid":1,"invalid_reason":"none","trust":1,"geomPix":3600,"budgetStops":0,"renderstep_calls":60,"bands_committed":60,"rows_advanced_total":268,"scanline_counters_coarse":false,"row_cursor_start":17,"row_cursor_end":15,"film_height":45}],"final_target_ms_per_frame":20,"final_effective_max_ms_known":true,"final_effective_max_ms":1000,"final_rows":45,"final_stride":1,"renderstep_calls":60,"bands_committed":60,"rows_advanced_total":268,"scanline_counters_coarse":false,"row_cursor_start":17,"row_cursor_end":15,"film_height":45,"final_caps":{"renderstep_max_ms":1000,"update_every_frame_budget_ms":1000,"renderstep_max_pixels_per_frame":4000000,"renderstep_max_segments_per_frame":100000000},"confidence_heuristic":"high"}
+[SmartScale][Summary] probes=3 best=step2_time_expand_20ms best_trust=1 best_geomPix=3600 budgetStops=0
+[RenderTest][MATRIX END] id=1772155054 runs=4
+[MATRIX END] totalRuns=4 elapsedMs=19794.102
+[RenderTestRunner] Quitting (render-test mode).
+[RenderTestRunner] Requesting deferred quit code=0
+[RenderTestRunner][ExitCode] forced=0 reason=harness_success
+
+[Extract] [SmartScaleResult]
+[SmartScaleResult] {"fixture":"CurvedMinimal","camera_signature":"fixture=CurvedMinimal|pos=(0,0.5,5.5)|fwd=(-0,-0.139,-0.99)","goal":"max_hits","budget_mode":"renderstep_calls","budget_n":60,"baseline_geomPix":1160,"best_geomPix":3600,"baseline_trust":1,"best_trust":1,"escalation_path":[{"probe":"step0_baseline","valid":1,"invalid_reason":"none","trust":1,"geomPix":1160,"budgetStops":0,"renderstep_calls":60,"bands_committed":60,"rows_advanced_total":339,"scanline_counters_coarse":false,"row_cursor_start":0,"row_cursor_end":24,"film_height":45},{"probe":"step1_pixel_unlock","valid":1,"invalid_reason":"none","trust":0,"geomPix":36000,"budgetStops":0,"renderstep_calls":60,"bands_committed":60,"rows_advanced_total":450,"scanline_counters_coarse":false,"row_cursor_start":0,"row_cursor_end":0,"film_height":45},{"probe":"step2_time_expand_20ms","valid":1,"invalid_reason":"none","trust":1,"geomPix":3600,"budgetStops":0,"renderstep_calls":60,"bands_committed":60,"rows_advanced_total":268,"scanline_counters_coarse":false,"row_cursor_start":17,"row_cursor_end":15,"film_height":45}],"final_target_ms_per_frame":20,"final_effective_max_ms_known":true,"final_effective_max_ms":1000,"final_rows":45,"final_stride":1,"renderstep_calls":60,"bands_committed":60,"rows_advanced_total":268,"scanline_counters_coarse":false,"row_cursor_start":17,"row_cursor_end":15,"film_height":45,"final_caps":{"renderstep_max_ms":1000,"update_every_frame_budget_ms":1000,"renderstep_max_pixels_per_frame":4000000,"renderstep_max_segments_per_frame":100000000},"confidence_heuristic":"high"}
+[Extract] [SmartScale][Summary]
+[SmartScale][Summary] probes=3 best=step2_time_expand_20ms best_trust=1 best_geomPix=3600 budgetStops=0
+[Extract] last 6 [SmartScale][ProbeResult]
+[SmartScale][ProbeResult] probe=step0_baseline valid=1 invalid_reason=none trust=1 geomPixProcessedRaw=1160 budget_mode=renderstep_calls budget_n=60 budgetStopCount=0 renderstep_calls=60 bands_committed=60 rows_advanced_total=339 scanline_counters_coarse=0 row_cursor_start=0 row_cursor_end=24 film_height=45 targetMs=1000 stride=2 rows=6
+[SmartScale][ProbeResult] probe=step1_pixel_unlock valid=1 invalid_reason=none trust=0 geomPixProcessedRaw=36000 budget_mode=renderstep_calls budget_n=60 budgetStopCount=0 renderstep_calls=60 bands_committed=60 rows_advanced_total=450 scanline_counters_coarse=0 row_cursor_start=0 row_cursor_end=0 film_height=45 targetMs=1000 stride=1 rows=45
+[SmartScale][ProbeResult] probe=step2_time_expand_20ms valid=1 invalid_reason=none trust=1 geomPixProcessedRaw=3600 budget_mode=renderstep_calls budget_n=60 budgetStopCount=0 renderstep_calls=60 bands_committed=60 rows_advanced_total=268 scanline_counters_coarse=0 row_cursor_start=17 row_cursor_end=15 film_height=45 targetMs=20 stride=1 rows=45
+[Extract] last 6 [AutoCalShadowEval] decisions
+(not found)
+
+PASS: logs\render_test_curved_minimal_smartscale_calls60_Thu002-26-2026_19-17-17-87.txt windows=12, trusted=9, partial=3
+ON trusted mean per-px-on=4.521
+OFF trusted mean per-px-off=na
+ON saved% mean (baseline-ready)=na
+Audit totals: falseNeg=0 falsePos=0
+
+summary: pass=1 fail=0
+
+DOE summary:
+A) TrustReason histogram (global)
+  ok: 9
+  low_raytests: 3
+
+A) TrustReason histogram (per run)
+  smartscale_baseline: ok=2
+  smartscale_baseline_shadow: ok=1, low_raytests=1
+  smartscale_step1_unlock: low_raytests=2
+  smartscale_step1_unlock_shadow: ok=2
+  smartscale_step2_time20: ok=2
+  smartscale_step2_time20_shadow: ok=2
+
+B) Trust flip timeline
+  smartscale_baseline: firstTrustedStep=30 trusted_windows=2/2 (100.0%)
+  smartscale_baseline_shadow: firstTrustedStep=90 trusted_windows=1/2 (50.0%)
+  smartscale_step1_unlock: firstTrustedStep=none trusted_windows=0/2 (0.0%)
+  smartscale_step1_unlock_shadow: firstTrustedStep=210 trusted_windows=2/2 (100.0%)
+  smartscale_step2_time20: firstTrustedStep=270 trusted_windows=2/2 (100.0%)
+  smartscale_step2_time20_shadow: firstTrustedStep=330 trusted_windows=2/2 (100.0%)
+
+C) low_raytests diagnostics: count=3
+  run=smartscale_baseline_shadow step=120 geomRayTestsTotalRaw=3996.0 minRayTests=4096.0 geomPixProcessedRaw=1120.0 minGeomPix=1024.0 candPix/noCand=139/981 rayTestsPerGeomPix=3.568 candRate=0.124 noCandRate=0.876
+  run=smartscale_step1_unlock step=150 geomRayTestsTotalRaw=0.0 minRayTests=4096.0 geomPixProcessedRaw=36000.0 minGeomPix=1024.0 candPix/noCand=5640/30360 rayTestsPerGeomPix=0.000 candRate=0.157 noCandRate=0.843
+  run=smartscale_step1_unlock step=180 geomRayTestsTotalRaw=0.0 minRayTests=4096.0 geomPixProcessedRaw=36000.0 minGeomPix=1024.0 candPix/noCand=5640/30360 rayTestsPerGeomPix=0.000 candRate=0.157 noCandRate=0.843
+
+D) Top 10 worst trust failures by deficit
+  run=smartscale_step1_unlock step=150 raytestsDeficit=4096.000 geomPixDeficit=0.000 p2Deficit=na
+  run=smartscale_step1_unlock step=180 raytestsDeficit=4096.000 geomPixDeficit=0.000 p2Deficit=na
+  run=smartscale_baseline_shadow step=120 raytestsDeficit=100.000 geomPixDeficit=0.000 p2Deficit=na
+
+RUN REPORT
+  run=smartscale_baseline frames=60 warmup=3 samples=57 windows=2 trusted=2 partial=0
+    firstTrustedStep=30 lastTrustedStep=60
+    topReasons=ok=2
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=5.102,5.643 savedPctMean=na
+  run=smartscale_baseline_shadow frames=60 warmup=3 samples=57 windows=2 trusted=1 partial=1
+    firstTrustedStep=90 lastTrustedStep=90
+    topReasons=ok=1, low_raytests=1
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=3.597,3.597 savedPctMean=na
+    low_raytests examples:
+      step=120 geomRayTestsTotalRaw=3996 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1120 minGeomPix=1024      
+  run=smartscale_step1_unlock frames=60 warmup=3 samples=57 windows=2 trusted=0 partial=2
+    firstTrustedStep=na lastTrustedStep=na
+    topReasons=low_raytests=2
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=na,na savedPctMean=na
+    low_raytests examples:
+      step=150 geomRayTestsTotalRaw=0 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=36000 minGeomPix=1024        
+      step=180 geomRayTestsTotalRaw=0 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=36000 minGeomPix=1024        
+  run=smartscale_step1_unlock_shadow frames=60 warmup=3 samples=57 windows=2 trusted=2 partial=0
+    firstTrustedStep=210 lastTrustedStep=240
+    topReasons=ok=2
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=4.312,4.594 savedPctMean=na
+  run=smartscale_step2_time20 frames=60 warmup=3 samples=57 windows=2 trusted=2 partial=0
+    firstTrustedStep=270 lastTrustedStep=300
+    topReasons=ok=2
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=4.427,4.427 savedPctMean=na
+  run=smartscale_step2_time20_shadow frames=60 warmup=3 samples=57 windows=2 trusted=2 partial=0
+    firstTrustedStep=330 lastTrustedStep=360
+    topReasons=ok=2
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=4.704,4.952 savedPctMean=na
+
+REASON HISTOGRAM
+  reasons:
+    ok: 9
+    low_raytests: 3
+  trusted: trusted=1=9 trusted=0=3
+  prune: prune=on=12 prune=off=0
+  trustGateDebug metPix=1 metRay=0: 3
+
+=== AutoCal Shadow Eval Summary (C1.1 g.3) ===
+Coverage
+  total_runs=6
+  runs_with_shadow_eval=3
+  coverage_pct=50.0%
+Verdicts
+  pass_count=1
+  fail_count=1
+  defer_count=1
+  missing_count=0
+Overhead (overhead_pct_est, numeric only)
+  count=3
+  mean=-39.477
+  median=-23.140
+  p90=-10.668
+  p95=-9.109
+  max=-7.550
+Top offenders (overhead_pct_est desc)
+  run_id=5 mode=on fixture=FieldHeavy overhead_pct_est=-7.550 baseline_elapsed_msec=1515.433 shadow_elapsed_msec=1401.000 verdict=pass
+  run_id=1 mode=on fixture=FieldHeavy overhead_pct_est=-23.140 baseline_elapsed_msec=1051.240 shadow_elapsed_msec=808.022 verdict=fail
+  run_id=3 mode=on fixture=FieldHeavy overhead_pct_est=-87.740 baseline_elapsed_msec=13307.516 shadow_elapsed_msec=1630.841 verdict=defer
+Trust sanity
+  baseline_trust_eq_1_and_shadow_trust_ne_1=1
+  fail_count_inferred_due_to_shadow_trust=1
+  shadow_trust_counts=0=1, 1=2
+
+AutoCal decision binding diagnostic
+  missing_decision_count=0
+
+CSV written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.csv
+JSON written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.json
+
+============================================================
+AutoCal Shadow Eval Summary (curved_minimal, smartscale_calls60)
+Source: logs\renderhealth_regress_curved_minimal_smartscale_calls60_Thu002-26-2026_19-17-17-87.txt
+============================================================
+=== AutoCal Shadow Eval Summary (C1.1 g.3) ===
+Coverage
+  total_runs=6
+  runs_with_shadow_eval=3
+  coverage_pct=50.0%
+Verdicts
+  pass_count=1
+  fail_count=1
+  defer_count=1
+  missing_count=0
+Overhead (overhead_pct_est, numeric only)
+  count=3
+  mean=-39.477
+  median=-23.140
+  p90=-10.668
+  p95=-9.109
+  max=-7.550
+Top offenders (overhead_pct_est desc)
+  run_id=5 mode=on fixture=FieldHeavy overhead_pct_est=-7.550 baseline_elapsed_msec=1515.433 shadow_elapsed_msec=1401.000 verdict=pass
+  run_id=1 mode=on fixture=FieldHeavy overhead_pct_est=-23.140 baseline_elapsed_msec=1051.240 shadow_elapsed_msec=808.022 verdict=fail
+  run_id=3 mode=on fixture=FieldHeavy overhead_pct_est=-87.740 baseline_elapsed_msec=13307.516 shadow_elapsed_msec=1630.841 verdict=defer
+Trust sanity
+  baseline_trust_eq_1_and_shadow_trust_ne_1=1
+  fail_count_inferred_due_to_shadow_trust=1
+  shadow_trust_counts=0=1, 1=2
+
+
+
+------------------------------------------------------------
+Running fixture: straight
+Mode: smartscale_rows256
+Log file: logs\render_test_straight_smartscale_rows256_Thu002-26-2026_19-17-17-87.txt
+------------------------------------------------------------
+============================================================
+Post-Run Log Tail (straight, smartscale_rows256)
+Source: logs\render_test_straight_smartscale_rows256_Thu002-26-2026_19-17-17-87.txt
+============================================================
+[RenderStep][WATCHDOG] noRowProgress processedPixels=3600 repeats=6 -> forceAdvance
+[BudgetExit] frame=30 row=0 reason=guard_no_row_progress elapsedMs=132 rowsDoneThisStep=0 hitsThisBand=2700 attempts=0/1200 subdiv=0/2000 px=3600/4000000
+[FrameReset] reason=completed prevRow=45 frame=30
+[FrameReset] reason=completed prevRow=45 frame=31
+[BUS SET] frameId=73 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
+[FrameReset] reason=completed prevRow=45 frame=32
+[FrameReset] reason=completed prevRow=45 frame=33
+[FrameReset] reason=completed prevRow=45 frame=34
+[FrameReset] reason=completed prevRow=45 frame=35
+[FrameReset] reason=completed prevRow=45 frame=36
+[RenderStep][WATCHDOG] noRowProgress processedPixels=3600 repeats=6 -> forceAdvance
+[BudgetExit] frame=36 row=0 reason=guard_no_row_progress elapsedMs=162 rowsDoneThisStep=0 hitsThisBand=2700 attempts=0/1200 subdiv=0/2000 px=3600/4000000
+[SmartScale][Live] fixture=straight run=smartscale_step1_unlock probe=step1 budget_mode=rows_advanced budget_n=256 renderstep_calls=31 rows_advanced_total=234 trust_window=1/0/na geomPixProcessedRaw=36000 geomRayTestsTotalRaw=7082 budget_exit_reason=none
+[RenderTestLive] name=smartscale_step1_unlock frame=31/60 lastRow=45 rowsAdv=45 bands=1 geomPixProcessed=36000 geomRayTestsTotal=7082 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0.75 budgetStop=none
+[FrameReset] reason=completed prevRow=45 frame=36
+[FrameReset] reason=completed prevRow=45 frame=37
+[FrameReset] reason=completed prevRow=45 frame=38
+[FrameReset] reason=completed prevRow=45 frame=39
+[BUS SET] frameId=81 grid=OK fields=0
+SceneSnapshot: Instances=0, Fields=0, Geometry=3, FieldParams=0, FieldTLASNodes=0, GeometryTLASNodes=1, MetricModel(GRIN=0, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1
+[FrameReset] reason=completed prevRow=45 frame=40
+[FrameReset] reason=completed prevRow=45 frame=41
+[FrameReset] reason=completed prevRow=45 frame=42
+[RenderStep][WATCHDOG] noRowProgress processedPixels=3600 repeats=6 -> forceAdvance
+[BudgetExit] frame=42 row=0 reason=guard_no_row_progress elapsedMs=130 rowsDoneThisStep=0 hitsThisBand=2700 attempts=0/1200 subdiv=0/2000 px=3600/4000000
+[RenderTest][RUN SUMMARY] matrix=1772155077 idx=2/4 name=smartscale_step1_unlock samples=34 meanMsPerFrame=138.012 p95MsPerFrame=167.053 meanSegsPerPixel=na geomTrusted=1 geomTrustReason=ok geomRayTestsSavedPct=na
+[RenderTest][RUN END] matrix=1772155077 idx=2/4 name=smartscale_step1_unlock run_id=2 frames=60 warmup=3 samples=34        
+[RUN END] name=smartscale_step1_unlock run_id=2 frames=60 samples=34 meanMs=138.012 p95Ms=167.053
+[SmartScale][ProbeResult] probe=step1_pixel_unlock valid=1 invalid_reason=none trust=1 geomPixProcessedRaw=36000 budget_mode=rows_advanced budget_n=256 budgetStopCount=0 renderstep_calls=37 bands_committed=37 rows_advanced_total=279 scanline_counters_coarse=0 row_cursor_start=36 row_cursor_end=45 film_height=45 targetMs=1000 stride=1 rows=45
+[SmartScale][Decision] early_stop=1 reason=trusted_significant_gain no_early_stop=1 baseline_geomPix=1160 best_geomPix=36000
+[RenderTestRunner][AutoCalShadowEval] baseline_run_id=2 shadow_run_id=na baseline_trust=1 shadow_trust=1 trust_flip_baseline=0 trust_flip_shadow=na dominant_reason=unknown dominant_reason_detail=na shadow_target_ms_per_frame=na baseline_prune=on shadow_prune=on scene_signature_hash64=0xb62f04781f50f5a3 canonical_signature_hash64=0xc7b258b16ce26d1e baseline_elapsed_msec=5091.463 shadow_elapsed_msec=5091.463 overhead_pct_est=0.0 verdict=pass skip_reason=noop_preset
+[RenderTestRunner][AutoCalDecision] canonical_signature_hash64=0xc7b258b16ce26d1e preset_hash64=0x5260d91c24228765 decision=defer reason=verdict_defer dominant_reason=unknown overhead_pct_est=na shadow_trust=na verdict=defer
+[SmartScaleResult] {"fixture":"Straight","camera_signature":"fixture=Straight|pos=(0,0,5)|fwd=(-0,-0,-1)","goal":"max_hits","budget_mode":"rows_advanced","budget_n":256,"baseline_geomPix":1160,"best_geomPix":36000,"baseline_trust":1,"best_trust":1,"escalation_path":[{"probe":"step0_baseline","valid":1,"invalid_reason":"none","trust":1,"geomPix":1160,"budgetStops":0,"renderstep_calls":46,"bands_committed":46,"rows_advanced_total":261,"scanline_counters_coarse":false,"row_cursor_start":0,"row_cursor_end":36,"film_height":45},{"probe":"step1_pixel_unlock","valid":1,"invalid_reason":"none","trust":1,"geomPix":36000,"budgetStops":0,"renderstep_calls":37,"bands_committed":37,"rows_advanced_total":279,"scanline_counters_coarse":false,"row_cursor_start":36,"row_cursor_end":45,"film_height":45}],"final_target_ms_per_frame":1000,"final_effective_max_ms_known":true,"final_effective_max_ms":10000,"final_rows":45,"final_stride":1,"renderstep_calls":37,"bands_committed":37,"rows_advanced_total":279,"scanline_counters_coarse":false,"row_cursor_start":36,"row_cursor_end":45,"film_height":45,"final_caps":{"renderstep_max_ms":10000,"update_every_frame_budget_ms":1000,"renderstep_max_pixels_per_frame":4000000,"renderstep_max_segments_per_frame":100000000},"confidence_heuristic":"high"}
+[SmartScale][Summary] probes=2 best=step1_pixel_unlock best_trust=1 best_geomPix=36000 budgetStops=0
+[RenderTest][MATRIX END] id=1772155077 runs=4
+[MATRIX END] totalRuns=4 elapsedMs=5809.408
+[RenderTestRunner] Quitting (render-test mode).
+[RenderTestRunner] Requesting deferred quit code=0
+[RenderTestRunner][ExitCode] forced=0 reason=harness_success
+
+[Extract] [SmartScaleResult]
+[SmartScaleResult] {"fixture":"Straight","camera_signature":"fixture=Straight|pos=(0,0,5)|fwd=(-0,-0,-1)","goal":"max_hits","budget_mode":"rows_advanced","budget_n":256,"baseline_geomPix":1160,"best_geomPix":36000,"baseline_trust":1,"best_trust":1,"escalation_path":[{"probe":"step0_baseline","valid":1,"invalid_reason":"none","trust":1,"geomPix":1160,"budgetStops":0,"renderstep_calls":46,"bands_committed":46,"rows_advanced_total":261,"scanline_counters_coarse":false,"row_cursor_start":0,"row_cursor_end":36,"film_height":45},{"probe":"step1_pixel_unlock","valid":1,"invalid_reason":"none","trust":1,"geomPix":36000,"budgetStops":0,"renderstep_calls":37,"bands_committed":37,"rows_advanced_total":279,"scanline_counters_coarse":false,"row_cursor_start":36,"row_cursor_end":45,"film_height":45}],"final_target_ms_per_frame":1000,"final_effective_max_ms_known":true,"final_effective_max_ms":10000,"final_rows":45,"final_stride":1,"renderstep_calls":37,"bands_committed":37,"rows_advanced_total":279,"scanline_counters_coarse":false,"row_cursor_start":36,"row_cursor_end":45,"film_height":45,"final_caps":{"renderstep_max_ms":10000,"update_every_frame_budget_ms":1000,"renderstep_max_pixels_per_frame":4000000,"renderstep_max_segments_per_frame":100000000},"confidence_heuristic":"high"}
+[Extract] [SmartScale][Summary]
+[SmartScale][Summary] probes=2 best=step1_pixel_unlock best_trust=1 best_geomPix=36000 budgetStops=0
+[Extract] last 6 [SmartScale][ProbeResult]
+[SmartScale][ProbeResult] probe=step0_baseline valid=1 invalid_reason=none trust=1 geomPixProcessedRaw=1160 budget_mode=rows_advanced budget_n=256 budgetStopCount=0 renderstep_calls=46 bands_committed=46 rows_advanced_total=261 scanline_counters_coarse=0 row_cursor_start=0 row_cursor_end=36 film_height=45 targetMs=1000 stride=2 rows=6
+[SmartScale][ProbeResult] probe=step1_pixel_unlock valid=1 invalid_reason=none trust=1 geomPixProcessedRaw=36000 budget_mode=rows_advanced budget_n=256 budgetStopCount=0 renderstep_calls=37 bands_committed=37 rows_advanced_total=279 scanline_counters_coarse=0 row_cursor_start=36 row_cursor_end=45 film_height=45 targetMs=1000 stride=1 rows=45
+[Extract] last 6 [AutoCalShadowEval] decisions
+(not found)
+
+PASS: logs\render_test_straight_smartscale_rows256_Thu002-26-2026_19-17-17-87.txt windows=2, trusted=2, partial=0
+ON trusted mean per-px-on=1.292
+OFF trusted mean per-px-off=na
+ON saved% mean (baseline-ready)=na
+Audit totals: falseNeg=0 falsePos=0
+
+summary: pass=1 fail=0
+
+DOE summary:
+A) TrustReason histogram (global)
+  ok: 2
+
+A) TrustReason histogram (per run)
+  smartscale_baseline: ok=1
+  smartscale_step1_unlock: ok=1
+
+B) Trust flip timeline
+  smartscale_baseline: firstTrustedStep=30 trusted_windows=1/1 (100.0%)
+  smartscale_step1_unlock: firstTrustedStep=60 trusted_windows=1/1 (100.0%)
+
+C) low_raytests diagnostics: count=0
+
+D) Top 10 worst trust failures by deficit
+  none
+
+RUN REPORT
+  run=smartscale_baseline frames=60 warmup=3 samples=43 windows=1 trusted=1 partial=0
+    firstTrustedStep=30 lastTrustedStep=30
+    topReasons=ok=1
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=2.387,2.387 savedPctMean=na
+  run=smartscale_step1_unlock frames=60 warmup=3 samples=34 windows=1 trusted=1 partial=0
+    firstTrustedStep=60 lastTrustedStep=60
+    topReasons=ok=1
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=0.197,0.197 savedPctMean=na
+
+REASON HISTOGRAM
+  reasons:
+    ok: 2
+  trusted: trusted=1=2 trusted=0=0
+  prune: prune=on=2 prune=off=0
+  trustGateDebug metPix=1 metRay=0: 0
+
+=== AutoCal Shadow Eval Summary (C1.1 g.3) ===
+Coverage
+  total_runs=2
+  runs_with_shadow_eval=2
+  coverage_pct=100.0%
+Verdicts
+  pass_count=2
+  fail_count=0
+  defer_count=0
+  missing_count=0
+Overhead (overhead_pct_est, numeric only)
+  count=2
+  mean=0.000
+  median=0.000
+  p90=0.000
+  p95=0.000
+  max=0.000
+Top offenders (overhead_pct_est desc)
+  run_id=1 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=665.877 shadow_elapsed_msec=665.877 verdict=pass
+  run_id=2 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=5091.463 shadow_elapsed_msec=5091.463 verdict=pass
+Trust sanity
+  baseline_trust_eq_1_and_shadow_trust_ne_1=0
+  fail_count_inferred_due_to_shadow_trust=0
+  shadow_trust_counts=1=2
+
+AutoCal decision binding diagnostic
+  missing_decision_count=0
+
+CSV written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.csv
+JSON written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.json
+
+============================================================
+AutoCal Shadow Eval Summary (straight, smartscale_rows256)
+Source: logs\renderhealth_regress_straight_smartscale_rows256_Thu002-26-2026_19-17-17-87.txt
+============================================================
+=== AutoCal Shadow Eval Summary (C1.1 g.3) ===
+Coverage
+  total_runs=2
+  runs_with_shadow_eval=2
+  coverage_pct=100.0%
+Verdicts
+  pass_count=2
+  fail_count=0
+  defer_count=0
+  missing_count=0
+Overhead (overhead_pct_est, numeric only)
+  count=2
+  mean=0.000
+  median=0.000
+  p90=0.000
+  p95=0.000
+  max=0.000
+Top offenders (overhead_pct_est desc)
+  run_id=1 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=665.877 shadow_elapsed_msec=665.877 verdict=pass
+  run_id=2 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=5091.463 shadow_elapsed_msec=5091.463 verdict=pass
+Trust sanity
+  baseline_trust_eq_1_and_shadow_trust_ne_1=0
+  fail_count_inferred_due_to_shadow_trust=0
+  shadow_trust_counts=1=2
+
+
+
+------------------------------------------------------------
+Running fixture: curved_minimal
+Mode: smartscale_rows256
+Log file: logs\render_test_curved_minimal_smartscale_rows256_Thu002-26-2026_19-17-17-87.txt
+------------------------------------------------------------
+============================================================
+Post-Run Log Tail (curved_minimal, smartscale_rows256)
+Source: logs\render_test_curved_minimal_smartscale_rows256_Thu002-26-2026_19-17-17-87.txt
+============================================================
+[EffectiveCfg] broadphase=Policy(policy) policy=QuickRayOnly quick=1 overlap=0 softgate=1 score=0 minSeg=0.1 attempts=1200 sub=2000 stride=1 resScale=0.25 rows=45 stepLen=0.05 collRad=0.03 mask=0x0000FFFF envRadScale=1.02 envAabbExpand=0.01 geomPrune=1 maxDist=50
+[FrameReset] reason=completed prevRow=45 frame=44
+[FrameReset] reason=completed prevRow=45 frame=45
+[SmartScale][Live] fixture=curved_minimal run=smartscale_step1_unlock_shadow probe=baseline budget_mode=rows_advanced budget_n=256 renderstep_calls=1 rows_advanced_total=0 trust_window=na/na/na geomPixProcessedRaw=36000 geomRayTestsTotalRaw=32128 budget_exit_reason=none
+[RenderTestLive] name=smartscale_step1_unlock_shadow frame=1/60 lastRow=0 rowsAdv=0 bands=1 geomPixProcessed=36000 geomRayTestsTotal=32128 geomTrusted=0 geomHealthPartial=1 geomTrustReason=warming_up hitRate=0.029 budgetStop=none
+[FrameReset] reason=completed prevRow=45 frame=46
+[RenderHealth] step=150 lastRow=0 rowsAdv=1 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.035 avgSteps=0 qray0=118122 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=0.125 geomSegQueried=378788 geomSegWithCandidates=15832 geomSegZero=362956 geomSegZeroRatePct=95.82 geomPixProcessed=2960 geomPixHadAnyCandidates=564 geomPixNoCand=2396 geomPixNoCandRatePct=80.95 geomHitOk=104 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=16192 geomRayTestsAccepted=104 geomRayTestsRejected=0 geomRayTestsPerPxOn=5.47 geomRayTestsPerPxOff=na geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=47348 radAvg=0.014 radMax=0.018 envDiagAvg=0.177 envDiagMax=0.196 envInflAvg=0.01 envInflMax=0.01 cand0=45386 cand1to2=0 cand3to8=1962 cand9to32=0 cand33p=0 geomPruneAuditSamp=256 geomPruneAuditFalseNeg=0 geomPruneAuditFalsePos=0 geomPruneAuditCand0Hit=0 geomPruneAuditFalseNegRate=0
+[RenderHealth][GeomCoverage] step=150 geomPrune=on geomPixProcessedRaw=2960 geomRayTestsTotalRaw=16192 geomSegQueriedRaw=378788 pass2PixelsRaw=2960 geomPixHadAnyCandidatesRaw=564 geomPixNoCandRaw=2396 p2SampRaw=47348
+[RenderHealth][TrustGateDebug] geomPixProcessedRaw=2960 geomRayTestsTotalRaw=16192 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
+[RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
+[RenderTestRunner] RenderHealth snapshot ready at step=150 frame=13
+[BUS SET] frameId=151 grid=OK fields=1
+SceneSnapshot: Instances=0, Fields=1, Geometry=3, FieldParams=8, FieldTLASNodes=1, GeometryTLASNodes=1, MetricModel(GRIN=1, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1, FirstFields=[0:(rInner=3, rOuter=4.5, amp=1.15, curveType=1, shapeType=0)]
+[FrameReset] reason=completed prevRow=45 frame=47
+[FrameReset] reason=completed prevRow=45 frame=48
+[RenderHealth] step=180 lastRow=37 rowsAdv=4 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0.031 avgSteps=0 qray0=106220 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=0.11 geomSegQueried=430388 geomSegWithCandidates=15832 geomSegZero=414556 geomSegZeroRatePct=96.32 geomPixProcessed=3360 geomPixHadAnyCandidates=564 geomPixNoCand=2796 geomPixNoCandRatePct=83.21 geomHitOk=104 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=15936 geomRayTestsAccepted=104 geomRayTestsRejected=0 geomRayTestsPerPxOn=4.743 geomRayTestsPerPxOff=na geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=53799 radAvg=0.014 radMax=0.018 envDiagAvg=0.178 envDiagMax=0.196 envInflAvg=0.01 envInflMax=0.01 cand0=51811 cand1to2=0 cand3to8=1988 cand9to32=0 cand33p=0 geomPruneAuditSamp=0 geomPruneAuditFalseNeg=0 geomPruneAuditFalsePos=0 geomPruneAuditCand0Hit=0 geomPruneAuditFalseNegRate=0
+[RenderHealth][GeomCoverage] step=180 geomPrune=on geomPixProcessedRaw=3360 geomRayTestsTotalRaw=15936 geomSegQueriedRaw=430388 pass2PixelsRaw=3360 geomPixHadAnyCandidatesRaw=564 geomPixNoCandRaw=2796 p2SampRaw=53799
+[RenderHealth][TrustGateDebug] geomPixProcessedRaw=3360 geomRayTestsTotalRaw=15936 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
+[RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
+[FrameReset] reason=completed prevRow=45 frame=49
+[SmartScale][Live] fixture=curved_minimal run=smartscale_step1_unlock_shadow probe=baseline budget_mode=rows_advanced budget_n=256 renderstep_calls=45 rows_advanced_total=180 trust_window=1/0/na geomPixProcessedRaw=3360 geomRayTestsTotalRaw=15936 budget_exit_reason=none
+[RenderTestLive] name=smartscale_step1_unlock_shadow frame=45/60 lastRow=0 rowsAdv=4 bands=1 geomPixProcessed=3360 geomRayTestsTotal=15936 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0 budgetStop=none
+[BUS SET] frameId=194 grid=OK fields=1
+SceneSnapshot: Instances=0, Fields=1, Geometry=3, FieldParams=8, FieldTLASNodes=1, GeometryTLASNodes=1, MetricModel(GRIN=1, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1, FirstFields=[0:(rInner=3, rOuter=4.5, amp=1.15, curveType=1, shapeType=0)]
+[FrameReset] reason=completed prevRow=45 frame=50
+[RenderTest][RUN SUMMARY] matrix=1772155086 idx=2/4 name=smartscale_step1_unlock_shadow samples=57 meanMsPerFrame=20.301 p95MsPerFrame=37.015 meanSegsPerPixel=na geomTrusted=1 geomTrustReason=ok geomRayTestsSavedPct=na
+[RenderTest][RUN END] matrix=1772155086 idx=2/4 name=smartscale_step1_unlock_shadow run_id=4 frames=60 warmup=3 samples=57 
+[RUN END] name=smartscale_step1_unlock_shadow run_id=4 frames=60 samples=57 meanMs=20.301 p95Ms=37.015
+[RenderTestRunner][AutoCalShadowEval] baseline_run_id=3 shadow_run_id=4 baseline_trust=1 shadow_trust=1 trust_flip_baseline=0 trust_flip_shadow=0 dominant_reason=unknown dominant_reason_detail=na shadow_target_ms_per_frame=10 baseline_prune=on shadow_prune=on scene_signature_hash64=0x3a8385b347b5dbc8 canonical_signature_hash64=0x6a29a7ab9754d1e0 baseline_elapsed_msec=6623.174 shadow_elapsed_msec=1583.361 overhead_pct_est=-76.09 verdict=pass
+[RenderTestRunner][AutoCalShadowEvalJson] {"fixture":"CurvedMinimal","baseline_name":"smartscale_step1_unlock","shadow_name":"smartscale_step1_unlock_shadow","baseline_prune":true,"shadow_prune":true,"shadow_target_ms_per_frame":10,"baseline_run_id":3,"shadow_run_id":4,"baseline_trust":1,"shadow_trust":1,"dominant_reason":"unknown","dominant_reason_detail":"na","overhead_pct_est":-76.09,"gating_excluded":false,"skip_reason":"na","pair_decision":"accept","pair_reason":"accept","pair_verdict":"pass","preset_hash64":"0xdb26fc215b3bf904","canonical_signature_hash64":"0x6a29a7ab9754d1e0","baseline_geom_pix_processed":36000,"shadow_geom_pix_processed":3360,"baseline_geom_ray_tests_total":32128,"shadow_geom_ray_tests_total":15936}     
+[RenderTestRunner][AutoCalDecision] canonical_signature_hash64=0x6a29a7ab9754d1e0 preset_hash64=0xdb26fc215b3bf904 decision=accept reason=accept dominant_reason=unknown overhead_pct_est=-76.09 shadow_trust=1 verdict=pass
+[RenderTestRunner][AutoCalApplyPreview] canonical_signature_hash64=0x6a29a7ab9754d1e0 preset_hash64=0xdb26fc215b3bf904 decision=accept reason=accept preview_changes=target_ms_per_frame:10
+[RenderTestRunner][AutoCalApply] canonical_signature_hash64=0x6a29a7ab9754d1e0 preset_hash64=0xdb26fc215b3bf904 apply_scope=next_run status=skipped reason=flag_off
+[SmartScaleResult] {"fixture":"CurvedMinimal","camera_signature":"fixture=CurvedMinimal|pos=(0,0.5,5.5)|fwd=(-0,-0.139,-0.99)","goal":"max_hits","budget_mode":"rows_advanced","budget_n":256,"baseline_geomPix":1160,"best_geomPix":36000,"baseline_trust":1,"best_trust":1,"escalation_path":[{"probe":"step0_baseline","valid":1,"invalid_reason":"none","trust":1,"geomPix":1160,"budgetStops":0,"renderstep_calls":46,"bands_committed":46,"rows_advanced_total":261,"scanline_counters_coarse":false,"row_cursor_start":0,"row_cursor_end":36,"film_height":45},{"probe":"step1_pixel_unlock","valid":1,"invalid_reason":"none","trust":1,"geomPix":36000,"budgetStops":0,"renderstep_calls":31,"bands_committed":31,"rows_advanced_total":258,"scanline_counters_coarse":false,"row_cursor_start":12,"row_cursor_end":45,"film_height":45}],"final_target_ms_per_frame":1000,"final_effective_max_ms_known":true,"final_effective_max_ms":10000,"final_rows":45,"final_stride":1,"renderstep_calls":31,"bands_committed":31,"rows_advanced_total":258,"scanline_counters_coarse":false,"row_cursor_start":12,"row_cursor_end":45,"film_height":45,"final_caps":{"renderstep_max_ms":10000,"update_every_frame_budget_ms":1000,"renderstep_max_pixels_per_frame":4000000,"renderstep_max_segments_per_frame":100000000},"confidence_heuristic":"high"}
+[SmartScale][Summary] probes=2 best=step1_pixel_unlock best_trust=1 best_geomPix=36000 budgetStops=0
+[RenderTest][MATRIX END] id=1772155086 runs=4
+[MATRIX END] totalRuns=4 elapsedMs=9940.777
+[RenderTestRunner] Quitting (render-test mode).
+[RenderTestRunner] Requesting deferred quit code=0
+[RenderTestRunner][ExitCode] forced=0 reason=harness_success
+
+[Extract] [SmartScaleResult]
+[SmartScaleResult] {"fixture":"CurvedMinimal","camera_signature":"fixture=CurvedMinimal|pos=(0,0.5,5.5)|fwd=(-0,-0.139,-0.99)","goal":"max_hits","budget_mode":"rows_advanced","budget_n":256,"baseline_geomPix":1160,"best_geomPix":36000,"baseline_trust":1,"best_trust":1,"escalation_path":[{"probe":"step0_baseline","valid":1,"invalid_reason":"none","trust":1,"geomPix":1160,"budgetStops":0,"renderstep_calls":46,"bands_committed":46,"rows_advanced_total":261,"scanline_counters_coarse":false,"row_cursor_start":0,"row_cursor_end":36,"film_height":45},{"probe":"step1_pixel_unlock","valid":1,"invalid_reason":"none","trust":1,"geomPix":36000,"budgetStops":0,"renderstep_calls":31,"bands_committed":31,"rows_advanced_total":258,"scanline_counters_coarse":false,"row_cursor_start":12,"row_cursor_end":45,"film_height":45}],"final_target_ms_per_frame":1000,"final_effective_max_ms_known":true,"final_effective_max_ms":10000,"final_rows":45,"final_stride":1,"renderstep_calls":31,"bands_committed":31,"rows_advanced_total":258,"scanline_counters_coarse":false,"row_cursor_start":12,"row_cursor_end":45,"film_height":45,"final_caps":{"renderstep_max_ms":10000,"update_every_frame_budget_ms":1000,"renderstep_max_pixels_per_frame":4000000,"renderstep_max_segments_per_frame":100000000},"confidence_heuristic":"high"}
+[Extract] [SmartScale][Summary]
+[SmartScale][Summary] probes=2 best=step1_pixel_unlock best_trust=1 best_geomPix=36000 budgetStops=0
+[Extract] last 6 [SmartScale][ProbeResult]
+[SmartScale][ProbeResult] probe=step0_baseline valid=1 invalid_reason=none trust=1 geomPixProcessedRaw=1160 budget_mode=rows_advanced budget_n=256 budgetStopCount=0 renderstep_calls=46 bands_committed=46 rows_advanced_total=261 scanline_counters_coarse=0 row_cursor_start=0 row_cursor_end=36 film_height=45 targetMs=1000 stride=2 rows=6
+[SmartScale][ProbeResult] probe=step1_pixel_unlock valid=1 invalid_reason=none trust=1 geomPixProcessedRaw=36000 budget_mode=rows_advanced budget_n=256 budgetStopCount=0 renderstep_calls=31 bands_committed=31 rows_advanced_total=258 scanline_counters_coarse=0 row_cursor_start=12 row_cursor_end=45 film_height=45 targetMs=1000 stride=1 rows=45
+[Extract] last 6 [AutoCalShadowEval] decisions
+(not found)
+
+PASS: logs\render_test_curved_minimal_smartscale_rows256_Thu002-26-2026_19-17-17-87.txt windows=6, trusted=6, partial=0
+ON trusted mean per-px-on=4.188
+OFF trusted mean per-px-off=na
+ON saved% mean (baseline-ready)=na
+Audit totals: falseNeg=0 falsePos=0
+
+summary: pass=1 fail=0
+
+DOE summary:
+A) TrustReason histogram (global)
+  ok: 6
+
+A) TrustReason histogram (per run)
+  smartscale_baseline: ok=1
+  smartscale_baseline_shadow: ok=2
+  smartscale_step1_unlock: ok=1
+  smartscale_step1_unlock_shadow: ok=2
+
+B) Trust flip timeline
+  smartscale_baseline: firstTrustedStep=30 trusted_windows=1/1 (100.0%)
+  smartscale_baseline_shadow: firstTrustedStep=60 trusted_windows=2/2 (100.0%)
+  smartscale_step1_unlock: firstTrustedStep=120 trusted_windows=1/1 (100.0%)
+  smartscale_step1_unlock_shadow: firstTrustedStep=150 trusted_windows=2/2 (100.0%)
+
+C) low_raytests diagnostics: count=0
+
+D) Top 10 worst trust failures by deficit
+  none
+
+RUN REPORT
+  run=smartscale_baseline frames=60 warmup=3 samples=43 windows=1 trusted=1 partial=0
+    firstTrustedStep=30 lastTrustedStep=30
+    topReasons=ok=1
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=4.501,4.501 savedPctMean=na
+  run=smartscale_baseline_shadow frames=60 warmup=3 samples=57 windows=2 trusted=2 partial=0
+    firstTrustedStep=60 lastTrustedStep=90
+    topReasons=ok=2
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=4.760,5.807 savedPctMean=na
+  run=smartscale_step1_unlock frames=60 warmup=3 samples=28 windows=1 trusted=1 partial=0
+    firstTrustedStep=120 lastTrustedStep=120
+    topReasons=ok=1
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=0.892,0.892 savedPctMean=na
+  run=smartscale_step1_unlock_shadow frames=60 warmup=3 samples=57 windows=2 trusted=2 partial=0
+    firstTrustedStep=150 lastTrustedStep=180
+    topReasons=ok=2
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=5.107,5.434 savedPctMean=na
+
+REASON HISTOGRAM
+  reasons:
+    ok: 6
+  trusted: trusted=1=6 trusted=0=0
+  prune: prune=on=6 prune=off=0
+  trustGateDebug metPix=1 metRay=0: 0
+
+=== AutoCal Shadow Eval Summary (C1.1 g.3) ===
+Coverage
+  total_runs=4
+  runs_with_shadow_eval=2
+  coverage_pct=50.0%
+Verdicts
+  pass_count=2
+  fail_count=0
+  defer_count=0
+  missing_count=0
+Overhead (overhead_pct_est, numeric only)
+  count=2
+  mean=-40.190
+  median=-40.190
+  p90=-11.470
+  p95=-7.880
+  max=-4.290
+Top offenders (overhead_pct_est desc)
+  run_id=1 mode=on fixture=FieldHeavy overhead_pct_est=-4.290 baseline_elapsed_msec=855.781 shadow_elapsed_msec=819.100 verdict=pass
+  run_id=3 mode=on fixture=FieldHeavy overhead_pct_est=-76.090 baseline_elapsed_msec=6623.174 shadow_elapsed_msec=1583.361 verdict=pass
+Trust sanity
+  baseline_trust_eq_1_and_shadow_trust_ne_1=0
+  fail_count_inferred_due_to_shadow_trust=0
+  shadow_trust_counts=1=2
+
+AutoCal decision binding diagnostic
+  missing_decision_count=0
+
+CSV written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.csv
+JSON written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.json
+
+============================================================
+AutoCal Shadow Eval Summary (curved_minimal, smartscale_rows256)
+Source: logs\renderhealth_regress_curved_minimal_smartscale_rows256_Thu002-26-2026_19-17-17-87.txt
+============================================================
+=== AutoCal Shadow Eval Summary (C1.1 g.3) ===
+Coverage
+  total_runs=4
+  runs_with_shadow_eval=2
+  coverage_pct=50.0%
+Verdicts
+  pass_count=2
+  fail_count=0
+  defer_count=0
+  missing_count=0
+Overhead (overhead_pct_est, numeric only)
+  count=2
+  mean=-40.190
+  median=-40.190
+  p90=-11.470
+  p95=-7.880
+  max=-4.290
+Top offenders (overhead_pct_est desc)
+  run_id=1 mode=on fixture=FieldHeavy overhead_pct_est=-4.290 baseline_elapsed_msec=855.781 shadow_elapsed_msec=819.100 verdict=pass
+  run_id=3 mode=on fixture=FieldHeavy overhead_pct_est=-76.090 baseline_elapsed_msec=6623.174 shadow_elapsed_msec=1583.361 verdict=pass
+Trust sanity
+  baseline_trust_eq_1_and_shadow_trust_ne_1=0
+  fail_count_inferred_due_to_shadow_trust=0
+  shadow_trust_counts=1=2
+
+
+
+============================================================
+Final Summary
+============================================================
+1) straight calls60 log: logs\render_test_straight_smartscale_calls60_Thu002-26-2026_19-17-17-87.txt
+1) straight calls60 regress: logs\renderhealth_regress_straight_smartscale_calls60_Thu002-26-2026_19-17-17-87.txt
+2) curved_minimal calls60 log: logs\render_test_curved_minimal_smartscale_calls60_Thu002-26-2026_19-17-17-87.txt
+2) curved_minimal calls60 regress: logs\renderhealth_regress_curved_minimal_smartscale_calls60_Thu002-26-2026_19-17-17-87.txt
+3) straight rows256 log: logs\render_test_straight_smartscale_rows256_Thu002-26-2026_19-17-17-87.txt
+3) straight rows256 regress: logs\renderhealth_regress_straight_smartscale_rows256_Thu002-26-2026_19-17-17-87.txt
+4) curved_minimal rows256 log: logs\render_test_curved_minimal_smartscale_rows256_Thu002-26-2026_19-17-17-87.txt
+4) curved_minimal rows256 regress: logs\renderhealth_regress_curved_minimal_smartscale_rows256_Thu002-26-2026_19-17-17-87.txt
+
+Note: tools\renderhealth_summary.csv and tools\renderhealth_summary.json may be overwritten by later parser runs.
+
+Finished SmartScale matrix runs.
