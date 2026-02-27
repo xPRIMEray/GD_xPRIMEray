@@ -90,7 +90,13 @@ public partial class RenderTestRunner : Node
 	private const int RenderTestStatsFullFrameEveryNSteps = 8;
 	private const int RenderTestTrustPass2SampleEveryNSegments = 8;
 	private const int RenderTestTrustMinP2Samples = 8;
+	// X% gain threshold for trusted probe promotion over baseline.
 	private const double SmartScaleSignificantGeomPixGainRatio = 1.15;
+	// Productive-partial fallback threshold over baseline geomPix.
+	private const double SmartScaleProductivePartialMinBaselineGeomPixRatio = 4.0;
+	private const long SmartScaleProductivePartialMinGeomRayTestsTotalRaw = 4096L;
+	private const long SmartScaleProductivePartialMinP2SampRaw = 8192L;
+	private const long SmartScaleProductivePartialMinGeomSegQueriedRaw = 100000L;
 	private static readonly long RenderTestLiveLogIntervalTicks = Stopwatch.Frequency;
 
 	private GrinFilmCamera _film;
@@ -136,6 +142,8 @@ public partial class RenderTestRunner : Node
 	private FieldInfo _rhSampleBandsField;
 	private FieldInfo _rhSampleGeomPixField;
 	private FieldInfo _rhSampleGeomRayTestsField;
+	private FieldInfo _rhSampleGeomSegQueriedField;
+	private FieldInfo _rhSampleP2SampField;
 	private FieldInfo _rhSampleHitsField;
 	private FieldInfo _rhSampleTracedField;
 	private FieldInfo _rhSampleBudgetExitReasonField;
@@ -148,6 +156,8 @@ public partial class RenderTestRunner : Node
 	private FieldInfo _rhTestHasSnapshotField;
 	private FieldInfo _rhTestGeomPixRawField;
 	private FieldInfo _rhTestGeomRayRawField;
+	private FieldInfo _rhTestGeomSegQueriedRawField;
+	private FieldInfo _rhTestP2SampRawField;
 	private PropertyInfo _smartScaleFilmRowCursorProp;
 	private PropertyInfo _smartScaleFilmHeightProp;
 	private FieldInfo _smartScaleFilmRowCursorField;
@@ -211,6 +221,12 @@ public partial class RenderTestRunner : Node
 	private int _smartScaleTrustedWindowsCurrentRun = 0;
 	private int _smartScalePartialWindowsCurrentRun = 0;
 	private int _smartScaleTotalWindowsCurrentRun = 0;
+	private bool _smartScaleMaxGeomRayTestsTotalRawKnownCurrentRun = false;
+	private long _smartScaleMaxGeomRayTestsTotalRawCurrentRun = 0L;
+	private bool _smartScaleMaxP2SampRawKnownCurrentRun = false;
+	private long _smartScaleMaxP2SampRawCurrentRun = 0L;
+	private bool _smartScaleMaxGeomSegQueriedRawKnownCurrentRun = false;
+	private long _smartScaleMaxGeomSegQueriedRawCurrentRun = 0L;
 	private bool _smartScaleScanlineCountersCoarseCurrentRun = false;
 	private bool _smartScaleRowCursorStartKnownCurrentRun = false;
 	private int _smartScaleRowCursorStartCurrentRun = 0;
@@ -300,6 +316,12 @@ public partial class RenderTestRunner : Node
 		public int PartialWindows;
 		public int TotalWindows;
 		public bool ProbeTrustedForSelection;
+		public bool MaxGeomRayTestsTotalRawKnown;
+		public long MaxGeomRayTestsTotalRaw;
+		public bool MaxP2SampRawKnown;
+		public long MaxP2SampRaw;
+		public bool MaxGeomSegQueriedRawKnown;
+		public long MaxGeomSegQueriedRaw;
 		public bool ScanlineCountersCoarse;
 		public bool RowCursorStartKnown;
 		public int RowCursorStart;
@@ -890,6 +912,12 @@ public partial class RenderTestRunner : Node
 		_smartScaleTrustedWindowsCurrentRun = 0;
 		_smartScalePartialWindowsCurrentRun = 0;
 		_smartScaleTotalWindowsCurrentRun = 0;
+		_smartScaleMaxGeomRayTestsTotalRawKnownCurrentRun = false;
+		_smartScaleMaxGeomRayTestsTotalRawCurrentRun = 0L;
+		_smartScaleMaxP2SampRawKnownCurrentRun = false;
+		_smartScaleMaxP2SampRawCurrentRun = 0L;
+		_smartScaleMaxGeomSegQueriedRawKnownCurrentRun = false;
+		_smartScaleMaxGeomSegQueriedRawCurrentRun = 0L;
 		_smartScaleScanlineCountersCoarseCurrentRun = false;
 		_smartScaleRowCursorStartKnownCurrentRun = false;
 		_smartScaleRowCursorStartCurrentRun = 0;
@@ -1924,6 +1952,12 @@ public partial class RenderTestRunner : Node
 				PartialWindows = _smartScalePartialWindowsCurrentRun,
 				TotalWindows = _smartScaleTotalWindowsCurrentRun,
 				ProbeTrustedForSelection = false,
+				MaxGeomRayTestsTotalRawKnown = _smartScaleMaxGeomRayTestsTotalRawKnownCurrentRun,
+				MaxGeomRayTestsTotalRaw = _smartScaleMaxGeomRayTestsTotalRawCurrentRun,
+				MaxP2SampRawKnown = _smartScaleMaxP2SampRawKnownCurrentRun,
+				MaxP2SampRaw = _smartScaleMaxP2SampRawCurrentRun,
+				MaxGeomSegQueriedRawKnown = _smartScaleMaxGeomSegQueriedRawKnownCurrentRun,
+				MaxGeomSegQueriedRaw = _smartScaleMaxGeomSegQueriedRawCurrentRun,
 				ScanlineCountersCoarse = _smartScaleScanlineCountersCoarseCurrentRun,
 				RowCursorStartKnown = _smartScaleRowCursorStartKnownCurrentRun,
 				RowCursorStart = _smartScaleRowCursorStartCurrentRun,
@@ -1932,6 +1966,17 @@ public partial class RenderTestRunner : Node
 				FilmHeightKnown = _smartScaleFilmHeightKnownCurrentRun,
 				FilmHeight = _smartScaleFilmHeightCurrentRun
 			};
+			if (hasRhLiveSnapshot)
+			{
+				ObserveSmartScaleProbeRawMaxima(in finalRhSnap);
+			}
+			ObserveSmartScaleProbeRawMaximaFromFilm();
+			metrics.MaxGeomRayTestsTotalRawKnown = _smartScaleMaxGeomRayTestsTotalRawKnownCurrentRun;
+			metrics.MaxGeomRayTestsTotalRaw = _smartScaleMaxGeomRayTestsTotalRawCurrentRun;
+			metrics.MaxP2SampRawKnown = _smartScaleMaxP2SampRawKnownCurrentRun;
+			metrics.MaxP2SampRaw = _smartScaleMaxP2SampRawCurrentRun;
+			metrics.MaxGeomSegQueriedRawKnown = _smartScaleMaxGeomSegQueriedRawKnownCurrentRun;
+			metrics.MaxGeomSegQueriedRaw = _smartScaleMaxGeomSegQueriedRawCurrentRun;
 			metrics.ProbeTrustedForSelection = IsProbeTrustedForSelection(in metrics);
 
 			MaybeRecordSmartScaleProbeResult(in run, in metrics);
@@ -2215,6 +2260,12 @@ public partial class RenderTestRunner : Node
 		_smartScaleTrustedWindowsCurrentRun = 0;
 		_smartScalePartialWindowsCurrentRun = 0;
 		_smartScaleTotalWindowsCurrentRun = 0;
+		_smartScaleMaxGeomRayTestsTotalRawKnownCurrentRun = false;
+		_smartScaleMaxGeomRayTestsTotalRawCurrentRun = 0L;
+		_smartScaleMaxP2SampRawKnownCurrentRun = false;
+		_smartScaleMaxP2SampRawCurrentRun = 0L;
+		_smartScaleMaxGeomSegQueriedRawKnownCurrentRun = false;
+		_smartScaleMaxGeomSegQueriedRawCurrentRun = 0L;
 		_smartScaleRowCursorStartKnownCurrentRun = false;
 		_smartScaleRowCursorStartCurrentRun = 0;
 		_smartScaleRowCursorEndKnownCurrentRun = false;
@@ -3295,6 +3346,8 @@ public partial class RenderTestRunner : Node
 		TryReadIntField(_rhSampleBandsField, boxedSample, out int bands, out _);
 		TryReadLongField(_rhSampleGeomPixField, boxedSample, out long geomPixProcessed, out bool geomPixKnown);
 		TryReadLongField(_rhSampleGeomRayTestsField, boxedSample, out long geomRayTestsTotal, out bool geomRayTestsKnown);
+		TryReadLongField(_rhSampleGeomSegQueriedField, boxedSample, out long geomSegQueriedRaw, out bool geomSegQueriedKnown);
+		TryReadLongField(_rhSampleP2SampField, boxedSample, out long p2SampRaw, out bool p2SampKnown);
 		TryReadIntField(_rhSampleHitsField, boxedSample, out int hits, out _);
 		TryReadLongField(_rhSampleTracedField, boxedSample, out long traced, out _);
 		TryReadStringField(_rhSampleBudgetExitReasonField, boxedSample, out string budgetExitReason, out bool budgetExitReasonKnown);
@@ -3312,6 +3365,20 @@ public partial class RenderTestRunner : Node
 			geomRayTestsTotal = geomRayTestsTotalRaw;
 			geomRayTestsKnown = true;
 		}
+		if (TryReadLongField(_rhTestGeomSegQueriedRawField, _film, out long geomSegQueriedRawDirect, out bool geomSegRawKnown)
+			&& geomSegRawKnown
+			&& geomSegQueriedRawDirect > 0)
+		{
+			geomSegQueriedRaw = geomSegQueriedRawDirect;
+			geomSegQueriedKnown = true;
+		}
+		if (TryReadLongField(_rhTestP2SampRawField, _film, out long p2SampRawDirect, out bool p2RawKnown)
+			&& p2RawKnown
+			&& p2SampRawDirect > 0)
+		{
+			p2SampRaw = p2SampRawDirect;
+			p2SampKnown = true;
+		}
 
 		snap = new RenderHealthLiveSnapshot
 		{
@@ -3324,6 +3391,10 @@ public partial class RenderTestRunner : Node
 			GeomPixProcessedKnown = geomPixKnown,
 			GeomRayTestsTotal = geomRayTestsTotal,
 			GeomRayTestsTotalKnown = geomRayTestsKnown,
+			GeomSegQueriedRaw = geomSegQueriedRaw,
+			GeomSegQueriedRawKnown = geomSegQueriedKnown,
+			P2SampRaw = p2SampRaw,
+			P2SampRawKnown = p2SampKnown,
 			Hits = hits,
 			Traced = traced,
 			BudgetExitReason = budgetExitReason ?? string.Empty,
@@ -3358,6 +3429,8 @@ public partial class RenderTestRunner : Node
 			_rhSampleBandsField = _rhSampleType.GetField("BandsProcessed", BindingFlags.Instance | BindingFlags.Public);
 			_rhSampleGeomPixField = _rhSampleType.GetField("GeomPixelProcessed", BindingFlags.Instance | BindingFlags.Public);
 			_rhSampleGeomRayTestsField = _rhSampleType.GetField("GeomRayTestsTotal", BindingFlags.Instance | BindingFlags.Public);
+			_rhSampleGeomSegQueriedField = _rhSampleType.GetField("GeomSegmentsQueried", BindingFlags.Instance | BindingFlags.Public);
+			_rhSampleP2SampField = _rhSampleType.GetField("Pass2SampledSegments", BindingFlags.Instance | BindingFlags.Public);
 			_rhSampleHitsField = _rhSampleType.GetField("Hits", BindingFlags.Instance | BindingFlags.Public);
 			_rhSampleTracedField = _rhSampleType.GetField("TracedPixels", BindingFlags.Instance | BindingFlags.Public);
 			_rhSampleBudgetExitReasonField = _rhSampleType.GetField("BudgetExitReason", BindingFlags.Instance | BindingFlags.Public);
@@ -3371,6 +3444,8 @@ public partial class RenderTestRunner : Node
 		_rhTestHasSnapshotField = filmType.GetField("_testHasRenderHealthSnapshot", flags);
 		_rhTestGeomPixRawField = filmType.GetField("_testLastGeomPixProcessedRaw", flags);
 		_rhTestGeomRayRawField = filmType.GetField("_testLastGeomRayTestsTotalRaw", flags);
+		_rhTestGeomSegQueriedRawField = filmType.GetField("_testLastGeomSegQueriedRaw", flags);
+		_rhTestP2SampRawField = filmType.GetField("_testLastP2SampRaw", flags);
 
 		_rhLiveReflectionReady =
 			_rhCountField != null
@@ -3757,8 +3832,10 @@ public partial class RenderTestRunner : Node
 		}
 		if (!TryGetLatestRenderHealthLiveSnapshot(out RenderHealthLiveSnapshot snap))
 		{
+			ObserveSmartScaleProbeRawMaximaFromFilm();
 			return;
 		}
+		ObserveSmartScaleProbeRawMaxima(in snap);
 		if (!snap.StepKnown || !snap.BudgetExitReasonKnown || snap.Step < 0 || snap.Step == _smartScaleLastObservedStep)
 		{
 			return;
@@ -3799,6 +3876,76 @@ public partial class RenderTestRunner : Node
 			!string.Equals(snap.BudgetExitReason, "none", StringComparison.OrdinalIgnoreCase))
 		{
 			_smartScaleBudgetStopCountCurrentRun++;
+		}
+	}
+
+	private static void ObserveSmartScaleMaxRawValue(ref bool known, ref long currentMax, bool candidateKnown, long candidateValue)
+	{
+		if (!candidateKnown)
+		{
+			return;
+		}
+		long clamped = Math.Max(0L, candidateValue);
+		if (!known || clamped > currentMax)
+		{
+			known = true;
+			currentMax = clamped;
+		}
+	}
+
+	private void ObserveSmartScaleProbeRawMaxima(in RenderHealthLiveSnapshot snap)
+	{
+		ObserveSmartScaleMaxRawValue(
+			ref _smartScaleMaxGeomRayTestsTotalRawKnownCurrentRun,
+			ref _smartScaleMaxGeomRayTestsTotalRawCurrentRun,
+			snap.GeomRayTestsTotalKnown,
+			snap.GeomRayTestsTotal);
+		ObserveSmartScaleMaxRawValue(
+			ref _smartScaleMaxP2SampRawKnownCurrentRun,
+			ref _smartScaleMaxP2SampRawCurrentRun,
+			snap.P2SampRawKnown,
+			snap.P2SampRaw);
+		ObserveSmartScaleMaxRawValue(
+			ref _smartScaleMaxGeomSegQueriedRawKnownCurrentRun,
+			ref _smartScaleMaxGeomSegQueriedRawCurrentRun,
+			snap.GeomSegQueriedRawKnown,
+			snap.GeomSegQueriedRaw);
+	}
+
+	private void ObserveSmartScaleProbeRawMaximaFromFilm()
+	{
+		if (_film == null || !GodotObject.IsInstanceValid(_film))
+		{
+			return;
+		}
+		if (!EnsureRenderHealthLiveReflection())
+		{
+			return;
+		}
+
+		if (TryReadLongField(_rhTestGeomRayRawField, _film, out long geomRayRaw, out bool geomRayKnown))
+		{
+			ObserveSmartScaleMaxRawValue(
+				ref _smartScaleMaxGeomRayTestsTotalRawKnownCurrentRun,
+				ref _smartScaleMaxGeomRayTestsTotalRawCurrentRun,
+				geomRayKnown,
+				geomRayRaw);
+		}
+		if (TryReadLongField(_rhTestP2SampRawField, _film, out long p2Raw, out bool p2Known))
+		{
+			ObserveSmartScaleMaxRawValue(
+				ref _smartScaleMaxP2SampRawKnownCurrentRun,
+				ref _smartScaleMaxP2SampRawCurrentRun,
+				p2Known,
+				p2Raw);
+		}
+		if (TryReadLongField(_rhTestGeomSegQueriedRawField, _film, out long segRaw, out bool segKnown))
+		{
+			ObserveSmartScaleMaxRawValue(
+				ref _smartScaleMaxGeomSegQueriedRawKnownCurrentRun,
+				ref _smartScaleMaxGeomSegQueriedRawCurrentRun,
+				segKnown,
+				segRaw);
 		}
 	}
 
@@ -3948,13 +4095,19 @@ public partial class RenderTestRunner : Node
 
 		string trustToken = metrics.TrustKnown ? (metrics.Trusted ? "1" : "0") : "na";
 		string geomToken = metrics.GeomPixProcessedKnown ? metrics.GeomPixProcessed.ToString() : "na";
+		string maxGeomRayRaw = metrics.MaxGeomRayTestsTotalRawKnown ? metrics.MaxGeomRayTestsTotalRaw.ToString() : "na";
+		string maxP2Raw = metrics.MaxP2SampRawKnown ? metrics.MaxP2SampRaw.ToString() : "na";
+		string maxGeomSegRaw = metrics.MaxGeomSegQueriedRawKnown ? metrics.MaxGeomSegQueriedRaw.ToString() : "na";
+		string probeClass = GetSmartScaleProbeClass(in metrics);
 		string budgetMode = GetSmartScaleProbeBudgetModeToken();
 		int budgetN = GetSmartScaleProbeBudgetN();
 		GD.Print(
 			$"[SmartScale][ProbeResult] probe={Sanitize(result.ProbeId)} valid={(result.IsValid ? 1 : 0)} " +
 			$"invalid_reason={Sanitize(result.IsValid ? "none" : (result.InvalidReason ?? "unknown"))} trust={trustToken} " +
 			$"probe_trusted_for_selection={(metrics.ProbeTrustedForSelection ? 1 : 0)} " +
+			$"probe_class={probeClass} " +
 			$"trusted_windows={Math.Max(0, metrics.TrustedWindows)} partial_windows={Math.Max(0, metrics.PartialWindows)} total_windows={Math.Max(0, metrics.TotalWindows)} " +
+			$"max_geomRayTestsTotalRaw={maxGeomRayRaw} max_p2SampRaw={maxP2Raw} max_geomSegQueriedRaw={maxGeomSegRaw} " +
 			$"geomPixProcessedRaw={geomToken} budget_mode={budgetMode} budget_n={budgetN} budgetStopCount={metrics.BudgetStopCount} " +
 			$"renderstep_calls={metrics.RenderStepCalls} bands_committed={metrics.BandsCommitted} " +
 			$"rows_advanced_total={metrics.RowsAdvancedTotal} " +
@@ -4066,6 +4219,39 @@ public partial class RenderTestRunner : Node
 		return 1;
 	}
 
+	private static bool IsSmartScaleProductivePartialProbe(in ShadowEvalRunMetrics metrics)
+	{
+		int trustedWindows = Math.Max(0, metrics.TrustedWindows);
+		int partialWindows = Math.Max(0, metrics.PartialWindows);
+		int totalWindows = Math.Max(0, metrics.TotalWindows);
+		bool allWindowsPartial = trustedWindows == 0
+			&& totalWindows >= 8
+			&& partialWindows == totalWindows;
+		if (!allWindowsPartial)
+		{
+			return false;
+		}
+
+		bool hasProductiveRawSignal =
+			(metrics.MaxGeomRayTestsTotalRawKnown && metrics.MaxGeomRayTestsTotalRaw >= SmartScaleProductivePartialMinGeomRayTestsTotalRaw)
+			|| (metrics.MaxP2SampRawKnown && metrics.MaxP2SampRaw >= SmartScaleProductivePartialMinP2SampRaw)
+			|| (metrics.MaxGeomSegQueriedRawKnown && metrics.MaxGeomSegQueriedRaw >= SmartScaleProductivePartialMinGeomSegQueriedRaw);
+		return hasProductiveRawSignal;
+	}
+
+	private static string GetSmartScaleProbeClass(in ShadowEvalRunMetrics metrics)
+	{
+		if (metrics.ProbeTrustedForSelection)
+		{
+			return "trusted";
+		}
+		if (IsSmartScaleProductivePartialProbe(in metrics))
+		{
+			return "productive_partial";
+		}
+		return "untrusted";
+	}
+
 	private static bool IsSmartScaleProbeBetter(in SmartScaleProbeResult candidate, in SmartScaleProbeResult incumbent)
 	{
 		int cTrust = GetSmartScaleTrustRank(in candidate.Metrics);
@@ -4091,7 +4277,7 @@ public partial class RenderTestRunner : Node
 			return false;
 		}
 
-		int bestIndex = -1;
+		int firstValidIndex = -1;
 		for (int i = 0; i < _smartScaleProbeResults.Count; i++)
 		{
 			if (!_smartScaleProbeResults[i].IsValid)
@@ -4099,15 +4285,84 @@ public partial class RenderTestRunner : Node
 				continue;
 			}
 			best = _smartScaleProbeResults[i];
-			bestIndex = i;
+			firstValidIndex = i;
 			break;
 		}
-		if (bestIndex < 0)
+		if (firstValidIndex < 0)
 		{
 			return false;
 		}
 
-		for (int i = bestIndex + 1; i < _smartScaleProbeResults.Count; i++)
+		bool hasTrusted = false;
+		SmartScaleProbeResult bestTrusted = default;
+		for (int i = 0; i < _smartScaleProbeResults.Count; i++)
+		{
+			SmartScaleProbeResult candidate = _smartScaleProbeResults[i];
+			if (!candidate.IsValid || !candidate.Metrics.ProbeTrustedForSelection)
+			{
+				continue;
+			}
+			if (!hasTrusted || IsSmartScaleProbeBetter(in candidate, in bestTrusted))
+			{
+				bestTrusted = candidate;
+				hasTrusted = true;
+			}
+		}
+
+		long baselineGeom = 0L;
+		if (TryGetSmartScaleBaselineResult(out SmartScaleProbeResult baseline) && baseline.Metrics.GeomPixProcessedKnown)
+		{
+			baselineGeom = Math.Max(0L, baseline.Metrics.GeomPixProcessed);
+		}
+
+		bool trustedBeatsBaselineSignificantly = false;
+		if (hasTrusted)
+		{
+			long trustedGeom = bestTrusted.Metrics.GeomPixProcessedKnown ? Math.Max(0L, bestTrusted.Metrics.GeomPixProcessed) : 0L;
+			trustedBeatsBaselineSignificantly = baselineGeom > 0
+				&& trustedGeom >= (long)Math.Ceiling(baselineGeom * SmartScaleSignificantGeomPixGainRatio);
+		}
+
+		bool hasProductivePartial = false;
+		SmartScaleProbeResult bestProductivePartial = default;
+		for (int i = 0; i < _smartScaleProbeResults.Count; i++)
+		{
+			SmartScaleProbeResult candidate = _smartScaleProbeResults[i];
+			if (!candidate.IsValid || !IsSmartScaleProductivePartialProbe(in candidate.Metrics))
+			{
+				continue;
+			}
+			if (!hasProductivePartial || IsSmartScaleProbeBetter(in candidate, in bestProductivePartial))
+			{
+				bestProductivePartial = candidate;
+				hasProductivePartial = true;
+			}
+		}
+
+		if (hasTrusted && trustedBeatsBaselineSignificantly)
+		{
+			best = bestTrusted;
+			return true;
+		}
+
+		if (hasProductivePartial && baselineGeom > 0)
+		{
+			long productiveGeom = bestProductivePartial.Metrics.GeomPixProcessedKnown ? Math.Max(0L, bestProductivePartial.Metrics.GeomPixProcessed) : 0L;
+			long productiveMinGeom = (long)Math.Ceiling(baselineGeom * SmartScaleProductivePartialMinBaselineGeomPixRatio);
+			if (productiveGeom >= productiveMinGeom)
+			{
+				best = bestProductivePartial;
+				return true;
+			}
+		}
+
+		if (hasTrusted)
+		{
+			best = bestTrusted;
+			return true;
+		}
+
+		for (int i = firstValidIndex + 1; i < _smartScaleProbeResults.Count; i++)
 		{
 			SmartScaleProbeResult candidate = _smartScaleProbeResults[i];
 			if (!candidate.IsValid)
@@ -4145,6 +4400,8 @@ public partial class RenderTestRunner : Node
 		string bestTrustJson = best.Metrics.TrustKnown ? (best.Metrics.Trusted ? "1" : "0") : "null";
 		string baselineTrustedForSelectionJson = baseline.Metrics.ProbeTrustedForSelection ? "1" : "0";
 		string bestTrustedForSelectionJson = best.Metrics.ProbeTrustedForSelection ? "1" : "0";
+		string baselineProbeClassJson = JsonString(GetSmartScaleProbeClass(in baseline.Metrics));
+		string bestProbeClassJson = JsonString(GetSmartScaleProbeClass(in best.Metrics));
 		string baselineGeomJson = baseline.Metrics.GeomPixProcessedKnown ? baseline.Metrics.GeomPixProcessed.ToString() : "null";
 		string bestGeomJson = best.Metrics.GeomPixProcessedKnown ? best.Metrics.GeomPixProcessed.ToString() : "null";
 		string pathJson = BuildSmartScaleEscalationPathJson();
@@ -4174,6 +4431,8 @@ public partial class RenderTestRunner : Node
 			$"\"best_trust\":{bestTrustJson}," +
 			$"\"baseline_probe_trusted_for_selection\":{baselineTrustedForSelectionJson}," +
 			$"\"best_probe_trusted_for_selection\":{bestTrustedForSelectionJson}," +
+			$"\"baseline_probe_class\":{baselineProbeClassJson}," +
+			$"\"best_probe_class\":{bestProbeClassJson}," +
 			$"\"baseline_trusted_windows\":{Math.Max(0, baseline.Metrics.TrustedWindows)}," +
 			$"\"baseline_partial_windows\":{Math.Max(0, baseline.Metrics.PartialWindows)}," +
 			$"\"baseline_total_windows\":{Math.Max(0, baseline.Metrics.TotalWindows)}," +
@@ -4229,10 +4488,14 @@ public partial class RenderTestRunner : Node
 				.Append("\"invalid_reason\":").Append(JsonString(r.IsValid ? "none" : (r.InvalidReason ?? "unknown"))).Append(',')
 				.Append("\"trust\":").Append(r.Metrics.TrustKnown ? (r.Metrics.Trusted ? "1" : "0") : "null").Append(',')
 				.Append("\"probe_trusted_for_selection\":").Append(r.Metrics.ProbeTrustedForSelection ? "1" : "0").Append(',')
+				.Append("\"probe_class\":").Append(JsonString(GetSmartScaleProbeClass(in r.Metrics))).Append(',')
 				.Append("\"trusted_windows\":").Append(Math.Max(0, r.Metrics.TrustedWindows)).Append(',')
 				.Append("\"partial_windows\":").Append(Math.Max(0, r.Metrics.PartialWindows)).Append(',')
 				.Append("\"total_windows\":").Append(Math.Max(0, r.Metrics.TotalWindows)).Append(',')
 				.Append("\"geomPix\":").Append(r.Metrics.GeomPixProcessedKnown ? r.Metrics.GeomPixProcessed.ToString() : "null").Append(',')
+				.Append("\"max_geomRayTestsTotalRaw\":").Append(r.Metrics.MaxGeomRayTestsTotalRawKnown ? r.Metrics.MaxGeomRayTestsTotalRaw.ToString() : "null").Append(',')
+				.Append("\"max_p2SampRaw\":").Append(r.Metrics.MaxP2SampRawKnown ? r.Metrics.MaxP2SampRaw.ToString() : "null").Append(',')
+				.Append("\"max_geomSegQueriedRaw\":").Append(r.Metrics.MaxGeomSegQueriedRawKnown ? r.Metrics.MaxGeomSegQueriedRaw.ToString() : "null").Append(',')
 				.Append("\"budgetStops\":").Append(r.Metrics.BudgetStopCount).Append(',')
 				.Append("\"renderstep_calls\":").Append(r.Metrics.RenderStepCalls).Append(',')
 				.Append("\"bands_committed\":").Append(r.Metrics.BandsCommitted).Append(',')
@@ -4346,6 +4609,10 @@ public partial class RenderTestRunner : Node
 		public bool GeomPixProcessedKnown;
 		public long GeomRayTestsTotal;
 		public bool GeomRayTestsTotalKnown;
+		public long GeomSegQueriedRaw;
+		public bool GeomSegQueriedRawKnown;
+		public long P2SampRaw;
+		public bool P2SampRawKnown;
 		public int Hits;
 		public long Traced;
 		public string BudgetExitReason;
