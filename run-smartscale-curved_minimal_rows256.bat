@@ -68,6 +68,22 @@ if errorlevel 1 (
     endlocal & exit /b 1
 )
 
+echo ============================================================
+echo Post-Run Log Tail (%FIXTURE%)
+echo Source: %LOG_FILE%
+echo ============================================================
+powershell -NoProfile -Command "Get-Content -LiteralPath '%LOG_FILE%' -Tail 40"
+echo.
+echo [Extract] [SmartScaleResult]
+powershell -NoProfile -Command "$m = Select-String -LiteralPath '%LOG_FILE%' -Pattern '\[SmartScaleResult\]'; if ($m) { $m | Select-Object -Last 1 | ForEach-Object { $_.Line } } else { Write-Host '(not found)' }"
+echo [Extract] [SmartScale][Summary]
+powershell -NoProfile -Command "$m = Select-String -LiteralPath '%LOG_FILE%' -Pattern '\[SmartScale\]\[Summary\]'; if ($m) { $m | ForEach-Object { $_.Line } } else { Write-Host '(not found)' }"
+echo [Extract] last 6 [SmartScale][ProbeResult]
+powershell -NoProfile -Command "$m = Select-String -LiteralPath '%LOG_FILE%' -Pattern '\[SmartScale\]\[ProbeResult\]'; if ($m) { $m | Select-Object -Last 6 | ForEach-Object { $_.Line } } else { Write-Host '(not found)' }"
+echo [Extract] last 6 [AutoCalShadowEval] decisions
+powershell -NoProfile -Command "$m = Select-String -LiteralPath '%LOG_FILE%' -Pattern '\[RenderTestRunner\]\[AutoCalShadowEval\].*decision='; if ($m) { $m | Select-Object -Last 6 | ForEach-Object { $_.Line } } else { Write-Host '(not found)' }"
+echo.
+
 python tools\renderhealth_regress.py "%LOG_FILE%" > "%REGRESS_OUT%" 2>&1
 set "REGRESS_RC=%ERRORLEVEL%"
 type "%REGRESS_OUT%"

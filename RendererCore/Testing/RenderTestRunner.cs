@@ -3071,6 +3071,7 @@ public partial class RenderTestRunner : Node
 		bool geomTrusted = hasRenderHealth && geomTrustedRaw;
 		int geomHealthPartial = geomTrusted ? 0 : 1;
 		string trustReasonOut = hasRenderHealth ? Sanitize(geomTrustReasonRaw) : "warming_up";
+		bool hasLiveSnapshot = TryGetLatestRenderHealthLiveSnapshot(out RenderHealthLiveSnapshot snap);
 
 		string lastRow = "na";
 		string rowsAdv = "na";
@@ -3079,13 +3080,13 @@ public partial class RenderTestRunner : Node
 		string geomRayTestsTotal = "na";
 		string hitRate = "na";
 		string budgetStop = "na";
-		if (TryGetLatestRenderHealthLiveSnapshot(out RenderHealthLiveSnapshot snap))
+		if (hasLiveSnapshot)
 		{
 			lastRow = snap.LastRow.ToString();
 			rowsAdv = snap.RowsAdv.ToString();
 			bands = snap.Bands.ToString();
-			geomPixProcessed = snap.GeomPixProcessed.ToString();
-			geomRayTestsTotal = snap.GeomRayTestsTotal.ToString();
+			geomPixProcessed = snap.GeomPixProcessedKnown ? snap.GeomPixProcessed.ToString() : "na";
+			geomRayTestsTotal = snap.GeomRayTestsTotalKnown ? snap.GeomRayTestsTotal.ToString() : "na";
 			hitRate = snap.Traced > 0
 				? ((double)snap.Hits / snap.Traced).ToString("0.###")
 				: "na";
@@ -3093,6 +3094,8 @@ public partial class RenderTestRunner : Node
 				? "none"
 				: Sanitize(snap.BudgetExitReason);
 		}
+
+		EmitPeriodicHarnessLiveHeadline(in run, hasRenderHealth, geomTrustedRaw, hasLiveSnapshot, in snap);
 
 		GD.Print(
 			$"[RenderTestLive] name={_renderTestLiveRunName} frame={_runFrameIndex + 1}/{FramesPerRun} " +
@@ -3105,9 +3108,95 @@ public partial class RenderTestRunner : Node
 			string perPxOff = "na";
 			string perPxOn = "na";
 			TryGetRenderHealthPerPixelMetrics(out perPxOff, out perPxOn);
-			string stepStr = (snap.StepKnown && snap.Step >= 0) ? snap.Step.ToString() : "na";
+			string stepStr = (hasLiveSnapshot && snap.StepKnown && snap.Step >= 0) ? snap.Step.ToString() : "na";
 			GD.Print($"[RenderHealth][StraightDebug] step={stepStr} hitRate={hitRate} perPxOff={perPxOff} perPxOn={perPxOn}");
 		}
+	}
+
+	private void EmitPeriodicHarnessLiveHeadline(
+		in GrinFilmCamera.TestRunConfig run,
+		bool hasRenderHealth,
+		bool geomTrustedRaw,
+		bool hasLiveSnapshot,
+		in RenderHealthLiveSnapshot snap)
+	{
+		bool smartScaleActive = IsSmartScaleActive();
+		string prefix = smartScaleActive ? "[SmartScale][Live]" : "[RenderTestRunner][Live]";
+		string fixture = GetFixtureTokenForLiveLog();
+		string probe = "baseline";
+		string budgetMode = "na";
+		string budgetN = "na";
+
+		if (smartScaleActive)
+		{
+			budgetMode = GetSmartScaleProbeBudgetModeToken();
+			budgetN = GetSmartScaleProbeBudgetN().ToString();
+			if (TryGetSmartScaleProbeOverride(in run, out SmartScaleProbeOverride smartProbe))
+			{
+				probe = GetSmartScaleProbeNameForLiveLog(smartProbe.ProbeId);
+			}
+		}
+
+		string renderStepCalls = smartScaleActive
+			? _smartScaleRenderStepCallsCurrentRun.ToString()
+			: ((hasLiveSnapshot && snap.StepKnown && snap.Step >= 0) ? (snap.Step + 1).ToString() : "na");
+		string rowsAdvancedTotal = smartScaleActive
+			? _smartScaleRowsAdvancedTotalCurrentRun.ToString()
+			: (hasLiveSnapshot ? Math.Max(0, snap.RowsAdv).ToString() : "na");
+		string trustWindowTrusted = hasRenderHealth ? (geomTrustedRaw ? "1" : "0") : "na";
+		string trustWindowPartial = hasRenderHealth ? (geomTrustedRaw ? "0" : "1") : "na";
+		string trustWindowTotal = "na";
+		string geomPixProcessedRaw = (hasLiveSnapshot && snap.GeomPixProcessedKnown) ? snap.GeomPixProcessed.ToString() : "na";
+		string geomRayTestsTotalRaw = (hasLiveSnapshot && snap.GeomRayTestsTotalKnown) ? snap.GeomRayTestsTotal.ToString() : "na";
+		string budgetExitReason = "na";
+		if (hasLiveSnapshot)
+		{
+			budgetExitReason = (!snap.BudgetExitReasonKnown || string.IsNullOrWhiteSpace(snap.BudgetExitReason))
+				? "none"
+				: Sanitize(snap.BudgetExitReason);
+		}
+
+		GD.Print(
+			$"{prefix} fixture={fixture} run={_renderTestLiveRunName} probe={probe} " +
+			$"budget_mode={budgetMode} budget_n={budgetN} renderstep_calls={renderStepCalls} rows_advanced_total={rowsAdvancedTotal} " +
+			$"trust_window={trustWindowTrusted}/{trustWindowPartial}/{trustWindowTotal} " +
+			$"geomPixProcessedRaw={geomPixProcessedRaw} geomRayTestsTotalRaw={geomRayTestsTotalRaw} " +
+			$"budget_exit_reason={budgetExitReason}");
+	}
+
+	private string GetFixtureTokenForLiveLog()
+	{
+		return _requestedFixture switch
+		{
+			RenderTestFixture.Straight => "straight",
+			RenderTestFixture.CurvedMinimal => "curved_minimal",
+			_ => "default"
+		};
+	}
+
+	private static string GetSmartScaleProbeNameForLiveLog(string probeId)
+	{
+		if (string.IsNullOrWhiteSpace(probeId))
+		{
+			return "baseline";
+		}
+		if (probeId.StartsWith("step0", StringComparison.OrdinalIgnoreCase))
+		{
+			return "step0";
+		}
+		if (probeId.StartsWith("step1", StringComparison.OrdinalIgnoreCase))
+		{
+			return "step1";
+		}
+		if (probeId.StartsWith("step2", StringComparison.OrdinalIgnoreCase))
+		{
+			return "step2";
+		}
+		if (probeId.StartsWith("step3", StringComparison.OrdinalIgnoreCase))
+		{
+			return "step3";
+		}
+		return Sanitize(probeId);
 	}
 
 	private bool TryGetLatestRenderHealthLiveSnapshot(out RenderHealthLiveSnapshot snap)
