@@ -94,6 +94,7 @@ public partial class RenderTestRunner : Node
 	private const double SmartScaleSignificantGeomPixGainRatio = 1.15;
 	// Productive-partial fallback threshold over baseline geomPix.
 	private const double SmartScaleProductivePartialMinBaselineGeomPixRatio = 4.0;
+	private const double SmartScaleNearTrustedRayTestsMinRatio = 0.975;
 	private const long SmartScaleProductivePartialMinGeomRayTestsTotalRaw = 4096L;
 	private const long SmartScaleProductivePartialMinP2SampRaw = 8192L;
 	private const long SmartScaleProductivePartialMinGeomSegQueriedRaw = 100000L;
@@ -238,7 +239,7 @@ public partial class RenderTestRunner : Node
 	private bool _smartScaleSelectionRowsRerunPending = false;
 	private bool _smartScaleSelectionRowsRerunDone = false;
 	private bool _smartScaleSelectionRowsRerunActive = false;
-	private readonly List<SmartScaleProbeResult> _smartScaleProbeResults = new List<SmartScaleProbeResult>(4);
+	private readonly List<SmartScaleProbeResult> _smartScaleProbeResults = new List<SmartScaleProbeResult>(5);
 
 	private struct SmartScaleProbeOverride
 	{
@@ -254,6 +255,8 @@ public partial class RenderTestRunner : Node
 		public int? RenderStepMaxMs;
 		public int? RenderStepMaxPixelsPerFrame;
 		public int? RenderStepMaxSegmentsPerFrame;
+		public GrinFilmCamera.BroadphaseMode? BroadphaseControlMode;
+		public GrinFilmCamera.BroadphasePolicyMode? BroadphasePolicy;
 	}
 
 	private struct SmartScaleProbeResult
@@ -2547,6 +2550,21 @@ public partial class RenderTestRunner : Node
 			},
 			new GrinFilmCamera.TestRunConfig
 			{
+				Name = "smartscale_stepx_broadphase_relax",
+				UpdateEveryFrame = true,
+				UseGeometryTLASPruning = true,
+				UsePass2CollisionStride = false,
+				Pass2SoftGateEnableQuickRayMiss = true,
+				TargetMsPerFrame = 20,
+				CameraMode = camMode,
+				CameraLookAt = fixedLookAt,
+				CameraFixedPosition = fixedPos,
+				CameraOrbitRadius = camOrbitRadius,
+				CameraOrbitHeight = camOrbitHeight,
+				CameraOrbitPeriodFrames = camOrbitPeriod
+			},
+			new GrinFilmCamera.TestRunConfig
+			{
 				Name = "smartscale_step3_time30",
 				UpdateEveryFrame = true,
 				UseGeometryTLASPruning = true,
@@ -3740,7 +3758,13 @@ public partial class RenderTestRunner : Node
 
 		if (string.Equals(run.Name, "smartscale_baseline", StringComparison.OrdinalIgnoreCase))
 		{
-			probe = new SmartScaleProbeOverride { ProbeId = "step0_baseline", Summary = "baseline" };
+			probe = new SmartScaleProbeOverride
+			{
+				ProbeId = "step0_baseline",
+				Summary = "baseline",
+				BroadphaseControlMode = GrinFilmCamera.BroadphaseMode.Policy,
+				BroadphasePolicy = GrinFilmCamera.BroadphasePolicyMode.OverlapOnly
+			};
 			return true;
 		}
 		if (string.Equals(run.Name, "smartscale_step1_unlock", StringComparison.OrdinalIgnoreCase))
@@ -3755,7 +3779,9 @@ public partial class RenderTestRunner : Node
 				RowsPerFrame = fullRows,
 				MaxRowsPerFrameCap = fullRows,
 				RenderStepMaxPixelsPerFrame = raisedPixelCap,
-				RenderStepMaxSegmentsPerFrame = raisedSegCap
+				RenderStepMaxSegmentsPerFrame = raisedSegCap,
+				BroadphaseControlMode = GrinFilmCamera.BroadphaseMode.Policy,
+				BroadphasePolicy = GrinFilmCamera.BroadphasePolicyMode.OverlapOnly
 			};
 			return true;
 		}
@@ -3774,7 +3800,30 @@ public partial class RenderTestRunner : Node
 				RowsPerFrame = fullRows,
 				MaxRowsPerFrameCap = fullRows,
 				RenderStepMaxPixelsPerFrame = raisedPixelCap,
-				RenderStepMaxSegmentsPerFrame = raisedSegCap
+				RenderStepMaxSegmentsPerFrame = raisedSegCap,
+				BroadphaseControlMode = GrinFilmCamera.BroadphaseMode.Policy,
+				BroadphasePolicy = GrinFilmCamera.BroadphasePolicyMode.OverlapOnly
+			};
+			return true;
+		}
+		if (string.Equals(run.Name, "smartscale_stepx_broadphase_relax", StringComparison.OrdinalIgnoreCase))
+		{
+			probe = new SmartScaleProbeOverride
+			{
+				ProbeId = "stepX_broadphase_relax",
+				Summary = "broadphase_relax",
+				PixelStride = 1,
+				UsePass2CollisionStride = false,
+				TargetMsPerFrame = 20,
+				UpdateEveryFrameBudgetMs = 1000f,
+				RenderStepMaxMs = 1000,
+				UpdateEveryFrameMaxRowsPerStep = fullRows,
+				RowsPerFrame = fullRows,
+				MaxRowsPerFrameCap = fullRows,
+				RenderStepMaxPixelsPerFrame = raisedPixelCap,
+				RenderStepMaxSegmentsPerFrame = raisedSegCap,
+				BroadphaseControlMode = GrinFilmCamera.BroadphaseMode.Policy,
+				BroadphasePolicy = GrinFilmCamera.BroadphasePolicyMode.Both
 			};
 			return true;
 		}
@@ -3793,7 +3842,9 @@ public partial class RenderTestRunner : Node
 				RowsPerFrame = fullRows,
 				MaxRowsPerFrameCap = fullRows,
 				RenderStepMaxPixelsPerFrame = raisedPixelCap,
-				RenderStepMaxSegmentsPerFrame = raisedSegCap
+				RenderStepMaxSegmentsPerFrame = raisedSegCap,
+				BroadphaseControlMode = GrinFilmCamera.BroadphaseMode.Policy,
+				BroadphasePolicy = GrinFilmCamera.BroadphasePolicyMode.OverlapOnly
 			};
 			return true;
 		}
@@ -3822,6 +3873,8 @@ public partial class RenderTestRunner : Node
 		if (probe.RenderStepMaxMs.HasValue) _film.RenderStepMaxMs = Math.Max(1, probe.RenderStepMaxMs.Value);
 		if (probe.RenderStepMaxPixelsPerFrame.HasValue) _film.RenderStepMaxPixelsPerFrame = Math.Max(0, probe.RenderStepMaxPixelsPerFrame.Value);
 		if (probe.RenderStepMaxSegmentsPerFrame.HasValue) _film.RenderStepMaxSegmentsPerFrame = Math.Max(0, probe.RenderStepMaxSegmentsPerFrame.Value);
+		if (probe.BroadphaseControlMode.HasValue) _film.BroadphaseControlMode = probe.BroadphaseControlMode.Value;
+		if (probe.BroadphasePolicy.HasValue) _film.BroadphasePolicy = probe.BroadphasePolicy.Value;
 	}
 
 	private void ObserveSmartScaleBudgetStopsForCurrentRun()
@@ -4099,13 +4152,15 @@ public partial class RenderTestRunner : Node
 		string maxP2Raw = metrics.MaxP2SampRawKnown ? metrics.MaxP2SampRaw.ToString() : "na";
 		string maxGeomSegRaw = metrics.MaxGeomSegQueriedRawKnown ? metrics.MaxGeomSegQueriedRaw.ToString() : "na";
 		string probeClass = GetSmartScaleProbeClass(in metrics);
+		long? raytestDeficit = ComputeSmartScaleRaytestDeficit(in metrics);
+		string raytestDeficitToken = raytestDeficit.HasValue ? raytestDeficit.Value.ToString() : "na";
 		string budgetMode = GetSmartScaleProbeBudgetModeToken();
 		int budgetN = GetSmartScaleProbeBudgetN();
 		GD.Print(
 			$"[SmartScale][ProbeResult] probe={Sanitize(result.ProbeId)} valid={(result.IsValid ? 1 : 0)} " +
 			$"invalid_reason={Sanitize(result.IsValid ? "none" : (result.InvalidReason ?? "unknown"))} trust={trustToken} " +
 			$"probe_trusted_for_selection={(metrics.ProbeTrustedForSelection ? 1 : 0)} " +
-			$"probe_class={probeClass} " +
+			$"probe_class={probeClass} raytest_deficit={raytestDeficitToken} " +
 			$"trusted_windows={Math.Max(0, metrics.TrustedWindows)} partial_windows={Math.Max(0, metrics.PartialWindows)} total_windows={Math.Max(0, metrics.TotalWindows)} " +
 			$"max_geomRayTestsTotalRaw={maxGeomRayRaw} max_p2SampRaw={maxP2Raw} max_geomSegQueriedRaw={maxGeomSegRaw} " +
 			$"geomPixProcessedRaw={geomToken} budget_mode={budgetMode} budget_n={budgetN} budgetStopCount={metrics.BudgetStopCount} " +
@@ -4212,13 +4267,6 @@ public partial class RenderTestRunner : Node
 		return false;
 	}
 
-	private static int GetSmartScaleTrustRank(in ShadowEvalRunMetrics metrics)
-	{
-		if (metrics.ProbeTrustedForSelection) return 2;
-		if (!metrics.TrustKnown) return 0;
-		return 1;
-	}
-
 	private static bool IsSmartScaleProductivePartialProbe(in ShadowEvalRunMetrics metrics)
 	{
 		int trustedWindows = Math.Max(0, metrics.TrustedWindows);
@@ -4239,11 +4287,82 @@ public partial class RenderTestRunner : Node
 		return hasProductiveRawSignal;
 	}
 
-	private static string GetSmartScaleProbeClass(in ShadowEvalRunMetrics metrics)
+	private static bool TryGetSmartScaleGeomRayTestsTotalRaw(in ShadowEvalRunMetrics metrics, out long geomRayTestsTotalRaw)
+	{
+		if (metrics.GeomRayTestsTotalKnown)
+		{
+			geomRayTestsTotalRaw = Math.Max(0L, metrics.GeomRayTestsTotal);
+			return true;
+		}
+		if (metrics.MaxGeomRayTestsTotalRawKnown)
+		{
+			geomRayTestsTotalRaw = Math.Max(0L, metrics.MaxGeomRayTestsTotalRaw);
+			return true;
+		}
+
+		geomRayTestsTotalRaw = 0L;
+		return false;
+	}
+
+	private bool IsSmartScaleNearTrustedRaytestsProbe(in ShadowEvalRunMetrics metrics)
+	{
+		if (metrics.ProbeTrustedForSelection)
+		{
+			return false;
+		}
+
+		string dominantReason = MapTrustReasonToDominantReasonToken(metrics.TrustReason);
+		if (!string.Equals(dominantReason, "low_raytests", StringComparison.OrdinalIgnoreCase))
+		{
+			return false;
+		}
+		if (!metrics.GeomPixProcessedKnown)
+		{
+			return false;
+		}
+		if (metrics.GeomPixProcessed < _renderTestMinGeomPixForTrust)
+		{
+			return false;
+		}
+		if (!TryGetSmartScaleGeomRayTestsTotalRaw(in metrics, out long geomRayTestsTotalRaw))
+		{
+			return false;
+		}
+
+		long minRayTests = Math.Max(0L, _renderTestMinGeomRayTestsForTrust);
+		long nearTrustedFloor = (long)Math.Ceiling(minRayTests * SmartScaleNearTrustedRayTestsMinRatio);
+		return geomRayTestsTotalRaw >= nearTrustedFloor;
+	}
+
+	private long? ComputeSmartScaleRaytestDeficit(in ShadowEvalRunMetrics metrics)
+	{
+		if (!TryGetSmartScaleGeomRayTestsTotalRaw(in metrics, out long geomRayTestsTotalRaw))
+		{
+			return null;
+		}
+
+		long minRayTests = Math.Max(0L, _renderTestMinGeomRayTestsForTrust);
+		return Math.Max(0L, minRayTests - geomRayTestsTotalRaw);
+	}
+
+	private int GetSmartScaleTrustRank(in ShadowEvalRunMetrics metrics)
+	{
+		if (metrics.ProbeTrustedForSelection) return 3;
+		if (IsSmartScaleNearTrustedRaytestsProbe(in metrics)) return 2;
+		if (IsSmartScaleProductivePartialProbe(in metrics)) return 1;
+		if (!metrics.TrustKnown) return -1;
+		return 0;
+	}
+
+	private string GetSmartScaleProbeClass(in ShadowEvalRunMetrics metrics)
 	{
 		if (metrics.ProbeTrustedForSelection)
 		{
 			return "trusted";
+		}
+		if (IsSmartScaleNearTrustedRaytestsProbe(in metrics))
+		{
+			return "near_trusted_raytests";
 		}
 		if (IsSmartScaleProductivePartialProbe(in metrics))
 		{
@@ -4252,7 +4371,7 @@ public partial class RenderTestRunner : Node
 		return "untrusted";
 	}
 
-	private static bool IsSmartScaleProbeBetter(in SmartScaleProbeResult candidate, in SmartScaleProbeResult incumbent)
+	private bool IsSmartScaleProbeBetter(in SmartScaleProbeResult candidate, in SmartScaleProbeResult incumbent)
 	{
 		int cTrust = GetSmartScaleTrustRank(in candidate.Metrics);
 		int iTrust = GetSmartScaleTrustRank(in incumbent.Metrics);
@@ -4323,6 +4442,22 @@ public partial class RenderTestRunner : Node
 				&& trustedGeom >= (long)Math.Ceiling(baselineGeom * SmartScaleSignificantGeomPixGainRatio);
 		}
 
+		bool hasNearTrustedRaytests = false;
+		SmartScaleProbeResult bestNearTrustedRaytests = default;
+		for (int i = 0; i < _smartScaleProbeResults.Count; i++)
+		{
+			SmartScaleProbeResult candidate = _smartScaleProbeResults[i];
+			if (!candidate.IsValid || !IsSmartScaleNearTrustedRaytestsProbe(in candidate.Metrics))
+			{
+				continue;
+			}
+			if (!hasNearTrustedRaytests || IsSmartScaleProbeBetter(in candidate, in bestNearTrustedRaytests))
+			{
+				bestNearTrustedRaytests = candidate;
+				hasNearTrustedRaytests = true;
+			}
+		}
+
 		bool hasProductivePartial = false;
 		SmartScaleProbeResult bestProductivePartial = default;
 		for (int i = 0; i < _smartScaleProbeResults.Count; i++)
@@ -4345,6 +4480,18 @@ public partial class RenderTestRunner : Node
 			return true;
 		}
 
+		if (hasTrusted)
+		{
+			best = bestTrusted;
+			return true;
+		}
+
+		if (hasNearTrustedRaytests)
+		{
+			best = bestNearTrustedRaytests;
+			return true;
+		}
+
 		if (hasProductivePartial && baselineGeom > 0)
 		{
 			long productiveGeom = bestProductivePartial.Metrics.GeomPixProcessedKnown ? Math.Max(0L, bestProductivePartial.Metrics.GeomPixProcessed) : 0L;
@@ -4354,12 +4501,6 @@ public partial class RenderTestRunner : Node
 				best = bestProductivePartial;
 				return true;
 			}
-		}
-
-		if (hasTrusted)
-		{
-			best = bestTrusted;
-			return true;
 		}
 
 		for (int i = firstValidIndex + 1; i < _smartScaleProbeResults.Count; i++)
@@ -4482,6 +4623,7 @@ public partial class RenderTestRunner : Node
 		{
 			if (i > 0) sb.Append(',');
 			SmartScaleProbeResult r = _smartScaleProbeResults[i];
+			long? raytestDeficit = ComputeSmartScaleRaytestDeficit(in r.Metrics);
 			sb.Append('{')
 				.Append("\"probe\":").Append(JsonString(r.ProbeId)).Append(',')
 				.Append("\"valid\":").Append(r.IsValid ? "1" : "0").Append(',')
@@ -4489,6 +4631,7 @@ public partial class RenderTestRunner : Node
 				.Append("\"trust\":").Append(r.Metrics.TrustKnown ? (r.Metrics.Trusted ? "1" : "0") : "null").Append(',')
 				.Append("\"probe_trusted_for_selection\":").Append(r.Metrics.ProbeTrustedForSelection ? "1" : "0").Append(',')
 				.Append("\"probe_class\":").Append(JsonString(GetSmartScaleProbeClass(in r.Metrics))).Append(',')
+				.Append("\"raytest_deficit\":").Append(raytestDeficit.HasValue ? raytestDeficit.Value.ToString() : "null").Append(',')
 				.Append("\"trusted_windows\":").Append(Math.Max(0, r.Metrics.TrustedWindows)).Append(',')
 				.Append("\"partial_windows\":").Append(Math.Max(0, r.Metrics.PartialWindows)).Append(',')
 				.Append("\"total_windows\":").Append(Math.Max(0, r.Metrics.TotalWindows)).Append(',')
