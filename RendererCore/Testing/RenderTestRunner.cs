@@ -85,6 +85,7 @@ public partial class RenderTestRunner : Node
 	private const string SmartScaleRowsPerRunCmdArgPrefix = "--smartscale-rows-per-run=";
 	private const int RenderTestMinFramesPerRun = 90;
 	private const int SmartScaleProbeFramesPerRun = 60;
+	private const int SmartScaleProbeDefaultRowsBudget = 512;
 	private const int SmartScaleProbeWarmupFrames = 3;
 	private const int RenderTestStatsFullFrameEveryNSteps = 8;
 	private const int RenderTestTrustPass2SampleEveryNSegments = 8;
@@ -200,13 +201,16 @@ public partial class RenderTestRunner : Node
 	private bool _smartScaleConfigured = false;
 	private bool _smartScaleNoEarlyStop = false;
 	private bool _smartScaleAbortRemainingRuns = false;
-	private SmartScaleProbeBudgetMode _smartScaleProbeBudgetMode = SmartScaleProbeBudgetMode.RenderStepCalls;
-	private int _smartScaleProbeRowsPerRun = SmartScaleProbeFramesPerRun;
+	private SmartScaleProbeBudgetMode _smartScaleProbeBudgetMode = SmartScaleProbeBudgetMode.RowsAdvanced;
+	private int _smartScaleProbeRowsPerRun = SmartScaleProbeDefaultRowsBudget;
 	private int _smartScaleLastObservedStep = int.MinValue;
 	private int _smartScaleBudgetStopCountCurrentRun = 0;
 	private int _smartScaleRenderStepCallsCurrentRun = 0;
 	private int _smartScaleBandsCommittedCurrentRun = 0;
 	private int _smartScaleRowsAdvancedTotalCurrentRun = 0;
+	private int _smartScaleTrustedWindowsCurrentRun = 0;
+	private int _smartScalePartialWindowsCurrentRun = 0;
+	private int _smartScaleTotalWindowsCurrentRun = 0;
 	private bool _smartScaleScanlineCountersCoarseCurrentRun = false;
 	private bool _smartScaleRowCursorStartKnownCurrentRun = false;
 	private int _smartScaleRowCursorStartCurrentRun = 0;
@@ -215,6 +219,9 @@ public partial class RenderTestRunner : Node
 	private bool _smartScaleFilmHeightKnownCurrentRun = false;
 	private int _smartScaleFilmHeightCurrentRun = 0;
 	private bool _smartScaleResultEmitted = false;
+	private bool _smartScaleSelectionRowsRerunPending = false;
+	private bool _smartScaleSelectionRowsRerunDone = false;
+	private bool _smartScaleSelectionRowsRerunActive = false;
 	private readonly List<SmartScaleProbeResult> _smartScaleProbeResults = new List<SmartScaleProbeResult>(4);
 
 	private struct SmartScaleProbeOverride
@@ -289,6 +296,10 @@ public partial class RenderTestRunner : Node
 		public int RenderStepCalls;
 		public int BandsCommitted;
 		public int RowsAdvancedTotal;
+		public int TrustedWindows;
+		public int PartialWindows;
+		public int TotalWindows;
+		public bool ProbeTrustedForSelection;
 		public bool ScanlineCountersCoarse;
 		public bool RowCursorStartKnown;
 		public int RowCursorStart;
@@ -583,6 +594,8 @@ public partial class RenderTestRunner : Node
 		_autoCalAcceptedApplyActiveRun = false;
 		_smartScaleAbortRemainingRuns = false;
 		_smartScaleResultEmitted = false;
+		_smartScaleSelectionRowsRerunPending = false;
+		_smartScaleSelectionRowsRerunActive = false;
 		_smartScaleProbeResults.Clear();
 		ClearPendingAcceptedAutoCalApply();
 	}
@@ -874,6 +887,9 @@ public partial class RenderTestRunner : Node
 		_smartScaleRenderStepCallsCurrentRun = 0;
 		_smartScaleBandsCommittedCurrentRun = 0;
 		_smartScaleRowsAdvancedTotalCurrentRun = 0;
+		_smartScaleTrustedWindowsCurrentRun = 0;
+		_smartScalePartialWindowsCurrentRun = 0;
+		_smartScaleTotalWindowsCurrentRun = 0;
 		_smartScaleScanlineCountersCoarseCurrentRun = false;
 		_smartScaleRowCursorStartKnownCurrentRun = false;
 		_smartScaleRowCursorStartCurrentRun = 0;
@@ -1904,6 +1920,10 @@ public partial class RenderTestRunner : Node
 				RenderStepCalls = _smartScaleRenderStepCallsCurrentRun,
 				BandsCommitted = _smartScaleBandsCommittedCurrentRun,
 				RowsAdvancedTotal = _smartScaleRowsAdvancedTotalCurrentRun,
+				TrustedWindows = _smartScaleTrustedWindowsCurrentRun,
+				PartialWindows = _smartScalePartialWindowsCurrentRun,
+				TotalWindows = _smartScaleTotalWindowsCurrentRun,
+				ProbeTrustedForSelection = false,
 				ScanlineCountersCoarse = _smartScaleScanlineCountersCoarseCurrentRun,
 				RowCursorStartKnown = _smartScaleRowCursorStartKnownCurrentRun,
 				RowCursorStart = _smartScaleRowCursorStartCurrentRun,
@@ -1912,6 +1932,7 @@ public partial class RenderTestRunner : Node
 				FilmHeightKnown = _smartScaleFilmHeightKnownCurrentRun,
 				FilmHeight = _smartScaleFilmHeightCurrentRun
 			};
+			metrics.ProbeTrustedForSelection = IsProbeTrustedForSelection(in metrics);
 
 			MaybeRecordSmartScaleProbeResult(in run, in metrics);
 
@@ -2149,6 +2170,13 @@ public partial class RenderTestRunner : Node
 
 		EmitShadowEvalMatrixFinalDecisionIfNeeded();
 		EmitSmartScaleResultIfNeeded();
+		if (_smartScaleSelectionRowsRerunPending)
+		{
+			_smartScaleSelectionRowsRerunPending = false;
+			_smartScaleSelectionRowsRerunActive = true;
+			_smartScaleProbeBudgetMode = SmartScaleProbeBudgetMode.RowsAdvanced;
+			_smartScaleProbeRowsPerRun = SmartScaleProbeDefaultRowsBudget;
+		}
 
 		_matrixRunning = false;
 		_harnessState = HarnessState.Idle;
@@ -2184,6 +2212,9 @@ public partial class RenderTestRunner : Node
 		_smartScaleRenderStepCallsCurrentRun = 0;
 		_smartScaleBandsCommittedCurrentRun = 0;
 		_smartScaleRowsAdvancedTotalCurrentRun = 0;
+		_smartScaleTrustedWindowsCurrentRun = 0;
+		_smartScalePartialWindowsCurrentRun = 0;
+		_smartScaleTotalWindowsCurrentRun = 0;
 		_smartScaleRowCursorStartKnownCurrentRun = false;
 		_smartScaleRowCursorStartCurrentRun = 0;
 		_smartScaleRowCursorEndKnownCurrentRun = false;
@@ -2209,6 +2240,13 @@ public partial class RenderTestRunner : Node
 		double elapsedMs = ComputeElapsedMs(_matrixStartTimestamp);
 		GD.Print($"[RenderTest][MATRIX END] id={_runSeriesId} runs={_runs.Count}");
 		GD.Print($"[MATRIX END] totalRuns={_runs.Count} elapsedMs={elapsedMs:0.###}");
+		if (_smartScaleSelectionRowsRerunActive)
+		{
+			_smartScaleSelectionRowsRerunActive = false;
+			GD.Print("[RenderTestRunner][SmartScale] restarting matrix with rows_advanced budget for final selection.");
+			CallDeferred(nameof(StartDefaultMatrix));
+			return;
+		}
 
 		if (IsLifecycleStressActive())
 		{
@@ -2621,8 +2659,11 @@ public partial class RenderTestRunner : Node
 	{
 		_smartScaleMode = SmartScaleMode.None;
 		_smartScaleNoEarlyStop = false;
-		_smartScaleProbeBudgetMode = SmartScaleProbeBudgetMode.RenderStepCalls;
-		_smartScaleProbeRowsPerRun = SmartScaleProbeFramesPerRun;
+		_smartScaleProbeBudgetMode = SmartScaleProbeBudgetMode.RowsAdvanced;
+		_smartScaleProbeRowsPerRun = SmartScaleProbeDefaultRowsBudget;
+		_smartScaleSelectionRowsRerunPending = false;
+		_smartScaleSelectionRowsRerunDone = false;
+		_smartScaleSelectionRowsRerunActive = false;
 		if (TryGetBoolCmdArgValue(SmartScaleNoEarlyStopCmdArgPrefix, out bool noEarlyStop))
 		{
 			_smartScaleNoEarlyStop = noEarlyStop;
@@ -2641,7 +2682,7 @@ public partial class RenderTestRunner : Node
 			}
 			else
 			{
-				GD.PrintErr($"[RenderTestRunner][SmartScale] Unsupported smartscale budget='{budgetModeRaw}'. Using renderstep_calls.");
+				GD.PrintErr($"[RenderTestRunner][SmartScale] Unsupported smartscale budget='{budgetModeRaw}'. Using rows_advanced.");
 			}
 		}
 		if (TryGetIntCmdArgValue(SmartScaleBudgetNCmdArgPrefix, out int cliBudgetN))
@@ -3726,6 +3767,18 @@ public partial class RenderTestRunner : Node
 		_smartScaleRenderStepCallsCurrentRun++;
 		_smartScaleBandsCommittedCurrentRun += Math.Max(0, snap.Bands);
 		_smartScaleRowsAdvancedTotalCurrentRun += Math.Max(0, snap.RowsAdv);
+		if (_film.TryGetLatestRenderHealthForTesting(out bool trusted, out _, out _, out _))
+		{
+			_smartScaleTotalWindowsCurrentRun++;
+			if (trusted)
+			{
+				_smartScaleTrustedWindowsCurrentRun++;
+			}
+			else
+			{
+				_smartScalePartialWindowsCurrentRun++;
+			}
+		}
 		if (!_smartScaleRowCursorStartKnownCurrentRun)
 		{
 			int inferredStart = snap.LastRow - Math.Max(0, snap.RowsAdv);
@@ -3900,6 +3953,8 @@ public partial class RenderTestRunner : Node
 		GD.Print(
 			$"[SmartScale][ProbeResult] probe={Sanitize(result.ProbeId)} valid={(result.IsValid ? 1 : 0)} " +
 			$"invalid_reason={Sanitize(result.IsValid ? "none" : (result.InvalidReason ?? "unknown"))} trust={trustToken} " +
+			$"probe_trusted_for_selection={(metrics.ProbeTrustedForSelection ? 1 : 0)} " +
+			$"trusted_windows={Math.Max(0, metrics.TrustedWindows)} partial_windows={Math.Max(0, metrics.PartialWindows)} total_windows={Math.Max(0, metrics.TotalWindows)} " +
 			$"geomPixProcessedRaw={geomToken} budget_mode={budgetMode} budget_n={budgetN} budgetStopCount={metrics.BudgetStopCount} " +
 			$"renderstep_calls={metrics.RenderStepCalls} bands_committed={metrics.BandsCommitted} " +
 			$"rows_advanced_total={metrics.RowsAdvancedTotal} " +
@@ -3917,7 +3972,7 @@ public partial class RenderTestRunner : Node
 			return;
 		}
 
-		if (_smartScaleProbeResults.Count == 1 && metrics.TrustKnown && metrics.Trusted)
+		if (_smartScaleProbeResults.Count == 1 && metrics.ProbeTrustedForSelection)
 		{
 			if (_smartScaleNoEarlyStop)
 			{
@@ -3939,7 +3994,7 @@ public partial class RenderTestRunner : Node
 			long baseGeom = baseline.Metrics.GeomPixProcessedKnown ? baseline.Metrics.GeomPixProcessed : 0L;
 			long bestGeom = result.Metrics.GeomPixProcessedKnown ? result.Metrics.GeomPixProcessed : 0L;
 			bool significant = baseGeom > 0 && bestGeom >= (long)Math.Ceiling(baseGeom * SmartScaleSignificantGeomPixGainRatio);
-			if (result.Metrics.TrustKnown && result.Metrics.Trusted && significant)
+			if (result.Metrics.ProbeTrustedForSelection && significant)
 			{
 				_smartScaleAbortRemainingRuns = true;
 				GD.Print(
@@ -3985,10 +4040,30 @@ public partial class RenderTestRunner : Node
 		return sb.Length > 0 ? sb.ToString() : "unknown";
 	}
 
+	private static bool IsProbeTrustedForSelection(in ShadowEvalRunMetrics metrics)
+	{
+		int trustedWindows = Math.Max(0, metrics.TrustedWindows);
+		int totalWindows = Math.Max(0, metrics.TotalWindows);
+		if (trustedWindows >= 2)
+		{
+			return true;
+		}
+		if (totalWindows > 0)
+		{
+			double trustedRatio = (double)trustedWindows / totalWindows;
+			if (trustedRatio >= 0.6)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private static int GetSmartScaleTrustRank(in ShadowEvalRunMetrics metrics)
 	{
+		if (metrics.ProbeTrustedForSelection) return 2;
 		if (!metrics.TrustKnown) return 0;
-		return metrics.Trusted ? 2 : 1;
+		return 1;
 	}
 
 	private static bool IsSmartScaleProbeBetter(in SmartScaleProbeResult candidate, in SmartScaleProbeResult incumbent)
@@ -4053,16 +4128,23 @@ public partial class RenderTestRunner : Node
 		{
 			return;
 		}
-		_smartScaleResultEmitted = true;
 
 		if (!TrySelectBestSmartScaleProbe(out SmartScaleProbeResult best))
 		{
 			return;
 		}
+		if (ShouldRerunSmartScaleSelectionWithRowsBudget(in best))
+		{
+			RequestSmartScaleSelectionRowsBudgetRerun();
+			return;
+		}
+		_smartScaleResultEmitted = true;
 
 		TryGetSmartScaleBaselineResult(out SmartScaleProbeResult baseline);
 		string baselineTrustJson = baseline.Metrics.TrustKnown ? (baseline.Metrics.Trusted ? "1" : "0") : "null";
 		string bestTrustJson = best.Metrics.TrustKnown ? (best.Metrics.Trusted ? "1" : "0") : "null";
+		string baselineTrustedForSelectionJson = baseline.Metrics.ProbeTrustedForSelection ? "1" : "0";
+		string bestTrustedForSelectionJson = best.Metrics.ProbeTrustedForSelection ? "1" : "0";
 		string baselineGeomJson = baseline.Metrics.GeomPixProcessedKnown ? baseline.Metrics.GeomPixProcessed.ToString() : "null";
 		string bestGeomJson = best.Metrics.GeomPixProcessedKnown ? best.Metrics.GeomPixProcessed.ToString() : "null";
 		string pathJson = BuildSmartScaleEscalationPathJson();
@@ -4090,6 +4172,14 @@ public partial class RenderTestRunner : Node
 			$"\"best_geomPix\":{bestGeomJson}," +
 			$"\"baseline_trust\":{baselineTrustJson}," +
 			$"\"best_trust\":{bestTrustJson}," +
+			$"\"baseline_probe_trusted_for_selection\":{baselineTrustedForSelectionJson}," +
+			$"\"best_probe_trusted_for_selection\":{bestTrustedForSelectionJson}," +
+			$"\"baseline_trusted_windows\":{Math.Max(0, baseline.Metrics.TrustedWindows)}," +
+			$"\"baseline_partial_windows\":{Math.Max(0, baseline.Metrics.PartialWindows)}," +
+			$"\"baseline_total_windows\":{Math.Max(0, baseline.Metrics.TotalWindows)}," +
+			$"\"best_trusted_windows\":{Math.Max(0, best.Metrics.TrustedWindows)}," +
+			$"\"best_partial_windows\":{Math.Max(0, best.Metrics.PartialWindows)}," +
+			$"\"best_total_windows\":{Math.Max(0, best.Metrics.TotalWindows)}," +
 			$"\"escalation_path\":{pathJson}," +
 			$"\"final_target_ms_per_frame\":{best.Metrics.TargetMsPerFrame}," +
 			$"\"final_effective_max_ms_known\":{finalEffectiveMaxMsKnownJson}," +
@@ -4114,7 +4204,8 @@ public partial class RenderTestRunner : Node
 		GD.Print($"[SmartScaleResult] {json}");
 		GD.Print(
 			$"[SmartScale][Summary] probes={_smartScaleProbeResults.Count} best={Sanitize(best.ProbeId)} " +
-			$"best_trust={(best.Metrics.TrustKnown ? (best.Metrics.Trusted ? 1 : 0) : -1)} " +
+			$"best_trust={(best.Metrics.ProbeTrustedForSelection ? 1 : 0)} " +
+			$"best_windows={Math.Max(0, best.Metrics.TrustedWindows)}/{Math.Max(0, best.Metrics.PartialWindows)}/{Math.Max(0, best.Metrics.TotalWindows)} " +
 			$"best_geomPix={(best.Metrics.GeomPixProcessedKnown ? best.Metrics.GeomPixProcessed : -1)} " +
 			$"budgetStops={best.Metrics.BudgetStopCount}");
 	}
@@ -4137,6 +4228,10 @@ public partial class RenderTestRunner : Node
 				.Append("\"valid\":").Append(r.IsValid ? "1" : "0").Append(',')
 				.Append("\"invalid_reason\":").Append(JsonString(r.IsValid ? "none" : (r.InvalidReason ?? "unknown"))).Append(',')
 				.Append("\"trust\":").Append(r.Metrics.TrustKnown ? (r.Metrics.Trusted ? "1" : "0") : "null").Append(',')
+				.Append("\"probe_trusted_for_selection\":").Append(r.Metrics.ProbeTrustedForSelection ? "1" : "0").Append(',')
+				.Append("\"trusted_windows\":").Append(Math.Max(0, r.Metrics.TrustedWindows)).Append(',')
+				.Append("\"partial_windows\":").Append(Math.Max(0, r.Metrics.PartialWindows)).Append(',')
+				.Append("\"total_windows\":").Append(Math.Max(0, r.Metrics.TotalWindows)).Append(',')
 				.Append("\"geomPix\":").Append(r.Metrics.GeomPixProcessedKnown ? r.Metrics.GeomPixProcessed.ToString() : "null").Append(',')
 				.Append("\"budgetStops\":").Append(r.Metrics.BudgetStopCount).Append(',')
 				.Append("\"renderstep_calls\":").Append(r.Metrics.RenderStepCalls).Append(',')
@@ -4150,6 +4245,66 @@ public partial class RenderTestRunner : Node
 		}
 		sb.Append(']');
 		return sb.ToString();
+	}
+
+	private bool ShouldRerunSmartScaleSelectionWithRowsBudget(in SmartScaleProbeResult best)
+	{
+		if (_smartScaleProbeBudgetMode != SmartScaleProbeBudgetMode.RenderStepCalls)
+		{
+			return false;
+		}
+		if (_smartScaleSelectionRowsRerunDone || _smartScaleSelectionRowsRerunActive || _smartScaleSelectionRowsRerunPending)
+		{
+			return false;
+		}
+
+		long bestGeom = best.Metrics.GeomPixProcessedKnown ? Math.Max(0L, best.Metrics.GeomPixProcessed) : 0L;
+		long largeGeomThreshold = Math.Max(
+			RenderTestMinGeomPixProcessedPerWindow,
+			(long)Math.Ceiling(bestGeom * SmartScaleSignificantGeomPixGainRatio));
+
+		for (int i = 0; i < _smartScaleProbeResults.Count; i++)
+		{
+			SmartScaleProbeResult candidate = _smartScaleProbeResults[i];
+			if (!candidate.IsValid)
+			{
+				continue;
+			}
+			if (string.Equals(candidate.ProbeId, best.ProbeId, StringComparison.Ordinal))
+			{
+				continue;
+			}
+			if (Math.Max(0, candidate.Metrics.TrustedWindows) != 0)
+			{
+				continue;
+			}
+			if (!candidate.Metrics.GeomPixProcessedKnown)
+			{
+				continue;
+			}
+
+			long candidateGeom = Math.Max(0L, candidate.Metrics.GeomPixProcessed);
+			if (candidateGeom < largeGeomThreshold || candidateGeom <= bestGeom)
+			{
+				continue;
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
+	private void RequestSmartScaleSelectionRowsBudgetRerun()
+	{
+		string priorBudgetMode = GetSmartScaleProbeBudgetModeToken();
+		int priorBudgetN = GetSmartScaleProbeBudgetN();
+		_smartScaleSelectionRowsRerunPending = true;
+		_smartScaleSelectionRowsRerunDone = true;
+		GD.Print(
+			$"[SmartScale][Decision] reason=rerun_rows_budget_for_selection " +
+			$"prior_budget_mode={priorBudgetMode} prior_budget_n={priorBudgetN} " +
+			$"rerun_budget_mode=rows_advanced rerun_budget_n={SmartScaleProbeDefaultRowsBudget}");
 	}
 
 	private string BuildSmartScaleCameraSignature()
@@ -4169,7 +4324,7 @@ public partial class RenderTestRunner : Node
 
 	private string ComputeSmartScaleConfidenceHeuristic(in SmartScaleProbeResult baseline, in SmartScaleProbeResult best)
 	{
-		bool bestTrusted = best.Metrics.TrustKnown && best.Metrics.Trusted;
+		bool bestTrusted = best.Metrics.ProbeTrustedForSelection;
 		long baseGeom = baseline.Metrics.GeomPixProcessedKnown ? Math.Max(0L, baseline.Metrics.GeomPixProcessed) : 0L;
 		long bestGeom = best.Metrics.GeomPixProcessedKnown ? Math.Max(0L, best.Metrics.GeomPixProcessed) : 0L;
 		double gain = baseGeom > 0 ? (double)bestGeom / baseGeom : (bestGeom > 0 ? 999.0 : 1.0);
