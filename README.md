@@ -72,6 +72,11 @@ Contributions may include:
 
 ---
 
+## Wiki
+ https://aethertopologist.github.io/GD_xPRIMEray/
+
+---
+
 ## 📄 License & Citation
 
 Licensed under MIT — recommended for both academic and creative use.
