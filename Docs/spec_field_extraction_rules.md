@@ -4,6 +4,9 @@
 
 This document defines the rules for extracting field nodes (e.g., GrinField, GravityField/GordonMetricField) from the Godot scene into renderer-native FieldEntities within SceneSnapshot.
 
+Canonical `FieldSource3D` resolver behavior is specified in:
+`spec_fieldsource3d_canonical_params_1.md`.
+
 Goals:
 
 * Deterministic, stable snapshot extraction

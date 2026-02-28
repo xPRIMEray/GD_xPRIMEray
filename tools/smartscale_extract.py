@@ -13,6 +13,7 @@ COLUMNS = [
     "timestamp",
     "log_path",
     "fixture",
+    "fixture_curvature_enabled",
     "camera_signature",
     "goal",
     "budget_mode",
@@ -39,6 +40,7 @@ COLUMNS = [
 SMARTSCALE_RESULT_RE = re.compile(r"\[SmartScaleResult\]\s*(\{.*\})\s*$")
 SMARTSCALE_SUMMARY_TAG = "[SmartScale][Summary]"
 SMARTSCALE_PROBE_TAG = "[SmartScale][ProbeResult]"
+FIXTURE_CURVATURE_DISABLED_TAG = "[FixtureWarn] Field curvature disabled"
 TOKEN_RE = re.compile(r"([A-Za-z0-9_]+)=([^\s]+)")
 INT_RE = re.compile(r"^-?\d+$")
 FLOAT_RE = re.compile(r"^-?(?:\d+\.\d*|\d*\.\d+)$")
@@ -211,6 +213,13 @@ def parse_probe_results(lines: List[str]) -> List[Dict[str, Any]]:
     return probes
 
 
+def parse_fixture_curvature_enabled(lines: List[str]) -> int:
+    for line in lines:
+        if FIXTURE_CURVATURE_DISABLED_TAG in line:
+            return 0
+    return 1
+
+
 def pick_probe_by_name(entries: List[Dict[str, Any]], probe_name: Any) -> Optional[Dict[str, Any]]:
     if is_missing(probe_name):
         return None
@@ -312,6 +321,7 @@ def build_record_from_lines(log_path: str, lines: List[str]) -> Dict[str, Any]:
     best_probe_class = derive_probe_class(best_probe_class, best_trust)
 
     record["fixture"] = first_non_missing(result.get("fixture"), guess_fixture_from_path(log_path))
+    record["fixture_curvature_enabled"] = parse_fixture_curvature_enabled(lines)
     record["camera_signature"] = result.get("camera_signature")
     record["goal"] = result.get("goal")
     record["budget_mode"] = first_non_missing(
@@ -385,6 +395,12 @@ def build_record_from_lines(log_path: str, lines: List[str]) -> Dict[str, Any]:
         source_probe.get("budgetStopCount") if isinstance(source_probe, dict) else None,
         summary.get("budgetStops"),
     )
+    record["mode"] = first_non_missing(result.get("mode"), summary.get("mode"))
+    record["gating_excluded"] = first_non_missing(
+        source_probe.get("gating_excluded") if isinstance(source_probe, dict) else None,
+        summary.get("gating_excluded"),
+        result.get("gating_excluded"),
+    )
 
     return record
 
@@ -410,6 +426,31 @@ def print_csv_row(record: Dict[str, Any]) -> None:
     writer.writerow([csv_cell(record.get(col)) for col in COLUMNS])
 
 
+def print_compact_row(record: Dict[str, Any], mode_label: Optional[str] = None) -> None:
+    fields = [
+        ("fixture", record.get("fixture")),
+        ("fixture_curvature_enabled", record.get("fixture_curvature_enabled")),
+        ("mode", first_non_missing(mode_label, record.get("mode"))),
+        ("budget_mode", record.get("budget_mode")),
+        ("budget_n", record.get("budget_n")),
+        ("best_probe", record.get("best_probe")),
+        ("best_probe_class", record.get("best_probe_class")),
+        ("best_geomPix", record.get("best_geomPix")),
+        ("best_trust", record.get("best_trust")),
+        ("max_p2SampRaw", record.get("best_max_p2SampRaw")),
+        ("max_geomRayTestsTotalRaw", record.get("best_max_geomRayTestsTotalRaw")),
+        ("raytest_deficit", record.get("best_raytest_deficit")),
+    ]
+    gating_excluded = record.get("gating_excluded")
+    if not is_missing(gating_excluded):
+        fields.append(("gating_excluded", gating_excluded))
+
+    parts: List[str] = []
+    for key, value in fields:
+        parts.append(f"{key}={csv_cell(value) if not is_missing(value) else 'na'}")
+    print(" ".join(parts))
+
+
 def run_selftest() -> int:
     sample_log = """
 [SmartScale][ProbeResult] probe=trusted trust=1 probe_class=trusted geomPix=11600 max_p2SampRaw=120 max_geomRayTestsTotalRaw=460 rows=72 stride=1 budgetStops=0 budget_mode=renderstep_calls budget_n=60
@@ -422,6 +463,7 @@ def run_selftest() -> int:
     checks = [
         record.get("best_probe") == "trusted",
         record.get("fixture") == "Straight",
+        to_float(record.get("fixture_curvature_enabled")) == 1.0,
         record.get("budget_mode") == "renderstep_calls",
         to_float(record.get("best_geomPix")) == 11600.0,
         record.get("best_probe_class") == "trusted",
@@ -437,6 +479,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Extract SmartScale summary data from a Godot log.")
     parser.add_argument("--json", action="store_true", dest="emit_json", help="emit JSON object to stdout")
     parser.add_argument(
+        "--print-compact",
+        default="0",
+        help="set to 1 to emit compact one-line summary",
+    )
+    parser.add_argument(
+        "--mode-label",
+        default="",
+        help="optional mode label to include in compact output",
+    )
+    parser.add_argument(
         "--print-header",
         default="0",
         help="set to 1 to emit CSV header before row output",
@@ -446,10 +498,16 @@ def main() -> int:
     args = parser.parse_args()
 
     emit_header = str(args.print_header).strip().lower() in ("1", "true", "yes", "on")
+    emit_compact = str(args.print_compact).strip().lower() in ("1", "true", "yes", "on")
     run_selftest_mode = str(args.selftest).strip().lower() in ("1", "true", "yes", "on")
 
     if run_selftest_mode:
         return run_selftest()
+
+    if emit_compact:
+        record = build_record(args.log_path)
+        print_compact_row(record, mode_label=(args.mode_label or "").strip() or None)
+        return 0
 
     if args.emit_json:
         record = build_record(args.log_path)

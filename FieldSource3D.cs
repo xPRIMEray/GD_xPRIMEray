@@ -2,240 +2,334 @@ using Godot;
 using System;
 using RendererCore.Fields;
 
+/// <summary>
+/// Authoring node for local field sources plus editor/runtime academic debug visualization.
+/// This node is intentionally debug-heavy and does not modify renderer hot-loop behavior.
+/// </summary>
+[Tool]
 public partial class FieldSource3D : Node3D
 {
 	public enum ProfileType
 	{
-		Power,          // ~ r^gamma
-		InversePower,   // ~ 1 / r^gamma
-		Gaussian,       // ~ exp(-(r/sigma)^2)
-		Shell           // ring/shell band between InnerRadius..OuterRadius
+		Power,
+		InversePower,
+		Gaussian,
+		Shell
 	}
+
+	public enum DebugVizOpacityModeKind
+	{
+		Wireframe = 0,
+		Ghosted = 1,
+		Solid = 2
+	}
+
+	[Flags]
+	public enum DebugVizPlaneFlags
+	{
+		None = 0,
+		XY = 1 << 0,
+		XZ = 1 << 1,
+		YZ = 1 << 2,
+		All = XY | XZ | YZ
+	}
+
+	public struct ResolvedFieldParams
+	{
+		public bool enabled;
+		public uint modeFlags;
+		public FieldShapeType shapeType;
+		public FieldCurveType curveType;
+		public float amp;
+		public float a;
+		public float b;
+		public float c;
+		public float rInner;
+		public float rOuter;
+		public float softening;
+		public float sigma;
+	}
+
+	private const uint ModeFlagInvertSign = 1u << 0;
+	private const float ResolveEps = 1e-6f;
 
 	[Export] public bool Enabled = true;
 
-	[Export] public bool Attract = true;     // true = pulls toward center, false = pushes away
-	[Export] public float Strength = 1.0f;   // per-source multiplier
-
-	// Spatial shaping
-	[Export] public float Softening = 0.05f; // avoids singularities
-	[Export] public float MinRadius = 0.0f;  // ignore inside
-	[Export] public float MaxRadius = 0.0f;  // 0 = infinite
-
-	// Falloff profile
-	[Export] public ProfileType Profile = ProfileType.Power;
-
-	// Per-source law controls
-	[Export] public bool OverrideGamma = false;
-	[Export] public float Gamma = 2.0f;
-
-	[Export] public bool OverrideBetaScale = false;
-	[Export] public float BetaScale = 1.0f; // multiplies global beta (or acts as local beta if you want)
-
-	// Gaussian params
-	[Export] public float Sigma = 5.0f;      // for Gaussian
-
-	// Shell params
-	[Export] public float InnerRadius = 3.0f;
-	[Export] public float OuterRadius = 6.0f;
-	[Export] public float EdgeSoftness = 0.5f;  // smoothstep thickness at edges
-
-	[ExportGroup("Field Model")]
+	[ExportGroup("Field Model (Canonical)")]
 	[Export] public MetricModel MetricModel { get; set; } = MetricModel.GRIN;
 	[Export] public float RInner { get; set; } = 0f;
-	[Export] public float ROuter { get; set; } = 10f;
-	[Export] public float Amp { get; set; } = 1f;
+	[Export] public float ROuter { get; set; } = 0f;
+	[Export] public float Amp { get; set; } = 0f;
 	[Export] public uint ModeFlags { get; set; } = 0;
+	[Export] public float Softening = 0.05f;
+	[Export] public float Sigma = 5.0f;
 
 	[ExportGroup("Shape")]
 	[Export] public FieldShapeType ShapeType { get; set; } = FieldShapeType.SphereRadial;
-	[Export] public Vector3 BoxExtents { get; set; } = new Vector3(10, 10, 10);
+	[Export] public Vector3 BoxExtents { get; set; } = new Vector3(10f, 10f, 10f);
 
 	[ExportGroup("Curve")]
-	[Export] public FieldCurveType CurveType { get; set; } = FieldCurveType.Power;
-	[Export] public float CurveA { get; set; } = 1f;
+	[Export] public FieldCurveType CurveType { get; set; } = FieldCurveType.Linear;
+	[Export] public float CurveA { get; set; } = 0f;
 	[Export] public float CurveB { get; set; } = 0f;
 	[Export] public float CurveC { get; set; } = 0f;
 
-	[ExportGroup("Debug")]
+	[ExportGroup("Legacy (Deprecated)")]
+	// Deprecated compat. Use Shape/Curve/Amp for new scenes.
+	[Export] public bool Attract = true;
+	// Deprecated compat. Use Shape/Curve/Amp for new scenes.
+	[Export] public float Strength = 1.0f;
+	// Deprecated compat. Use Shape/Curve/Amp for new scenes.
+	[Export] public float MinRadius = 0.0f;
+	// Deprecated compat. Use Shape/Curve/Amp for new scenes.
+	[Export] public float MaxRadius = 0.0f;
+	// Deprecated compat. Use Shape/Curve/Amp for new scenes.
+	[Export] public ProfileType Profile = ProfileType.Power;
+	// Deprecated compat. Use Shape/Curve/Amp for new scenes.
+	[Export] public bool OverrideGamma = true;
+	// Deprecated compat. Use Shape/Curve/Amp for new scenes.
+	[Export] public float Gamma = 1.0f;
+	// Deprecated compat. Use Shape/Curve/Amp for new scenes.
+	[Export] public bool OverrideBetaScale = true;
+	// Deprecated compat. Use Shape/Curve/Amp for new scenes.
+	[Export] public float BetaScale = 0.0010f;
+	// Deprecated compat. Use Shape/Curve/Amp for new scenes.
+	[Export] public float InnerRadius = 3.0f;
+	// Deprecated compat. Use Shape/Curve/Amp for new scenes.
+	[Export] public float OuterRadius = 6.0f;
+	// Deprecated compat. Use Shape/Curve/Amp for new scenes.
+	[Export] public float EdgeSoftness = 0.5f;
+
+	[ExportGroup("Academic Debug Viz")]
+	[Export] public bool DebugVizEnabled { get; set; } = true;
+	[Export] public DebugVizOpacityModeKind DebugVizOpacityMode { get; set; } = DebugVizOpacityModeKind.Wireframe;
+	[Export] public DebugVizPlaneFlags DebugVizPlanes { get; set; } = DebugVizPlaneFlags.All;
+	[Export] public bool DebugVizShowInnerOuter { get; set; } = true;
+	[Export] public bool DebugVizShowSigma { get; set; } = false;
+	[Export(PropertyHint.Range, "8,256,1")] public int DebugVizRingSegments { get; set; } = 64;
+	[Export(PropertyHint.Range, "0.25,8.0,0.05")] public float DebugVizLineWidth { get; set; } = 2.0f;
+	[Export] public Color DebugVizColorInner { get; set; } = new Color(0.1f, 0.9f, 0.9f, 1.0f);
+	[Export] public Color DebugVizColorOuter { get; set; } = new Color(0.15f, 0.95f, 0.35f, 1.0f);
+	[Export] public Color DebugVizColorSigma { get; set; } = new Color(1.0f, 0.85f, 0.25f, 1.0f);
+	[Export] public bool DebugVizAlwaysOnTop { get; set; } = true;
+	[Export] public bool DebugVizInGame { get; set; } = false;
+
+	[Export]
+	public string DebugVizSummary
+	{
+		get => _debugVizSummary;
+		private set
+		{
+			if (_debugVizSummary == value)
+			{
+				return;
+			}
+
+			_debugVizSummary = value;
+			if (Engine.IsEditorHint())
+			{
+				NotifyPropertyListChanged();
+			}
+		}
+	}
+
+	public string EffectiveSummary => _effectiveSummary;
+
+	[ExportGroup("Debug (Legacy)")]
 	[Export] public bool DebugDrawBounds { get; set; } = false;
 	[Export] public Color DebugColor { get; set; } = new Color(0.4f, 0.9f, 1.0f);
 
-	// Runtime debug visualization
-	[Export] public bool DebugDrawInGame = false;
-	[Export] public bool DebugDrawAlwaysOnTop = true;
-	[Export] public int DebugRingSegments = 32;
-	[Export] public float DebugLineWidth = 2.0f;
+	[Export]
+	public bool DebugDrawInGame
+	{
+		get => DebugVizInGame;
+		set => DebugVizInGame = value;
+	}
+
+	[Export]
+	public bool DebugDrawAlwaysOnTop
+	{
+		get => DebugVizAlwaysOnTop;
+		set => DebugVizAlwaysOnTop = value;
+	}
+
+	[Export]
+	public int DebugRingSegments
+	{
+		get => DebugVizRingSegments;
+		set => DebugVizRingSegments = value;
+	}
+
+	[Export]
+	public float DebugLineWidth
+	{
+		get => DebugVizLineWidth;
+		set => DebugVizLineWidth = value;
+	}
 
 	private MeshInstance3D _debugMeshInstance;
 	private ImmediateMesh _debugMesh;
-	private DebugState _debugState;
-	private bool _debugStateValid;
+	private DebugVizState _debugVizState;
+	private bool _debugVizStateValid;
+	private string _debugVizSummary = "inner=n/a outer=n/a source=none";
+	private string _effectiveSummary = "shape=SphereRadial curve=Linear amp=0 a=0 b=0 c=0 r=[0,0] sigma=0 source=canonical";
+	private bool _usedLegacyMigration;
+	private bool _loggedLegacyMigration;
+	private bool _warnedCanonicalLegacyConflict;
+	private bool _warnedNoRadii;
+	private static bool _warnedZeroCurvatureAllSources;
+	private double _rebuildWindowStartSec;
+	private int _rebuildsThisWindow;
+	private bool _warnedFrequentRebuilds;
 
 	public override void _Ready()
 	{
 		AddToGroup("field_sources");
-		ApplyLegacyMappings();
+		WarnIfCanonicalAndLegacyBothSet();
+		ApplyLegacyCompatibilityShim();
 		ValidateAndClamp();
-
-		if (!Engine.IsEditorHint() && DebugDrawInGame)
+		ResolveEffectiveParams(out _);
+		if (DebugVizEnabled)
 		{
-			EnsureDebugDraw();
-			DebugState state = GetDebugState();
-			RebuildDebugMesh(state);
-			_debugState = state;
-			_debugStateValid = true;
-			SetProcess(true);
+			GD.Print($"[FieldSource3D] {GetPath()} {EffectiveSummary}");
 		}
+		SetProcess(true);
+		CallDeferred(nameof(DeferredWarnIfZeroCurvatureAcrossSources));
 	}
 
 	public override void _ExitTree()
 	{
-		if (!Engine.IsEditorHint())
-		{
-			ClearDebugDraw();
-		}
+		ClearDebugDraw();
 	}
 
 	public override void _Process(double delta)
 	{
-		if (Engine.IsEditorHint())
+		if (!ShouldDrawDebugViz())
 		{
+			HideDebugDraw();
 			return;
 		}
 
-		if (!DebugDrawInGame)
+		EnsureDebugDraw();
+		DebugVizState state = GetDebugVizState();
+
+		if (!_debugVizStateValid || !_debugVizState.Equals(state))
 		{
-			if (_debugMeshInstance != null)
-			{
-				_debugMeshInstance.Visible = false;
-			}
+			RebuildDebugMesh(state);
+			_debugVizState = state;
+			_debugVizStateValid = true;
+		}
+	}
+
+	public bool IsCanonicalUnset()
+	{
+		return Mathf.Abs(Amp) <= ResolveEps
+			&& Mathf.Abs(CurveA) <= ResolveEps
+			&& Mathf.Abs(CurveB) <= ResolveEps
+			&& Mathf.Abs(CurveC) <= ResolveEps
+			&& Mathf.Abs(RInner) <= ResolveEps
+			&& Mathf.Abs(ROuter) <= ResolveEps
+			&& ModeFlags == 0u
+			&& ShapeType == FieldShapeType.SphereRadial
+			&& CurveType == FieldCurveType.Linear;
+	}
+
+	public ResolvedFieldParams ResolveEffectiveParams(out string reason)
+	{
+		ResolvedFieldParams resolved;
+		if (!IsCanonicalUnset())
+		{
+			resolved = BuildCanonicalParams();
+			reason = _usedLegacyMigration ? "legacy_migrated" : "canonical";
+		}
+		else if (HasMeaningfulLegacyParams(out string legacyReason))
+		{
+			resolved = ResolveLegacyCanonicalParams();
+			reason = "legacy_migrated";
+			MaybeLogLegacyMigration(legacyReason);
+		}
+		else
+		{
+			resolved = BuildCanonicalParams();
+			reason = "canonical";
+		}
+
+		_effectiveSummary = BuildEffectiveSummary(resolved, reason);
+		return resolved;
+	}
+
+	/// <summary>
+	/// Resolves effective academic radii used by debug visualization.
+	/// Uses ResolveEffectiveParams as the single source of truth.
+	/// </summary>
+	public bool ResolveAcademicRadii(out float inner, out float outer, out string reasonString)
+	{
+		ResolvedFieldParams resolved = ResolveEffectiveParams(out reasonString);
+		inner = 0f;
+		outer = 0f;
+
+		if (resolved.rOuter <= ResolveEps)
+		{
+			return false;
+		}
+
+		inner = Mathf.Min(resolved.rInner, resolved.rOuter);
+		outer = Mathf.Max(resolved.rInner, resolved.rOuter);
+		return true;
+	}
+
+	/// <summary>
+	/// Resolves effective beta/gamma for debug workflows.
+	/// </summary>
+	public void ResolveAcademicBetaGamma(out float beta, out float gamma, out string reasonString)
+	{
+		ResolveAcademicBetaGamma(float.NaN, float.NaN, out beta, out gamma, out reasonString);
+	}
+
+	/// <summary>
+	/// Resolves effective beta/gamma for debug workflows with explicit global inputs.
+	/// </summary>
+	public void ResolveAcademicBetaGamma(float globalBeta, float globalGamma, out float beta, out float gamma, out string reasonString)
+	{
+		ResolvedFieldParams resolved = ResolveEffectiveParams(out string source);
+		float fallbackGamma = float.IsFinite(globalGamma) ? globalGamma : 2f;
+		gamma = resolved.curveType == FieldCurveType.Power ? resolved.a : fallbackGamma;
+
+		if (float.IsFinite(globalBeta) && MathF.Abs(globalBeta) > ResolveEps)
+		{
+			beta = globalBeta * resolved.amp;
+			reasonString = $"globalBeta*amp ({source})";
 			return;
 		}
 
-		if (_debugMeshInstance != null && !_debugMeshInstance.Visible)
-		{
-			_debugMeshInstance.Visible = true;
-		}
-
-		if (DebugDrawBounds)
-		{
-			// TODO: Hook into a shared debug draw system if one exists.
-		}
-
-		DebugState currentState = GetDebugState();
-		if (!_debugStateValid || !_debugState.Equals(currentState))
-		{
-			RebuildDebugMesh(currentState);
-			_debugState = currentState;
-			_debugStateValid = true;
-		}
-	}
-
-	private DebugState GetDebugState()
-	{
-		return new DebugState
-		{
-			Enabled = Enabled,
-			Attract = Attract,
-			Profile = Profile,
-			InnerRadius = InnerRadius,
-			OuterRadius = OuterRadius,
-			MaxRadius = MaxRadius,
-			Segments = Mathf.Max(3, DebugRingSegments),
-			LineWidth = Mathf.Max(1.0f, DebugLineWidth),
-			AlwaysOnTop = DebugDrawAlwaysOnTop
-		};
-	}
-
-	private void ApplyLegacyMappings()
-	{
-		const float defaultROuter = 10f;
-		const float defaultAmp = 1f;
-
-		if (OuterRadius > 0.0f && Mathf.IsEqualApprox(ROuter, defaultROuter))
-		{
-			ROuter = OuterRadius;
-		}
-
-		if (InnerRadius > 0.0f && Mathf.IsEqualApprox(RInner, 0.0f))
-		{
-			RInner = InnerRadius;
-		}
-
-		if (!Mathf.IsEqualApprox(Strength, defaultAmp) && Mathf.IsEqualApprox(Amp, defaultAmp))
-		{
-			Amp = Strength;
-		}
-
-		if (OverrideGamma && Mathf.IsEqualApprox(CurveA, 1f))
-		{
-			CurveA = Gamma;
-		}
-
-		if (Profile == ProfileType.Gaussian && CurveType == FieldCurveType.Power)
-		{
-			CurveType = FieldCurveType.Exponential;
-		}
-	}
-
-	private void ValidateAndClamp()
-	{
-		bool warned = false;
-
-		if (ROuter < 0.0f)
-		{
-			ROuter = 0.0f;
-			warned = true;
-		}
-
-		if (ROuter < RInner)
-		{
-			ROuter = RInner;
-			warned = true;
-		}
-
-		if (ShapeType == FieldShapeType.BoxVolume)
-		{
-			Vector3 clamped = new Vector3(
-				Mathf.Max(0.0f, BoxExtents.X),
-				Mathf.Max(0.0f, BoxExtents.Y),
-				Mathf.Max(0.0f, BoxExtents.Z));
-
-			if (clamped != BoxExtents)
-			{
-				BoxExtents = clamped;
-				warned = true;
-			}
-		}
-
-		if (warned)
-		{
-			GD.PushWarning($"{Name}: FieldSource3D parameters were clamped to safe ranges.");
-		}
+		beta = resolved.amp;
+		reasonString = $"amp ({source})";
 	}
 
 	public void GetPackedParams8(out float rInner, out float rOuter, out float amp, out float a, out float b, out float c, out float reserved0, out float reserved1)
 	{
-		rInner = RInner;
-		rOuter = ROuter;
-		amp = Amp;
-		a = CurveA;
-		b = CurveB;
-		c = CurveC;
+		ResolvedFieldParams resolved = ResolveEffectiveParams(out _);
+		rInner = resolved.rInner;
+		rOuter = resolved.rOuter;
+		amp = resolved.amp;
+		a = resolved.a;
+		b = resolved.b;
+		c = resolved.c;
 		reserved0 = 0f;
 		reserved1 = 0f;
 	}
 
 	public Aabb GetLocalInfluenceAabb()
 	{
-		if (ShapeType == FieldShapeType.BoxVolume)
+		ResolvedFieldParams resolved = ResolveEffectiveParams(out _);
+		if (resolved.shapeType == FieldShapeType.BoxVolume)
 		{
 			Vector3 size = BoxExtents * 2.0f;
 			return new Aabb(-BoxExtents, size);
 		}
 
-		Vector3 half = new Vector3(ROuter, ROuter, ROuter);
+		float outer = Mathf.Max(0f, resolved.rOuter);
+		Vector3 half = new Vector3(outer, outer, outer);
 		return new Aabb(-half, half * 2.0f);
 	}
 
@@ -256,7 +350,6 @@ public partial class FieldSource3D : Node3D
 						x == 0 ? local.Position.X : local.Position.X + local.Size.X,
 						y == 0 ? local.Position.Y : local.Position.Y + local.Size.Y,
 						z == 0 ? local.Position.Z : local.Position.Z + local.Size.Z);
-
 					Vector3 world = GlobalTransform * corner;
 
 					if (!initialized)
@@ -271,7 +364,6 @@ public partial class FieldSource3D : Node3D
 							Mathf.Min(min.X, world.X),
 							Mathf.Min(min.Y, world.Y),
 							Mathf.Min(min.Z, world.Z));
-
 						max = new Vector3(
 							Mathf.Max(max.X, world.X),
 							Mathf.Max(max.Y, world.Y),
@@ -284,6 +376,352 @@ public partial class FieldSource3D : Node3D
 		return new Aabb(min, max - min);
 	}
 
+	private bool ShouldDrawDebugViz()
+	{
+		if (!DebugVizEnabled)
+		{
+			return false;
+		}
+
+		if (Engine.IsEditorHint())
+		{
+			return true;
+		}
+
+		return DebugVizInGame;
+	}
+
+	private void WarnIfCanonicalAndLegacyBothSet()
+	{
+		if (_warnedCanonicalLegacyConflict || IsCanonicalUnset() || !HasLegacyNonDefaultOverrides())
+		{
+			return;
+		}
+
+		ResolvedFieldParams canonical = BuildCanonicalParams();
+		ResolvedFieldParams legacyMapped = ResolveLegacyCanonicalParams();
+		if (!AreMateriallyDifferent(canonical, legacyMapped))
+		{
+			return;
+		}
+
+		_warnedCanonicalLegacyConflict = true;
+		GD.PushWarning("[FieldSource3D][Warn] canonical+legacy both set; using canonical. (legacy ignored)");
+	}
+
+	private bool HasLegacyNonDefaultOverrides()
+	{
+		return !Attract
+			|| !Mathf.IsEqualApprox(Strength, 1.0f)
+			|| !Mathf.IsEqualApprox(MinRadius, 0.0f)
+			|| !Mathf.IsEqualApprox(MaxRadius, 0.0f)
+			|| Profile != ProfileType.Power
+			|| !OverrideGamma
+			|| !Mathf.IsEqualApprox(Gamma, 1.0f)
+			|| !OverrideBetaScale
+			|| !Mathf.IsEqualApprox(BetaScale, 0.0010f)
+			|| !Mathf.IsEqualApprox(InnerRadius, 3.0f)
+			|| !Mathf.IsEqualApprox(OuterRadius, 6.0f)
+			|| !Mathf.IsEqualApprox(EdgeSoftness, 0.5f);
+	}
+
+	private void ApplyLegacyCompatibilityShim()
+	{
+		if (!IsCanonicalUnset() || !HasMeaningfulLegacyParams(out string legacyReason))
+		{
+			_usedLegacyMigration = false;
+			return;
+		}
+
+		ResolvedFieldParams migrated = ResolveLegacyCanonicalParams();
+		ShapeType = migrated.shapeType;
+		CurveType = migrated.curveType;
+		ModeFlags = migrated.modeFlags;
+		RInner = migrated.rInner;
+		ROuter = migrated.rOuter;
+		Amp = migrated.amp;
+		CurveA = migrated.a;
+		CurveB = migrated.b;
+		CurveC = migrated.c;
+		Softening = migrated.softening;
+		Sigma = migrated.sigma;
+		_usedLegacyMigration = true;
+		MaybeLogLegacyMigration(legacyReason);
+	}
+
+	private bool HasMeaningfulLegacyParams(out string reason)
+	{
+		if (Mathf.Abs(Strength) > ResolveEps)
+		{
+			reason = "legacy Strength";
+			return true;
+		}
+		if (Mathf.Abs(BetaScale) > ResolveEps || OverrideBetaScale)
+		{
+			reason = "legacy BetaScale";
+			return true;
+		}
+		if (Mathf.Abs(Gamma) > ResolveEps || OverrideGamma)
+		{
+			reason = "legacy Gamma";
+			return true;
+		}
+		if (Mathf.Abs(InnerRadius) > ResolveEps || Mathf.Abs(OuterRadius) > ResolveEps)
+		{
+			reason = "legacy Inner/Outer radius";
+			return true;
+		}
+		if (Mathf.Abs(MinRadius) > ResolveEps || Mathf.Abs(MaxRadius) > ResolveEps)
+		{
+			reason = "legacy Min/Max radius";
+			return true;
+		}
+		if (Profile != ProfileType.Power || !Attract)
+		{
+			reason = "legacy Profile/Attract";
+			return true;
+		}
+
+		reason = "none";
+		return false;
+	}
+
+	private ResolvedFieldParams BuildCanonicalParams()
+	{
+		float inner = Mathf.Max(0f, RInner);
+		float outer = Mathf.Max(0f, ROuter);
+		if (outer > 0f && outer < inner)
+		{
+			outer = inner;
+		}
+
+		return new ResolvedFieldParams
+		{
+			enabled = Enabled,
+			modeFlags = ModeFlags,
+			shapeType = ShapeType,
+			curveType = CurveType,
+			amp = Amp,
+			a = CurveA,
+			b = CurveB,
+			c = CurveC,
+			rInner = inner,
+			rOuter = outer,
+			softening = Mathf.Max(0f, Softening),
+			sigma = Mathf.Max(0f, Sigma)
+		};
+	}
+
+	private ResolvedFieldParams ResolveLegacyCanonicalParams()
+	{
+		FieldCurveType curveType = FieldCurveType.Power;
+		float a = 1f;
+		float b = 0f;
+		float c = 0f;
+
+		switch (Profile)
+		{
+			case ProfileType.Power:
+				curveType = FieldCurveType.Power;
+				a = OverrideGamma ? Gamma : 1f;
+				break;
+			case ProfileType.InversePower:
+				curveType = FieldCurveType.Power;
+				a = -(OverrideGamma ? Mathf.Abs(Gamma) : 1f);
+				break;
+			case ProfileType.Gaussian:
+				curveType = FieldCurveType.Exponential;
+				a = Mathf.Max(ResolveEps, 1f / Mathf.Max(ResolveEps, Sigma));
+				break;
+			case ProfileType.Shell:
+				curveType = FieldCurveType.Polynomial;
+				a = 1f;
+				b = 0f;
+				c = 0f;
+				break;
+		}
+
+		if (!TryResolveLegacyRadii(out float inner, out float outer))
+		{
+			inner = Mathf.Max(0f, MinRadius);
+			outer = Mathf.Max(inner, MaxRadius);
+		}
+
+		uint modeFlags = ModeFlags;
+		if (!Attract)
+		{
+			modeFlags |= ModeFlagInvertSign;
+		}
+
+		return new ResolvedFieldParams
+		{
+			enabled = Enabled,
+			modeFlags = modeFlags,
+			shapeType = FieldShapeType.SphereRadial,
+			curveType = curveType,
+			amp = Strength,
+			a = a,
+			b = b,
+			c = c,
+			rInner = inner,
+			rOuter = outer,
+			softening = Mathf.Max(0f, Softening),
+			sigma = Mathf.Max(0f, Sigma)
+		};
+	}
+
+	private bool TryResolveLegacyRadii(out float inner, out float outer)
+	{
+		inner = 0f;
+		outer = 0f;
+
+		float shellInner = Mathf.Max(0f, InnerRadius);
+		float shellOuter = Mathf.Max(0f, OuterRadius);
+		if (shellOuter > ResolveEps)
+		{
+			inner = Mathf.Min(shellInner, shellOuter);
+			outer = Mathf.Max(shellInner, shellOuter);
+			return true;
+		}
+
+		if (MaxRadius > ResolveEps)
+		{
+			inner = Mathf.Max(0f, MinRadius);
+			outer = Mathf.Max(inner, MaxRadius);
+			return true;
+		}
+
+		return false;
+	}
+
+	private static bool AreMateriallyDifferent(ResolvedFieldParams a, ResolvedFieldParams b)
+	{
+		if (a.enabled != b.enabled || a.modeFlags != b.modeFlags || a.shapeType != b.shapeType || a.curveType != b.curveType)
+		{
+			return true;
+		}
+
+		return Mathf.Abs(a.amp - b.amp) > 1e-4f
+			|| Mathf.Abs(a.a - b.a) > 1e-4f
+			|| Mathf.Abs(a.b - b.b) > 1e-4f
+			|| Mathf.Abs(a.c - b.c) > 1e-4f
+			|| Mathf.Abs(a.rInner - b.rInner) > 1e-4f
+			|| Mathf.Abs(a.rOuter - b.rOuter) > 1e-4f
+			|| Mathf.Abs(a.softening - b.softening) > 1e-4f
+			|| Mathf.Abs(a.sigma - b.sigma) > 1e-4f;
+	}
+
+	private string BuildEffectiveSummary(ResolvedFieldParams resolved, string source)
+	{
+		return $"shape={resolved.shapeType} curve={resolved.curveType} amp={resolved.amp:0.###} a={resolved.a:0.###} b={resolved.b:0.###} c={resolved.c:0.###} r=[{resolved.rInner:0.###},{resolved.rOuter:0.###}] sigma={resolved.sigma:0.###} source={source}";
+	}
+
+	private void MaybeLogLegacyMigration(string reason)
+	{
+		if (_loggedLegacyMigration)
+		{
+			return;
+		}
+
+		_loggedLegacyMigration = true;
+		GD.Print($"[FieldSource3D] migrated legacy params to canonical (reason={reason})");
+	}
+
+	private void ValidateAndClamp()
+	{
+		bool warned = false;
+
+		if (RInner < 0f)
+		{
+			RInner = 0f;
+			warned = true;
+		}
+
+		if (ROuter < 0f)
+		{
+			ROuter = 0f;
+			warned = true;
+		}
+
+		if (ROuter < RInner)
+		{
+			ROuter = RInner;
+			warned = true;
+		}
+
+		if (ShapeType == FieldShapeType.BoxVolume)
+		{
+			Vector3 clamped = new Vector3(
+				Mathf.Max(0f, BoxExtents.X),
+				Mathf.Max(0f, BoxExtents.Y),
+				Mathf.Max(0f, BoxExtents.Z));
+			if (clamped != BoxExtents)
+			{
+				BoxExtents = clamped;
+				warned = true;
+			}
+		}
+
+		DebugVizRingSegments = Mathf.Max(8, DebugVizRingSegments);
+		DebugVizLineWidth = Mathf.Max(0.25f, DebugVizLineWidth);
+		Softening = Mathf.Max(0f, Softening);
+		Sigma = Mathf.Max(0f, Sigma);
+		MaxRadius = Mathf.Max(0f, MaxRadius);
+		MinRadius = Mathf.Clamp(MinRadius, 0f, MaxRadius > 0f ? MaxRadius : float.MaxValue);
+		OuterRadius = Mathf.Max(0f, OuterRadius);
+		InnerRadius = Mathf.Clamp(InnerRadius, 0f, OuterRadius > 0f ? OuterRadius : float.MaxValue);
+
+		if (warned)
+		{
+			GD.PushWarning($"{Name}: FieldSource3D parameters were clamped to safe ranges.");
+		}
+	}
+
+	private DebugVizState GetDebugVizState()
+	{
+		bool hasInnerOuter = ResolveAcademicRadii(out float inner, out float outer, out string reason);
+		ResolvedFieldParams resolved = ResolveEffectiveParams(out _);
+		UpdateDebugSummary(hasInnerOuter, inner, outer, reason);
+
+		if (!hasInnerOuter && !_warnedNoRadii)
+		{
+			GD.Print($"[FieldViz] no radii available node={GetPath()}");
+			_warnedNoRadii = true;
+		}
+
+		return new DebugVizState
+		{
+			Enabled = resolved.enabled,
+			HasInnerOuter = hasInnerOuter,
+			InnerRadius = Mathf.Max(0f, inner),
+			OuterRadius = Mathf.Max(0f, outer),
+			ShowInnerOuter = DebugVizShowInnerOuter,
+			ShowSigma = DebugVizShowSigma && resolved.sigma > 0f,
+			SigmaRadius = Mathf.Max(0f, resolved.sigma),
+			Planes = DebugVizPlanes,
+			OpacityMode = DebugVizOpacityMode,
+			Segments = Mathf.Max(8, DebugVizRingSegments),
+			LineWidth = Mathf.Max(0.25f, DebugVizLineWidth),
+			AlwaysOnTop = DebugVizAlwaysOnTop,
+			InnerColor = DebugVizColorInner,
+			OuterColor = DebugVizColorOuter,
+			SigmaColor = DebugVizColorSigma,
+			Transform = GlobalTransform
+		};
+	}
+
+	private void UpdateDebugSummary(bool hasInnerOuter, float inner, float outer, string reason)
+	{
+		if (hasInnerOuter)
+		{
+			DebugVizSummary = $"{EffectiveSummary} inner={inner:0.###} outer={outer:0.###} reason={reason}";
+		}
+		else
+		{
+			DebugVizSummary = $"{EffectiveSummary} inner=n/a outer=n/a reason={reason}";
+		}
+	}
+
 	private void EnsureDebugDraw()
 	{
 		if (_debugMeshInstance != null)
@@ -294,11 +732,19 @@ public partial class FieldSource3D : Node3D
 		_debugMesh = new ImmediateMesh();
 		_debugMeshInstance = new MeshInstance3D
 		{
-			Name = "_FieldSourceDebugDraw",
+			Name = "_FieldSourceAcademicViz",
 			Mesh = _debugMesh,
 			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
 		};
 		AddChild(_debugMeshInstance);
+	}
+
+	private void HideDebugDraw()
+	{
+		if (_debugMeshInstance != null)
+		{
+			_debugMeshInstance.Visible = false;
+		}
 	}
 
 	private void ClearDebugDraw()
@@ -311,135 +757,214 @@ public partial class FieldSource3D : Node3D
 		_debugMeshInstance.QueueFree();
 		_debugMeshInstance = null;
 		_debugMesh = null;
-		_debugStateValid = false;
+		_debugVizStateValid = false;
 	}
 
-	private void RebuildDebugMesh(DebugState state)
+	private void RebuildDebugMesh(DebugVizState state)
 	{
-		if (_debugMesh == null)
+		if (_debugMesh == null || _debugMeshInstance == null)
 		{
 			return;
 		}
 
 		_debugMesh.ClearSurfaces();
+		_debugMeshInstance.Visible = true;
 
-		Color markerColor = GetMarkerColor(state);
-		float markerScale = state.Profile == ProfileType.Shell ? 1.1f : 1.0f;
-		float markerSize = 0.06f * markerScale;
-		float arrowLength = 0.3f;
+		TrackRebuildFrequency();
 
-		AddSurface(markerColor, state, 2.5f, () =>
+		if (state.OpacityMode != DebugVizOpacityModeKind.Wireframe)
 		{
-			AddAxisMarker(markerSize);
-			if (state.Enabled)
+			if (state.ShowInnerOuter && state.HasInnerOuter)
 			{
-				AddArrow(arrowLength, state.Attract);
+				AddFilledRingPlanes(state.InnerRadius, state.InnerColor, state);
+				AddFilledRingPlanes(state.OuterRadius, state.OuterColor, state);
 			}
-		});
 
-		GetRingStyle(state, out RingStyle innerStyle, out RingStyle outerStyle, out RingStyle maxStyle);
-
-		if (state.InnerRadius > 0.0f)
-		{
-			AddSurface(innerStyle.Color, state, innerStyle.LineWidth, () => AddCircle(state.InnerRadius, state.Segments));
+			if (state.ShowSigma)
+			{
+				AddFilledRingPlanes(state.SigmaRadius, state.SigmaColor, state);
+			}
 		}
 
-		if (state.OuterRadius > 0.0f)
+		if (state.ShowInnerOuter && state.HasInnerOuter)
 		{
-			AddSurface(outerStyle.Color, state, outerStyle.LineWidth, () => AddCircle(state.OuterRadius, state.Segments));
+			AddWireRingPlanes(state.InnerRadius, state.InnerColor, state, dashed: false);
+			AddWireRingPlanes(state.OuterRadius, state.OuterColor, state, dashed: false);
 		}
 
-		if (state.MaxRadius > 0.0f)
+		if (state.ShowSigma)
 		{
-			AddSurface(maxStyle.Color, state, maxStyle.LineWidth, () => AddDashedCircle(state.MaxRadius, state.Segments));
+			AddWireRingPlanes(state.SigmaRadius, state.SigmaColor, state, dashed: true);
 		}
+
+		// Keep a small center marker for orientation.
+		AddCenterMarker(state);
 	}
 
-	private void AddSurface(Color color, DebugState state, float lineWidth, Action addGeometry)
+	private void AddCenterMarker(DebugVizState state)
 	{
-		var material = CreateLineMaterial(color, state, lineWidth);
+		float m = Mathf.Max(0.025f, 0.05f * state.LineWidth);
+		Color markerColor = state.Enabled
+			? new Color(0.95f, 0.95f, 0.95f, 0.95f)
+			: new Color(0.6f, 0.6f, 0.6f, 0.4f);
+
+		AddLineSurface(GetLineColorForMode(markerColor, state), state, () =>
+		{
+			AddLine(Vector3.Left * m, Vector3.Right * m);
+			AddLine(Vector3.Down * m, Vector3.Up * m);
+			AddLine(Vector3.Back * m, Vector3.Forward * m);
+		});
+	}
+
+	private void AddWireRingPlanes(float radius, Color baseColor, DebugVizState state, bool dashed)
+	{
+		if (radius <= 0f)
+		{
+			return;
+		}
+
+		Color color = GetLineColorForMode(baseColor, state);
+		AddLineSurface(color, state, () =>
+		{
+			if ((state.Planes & DebugVizPlaneFlags.XY) != 0)
+			{
+				AddCircle(radius, state.Segments, Vector3.Right, Vector3.Up, dashed);
+			}
+			if ((state.Planes & DebugVizPlaneFlags.XZ) != 0)
+			{
+				AddCircle(radius, state.Segments, Vector3.Right, Vector3.Forward, dashed);
+			}
+			if ((state.Planes & DebugVizPlaneFlags.YZ) != 0)
+			{
+				AddCircle(radius, state.Segments, Vector3.Up, Vector3.Forward, dashed);
+			}
+		});
+	}
+
+	private void AddFilledRingPlanes(float radius, Color baseColor, DebugVizState state)
+	{
+		if (radius <= 0f)
+		{
+			return;
+		}
+
+		Color fillColor = GetFillColorForMode(baseColor, state);
+		float thickness = Mathf.Max(0.01f, 0.01f * state.LineWidth);
+
+		AddTriangleSurface(fillColor, state, () =>
+		{
+			if ((state.Planes & DebugVizPlaneFlags.XY) != 0)
+			{
+				AddFilledRing(radius, thickness, state.Segments, Vector3.Right, Vector3.Up);
+			}
+			if ((state.Planes & DebugVizPlaneFlags.XZ) != 0)
+			{
+				AddFilledRing(radius, thickness, state.Segments, Vector3.Right, Vector3.Forward);
+			}
+			if ((state.Planes & DebugVizPlaneFlags.YZ) != 0)
+			{
+				AddFilledRing(radius, thickness, state.Segments, Vector3.Up, Vector3.Forward);
+			}
+		});
+	}
+
+	private void AddLineSurface(Color color, DebugVizState state, Action addGeometry)
+	{
+		StandardMaterial3D material = CreateMaterial(color, state, transparent: color.A < 1f);
 		_debugMesh.SurfaceBegin(Mesh.PrimitiveType.Lines, material);
 		addGeometry();
 		_debugMesh.SurfaceEnd();
 	}
 
-	private StandardMaterial3D CreateLineMaterial(Color color, DebugState state, float lineWidth)
+	private void AddTriangleSurface(Color color, DebugVizState state, Action addGeometry)
+	{
+		StandardMaterial3D material = CreateMaterial(color, state, transparent: color.A < 1f);
+		_debugMesh.SurfaceBegin(Mesh.PrimitiveType.Triangles, material);
+		addGeometry();
+		_debugMesh.SurfaceEnd();
+	}
+
+	private StandardMaterial3D CreateMaterial(Color color, DebugVizState state, bool transparent)
 	{
 		var material = new StandardMaterial3D
 		{
 			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
 			AlbedoColor = color,
 			RenderPriority = state.AlwaysOnTop ? 127 : 0,
-			NoDepthTest = state.AlwaysOnTop
+			NoDepthTest = state.AlwaysOnTop,
+			CullMode = BaseMaterial3D.CullModeEnum.Disabled
 		};
 
-		if (color.A < 1.0f)
+		if (transparent)
 		{
 			material.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
 		}
 
-		//material.LineWidth = lineWidth; //obsolete
 		return material;
 	}
 
-	private Color GetMarkerColor(DebugState state)
+	private Color GetLineColorForMode(Color baseColor, DebugVizState state)
 	{
-		if (!state.Enabled)
+		float alpha = state.OpacityMode switch
 		{
-			return new Color(0.533f, 0.533f, 0.533f, 0.25f);
-		}
+			DebugVizOpacityModeKind.Wireframe => Mathf.Clamp(baseColor.A, 0.25f, 1.0f),
+			DebugVizOpacityModeKind.Ghosted => Mathf.Clamp(baseColor.A * 0.9f, 0.2f, 0.85f),
+			_ => Mathf.Clamp(baseColor.A, 0.75f, 1.0f)
+		};
+		return new Color(baseColor.R, baseColor.G, baseColor.B, alpha);
+	}
 
-		if (state.Attract)
+	private Color GetFillColorForMode(Color baseColor, DebugVizState state)
+	{
+		float alpha = state.OpacityMode switch
 		{
-			return new Color(0.0f, 0.85f, 0.95f, 1.0f);
+			DebugVizOpacityModeKind.Ghosted => Mathf.Clamp(baseColor.A * 0.22f, 0.06f, 0.33f),
+			DebugVizOpacityModeKind.Solid => Mathf.Clamp(baseColor.A * 0.9f, 0.45f, 0.95f),
+			_ => 0f
+		};
+		return new Color(baseColor.R, baseColor.G, baseColor.B, alpha);
+	}
+
+	private void AddCircle(float radius, int segments, Vector3 axisA, Vector3 axisB, bool dashed)
+	{
+		int safeSegments = Mathf.Max(8, segments);
+		int step = dashed ? 2 : 1;
+
+		for (int i = 0; i < safeSegments; i += step)
+		{
+			float a0 = Mathf.Tau * i / safeSegments;
+			float a1 = Mathf.Tau * (i + 1) / safeSegments;
+			Vector3 p0 = axisA * (Mathf.Cos(a0) * radius) + axisB * (Mathf.Sin(a0) * radius);
+			Vector3 p1 = axisA * (Mathf.Cos(a1) * radius) + axisB * (Mathf.Sin(a1) * radius);
+			AddLine(p0, p1);
 		}
-
-		return new Color(1.0f, 0.55f, 0.1f, 1.0f);
 	}
 
-	private void AddAxisMarker(float size)
+	private void AddFilledRing(float radius, float thickness, int segments, Vector3 axisA, Vector3 axisB)
 	{
-		AddLine(new Vector3(-size, 0.0f, 0.0f), new Vector3(size, 0.0f, 0.0f));
-		AddLine(new Vector3(0.0f, -size, 0.0f), new Vector3(0.0f, size, 0.0f));
-		AddLine(new Vector3(0.0f, 0.0f, -size), new Vector3(0.0f, 0.0f, size));
-	}
+		int safeSegments = Mathf.Max(8, segments);
+		float halfT = 0.5f * thickness;
+		float inner = Mathf.Max(0.0001f, radius - halfT);
+		float outer = radius + halfT;
 
-	private void AddArrow(float length, bool attract)
-	{
-		float headSize = length * 0.3f;
-		float headOffset = length * 0.8f;
-		Vector3 tip = attract ? Vector3.Zero : new Vector3(length, 0.0f, 0.0f);
-		Vector3 tail = attract ? new Vector3(length, 0.0f, 0.0f) : Vector3.Zero;
-		float headDir = attract ? -1.0f : 1.0f;
-
-		AddLine(tail, tip);
-		AddLine(tip, new Vector3(tip.X - headDir * (length - headOffset), headSize, 0.0f));
-		AddLine(tip, new Vector3(tip.X - headDir * (length - headOffset), -headSize, 0.0f));
-	}
-
-	private void AddCircle(float radius, int segments)
-	{
-		int safeSegments = Mathf.Max(3, segments);
 		for (int i = 0; i < safeSegments; i++)
 		{
 			float a0 = Mathf.Tau * i / safeSegments;
 			float a1 = Mathf.Tau * (i + 1) / safeSegments;
-			Vector3 p0 = new Vector3(Mathf.Cos(a0) * radius, 0.0f, Mathf.Sin(a0) * radius);
-			Vector3 p1 = new Vector3(Mathf.Cos(a1) * radius, 0.0f, Mathf.Sin(a1) * radius);
-			AddLine(p0, p1);
-		}
-	}
 
-	private void AddDashedCircle(float radius, int segments)
-	{
-		int safeSegments = Mathf.Max(3, segments);
-		for (int i = 0; i < safeSegments; i += 2)
-		{
-			float a0 = Mathf.Tau * i / safeSegments;
-			float a1 = Mathf.Tau * (i + 1) / safeSegments;
-			Vector3 p0 = new Vector3(Mathf.Cos(a0) * radius, 0.0f, Mathf.Sin(a0) * radius);
-			Vector3 p1 = new Vector3(Mathf.Cos(a1) * radius, 0.0f, Mathf.Sin(a1) * radius);
-			AddLine(p0, p1);
+			Vector3 in0 = axisA * (Mathf.Cos(a0) * inner) + axisB * (Mathf.Sin(a0) * inner);
+			Vector3 out0 = axisA * (Mathf.Cos(a0) * outer) + axisB * (Mathf.Sin(a0) * outer);
+			Vector3 in1 = axisA * (Mathf.Cos(a1) * inner) + axisB * (Mathf.Sin(a1) * inner);
+			Vector3 out1 = axisA * (Mathf.Cos(a1) * outer) + axisB * (Mathf.Sin(a1) * outer);
+
+			// Two triangles per segment form a thin annulus strip.
+			_debugMesh.SurfaceAddVertex(in0);
+			_debugMesh.SurfaceAddVertex(out0);
+			_debugMesh.SurfaceAddVertex(out1);
+
+			_debugMesh.SurfaceAddVertex(in0);
+			_debugMesh.SurfaceAddVertex(out1);
+			_debugMesh.SurfaceAddVertex(in1);
 		}
 	}
 
@@ -449,90 +974,130 @@ public partial class FieldSource3D : Node3D
 		_debugMesh.SurfaceAddVertex(end);
 	}
 
-	private void GetRingStyle(DebugState state, out RingStyle innerStyle, out RingStyle outerStyle, out RingStyle maxStyle)
+	private void TrackRebuildFrequency()
 	{
-		if (!state.Enabled)
+		double now = Time.GetTicksMsec() * 0.001;
+		if (_rebuildWindowStartSec <= 0.0 || (now - _rebuildWindowStartSec) > 1.0)
 		{
-			Color disabled = new Color(0.533f, 0.533f, 0.533f, 0.25f);
-			innerStyle = new RingStyle(disabled, state.LineWidth * 1.2f);
-			outerStyle = new RingStyle(disabled, state.LineWidth);
-			maxStyle = new RingStyle(disabled, state.LineWidth * 0.75f);
+			_rebuildWindowStartSec = now;
+			_rebuildsThisWindow = 0;
+		}
+
+		_rebuildsThisWindow++;
+		if (_rebuildsThisWindow > 30 && !_warnedFrequentRebuilds)
+		{
+			_warnedFrequentRebuilds = true;
+			GD.Print($"[FieldViz] frequent debug mesh rebuilds node={GetPath()} rate>{_rebuildsThisWindow}/s");
+		}
+	}
+
+	private void DeferredWarnIfZeroCurvatureAcrossSources()
+	{
+		if (_warnedZeroCurvatureAllSources || !Enabled)
+		{
 			return;
 		}
 
-		Color innerColor;
-		Color outerColor;
-		if (state.Attract)
+		var tree = GetTree();
+		if (tree == null)
 		{
-			innerColor = new Color(0.15f, 0.85f, 0.8f, 0.85f);
-			outerColor = new Color(0.2f, 0.85f, 0.3f, 0.65f);
-		}
-		else
-		{
-			innerColor = new Color(1.0f, 0.6f, 0.2f, 0.85f);
-			outerColor = new Color(0.95f, 0.2f, 0.15f, 0.65f);
+			return;
 		}
 
-		float innerWidth = state.LineWidth * 1.2f;
-		float outerWidth = state.LineWidth;
-
-		switch (state.Profile)
+		var nodes = tree.GetNodesInGroup("field_sources");
+		if (nodes == null || nodes.Count == 0)
 		{
-			case ProfileType.Shell:
-				innerWidth *= 1.1f;
-				outerWidth *= 1.1f;
-				break;
-			case ProfileType.Power:
-			case ProfileType.InversePower:
-				innerWidth *= 0.9f;
-				outerWidth *= 1.1f;
-				break;
-			case ProfileType.Gaussian:
-				innerColor = new Color(innerColor.R, innerColor.G, innerColor.B, 0.5f);
-				outerColor = new Color(outerColor.R, outerColor.G, outerColor.B, 0.25f);
-				break;
+			return;
 		}
 
-		innerStyle = new RingStyle(innerColor, innerWidth);
-		outerStyle = new RingStyle(outerColor, outerWidth);
-		maxStyle = new RingStyle(new Color(0.6f, 0.6f, 0.6f, 0.35f), state.LineWidth * 0.75f);
+		bool anyEnabled = false;
+		bool anyNonZeroCurvature = false;
+		const float eps = 1e-6f;
+
+		foreach (Node node in nodes)
+		{
+			if (node is not FieldSource3D field || !field.Enabled)
+			{
+				continue;
+			}
+
+			anyEnabled = true;
+			ResolvedFieldParams resolved = field.ResolveEffectiveParams(out _);
+			float effective = Mathf.Abs(resolved.amp);
+			if (effective > eps)
+			{
+				anyNonZeroCurvature = true;
+				break;
+			}
+		}
+
+		if (anyEnabled && !anyNonZeroCurvature)
+		{
+			_warnedZeroCurvatureAllSources = true;
+			GD.PushWarning("[FieldViz] effective curvature is zero across all enabled FieldSource3D nodes.");
+		}
 	}
 
-	private struct DebugState
+	private struct DebugVizState
 	{
 		public bool Enabled;
-		public bool Attract;
-		public ProfileType Profile;
+		public bool HasInnerOuter;
 		public float InnerRadius;
 		public float OuterRadius;
-		public float MaxRadius;
+		public bool ShowInnerOuter;
+		public bool ShowSigma;
+		public float SigmaRadius;
+		public DebugVizPlaneFlags Planes;
+		public DebugVizOpacityModeKind OpacityMode;
 		public int Segments;
 		public float LineWidth;
 		public bool AlwaysOnTop;
+		public Color InnerColor;
+		public Color OuterColor;
+		public Color SigmaColor;
+		public Transform3D Transform;
 
-		public bool Equals(DebugState other)
+		public bool Equals(DebugVizState other)
 		{
 			return Enabled == other.Enabled
-				&& Attract == other.Attract
-				&& Profile == other.Profile
-				&& InnerRadius == other.InnerRadius
-				&& OuterRadius == other.OuterRadius
-				&& MaxRadius == other.MaxRadius
+				&& HasInnerOuter == other.HasInnerOuter
+				&& Mathf.IsEqualApprox(InnerRadius, other.InnerRadius)
+				&& Mathf.IsEqualApprox(OuterRadius, other.OuterRadius)
+				&& ShowInnerOuter == other.ShowInnerOuter
+				&& ShowSigma == other.ShowSigma
+				&& Mathf.IsEqualApprox(SigmaRadius, other.SigmaRadius)
+				&& Planes == other.Planes
+				&& OpacityMode == other.OpacityMode
 				&& Segments == other.Segments
-				&& LineWidth == other.LineWidth
-				&& AlwaysOnTop == other.AlwaysOnTop;
+				&& Mathf.IsEqualApprox(LineWidth, other.LineWidth)
+				&& AlwaysOnTop == other.AlwaysOnTop
+				&& ColorsEqual(InnerColor, other.InnerColor)
+				&& ColorsEqual(OuterColor, other.OuterColor)
+				&& ColorsEqual(SigmaColor, other.SigmaColor)
+				&& TransformsEqual(Transform, other.Transform);
 		}
-	}
 
-	private readonly struct RingStyle
-	{
-		public readonly Color Color;
-		public readonly float LineWidth;
-
-		public RingStyle(Color color, float lineWidth)
+		private static bool ColorsEqual(Color a, Color b)
 		{
-			Color = color;
-			LineWidth = lineWidth;
+			return Mathf.IsEqualApprox(a.R, b.R)
+				&& Mathf.IsEqualApprox(a.G, b.G)
+				&& Mathf.IsEqualApprox(a.B, b.B)
+				&& Mathf.IsEqualApprox(a.A, b.A);
+		}
+
+		private static bool TransformsEqual(Transform3D a, Transform3D b)
+		{
+			return VectorsEqual(a.Origin, b.Origin)
+				&& VectorsEqual(a.Basis.X, b.Basis.X)
+				&& VectorsEqual(a.Basis.Y, b.Basis.Y)
+				&& VectorsEqual(a.Basis.Z, b.Basis.Z);
+		}
+
+		private static bool VectorsEqual(Vector3 a, Vector3 b)
+		{
+			return Mathf.IsEqualApprox(a.X, b.X)
+				&& Mathf.IsEqualApprox(a.Y, b.Y)
+				&& Mathf.IsEqualApprox(a.Z, b.Z);
 		}
 	}
 }

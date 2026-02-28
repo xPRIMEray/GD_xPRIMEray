@@ -70,12 +70,20 @@ public static class SnapshotBuilder
             var field = enabledFields[i];
             var worldFromLocal = field.GlobalTransform;
             var localFromWorld = worldFromLocal.AffineInverse();
+            var resolved = field.ResolveEffectiveParams(out _);
 
-            field.GetPackedParams8(out var rInner, out var rOuter, out var amp, out var a, out var b, out var c, out var r0, out var r1);
+            var rInner = resolved.rInner;
+            var rOuter = resolved.rOuter;
+            var amp = resolved.amp;
+            var a = resolved.a;
+            var b = resolved.b;
+            var c = resolved.c;
+            const float r0 = 0f;
+            const float r1 = 0f;
             var metricModel = (int)field.MetricModel;
-            var shapeType = (int)field.ShapeType;
-            var curveType = (int)field.CurveType;
-            var flags = field.ModeFlags;
+            var shapeType = (int)resolved.shapeType;
+            var curveType = (int)resolved.curveType;
+            var flags = resolved.modeFlags;
 
             var paramOffset = fieldParams.AppendBlock8(rInner, rOuter, amp, a, b, c, r0, r1);
 

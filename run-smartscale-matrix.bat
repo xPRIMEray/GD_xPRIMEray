@@ -1,17 +1,23 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
 rem README: Runs the SmartScale matrix (straight/curved_minimal x calls60/rows256), parses each log, and prints AutoCal summary blocks after each run.
+rem NOTE: Live Godot console streaming is enabled via PowerShell Tee-Object while preserving per-run log files.
 
 echo ============================================================
 echo Running xPRIMEray SmartScale Render Test Matrix
 echo ============================================================
 
-set GODOT_EXE="C:\Users\wmbro\Downloads\Godot_v4.5.1-stable_mono_win64\Godot_v4.5.1-stable_mono_win64\Godot_v4.5.1-stable_mono_win64_console.exe"
+set "GODOT_EXE=C:\Users\wmbro\Downloads\Godot_v4.5.1-stable_mono_win64\Godot_v4.5.1-stable_mono_win64\Godot_v4.5.1-stable_mono_win64_console.exe"
 set PROJECT_PATH=C:\godot\godot_xPRIMEray
 
 cd /d %PROJECT_PATH%
 
 if not exist logs mkdir logs
+set "CSV_OUT=logs\smartscale_runs_live.csv"
+set "JSONL_OUT=logs\smartscale_runs_live.jsonl"
+
+call :ensure_csv_header "%CSV_OUT%"
+if errorlevel 1 goto :fail
 
 set "TIMESTAMP=%DATE%_%TIME%"
 set "TIMESTAMP=%TIMESTAMP:/=-%"
@@ -84,12 +90,35 @@ echo Mode: %SMARTSCALE_LABEL%
 echo Log file: %LOG_FILE%
 echo ------------------------------------------------------------
 
-%GODOT_EXE% --path . -- --render-test-fixture=%FIXTURE% --autocal=1 --shadow-eval=1 --autocal-verbose=1 --autocal-apply=0 %SMARTSCALE_ARGS% > "%LOG_FILE%" 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "& '%GODOT_EXE%' --path . -- --render-test-fixture=%FIXTURE% --autocal=1 --shadow-eval=1 --autocal-verbose=1 --autocal-apply=0 %SMARTSCALE_ARGS% 2>&1 | Tee-Object -FilePath '%LOG_FILE%'; exit $LASTEXITCODE"
 if errorlevel 1 (
     echo ERROR: Godot run failed for fixture=%FIXTURE% mode=%SMARTSCALE_LABEL%
     echo See log: %LOG_FILE%
     endlocal & exit /b 1
 )
+
+python tools\smartscale_extract.py "%LOG_FILE%" --print-header=0 >> "%CSV_OUT%"
+if errorlevel 1 (
+    echo ERROR: CSV extraction failed for fixture=%FIXTURE% mode=%SMARTSCALE_LABEL%
+    echo See log: %LOG_FILE%
+    endlocal & exit /b 1
+)
+
+python tools\smartscale_extract.py "%LOG_FILE%" --json >> "%JSONL_OUT%"
+if errorlevel 1 (
+    echo ERROR: JSONL extraction failed for fixture=%FIXTURE% mode=%SMARTSCALE_LABEL%
+    echo See log: %LOG_FILE%
+    endlocal & exit /b 1
+)
+
+python tools\smartscale_extract.py "%LOG_FILE%" --print-compact=1 --mode-label="%SMARTSCALE_LABEL%"
+if errorlevel 1 (
+    echo ERROR: Compact summary extraction failed for fixture=%FIXTURE% mode=%SMARTSCALE_LABEL%
+    echo See log: %LOG_FILE%
+    endlocal & exit /b 1
+)
+echo.
 
 echo ============================================================
 echo Post-Run Log Tail (%FIXTURE%, %SMARTSCALE_LABEL%)
@@ -123,5 +152,27 @@ if not "%REGRESS_RC%"=="0" (
     endlocal & exit /b %REGRESS_RC%
 )
 
+endlocal & exit /b 0
+
+:ensure_csv_header
+setlocal
+set "TARGET_CSV=%~1"
+if not exist "%TARGET_CSV%" (
+    python tools\smartscale_extract.py NUL --print-header=1 > "%TARGET_CSV%"
+    if errorlevel 1 (
+        echo ERROR: Failed to initialize CSV header in %TARGET_CSV%
+        endlocal & exit /b 1
+    )
+) else (
+    for %%I in ("%TARGET_CSV%") do (
+        if %%~zI EQU 0 (
+            python tools\smartscale_extract.py NUL --print-header=1 > "%TARGET_CSV%"
+            if errorlevel 1 (
+                echo ERROR: Failed to initialize CSV header in %TARGET_CSV%
+                endlocal & exit /b 1
+            )
+        )
+    )
+)
 endlocal & exit /b 0
 

@@ -46,6 +46,18 @@ Gotchas
 - Film normals: DrawFilmGradientNormals, FilmNormalColor, FilmNormalWidth, FilmGradientScale.
 - DebugEveryNPixels / DebugMaxFilmRays: Thins overlay sampling and caps per-band cost.
 
+## F) FieldSource3D authoring surface
+
+- Canonical controls for new scenes:
+- `Field Model (Canonical)`: `MetricModel`, `RInner`, `ROuter`, `Amp`, `ModeFlags`, `Softening`, `Sigma`
+- `Shape`: `ShapeType`, `BoxExtents`
+- `Curve`: `CurveType`, `CurveA`, `CurveB`, `CurveC`
+- Legacy controls are grouped under `Legacy (Deprecated)` for compatibility only.
+- Effective runtime params are resolved by `ResolveEffectiveParams(...)`:
+- Canonical values are used when set.
+- If canonical looks unset and legacy has meaningful values, legacy is mapped once to canonical.
+- If both are set and differ, canonical wins and legacy is ignored (warning logged).
+
 ## Presets (documentation only)
 
 Preview (fastest)

@@ -14,6 +14,7 @@ COLUMNS = [
     "timestamp",
     "log_path",
     "fixture",
+    "fixture_curvature_enabled",
     "camera_signature",
     "goal",
     "budget_mode",

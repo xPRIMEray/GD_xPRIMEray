@@ -1,6 +1,7 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
 rem Repeat harness: runs SmartScale fixture matrix repeatedly and appends parsed outputs.
+rem NOTE: Live Godot console streaming is enabled via PowerShell Tee-Object while preserving per-run log files.
 
 if not defined PROJECT_PATH set "PROJECT_PATH=C:\godot\godot_xPRIMEray"
 if not defined GODOT_EXE set "GODOT_EXE=C:\Users\wmbro\Downloads\Godot_v4.5.1-stable_mono_win64\Godot_v4.5.1-stable_mono_win64\Godot_v4.5.1-stable_mono_win64_console.exe"
@@ -22,13 +23,13 @@ if errorlevel 1 (
 
 if not exist logs mkdir logs
 
-set "CSV_FILE=logs\smartscale_runs.csv"
-set "JSONL_FILE=logs\smartscale_runs.jsonl"
-set "SUMMARY_FILE=logs\smartscale_runs_summary.txt"
+set "CSV_FILE=logs\smartscale_runs_live.csv"
+set "JSONL_FILE=logs\smartscale_runs_live.jsonl"
+set "SUMMARY_FILE=logs\smartscale_runs_live_summary.txt"
 set "SMARTSCALE_ARGS=--smartscale=1 --smartscale-goal=max_hits --smartscale-no-early-stop=1 --smartscale-budget=%BUDGET_MODE% --smartscale-budget-n=%BUDGET_N%"
 
 if not exist "%CSV_FILE%" (
-    python "tools\smartscale_extract.py" --print-header=1 NUL > "%CSV_FILE%"
+    python "tools\smartscale_extract.py" NUL --print-header=1 > "%CSV_FILE%"
     if errorlevel 1 (
         echo ERROR: Failed to initialize CSV header in %CSV_FILE%
         exit /b 1
@@ -36,7 +37,7 @@ if not exist "%CSV_FILE%" (
 ) else (
     for %%I in ("%CSV_FILE%") do (
         if %%~zI EQU 0 (
-            python "tools\smartscale_extract.py" --print-header=1 NUL > "%CSV_FILE%"
+            python "tools\smartscale_extract.py" NUL --print-header=1 > "%CSV_FILE%"
             if errorlevel 1 (
                 echo ERROR: Failed to initialize CSV header in %CSV_FILE%
                 exit /b 1
@@ -101,23 +102,15 @@ echo Running fixture=%FIXTURE% repeat=%REPEAT_IDX%
 echo Log=%LOG_FILE%
 echo ------------------------------------------------------------
 
-"%GODOT_EXE%" ^
-    --path "." ^
-    -- ^
-    --render-test-fixture=%FIXTURE% ^
-    --autocal=1 ^
-    --shadow-eval=1 ^
-    --autocal-verbose=1 ^
-    --autocal-apply=0 ^
-    %SMARTSCALE_ARGS% ^
-    > "%LOG_FILE%" 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+    "& '%GODOT_EXE%' --path . -- --render-test-fixture=%FIXTURE% --autocal=1 --shadow-eval=1 --autocal-verbose=1 --autocal-apply=0 %SMARTSCALE_ARGS% 2>&1 | Tee-Object -FilePath '%LOG_FILE%'; exit $LASTEXITCODE"
 if errorlevel 1 (
     echo ERROR: Godot run failed fixture=%FIXTURE% repeat=%REPEAT_IDX%
     echo FAILED_LOG=%LOG_FILE%
     endlocal & set "FAILED_FIXTURE=%FIXTURE%" & set "FAILED_REPEAT=%REPEAT_IDX%" & set "FAILED_LOG=%LOG_FILE%" & exit /b 1
 )
 
-python "tools\smartscale_extract.py" "%LOG_FILE%" >> "%CSV_FILE%"
+python "tools\smartscale_extract.py" "%LOG_FILE%" --print-header=0 >> "%CSV_FILE%"
 if errorlevel 1 (
     echo ERROR: CSV extraction failed fixture=%FIXTURE% repeat=%REPEAT_IDX%
     echo FAILED_LOG=%LOG_FILE%
@@ -127,6 +120,13 @@ if errorlevel 1 (
 python "tools\smartscale_extract.py" --json "%LOG_FILE%" >> "%JSONL_FILE%"
 if errorlevel 1 (
     echo ERROR: JSONL extraction failed fixture=%FIXTURE% repeat=%REPEAT_IDX%
+    echo FAILED_LOG=%LOG_FILE%
+    endlocal & set "FAILED_FIXTURE=%FIXTURE%" & set "FAILED_REPEAT=%REPEAT_IDX%" & set "FAILED_LOG=%LOG_FILE%" & exit /b 1
+)
+
+python "tools\smartscale_extract.py" "%LOG_FILE%" --print-compact=1 --mode-label="smartscale_%BUDGET_MODE%_%BUDGET_N%"
+if errorlevel 1 (
+    echo ERROR: Compact summary extraction failed fixture=%FIXTURE% repeat=%REPEAT_IDX%
     echo FAILED_LOG=%LOG_FILE%
     endlocal & set "FAILED_FIXTURE=%FIXTURE%" & set "FAILED_REPEAT=%REPEAT_IDX%" & set "FAILED_LOG=%LOG_FILE%" & exit /b 1
 )

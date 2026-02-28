@@ -38,6 +38,7 @@ This transforms the rendering engine into a controllable physical simulation env
 - [Integrators](integrators.md): RK4 and stability controls
 - [Validation Framework](validation.md): baseline comparisons, convergence metrics, regression harness
 - [Roadmap](roadmap.md)
+- [FieldSource3D Canonical Params](spec_fieldsource3d_canonical_params_1.md): canonical inspector model and legacy compatibility resolver
 
 ---
 https://aethertopologist.github.io/GD_xPRIMEray/

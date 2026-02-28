@@ -1,0 +1,72 @@
+PASS: logs\render_test_straight_smartscale_rows256_Fri002-27-2026_15-15-14-63.txt windows=2, trusted=2, partial=0
+ON trusted mean per-px-on=2.149
+OFF trusted mean per-px-off=na
+ON saved% mean (baseline-ready)=na
+Audit totals: falseNeg=0 falsePos=0
+
+summary: pass=1 fail=0
+
+DOE summary:
+A) TrustReason histogram (global)
+  ok: 2
+
+A) TrustReason histogram (per run)
+  smartscale_baseline: ok=1
+  smartscale_step1_unlock: ok=1
+
+B) Trust flip timeline
+  smartscale_baseline: firstTrustedStep=30 trusted_windows=1/1 (100.0%)
+  smartscale_step1_unlock: firstTrustedStep=60 trusted_windows=1/1 (100.0%)
+
+C) low_raytests diagnostics: count=0
+
+D) Top 10 worst trust failures by deficit
+  none
+
+RUN REPORT
+  run=smartscale_baseline frames=60 warmup=3 samples=43 windows=1 trusted=1 partial=0
+    firstTrustedStep=30 lastTrustedStep=30
+    topReasons=ok=1
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=2.396,2.396 savedPctMean=na
+  run=smartscale_step1_unlock frames=60 warmup=3 samples=34 windows=1 trusted=1 partial=0
+    firstTrustedStep=60 lastTrustedStep=60
+    topReasons=ok=1
+    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=1.903,1.903 savedPctMean=na
+
+REASON HISTOGRAM
+  reasons:
+    ok: 2
+  trusted: trusted=1=2 trusted=0=0
+  prune: prune=on=2 prune=off=0
+  trustGateDebug metPix=1 metRay=0: 0
+
+=== AutoCal Shadow Eval Summary (C1.1 g.3) ===
+Coverage
+  total_runs=2
+  runs_with_shadow_eval=2
+  coverage_pct=100.0%
+Verdicts
+  pass_count=2
+  fail_count=0
+  defer_count=0
+  missing_count=0
+Overhead (overhead_pct_est, numeric only)
+  count=2
+  mean=0.000
+  median=0.000
+  p90=0.000
+  p95=0.000
+  max=0.000
+Top offenders (overhead_pct_est desc)
+  run_id=1 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=672.838 shadow_elapsed_msec=672.838 verdict=pass
+  run_id=2 mode=on fixture=Default overhead_pct_est=0.000 baseline_elapsed_msec=5904.889 shadow_elapsed_msec=5904.889 verdict=pass
+Trust sanity
+  baseline_trust_eq_1_and_shadow_trust_ne_1=0
+  fail_count_inferred_due_to_shadow_trust=0
+  shadow_trust_counts=1=2
+
+AutoCal decision binding diagnostic
+  missing_decision_count=0
+
+CSV written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.csv
+JSON written: C:\godot\godot_xPRIMEray\tools\renderhealth_summary.json

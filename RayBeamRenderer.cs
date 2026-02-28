@@ -879,7 +879,8 @@ public partial class RayBeamRenderer : Node3D
 
 			var fieldSources = GetTree().GetNodesInGroup("field_sources");
 			GD.Print("RayBeamRenderer: field sources in group = ", fieldSources.Count);
-			bool hasSources = fieldSources.Count > 0;
+			FieldSourceSnap[] fieldSourceSnaps = SnapshotFieldSources(fieldSources);
+			bool hasSources = fieldSourceSnaps.Length > 0;
 
 			var emitters = GetTree().GetNodesInGroup("ray_emitters");
 			int emitterCount = emitters.Count;
@@ -1012,7 +1013,7 @@ public partial class RayBeamRenderer : Node3D
 						center,
 						beta,
 						gamma,
-						fieldSources,
+						fieldSourceSnaps,
 						hasSources,
 						CollisionMask,
 						out hit
@@ -1161,57 +1162,64 @@ public partial class RayBeamRenderer : Node3D
 		{
 			// DECISION: only process FieldSource3D nodes.
 			if (n is not FieldSource3D fs) continue;
+			FieldSourceSnap snap = BuildFieldSourceSnap(fs);
 			// DECISION: skip disabled field sources.
-			if (!fs.Enabled) continue;
+			if (!snap.Enabled) continue;
 
-			Vector3 center = fs.GlobalPosition;
-			Vector3 rvec = p - center;
+			Vector3 rvec = p - snap.Center;
 
 			float rRaw = rvec.Length();
-			float soft = Mathf.Max(0.00001f, fs.Softening);
+			float soft = Mathf.Max(0.00001f, snap.Softening);
 			float r = Mathf.Sqrt(rRaw * rRaw + soft * soft);
 
 			// DECISION: honor min/max radius gates.
-			if (fs.MinRadius > 0.0f && r < fs.MinRadius) continue;
+			if (snap.MinRadius > 0.0f && r < snap.MinRadius) continue;
 			// DECISION: skip when beyond max radius.
-			if (fs.MaxRadius > 0.0f && r > fs.MaxRadius) continue;
+			if (snap.MaxRadius > 0.0f && r > snap.MaxRadius) continue;
 
 			Vector3 dir = (-rvec / r);
 			// DECISION: repel instead of attract when Attract is false.
-			if (!fs.Attract) dir = -dir;
+			if (!snap.Attract) dir = -dir;
 
 			// DECISION: apply per-source gamma override when enabled.
-			float gamma = fs.OverrideGamma ? fs.Gamma : globalGamma;
-			// DECISION: apply per-source beta scale override when enabled.
-			float betaScale = fs.OverrideBetaScale ? fs.BetaScale : 1.0f;
+			float gamma = snap.OverrideGamma ? snap.Gamma : globalGamma;
+			// DECISION: apply per-source beta override. When global beta is zero and override is enabled,
+			// use local BetaScale directly so curvature isn't silently disabled by default camera beta.
+			float effectiveBeta = globalBeta;
+			if (snap.OverrideBetaScale)
+			{
+				effectiveBeta = Math.Abs(globalBeta) > 1e-6f
+					? globalBeta * snap.BetaScale
+					: snap.BetaScale;
+			}
 
-			float amp = globalBeta * betaScale * BendScale * FieldStrength * fs.Strength;
+			float amp = effectiveBeta * BendScale * FieldStrength * snap.Strength;
 			float mag = 0.0f;
 
 			// DECISION: select field profile model.
-			switch (fs.Profile)
+			switch (snap.Profile)
 			{
-				case FieldSource3D.ProfileType.Power: // DECISION: Power profile
+				case 0: // DECISION: Power profile
 					mag = amp * FastPow(r, gamma);
 					break;
 
-				case FieldSource3D.ProfileType.InversePower: // DECISION: InversePower profile
+				case 1: // DECISION: InversePower profile
 					mag = amp / FastPow(r, Mathf.Max(0.0001f, gamma));
 					break;
 
-				case FieldSource3D.ProfileType.Gaussian: // DECISION: Gaussian profile
+				case 2: // DECISION: Gaussian profile
 					{
-						float sigma = Mathf.Max(0.0001f, fs.Sigma);
+						float sigma = Mathf.Max(0.0001f, snap.Sigma);
 						float x = r / sigma;
 						mag = amp * Mathf.Exp(-x * x);
 					}
 					break;
 
-				case FieldSource3D.ProfileType.Shell: // DECISION: Shell profile
+				case 3: // DECISION: Shell profile
 					{
-						float inner = Mathf.Max(0.0f, fs.InnerRadius);
-						float outer = Mathf.Max(inner + 0.0001f, fs.OuterRadius);
-						float edge = Mathf.Max(0.0001f, fs.EdgeSoftness);
+						float inner = Mathf.Max(0.0f, snap.InnerRadius);
+						float outer = Mathf.Max(inner + 0.0001f, snap.OuterRadius);
+						float edge = Mathf.Max(0.0001f, snap.EdgeSoftness);
 
 						float wIn = SmoothStep(inner - edge, inner + edge, r);
 						float wOut = 1.0f - SmoothStep(outer - edge, outer + edge, r);
@@ -1526,7 +1534,7 @@ public partial class RayBeamRenderer : Node3D
 	private RayMeta SimulateRay(PhysicsDirectSpaceState3D space, RayEmitter3D e,
 							Vector3 origin,	Vector3 dir, Vector3 bendDir,
 							Vector3 center, float beta, float gamma,
-							Godot.Collections.Array<Node> fieldSources,
+							FieldSourceSnap[] fieldSources,
 							bool hasSources, uint collisionMask,
 							out HitPayload hitOut)
 	{
@@ -1582,7 +1590,7 @@ public partial class RayBeamRenderer : Node3D
 			{
 				// DECISION: use field sources if any; else use global radial field.
 				if (hasSources)
-					a = ComputeAccelerationAtPoint(p, fieldSources, beta, gamma);
+					a = ComputeAccelerationAtPointSnap(p, fieldSources, beta, gamma, BendScale, FieldStrength);
 				else
 				{
 					Vector3 rvec = p - center;
@@ -1798,7 +1806,7 @@ public partial class RayBeamRenderer : Node3D
 		PhysicsDirectSpaceState3D space,
 		Vector3 origin, Vector3 dir, Vector3 bendDir,
 		Vector3 center, float beta, float gamma,
-		Godot.Collections.Array<Node> fieldSources,
+		FieldSourceSnap[] fieldSources,
 		bool hasSources, uint collisionMask,
 		float maxDistance, out HitPayload hitOut)
 	{
@@ -1831,7 +1839,7 @@ public partial class RayBeamRenderer : Node3D
 
 				// DECISION: use field sources if any; else use global radial field.
 				if (hasSources)
-					a = ComputeAccelerationAtPoint(p, fieldSources, beta, gamma);
+					a = ComputeAccelerationAtPointSnap(p, fieldSources, beta, gamma, BendScale, FieldStrength);
 				else
 				{
 					Vector3 rvec = p - center;
@@ -2451,35 +2459,68 @@ public partial class RayBeamRenderer : Node3D
 		{
 			// DECISION: only snapshot FieldSource3D nodes.
 			if (n is not FieldSource3D fs) continue;
-
-			list.Add(new FieldSourceSnap
-			{
-				Enabled = fs.Enabled,
-				Attract = fs.Attract,
-				Center = fs.GlobalPosition,
-
-				Softening = fs.Softening,
-				MinRadius = fs.MinRadius,
-				MaxRadius = fs.MaxRadius,
-
-				OverrideGamma = fs.OverrideGamma,
-				Gamma = fs.Gamma,
-
-				OverrideBetaScale = fs.OverrideBetaScale,
-				BetaScale = fs.BetaScale,
-
-				Strength = fs.Strength,
-
-				Profile = (int)fs.Profile,
-				Sigma = fs.Sigma,
-
-				InnerRadius = fs.InnerRadius,
-				OuterRadius = fs.OuterRadius,
-				EdgeSoftness = fs.EdgeSoftness
-			});
+			list.Add(BuildFieldSourceSnap(fs));
 		}
 
 		return list.ToArray();
+	}
+
+	public static FieldSourceSnap BuildFieldSourceSnap(FieldSource3D fs)
+	{
+		FieldSource3D.ResolvedFieldParams resolved = fs.ResolveEffectiveParams(out _);
+		float inner = Mathf.Max(0f, resolved.rInner);
+		float outer = Mathf.Max(0f, resolved.rOuter);
+		if (outer > 0f && outer < inner)
+		{
+			outer = inner;
+		}
+
+		int profile = 0;
+		float gamma = 1f;
+		float sigma = Mathf.Max(0f, resolved.sigma);
+
+		switch (resolved.curveType)
+		{
+			case FieldCurveType.Linear:
+				profile = 0;
+				gamma = 0f;
+				break;
+			case FieldCurveType.Power:
+				profile = 0;
+				gamma = resolved.a;
+				break;
+			case FieldCurveType.Polynomial:
+				profile = 0;
+				gamma = resolved.a;
+				break;
+			case FieldCurveType.Exponential:
+				profile = 2;
+				if (sigma <= 1e-6f)
+				{
+					sigma = resolved.a > 1e-6f ? (1f / resolved.a) : Mathf.Max(0.0001f, outer);
+				}
+				break;
+		}
+
+		return new FieldSourceSnap
+		{
+			Enabled = resolved.enabled,
+			Attract = (resolved.modeFlags & 1u) == 0u,
+			Center = fs.GlobalPosition,
+			Softening = Mathf.Max(0f, resolved.softening),
+			MinRadius = inner,
+			MaxRadius = outer,
+			OverrideGamma = true,
+			Gamma = gamma,
+			OverrideBetaScale = true,
+			BetaScale = resolved.amp,
+			Strength = 1f,
+			Profile = profile,
+			Sigma = sigma,
+			InnerRadius = inner,
+			OuterRadius = outer,
+			EdgeSoftness = Mathf.Max(0.0001f, fs.EdgeSoftness)
+		};
 	}
 
 	public static Vector3 ComputeAccelerationAtPointSnap(
@@ -2514,10 +2555,17 @@ public partial class RayBeamRenderer : Node3D
 
 			// DECISION: apply per-source gamma override when enabled.
 			float gamma = fs.OverrideGamma ? fs.Gamma : globalGamma;
-			// DECISION: apply per-source beta scale override when enabled.
-			float betaScale = fs.OverrideBetaScale ? fs.BetaScale : 1.0f;
+			// DECISION: apply per-source beta override. When global beta is zero and override is enabled,
+			// use local BetaScale directly so curvature isn't silently disabled by default camera beta.
+			float effectiveBeta = globalBeta;
+			if (fs.OverrideBetaScale)
+			{
+				effectiveBeta = Math.Abs(globalBeta) > 1e-6f
+					? globalBeta * fs.BetaScale
+					: fs.BetaScale;
+			}
 
-			float amp = globalBeta * betaScale * bendScale * fieldStrength * fs.Strength;
+			float amp = effectiveBeta * bendScale * fieldStrength * fs.Strength;
 			float mag = 0.0f;
 
 			// DECISION: select field profile model.

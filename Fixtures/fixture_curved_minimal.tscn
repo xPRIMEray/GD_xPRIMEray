@@ -1,6 +1,6 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3 uid="uid://kdy0vlhssgip"]
 
-[ext_resource type="Script" path="res://FieldSource3D.cs" id="1_field"]
+[ext_resource type="Script" uid="uid://vmh5vusla1nv" path="res://FieldSource3D.cs" id="1_field"]
 
 [sub_resource type="SphereMesh" id="SphereMesh_target"]
 radius = 0.6
@@ -16,8 +16,7 @@ transform = Transform3D(1, 0, 0, 0, 0.99026805, 0.1391731, 0, -0.1391731, 0.9902
 current = true
 
 [node name="fixture_target" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -6)
-scale = Vector3(3.6, 3.6, 3.6)
+transform = Transform3D(3.6, 0, 0, 0, 3.6, 0, 0, 0, 3.6, 0, 0, -6)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="fixture_target"]
 mesh = SubResource("SphereMesh_target")
@@ -26,12 +25,14 @@ mesh = SubResource("SphereMesh_target")
 shape = SubResource("SphereShape3D_target")
 
 [node name="FieldSource3D" type="Node3D" parent="."]
-script = ExtResource("1_field")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9, 0.35, -1.2)
-Strength = 1.15
-Softening = 0.1
-OuterRadius = 4.5
-OverrideGamma = true
-Gamma = 2.0
-DebugDrawBounds = false
-DebugDrawInGame = false
+script = ExtResource("1_field")
+ROuter = 10.0
+Amp = 1.0
+CurveType = 1
+CurveA = 1.0
+Attract = false
+InnerRadius = 0.01
+DebugVizRingSegments = 0
+DebugVizLineWidth = 0.0
+DebugVizAlwaysOnTop = false

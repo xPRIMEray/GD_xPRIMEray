@@ -53,6 +53,17 @@ public partial class GrinFilmCamera : Node
 		Orbit = 2
 	}
 
+	public enum SmartScaleGoalMode
+	{
+		MaxHits = 0
+	}
+
+	public enum SmartScaleProbeBudgetMode
+	{
+		RenderStepCalls = 0,
+		RowsAdvanced = 1
+	}
+
 	public struct TestRunConfig
 	{
 		public string Name;
@@ -238,6 +249,26 @@ public partial class GrinFilmCamera : Node
 	/// <summary>Maximum rows per frame when adaptive rows are enabled.</summary>
 	// CONTROL FACTOR: Maximum rows per frame under adaptive mode; higher allows bigger bursts.
 	[Export] public int MaxRowsPerFrameCap = 256;
+
+	[ExportGroup("SmartScale")]
+	[Export] public bool SmartScaleEnabled = false;
+	[Export] public bool SmartScaleRunOnReady = false;
+	[Export] public SmartScaleGoalMode SmartScaleGoal = SmartScaleGoalMode.MaxHits;
+	[Export] public SmartScaleProbeBudgetMode SmartScaleBudgetMode = SmartScaleProbeBudgetMode.RowsAdvanced;
+	[Export(PropertyHint.Range, "1,1000000,1")] public int SmartScaleBudgetN = 512;
+	private bool _smartScaleRunOnceLatch = false;
+	[Export]
+	public bool SmartScaleRunOnce
+	{
+		get => _smartScaleRunOnceLatch;
+		set
+		{
+			_smartScaleRunOnceLatch = false;
+			if (!value) return;
+			_smartScaleRunRequested = true;
+			GD.Print("[SmartScale][Inspector] run-once requested.");
+		}
+	}
 
 	[ExportGroup("Profiling")]
 	[ExportSubgroup("Runtime Stats")]
@@ -1156,6 +1187,72 @@ public partial class GrinFilmCamera : Node
 	private string _pendingRowCursorResetReason = "";
 	private const int StuckBandWatchdogMaxRepeats = 10;
 	private const int BandNoHitStallMaxRepeats = 3;
+	private const int SmartScaleWarmupSamples = 3;
+	private bool _smartScaleRunRequested = false;
+	private bool _smartScaleRunInProgress = false;
+	private bool _smartScalePendingSafeBoundaryAbort = false;
+	private bool _smartScaleRunOnReadyDeferred = false;
+	private bool _smartScaleWarnedFixtureCurvature = false;
+	private bool _smartScaleEnableEdgeArmed = false;
+	private int _smartScaleActiveProbeIndex = -1;
+	private int _smartScaleProbeLastStepObserved = -1;
+	private int _smartScaleProbeRenderStepCalls = 0;
+	private int _smartScaleProbeRowsAdvancedTotal = 0;
+	private int _smartScaleProbeBudgetStopCount = 0;
+	private long _smartScaleProbeGeomPixProcessedRaw = 0;
+	private long _smartScaleProbeGeomRayTestsTotalRaw = 0;
+	private readonly System.Collections.Generic.List<SmartScaleProbeResult> _smartScaleProbeResults = new System.Collections.Generic.List<SmartScaleProbeResult>(8);
+	private SmartScaleSavedConfig _smartScaleSavedConfig;
+	private bool _smartScaleSavedConfigValid = false;
+	private SmartScaleProbeConfig[] _smartScaleProbePlan = Array.Empty<SmartScaleProbeConfig>();
+
+	private struct SmartScaleSavedConfig
+	{
+		public bool UpdateEveryFrame;
+		public int PixelStride;
+		public bool UsePass2CollisionStride;
+		public int TargetMsPerFrame;
+		public float UpdateEveryFrameBudgetMs;
+		public int UpdateEveryFrameMaxRowsPerStep;
+		public int RowsPerFrame;
+		public int MaxRowsPerFrameCap;
+		public int RenderStepMaxMs;
+		public int RenderStepMaxPixelsPerFrame;
+		public int RenderStepMaxSegmentsPerFrame;
+		public BroadphaseMode BroadphaseControlMode;
+		public BroadphasePolicyMode BroadphasePolicy;
+	}
+
+	private struct SmartScaleProbeConfig
+	{
+		public string ProbeId;
+		public string Summary;
+		public int? PixelStride;
+		public bool? UsePass2CollisionStride;
+		public int? TargetMsPerFrame;
+		public float? UpdateEveryFrameBudgetMs;
+		public int? UpdateEveryFrameMaxRowsPerStep;
+		public int? RowsPerFrame;
+		public int? MaxRowsPerFrameCap;
+		public int? RenderStepMaxMs;
+		public int? RenderStepMaxPixelsPerFrame;
+		public int? RenderStepMaxSegmentsPerFrame;
+		public BroadphaseMode? BroadphaseControlMode;
+		public BroadphasePolicyMode? BroadphasePolicy;
+	}
+
+	private struct SmartScaleProbeResult
+	{
+		public SmartScaleProbeConfig Probe;
+		public bool Trusted;
+		public bool TrustKnown;
+		public string TrustReason;
+		public int RenderStepCalls;
+		public int RowsAdvancedTotal;
+		public int BudgetStopCount;
+		public long GeomPixProcessedRaw;
+		public long GeomRayTestsTotalRaw;
+	}
 
 
 
@@ -1876,9 +1973,12 @@ public partial class GrinFilmCamera : Node
 		}
 
 		GD.Print("✅ GrinFilmCamera ready. Rendering film.");
-	}
+			_smartScaleEnableEdgeArmed = SmartScaleEnabled;
+			_smartScaleRunOnReadyDeferred = SmartScaleRunOnReady;
+			CallDeferred(nameof(EmitFixtureCurvatureDisabledWarning));
+		}
 
-	public override void _Process(double delta)
+		public override void _Process(double delta)
 	{
 		DebugLogConfig.EnableSnapshotLog = DebugSnapshotLog;
 		DebugLogConfig.SnapshotLogIntervalSec = Mathf.Max(0.05f, DebugSnapshotIntervalSec);
@@ -1886,11 +1986,12 @@ public partial class GrinFilmCamera : Node
 		DebugLogConfig.ProbeLogIntervalSec = Mathf.Max(0.05f, DebugProbeIntervalSec);
 		DebugLogConfig.EnableGeomRejectSample = DebugGeomRejectSampleEnabled;
 
-		SyncAndApplyIfDirty("process");
-		// Keep broadphase controls in sync each frame so the inspector reflects effective state.
-		UpdateBroadphaseEffectiveState();
-		// DECISION: only render when UpdateEveryFrame is enabled.
-		if (!UpdateEveryFrame) return;
+			SyncAndApplyIfDirty("process");
+			// Keep broadphase controls in sync each frame so the inspector reflects effective state.
+			UpdateBroadphaseEffectiveState();
+			PumpSmartScaleController();
+			// DECISION: only render when UpdateEveryFrame is enabled.
+			if (!UpdateEveryFrame) return;
 		RenderFrameBackend(delta);
 	}
 
@@ -1968,6 +2069,522 @@ public partial class GrinFilmCamera : Node
 
 		_lastFrameRenderMs = (t1 - t0) * 1000.0 / Stopwatch.Frequency;
 		EmitRenderMetricsOverlay();
+	}
+
+	private void PumpSmartScaleController()
+	{
+		if (_smartScaleRunOnReadyDeferred)
+		{
+			_smartScaleRunOnReadyDeferred = false;
+			_smartScaleRunRequested = true;
+			GD.Print("[SmartScale][Inspector] run-on-ready requested.");
+		}
+
+		if (SmartScaleEnabled && !_smartScaleEnableEdgeArmed)
+		{
+			_smartScaleRunRequested = true;
+			GD.Print("[SmartScale][Inspector] enabled in inspector; scheduling SmartScale run.");
+		}
+		_smartScaleEnableEdgeArmed = SmartScaleEnabled;
+
+		if (_smartScaleRunInProgress)
+		{
+			ObserveSmartScaleProbeProgress();
+			return;
+		}
+
+		if (!_smartScaleRunRequested)
+		{
+			return;
+		}
+
+		if (!IsSmartScaleSafeBoundary())
+		{
+			RequestSmartScaleSafeBoundaryAbortIfNeeded();
+			return;
+		}
+
+		BeginSmartScaleRun();
+	}
+
+	private bool IsSmartScaleSafeBoundary()
+	{
+		if (Interlocked.CompareExchange(ref _renderStepActive, 0, 0) != 0)
+		{
+			return false;
+		}
+		if (_pendingBandHasPass1)
+		{
+			return false;
+		}
+		return _rowCursor == 0;
+	}
+
+	private void RequestSmartScaleSafeBoundaryAbortIfNeeded()
+	{
+		if (_smartScalePendingSafeBoundaryAbort)
+		{
+			return;
+		}
+		if (Interlocked.CompareExchange(ref _renderStepActive, 0, 0) != 0)
+		{
+			GD.Print("[SmartScale][Inspector] waiting for active RenderStep to finish before run.");
+			return;
+		}
+
+		if (_rowCursor != 0 || _pendingBandHasPass1)
+		{
+			GD.Print(
+				$"[SmartScale][Inspector] aborting current band for safe run boundary row={_rowCursor} pending_pass2={(_pendingBandHasPass1 ? 1 : 0)}.");
+			ResetFilmPassManual();
+		}
+
+		_smartScalePendingSafeBoundaryAbort = true;
+	}
+
+	private void BeginSmartScaleRun()
+	{
+		_smartScalePendingSafeBoundaryAbort = false;
+		_smartScaleRunRequested = false;
+
+		if (SmartScaleGoal != SmartScaleGoalMode.MaxHits)
+		{
+			GD.PushWarning($"[SmartScale][Inspector] Unsupported goal={SmartScaleGoal}; only max_hits is supported.");
+			return;
+		}
+
+		_smartScaleSavedConfig = CaptureSmartScaleSavedConfig();
+		_smartScaleSavedConfigValid = true;
+		_smartScaleProbeResults.Clear();
+		_smartScaleProbePlan = BuildSmartScaleProbePlan();
+		_smartScaleActiveProbeIndex = -1;
+		_smartScaleRunInProgress = true;
+
+		GD.Print(
+			$"[SmartScale][Inspector] begin goal={GetSmartScaleGoalToken()} budget_mode={GetSmartScaleBudgetModeToken()} budget_n={GetSmartScaleBudgetNResolved()} probes={_smartScaleProbePlan.Length}");
+
+		if (_smartScaleProbePlan.Length == 0)
+		{
+			FinalizeSmartScaleRun();
+			return;
+		}
+
+		StartSmartScaleProbe(0);
+	}
+
+	private void StartSmartScaleProbe(int probeIndex)
+	{
+		if (probeIndex < 0 || probeIndex >= _smartScaleProbePlan.Length)
+		{
+			FinalizeSmartScaleRun();
+			return;
+		}
+
+		_smartScaleActiveProbeIndex = probeIndex;
+		_smartScaleProbeRenderStepCalls = 0;
+		_smartScaleProbeRowsAdvancedTotal = 0;
+		_smartScaleProbeBudgetStopCount = 0;
+		_smartScaleProbeGeomPixProcessedRaw = 0;
+		_smartScaleProbeGeomRayTestsTotalRaw = 0;
+		_smartScaleProbeLastStepObserved = _renderHealthStepIndex;
+
+		ResetRenderHealthWindowForRunStart();
+		ResetFilmPassManual();
+		UpdateEveryFrame = true;
+
+		SmartScaleProbeConfig probe = _smartScaleProbePlan[probeIndex];
+		ApplySmartScaleProbeOverrides(in probe);
+		GD.Print(
+			$"[SmartScale][ProbeStart] probe={probe.ProbeId} summary={probe.Summary} budget_mode={GetSmartScaleBudgetModeToken()} budget_n={GetSmartScaleBudgetNResolved()}");
+	}
+
+	private void ObserveSmartScaleProbeProgress()
+	{
+		if (_smartScaleActiveProbeIndex < 0 || _smartScaleActiveProbeIndex >= _smartScaleProbePlan.Length)
+		{
+			return;
+		}
+		if (_renderHealthCount <= 0)
+		{
+			return;
+		}
+
+		RenderHealthSample latest = GetRenderHealthSampleFromEnd(0);
+		if (latest.StepIndex <= _smartScaleProbeLastStepObserved)
+		{
+			return;
+		}
+
+		int stepGap = latest.StepIndex - _smartScaleProbeLastStepObserved;
+		int consumeCount = Math.Min(Math.Max(1, stepGap), _renderHealthCount);
+		for (int offset = consumeCount - 1; offset >= 0; offset--)
+		{
+			RenderHealthSample sample = GetRenderHealthSampleFromEnd(offset);
+			if (sample.StepIndex <= _smartScaleProbeLastStepObserved)
+			{
+				continue;
+			}
+
+			_smartScaleProbeLastStepObserved = sample.StepIndex;
+			_smartScaleProbeRenderStepCalls++;
+			_smartScaleProbeRowsAdvancedTotal += Math.Max(0, sample.RowsAdvanced);
+			_smartScaleProbeGeomPixProcessedRaw += Math.Max(0L, sample.GeomPixelProcessed);
+			_smartScaleProbeGeomRayTestsTotalRaw += Math.Max(0L, sample.GeomRayTestsTotal);
+			if (!string.IsNullOrWhiteSpace(sample.BudgetExitReason) &&
+				!string.Equals(sample.BudgetExitReason, "none", StringComparison.OrdinalIgnoreCase))
+			{
+				_smartScaleProbeBudgetStopCount++;
+			}
+		}
+
+		if (_smartScaleProbeRenderStepCalls < SmartScaleWarmupSamples)
+		{
+			return;
+		}
+		if (!HasReachedSmartScaleProbeBudget())
+		{
+			return;
+		}
+
+		CompleteSmartScaleProbe();
+	}
+
+	private bool HasReachedSmartScaleProbeBudget()
+	{
+		int budgetN = GetSmartScaleBudgetNResolved();
+		if (SmartScaleBudgetMode == SmartScaleProbeBudgetMode.RowsAdvanced)
+		{
+			return _smartScaleProbeRowsAdvancedTotal >= budgetN;
+		}
+		return _smartScaleProbeRenderStepCalls >= budgetN;
+	}
+
+	private int GetSmartScaleBudgetNResolved()
+	{
+		return Math.Max(1, SmartScaleBudgetN);
+	}
+
+	private string GetSmartScaleGoalToken()
+	{
+		return SmartScaleGoal == SmartScaleGoalMode.MaxHits ? "max_hits" : "unknown";
+	}
+
+	private string GetSmartScaleBudgetModeToken()
+	{
+		return SmartScaleBudgetMode == SmartScaleProbeBudgetMode.RowsAdvanced
+			? "rows_advanced"
+			: "renderstep_calls";
+	}
+
+	private void CompleteSmartScaleProbe()
+	{
+		SmartScaleProbeConfig probe = _smartScaleProbePlan[_smartScaleActiveProbeIndex];
+		bool hasTrust = TryGetLatestRenderHealthForTesting(out bool trusted, out _, out _, out string trustReason);
+		var result = new SmartScaleProbeResult
+		{
+			Probe = probe,
+			Trusted = trusted,
+			TrustKnown = hasTrust,
+			TrustReason = hasTrust ? trustReason : "na",
+			RenderStepCalls = _smartScaleProbeRenderStepCalls,
+			RowsAdvancedTotal = _smartScaleProbeRowsAdvancedTotal,
+			BudgetStopCount = _smartScaleProbeBudgetStopCount,
+			GeomPixProcessedRaw = _smartScaleProbeGeomPixProcessedRaw,
+			GeomRayTestsTotalRaw = _smartScaleProbeGeomRayTestsTotalRaw
+		};
+
+		_smartScaleProbeResults.Add(result);
+		GD.Print(
+			$"[SmartScale][ProbeResult] probe={probe.ProbeId} trust={(result.TrustKnown ? (result.Trusted ? 1 : 0) : -1)} trust_reason={result.TrustReason} " +
+			$"geomPixProcessedRaw={result.GeomPixProcessedRaw} geomRayTestsTotalRaw={result.GeomRayTestsTotalRaw} " +
+			$"budget_mode={GetSmartScaleBudgetModeToken()} budget_n={GetSmartScaleBudgetNResolved()} renderstep_calls={result.RenderStepCalls} rows_advanced_total={result.RowsAdvancedTotal}");
+
+		// Preserve harness behavior: baseline trusted in max_hits can early stop.
+		if (_smartScaleActiveProbeIndex == 0 && result.TrustKnown && result.Trusted)
+		{
+			GD.Print("[SmartScale][Decision] early_stop=1 reason=baseline_trusted");
+			FinalizeSmartScaleRun();
+			return;
+		}
+
+		int nextProbe = _smartScaleActiveProbeIndex + 1;
+		if (nextProbe >= _smartScaleProbePlan.Length)
+		{
+			FinalizeSmartScaleRun();
+			return;
+		}
+
+		StartSmartScaleProbe(nextProbe);
+	}
+
+	private static int GetSmartScaleTrustRank(in SmartScaleProbeResult probe)
+	{
+		if (!probe.TrustKnown) return 0;
+		return probe.Trusted ? 2 : 1;
+	}
+
+	private static bool IsSmartScaleProbeBetter(in SmartScaleProbeResult candidate, in SmartScaleProbeResult incumbent)
+	{
+		int cTrust = GetSmartScaleTrustRank(in candidate);
+		int iTrust = GetSmartScaleTrustRank(in incumbent);
+		if (cTrust != iTrust) return cTrust > iTrust;
+
+		if (candidate.GeomPixProcessedRaw != incumbent.GeomPixProcessedRaw)
+		{
+			return candidate.GeomPixProcessedRaw > incumbent.GeomPixProcessedRaw;
+		}
+		if (candidate.BudgetStopCount != incumbent.BudgetStopCount)
+		{
+			return candidate.BudgetStopCount < incumbent.BudgetStopCount;
+		}
+		return candidate.RenderStepCalls < incumbent.RenderStepCalls;
+	}
+
+	private bool TrySelectBestSmartScaleProbe(out SmartScaleProbeResult best)
+	{
+		best = default;
+		if (_smartScaleProbeResults.Count <= 0)
+		{
+			return false;
+		}
+
+		best = _smartScaleProbeResults[0];
+		for (int i = 1; i < _smartScaleProbeResults.Count; i++)
+		{
+			SmartScaleProbeResult candidate = _smartScaleProbeResults[i];
+			if (IsSmartScaleProbeBetter(in candidate, in best))
+			{
+				best = candidate;
+			}
+		}
+		return true;
+	}
+
+	private void FinalizeSmartScaleRun()
+	{
+		bool hasBest = TrySelectBestSmartScaleProbe(out SmartScaleProbeResult best);
+
+		if (_smartScaleSavedConfigValid)
+		{
+			RestoreSmartScaleSavedConfig(in _smartScaleSavedConfig);
+		}
+
+		if (hasBest)
+		{
+			ApplySmartScaleProbeOverrides(in best.Probe);
+			GD.Print(
+				$"[SmartScale][Summary] probes={_smartScaleProbeResults.Count} best={best.Probe.ProbeId} best_trust={(best.TrustKnown ? (best.Trusted ? 1 : 0) : -1)} " +
+				$"best_geomPix={best.GeomPixProcessedRaw} budgetStops={best.BudgetStopCount}");
+		}
+		else
+		{
+			GD.PushWarning("[SmartScale][Inspector] no valid probe result; restored original settings.");
+		}
+
+		_smartScaleRunInProgress = false;
+		_smartScaleActiveProbeIndex = -1;
+		_smartScalePendingSafeBoundaryAbort = false;
+		_smartScaleRunRequested = false;
+		_smartScaleSavedConfigValid = false;
+	}
+
+	private SmartScaleSavedConfig CaptureSmartScaleSavedConfig()
+	{
+		return new SmartScaleSavedConfig
+		{
+			UpdateEveryFrame = UpdateEveryFrame,
+			PixelStride = PixelStride,
+			UsePass2CollisionStride = UsePass2CollisionStride,
+			TargetMsPerFrame = TargetMsPerFrame,
+			UpdateEveryFrameBudgetMs = UpdateEveryFrameBudgetMs,
+			UpdateEveryFrameMaxRowsPerStep = UpdateEveryFrameMaxRowsPerStep,
+			RowsPerFrame = RowsPerFrame,
+			MaxRowsPerFrameCap = MaxRowsPerFrameCap,
+			RenderStepMaxMs = RenderStepMaxMs,
+			RenderStepMaxPixelsPerFrame = RenderStepMaxPixelsPerFrame,
+			RenderStepMaxSegmentsPerFrame = RenderStepMaxSegmentsPerFrame,
+			BroadphaseControlMode = BroadphaseControlMode,
+			BroadphasePolicy = BroadphasePolicy
+		};
+	}
+
+	private void RestoreSmartScaleSavedConfig(in SmartScaleSavedConfig cfg)
+	{
+		UpdateEveryFrame = cfg.UpdateEveryFrame;
+		PixelStride = cfg.PixelStride;
+		UsePass2CollisionStride = cfg.UsePass2CollisionStride;
+		TargetMsPerFrame = cfg.TargetMsPerFrame;
+		UpdateEveryFrameBudgetMs = cfg.UpdateEveryFrameBudgetMs;
+		UpdateEveryFrameMaxRowsPerStep = cfg.UpdateEveryFrameMaxRowsPerStep;
+		RowsPerFrame = cfg.RowsPerFrame;
+		MaxRowsPerFrameCap = cfg.MaxRowsPerFrameCap;
+		RenderStepMaxMs = cfg.RenderStepMaxMs;
+		RenderStepMaxPixelsPerFrame = cfg.RenderStepMaxPixelsPerFrame;
+		RenderStepMaxSegmentsPerFrame = cfg.RenderStepMaxSegmentsPerFrame;
+		BroadphaseControlMode = cfg.BroadphaseControlMode;
+		BroadphasePolicy = cfg.BroadphasePolicy;
+	}
+
+	private SmartScaleProbeConfig[] BuildSmartScaleProbePlan()
+	{
+		int fullRows = Math.Max(
+			1,
+			_filmHeight > 0 ? _filmHeight : Math.Max(1, (int)Math.Round(Height * Math.Max(0.01f, FilmResolutionScale))));
+		int raisedPixelCap = Math.Max(4_000_000, Math.Max(0, RenderStepMaxPixelsPerFrame));
+		int raisedSegCap = Math.Max(100_000_000, Math.Max(0, RenderStepMaxSegmentsPerFrame));
+
+		return new[]
+		{
+			new SmartScaleProbeConfig
+			{
+				ProbeId = "step0_baseline",
+				Summary = "baseline",
+				BroadphaseControlMode = BroadphaseMode.Policy,
+				BroadphasePolicy = BroadphasePolicyMode.OverlapOnly
+			},
+			new SmartScaleProbeConfig
+			{
+				ProbeId = "step1_pixel_unlock",
+				Summary = "pixel_throughput_unlock",
+				PixelStride = 1,
+				UsePass2CollisionStride = false,
+				UpdateEveryFrameMaxRowsPerStep = fullRows,
+				RowsPerFrame = fullRows,
+				MaxRowsPerFrameCap = fullRows,
+				RenderStepMaxPixelsPerFrame = raisedPixelCap,
+				RenderStepMaxSegmentsPerFrame = raisedSegCap,
+				BroadphaseControlMode = BroadphaseMode.Policy,
+				BroadphasePolicy = BroadphasePolicyMode.OverlapOnly
+			},
+			new SmartScaleProbeConfig
+			{
+				ProbeId = "step2_time_expand_20ms",
+				Summary = "time_expansion_20ms",
+				PixelStride = 1,
+				UsePass2CollisionStride = false,
+				TargetMsPerFrame = 20,
+				UpdateEveryFrameBudgetMs = 1000f,
+				RenderStepMaxMs = 1000,
+				UpdateEveryFrameMaxRowsPerStep = fullRows,
+				RowsPerFrame = fullRows,
+				MaxRowsPerFrameCap = fullRows,
+				RenderStepMaxPixelsPerFrame = raisedPixelCap,
+				RenderStepMaxSegmentsPerFrame = raisedSegCap,
+				BroadphaseControlMode = BroadphaseMode.Policy,
+				BroadphasePolicy = BroadphasePolicyMode.OverlapOnly
+			},
+			new SmartScaleProbeConfig
+			{
+				ProbeId = "stepX_broadphase_relax",
+				Summary = "broadphase_relax",
+				PixelStride = 1,
+				UsePass2CollisionStride = false,
+				TargetMsPerFrame = 20,
+				UpdateEveryFrameBudgetMs = 1000f,
+				RenderStepMaxMs = 1000,
+				UpdateEveryFrameMaxRowsPerStep = fullRows,
+				RowsPerFrame = fullRows,
+				MaxRowsPerFrameCap = fullRows,
+				RenderStepMaxPixelsPerFrame = raisedPixelCap,
+				RenderStepMaxSegmentsPerFrame = raisedSegCap,
+				BroadphaseControlMode = BroadphaseMode.Policy,
+				BroadphasePolicy = BroadphasePolicyMode.Both
+			},
+			new SmartScaleProbeConfig
+			{
+				ProbeId = "step3_aggressive_30ms",
+				Summary = "aggressive_throughput_30ms",
+				PixelStride = 1,
+				UsePass2CollisionStride = false,
+				TargetMsPerFrame = 30,
+				UpdateEveryFrameBudgetMs = 1000f,
+				RenderStepMaxMs = 1000,
+				UpdateEveryFrameMaxRowsPerStep = fullRows,
+				RowsPerFrame = fullRows,
+				MaxRowsPerFrameCap = fullRows,
+				RenderStepMaxPixelsPerFrame = raisedPixelCap,
+				RenderStepMaxSegmentsPerFrame = raisedSegCap,
+				BroadphaseControlMode = BroadphaseMode.Policy,
+				BroadphasePolicy = BroadphasePolicyMode.OverlapOnly
+			}
+		};
+	}
+
+	private void ApplySmartScaleProbeOverrides(in SmartScaleProbeConfig probe)
+	{
+		if (probe.PixelStride.HasValue) PixelStride = Mathf.Clamp(probe.PixelStride.Value, 1, 8);
+		if (probe.UsePass2CollisionStride.HasValue) UsePass2CollisionStride = probe.UsePass2CollisionStride.Value;
+		if (probe.TargetMsPerFrame.HasValue) TargetMsPerFrame = Math.Max(1, probe.TargetMsPerFrame.Value);
+		if (probe.UpdateEveryFrameBudgetMs.HasValue) UpdateEveryFrameBudgetMs = Math.Max(1f, probe.UpdateEveryFrameBudgetMs.Value);
+		if (probe.UpdateEveryFrameMaxRowsPerStep.HasValue) UpdateEveryFrameMaxRowsPerStep = Math.Max(1, probe.UpdateEveryFrameMaxRowsPerStep.Value);
+		if (probe.RowsPerFrame.HasValue) RowsPerFrame = Math.Max(1, probe.RowsPerFrame.Value);
+		if (probe.MaxRowsPerFrameCap.HasValue) MaxRowsPerFrameCap = Math.Max(1, probe.MaxRowsPerFrameCap.Value);
+		if (probe.RenderStepMaxMs.HasValue) RenderStepMaxMs = Math.Max(1, probe.RenderStepMaxMs.Value);
+		if (probe.RenderStepMaxPixelsPerFrame.HasValue) RenderStepMaxPixelsPerFrame = Math.Max(0, probe.RenderStepMaxPixelsPerFrame.Value);
+		if (probe.RenderStepMaxSegmentsPerFrame.HasValue) RenderStepMaxSegmentsPerFrame = Math.Max(0, probe.RenderStepMaxSegmentsPerFrame.Value);
+		if (probe.BroadphaseControlMode.HasValue) BroadphaseControlMode = probe.BroadphaseControlMode.Value;
+		if (probe.BroadphasePolicy.HasValue) BroadphasePolicy = probe.BroadphasePolicy.Value;
+	}
+
+	private static float ResolveEffectiveFieldBeta(float globalBeta, bool overrideEnabled, float betaScale)
+	{
+		if (!overrideEnabled)
+		{
+			return globalBeta;
+		}
+		if (Math.Abs(globalBeta) <= 1e-6f)
+		{
+			return betaScale;
+		}
+		return globalBeta * betaScale;
+	}
+
+	private void EmitFixtureCurvatureDisabledWarning()
+	{
+		if (_smartScaleWarnedFixtureCurvature)
+		{
+			return;
+		}
+		_smartScaleWarnedFixtureCurvature = true;
+
+		var tree = GetTree();
+		if (tree == null)
+		{
+			return;
+		}
+		var nodes = tree.GetNodesInGroup("field_sources");
+		if (nodes == null || nodes.Count == 0)
+		{
+			return;
+		}
+
+		float globalBeta = 0f;
+		if (UseCameraPropsBetaGamma && _cam != null && IsInstanceValid(_cam))
+		{
+			globalBeta = ReadFloat(_cam, "Beta", 0f);
+		}
+
+		bool anyContributingSource = false;
+		int sourceCount = 0;
+		for (int i = 0; i < nodes.Count; i++)
+		{
+			if (nodes[i] is not FieldSource3D fs) continue;
+			sourceCount++;
+			if (!fs.Enabled) continue;
+			FieldSource3D.ResolvedFieldParams resolved = fs.ResolveEffectiveParams(out _);
+			float effBeta = Math.Abs(globalBeta) > 1e-6f ? (globalBeta * resolved.amp) : resolved.amp;
+			float effAmp = effBeta;
+			if (Math.Abs(effAmp) > 1e-6f)
+			{
+				anyContributingSource = true;
+				break;
+			}
+		}
+
+		if (sourceCount > 0 && !anyContributingSource)
+		{
+			GD.PushWarning("[FixtureWarn] Field curvature disabled (effective beta==0 across all FieldSource3D).");
+		}
 	}
 
 	public TestRunDefaults CaptureTestRunDefaults()

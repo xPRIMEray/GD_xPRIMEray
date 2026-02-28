@@ -62,7 +62,9 @@ nav:
       - Architecture: architecture.md
       - Transport Model: transport_model.md
       - Integrators: integrators.md
+      - FieldSource3D Params: spec_fieldsource3d_canonical_params_1.md
   - Verification:
       - Validation: validation.md
   - Project:
       - Roadmap: roadmap.md
+      - Spec Index: SPEC_INDEX.md

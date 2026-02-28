@@ -29,14 +29,17 @@ public partial class FieldSourceNodeGizmo : EditorNode3DGizmoPlugin
 
 		gizmo.AddLines(BuildAxisMarker(MarkerHalfLength), centerMaterial, false);
 
-		if (field.InnerRadius > 0.0f)
+		if (field.ResolveAcademicRadii(out float inner, out float outer, out _))
 		{
-			gizmo.AddLines(BuildCircle(field.InnerRadius, DefaultSegments), innerMaterial, false);
-		}
+			if (inner > 0.0f)
+			{
+				gizmo.AddLines(BuildCircle(inner, DefaultSegments), innerMaterial, false);
+			}
 
-		if (field.OuterRadius > 0.0f)
-		{
-			gizmo.AddLines(BuildCircle(field.OuterRadius, DefaultSegments), outerMaterial, false);
+			if (outer > 0.0f)
+			{
+				gizmo.AddLines(BuildCircle(outer, DefaultSegments), outerMaterial, false);
+			}
 		}
 	}
 
