@@ -82,7 +82,7 @@ ApplyAutoCalibratedPreset = true
 AutoCalVerboseLogs = true
 EnableShadowCalibrationEvaluation = true
 ShadowEvalVerboseLogs = true
-Fixture = 1
+Fixture = 2
 FramesPerRun = 300
 WarmupFrames = 30
 

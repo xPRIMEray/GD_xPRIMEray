@@ -57,6 +57,9 @@ Gotchas
 - Canonical values are used when set.
 - If canonical looks unset and legacy has meaningful values, legacy is mapped once to canonical.
 - If both are set and differ, canonical wins and legacy is ignored (warning logged).
+- Inspector equation previews:
+- `EffectiveEquationCore`: core snapshot equation (`FieldSystem.AccelAt` form).
+- `EffectiveEquationIntegrated`: integrated ray equation (`ComputeAccelerationAtPointSnap` form).
 
 ## Presets (documentation only)
 

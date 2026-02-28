@@ -133,6 +133,45 @@ public partial class FieldSource3D : Node3D
 		}
 	}
 
+	[ExportGroup("Equation Preview (Read Only)")]
+	[Export]
+	public string EffectiveEquationCore
+	{
+		get => _effectiveEquationCore;
+		private set
+		{
+			if (_effectiveEquationCore == value)
+			{
+				return;
+			}
+
+			_effectiveEquationCore = value;
+			if (Engine.IsEditorHint())
+			{
+				NotifyPropertyListChanged();
+			}
+		}
+	}
+
+	[Export]
+	public string EffectiveEquationIntegrated
+	{
+		get => _effectiveEquationIntegrated;
+		private set
+		{
+			if (_effectiveEquationIntegrated == value)
+			{
+				return;
+			}
+
+			_effectiveEquationIntegrated = value;
+			if (Engine.IsEditorHint())
+			{
+				NotifyPropertyListChanged();
+			}
+		}
+	}
+
 	public string EffectiveSummary => _effectiveSummary;
 
 	[ExportGroup("Debug (Legacy)")]
@@ -173,6 +212,8 @@ public partial class FieldSource3D : Node3D
 	private bool _debugVizStateValid;
 	private string _debugVizSummary = "inner=n/a outer=n/a source=none";
 	private string _effectiveSummary = "shape=SphereRadial curve=Linear amp=0 a=0 b=0 c=0 r=[0,0] sigma=0 source=canonical";
+	private string _effectiveEquationCore = "core: a_local = sign(metric)*normalize(p_local)*(amp*f(u))";
+	private string _effectiveEquationIntegrated = "integrated: a = dir*(beta_eff*BendScale*FieldStrength)*profile(r)";
 	private bool _usedLegacyMigration;
 	private bool _loggedLegacyMigration;
 	private bool _warnedCanonicalLegacyConflict;
@@ -189,6 +230,7 @@ public partial class FieldSource3D : Node3D
 		ApplyLegacyCompatibilityShim();
 		ValidateAndClamp();
 		ResolveEffectiveParams(out _);
+		RefreshEquationPreviews();
 		if (DebugVizEnabled)
 		{
 			GD.Print($"[FieldSource3D] {GetPath()} {EffectiveSummary}");
@@ -204,6 +246,8 @@ public partial class FieldSource3D : Node3D
 
 	public override void _Process(double delta)
 	{
+		RefreshEquationPreviews();
+
 		if (!ShouldDrawDebugViz())
 		{
 			HideDebugDraw();
@@ -614,6 +658,60 @@ public partial class FieldSource3D : Node3D
 	private string BuildEffectiveSummary(ResolvedFieldParams resolved, string source)
 	{
 		return $"shape={resolved.shapeType} curve={resolved.curveType} amp={resolved.amp:0.###} a={resolved.a:0.###} b={resolved.b:0.###} c={resolved.c:0.###} r=[{resolved.rInner:0.###},{resolved.rOuter:0.###}] sigma={resolved.sigma:0.###} source={source}";
+	}
+
+	private void RefreshEquationPreviews()
+	{
+		ResolvedFieldParams resolved = ResolveEffectiveParams(out string source);
+		string metricSign = MetricModel == MetricModel.GordonMetric ? "-" : "+";
+		string curveCore = BuildCoreCurveEquation(resolved);
+		EffectiveEquationCore =
+			$"source={source}; core: r=|p_local|, u=clamp((r-rInner)/max(eps,rOuter-rInner),0,1), f(u)={curveCore}, a_local={metricSign}normalize(p_local)*(amp*f(u))";
+
+		bool invertSign = (resolved.modeFlags & ModeFlagInvertSign) != 0u;
+		string dirExpr = invertSign ? "+rvec/r" : "-rvec/r";
+		string profileExpr = BuildIntegratedProfileEquation(resolved, out float gamma, out float sigma);
+		EffectiveEquationIntegrated =
+			$"integrated: r=sqrt(|p-c|^2+soft^2), beta_eff=(|beta_g|>eps?beta_g*amp:amp), A=beta_eff*BendScale*FieldStrength, dir={dirExpr}, profile={profileExpr} (gamma={gamma:0.###}, sigma={sigma:0.###}), a=dir*(A*profile)";
+	}
+
+	private string BuildCoreCurveEquation(ResolvedFieldParams resolved)
+	{
+		return resolved.curveType switch
+		{
+			FieldCurveType.Linear => "1-u",
+			FieldCurveType.Power => $"(1-u)^{resolved.a:0.###}",
+			FieldCurveType.Polynomial => $"{resolved.a:0.###}+({resolved.b:0.###}*u)+({resolved.c:0.###}*u^2)",
+			FieldCurveType.Exponential => $"exp(-{resolved.a:0.###}*u)",
+			_ => "1-u"
+		};
+	}
+
+	private string BuildIntegratedProfileEquation(ResolvedFieldParams resolved, out float gamma, out float sigma)
+	{
+		gamma = 1f;
+		sigma = Mathf.Max(0f, resolved.sigma);
+
+		switch (resolved.curveType)
+		{
+			case FieldCurveType.Linear:
+				gamma = 0f;
+				return "r^0";
+			case FieldCurveType.Power:
+				gamma = resolved.a;
+				return $"r^{gamma:0.###}";
+			case FieldCurveType.Polynomial:
+				gamma = resolved.a;
+				return $"r^{gamma:0.###}  (poly mapped to power in integrated path)";
+			case FieldCurveType.Exponential:
+				if (sigma <= ResolveEps)
+				{
+					sigma = resolved.a > ResolveEps ? (1f / resolved.a) : 0.0001f;
+				}
+				return $"exp(-(r/{sigma:0.###})^2)";
+			default:
+				return "r^1";
+		}
 	}
 
 	private void MaybeLogLegacyMigration(string reason)

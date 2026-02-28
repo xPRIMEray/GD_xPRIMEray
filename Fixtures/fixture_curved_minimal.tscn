@@ -33,6 +33,11 @@ CurveType = 1
 CurveA = 1.0
 Attract = false
 InnerRadius = 0.01
-DebugVizRingSegments = 0
-DebugVizLineWidth = 0.0
+DebugVizRingSegments = 8
+DebugVizLineWidth = 0.25
 DebugVizAlwaysOnTop = false
+DebugVizSummary = "shape=SphereRadial curve=Power amp=1 a=1 b=0 c=0 r=[0,10] sigma=5 source=canonical inner=0 outer=10 reason=canonical"
+EffectiveEquationCore = "source=canonical; core: r=|p_local|, u=clamp((r-rInner)/max(eps,rOuter-rInner),0,1), f(u)=(1-u)^1, a_local=+normalize(p_local)*(amp*f(u))"
+EffectiveEquationIntegrated = "integrated: r=sqrt(|p-c|^2+soft^2), beta_eff=(|beta_g|>eps?beta_g*amp:amp), A=beta_eff*BendScale*FieldStrength, dir=-rvec/r, profile=r^1 (gamma=1, sigma=5), a=dir*(A*profile)"
+DebugRingSegments = 8
+DebugLineWidth = 0.25

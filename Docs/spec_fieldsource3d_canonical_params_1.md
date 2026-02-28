@@ -112,3 +112,144 @@ This centralizes truth in one resolver and keeps renderer hot loops unchanged in
 - Old scenes with legacy serialized fields remain loadable.
 - New scenes should author only canonical controls.
 - Legacy controls are compatibility-only and should not be used for new tuning.
+
+---
+
+## 8) Migration Cookbook (Legacy -> Canonical)
+
+Use this when converting old scenes by hand.
+
+### Legacy power field -> canonical power curve
+
+Legacy inputs:
+
+- `Profile=Power`
+- `Strength=S`
+- `Gamma=G` (if `OverrideGamma=true`)
+- `InnerRadius=Ri`, `OuterRadius=Ro`
+
+Canonical equivalent:
+
+- `CurveType=Power`
+- `Amp=S`
+- `CurveA=G` (or `1` if legacy gamma override was off)
+- `CurveB=0`, `CurveC=0`
+- `RInner=Ri`, `ROuter=Ro`
+
+### Legacy inverse power -> canonical power with negative exponent
+
+Legacy inputs:
+
+- `Profile=InversePower`
+- `Strength=S`
+- `Gamma=G`
+
+Canonical equivalent:
+
+- `CurveType=Power`
+- `Amp=S`
+- `CurveA=-abs(G)`
+
+### Legacy gaussian -> canonical exponential
+
+Legacy inputs:
+
+- `Profile=Gaussian`
+- `Strength=S`
+- `Sigma=s`
+
+Canonical equivalent:
+
+- `CurveType=Exponential`
+- `Amp=S`
+- `CurveA=1/s` (compat mapping used by resolver)
+- `Sigma=s` (kept for integrated path mapping)
+
+### Legacy repel field -> canonical mode flag
+
+Legacy input:
+
+- `Attract=false`
+
+Canonical equivalent:
+
+- Set `ModeFlags` bit0 (`INVERT_SIGN`)
+
+---
+
+## 9) Equation Reference (What the Runtime Computes)
+
+There are two active field-evaluation paths in code. `FieldSource3D` now exposes
+both in inspector as read-only strings:
+
+- `EffectiveEquationCore`
+- `EffectiveEquationIntegrated`
+
+### 9.1 Core snapshot equation (`RendererCore.Fields.FieldSystem`)
+
+Given local point `p_local`, radial distance `r = |p_local|`, and
+
+`u = clamp((r - rInner) / max(eps, rOuter - rInner), 0, 1)`
+
+curve response:
+
+- Linear: `f(u) = 1 - u`
+- Power: `f(u) = (1 - u)^a`
+- Polynomial: `f(u) = a + b*u + c*u^2`
+- Exponential: `f(u) = exp(-a*u)`
+
+magnitude:
+
+`m = amp * f(u)`
+
+direction:
+
+- `MetricModel.GRIN`: `dir = +normalize(p_local)`
+- `MetricModel.GordonMetric`: `dir = -normalize(p_local)`
+
+local/world acceleration:
+
+`a_local = dir * m`  
+`a_world = TransformNormal(a_local, worldFromLocal)`
+
+### 9.2 Integrated ray equation (`RayBeamRenderer.ComputeAccelerationAtPointSnap`)
+
+softened radius:
+
+`r = sqrt(|p - c|^2 + softening^2)`
+
+effective beta:
+
+`beta_eff = (|beta_global| > eps) ? beta_global * amp : amp`
+
+path amplitude:
+
+`A = beta_eff * BendScale * FieldStrength`
+
+direction:
+
+- attract: `dir = -(p-c)/r`
+- repel (`INVERT_SIGN`): `dir = +(p-c)/r`
+
+profile term used by integrated path:
+
+- Power-family mapping: `profile(r) = r^gamma`
+- Exponential mapping: `profile(r) = exp(-(r/sigma)^2)`
+
+acceleration:
+
+`a = dir * (A * profile(r))`
+
+---
+
+## 10) Power GRIN vs Geodesic-Like (Gordon) Interpretation
+
+- "Power GRIN" in canonical authoring means:
+  - `MetricModel=GRIN`, `CurveType=Power`, chosen `Amp` and `CurveA`
+  - Core direction is outward `+normalize(p_local)`
+- "Geodesic-like/Gordon" mode means:
+  - `MetricModel=GordonMetric`
+  - Same scalar curve/magnitude, but direction sign flips inward
+
+So for equal params, Gordon mode is the sign-inverted counterpart of GRIN in
+the core field system.
