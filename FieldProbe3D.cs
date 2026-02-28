@@ -34,7 +34,12 @@ public partial class FieldProbe3D : Node3D
 
 	[ExportGroup("Debug Viz")]
 	[Export] public bool DebugVizEnabled { get; set; } = true;
-	[Export] public FieldSource3D.DebugVizPlaneFlags DebugVizPlanes { get; set; } = FieldSource3D.DebugVizPlaneFlags.All;
+	[Export(PropertyHint.Flags, "XY,XZ,YZ")]
+	public int DebugVizPlanes
+	{
+		get => _debugVizPlanes;
+		set => _debugVizPlanes = value & (int)FieldSource3D.DebugVizPlaneFlags.All;
+	}
 	[Export] public FieldSource3D.DebugVizOpacityModeKind DebugVizOpacityMode { get; set; } = FieldSource3D.DebugVizOpacityModeKind.Wireframe;
 	[Export(PropertyHint.Range, "8,256,1")] public int RingSegments { get; set; } = 64;
 	[Export(PropertyHint.Range, "0.25,8.0,0.05")] public float LineWidth { get; set; } = 2.0f;
@@ -56,6 +61,7 @@ public partial class FieldProbe3D : Node3D
 
 	private readonly List<FieldSource3D> _sourceCache = new List<FieldSource3D>(32);
 	private readonly List<SourceRingInfo> _currentRingInfos = new List<SourceRingInfo>(64);
+	private int _debugVizPlanes = (int)FieldSource3D.DebugVizPlaneFlags.All;
 
 	private MeshInstance3D _debugMeshInstance;
 	private ImmediateMesh _debugMesh;
@@ -451,7 +457,7 @@ public partial class FieldProbe3D : Node3D
 		HashCode hash = new HashCode();
 		hash.Add((int)ProbeMode);
 		hash.Add(NeedsSourceViz());
-		hash.Add((int)DebugVizPlanes);
+		hash.Add(_debugVizPlanes);
 		hash.Add((int)DebugVizOpacityMode);
 		hash.Add(Mathf.Max(8, RingSegments));
 		hash.Add(Mathf.Max(0.25f, LineWidth));
@@ -565,15 +571,16 @@ public partial class FieldProbe3D : Node3D
 		Color color = ApplyOpacity(baseColor);
 		AddLineSurface(color, () =>
 		{
-			if ((DebugVizPlanes & FieldSource3D.DebugVizPlaneFlags.XY) != 0)
+			FieldSource3D.DebugVizPlaneFlags planeMask = (FieldSource3D.DebugVizPlaneFlags)_debugVizPlanes;
+			if ((planeMask & FieldSource3D.DebugVizPlaneFlags.XY) != 0)
 			{
 				AddCircle(info.Center, radius, Mathf.Max(8, RingSegments), info.AxisX, info.AxisY, dashed);
 			}
-			if ((DebugVizPlanes & FieldSource3D.DebugVizPlaneFlags.XZ) != 0)
+			if ((planeMask & FieldSource3D.DebugVizPlaneFlags.XZ) != 0)
 			{
 				AddCircle(info.Center, radius, Mathf.Max(8, RingSegments), info.AxisX, info.AxisZ, dashed);
 			}
-			if ((DebugVizPlanes & FieldSource3D.DebugVizPlaneFlags.YZ) != 0)
+			if ((planeMask & FieldSource3D.DebugVizPlaneFlags.YZ) != 0)
 			{
 				AddCircle(info.Center, radius, Mathf.Max(8, RingSegments), info.AxisY, info.AxisZ, dashed);
 			}

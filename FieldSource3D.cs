@@ -103,9 +103,21 @@ public partial class FieldSource3D : Node3D
 	[ExportGroup("Academic Debug Viz")]
 	[Export] public bool DebugVizEnabled { get; set; } = true;
 	[Export] public DebugVizOpacityModeKind DebugVizOpacityMode { get; set; } = DebugVizOpacityModeKind.Wireframe;
-	[Export] public DebugVizPlaneFlags DebugVizPlanes { get; set; } = DebugVizPlaneFlags.All;
+	[Export(PropertyHint.Flags, "XY,XZ,YZ")]
+	public int DebugVizPlanes
+	{
+		get => _debugVizPlanes;
+		set => _debugVizPlanes = value & (int)DebugVizPlaneFlags.All;
+	}
+
+	public DebugVizPlaneFlags DebugVizPlaneMask => (DebugVizPlaneFlags)_debugVizPlanes;
 	[Export] public bool DebugVizShowInnerOuter { get; set; } = true;
 	[Export] public bool DebugVizShowSigma { get; set; } = false;
+	[Export] public bool DebugVizShowDensityVectors { get; set; } = false;
+	[Export(PropertyHint.Range, "4,96,1")] public int DebugVizDensityVectorCount { get; set; } = 16;
+	[Export(PropertyHint.Range, "0.05,5.0,0.01")] public float DebugVizDensityVectorScale { get; set; } = 0.75f;
+	[Export] public bool DebugVizShowDensityZones { get; set; } = false;
+	[Export(PropertyHint.Range, "2,6,1")] public int DebugVizDensityZoneCount { get; set; } = 3;
 	[Export(PropertyHint.Range, "8,256,1")] public int DebugVizRingSegments { get; set; } = 64;
 	[Export(PropertyHint.Range, "0.25,8.0,0.05")] public float DebugVizLineWidth { get; set; } = 2.0f;
 	[Export] public Color DebugVizColorInner { get; set; } = new Color(0.1f, 0.9f, 0.9f, 1.0f);
@@ -134,7 +146,7 @@ public partial class FieldSource3D : Node3D
 	}
 
 	[ExportGroup("Equation Preview (Read Only)")]
-	[Export]
+	[Export(PropertyHint.MultilineText)]
 	public string EffectiveEquationCore
 	{
 		get => _effectiveEquationCore;
@@ -153,7 +165,7 @@ public partial class FieldSource3D : Node3D
 		}
 	}
 
-	[Export]
+	[Export(PropertyHint.MultilineText)]
 	public string EffectiveEquationIntegrated
 	{
 		get => _effectiveEquationIntegrated;
@@ -214,6 +226,7 @@ public partial class FieldSource3D : Node3D
 	private string _effectiveSummary = "shape=SphereRadial curve=Linear amp=0 a=0 b=0 c=0 r=[0,0] sigma=0 source=canonical";
 	private string _effectiveEquationCore = "core: a_local = sign(metric)*normalize(p_local)*(amp*f(u))";
 	private string _effectiveEquationIntegrated = "integrated: a = dir*(beta_eff*BendScale*FieldStrength)*profile(r)";
+	private int _debugVizPlanes = (int)DebugVizPlaneFlags.All;
 	private bool _usedLegacyMigration;
 	private bool _loggedLegacyMigration;
 	private bool _warnedCanonicalLegacyConflict;
@@ -666,13 +679,17 @@ public partial class FieldSource3D : Node3D
 		string metricSign = MetricModel == MetricModel.GordonMetric ? "-" : "+";
 		string curveCore = BuildCoreCurveEquation(resolved);
 		EffectiveEquationCore =
-			$"source={source}; core: r=|p_local|, u=clamp((r-rInner)/max(eps,rOuter-rInner),0,1), f(u)={curveCore}, a_local={metricSign}normalize(p_local)*(amp*f(u))";
+			$"source={source}\n" +
+			"core: r=|p_local|, u=clamp((r-rInner)/max(eps,rOuter-rInner),0,1)\n" +
+			$"f(u)={curveCore}; a_local={metricSign}normalize(p_local)*(amp*f(u))";
 
 		bool invertSign = (resolved.modeFlags & ModeFlagInvertSign) != 0u;
 		string dirExpr = invertSign ? "+rvec/r" : "-rvec/r";
 		string profileExpr = BuildIntegratedProfileEquation(resolved, out float gamma, out float sigma);
 		EffectiveEquationIntegrated =
-			$"integrated: r=sqrt(|p-c|^2+soft^2), beta_eff=(|beta_g|>eps?beta_g*amp:amp), A=beta_eff*BendScale*FieldStrength, dir={dirExpr}, profile={profileExpr} (gamma={gamma:0.###}, sigma={sigma:0.###}), a=dir*(A*profile)";
+			"integration: r=sqrt(|p-c|^2+soft^2), beta_eff=(|beta_g|>eps?beta_g*amp:amp)\n" +
+			$"A=beta_eff*BendScale*FieldStrength; dir={dirExpr}\n" +
+			$"profile={profileExpr} (gamma={gamma:0.###}, sigma={sigma:0.###}); a=dir*(A*profile)";
 	}
 
 	private string BuildCoreCurveEquation(ResolvedFieldParams resolved)
@@ -762,6 +779,10 @@ public partial class FieldSource3D : Node3D
 
 		DebugVizRingSegments = Mathf.Max(8, DebugVizRingSegments);
 		DebugVizLineWidth = Mathf.Max(0.25f, DebugVizLineWidth);
+		DebugVizDensityVectorCount = Mathf.Clamp(DebugVizDensityVectorCount, 4, 96);
+		DebugVizDensityVectorScale = Mathf.Max(0.05f, DebugVizDensityVectorScale);
+		DebugVizDensityZoneCount = Mathf.Clamp(DebugVizDensityZoneCount, 2, 6);
+		_debugVizPlanes &= (int)DebugVizPlaneFlags.All;
 		Softening = Mathf.Max(0f, Softening);
 		Sigma = Mathf.Max(0f, Sigma);
 		MaxRadius = Mathf.Max(0f, MaxRadius);
@@ -796,7 +817,18 @@ public partial class FieldSource3D : Node3D
 			ShowInnerOuter = DebugVizShowInnerOuter,
 			ShowSigma = DebugVizShowSigma && resolved.sigma > 0f,
 			SigmaRadius = Mathf.Max(0f, resolved.sigma),
-			Planes = DebugVizPlanes,
+			ShowDensityVectors = DebugVizShowDensityVectors && hasInnerOuter,
+			DensityVectorCount = DebugVizDensityVectorCount,
+			DensityVectorScale = DebugVizDensityVectorScale,
+			ShowDensityZones = DebugVizShowDensityZones && hasInnerOuter,
+			DensityZoneCount = DebugVizDensityZoneCount,
+			ModeFlags = resolved.modeFlags,
+			CurveType = resolved.curveType,
+			CurveA = resolved.a,
+			CurveB = resolved.b,
+			CurveC = resolved.c,
+			Sigma = resolved.sigma,
+			Planes = DebugVizPlaneMask,
 			OpacityMode = DebugVizOpacityMode,
 			Segments = Mathf.Max(8, DebugVizRingSegments),
 			LineWidth = Mathf.Max(0.25f, DebugVizLineWidth),
@@ -895,6 +927,9 @@ public partial class FieldSource3D : Node3D
 			AddWireRingPlanes(state.SigmaRadius, state.SigmaColor, state, dashed: true);
 		}
 
+		AddDensityZoneRings(state);
+		AddDensityVectors(state);
+
 		// Keep a small center marker for orientation.
 		AddCenterMarker(state);
 	}
@@ -964,6 +999,131 @@ public partial class FieldSource3D : Node3D
 				AddFilledRing(radius, thickness, state.Segments, Vector3.Up, Vector3.Forward);
 			}
 		});
+	}
+
+	private void AddDensityZoneRings(DebugVizState state)
+	{
+		if (!state.ShowDensityZones || !state.HasInnerOuter)
+		{
+			return;
+		}
+
+		int zoneCount = Mathf.Clamp(state.DensityZoneCount, 2, 6);
+		if (zoneCount <= 0)
+		{
+			return;
+		}
+
+		for (int i = 0; i < zoneCount; i++)
+		{
+			float t = (i + 1f) / (zoneCount + 1f);
+			float radius = Mathf.Lerp(state.InnerRadius, state.OuterRadius, t);
+			float strength = EvaluateDensityStrengthAtT(t, state);
+			Color zoneColor = GetDensityZoneColor(strength);
+			bool dashed = (i & 1) != 0;
+			AddWireRingPlanes(radius, zoneColor, state, dashed);
+		}
+	}
+
+	private void AddDensityVectors(DebugVizState state)
+	{
+		if (!state.ShowDensityVectors || !state.HasInnerOuter)
+		{
+			return;
+		}
+
+		int count = Mathf.Clamp(state.DensityVectorCount, 4, 96);
+		float sampleRadius = Mathf.Lerp(state.InnerRadius, state.OuterRadius, 0.72f);
+		if (sampleRadius <= 0f)
+		{
+			return;
+		}
+
+		float t = Mathf.Clamp((sampleRadius - state.InnerRadius) / Mathf.Max(ResolveEps, state.OuterRadius - state.InnerRadius), 0f, 1f);
+		float strength = Mathf.Max(0.15f, EvaluateDensityStrengthAtT(t, state));
+		float length = Mathf.Max(state.OuterRadius * 0.08f, state.DensityVectorScale * Mathf.Lerp(0.3f, 1.0f, strength));
+		float head = Mathf.Clamp(length * 0.22f, 0.015f, 0.25f);
+		bool invert = (state.ModeFlags & ModeFlagInvertSign) != 0u;
+		Color vectorColor = new Color(1.0f, 0.45f, 0.2f, 0.95f);
+
+		AddLineSurface(GetLineColorForMode(vectorColor, state), state, () =>
+		{
+			if ((state.Planes & DebugVizPlaneFlags.XY) != 0)
+			{
+				AddVectorRingSet(sampleRadius, count, Vector3.Right, Vector3.Up, Vector3.Forward, invert, length, head);
+			}
+			if ((state.Planes & DebugVizPlaneFlags.XZ) != 0)
+			{
+				AddVectorRingSet(sampleRadius, count, Vector3.Right, Vector3.Forward, Vector3.Up, invert, length, head);
+			}
+			if ((state.Planes & DebugVizPlaneFlags.YZ) != 0)
+			{
+				AddVectorRingSet(sampleRadius, count, Vector3.Up, Vector3.Forward, Vector3.Right, invert, length, head);
+			}
+		});
+	}
+
+	private void AddVectorRingSet(float radius, int count, Vector3 axisA, Vector3 axisB, Vector3 normal, bool invert, float length, float head)
+	{
+		int safeCount = Mathf.Max(4, count);
+		for (int i = 0; i < safeCount; i++)
+		{
+			float angle = Mathf.Tau * i / safeCount;
+			float cos = Mathf.Cos(angle);
+			float sin = Mathf.Sin(angle);
+
+			Vector3 radial = (axisA * cos) + (axisB * sin);
+			if (radial.LengthSquared() < ResolveEps)
+			{
+				continue;
+			}
+
+			radial = radial.Normalized();
+			Vector3 tangent = ((axisA * -sin) + (axisB * cos)).Normalized();
+			Vector3 dir = invert ? radial : -radial;
+
+			Vector3 start = radial * radius + normal * 0.005f;
+			Vector3 tip = start + dir * length;
+			Vector3 wingA = tip - (dir * head) + (tangent * (head * 0.5f));
+			Vector3 wingB = tip - (dir * head) - (tangent * (head * 0.5f));
+
+			AddLine(start, tip);
+			AddLine(tip, wingA);
+			AddLine(tip, wingB);
+		}
+	}
+
+	private float EvaluateDensityStrengthAtT(float t, DebugVizState state)
+	{
+		float u = Mathf.Clamp(t, 0f, 1f);
+		switch (state.CurveType)
+		{
+			case FieldCurveType.Linear:
+				return 1f - u;
+			case FieldCurveType.Power:
+				return Mathf.Pow(Mathf.Max(0f, 1f - u), Mathf.Max(0f, state.CurveA));
+			case FieldCurveType.Polynomial:
+				return Mathf.Clamp(state.CurveA + state.CurveB * u + state.CurveC * u * u, 0f, 1f);
+			case FieldCurveType.Exponential:
+			{
+				float radius = Mathf.Lerp(state.InnerRadius, state.OuterRadius, u);
+				float sigma = state.Sigma > ResolveEps
+					? state.Sigma
+					: (state.CurveA > ResolveEps ? (1f / state.CurveA) : 1f);
+				float x = radius / Mathf.Max(ResolveEps, sigma);
+				return Mathf.Clamp(Mathf.Exp(-(x * x)), 0f, 1f);
+			}
+			default:
+				return 1f - u;
+		}
+	}
+
+	private static Color GetDensityZoneColor(float strength)
+	{
+		float s = Mathf.Clamp(strength, 0f, 1f);
+		Color low = new Color(1.0f, 0.95f, 0.25f, 0.9f);
+		Color high = new Color(1.0f, 0.3f, 0.16f, 0.95f);
+		return low.Lerp(high, s);
 	}
 
 	private void AddLineSurface(Color color, DebugVizState state, Action addGeometry)
@@ -1145,6 +1305,17 @@ public partial class FieldSource3D : Node3D
 		public bool ShowInnerOuter;
 		public bool ShowSigma;
 		public float SigmaRadius;
+		public bool ShowDensityVectors;
+		public int DensityVectorCount;
+		public float DensityVectorScale;
+		public bool ShowDensityZones;
+		public int DensityZoneCount;
+		public uint ModeFlags;
+		public FieldCurveType CurveType;
+		public float CurveA;
+		public float CurveB;
+		public float CurveC;
+		public float Sigma;
 		public DebugVizPlaneFlags Planes;
 		public DebugVizOpacityModeKind OpacityMode;
 		public int Segments;
@@ -1164,6 +1335,17 @@ public partial class FieldSource3D : Node3D
 				&& ShowInnerOuter == other.ShowInnerOuter
 				&& ShowSigma == other.ShowSigma
 				&& Mathf.IsEqualApprox(SigmaRadius, other.SigmaRadius)
+				&& ShowDensityVectors == other.ShowDensityVectors
+				&& DensityVectorCount == other.DensityVectorCount
+				&& Mathf.IsEqualApprox(DensityVectorScale, other.DensityVectorScale)
+				&& ShowDensityZones == other.ShowDensityZones
+				&& DensityZoneCount == other.DensityZoneCount
+				&& ModeFlags == other.ModeFlags
+				&& CurveType == other.CurveType
+				&& Mathf.IsEqualApprox(CurveA, other.CurveA)
+				&& Mathf.IsEqualApprox(CurveB, other.CurveB)
+				&& Mathf.IsEqualApprox(CurveC, other.CurveC)
+				&& Mathf.IsEqualApprox(Sigma, other.Sigma)
 				&& Planes == other.Planes
 				&& OpacityMode == other.OpacityMode
 				&& Segments == other.Segments
