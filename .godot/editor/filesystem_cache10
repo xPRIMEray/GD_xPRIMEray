@@ -1,12 +1,12 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1772321906
+::res://::1772322509
 camera_3d.gd::GDScript::3454241889599487331::1765502409::0::1::::<>Camera3D<><>0<>0<><>::
 CurvedCamera.cs::CSharpScript::5306762016452856891::1771027735::0::1::::CurvedCamera<>Camera3D<><>0<>0<><>::
 curved_ray_postprocess.gdshader::Shader::3282317646427007636::1771364093::0::1::::<><><>0<>0<><>::
 curved_view.gdshader::Shader::464022403874803904::1771364093::0::1::::<><><>0<>0<><>::
 FieldGrid3D.cs::CSharpScript::7908573473413055030::1769106792::0::1::::<><><>0<>0<><>::
 FieldProbe3D.cs::CSharpScript::8721301265289845037::1772318607::0::1::::<>Node3D<><>0<>1<><>::
-FieldSource3D.cs::CSharpScript::1499217976932918695::1772321635::0::1::::<>Node3D<><>0<>1<><>::
+FieldSource3D.cs::CSharpScript::1499217976932918695::1772322418::0::1::::<>Node3D<><>0<>1<><>::
 FilmOverlay2D.cs::CSharpScript::6555086453973335341::1771551102::0::1::::<>TextureRect<><>0<>0<><>::
 film_render_report.md::TextFile::-1::1768615916::0::1::::<><><>0<>0<><>::
 GrinFilmCamera.cs::CSharpScript::4402864534231265276::1772257371::0::1::::<>Node<><>0<>0<><>::
@@ -29,7 +29,7 @@ render_test_log_curved_minimal_smartscale.txt::TextFile::-1::1772129844::0::1:::
 render_test_log_straight.txt::TextFile::-1::1771972517::0::1::::<><><>0<>0<><>::
 render_test_log_straight_overlaycheck.txt::TextFile::-1::1771789655::0::1::::<><><>0<>0<><>::
 render_test_log_straight_smartscale.txt::TextFile::-1::1772129896::0::1::::<><><>0<>0<><>::
-test-curved-minimal.tscn::PackedScene::4698559626906842248::1772321705::0::1::::<><><>0<>0<><>::uid://kdy0vlhssgip::::res://Fixtures/fixture_curved_minimal.tscn<>uid://b3y1shfx51f53::::res://GrinFilmCamera.cs<>uid://dg263rv7q0mtq::::res://RendererCore/Testing/RenderTestRunner.cs<>uid://dg2asfleehqsw::::res://RayBeamRenderer.cs<>uid://c0nlk0rn3oilh::::res://FilmOverlay2D.cs<>uid://dgw61vmfas31o::::res://Fixtures/CurvedMinimalFingerprint.cs
+test-curved-minimal.tscn::PackedScene::4698559626906842248::1772322440::0::1::::<><><>0<>0<><>::uid://kdy0vlhssgip::::res://Fixtures/fixture_curved_minimal.tscn<>uid://b3y1shfx51f53::::res://GrinFilmCamera.cs<>uid://dg263rv7q0mtq::::res://RendererCore/Testing/RenderTestRunner.cs<>uid://dg2asfleehqsw::::res://RayBeamRenderer.cs<>uid://c0nlk0rn3oilh::::res://FilmOverlay2D.cs<>uid://dgw61vmfas31o::::res://Fixtures/CurvedMinimalFingerprint.cs
 test-straight.tscn::PackedScene::6529166919739306382::1771637149::0::1::::<><><>0<>0<><>::uid://b3y1shfx51f53::::res://GrinFilmCamera.cs<>uid://dg263rv7q0mtq::::res://RendererCore/Testing/RenderTestRunner.cs<>uid://dg2asfleehqsw::::res://RayBeamRenderer.cs<>uid://c0nlk0rn3oilh::::res://FilmOverlay2D.cs
 test.tscn::PackedScene::1390766704628193034::1772258821::0::1::::<><><>0<>0<><>::uid://b3y1shfx51f53::::res://GrinFilmCamera.cs<>uid://dg263rv7q0mtq::::res://RendererCore/Testing/RenderTestRunner.cs<>uid://dg2asfleehqsw::::res://RayBeamRenderer.cs<>uid://c0nlk0rn3oilh::::res://FilmOverlay2D.cs
 test_bbNew.tscn::PackedScene::8802620299661285372::1771434982::0::1::::<><><>0<>0<><>::uid://b3y1shfx51f53::::res://GrinFilmCamera.cs<>uid://dg263rv7q0mtq::::res://RendererCore/Testing/RenderTestRunner.cs<>uid://dg2asfleehqsw::::res://RayBeamRenderer.cs<>uid://c0nlk0rn3oilh::::res://FilmOverlay2D.cs
@@ -95,9 +95,9 @@ fig_01_architecture.png::CompressedTexture2D::4119938928718055796::1772217910::1
 C1_0_g_1.md::TextFile::-1::1771820798::0::1::::<><><>0<>0<><>::
 C1_7_g_X.md::TextFile::-1::1772040719::0::1::::<><><>0<>0<><>::
 ::res://Docs/stylesheets/::1772218438
-::res://Fixtures/::1772321895
+::res://Fixtures/::1772322315
 CurvedMinimalFingerprint.cs::CSharpScript::7627741202670024098::1771975659::0::1::::<>Node3D<><>0<>0<><>::
-fixture_curved_minimal.tscn::PackedScene::709584542642539015::1772321895::0::1::::<><><>0<>0<><>::uid://vmh5vusla1nv::::res://FieldSource3D.cs
+fixture_curved_minimal.tscn::PackedScene::709584542642539015::1772322315::0::1::::<><><>0<>0<><>::uid://vmh5vusla1nv::::res://FieldSource3D.cs
 ::res://GodotAdapter/::1770435036
 README.md::TextFile::-1::1770434268::0::1::::<><><>0<>0<><>::
 SnapshotBuilder.cs::CSharpScript::907470010122517097::1772257363::0::1::::<><><>0<>0<><>::

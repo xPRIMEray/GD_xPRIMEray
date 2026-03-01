@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 using RendererCore.Fields;
 
 /// <summary>
@@ -114,8 +115,16 @@ public partial class FieldSource3D : Node3D
 	[Export] public bool DebugVizShowInnerOuter { get; set; } = true;
 	[Export] public bool DebugVizShowSigma { get; set; } = false;
 	[Export] public bool DebugVizShowDensityVectors { get; set; } = false;
+	[Export(PropertyHint.Range, "2,16,1")] public int DebugVizDensityVectorLayers { get; set; } = 6;
 	[Export(PropertyHint.Range, "4,96,1")] public int DebugVizDensityVectorCount { get; set; } = 16;
 	[Export(PropertyHint.Range, "0.05,5.0,0.01")] public float DebugVizDensityVectorScale { get; set; } = 0.75f;
+	[Export(PropertyHint.Range, "0.01,2.0,0.01")] public float DebugVizDensityArrowMinLength { get; set; } = 0.12f;
+	[Export(PropertyHint.Range, "0.01,4.0,0.01")] public float DebugVizDensityArrowMaxLength { get; set; } = 0.45f;
+	[Export(PropertyHint.Range, "0.005,1.0,0.005")] public float DebugVizDensityArrowMinHeadSize { get; set; } = 0.03f;
+	[Export(PropertyHint.Range, "0.005,2.0,0.005")] public float DebugVizDensityArrowMaxHeadSize { get; set; } = 0.16f;
+	[Export(PropertyHint.Range, "1,6,1")] public int DebugVizDensityArrowMinThicknessBands { get; set; } = 1;
+	[Export(PropertyHint.Range, "1,10,1")] public int DebugVizDensityArrowMaxThicknessBands { get; set; } = 4;
+	[Export(PropertyHint.Range, "0.2,3.0,0.05")] public float DebugVizDensityArrowThicknessIntensity { get; set; } = 1.0f;
 	[Export] public bool DebugVizShowDensityZones { get; set; } = false;
 	[Export(PropertyHint.Range, "2,6,1")] public int DebugVizDensityZoneCount { get; set; } = 3;
 	[Export(PropertyHint.Range, "8,256,1")] public int DebugVizRingSegments { get; set; } = 64;
@@ -779,8 +788,31 @@ public partial class FieldSource3D : Node3D
 
 		DebugVizRingSegments = Mathf.Max(8, DebugVizRingSegments);
 		DebugVizLineWidth = Mathf.Max(0.25f, DebugVizLineWidth);
+		DebugVizDensityVectorLayers = Mathf.Clamp(DebugVizDensityVectorLayers, 2, 16);
 		DebugVizDensityVectorCount = Mathf.Clamp(DebugVizDensityVectorCount, 4, 96);
 		DebugVizDensityVectorScale = Mathf.Max(0.05f, DebugVizDensityVectorScale);
+		DebugVizDensityArrowMinLength = Mathf.Max(0.01f, DebugVizDensityArrowMinLength);
+		DebugVizDensityArrowMaxLength = Mathf.Max(0.01f, DebugVizDensityArrowMaxLength);
+		if (DebugVizDensityArrowMaxLength < DebugVizDensityArrowMinLength)
+		{
+			DebugVizDensityArrowMaxLength = DebugVizDensityArrowMinLength;
+		}
+
+		DebugVizDensityArrowMinHeadSize = Mathf.Max(0.005f, DebugVizDensityArrowMinHeadSize);
+		DebugVizDensityArrowMaxHeadSize = Mathf.Max(0.005f, DebugVizDensityArrowMaxHeadSize);
+		if (DebugVizDensityArrowMaxHeadSize < DebugVizDensityArrowMinHeadSize)
+		{
+			DebugVizDensityArrowMaxHeadSize = DebugVizDensityArrowMinHeadSize;
+		}
+
+		DebugVizDensityArrowMinThicknessBands = Mathf.Clamp(DebugVizDensityArrowMinThicknessBands, 1, 6);
+		DebugVizDensityArrowMaxThicknessBands = Mathf.Clamp(DebugVizDensityArrowMaxThicknessBands, 1, 10);
+		if (DebugVizDensityArrowMaxThicknessBands < DebugVizDensityArrowMinThicknessBands)
+		{
+			DebugVizDensityArrowMaxThicknessBands = DebugVizDensityArrowMinThicknessBands;
+		}
+
+		DebugVizDensityArrowThicknessIntensity = Mathf.Clamp(DebugVizDensityArrowThicknessIntensity, 0.2f, 3.0f);
 		DebugVizDensityZoneCount = Mathf.Clamp(DebugVizDensityZoneCount, 2, 6);
 		_debugVizPlanes &= (int)DebugVizPlaneFlags.All;
 		Softening = Mathf.Max(0f, Softening);
@@ -818,8 +850,16 @@ public partial class FieldSource3D : Node3D
 			ShowSigma = DebugVizShowSigma && resolved.sigma > 0f,
 			SigmaRadius = Mathf.Max(0f, resolved.sigma),
 			ShowDensityVectors = DebugVizShowDensityVectors && hasInnerOuter,
+			DensityVectorLayers = DebugVizDensityVectorLayers,
 			DensityVectorCount = DebugVizDensityVectorCount,
 			DensityVectorScale = DebugVizDensityVectorScale,
+			DensityArrowMinLength = DebugVizDensityArrowMinLength,
+			DensityArrowMaxLength = DebugVizDensityArrowMaxLength,
+			DensityArrowMinHeadSize = DebugVizDensityArrowMinHeadSize,
+			DensityArrowMaxHeadSize = DebugVizDensityArrowMaxHeadSize,
+			DensityArrowMinThicknessBands = DebugVizDensityArrowMinThicknessBands,
+			DensityArrowMaxThicknessBands = DebugVizDensityArrowMaxThicknessBands,
+			DensityArrowThicknessIntensity = DebugVizDensityArrowThicknessIntensity,
 			ShowDensityZones = DebugVizShowDensityZones && hasInnerOuter,
 			DensityZoneCount = DebugVizDensityZoneCount,
 			ModeFlags = resolved.modeFlags,
@@ -1033,37 +1073,87 @@ public partial class FieldSource3D : Node3D
 		}
 
 		int count = Mathf.Clamp(state.DensityVectorCount, 4, 96);
-		float sampleRadius = Mathf.Lerp(state.InnerRadius, state.OuterRadius, 0.72f);
-		if (sampleRadius <= 0f)
+		DensityRingSample[] rings = BuildDensityVectorRingSamples(state);
+		if (rings.Length == 0)
 		{
 			return;
 		}
 
-		float t = Mathf.Clamp((sampleRadius - state.InnerRadius) / Mathf.Max(ResolveEps, state.OuterRadius - state.InnerRadius), 0f, 1f);
-		float strength = Mathf.Max(0.15f, EvaluateDensityStrengthAtT(t, state));
-		float length = Mathf.Max(state.OuterRadius * 0.08f, state.DensityVectorScale * Mathf.Lerp(0.3f, 1.0f, strength));
-		float head = Mathf.Clamp(length * 0.22f, 0.015f, 0.25f);
 		bool invert = (state.ModeFlags & ModeFlagInvertSign) != 0u;
 		Color vectorColor = new Color(1.0f, 0.45f, 0.2f, 0.95f);
 
 		AddLineSurface(GetLineColorForMode(vectorColor, state), state, () =>
 		{
-			if ((state.Planes & DebugVizPlaneFlags.XY) != 0)
+			for (int r = 0; r < rings.Length; r++)
 			{
-				AddVectorRingSet(sampleRadius, count, Vector3.Right, Vector3.Up, Vector3.Forward, invert, length, head);
-			}
-			if ((state.Planes & DebugVizPlaneFlags.XZ) != 0)
-			{
-				AddVectorRingSet(sampleRadius, count, Vector3.Right, Vector3.Forward, Vector3.Up, invert, length, head);
-			}
-			if ((state.Planes & DebugVizPlaneFlags.YZ) != 0)
-			{
-				AddVectorRingSet(sampleRadius, count, Vector3.Up, Vector3.Forward, Vector3.Right, invert, length, head);
+				DensityRingSample ring = rings[r];
+				float sizeT = Mathf.Clamp(ring.Strength, 0f, 1f);
+				float thicknessT = Mathf.Clamp(Mathf.Pow(sizeT, state.DensityArrowThicknessIntensity), 0f, 1f);
+				float length = Mathf.Lerp(state.DensityArrowMinLength, state.DensityArrowMaxLength, sizeT) * state.DensityVectorScale;
+				float head = Mathf.Lerp(state.DensityArrowMinHeadSize, state.DensityArrowMaxHeadSize, sizeT);
+				int strokeBands = Mathf.Clamp(
+					Mathf.RoundToInt(Mathf.Lerp(state.DensityArrowMinThicknessBands, state.DensityArrowMaxThicknessBands, thicknessT)),
+					1,
+					10);
+				float strokeOffset = Mathf.Max(
+					0.0015f,
+					0.0025f * state.LineWidth * Mathf.Lerp(0.4f, 2.0f, thicknessT));
+
+				if ((state.Planes & DebugVizPlaneFlags.XY) != 0)
+				{
+					AddVectorRingSet(ring.Radius, count, Vector3.Right, Vector3.Up, Vector3.Forward, invert, length, head, strokeBands, strokeOffset);
+				}
+				if ((state.Planes & DebugVizPlaneFlags.XZ) != 0)
+				{
+					AddVectorRingSet(ring.Radius, count, Vector3.Right, Vector3.Forward, Vector3.Up, invert, length, head, strokeBands, strokeOffset);
+				}
+				if ((state.Planes & DebugVizPlaneFlags.YZ) != 0)
+				{
+					AddVectorRingSet(ring.Radius, count, Vector3.Up, Vector3.Forward, Vector3.Right, invert, length, head, strokeBands, strokeOffset);
+				}
 			}
 		});
 	}
 
-	private void AddVectorRingSet(float radius, int count, Vector3 axisA, Vector3 axisB, Vector3 normal, bool invert, float length, float head)
+	private DensityRingSample[] BuildDensityVectorRingSamples(DebugVizState state)
+	{
+		float inner = Mathf.Max(0f, state.InnerRadius);
+		float outer = Mathf.Max(inner, state.OuterRadius);
+		if (outer <= ResolveEps)
+		{
+			return Array.Empty<DensityRingSample>();
+		}
+
+		int layers = Mathf.Clamp(state.DensityVectorLayers, 2, 16);
+		if (Mathf.IsEqualApprox(inner, outer))
+		{
+			float clampedStrength = Mathf.Max(0.15f, EvaluateDensityStrengthAtT(1f, state));
+			return new DensityRingSample[] { new DensityRingSample(outer, clampedStrength) };
+		}
+
+		var samples = new List<DensityRingSample>(layers);
+		for (int i = 0; i < layers; i++)
+		{
+			float t = layers == 1 ? 1f : (float)i / (layers - 1);
+			float radius = Mathf.Lerp(inner, outer, t);
+			float strength = Mathf.Max(0.15f, EvaluateDensityStrengthAtT(t, state));
+			samples.Add(new DensityRingSample(radius, strength));
+		}
+
+		return samples.ToArray();
+	}
+
+	private void AddVectorRingSet(
+		float radius,
+		int count,
+		Vector3 axisA,
+		Vector3 axisB,
+		Vector3 normal,
+		bool invert,
+		float length,
+		float head,
+		int strokeBands,
+		float strokeOffset)
 	{
 		int safeCount = Mathf.Max(4, count);
 		for (int i = 0; i < safeCount; i++)
@@ -1087,10 +1177,45 @@ public partial class FieldSource3D : Node3D
 			Vector3 wingA = tip - (dir * head) + (tangent * (head * 0.5f));
 			Vector3 wingB = tip - (dir * head) - (tangent * (head * 0.5f));
 
-			AddLine(start, tip);
-			AddLine(tip, wingA);
-			AddLine(tip, wingB);
+			AddWeightedVectorGlyph(start, tip, wingA, wingB, tangent, normal, strokeBands, strokeOffset);
 		}
+	}
+
+	private void AddWeightedVectorGlyph(
+		Vector3 start,
+		Vector3 tip,
+		Vector3 wingA,
+		Vector3 wingB,
+		Vector3 tangent,
+		Vector3 normal,
+		int strokeBands,
+		float strokeOffset)
+	{
+		AddVectorGlyph(start, tip, wingA, wingB);
+
+		int safeBands = Mathf.Clamp(strokeBands, 1, 10);
+		for (int band = 1; band < safeBands; band++)
+		{
+			float offsetMag = strokeOffset * band;
+			Vector3 tangentOffset = tangent * offsetMag;
+			Vector3 normalOffset = normal * (offsetMag * 0.7f);
+
+			AddVectorGlyph(start + tangentOffset, tip + tangentOffset, wingA + tangentOffset, wingB + tangentOffset);
+			AddVectorGlyph(start - tangentOffset, tip - tangentOffset, wingA - tangentOffset, wingB - tangentOffset);
+
+			if (band >= 2)
+			{
+				AddVectorGlyph(start + normalOffset, tip + normalOffset, wingA + normalOffset, wingB + normalOffset);
+				AddVectorGlyph(start - normalOffset, tip - normalOffset, wingA - normalOffset, wingB - normalOffset);
+			}
+		}
+	}
+
+	private void AddVectorGlyph(Vector3 start, Vector3 tip, Vector3 wingA, Vector3 wingB)
+	{
+		AddLine(start, tip);
+		AddLine(tip, wingA);
+		AddLine(tip, wingB);
 	}
 
 	private float EvaluateDensityStrengthAtT(float t, DebugVizState state)
@@ -1124,6 +1249,18 @@ public partial class FieldSource3D : Node3D
 		Color low = new Color(1.0f, 0.95f, 0.25f, 0.9f);
 		Color high = new Color(1.0f, 0.3f, 0.16f, 0.95f);
 		return low.Lerp(high, s);
+	}
+
+	private readonly struct DensityRingSample
+	{
+		public readonly float Radius;
+		public readonly float Strength;
+
+		public DensityRingSample(float radius, float strength)
+		{
+			Radius = radius;
+			Strength = strength;
+		}
 	}
 
 	private void AddLineSurface(Color color, DebugVizState state, Action addGeometry)
@@ -1306,8 +1443,16 @@ public partial class FieldSource3D : Node3D
 		public bool ShowSigma;
 		public float SigmaRadius;
 		public bool ShowDensityVectors;
+		public int DensityVectorLayers;
 		public int DensityVectorCount;
 		public float DensityVectorScale;
+		public float DensityArrowMinLength;
+		public float DensityArrowMaxLength;
+		public float DensityArrowMinHeadSize;
+		public float DensityArrowMaxHeadSize;
+		public int DensityArrowMinThicknessBands;
+		public int DensityArrowMaxThicknessBands;
+		public float DensityArrowThicknessIntensity;
 		public bool ShowDensityZones;
 		public int DensityZoneCount;
 		public uint ModeFlags;
@@ -1336,8 +1481,16 @@ public partial class FieldSource3D : Node3D
 				&& ShowSigma == other.ShowSigma
 				&& Mathf.IsEqualApprox(SigmaRadius, other.SigmaRadius)
 				&& ShowDensityVectors == other.ShowDensityVectors
+				&& DensityVectorLayers == other.DensityVectorLayers
 				&& DensityVectorCount == other.DensityVectorCount
 				&& Mathf.IsEqualApprox(DensityVectorScale, other.DensityVectorScale)
+				&& Mathf.IsEqualApprox(DensityArrowMinLength, other.DensityArrowMinLength)
+				&& Mathf.IsEqualApprox(DensityArrowMaxLength, other.DensityArrowMaxLength)
+				&& Mathf.IsEqualApprox(DensityArrowMinHeadSize, other.DensityArrowMinHeadSize)
+				&& Mathf.IsEqualApprox(DensityArrowMaxHeadSize, other.DensityArrowMaxHeadSize)
+				&& DensityArrowMinThicknessBands == other.DensityArrowMinThicknessBands
+				&& DensityArrowMaxThicknessBands == other.DensityArrowMaxThicknessBands
+				&& Mathf.IsEqualApprox(DensityArrowThicknessIntensity, other.DensityArrowThicknessIntensity)
 				&& ShowDensityZones == other.ShowDensityZones
 				&& DensityZoneCount == other.DensityZoneCount
 				&& ModeFlags == other.ModeFlags

@@ -1,5 +1,3 @@
-res://Fixtures/fixture_curved_minimal.tscn
-res://test-curved-minimal.tscn
 res://addons/fieldsource_gizmo/FieldSourceNodeGizmo.cs
 res://Fixtures/CurvedMinimalFingerprint.cs
 res://addons/grin_inspector_help/GrinInspectorHelpInspector.cs
@@ -15,3 +13,4 @@ res://FilmOverlay2D.cs
 res://FieldSource3D.cs
 res://RendererCore/Testing/RenderTestRunner.cs
 res://addons/fieldsource_gizmo/FieldSourceGizmoPlugin.cs
+res://Fixtures/fixture_curved_minimal.tscn
