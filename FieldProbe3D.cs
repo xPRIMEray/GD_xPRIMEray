@@ -8,6 +8,7 @@ using GdVector2 = Godot.Vector2;
 /// <summary>
 /// Academic baseline: uses FieldSource3D canonical params first; legacy only via FieldSource3D shim.
 /// Integrated field probe for debug sampling and optional unified source-ring visualization.
+/// PR: Academic canonical radial model: u-clamped shell with profile f(u).
 /// </summary>
 [Tool]
 public partial class FieldProbe3D : Node3D
@@ -47,6 +48,7 @@ public partial class FieldProbe3D : Node3D
 	[Export] public bool InGame { get; set; } = false;
 	[Export] public bool ShowInnerOuter { get; set; } = true;
 	[Export] public bool ShowSigma { get; set; } = false;
+	[Export] public bool UsePartialOpacityRings { get; set; } = true;
 	[Export(PropertyHint.Range, "0.0,1.0,0.01")] public float GlobalOpacity { get; set; } = 1.0f;
 	[Export] public Color DebugVizColorInner { get; set; } = new Color(0.1f, 0.9f, 0.9f, 1.0f);
 	[Export] public Color DebugVizColorOuter { get; set; } = new Color(0.15f, 0.95f, 0.35f, 1.0f);
@@ -72,9 +74,11 @@ public partial class FieldProbe3D : Node3D
 	private bool _hasSample;
 
 	private float _lastIntegratedMagnitude;
+	private Vector3 _lastIntegratedAcceleration;
 	private Vector3 _lastGradient;
 	private int _lastSourceCount;
 	private float _lastNearestSourceDistance;
+	private ProbeOverlayTerm _lastOverlayTerm;
 
 	public override void _Ready()
 	{
@@ -176,6 +180,42 @@ public partial class FieldProbe3D : Node3D
 		}
 	}
 
+	private void ResolveGlobalBetaGamma(out float beta, out float gamma)
+	{
+		beta = 0f;
+		gamma = 2f;
+		Viewport viewport = GetViewport();
+		if (viewport == null)
+		{
+			return;
+		}
+
+		Camera3D camera = viewport.GetCamera3D();
+		if (camera == null || !IsInstanceValid(camera))
+		{
+			return;
+		}
+
+		beta = ReadFloat(camera, "Beta", 0f);
+		gamma = ReadFloat(camera, "Gamma", 2f);
+	}
+
+	private static float ReadFloat(Node obj, StringName prop, float fallback)
+	{
+		if (obj == null)
+		{
+			return fallback;
+		}
+
+		Variant value = obj.Get(prop);
+		return value.VariantType switch
+		{
+			Variant.Type.Float => (float)value,
+			Variant.Type.Int => (int)value,
+			_ => fallback
+		};
+	}
+
 	private void SampleIntegratedField()
 	{
 		if (_sourceCache.Count == 0)
@@ -183,12 +223,15 @@ public partial class FieldProbe3D : Node3D
 			RefreshSourceCache();
 		}
 
+		ResolveGlobalBetaGamma(out float globalBeta, out float globalGamma);
 		Vector3 p = GlobalPosition;
-		ScalarSample sample = EvaluateScalarAt(p);
-		_lastIntegratedMagnitude = sample.Scalar;
+		ScalarSample sample = EvaluateScalarAt(p, globalBeta, globalGamma, captureOverlayTerm: true);
+		_lastIntegratedAcceleration = sample.Acceleration;
+		_lastIntegratedMagnitude = _lastIntegratedAcceleration.Length();
 		_lastSourceCount = sample.ConsideredSources;
 		_lastNearestSourceDistance = sample.NearestDistance;
-		_lastGradient = EvaluateGradientProxy(p);
+		_lastOverlayTerm = sample.OverlayTerm;
+		_lastGradient = EvaluateGradientProxy(p, globalBeta, globalGamma);
 		LastIntegratedMagnitude = _lastIntegratedMagnitude;
 		LastSourceCount = _lastSourceCount;
 		LastNearestSourceDistance = _lastNearestSourceDistance;
@@ -197,19 +240,19 @@ public partial class FieldProbe3D : Node3D
 		_hasSample = true;
 	}
 
-	private Vector3 EvaluateGradientProxy(Vector3 p)
+	private Vector3 EvaluateGradientProxy(Vector3 p, float globalBeta, float globalGamma)
 	{
 		float h = Mathf.Max(0.001f, FiniteDifferenceStep);
 		Vector3 hx = new Vector3(h, 0f, 0f);
 		Vector3 hy = new Vector3(0f, h, 0f);
 		Vector3 hz = new Vector3(0f, 0f, h);
 
-		float fxp = EvaluateScalarAt(p + hx).Scalar;
-		float fxn = EvaluateScalarAt(p - hx).Scalar;
-		float fyp = EvaluateScalarAt(p + hy).Scalar;
-		float fyn = EvaluateScalarAt(p - hy).Scalar;
-		float fzp = EvaluateScalarAt(p + hz).Scalar;
-		float fzn = EvaluateScalarAt(p - hz).Scalar;
+		float fxp = EvaluateScalarAt(p + hx, globalBeta, globalGamma, captureOverlayTerm: false).Scalar;
+		float fxn = EvaluateScalarAt(p - hx, globalBeta, globalGamma, captureOverlayTerm: false).Scalar;
+		float fyp = EvaluateScalarAt(p + hy, globalBeta, globalGamma, captureOverlayTerm: false).Scalar;
+		float fyn = EvaluateScalarAt(p - hy, globalBeta, globalGamma, captureOverlayTerm: false).Scalar;
+		float fzp = EvaluateScalarAt(p + hz, globalBeta, globalGamma, captureOverlayTerm: false).Scalar;
+		float fzn = EvaluateScalarAt(p - hz, globalBeta, globalGamma, captureOverlayTerm: false).Scalar;
 
 		float inv2h = 1f / (2f * h);
 		return new Vector3(
@@ -218,16 +261,19 @@ public partial class FieldProbe3D : Node3D
 			(fzp - fzn) * inv2h);
 	}
 
-	private ScalarSample EvaluateScalarAt(Vector3 samplePosition)
+	private ScalarSample EvaluateScalarAt(Vector3 samplePosition, float globalBeta, float globalGamma, bool captureOverlayTerm)
 	{
+		_ = globalGamma;
 		if (_sourceCache.Count == 0)
 		{
 			return ScalarSample.Empty;
 		}
 
-		float sum = 0f;
+		Vector3 accelSum = Vector3.Zero;
 		int considered = 0;
 		float nearest = float.PositiveInfinity;
+		ProbeOverlayTerm strongestTerm = ProbeOverlayTerm.Empty;
+		float strongestAccel = 0f;
 
 		foreach (FieldSource3D source in _sourceCache)
 		{
@@ -238,34 +284,56 @@ public partial class FieldProbe3D : Node3D
 
 			try
 			{
-				FieldSource3D.ResolvedFieldParams resolved = source.ResolveEffectiveParams(out _);
-				if (!resolved.enabled)
+				RayBeamRenderer.FieldSourceSnap snap = RayBeamRenderer.BuildFieldSourceSnap(source);
+				if (!snap.Enabled)
 				{
 					continue;
 				}
 
-				if (!source.ResolveAcademicRadii(out float rInner, out float rOuter, out _))
-				{
-					continue;
-				}
-
-				rInner = Mathf.Max(0f, Mathf.Min(rInner, rOuter));
-				rOuter = Mathf.Max(rInner, rOuter);
-				if (rOuter <= Epsilon)
-				{
-					continue;
-				}
-
-				float r = samplePosition.DistanceTo(source.GlobalPosition);
-				if (r > rOuter)
-				{
-					continue;
-				}
+				float r = samplePosition.DistanceTo(snap.Center);
 
 				considered++;
 				nearest = Mathf.Min(nearest, r);
-				float falloff = ComputeAcademicFalloff(resolved, r, rInner, rOuter);
-				sum += Mathf.Abs(resolved.amp) * falloff;
+
+				FieldMath.EvalResult eval = FieldMath.EvalFieldAccel(
+					samplePosition,
+					snap.Center,
+					snap.CurveType,
+					snap.RInner,
+					snap.ROuter,
+					snap.Amp,
+					snap.CurveA,
+					snap.Sigma,
+					snap.CurveA,
+					snap.CurveB,
+					snap.CurveC,
+					snap.CustomCurve,
+					snap.ModeFlags,
+					globalBeta,
+					snap.OverrideBetaScale,
+					snap.BetaScale,
+					snap.EdgeSoftness);
+
+				accelSum += eval.Acceleration;
+
+				float accelMag = eval.AccelerationMagnitude;
+				if (captureOverlayTerm && accelMag >= strongestAccel)
+				{
+					strongestAccel = accelMag;
+					strongestTerm = new ProbeOverlayTerm
+					{
+						Valid = true,
+						SourceName = source.Name.ToString(),
+						R = eval.R,
+						U = eval.U,
+						Profile = eval.ProfileWithEdge,
+						BetaEff = eval.BetaEff,
+						Gamma = eval.Gamma,
+						Sigma = eval.Sigma,
+						FinalMag = eval.Magnitude,
+						AccelerationMagnitude = accelMag
+					};
+				}
 			}
 			catch
 			{
@@ -280,45 +348,12 @@ public partial class FieldProbe3D : Node3D
 
 		return new ScalarSample
 		{
-			Scalar = Mathf.Max(0f, sum),
+			Scalar = accelSum.Length(),
+			Acceleration = accelSum,
 			ConsideredSources = considered,
-			NearestDistance = nearest
+			NearestDistance = nearest,
+			OverlayTerm = strongestTerm
 		};
-	}
-
-	private float ComputeAcademicFalloff(FieldSource3D.ResolvedFieldParams resolved, float r, float rInner, float rOuter)
-	{
-		float span = Mathf.Max(Epsilon, rOuter - rInner);
-		float t = Mathf.Clamp((r - rInner) / span, 0f, 1f);
-
-		switch (resolved.curveType)
-		{
-			case FieldCurveType.Linear:
-				return 1f - t;
-
-			case FieldCurveType.Power:
-			{
-				float a = Mathf.Max(0f, resolved.a);
-				return Mathf.Pow(Mathf.Max(0f, 1f - t), a);
-			}
-
-			case FieldCurveType.Exponential:
-			{
-				float sigma = resolved.sigma > Epsilon
-					? resolved.sigma
-					: (resolved.a > Epsilon ? 1f / resolved.a : 1f);
-				sigma = Mathf.Max(Epsilon, sigma);
-				float x = r / sigma;
-				return Mathf.Exp(-(x * x));
-			}
-
-			case FieldCurveType.Polynomial:
-			default:
-			{
-				float a = Mathf.Max(0f, resolved.a);
-				return Mathf.Pow(Mathf.Max(0f, 1f - t), a);
-			}
-		}
 	}
 
 	private void UpdateDebugViz()
@@ -378,20 +413,15 @@ public partial class FieldProbe3D : Node3D
 
 			try
 			{
-				FieldSource3D.ResolvedFieldParams resolved = source.ResolveEffectiveParams(out _);
-				if (!resolved.enabled)
+				RayBeamRenderer.FieldSourceSnap snap = RayBeamRenderer.BuildFieldSourceSnap(source);
+				if (!snap.Enabled)
 				{
 					continue;
 				}
 
-				Vector3 sourcePos = source.GlobalPosition;
+				Vector3 sourcePos = snap.Center;
 				float dist = GlobalPosition.DistanceTo(sourcePos);
 				if (SourceFilterRadius > Epsilon && dist > SourceFilterRadius)
-				{
-					continue;
-				}
-
-				if (!source.ResolveAcademicRadii(out float inner, out float outer, out _))
 				{
 					continue;
 				}
@@ -408,10 +438,10 @@ public partial class FieldProbe3D : Node3D
 					AxisY = axisY,
 					AxisZ = axisZ,
 					HasInnerOuter = true,
-					InnerRadius = Mathf.Max(0f, Mathf.Min(inner, outer)),
-					OuterRadius = Mathf.Max(0f, Mathf.Max(inner, outer)),
-					HasSigma = ShowSigma && resolved.sigma > Epsilon,
-					SigmaRadius = Mathf.Max(0f, resolved.sigma)
+					InnerRadius = Mathf.Max(0f, Mathf.Min(snap.RInner, snap.ROuter)),
+					OuterRadius = Mathf.Max(0f, Mathf.Max(snap.RInner, snap.ROuter)),
+					HasSigma = ShowSigma && FieldMath.IsSigmaMeaningful(snap.CurveType) && snap.Sigma > Epsilon,
+					SigmaRadius = Mathf.Max(0f, snap.Sigma)
 				});
 			}
 			catch
@@ -465,6 +495,7 @@ public partial class FieldProbe3D : Node3D
 		hash.Add(InGame);
 		hash.Add(ShowInnerOuter);
 		hash.Add(ShowSigma);
+		hash.Add(UsePartialOpacityRings);
 		hash.Add(Mathf.Clamp(GlobalOpacity, 0f, 1f));
 		hash.Add(Quantize(GlobalPosition.X));
 		hash.Add(Quantize(GlobalPosition.Y));
@@ -532,7 +563,7 @@ public partial class FieldProbe3D : Node3D
 		_debugMesh.ClearSurfaces();
 
 		float markerSize = Mathf.Max(0.025f, 0.05f * Mathf.Max(0.25f, LineWidth));
-		Color markerColor = new Color(0.95f, 0.95f, 0.95f, ApplyOpacityModeAlpha(1f));
+		Color markerColor = new Color(0.95f, 0.95f, 0.95f, ApplyLineOpacityAlpha(1f));
 		AddLineSurface(markerColor, () =>
 		{
 			AddLine(Vector3.Left * markerSize, Vector3.Right * markerSize);
@@ -548,6 +579,19 @@ public partial class FieldProbe3D : Node3D
 		for (int i = 0; i < _currentRingInfos.Count; i++)
 		{
 			SourceRingInfo info = _currentRingInfos[i];
+			if (DebugVizOpacityMode != FieldSource3D.DebugVizOpacityModeKind.Wireframe)
+			{
+				if (ShowInnerOuter && info.HasInnerOuter)
+				{
+					AddFilledRingPlanesForSource(info, info.InnerRadius, DebugVizColorInner);
+					AddFilledRingPlanesForSource(info, info.OuterRadius, DebugVizColorOuter);
+				}
+				if (ShowSigma && info.HasSigma)
+				{
+					AddFilledRingPlanesForSource(info, info.SigmaRadius, DebugVizColorSigma);
+				}
+			}
+
 			if (ShowInnerOuter && info.HasInnerOuter)
 			{
 				AddRingPlanesForSource(info, info.InnerRadius, DebugVizColorInner, dashed: false);
@@ -561,6 +605,33 @@ public partial class FieldProbe3D : Node3D
 		}
 	}
 
+	private void AddFilledRingPlanesForSource(SourceRingInfo info, float radius, Color baseColor)
+	{
+		if (radius <= Epsilon)
+		{
+			return;
+		}
+
+		Color color = ApplyFillOpacity(baseColor);
+		float thickness = Mathf.Max(0.01f, 0.01f * Mathf.Max(0.25f, LineWidth));
+		AddTriangleSurface(color, () =>
+		{
+			FieldSource3D.DebugVizPlaneFlags planeMask = (FieldSource3D.DebugVizPlaneFlags)_debugVizPlanes;
+			if ((planeMask & FieldSource3D.DebugVizPlaneFlags.XY) != 0)
+			{
+				AddFilledRing(info.Center, radius, thickness, Mathf.Max(8, RingSegments), info.AxisX, info.AxisY);
+			}
+			if ((planeMask & FieldSource3D.DebugVizPlaneFlags.XZ) != 0)
+			{
+				AddFilledRing(info.Center, radius, thickness, Mathf.Max(8, RingSegments), info.AxisX, info.AxisZ);
+			}
+			if ((planeMask & FieldSource3D.DebugVizPlaneFlags.YZ) != 0)
+			{
+				AddFilledRing(info.Center, radius, thickness, Mathf.Max(8, RingSegments), info.AxisY, info.AxisZ);
+			}
+		});
+	}
+
 	private void AddRingPlanesForSource(SourceRingInfo info, float radius, Color baseColor, bool dashed)
 	{
 		if (radius <= Epsilon)
@@ -568,7 +639,7 @@ public partial class FieldProbe3D : Node3D
 			return;
 		}
 
-		Color color = ApplyOpacity(baseColor);
+		Color color = ApplyLineOpacity(baseColor);
 		AddLineSurface(color, () =>
 		{
 			FieldSource3D.DebugVizPlaneFlags planeMask = (FieldSource3D.DebugVizPlaneFlags)_debugVizPlanes;
@@ -600,6 +671,33 @@ public partial class FieldProbe3D : Node3D
 		}
 	}
 
+	private void AddFilledRing(Vector3 center, float radius, float thickness, int segments, Vector3 axisA, Vector3 axisB)
+	{
+		int safeSegments = Mathf.Max(8, segments);
+		float halfT = 0.5f * thickness;
+		float inner = Mathf.Max(0.0001f, radius - halfT);
+		float outer = radius + halfT;
+
+		for (int i = 0; i < safeSegments; i++)
+		{
+			float a0 = Mathf.Tau * i / safeSegments;
+			float a1 = Mathf.Tau * (i + 1) / safeSegments;
+
+			Vector3 in0 = center + axisA * (Mathf.Cos(a0) * inner) + axisB * (Mathf.Sin(a0) * inner);
+			Vector3 out0 = center + axisA * (Mathf.Cos(a0) * outer) + axisB * (Mathf.Sin(a0) * outer);
+			Vector3 in1 = center + axisA * (Mathf.Cos(a1) * inner) + axisB * (Mathf.Sin(a1) * inner);
+			Vector3 out1 = center + axisA * (Mathf.Cos(a1) * outer) + axisB * (Mathf.Sin(a1) * outer);
+
+			_debugMesh.SurfaceAddVertex(in0);
+			_debugMesh.SurfaceAddVertex(out0);
+			_debugMesh.SurfaceAddVertex(out1);
+
+			_debugMesh.SurfaceAddVertex(in0);
+			_debugMesh.SurfaceAddVertex(out1);
+			_debugMesh.SurfaceAddVertex(in1);
+		}
+	}
+
 	private void AddLineSurface(Color color, Action emitGeometry)
 	{
 		if (_debugMesh == null)
@@ -613,7 +711,39 @@ public partial class FieldProbe3D : Node3D
 		_debugMesh.SurfaceEnd();
 	}
 
+	private void AddTriangleSurface(Color color, Action emitGeometry)
+	{
+		if (_debugMesh == null)
+		{
+			return;
+		}
+
+		StandardMaterial3D material = CreateFillMaterial(color);
+		_debugMesh.SurfaceBegin(Mesh.PrimitiveType.Triangles, material);
+		emitGeometry();
+		_debugMesh.SurfaceEnd();
+	}
+
 	private StandardMaterial3D CreateLineMaterial(Color color)
+	{
+		var material = new StandardMaterial3D
+		{
+			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+			AlbedoColor = color,
+			NoDepthTest = AlwaysOnTop,
+			RenderPriority = AlwaysOnTop ? 127 : 0,
+			CullMode = BaseMaterial3D.CullModeEnum.Disabled
+		};
+
+		if (color.A < 1f)
+		{
+			material.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
+		}
+
+		return material;
+	}
+
+	private StandardMaterial3D CreateFillMaterial(Color color)
 	{
 		var material = new StandardMaterial3D
 		{
@@ -638,22 +768,40 @@ public partial class FieldProbe3D : Node3D
 		_debugMesh?.SurfaceAddVertex(end);
 	}
 
-	private Color ApplyOpacity(Color baseColor)
+	private Color ApplyLineOpacity(Color baseColor)
 	{
-		float alpha = ApplyOpacityModeAlpha(baseColor.A);
+		float alpha = ApplyLineOpacityAlpha(baseColor.A);
 		return new Color(baseColor.R, baseColor.G, baseColor.B, alpha);
 	}
 
-	private float ApplyOpacityModeAlpha(float baseAlpha)
+	private Color ApplyFillOpacity(Color baseColor)
 	{
-		float clampedGlobal = Mathf.Clamp(GlobalOpacity, 0f, 1f);
+		float alpha = ApplyFillOpacityAlpha(baseColor.A);
+		return new Color(baseColor.R, baseColor.G, baseColor.B, alpha);
+	}
+
+	private float ApplyLineOpacityAlpha(float baseAlpha)
+	{
+		float clampedGlobal = UsePartialOpacityRings ? Mathf.Clamp(GlobalOpacity, 0f, 1f) : 1f;
 		float modeAlpha = DebugVizOpacityMode switch
 		{
 			FieldSource3D.DebugVizOpacityModeKind.Wireframe => 1.0f,
-			FieldSource3D.DebugVizOpacityModeKind.Ghosted => clampedGlobal * 0.35f,
-			_ => clampedGlobal
+			FieldSource3D.DebugVizOpacityModeKind.Ghosted => 0.9f,
+			_ => 1.0f
 		};
-		return Mathf.Clamp(baseAlpha * modeAlpha, 0f, 1f);
+		return Mathf.Clamp(baseAlpha * modeAlpha * clampedGlobal, 0f, 1f);
+	}
+
+	private float ApplyFillOpacityAlpha(float baseAlpha)
+	{
+		float clampedGlobal = UsePartialOpacityRings ? Mathf.Clamp(GlobalOpacity, 0f, 1f) : 1f;
+		float modeAlpha = DebugVizOpacityMode switch
+		{
+			FieldSource3D.DebugVizOpacityModeKind.Ghosted => 0.22f,
+			FieldSource3D.DebugVizOpacityModeKind.Solid => 0.9f,
+			_ => 0f
+		};
+		return Mathf.Clamp(baseAlpha * modeAlpha * clampedGlobal, 0f, 1f);
 	}
 
 	private void AddOverlay()
@@ -671,7 +819,7 @@ public partial class FieldProbe3D : Node3D
 		}
 
 		GdVector2 screenPos = camera.UnprojectPosition(GlobalPosition);
-		Color color = ApplyOpacity(new Color(0.95f, 0.95f, 0.95f, 1f));
+		Color color = ApplyLineOpacity(new Color(0.95f, 0.95f, 0.95f, 1f));
 
 		const float crossHalf = 4f;
 		DebugOverlayBus.AddLine(
@@ -688,9 +836,12 @@ public partial class FieldProbe3D : Node3D
 		string nearestText = _lastNearestSourceDistance >= 0f
 			? $"{_lastNearestSourceDistance:0.###}"
 			: "n/a";
+		string termText = _lastOverlayTerm.Valid
+			? $"r={_lastOverlayTerm.R:0.###} u={_lastOverlayTerm.U:0.###} f(u)={_lastOverlayTerm.Profile:0.###} beta_eff={_lastOverlayTerm.BetaEff:0.###} gamma={_lastOverlayTerm.Gamma:0.###} sigma={_lastOverlayTerm.Sigma:0.###} final_mag={_lastOverlayTerm.FinalMag:0.###} |a|={_lastOverlayTerm.AccelerationMagnitude:0.###}"
+			: "r=n/a u=n/a f(u)=n/a beta_eff=n/a gamma=n/a sigma=n/a final_mag=n/a |a|=n/a";
 		string text =
-			$"probe={ProbeMode} mag={_lastIntegratedMagnitude:0.###} grad={_lastGradient.Length():0.###} " +
-			$"sources={_lastSourceCount} nearest={nearestText}";
+			$"probe={ProbeMode} |a_sum|={_lastIntegratedMagnitude:0.###} grad={_lastGradient.Length():0.###} sources={_lastSourceCount} nearest={nearestText}\n" +
+			$"dominant={_lastOverlayTerm.SourceName} {termText}";
 
 		DebugOverlayBus.AddText(screenPos + new GdVector2(6f, -6f), text, Colors.White);
 	}
@@ -698,14 +849,46 @@ public partial class FieldProbe3D : Node3D
 	private struct ScalarSample
 	{
 		public float Scalar;
+		public Vector3 Acceleration;
 		public int ConsideredSources;
 		public float NearestDistance;
+		public ProbeOverlayTerm OverlayTerm;
 
 		public static ScalarSample Empty => new ScalarSample
 		{
 			Scalar = 0f,
+			Acceleration = Vector3.Zero,
 			ConsideredSources = 0,
-			NearestDistance = -1f
+			NearestDistance = -1f,
+			OverlayTerm = ProbeOverlayTerm.Empty
+		};
+	}
+
+	private struct ProbeOverlayTerm
+	{
+		public bool Valid;
+		public string SourceName;
+		public float R;
+		public float U;
+		public float Profile;
+		public float BetaEff;
+		public float Gamma;
+		public float Sigma;
+		public float FinalMag;
+		public float AccelerationMagnitude;
+
+		public static ProbeOverlayTerm Empty => new ProbeOverlayTerm
+		{
+			Valid = false,
+			SourceName = "n/a",
+			R = 0f,
+			U = 0f,
+			Profile = 0f,
+			BetaEff = 0f,
+			Gamma = 0f,
+			Sigma = 0f,
+			FinalMag = 0f,
+			AccelerationMagnitude = 0f
 		};
 	}
 

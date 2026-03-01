@@ -5,6 +5,7 @@ using RendererCore.Fields;
 
 public partial class RayBeamRenderer : Node3D
 {
+	// PR: Academic canonical radial model: u-clamped shell with profile f(u).
 	// ===== Interaction Map =====
 	// Provides to GrinFilmCamera:
 	// - DebugRayBundle via GetDebugRayBundle() (ray polylines + hit payloads for overlay)
@@ -433,28 +434,21 @@ public partial class RayBeamRenderer : Node3D
 	public struct FieldSourceSnap
 	{
 		public bool Enabled;
-		public bool Attract;
-
 		public Vector3 Center;
-
-		public float Softening;
-		public float MinRadius;
-		public float MaxRadius;
-
-		public bool OverrideGamma;
-		public float Gamma;
-
+		public uint ModeFlags;
+		public FieldShapeType ShapeType;
+		public FieldCurveType CurveType;
+		public float RInner;
+		public float ROuter;
+		public float Amp;
+		public float CurveA;
+		public float CurveB;
+		public float CurveC;
+		public float Sigma;
 		public bool OverrideBetaScale;
 		public float BetaScale;
-
-		public float Strength;
-
-		public int Profile; // FieldSource3D.ProfileType cast to int (0..3)
-		public float Sigma;
-
-		public float InnerRadius;
-		public float OuterRadius;
 		public float EdgeSoftness;
+		public Curve CustomCurve;
 	}
 
 	public readonly struct DebugRayBundle
@@ -1155,6 +1149,7 @@ public partial class RayBeamRenderer : Node3D
 
 	private Vector3 ComputeAccelerationAtPoint(Vector3 p, Godot.Collections.Array<Node> sources, float globalBeta, float globalGamma)
 	{
+		_ = globalGamma;
 		Vector3 aSum = Vector3.Zero;
 
 		// DECISION: accumulate acceleration from each field source node.
@@ -1166,81 +1161,29 @@ public partial class RayBeamRenderer : Node3D
 			// DECISION: skip disabled field sources.
 			if (!snap.Enabled) continue;
 
-			Vector3 rvec = p - snap.Center;
+			FieldMath.EvalResult eval = FieldMath.EvalFieldAccel(
+				p,
+				snap.Center,
+				snap.CurveType,
+				snap.RInner,
+				snap.ROuter,
+				snap.Amp,
+				snap.CurveA,
+				snap.Sigma,
+				snap.CurveA,
+				snap.CurveB,
+				snap.CurveC,
+				snap.CustomCurve,
+				snap.ModeFlags,
+				globalBeta,
+				snap.OverrideBetaScale,
+				snap.BetaScale,
+				snap.EdgeSoftness);
 
-			float rRaw = rvec.Length();
-			float soft = Mathf.Max(0.00001f, snap.Softening);
-			float r = Mathf.Sqrt(rRaw * rRaw + soft * soft);
-
-			// DECISION: honor min/max radius gates.
-			if (snap.MinRadius > 0.0f && r < snap.MinRadius) continue;
-			// DECISION: skip when beyond max radius.
-			if (snap.MaxRadius > 0.0f && r > snap.MaxRadius) continue;
-
-			Vector3 dir = (-rvec / r);
-			// DECISION: repel instead of attract when Attract is false.
-			if (!snap.Attract) dir = -dir;
-
-			// DECISION: apply per-source gamma override when enabled.
-			float gamma = snap.OverrideGamma ? snap.Gamma : globalGamma;
-			// DECISION: apply per-source beta override. When global beta is zero and override is enabled,
-			// use local BetaScale directly so curvature isn't silently disabled by default camera beta.
-			float effectiveBeta = globalBeta;
-			if (snap.OverrideBetaScale)
-			{
-				effectiveBeta = Math.Abs(globalBeta) > 1e-6f
-					? globalBeta * snap.BetaScale
-					: snap.BetaScale;
-			}
-
-			float amp = effectiveBeta * BendScale * FieldStrength * snap.Strength;
-			float mag = 0.0f;
-
-			// DECISION: select field profile model.
-			switch (snap.Profile)
-			{
-				case 0: // DECISION: Power profile
-					mag = amp * FastPow(r, gamma);
-					break;
-
-				case 1: // DECISION: InversePower profile
-					mag = amp / FastPow(r, Mathf.Max(0.0001f, gamma));
-					break;
-
-				case 2: // DECISION: Gaussian profile
-					{
-						float sigma = Mathf.Max(0.0001f, snap.Sigma);
-						float x = r / sigma;
-						mag = amp * Mathf.Exp(-x * x);
-					}
-					break;
-
-				case 3: // DECISION: Shell profile
-					{
-						float inner = Mathf.Max(0.0f, snap.InnerRadius);
-						float outer = Mathf.Max(inner + 0.0001f, snap.OuterRadius);
-						float edge = Mathf.Max(0.0001f, snap.EdgeSoftness);
-
-						float wIn = SmoothStep(inner - edge, inner + edge, r);
-						float wOut = 1.0f - SmoothStep(outer - edge, outer + edge, r);
-						float w = Mathf.Clamp(wIn * wOut, 0.0f, 1.0f);
-
-						mag = amp * w * FastPow(r, gamma);
-					}
-					break;
-			}
-
-			aSum += dir * mag;
+			aSum += eval.Acceleration * BendScale * FieldStrength;
 		}
 
 		return aSum;
-	}
-
-	private static float SmoothStep(float a, float b, float x)
-	{
-		// EFFECT: cubic smooth step in [a,b].
-		float t = Mathf.Clamp((x - a) / (b - a), 0.0f, 1.0f);
-		return t * t * (3.0f - 2.0f * t);
 	}
 
 	[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -2475,51 +2418,24 @@ public partial class RayBeamRenderer : Node3D
 			outer = inner;
 		}
 
-		int profile = 0;
-		float gamma = 1f;
-		float sigma = Mathf.Max(0f, resolved.sigma);
-
-		switch (resolved.curveType)
-		{
-			case FieldCurveType.Linear:
-				profile = 0;
-				gamma = 0f;
-				break;
-			case FieldCurveType.Power:
-				profile = 0;
-				gamma = resolved.a;
-				break;
-			case FieldCurveType.Polynomial:
-				profile = 0;
-				gamma = resolved.a;
-				break;
-			case FieldCurveType.Exponential:
-				profile = 2;
-				if (sigma <= 1e-6f)
-				{
-					sigma = resolved.a > 1e-6f ? (1f / resolved.a) : Mathf.Max(0.0001f, outer);
-				}
-				break;
-		}
-
 		return new FieldSourceSnap
 		{
 			Enabled = resolved.enabled,
-			Attract = (resolved.modeFlags & 1u) == 0u,
 			Center = fs.GlobalPosition,
-			Softening = Mathf.Max(0f, resolved.softening),
-			MinRadius = inner,
-			MaxRadius = outer,
-			OverrideGamma = true,
-			Gamma = gamma,
-			OverrideBetaScale = true,
-			BetaScale = resolved.amp,
-			Strength = 1f,
-			Profile = profile,
-			Sigma = sigma,
-			InnerRadius = inner,
-			OuterRadius = outer,
-			EdgeSoftness = Mathf.Max(0.0001f, fs.EdgeSoftness)
+			ModeFlags = resolved.modeFlags,
+			ShapeType = resolved.shapeType,
+			CurveType = resolved.curveType,
+			RInner = inner,
+			ROuter = outer,
+			Amp = resolved.amp,
+			CurveA = resolved.a,
+			CurveB = resolved.b,
+			CurveC = resolved.c,
+			Sigma = Mathf.Max(0f, resolved.sigma),
+			OverrideBetaScale = resolved.overrideBetaScale,
+			BetaScale = resolved.betaScale,
+			EdgeSoftness = Mathf.Clamp(resolved.edgeSoftness, 0f, 1f),
+			CustomCurve = resolved.customCurve
 		};
 	}
 
@@ -2529,6 +2445,7 @@ public partial class RayBeamRenderer : Node3D
 		float globalBeta, float globalGamma,
 		float bendScale, float fieldStrength)
 	{
+		_ = globalGamma;
 		Vector3 aSum = Vector3.Zero;
 
 		// DECISION: accumulate acceleration from each snapped field source.
@@ -2538,71 +2455,26 @@ public partial class RayBeamRenderer : Node3D
 			// DECISION: skip disabled field sources.
 			if (!fs.Enabled) continue;
 
-			Vector3 rvec = p - fs.Center;
+			FieldMath.EvalResult eval = FieldMath.EvalFieldAccel(
+				p,
+				fs.Center,
+				fs.CurveType,
+				fs.RInner,
+				fs.ROuter,
+				fs.Amp,
+				fs.CurveA,
+				fs.Sigma,
+				fs.CurveA,
+				fs.CurveB,
+				fs.CurveC,
+				fs.CustomCurve,
+				fs.ModeFlags,
+				globalBeta,
+				fs.OverrideBetaScale,
+				fs.BetaScale,
+				fs.EdgeSoftness);
 
-			float rRaw = rvec.Length();
-			float soft = Mathf.Max(0.00001f, fs.Softening);
-			float r = Mathf.Sqrt(rRaw * rRaw + soft * soft);
-
-			// DECISION: honor min/max radius gates.
-			if (fs.MinRadius > 0.0f && r < fs.MinRadius) continue;
-			// DECISION: skip when beyond max radius.
-			if (fs.MaxRadius > 0.0f && r > fs.MaxRadius) continue;
-
-			Vector3 dir = (-rvec / r);
-			// DECISION: repel instead of attract when Attract is false.
-			if (!fs.Attract) dir = -dir;
-
-			// DECISION: apply per-source gamma override when enabled.
-			float gamma = fs.OverrideGamma ? fs.Gamma : globalGamma;
-			// DECISION: apply per-source beta override. When global beta is zero and override is enabled,
-			// use local BetaScale directly so curvature isn't silently disabled by default camera beta.
-			float effectiveBeta = globalBeta;
-			if (fs.OverrideBetaScale)
-			{
-				effectiveBeta = Math.Abs(globalBeta) > 1e-6f
-					? globalBeta * fs.BetaScale
-					: fs.BetaScale;
-			}
-
-			float amp = effectiveBeta * bendScale * fieldStrength * fs.Strength;
-			float mag = 0.0f;
-
-			// DECISION: select field profile model.
-			switch (fs.Profile)
-			{
-				case 0: // DECISION: Power profile
-					mag = amp * FastPow(r, gamma);
-					break;
-
-				case 1: // DECISION: InversePower profile
-					mag = amp / FastPow(r, Mathf.Max(0.0001f, gamma));
-					break;
-
-				case 2: // DECISION: Gaussian profile
-				{
-					float sigma = Mathf.Max(0.0001f, fs.Sigma);
-					float x = r / sigma;
-					mag = amp * Mathf.Exp(-x * x);
-				}
-				break;
-
-				case 3: // DECISION: Shell profile
-				{
-					float inner = Mathf.Max(0.0f, fs.InnerRadius);
-					float outer = Mathf.Max(inner + 0.0001f, fs.OuterRadius);
-					float edge = Mathf.Max(0.0001f, fs.EdgeSoftness);
-
-					float wIn = SmoothStep(inner - edge, inner + edge, r);
-					float wOut = 1.0f - SmoothStep(outer - edge, outer + edge, r);
-					float w = Mathf.Clamp(wIn * wOut, 0.0f, 1.0f);
-
-					mag = amp * w * FastPow(r, gamma);
-				}
-				break;
-			}
-
-			aSum += dir * mag;
+			aSum += eval.Acceleration * bendScale * fieldStrength;
 		}
 
 		return aSum;

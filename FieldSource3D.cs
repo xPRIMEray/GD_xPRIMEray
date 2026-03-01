@@ -6,6 +6,7 @@ using RendererCore.Fields;
 /// <summary>
 /// Authoring node for local field sources plus editor/runtime academic debug visualization.
 /// This node is intentionally debug-heavy and does not modify renderer hot-loop behavior.
+/// PR: Academic canonical radial model: u-clamped shell with profile f(u).
 /// </summary>
 [Tool]
 public partial class FieldSource3D : Node3D
@@ -49,9 +50,13 @@ public partial class FieldSource3D : Node3D
 		public float rOuter;
 		public float softening;
 		public float sigma;
+		public bool overrideBetaScale;
+		public float betaScale;
+		public float edgeSoftness;
+		public Curve customCurve;
 	}
 
-	private const uint ModeFlagInvertSign = 1u << 0;
+	private const uint ModeFlagInvertSign = FieldMath.ModeFlagInvertSign;
 	private const float ResolveEps = 1e-6f;
 
 	[Export] public bool Enabled = true;
@@ -61,6 +66,9 @@ public partial class FieldSource3D : Node3D
 	[Export] public float RInner { get; set; } = 0f;
 	[Export] public float ROuter { get; set; } = 0f;
 	[Export] public float Amp { get; set; } = 0f;
+	[Export] public bool CanonicalOverrideBetaScale { get; set; } = true;
+	[Export] public float CanonicalBetaScale { get; set; } = 0.0010f;
+	[Export(PropertyHint.Range, "0.0,1.0,0.01")] public float CanonicalEdgeSoftness { get; set; } = 0f;
 	[Export] public uint ModeFlags { get; set; } = 0;
 	[Export] public float Softening = 0.05f;
 	[Export] public float Sigma = 5.0f;
@@ -71,9 +79,11 @@ public partial class FieldSource3D : Node3D
 
 	[ExportGroup("Curve")]
 	[Export] public FieldCurveType CurveType { get; set; } = FieldCurveType.Linear;
+	[Export] public float CanonicalGamma { get => CurveA; set => CurveA = value; }
 	[Export] public float CurveA { get; set; } = 0f;
 	[Export] public float CurveB { get; set; } = 0f;
 	[Export] public float CurveC { get; set; } = 0f;
+	[Export] public Curve CustomCurve { get; set; }
 
 	[ExportGroup("Legacy (Deprecated)")]
 	// Deprecated compat. Use Shape/Curve/Amp for new scenes.
@@ -132,6 +142,7 @@ public partial class FieldSource3D : Node3D
 	[Export] public Color DebugVizColorInner { get; set; } = new Color(0.1f, 0.9f, 0.9f, 1.0f);
 	[Export] public Color DebugVizColorOuter { get; set; } = new Color(0.15f, 0.95f, 0.35f, 1.0f);
 	[Export] public Color DebugVizColorSigma { get; set; } = new Color(1.0f, 0.85f, 0.25f, 1.0f);
+	[Export(PropertyHint.Range, "0.0,1.0,0.01")] public float DebugVizGlobalOpacity { get; set; } = 1.0f;
 	[Export] public bool DebugVizAlwaysOnTop { get; set; } = true;
 	[Export] public bool DebugVizInGame { get; set; } = false;
 
@@ -233,8 +244,8 @@ public partial class FieldSource3D : Node3D
 	private bool _debugVizStateValid;
 	private string _debugVizSummary = "inner=n/a outer=n/a source=none";
 	private string _effectiveSummary = "shape=SphereRadial curve=Linear amp=0 a=0 b=0 c=0 r=[0,0] sigma=0 source=canonical";
-	private string _effectiveEquationCore = "core: a_local = sign(metric)*normalize(p_local)*(amp*f(u))";
-	private string _effectiveEquationIntegrated = "integrated: a = dir*(beta_eff*BendScale*FieldStrength)*profile(r)";
+	private string _effectiveEquationCore = "core: u-clamped shell with profile f(u)";
+	private string _effectiveEquationIntegrated = "integrated: a = dir * (beta_eff * amp * f(u))";
 	private int _debugVizPlanes = (int)DebugVizPlaneFlags.All;
 	private bool _usedLegacyMigration;
 	private bool _loggedLegacyMigration;
@@ -295,6 +306,7 @@ public partial class FieldSource3D : Node3D
 			&& Mathf.Abs(CurveC) <= ResolveEps
 			&& Mathf.Abs(RInner) <= ResolveEps
 			&& Mathf.Abs(ROuter) <= ResolveEps
+			&& CustomCurve == null
 			&& ModeFlags == 0u
 			&& ShapeType == FieldShapeType.SphereRadial
 			&& CurveType == FieldCurveType.Linear;
@@ -360,16 +372,8 @@ public partial class FieldSource3D : Node3D
 		ResolvedFieldParams resolved = ResolveEffectiveParams(out string source);
 		float fallbackGamma = float.IsFinite(globalGamma) ? globalGamma : 2f;
 		gamma = resolved.curveType == FieldCurveType.Power ? resolved.a : fallbackGamma;
-
-		if (float.IsFinite(globalBeta) && MathF.Abs(globalBeta) > ResolveEps)
-		{
-			beta = globalBeta * resolved.amp;
-			reasonString = $"globalBeta*amp ({source})";
-			return;
-		}
-
-		beta = resolved.amp;
-		reasonString = $"amp ({source})";
+		beta = FieldMath.ResolveBetaEff(globalBeta, resolved.overrideBetaScale, resolved.betaScale);
+		reasonString = $"beta_eff ({source})";
 	}
 
 	public void GetPackedParams8(out float rInner, out float rOuter, out float amp, out float a, out float b, out float c, out float reserved0, out float reserved1)
@@ -511,6 +515,10 @@ public partial class FieldSource3D : Node3D
 		CurveC = migrated.c;
 		Softening = migrated.softening;
 		Sigma = migrated.sigma;
+		CanonicalOverrideBetaScale = migrated.overrideBetaScale;
+		CanonicalBetaScale = migrated.betaScale;
+		CanonicalEdgeSoftness = migrated.edgeSoftness;
+		CustomCurve = migrated.customCurve;
 		_usedLegacyMigration = true;
 		MaybeLogLegacyMigration(legacyReason);
 	}
@@ -574,7 +582,11 @@ public partial class FieldSource3D : Node3D
 			rInner = inner,
 			rOuter = outer,
 			softening = Mathf.Max(0f, Softening),
-			sigma = Mathf.Max(0f, Sigma)
+			sigma = Mathf.Max(0f, Sigma),
+			overrideBetaScale = CanonicalOverrideBetaScale,
+			betaScale = CanonicalBetaScale,
+			edgeSoftness = Mathf.Clamp(CanonicalEdgeSoftness, 0f, 1f),
+			customCurve = CustomCurve
 		};
 	}
 
@@ -632,7 +644,11 @@ public partial class FieldSource3D : Node3D
 			rInner = inner,
 			rOuter = outer,
 			softening = Mathf.Max(0f, Softening),
-			sigma = Mathf.Max(0f, Sigma)
+			sigma = Mathf.Max(0f, Sigma),
+			overrideBetaScale = OverrideBetaScale,
+			betaScale = BetaScale,
+			edgeSoftness = Mathf.Clamp(EdgeSoftness, 0f, 1f),
+			customCurve = null
 		};
 	}
 
@@ -674,31 +690,52 @@ public partial class FieldSource3D : Node3D
 			|| Mathf.Abs(a.rInner - b.rInner) > 1e-4f
 			|| Mathf.Abs(a.rOuter - b.rOuter) > 1e-4f
 			|| Mathf.Abs(a.softening - b.softening) > 1e-4f
-			|| Mathf.Abs(a.sigma - b.sigma) > 1e-4f;
+			|| Mathf.Abs(a.sigma - b.sigma) > 1e-4f
+			|| a.overrideBetaScale != b.overrideBetaScale
+			|| Mathf.Abs(a.betaScale - b.betaScale) > 1e-4f
+			|| Mathf.Abs(a.edgeSoftness - b.edgeSoftness) > 1e-4f
+			|| a.customCurve != b.customCurve;
 	}
 
 	private string BuildEffectiveSummary(ResolvedFieldParams resolved, string source)
 	{
-		return $"shape={resolved.shapeType} curve={resolved.curveType} amp={resolved.amp:0.###} a={resolved.a:0.###} b={resolved.b:0.###} c={resolved.c:0.###} r=[{resolved.rInner:0.###},{resolved.rOuter:0.###}] sigma={resolved.sigma:0.###} source={source}";
+		string betaMode = resolved.overrideBetaScale
+			? $"override(beta_scale={resolved.betaScale:0.###})"
+			: "global";
+		string curveExtras = resolved.curveType == FieldCurveType.CustomCurve
+			? (resolved.customCurve != null ? "custom=resource" : "custom=fallback_power")
+			: "custom=n/a";
+		return $"shape={resolved.shapeType} curve={resolved.curveType} amp={resolved.amp:0.###} a={resolved.a:0.###} b={resolved.b:0.###} c={resolved.c:0.###} r=[{resolved.rInner:0.###},{resolved.rOuter:0.###}] sigma={resolved.sigma:0.###} edge={resolved.edgeSoftness:0.###} beta={betaMode} {curveExtras} source={source}";
 	}
 
 	private void RefreshEquationPreviews()
 	{
 		ResolvedFieldParams resolved = ResolveEffectiveParams(out string source);
-		string metricSign = MetricModel == MetricModel.GordonMetric ? "-" : "+";
 		string curveCore = BuildCoreCurveEquation(resolved);
+		string betaExpr = resolved.overrideBetaScale
+			? $"(|beta_g|>eps ? beta_g*{resolved.betaScale:0.###} : {resolved.betaScale:0.###})"
+			: "beta_g";
+		string edgeExpr = resolved.edgeSoftness > ResolveEps
+			? $"edge_ramp=smoothstep(0,{resolved.edgeSoftness:0.###},u) * (1-smoothstep({1f - resolved.edgeSoftness:0.###},1,u))"
+			: "edge_ramp=1 (disabled)";
 		EffectiveEquationCore =
 			$"source={source}\n" +
-			"core: r=|p_local|, u=clamp((r-rInner)/max(eps,rOuter-rInner),0,1)\n" +
-			$"f(u)={curveCore}; a_local={metricSign}normalize(p_local)*(amp*f(u))";
+			"r=|p-c|\n" +
+			"u=clamp((r-rInner)/max(eps,rOuter-rInner),0,1)\n" +
+			$"f(u)={curveCore}\n" +
+			$"{edgeExpr}";
 
 		bool invertSign = (resolved.modeFlags & ModeFlagInvertSign) != 0u;
-		string dirExpr = invertSign ? "+rvec/r" : "-rvec/r";
-		string profileExpr = BuildIntegratedProfileEquation(resolved, out float gamma, out float sigma);
+		string dirExpr = invertSign ? "+normalize(p-c)" : "-normalize(p-c)";
+		string sigmaNote = FieldMath.IsSigmaMeaningful(resolved.curveType)
+			? $"sigma={Mathf.Max(ResolveEps, resolved.sigma):0.###} (Gaussian uses exp(-pow(u/max(eps,sigma),2)))"
+			: $"sigma={Mathf.Max(ResolveEps, resolved.sigma):0.###} (unused for {resolved.curveType})";
 		EffectiveEquationIntegrated =
-			"integration: r=sqrt(|p-c|^2+soft^2), beta_eff=(|beta_g|>eps?beta_g*amp:amp)\n" +
-			$"A=beta_eff*BendScale*FieldStrength; dir={dirExpr}\n" +
-			$"profile={profileExpr} (gamma={gamma:0.###}, sigma={sigma:0.###}); a=dir*(A*profile)";
+			$"dir={dirExpr} (ModeFlagInvertSign={(invertSign ? 1 : 0)})\n" +
+			$"beta_eff={betaExpr}\n" +
+			$"mag=beta_eff*amp*f(u)*edge_ramp   (gamma={resolved.a:0.###})\n" +
+			$"{sigmaNote}\n" +
+			"a=dir*mag";
 	}
 
 	private string BuildCoreCurveEquation(ResolvedFieldParams resolved)
@@ -708,36 +745,12 @@ public partial class FieldSource3D : Node3D
 			FieldCurveType.Linear => "1-u",
 			FieldCurveType.Power => $"(1-u)^{resolved.a:0.###}",
 			FieldCurveType.Polynomial => $"{resolved.a:0.###}+({resolved.b:0.###}*u)+({resolved.c:0.###}*u^2)",
-			FieldCurveType.Exponential => $"exp(-{resolved.a:0.###}*u)",
+			FieldCurveType.Exponential => $"exp(-pow(u/max(eps,{Mathf.Max(ResolveEps, resolved.sigma):0.###}),2))",
+			FieldCurveType.CustomCurve => resolved.customCurve != null
+				? "Curve.SampleBaked(u)"
+				: $"pow(1-u,{resolved.a:0.###}) (fallback: missing Curve resource)",
 			_ => "1-u"
 		};
-	}
-
-	private string BuildIntegratedProfileEquation(ResolvedFieldParams resolved, out float gamma, out float sigma)
-	{
-		gamma = 1f;
-		sigma = Mathf.Max(0f, resolved.sigma);
-
-		switch (resolved.curveType)
-		{
-			case FieldCurveType.Linear:
-				gamma = 0f;
-				return "r^0";
-			case FieldCurveType.Power:
-				gamma = resolved.a;
-				return $"r^{gamma:0.###}";
-			case FieldCurveType.Polynomial:
-				gamma = resolved.a;
-				return $"r^{gamma:0.###}  (poly mapped to power in integrated path)";
-			case FieldCurveType.Exponential:
-				if (sigma <= ResolveEps)
-				{
-					sigma = resolved.a > ResolveEps ? (1f / resolved.a) : 0.0001f;
-				}
-				return $"exp(-(r/{sigma:0.###})^2)";
-			default:
-				return "r^1";
-		}
 	}
 
 	private void MaybeLogLegacyMigration(string reason)
@@ -814,9 +827,16 @@ public partial class FieldSource3D : Node3D
 
 		DebugVizDensityArrowThicknessIntensity = Mathf.Clamp(DebugVizDensityArrowThicknessIntensity, 0.2f, 3.0f);
 		DebugVizDensityZoneCount = Mathf.Clamp(DebugVizDensityZoneCount, 2, 6);
+		DebugVizGlobalOpacity = Mathf.Clamp(DebugVizGlobalOpacity, 0f, 1f);
 		_debugVizPlanes &= (int)DebugVizPlaneFlags.All;
 		Softening = Mathf.Max(0f, Softening);
 		Sigma = Mathf.Max(0f, Sigma);
+		CanonicalEdgeSoftness = Mathf.Clamp(CanonicalEdgeSoftness, 0f, 1f);
+		if (!float.IsFinite(CanonicalBetaScale))
+		{
+			CanonicalBetaScale = 0f;
+			warned = true;
+		}
 		MaxRadius = Mathf.Max(0f, MaxRadius);
 		MinRadius = Mathf.Clamp(MinRadius, 0f, MaxRadius > 0f ? MaxRadius : float.MaxValue);
 		OuterRadius = Mathf.Max(0f, OuterRadius);
@@ -847,7 +867,7 @@ public partial class FieldSource3D : Node3D
 			InnerRadius = Mathf.Max(0f, inner),
 			OuterRadius = Mathf.Max(0f, outer),
 			ShowInnerOuter = DebugVizShowInnerOuter,
-			ShowSigma = DebugVizShowSigma && resolved.sigma > 0f,
+			ShowSigma = DebugVizShowSigma && FieldMath.IsSigmaMeaningful(resolved.curveType) && resolved.sigma > 0f,
 			SigmaRadius = Mathf.Max(0f, resolved.sigma),
 			ShowDensityVectors = DebugVizShowDensityVectors && hasInnerOuter,
 			DensityVectorLayers = DebugVizDensityVectorLayers,
@@ -868,10 +888,13 @@ public partial class FieldSource3D : Node3D
 			CurveB = resolved.b,
 			CurveC = resolved.c,
 			Sigma = resolved.sigma,
+			EdgeSoftness = resolved.edgeSoftness,
+			CustomCurve = resolved.customCurve,
 			Planes = DebugVizPlaneMask,
 			OpacityMode = DebugVizOpacityMode,
 			Segments = Mathf.Max(8, DebugVizRingSegments),
 			LineWidth = Mathf.Max(0.25f, DebugVizLineWidth),
+			GlobalOpacity = Mathf.Clamp(DebugVizGlobalOpacity, 0f, 1f),
 			AlwaysOnTop = DebugVizAlwaysOnTop,
 			InnerColor = DebugVizColorInner,
 			OuterColor = DebugVizColorOuter,
@@ -1221,26 +1244,17 @@ public partial class FieldSource3D : Node3D
 	private float EvaluateDensityStrengthAtT(float t, DebugVizState state)
 	{
 		float u = Mathf.Clamp(t, 0f, 1f);
-		switch (state.CurveType)
-		{
-			case FieldCurveType.Linear:
-				return 1f - u;
-			case FieldCurveType.Power:
-				return Mathf.Pow(Mathf.Max(0f, 1f - u), Mathf.Max(0f, state.CurveA));
-			case FieldCurveType.Polynomial:
-				return Mathf.Clamp(state.CurveA + state.CurveB * u + state.CurveC * u * u, 0f, 1f);
-			case FieldCurveType.Exponential:
-			{
-				float radius = Mathf.Lerp(state.InnerRadius, state.OuterRadius, u);
-				float sigma = state.Sigma > ResolveEps
-					? state.Sigma
-					: (state.CurveA > ResolveEps ? (1f / state.CurveA) : 1f);
-				float x = radius / Mathf.Max(ResolveEps, sigma);
-				return Mathf.Clamp(Mathf.Exp(-(x * x)), 0f, 1f);
-			}
-			default:
-				return 1f - u;
-		}
+		float profile = FieldMath.EvaluateProfileAtU(
+			state.CurveType,
+			u,
+			state.CurveA,
+			state.Sigma,
+			state.CurveA,
+			state.CurveB,
+			state.CurveC,
+			state.CustomCurve);
+		float edgeRamp = FieldMath.EvaluateEdgeRamp(u, state.EdgeSoftness);
+		return Mathf.Clamp(profile * edgeRamp, 0f, 1f);
 	}
 
 	private static Color GetDensityZoneColor(float strength)
@@ -1306,6 +1320,7 @@ public partial class FieldSource3D : Node3D
 			DebugVizOpacityModeKind.Ghosted => Mathf.Clamp(baseColor.A * 0.9f, 0.2f, 0.85f),
 			_ => Mathf.Clamp(baseColor.A, 0.75f, 1.0f)
 		};
+		alpha = Mathf.Clamp(alpha * state.GlobalOpacity, 0f, 1f);
 		return new Color(baseColor.R, baseColor.G, baseColor.B, alpha);
 	}
 
@@ -1317,6 +1332,7 @@ public partial class FieldSource3D : Node3D
 			DebugVizOpacityModeKind.Solid => Mathf.Clamp(baseColor.A * 0.9f, 0.45f, 0.95f),
 			_ => 0f
 		};
+		alpha = Mathf.Clamp(alpha * state.GlobalOpacity, 0f, 1f);
 		return new Color(baseColor.R, baseColor.G, baseColor.B, alpha);
 	}
 
@@ -1461,10 +1477,13 @@ public partial class FieldSource3D : Node3D
 		public float CurveB;
 		public float CurveC;
 		public float Sigma;
+		public float EdgeSoftness;
+		public Curve CustomCurve;
 		public DebugVizPlaneFlags Planes;
 		public DebugVizOpacityModeKind OpacityMode;
 		public int Segments;
 		public float LineWidth;
+		public float GlobalOpacity;
 		public bool AlwaysOnTop;
 		public Color InnerColor;
 		public Color OuterColor;
@@ -1499,10 +1518,13 @@ public partial class FieldSource3D : Node3D
 				&& Mathf.IsEqualApprox(CurveB, other.CurveB)
 				&& Mathf.IsEqualApprox(CurveC, other.CurveC)
 				&& Mathf.IsEqualApprox(Sigma, other.Sigma)
+				&& Mathf.IsEqualApprox(EdgeSoftness, other.EdgeSoftness)
+				&& CustomCurve == other.CustomCurve
 				&& Planes == other.Planes
 				&& OpacityMode == other.OpacityMode
 				&& Segments == other.Segments
 				&& Mathf.IsEqualApprox(LineWidth, other.LineWidth)
+				&& Mathf.IsEqualApprox(GlobalOpacity, other.GlobalOpacity)
 				&& AlwaysOnTop == other.AlwaysOnTop
 				&& ColorsEqual(InnerColor, other.InnerColor)
 				&& ColorsEqual(OuterColor, other.OuterColor)
