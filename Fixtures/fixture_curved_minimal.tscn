@@ -38,6 +38,6 @@ f(u)=(1-u)^1
 edge_ramp=smoothstep(0,0.1,u) * (1-smoothstep(0.9,1,u))"
 EffectiveEquationIntegrated = "dir=-normalize(p-c) (ModeFlagInvertSign=0)
 beta_eff=(|beta_g|>eps ? beta_g*1 : 1)
-mag=beta_eff*amp*f(u)*edge_ramp   (gamma=1)
-sigma=1 (unused for Power)
+mag=beta_eff*amp*f(u)*edge_ramp
+gamma=1
 a=dir*mag"

@@ -64,7 +64,7 @@ public partial class FieldSource3D : Node3D
 	[Export] public bool Enabled = true;
 	[Export] public MetricModel MetricModel { get; set; } = MetricModel.GRIN;
 	[Export] public FieldShapeType ShapeType { get; set; } = FieldShapeType.SphereRadial;
-	[Export] public float ROuter { get; set; } = 0f;
+	[Export] public float ROuter { get; set; } = 10.0f;
 	[Export] public bool ApplyAcademicDefaults
 	{
 		get => false;
@@ -82,7 +82,7 @@ public partial class FieldSource3D : Node3D
 			}
 		}
 	}
-	[Export] public FieldCurveType CurveType { get; set; } = FieldCurveType.Linear;
+	[Export] public FieldCurveType CurveType { get; set; } = FieldCurveType.Power;
 
 	[ExportSubgroup("Power Curve")]
 	[Export] public float CanonicalGamma { get; set; } = 1.0f;
