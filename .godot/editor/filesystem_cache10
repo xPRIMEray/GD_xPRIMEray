@@ -1,5 +1,5 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1772398081
+::res://::1772399138
 camera_3d.gd::GDScript::3454241889599487331::1765502409::0::1::::<>Camera3D<><>0<>0<><>::
 CurvedCamera.cs::CSharpScript::5306762016452856891::1771027735::0::1::::CurvedCamera<>Camera3D<><>0<>0<><>::
 curved_ray_postprocess.gdshader::Shader::3282317646427007636::1771364093::0::1::::<><><>0<>0<><>::
@@ -7,12 +7,12 @@ curved_view.gdshader::Shader::464022403874803904::1771364093::0::1::::<><><>0<>0
 FieldGrid3D.cs::CSharpScript::7908573473413055030::1769106792::0::1::::<><><>0<>0<><>::
 FieldMath.cs::CSharpScript::8952580616890036217::1772397392::0::1::::<><><>0<>0<><>::
 FieldProbe3D.cs::CSharpScript::8721301265289845037::1772325769::0::1::::<>Node3D<><>0<>1<><>::
-FieldSource3D.cs::CSharpScript::1499217976932918695::1772397386::0::1::::<>Node3D<><>0<>1<><>::
+FieldSource3D.cs::CSharpScript::1499217976932918695::1772398192::0::1::::<>Node3D<><>0<>1<><>::
 FilmOverlay2D.cs::CSharpScript::6555086453973335341::1771551102::0::1::::<>TextureRect<><>0<>0<><>::
 film_render_report.md::TextFile::-1::1768615916::0::1::::<><><>0<>0<><>::
 GrinFilmCamera.cs::CSharpScript::4402864534231265276::1772257371::0::1::::<>Node<><>0<>0<><>::
 HitPayload.cs::CSharpScript::280919923161781190::1768341163::0::1::::<><><>0<>0<><>::
-icon.webp::CompressedTexture2D::7652332113619774721::1765152170::1771364870::1::::<><><>0<>0<>a07731b734edb7cd369d6df2a233f967<>res://.godot/imported/icon.webp-e94f9a68b0f625a567a797079e4d325f.ctex::
+icon.webp::CompressedTexture2D::7652332113619774721::1772399148::1772399150::1::::<><><>0<>0<>a07731b734edb7cd369d6df2a233f967<>res://.godot/imported/icon.webp-e94f9a68b0f625a567a797079e4d325f.ctex::
 living_room.blend::PackedScene::2720710171365729848::1765152170::1771364879::1::::<><><>0<>0<>39eadc92c0ab092d9bd44a592332f275<>res://.godot/imported/living_room.blend-8461f99131ec7142fa79e355dcd58c5f.scn::
 living_room.glb::PackedScene::3324210106345305406::1765152170::1771364879::1::::<><><>0<>0<>7c92cbbbf349eddb00888c5576dc873c<>res://.godot/imported/living_room.glb-e9e76bdaf4212fbe5bd6be0e778b81a5.scn::
 living_room_physics.tscn::PackedScene::9043649899340357579::1766209017::0::1::::<><><>0<>0<><>::uid://bnmjiwr2ptb5w::::res://living_room.glb
@@ -96,9 +96,9 @@ fig_01_architecture.png::CompressedTexture2D::4119938928718055796::1772217910::1
 C1_0_g_1.md::TextFile::-1::1771820798::0::1::::<><><>0<>0<><>::
 C1_7_g_X.md::TextFile::-1::1772040719::0::1::::<><><>0<>0<><>::
 ::res://Docs/stylesheets/::1772218438
-::res://Fixtures/::1772396111
+::res://Fixtures/::1772398524
 CurvedMinimalFingerprint.cs::CSharpScript::7627741202670024098::1771975659::0::1::::<>Node3D<><>0<>0<><>::
-fixture_curved_minimal.tscn::PackedScene::709584542642539015::1772396111::0::1::::<><><>0<>0<><>::uid://vmh5vusla1nv::::res://FieldSource3D.cs
+fixture_curved_minimal.tscn::PackedScene::709584542642539015::1772398524::0::1::::<><><>0<>0<><>::uid://vmh5vusla1nv::::res://FieldSource3D.cs
 ::res://GodotAdapter/::1770435036
 README.md::TextFile::-1::1770434268::0::1::::<><><>0<>0<><>::
 SnapshotBuilder.cs::CSharpScript::907470010122517097::1772257363::0::1::::<><><>0<>0<><>::
@@ -291,7 +291,7 @@ render_test_straight_Wed002-25-2026_09-56-53-31.txt::TextFile::-1::1772035017::0
 render_test_straight_Wed002-25-2026_10-43-46-10.txt::TextFile::-1::1772037872::0::1::::<><><>0<>0<><>::
 render_test_straight_Wed002-25-2026_11-35-30-92.txt::TextFile::-1::1772040976::0::1::::<><><>0<>0<><>::
 render_test_straight_Wed002-25-2026_14-07-33-02.txt::TextFile::-1::1772050096::0::1::::<><><>0<>0<><>::
-xvba_debug.log::TextFile::-1::1772391393::0::1::::<><><>0<>0<><>::
+xvba_debug.log::TextFile::-1::1772398415::0::1::::<><><>0<>0<><>::
 ::res://logs/_tmp_c17_next_sweep_variance_2026-02-25_12-33-11/::1772045002
 decisions_summary.json::JSON::-1::1772044965::0::1::::<><><>0<>0<><>::
 pairs_summary.json::JSON::-1::1772044965::0::1::::<><><>0<>0<><>::

@@ -29,8 +29,6 @@ shape = SubResource("SphereShape3D_target")
 [node name="FieldSource3D" type="Node3D" parent="."]
 script = ExtResource("1_field")
 Attract = false
-DebugVizDensityZoneCount = 6
-DebugVizRingSegments = 137
 EffectiveEquationCore = "source=canonical
 r=|p-c|
 u=clamp((r-rInner)/max(eps,rOuter-rInner),0,1)
