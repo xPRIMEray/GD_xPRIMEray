@@ -1,9 +1,9 @@
-# Physical Light and Camera Units
-
 # GD_xPRIMEray: Curved Ray Transport Engine for GRIN Fields
 
 **A research-grade ray propagation framework** for Godot, combining gradient index (GRIN) optics with symbolic + numerical ray integration.  
 Positioned as both a **scientific research toolkit** and an **open-source GPU/CPU optical transport engine**.
+
+![Screenshot](icon.webp)
 
 ---
 

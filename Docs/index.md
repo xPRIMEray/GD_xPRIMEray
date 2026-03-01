@@ -1,53 +1,90 @@
-# GD_xPRIMEray
+# GD_xPRIMEray: Curved Ray Transport Engine for GRIN Fields
 
-### Curved Ray Transport Engine for Gradient Index Media  
-*A hybrid symbolic–numeric optical propagation framework*
+**A research-grade ray propagation framework** for Godot, combining gradient index (GRIN) optics with symbolic + numerical ray integration.  
+Positioned as both a **scientific research toolkit** and an **open-source GPU/CPU optical transport engine**.
 
----
-
-## Abstract
-
-GD_xPRIMEray extends the traditional straight-line ray tracing paradigm into a curved-ray propagation system capable of modeling graded refractive index (GRIN) fields, synthetic optical potentials, and non-Euclidean transport domains.
-
-The engine integrates continuous refractive fields using high-order numerical solvers and modular field definitions embedded within Godot 4.x.
-
-This transforms the rendering engine into a controllable physical simulation environment suitable for:
-
-- Advanced optical research
-- Gradient-index lens modeling
-- Curvature-driven visualization
-- Geodesic-like propagation experiments
-- Educational and research simulation
+![Screenshot](icon.webp)
 
 ---
 
-## Key Capabilities
+## 🧠 Overview
 
-- Continuous refractive index fields
-- RK4 curved ray integration
-- Symbolic curvature validation
-- Modular field injection architecture
-- Visual debug + diagnostic overlays
+GD_xPRIMEray is a hybrid symbolic-numeric ray transport system built on Godot Engine.  
+It augments Godot’s renderer with **curved ray physics** — enabling simulation of graded refractive media, advanced optical phenomena, and non-Euclidean propagation domains.
+
+Rather than tracing straight rays through space, GD_xPRIMEray integrates rays through fields defined by continuous curvature functions (e.g., GRIN profiles), enabling high-fidelity modeling of complex refractive environments such as:
+
+- Gradient-index lenses
+- Curved optics and non-linear media
+- Abstract optical metamaterials
+- Physics-based camera and illumination systems
+
+This framework is intended to bridge academic optics, experimental physics, and game-engine optics research.
+
+---
+
+## 🧩 Scientific Context
+
+Traditional ray tracers treat rays as straight paths between interaction points. In GD_xPRIMEray, rays follow **curved trajectories** through graded index fields — akin to real lens physics and gravitational geodesics in optical analog systems.
+
+Curved ray integration in continuous refractive fields requires solving differential path equations — here implemented with both numeric (RK4) and symbolic integration strategies derived from first principles. This transforms the rendering pipeline into a hybrid physical simulator.
 
 ---
 
-## Documentation
+## 📊 Features
 
-- [Architecture](architecture.md): field injection, transport loop, gating hierarchy
-- [Transport Model](transport_model.md): curvature definition, stepping logic, intersection semantics
-- [Integrators](integrators.md): RK4 and stability controls
-- [Validation Framework](validation.md): baseline comparisons, convergence metrics, regression harness
-- [Roadmap](roadmap.md)
-- [FieldSource3D Canonical Params](spec_fieldsource3d_canonical_params_1.md): canonical inspector model and legacy compatibility resolver
+- **GRIN Field Models** — Refractive index profiles with radial/anisotropic control  
+- **Curved Ray Integrators** — High-precision RK4 stepping through continuous refractive potentials  
+- **Modular Shader & Ray Logic** — Godot integration for real-time and offline rendering  
+- **Symbolic + Numeric Solver Combination** — Powerful for verification, visualization, and research  
+- **Experimentation & Validation Tools** — Visual debug, path sampling heatmaps, and curve diagnostics  
 
 ---
-https://aethertopologist.github.io/GD_xPRIMEray/
+
+## 🧪 Example Outputs
+
+_This section will grow as rendered outputs and figures are added to `/docs/_figures/`._
+
+| Scenario | Description |
+|----------|-------------|
+| 🌈 **GRIN Lens Visualization** | Rays bending through a radial refractive index profile |
+| 🌀 **Non-Euclidean Ray Paths** | Curved geodesic propagation in synthetic index fields |
+| 📈 **Path Diagnostics Graphs** | Visualization of curvature vs. path length |
+
 ---
 
+## 🛠 Installation
 
-## Visual Overview
+Clone and import into Godot (4.x).  
+Recommended installation paths and branch strategy will be outlined in `docs/setup.md`.
 
-![System Architecture](assets/fig_01_architecture.png)
+---
 
-## Figures
-![System Architecture](assets/fig_01_architecture.png)
+## 🚀 Contributing
+
+This project is both a research engine and a collaborative platform.  
+Contributions may include:
+
+- New refractive field models
+- Higher-order integrators
+- Visual diagnostic tools
+- Sample scenes and rendered galleries
+
+---
+
+## Wiki
+ https://aethertopologist.github.io/GD_xPRIMEray/
+
+---
+
+## 📄 License & Citation
+
+Licensed under MIT — recommended for both academic and creative use.
+
+If used in academic work, please cite accordingly.
+
+![Screenshot](screenshots/2026-02-26_GenericScene-4fields-5obj.png)
+
+![Screenshot](screenshots/2026-02-26_GenericScene-4fields-5obj_camera-highmove.png)
+
+![Screenshot](screenshots/2026-02-26_GenericScene-4fields-5obj_negCurvature.png)
