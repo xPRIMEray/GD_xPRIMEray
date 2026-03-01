@@ -179,77 +179,88 @@ Canonical equivalent:
 
 ## 9) Equation Reference (What the Runtime Computes)
 
-There are two active field-evaluation paths in code. `FieldSource3D` now exposes
-both in inspector as read-only strings:
+Canonical runtime evaluation for ray integration and probe sampling is:
+- `FieldMath.EvalFieldAccel(...)`
+- consumed by `RayBeamRenderer.ComputeAccelerationAtPointSnap(...)`
+- mirrored by `FieldSource3D` read-only previews (`EffectiveEquationCore`, `EffectiveEquationIntegrated`)
 
-- `EffectiveEquationCore`
-- `EffectiveEquationIntegrated`
+### 9.1 Canonical Evaluator (`FieldMath.EvalFieldAccel`)
 
-### 9.1 Core snapshot equation (`RendererCore.Fields.FieldSystem`)
+Definitions:
 
-Given local point `p_local`, radial distance `r = |p_local|`, and
+- `r = |p - c|`
+- `u = clamp((r - rInner) / max(eps, rOuter - rInner), 0..1)`
+- `dir`:
+  - if `r <= eps`: `dir = 0`
+  - else `dir = normalize(p - c)`
+  - then apply sign rule:
+    - if `(ModeFlags & ModeFlagInvertSign) == 0`: `dir = -dir`
+    - else: keep `dir` positive
 
-`u = clamp((r - rInner) / max(eps, rOuter - rInner), 0, 1)`
+Curve/profile `f(u)` (exact implemented `FieldCurveType` behavior):
 
-curve response:
+- `Linear`: `f(u) = 1 - u`
+- `Power`: `f(u) = pow(max(0, 1-u), CurveA)` (`CanonicalGamma` aliases `CurveA`)
+- `Exponential` (shown as "Gaussian" in UI): `f(u) = exp(-(u / max(eps, Sigma))^2)`
+- `Polynomial`: `f(u) = clamp(CurveA + CurveB*u + CurveC*u^2, 0, 1)`
+- `CustomCurve`:
+  - if `CustomCurve != null`: `f(u) = clamp(CustomCurve.Sample(u), 0, 1)`
+  - else fallback to power form: `pow(max(0, 1-u), CurveA)`
 
-- Linear: `f(u) = 1 - u`
-- Power: `f(u) = (1 - u)^a`
-- Polynomial: `f(u) = a + b*u + c*u^2`
-- Exponential: `f(u) = exp(-a*u)`
+Edge ramp (`edge_ramp`):
 
-magnitude:
+- `edge = clamp(EdgeSoftness, 0, 1)`
+- if `edge <= eps`: `edge_ramp = 1` (disabled)
+- else:
+  - `rampIn = smoothstep(0, edge, u)`
+  - `rampOut = 1 - smoothstep(1-edge, 1, u)`
+  - `edge_ramp = clamp(rampIn * rampOut, 0, 1)`
 
-`m = amp * f(u)`
+Beta resolution (`beta_eff`):
 
-direction:
+- let `safe_global = isfinite(globalBeta) ? globalBeta : 0`
+- if `overrideBetaScale == false`: `beta_eff = safe_global`
+- else if `abs(safe_global) > eps`: `beta_eff = safe_global * betaScale`
+- else: `beta_eff = betaScale`
 
-- `MetricModel.GRIN`: `dir = +normalize(p_local)`
-- `MetricModel.GordonMetric`: `dir = -normalize(p_local)`
+Final canonical magnitude and acceleration:
 
-local/world acceleration:
+- `mag = beta_eff * amp * f(u) * edge_ramp`
+- `a = dir * mag`
 
-`a_local = dir * m`  
-`a_world = TransformNormal(a_local, worldFromLocal)`
+Probe overlay (`FieldProbe3D`) displays these evaluator outputs directly:
+- `r = eval.R`
+- `u = eval.U`
+- `f(u) = eval.ProfileWithEdge` (profile after edge ramp)
+- `beta_eff = eval.BetaEff`
+- `final_mag = eval.Magnitude`
+- `|a| = eval.AccelerationMagnitude`
 
-### 9.2 Integrated ray equation (`RayBeamRenderer.ComputeAccelerationAtPointSnap`)
+### 9.2 Post-Evaluator Scaling in Renderer (`RayBeamRenderer`)
 
-softened radius:
+`RayBeamRenderer.ComputeAccelerationAtPointSnap(...)` calls the canonical evaluator per source, then applies additional renderer scaling:
 
-`r = sqrt(|p - c|^2 + softening^2)`
+- per source contribution: `a_source = eval.Acceleration * BendScale * FieldStrength`
+- accumulated: `a_sum = Σ a_source`
 
-effective beta:
+So the integrated runtime path is:
+- canonical field math in `FieldMath`
+- then renderer-only gain (`BendScale * FieldStrength`) in `RayBeamRenderer`
 
-`beta_eff = (|beta_global| > eps) ? beta_global * amp : amp`
+### 9.3 Compatibility Notes
 
-path amplitude:
-
-`A = beta_eff * BendScale * FieldStrength`
-
-direction:
-
-- attract: `dir = -(p-c)/r`
-- repel (`INVERT_SIGN`): `dir = +(p-c)/r`
-
-profile term used by integrated path:
-
-- Power-family mapping: `profile(r) = r^gamma`
-- Exponential mapping: `profile(r) = exp(-(r/sigma)^2)`
-
-acceleration:
-
-`a = dir * (A * profile(r))`
+- `Legacy (Deprecated)` inputs still exist for scene compatibility, but are first mapped by `ResolveEffectiveParams(...)` into canonical fields.
+- Canonical resolved params are the source of truth for runtime snapshots (`BuildFieldSourceSnap`), probe sampling, and integrated ray acceleration.
+- Prior "split" interpretations are superseded in this path: `FieldMath` is the single evaluator for integrated/probe runtime.
 
 ---
 
 ## 10) Power GRIN vs Geodesic-Like (Gordon) Interpretation
 
-- "Power GRIN" in canonical authoring means:
-  - `MetricModel=GRIN`, `CurveType=Power`, chosen `Amp` and `CurveA`
-  - Core direction is outward `+normalize(p_local)`
-- "Geodesic-like/Gordon" mode means:
-  - `MetricModel=GordonMetric`
-  - Same scalar curve/magnitude, but direction sign flips inward
+For the current integrated runtime path (`FieldMath` + `RayBeamRenderer` + `FieldProbe3D`):
 
-So for equal params, Gordon mode is the sign-inverted counterpart of GRIN in
-the core field system.
+- Direction/sign is controlled by `ModeFlagInvertSign` only.
+- `MetricModel` is not part of `FieldMath.EvalFieldAccel(...)` inputs and is not carried in `FieldSourceSnap`.
+- Therefore, setting `MetricModel=GordonMetric` does not by itself flip acceleration direction in this path.
+
+`MetricModel` (`GRIN`, `GordonMetric`) still exists as an enum and may be used by other/older code paths (for example `RendererCore.Fields.FieldSystem`), but that is separate from the canonical integrated evaluator documented above.

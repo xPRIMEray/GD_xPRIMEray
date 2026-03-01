@@ -1,1 +1,16 @@
+res://addons/fieldsource_gizmo/FieldSourceNodeGizmo.cs
+res://Fixtures/CurvedMinimalFingerprint.cs
+res://addons/grin_inspector_help/GrinInspectorHelpInspector.cs
+res://RayBeamRenderer.cs
+res://CurvedCamera.cs
+res://FieldProbe3D.cs
+res://RayViz.cs
+res://RayEmitter3D.cs
+res://UI/AutoCalPanelBridgeNode.cs
+res://GrinFilmCamera.cs
+res://addons/grin_inspector_help/GrinInspectorHelpPlugin.cs
+res://FilmOverlay2D.cs
+res://FieldSource3D.cs
+res://RendererCore/Testing/RenderTestRunner.cs
+res://addons/fieldsource_gizmo/FieldSourceGizmoPlugin.cs
 res://Fixtures/fixture_curved_minimal.tscn

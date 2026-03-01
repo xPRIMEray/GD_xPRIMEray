@@ -65,7 +65,6 @@ public partial class FieldSource3D : Node3D
 	[Export] public MetricModel MetricModel { get; set; } = MetricModel.GRIN;
 	[Export] public FieldShapeType ShapeType { get; set; } = FieldShapeType.SphereRadial;
 	[Export] public float ROuter { get; set; } = 0f;
-	[Export] public float Amp { get; set; } = 0f;
 	[Export] public bool ApplyAcademicDefaults
 	{
 		get => false;
@@ -85,12 +84,17 @@ public partial class FieldSource3D : Node3D
 	}
 	[Export] public FieldCurveType CurveType { get; set; } = FieldCurveType.Linear;
 	[Export] public float CanonicalGamma { get => CurveA; set => CurveA = value; }
-	[Export] public float CurveA { get; set; } = 0f;
+
+	[ExportSubgroup("Advanced Curve Coefficients")]
+	[Export] public float CurveA { get; set; } = 1.0f;
 	[Export] public float CurveB { get; set; } = 0f;
 	[Export] public float CurveC { get; set; } = 0f;
-	[Export] public float Sigma = 5.0f;
+	[Export] public float Sigma = 1.0f;
 	[Export] public Curve CustomCurve { get; set; }
-	[Export] public float CanonicalBetaScale { get; set; } = 0.0010f;
+
+	[ExportSubgroup("In-Game Ray-Tracing only Scalars")]
+	[Export] public float Amp { get; set; } = 1.00f;
+	[Export] public float CanonicalBetaScale { get; set; } = 1.00f;
 
 	// Advanced: secondary controls and expert overrides.
 	[ExportGroup("Advanced")]
@@ -98,7 +102,7 @@ public partial class FieldSource3D : Node3D
 	[Export] public Vector3 BoxExtents { get; set; } = new Vector3(10f, 10f, 10f);
 
 	[ExportSubgroup("Radii")]
-	[Export] public bool CanonicalEnableInnerRadius { get; set; } = true;
+	[Export] public bool CanonicalEnableInnerRadius { get; set; } = false;
 	[Export] public float RInner { get; set; } = 0f;
 
 	[ExportSubgroup("Stability & Boundaries")]
@@ -160,8 +164,8 @@ public partial class FieldSource3D : Node3D
 	[Export] public bool DebugVizShowDensityZones { get; set; } = false;
 	[Export(PropertyHint.Range, "2,6,1")] public int DebugVizDensityZoneCount { get; set; } = 3;
 	[Export(PropertyHint.Range, "8,256,1")] public int DebugVizRingSegments { get; set; } = 64;
-	[Export] public Color DebugVizDensityZoneColorMin { get; set; } = new Color(1.0f, 0.95f, 0.25f, 0.9f);
-	[Export] public Color DebugVizDensityZoneColorMax { get; set; } = new Color(1.0f, 0.3f, 0.16f, 0.95f);
+	[Export] public Color DebugVizDensityZoneColorMin { get; set; } = new Color(0.0f, 0.90f, 1.00f, 0.85f);
+	[Export] public Color DebugVizDensityZoneColorMax { get; set; } = new Color(1.0f, 0, 0.10f, 0.95f);
 
 	[ExportSubgroup("Density Vectors")]
 	[Export] public bool DebugVizShowDensityVectors { get; set; } = false;
@@ -175,11 +179,12 @@ public partial class FieldSource3D : Node3D
 	[Export(PropertyHint.Range, "1,6,1")] public int DebugVizDensityArrowMinThicknessBands { get; set; } = 1;
 	[Export(PropertyHint.Range, "1,10,1")] public int DebugVizDensityArrowMaxThicknessBands { get; set; } = 4;
 	[Export(PropertyHint.Range, "0.2,3.0,0.05")] public float DebugVizDensityArrowThicknessIntensity { get; set; } = 1.0f;
-	[Export] public Color DebugVizDensityVectorColorMin { get; set; } = new Color(1.0f, 0.75f, 0.25f, 0.9f);
-	[Export] public Color DebugVizDensityVectorColorMax { get; set; } = new Color(1.0f, 0.35f, 0.1f, 0.95f);
+	[Export] public bool DebugVizDensityVectorTipAtOrigin { get; set; } = true;
+	[Export] public Color DebugVizDensityVectorColorMin { get; set; } = new Color(0.0f, 0.90f, 1.00f, 0.85f);
+	[Export] public Color DebugVizDensityVectorColorMax { get; set; } = new Color(1.0f, 0, 0.10f, 0.95f);
 
 	[ExportSubgroup("Render")]
-	[Export(PropertyHint.Range, "0.0,1.0,0.01")] public float DebugVizGlobalOpacity { get; set; } = 1.0f;
+	[Export(PropertyHint.Range, "0.0,1.0,0.01")] public float DebugVizGlobalOpacity { get; set; } = 0.90f;
 	[Export] public bool DebugVizAlwaysOnTop { get; set; } = true;
 	[Export] public bool DebugVizInGame { get; set; } = false;
 
@@ -329,11 +334,11 @@ public partial class FieldSource3D : Node3D
 	{
 		RInner = 0f;
 		ROuter = 10f;
-		Amp = 0.02f;
+		Amp = 1.00f;
 		CanonicalOverrideBetaScale = true;
-		CanonicalBetaScale = 0.001f;
+		CanonicalBetaScale = 1.00f;
 		CurveType = FieldCurveType.Power;
-		CanonicalGamma = 1f;
+		CanonicalGamma = 1.00f;
 		Softening = 0.05f;
 		CanonicalEdgeSoftness = 0.10f;
 		CanonicalEnableInnerRadius = true;
@@ -496,10 +501,15 @@ public partial class FieldSource3D : Node3D
 				case nameof(DebugVizDensityArrowMinThicknessBands):
 				case nameof(DebugVizDensityArrowMaxThicknessBands):
 				case nameof(DebugVizDensityArrowThicknessIntensity):
+				case nameof(DebugVizDensityVectorTipAtOrigin):
 				case nameof(DebugVizDensityVectorColorMin):
 				case nameof(DebugVizDensityVectorColorMax):
 					visible = DebugVizShowDensityVectors;
-					if (propertyName == nameof(DebugVizDensityVectorColorMin))
+					if (propertyName == nameof(DebugVizDensityVectorTipAtOrigin))
+					{
+						property["tooltip"] = "When enabled, arrow tip is anchored at the sample point and tail extends backward.";
+					}
+					else if (propertyName == nameof(DebugVizDensityVectorColorMin))
 					{
 						property["tooltip"] = "Density vector color at minimum profile strength.";
 					}
@@ -1209,6 +1219,7 @@ public partial class FieldSource3D : Node3D
 			DensityArrowMinThicknessBands = DebugVizDensityArrowMinThicknessBands,
 			DensityArrowMaxThicknessBands = DebugVizDensityArrowMaxThicknessBands,
 			DensityArrowThicknessIntensity = DebugVizDensityArrowThicknessIntensity,
+			DensityVectorTipAtOrigin = DebugVizDensityVectorTipAtOrigin,
 			ShowDensityZones = DebugVizShowDensityZones && hasInnerOuter,
 			DensityZoneCount = DebugVizDensityZoneCount,
 			DensityZoneColorMin = DebugVizDensityZoneColorMin,
@@ -1457,15 +1468,15 @@ public partial class FieldSource3D : Node3D
 
 				if ((state.Planes & DebugVizPlaneFlags.XY) != 0)
 				{
-					AddVectorRingSet(ring.Radius, count, Vector3.Right, Vector3.Up, Vector3.Forward, invert, length, head, strokeBands, strokeOffset);
+					AddVectorRingSet(ring.Radius, count, Vector3.Right, Vector3.Up, Vector3.Forward, invert, length, head, strokeBands, strokeOffset, state.DensityVectorTipAtOrigin);
 				}
 				if ((state.Planes & DebugVizPlaneFlags.XZ) != 0)
 				{
-					AddVectorRingSet(ring.Radius, count, Vector3.Right, Vector3.Forward, Vector3.Up, invert, length, head, strokeBands, strokeOffset);
+					AddVectorRingSet(ring.Radius, count, Vector3.Right, Vector3.Forward, Vector3.Up, invert, length, head, strokeBands, strokeOffset, state.DensityVectorTipAtOrigin);
 				}
 				if ((state.Planes & DebugVizPlaneFlags.YZ) != 0)
 				{
-					AddVectorRingSet(ring.Radius, count, Vector3.Up, Vector3.Forward, Vector3.Right, invert, length, head, strokeBands, strokeOffset);
+					AddVectorRingSet(ring.Radius, count, Vector3.Up, Vector3.Forward, Vector3.Right, invert, length, head, strokeBands, strokeOffset, state.DensityVectorTipAtOrigin);
 				}
 			});
 		}
@@ -1509,7 +1520,8 @@ public partial class FieldSource3D : Node3D
 		float length,
 		float head,
 		int strokeBands,
-		float strokeOffset)
+		float strokeOffset,
+		bool tipAtOrigin)
 	{
 		int safeCount = Mathf.Max(4, count);
 		for (int i = 0; i < safeCount; i++)
@@ -1528,8 +1540,9 @@ public partial class FieldSource3D : Node3D
 			Vector3 tangent = ((axisA * -sin) + (axisB * cos)).Normalized();
 			Vector3 dir = invert ? radial : -radial;
 
-			Vector3 start = radial * radius + normal * 0.005f;
-			Vector3 tip = start + dir * length;
+			Vector3 origin = radial * radius + normal * 0.005f;
+			Vector3 start = tipAtOrigin ? origin - (dir * length) : origin;
+			Vector3 tip = tipAtOrigin ? origin : start + (dir * length);
 			Vector3 wingA = tip - (dir * head) + (tangent * (head * 0.5f));
 			Vector3 wingB = tip - (dir * head) - (tangent * (head * 0.5f));
 
@@ -1800,6 +1813,7 @@ public partial class FieldSource3D : Node3D
 		public int DensityArrowMinThicknessBands;
 		public int DensityArrowMaxThicknessBands;
 		public float DensityArrowThicknessIntensity;
+		public bool DensityVectorTipAtOrigin;
 		public bool ShowDensityZones;
 		public int DensityZoneCount;
 		public Color DensityZoneColorMin;
@@ -1845,6 +1859,7 @@ public partial class FieldSource3D : Node3D
 				&& DensityArrowMinThicknessBands == other.DensityArrowMinThicknessBands
 				&& DensityArrowMaxThicknessBands == other.DensityArrowMaxThicknessBands
 				&& Mathf.IsEqualApprox(DensityArrowThicknessIntensity, other.DensityArrowThicknessIntensity)
+				&& DensityVectorTipAtOrigin == other.DensityVectorTipAtOrigin
 				&& ShowDensityZones == other.ShowDensityZones
 				&& DensityZoneCount == other.DensityZoneCount
 				&& ColorsEqual(DensityZoneColorMin, other.DensityZoneColorMin)

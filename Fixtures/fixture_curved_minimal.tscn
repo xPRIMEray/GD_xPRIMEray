@@ -28,21 +28,16 @@ shape = SubResource("SphereShape3D_target")
 
 [node name="FieldSource3D" type="Node3D" parent="."]
 script = ExtResource("1_field")
-CurveA = 1.0
-Sigma = 0.0
 Attract = false
-InnerRadius = 0.01
 DebugVizDensityZoneCount = 6
 DebugVizRingSegments = 137
-DebugVizDensityZoneColorMin = Color(1, 0, 0.016666412, 0.9019608)
-DebugVizDensityZoneColorMax = Color(0, 0.7666669, 1, 0.9019608)
 EffectiveEquationCore = "source=canonical
 r=|p-c|
 u=clamp((r-rInner)/max(eps,rOuter-rInner),0,1)
 f(u)=(1-u)^1
 edge_ramp=smoothstep(0,0.1,u) * (1-smoothstep(0.9,1,u))"
 EffectiveEquationIntegrated = "dir=-normalize(p-c) (ModeFlagInvertSign=0)
-beta_eff=(|beta_g|>eps ? beta_g*0.001 : 0.001)
+beta_eff=(|beta_g|>eps ? beta_g*1 : 1)
 mag=beta_eff*amp*f(u)*edge_ramp   (gamma=1)
-sigma=0 (unused for Power)
+sigma=1 (unused for Power)
 a=dir*mag"
