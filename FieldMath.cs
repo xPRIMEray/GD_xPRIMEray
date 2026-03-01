@@ -141,7 +141,7 @@ public static class FieldMath
 				{
 					return Mathf.Clamp(customCurve.Sample(clampedU), 0f, 1f);
 				}
-				return PowOneMinusU(oneMinusU, safeGamma);
+				return 0f;
 
 			default:
 				return 1f - clampedU;

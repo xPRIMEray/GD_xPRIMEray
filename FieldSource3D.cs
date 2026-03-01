@@ -83,13 +83,17 @@ public partial class FieldSource3D : Node3D
 		}
 	}
 	[Export] public FieldCurveType CurveType { get; set; } = FieldCurveType.Linear;
-	[Export] public float CanonicalGamma { get => CurveA; set => CurveA = value; }
 
-	[ExportSubgroup("Advanced Curve Coefficients")]
+	[ExportSubgroup("Power Curve")]
+	[Export] public float CanonicalGamma { get; set; } = 1.0f;
+
+	[ExportSubgroup("Gaussian Curve")] 
+	[Export] public float Sigma = 1.0f;
+
+	[ExportSubgroup("Advanced Coefficients")]
 	[Export] public float CurveA { get; set; } = 1.0f;
 	[Export] public float CurveB { get; set; } = 0f;
 	[Export] public float CurveC { get; set; } = 0f;
-	[Export] public float Sigma = 1.0f;
 	[Export] public Curve CustomCurve { get; set; }
 
 	[ExportSubgroup("In-Game Ray-Tracing only Scalars")]
@@ -164,6 +168,7 @@ public partial class FieldSource3D : Node3D
 	[Export] public bool DebugVizShowDensityZones { get; set; } = false;
 	[Export(PropertyHint.Range, "2,6,1")] public int DebugVizDensityZoneCount { get; set; } = 3;
 	[Export(PropertyHint.Range, "8,256,1")] public int DebugVizRingSegments { get; set; } = 64;
+	[Export(PropertyHint.Range, "0.0,0.25,0.001")] public float DebugVizZeroInnerRadiusEpsilonFraction { get; set; } = 0.01f;
 	[Export] public Color DebugVizDensityZoneColorMin { get; set; } = new Color(0.0f, 0.90f, 1.00f, 0.85f);
 	[Export] public Color DebugVizDensityZoneColorMax { get; set; } = new Color(1.0f, 0, 0.10f, 0.95f);
 
@@ -474,9 +479,10 @@ public partial class FieldSource3D : Node3D
 
 				case nameof(DebugVizDensityZoneCount):
 				case nameof(DebugVizRingSegments):
+				case nameof(DebugVizZeroInnerRadiusEpsilonFraction):
 				case nameof(DebugVizDensityZoneColorMin):
 				case nameof(DebugVizDensityZoneColorMax):
-					visible = DebugVizShowDensityZones;
+					visible = DebugVizShowDensityZones || DebugVizShowDensityVectors;
 					if (propertyName == nameof(DebugVizDensityZoneColorMin))
 					{
 						property["tooltip"] = "Density zone color at minimum profile strength.";
@@ -484,6 +490,10 @@ public partial class FieldSource3D : Node3D
 					else if (propertyName == nameof(DebugVizDensityZoneColorMax))
 					{
 						property["tooltip"] = "Density zone color at maximum profile strength.";
+					}
+					else if (propertyName == nameof(DebugVizZeroInnerRadiusEpsilonFraction))
+					{
+						property["tooltip"] = "When inner radius is zero, use this fraction of outer radius as a sampling offset.";
 					}
 					break;
 
@@ -823,6 +833,7 @@ public partial class FieldSource3D : Node3D
 		RInner = migrated.rInner;
 		ROuter = migrated.rOuter;
 		Amp = migrated.amp;
+		CanonicalGamma = migrated.curveType == FieldCurveType.Power ? migrated.a : CanonicalGamma;
 		CurveA = migrated.a;
 		CurveB = migrated.b;
 		CurveC = migrated.c;
@@ -882,6 +893,30 @@ public partial class FieldSource3D : Node3D
 			outer = inner;
 		}
 
+		float profileA = 0f;
+		float profileB = 0f;
+		float profileC = 0f;
+		float profileSigma = 0f;
+		Curve profileCustomCurve = null;
+
+		switch (CurveType)
+		{
+			case FieldCurveType.Power:
+				profileA = CanonicalGamma;
+				break;
+			case FieldCurveType.Polynomial:
+				profileA = CurveA;
+				profileB = CurveB;
+				profileC = CurveC;
+				break;
+			case FieldCurveType.Exponential:
+				profileSigma = Mathf.Max(0f, Sigma);
+				break;
+			case FieldCurveType.CustomCurve:
+				profileCustomCurve = CustomCurve;
+				break;
+		}
+
 		return new ResolvedFieldParams
 		{
 			enabled = Enabled,
@@ -889,17 +924,17 @@ public partial class FieldSource3D : Node3D
 			shapeType = ShapeType,
 			curveType = CurveType,
 			amp = Amp,
-			a = CurveA,
-			b = CurveB,
-			c = CurveC,
+			a = profileA,
+			b = profileB,
+			c = profileC,
 			rInner = inner,
 			rOuter = outer,
 			softening = Mathf.Max(0f, Softening),
-			sigma = Mathf.Max(0f, Sigma),
+			sigma = profileSigma,
 			overrideBetaScale = CanonicalOverrideBetaScale,
 			betaScale = CanonicalBetaScale,
 			edgeSoftness = Mathf.Clamp(CanonicalEdgeSoftness, 0f, 1f),
-			customCurve = CustomCurve
+			customCurve = profileCustomCurve
 		};
 	}
 
@@ -1021,7 +1056,7 @@ public partial class FieldSource3D : Node3D
 			? $"override(beta_scale={resolved.betaScale:0.###})"
 			: "global";
 		string curveExtras = resolved.curveType == FieldCurveType.CustomCurve
-			? (resolved.customCurve != null ? "custom=resource" : "custom=fallback_power")
+			? (resolved.customCurve != null ? "custom=resource" : "custom=missing")
 			: "custom=n/a";
 		return $"shape={resolved.shapeType} curve={resolved.curveType} amp={resolved.amp:0.###} a={resolved.a:0.###} b={resolved.b:0.###} c={resolved.c:0.###} r=[{resolved.rInner:0.###},{resolved.rOuter:0.###}] sigma={resolved.sigma:0.###} edge={resolved.edgeSoftness:0.###} beta={betaMode} {curveExtras} source={source}";
 	}
@@ -1038,7 +1073,7 @@ public partial class FieldSource3D : Node3D
 			FieldCurveType.Exponential => $"Gaussian: f(u) = exp(-(u/sigma)^2) (sigma={Mathf.Max(ResolveEps, resolved.sigma):0.###})",
 			FieldCurveType.CustomCurve => resolved.customCurve != null
 				? "CustomCurve: f(u) = Curve.Sample(u)"
-				: $"CustomCurve fallback: f(u) = pow(1-u,{resolved.a:0.###})",
+				: "CustomCurve: missing Curve resource (f(u)=0)",
 			_ => "Linear: f(u) = 1-u"
 		};
 		string betaExpr = resolved.overrideBetaScale
@@ -1065,14 +1100,19 @@ public partial class FieldSource3D : Node3D
 
 		bool invertSign = (resolved.modeFlags & ModeFlagInvertSign) != 0u;
 		string dirExpr = invertSign ? "+normalize(p-c)" : "-normalize(p-c)";
-		string sigmaNote = FieldMath.IsSigmaMeaningful(resolved.curveType)
-			? $"sigma={Mathf.Max(ResolveEps, resolved.sigma):0.###} (Gaussian uses exp(-pow(u/max(eps,sigma),2)))"
-			: $"sigma={Mathf.Max(ResolveEps, resolved.sigma):0.###} (unused for {resolved.curveType})";
+		string paramNote = resolved.curveType switch
+		{
+			FieldCurveType.Power => $"gamma={resolved.a:0.###}",
+			FieldCurveType.Polynomial => $"A={resolved.a:0.###}, B={resolved.b:0.###}, C={resolved.c:0.###}",
+			FieldCurveType.Exponential => $"sigma={Mathf.Max(ResolveEps, resolved.sigma):0.###}",
+			FieldCurveType.CustomCurve => resolved.customCurve != null ? "custom_curve=resource" : "custom_curve=missing",
+			_ => "no extra curve params"
+		};
 		EffectiveEquationIntegrated =
 			$"dir={dirExpr} (ModeFlagInvertSign={(invertSign ? 1 : 0)})\n" +
 			$"beta_eff={betaExpr}\n" +
-			$"mag=beta_eff*amp*f(u)*edge_ramp   (gamma={resolved.a:0.###})\n" +
-			$"{sigmaNote}\n" +
+			$"mag=beta_eff*amp*f(u)*edge_ramp\n" +
+			$"{paramNote}\n" +
 			"a=dir*mag";
 	}
 
@@ -1086,7 +1126,7 @@ public partial class FieldSource3D : Node3D
 			FieldCurveType.Exponential => $"exp(-pow(u/max(eps,{Mathf.Max(ResolveEps, resolved.sigma):0.###}),2))",
 			FieldCurveType.CustomCurve => resolved.customCurve != null
 				? "Curve.SampleBaked(u)"
-				: $"pow(1-u,{resolved.a:0.###}) (fallback: missing Curve resource)",
+				: "0 (missing Curve resource)",
 			_ => "1-u"
 		};
 	}
@@ -1166,6 +1206,7 @@ public partial class FieldSource3D : Node3D
 
 		DebugVizDensityArrowThicknessIntensity = Mathf.Clamp(DebugVizDensityArrowThicknessIntensity, 0.2f, 3.0f);
 		DebugVizDensityZoneCount = Mathf.Clamp(DebugVizDensityZoneCount, 2, 6);
+		DebugVizZeroInnerRadiusEpsilonFraction = Mathf.Clamp(DebugVizZeroInnerRadiusEpsilonFraction, 0f, 0.25f);
 		DebugVizGlobalOpacity = Mathf.Clamp(DebugVizGlobalOpacity, 0f, 1f);
 		_debugVizPlanes &= (int)DebugVizPlaneFlags.All;
 		Softening = Mathf.Max(0f, Softening);
@@ -1205,6 +1246,7 @@ public partial class FieldSource3D : Node3D
 			HasInnerOuter = hasInnerOuter,
 			InnerRadius = Mathf.Max(0f, inner),
 			OuterRadius = Mathf.Max(0f, outer),
+			DensitySampleInnerRadius = ComputeDensitySampleInnerRadius(Mathf.Max(0f, inner), Mathf.Max(0f, outer)),
 			ShowInnerOuter = DebugVizShowInnerOuter,
 			ShowSigma = DebugVizShowSigma && FieldMath.IsSigmaMeaningful(resolved.curveType) && resolved.sigma > 0f,
 			SigmaRadius = Mathf.Max(0f, resolved.sigma),
@@ -1424,8 +1466,9 @@ public partial class FieldSource3D : Node3D
 		for (int i = 0; i < zoneCount; i++)
 		{
 			float t = (i + 1f) / (zoneCount + 1f);
-			float radius = Mathf.Lerp(state.InnerRadius, state.OuterRadius, t);
-			float strength = EvaluateDensityStrengthAtT(t, state);
+			float radius = Mathf.Lerp(state.DensitySampleInnerRadius, state.OuterRadius, t);
+			float u = ComputeDensityUFromRadius(state, radius);
+			float strength = EvaluateDensityStrengthAtT(u, state);
 			Color zoneColor = InterpolateDensityColor(strength, state.DensityZoneColorMin, state.DensityZoneColorMax);
 			bool dashed = (i & 1) != 0;
 			AddWireRingPlanes(radius, zoneColor, state, dashed);
@@ -1484,7 +1527,7 @@ public partial class FieldSource3D : Node3D
 
 	private DensityRingSample[] BuildDensityVectorRingSamples(DebugVizState state)
 	{
-		float inner = Mathf.Max(0f, state.InnerRadius);
+		float inner = Mathf.Max(0f, state.DensitySampleInnerRadius);
 		float outer = Mathf.Max(inner, state.OuterRadius);
 		if (outer <= ResolveEps)
 		{
@@ -1494,7 +1537,8 @@ public partial class FieldSource3D : Node3D
 		int layers = Mathf.Clamp(state.DensityVectorLayers, 2, 16);
 		if (Mathf.IsEqualApprox(inner, outer))
 		{
-			float clampedStrength = Mathf.Max(0.15f, EvaluateDensityStrengthAtT(1f, state));
+			float u = ComputeDensityUFromRadius(state, outer);
+			float clampedStrength = Mathf.Max(0.15f, EvaluateDensityStrengthAtT(u, state));
 			return new DensityRingSample[] { new DensityRingSample(outer, clampedStrength) };
 		}
 
@@ -1503,7 +1547,8 @@ public partial class FieldSource3D : Node3D
 		{
 			float t = layers == 1 ? 1f : (float)i / (layers - 1);
 			float radius = Mathf.Lerp(inner, outer, t);
-			float strength = Mathf.Max(0.15f, EvaluateDensityStrengthAtT(t, state));
+			float u = ComputeDensityUFromRadius(state, radius);
+			float strength = Mathf.Max(0.15f, EvaluateDensityStrengthAtT(u, state));
 			samples.Add(new DensityRingSample(radius, strength));
 		}
 
@@ -1601,6 +1646,28 @@ public partial class FieldSource3D : Node3D
 			state.CustomCurve);
 		float edgeRamp = FieldMath.EvaluateEdgeRamp(u, state.EdgeSoftness);
 		return Mathf.Clamp(profile * edgeRamp, 0f, 1f);
+	}
+
+	private float ComputeDensitySampleInnerRadius(float inner, float outer)
+	{
+		float safeInner = Mathf.Max(0f, inner);
+		float safeOuter = Mathf.Max(safeInner, outer);
+		if (safeOuter <= ResolveEps || safeInner > ResolveEps)
+		{
+			return safeInner;
+		}
+
+		float frac = Mathf.Clamp(DebugVizZeroInnerRadiusEpsilonFraction, 0f, 0.25f);
+		float offset = safeOuter * frac;
+		return Mathf.Clamp(Mathf.Max(ResolveEps, offset), 0f, safeOuter);
+	}
+
+	private static float ComputeDensityUFromRadius(DebugVizState state, float radius)
+	{
+		float inner = Mathf.Max(0f, state.InnerRadius);
+		float outer = Mathf.Max(inner, state.OuterRadius);
+		float span = Mathf.Max(ResolveEps, outer - inner);
+		return Mathf.Clamp((radius - inner) / span, 0f, 1f);
 	}
 
 	private static Color InterpolateDensityColor(float strength, Color minColor, Color maxColor)
@@ -1799,6 +1866,7 @@ public partial class FieldSource3D : Node3D
 		public bool HasInnerOuter;
 		public float InnerRadius;
 		public float OuterRadius;
+		public float DensitySampleInnerRadius;
 		public bool ShowInnerOuter;
 		public bool ShowSigma;
 		public float SigmaRadius;
@@ -1845,6 +1913,7 @@ public partial class FieldSource3D : Node3D
 				&& HasInnerOuter == other.HasInnerOuter
 				&& Mathf.IsEqualApprox(InnerRadius, other.InnerRadius)
 				&& Mathf.IsEqualApprox(OuterRadius, other.OuterRadius)
+				&& Mathf.IsEqualApprox(DensitySampleInnerRadius, other.DensitySampleInnerRadius)
 				&& ShowInnerOuter == other.ShowInnerOuter
 				&& ShowSigma == other.ShowSigma
 				&& Mathf.IsEqualApprox(SigmaRadius, other.SigmaRadius)

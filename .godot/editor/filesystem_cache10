@@ -1,5 +1,5 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1772395082
+::res://::1772396252
 camera_3d.gd::GDScript::3454241889599487331::1765502409::0::1::::<>Camera3D<><>0<>0<><>::
 CurvedCamera.cs::CSharpScript::5306762016452856891::1771027735::0::1::::CurvedCamera<>Camera3D<><>0<>0<><>::
 curved_ray_postprocess.gdshader::Shader::3282317646427007636::1771364093::0::1::::<><><>0<>0<><>::
@@ -7,7 +7,7 @@ curved_view.gdshader::Shader::464022403874803904::1771364093::0::1::::<><><>0<>0
 FieldGrid3D.cs::CSharpScript::7908573473413055030::1769106792::0::1::::<><><>0<>0<><>::
 FieldMath.cs::CSharpScript::8952580616890036217::1772325750::0::1::::<><><>0<>0<><>::
 FieldProbe3D.cs::CSharpScript::8721301265289845037::1772325769::0::1::::<>Node3D<><>0<>1<><>::
-FieldSource3D.cs::CSharpScript::1499217976932918695::1772394681::0::1::::<>Node3D<><>0<>1<><>::
+FieldSource3D.cs::CSharpScript::1499217976932918695::1772396210::0::1::::<>Node3D<><>0<>1<><>::
 FilmOverlay2D.cs::CSharpScript::6555086453973335341::1771551102::0::1::::<>TextureRect<><>0<>0<><>::
 film_render_report.md::TextFile::-1::1768615916::0::1::::<><><>0<>0<><>::
 GrinFilmCamera.cs::CSharpScript::4402864534231265276::1772257371::0::1::::<>Node<><>0<>0<><>::
@@ -96,9 +96,9 @@ fig_01_architecture.png::CompressedTexture2D::4119938928718055796::1772217910::1
 C1_0_g_1.md::TextFile::-1::1771820798::0::1::::<><><>0<>0<><>::
 C1_7_g_X.md::TextFile::-1::1772040719::0::1::::<><><>0<>0<><>::
 ::res://Docs/stylesheets/::1772218438
-::res://Fixtures/::1772392119
+::res://Fixtures/::1772396111
 CurvedMinimalFingerprint.cs::CSharpScript::7627741202670024098::1771975659::0::1::::<>Node3D<><>0<>0<><>::
-fixture_curved_minimal.tscn::PackedScene::709584542642539015::1772392119::0::1::::<><><>0<>0<><>::uid://vmh5vusla1nv::::res://FieldSource3D.cs
+fixture_curved_minimal.tscn::PackedScene::709584542642539015::1772396111::0::1::::<><><>0<>0<><>::uid://vmh5vusla1nv::::res://FieldSource3D.cs
 ::res://GodotAdapter/::1770435036
 README.md::TextFile::-1::1770434268::0::1::::<><><>0<>0<><>::
 SnapshotBuilder.cs::CSharpScript::907470010122517097::1772257363::0::1::::<><><>0<>0<><>::
