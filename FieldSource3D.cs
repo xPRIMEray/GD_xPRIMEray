@@ -59,33 +59,58 @@ public partial class FieldSource3D : Node3D
 	private const uint ModeFlagInvertSign = FieldMath.ModeFlagInvertSign;
 	private const float ResolveEps = 1e-6f;
 
+	// Primary: academic baseline controls.
+	[ExportGroup("Primary (Academic Baseline)")]
 	[Export] public bool Enabled = true;
-
-	[ExportGroup("Field Model (Canonical)")]
 	[Export] public MetricModel MetricModel { get; set; } = MetricModel.GRIN;
-	[Export] public float RInner { get; set; } = 0f;
+	[Export] public FieldShapeType ShapeType { get; set; } = FieldShapeType.SphereRadial;
 	[Export] public float ROuter { get; set; } = 0f;
 	[Export] public float Amp { get; set; } = 0f;
-	[Export] public bool CanonicalOverrideBetaScale { get; set; } = true;
-	[Export] public float CanonicalBetaScale { get; set; } = 0.0010f;
-	[Export(PropertyHint.Range, "0.0,1.0,0.01")] public float CanonicalEdgeSoftness { get; set; } = 0f;
-	[Export] public uint ModeFlags { get; set; } = 0;
-	[Export] public float Softening = 0.05f;
-	[Export] public float Sigma = 5.0f;
+	[Export] public bool ApplyAcademicDefaults
+	{
+		get => false;
+		set
+		{
+			if (!value)
+			{
+				return;
+			}
 
-	[ExportGroup("Shape")]
-	[Export] public FieldShapeType ShapeType { get; set; } = FieldShapeType.SphereRadial;
-	[Export] public Vector3 BoxExtents { get; set; } = new Vector3(10f, 10f, 10f);
-
-	[ExportGroup("Curve")]
+			ResetToAcademicDefaults();
+			if (Engine.IsEditorHint())
+			{
+				NotifyPropertyListChanged();
+			}
+		}
+	}
 	[Export] public FieldCurveType CurveType { get; set; } = FieldCurveType.Linear;
 	[Export] public float CanonicalGamma { get => CurveA; set => CurveA = value; }
 	[Export] public float CurveA { get; set; } = 0f;
 	[Export] public float CurveB { get; set; } = 0f;
 	[Export] public float CurveC { get; set; } = 0f;
+	[Export] public float Sigma = 5.0f;
 	[Export] public Curve CustomCurve { get; set; }
+	[Export] public float CanonicalBetaScale { get; set; } = 0.0010f;
+
+	// Advanced: secondary controls and expert overrides.
+	[ExportGroup("Advanced")]
+	[ExportSubgroup("Shape")]
+	[Export] public Vector3 BoxExtents { get; set; } = new Vector3(10f, 10f, 10f);
+
+	[ExportSubgroup("Radii")]
+	[Export] public bool CanonicalEnableInnerRadius { get; set; } = true;
+	[Export] public float RInner { get; set; } = 0f;
+
+	[ExportSubgroup("Stability & Boundaries")]
+	[Export] public float Softening = 0.05f;
+	[Export(PropertyHint.Range, "0.0,1.0,0.01")] public float CanonicalEdgeSoftness { get; set; } = 0f;
+
+	[ExportSubgroup("Overrides / Expert")]
+	[Export] public bool CanonicalOverrideBetaScale { get; set; } = true;
+	[Export] public uint ModeFlags { get; set; } = 0;
 
 	[ExportGroup("Legacy (Deprecated)")]
+	[Export] public bool ShowLegacyControls { get; set; } = false;
 	// Deprecated compat. Use Shape/Curve/Amp for new scenes.
 	[Export] public bool Attract = true;
 	// Deprecated compat. Use Shape/Curve/Amp for new scenes.
@@ -111,7 +136,8 @@ public partial class FieldSource3D : Node3D
 	// Deprecated compat. Use Shape/Curve/Amp for new scenes.
 	[Export] public float EdgeSoftness = 0.5f;
 
-	[ExportGroup("Academic Debug Viz")]
+	// Debug Viz: academic visual diagnostics.
+	[ExportGroup("Debug Viz (Academic)")]
 	[Export] public bool DebugVizEnabled { get; set; } = true;
 	[Export] public DebugVizOpacityModeKind DebugVizOpacityMode { get; set; } = DebugVizOpacityModeKind.Wireframe;
 	[Export(PropertyHint.Flags, "XY,XZ,YZ")]
@@ -122,8 +148,22 @@ public partial class FieldSource3D : Node3D
 	}
 
 	public DebugVizPlaneFlags DebugVizPlaneMask => (DebugVizPlaneFlags)_debugVizPlanes;
+	[ExportSubgroup("Core")]
 	[Export] public bool DebugVizShowInnerOuter { get; set; } = true;
 	[Export] public bool DebugVizShowSigma { get; set; } = false;
+	[Export(PropertyHint.Range, "0.25,8.0,0.05")] public float DebugVizLineWidth { get; set; } = 2.0f;
+	[Export] public Color DebugVizColorInner { get; set; } = new Color(0.1f, 0.9f, 0.9f, 1.0f);
+	[Export] public Color DebugVizColorOuter { get; set; } = new Color(0.15f, 0.95f, 0.35f, 1.0f);
+	[Export] public Color DebugVizColorSigma { get; set; } = new Color(1.0f, 0.85f, 0.25f, 1.0f);
+
+	[ExportSubgroup("Density Zones")]
+	[Export] public bool DebugVizShowDensityZones { get; set; } = false;
+	[Export(PropertyHint.Range, "2,6,1")] public int DebugVizDensityZoneCount { get; set; } = 3;
+	[Export(PropertyHint.Range, "8,256,1")] public int DebugVizRingSegments { get; set; } = 64;
+	[Export] public Color DebugVizDensityZoneColorMin { get; set; } = new Color(1.0f, 0.95f, 0.25f, 0.9f);
+	[Export] public Color DebugVizDensityZoneColorMax { get; set; } = new Color(1.0f, 0.3f, 0.16f, 0.95f);
+
+	[ExportSubgroup("Density Vectors")]
 	[Export] public bool DebugVizShowDensityVectors { get; set; } = false;
 	[Export(PropertyHint.Range, "2,16,1")] public int DebugVizDensityVectorLayers { get; set; } = 6;
 	[Export(PropertyHint.Range, "4,96,1")] public int DebugVizDensityVectorCount { get; set; } = 16;
@@ -135,13 +175,10 @@ public partial class FieldSource3D : Node3D
 	[Export(PropertyHint.Range, "1,6,1")] public int DebugVizDensityArrowMinThicknessBands { get; set; } = 1;
 	[Export(PropertyHint.Range, "1,10,1")] public int DebugVizDensityArrowMaxThicknessBands { get; set; } = 4;
 	[Export(PropertyHint.Range, "0.2,3.0,0.05")] public float DebugVizDensityArrowThicknessIntensity { get; set; } = 1.0f;
-	[Export] public bool DebugVizShowDensityZones { get; set; } = false;
-	[Export(PropertyHint.Range, "2,6,1")] public int DebugVizDensityZoneCount { get; set; } = 3;
-	[Export(PropertyHint.Range, "8,256,1")] public int DebugVizRingSegments { get; set; } = 64;
-	[Export(PropertyHint.Range, "0.25,8.0,0.05")] public float DebugVizLineWidth { get; set; } = 2.0f;
-	[Export] public Color DebugVizColorInner { get; set; } = new Color(0.1f, 0.9f, 0.9f, 1.0f);
-	[Export] public Color DebugVizColorOuter { get; set; } = new Color(0.15f, 0.95f, 0.35f, 1.0f);
-	[Export] public Color DebugVizColorSigma { get; set; } = new Color(1.0f, 0.85f, 0.25f, 1.0f);
+	[Export] public Color DebugVizDensityVectorColorMin { get; set; } = new Color(1.0f, 0.75f, 0.25f, 0.9f);
+	[Export] public Color DebugVizDensityVectorColorMax { get; set; } = new Color(1.0f, 0.35f, 0.1f, 0.95f);
+
+	[ExportSubgroup("Render")]
 	[Export(PropertyHint.Range, "0.0,1.0,0.01")] public float DebugVizGlobalOpacity { get; set; } = 1.0f;
 	[Export] public bool DebugVizAlwaysOnTop { get; set; } = true;
 	[Export] public bool DebugVizInGame { get; set; } = false;
@@ -165,7 +202,27 @@ public partial class FieldSource3D : Node3D
 		}
 	}
 
-	[ExportGroup("Equation Preview (Read Only)")]
+	// Academic reference: read-only canonical equations and conventions.
+	[ExportGroup("Academic Reference (Read Only)")]
+	[Export(PropertyHint.MultilineText)]
+	public string AcademicReference
+	{
+		get => _academicReference;
+		private set
+		{
+			if (_academicReference == value)
+			{
+				return;
+			}
+
+			_academicReference = value;
+			if (Engine.IsEditorHint())
+			{
+				NotifyPropertyListChanged();
+			}
+		}
+	}
+
 	[Export(PropertyHint.MultilineText)]
 	public string EffectiveEquationCore
 	{
@@ -244,9 +301,18 @@ public partial class FieldSource3D : Node3D
 	private bool _debugVizStateValid;
 	private string _debugVizSummary = "inner=n/a outer=n/a source=none";
 	private string _effectiveSummary = "shape=SphereRadial curve=Linear amp=0 a=0 b=0 c=0 r=[0,0] sigma=0 source=canonical";
+	private string _academicReference = "r=|p-c| (or softened)\nu=clamp((r-rInner)/(rOuter-rInner),0,1)\nf(u)=by CurveType\na = dir * beta_eff * Amp * f(u) * edgeRamp(u)\nunits: scene units";
 	private string _effectiveEquationCore = "core: u-clamped shell with profile f(u)";
 	private string _effectiveEquationIntegrated = "integrated: a = dir * (beta_eff * amp * f(u))";
 	private int _debugVizPlanes = (int)DebugVizPlaneFlags.All;
+	private bool _inspectorStateInitialized;
+	private FieldCurveType _inspectorCurveType = (FieldCurveType)(-1);
+	private FieldShapeType _inspectorShapeType = (FieldShapeType)(-1);
+	private bool _inspectorInnerRadiusEnabled;
+	private bool _inspectorLegacyOverrideBeta;
+	private bool _inspectorShowLegacyControls;
+	private bool _inspectorShowDensityZones;
+	private bool _inspectorShowDensityVectors;
 	private bool _usedLegacyMigration;
 	private bool _loggedLegacyMigration;
 	private bool _warnedCanonicalLegacyConflict;
@@ -255,6 +321,28 @@ public partial class FieldSource3D : Node3D
 	private double _rebuildWindowStartSec;
 	private int _rebuildsThisWindow;
 	private bool _warnedFrequentRebuilds;
+
+	/// <summary>
+	/// Inspector-callable baseline preset for academic demos/tests.
+	/// </summary>
+	public void ResetToAcademicDefaults()
+	{
+		RInner = 0f;
+		ROuter = 10f;
+		Amp = 0.02f;
+		CanonicalOverrideBetaScale = true;
+		CanonicalBetaScale = 0.001f;
+		CurveType = FieldCurveType.Power;
+		CanonicalGamma = 1f;
+		Softening = 0.05f;
+		CanonicalEdgeSoftness = 0.10f;
+		CanonicalEnableInnerRadius = true;
+
+		ValidateAndClamp();
+		ResolveEffectiveParams(out _);
+		RefreshEquationPreviews();
+		RefreshInspectorVisibility();
+	}
 
 	public override void _Ready()
 	{
@@ -268,6 +356,7 @@ public partial class FieldSource3D : Node3D
 		{
 			GD.Print($"[FieldSource3D] {GetPath()} {EffectiveSummary}");
 		}
+		RefreshInspectorVisibility();
 		SetProcess(true);
 		CallDeferred(nameof(DeferredWarnIfZeroCurvatureAcrossSources));
 	}
@@ -280,6 +369,7 @@ public partial class FieldSource3D : Node3D
 	public override void _Process(double delta)
 	{
 		RefreshEquationPreviews();
+		RefreshInspectorVisibility();
 
 		if (!ShouldDrawDebugViz())
 		{
@@ -298,13 +388,226 @@ public partial class FieldSource3D : Node3D
 		}
 	}
 
+	public override void _ValidateProperty(Godot.Collections.Dictionary property)
+	{
+		try
+		{
+			if (!property.ContainsKey("name") || !property.ContainsKey("usage"))
+			{
+				return;
+			}
+
+			string propertyName = property["name"].ToString() ?? string.Empty;
+			bool visible = true;
+
+			switch (propertyName)
+			{
+				case nameof(MetricModel):
+					property["hint"] = (int)PropertyHint.Enum;
+					property["hint_string"] = "GRIN:0,GordonMetric (Experimental):1";
+					break;
+
+				case nameof(RInner):
+					visible = CanonicalEnableInnerRadius;
+					break;
+
+				case nameof(CurveType):
+					property["hint"] = (int)PropertyHint.Enum;
+					property["hint_string"] = "Linear:0,Power:1,Polynomial:2,Gaussian:3,CustomCurve:4";
+					break;
+
+				case nameof(CanonicalGamma):
+					visible = CurveType == FieldCurveType.Power;
+					break;
+
+				case nameof(CurveA):
+				case nameof(CurveB):
+				case nameof(CurveC):
+					visible = CurveType == FieldCurveType.Polynomial;
+					break;
+
+				case nameof(Sigma):
+					visible = CurveType == FieldCurveType.Exponential;
+					break;
+
+				case nameof(CustomCurve):
+					visible = CurveType == FieldCurveType.CustomCurve;
+					break;
+
+				case nameof(BoxExtents):
+					visible = ShapeType == FieldShapeType.BoxVolume;
+					break;
+
+				case nameof(EffectiveEquationCore):
+				case nameof(EffectiveEquationIntegrated):
+					visible = false;
+					break;
+
+				case nameof(Softening):
+					property["tooltip"] = "CoreSoftening: core stability softening term for near-center robustness.";
+					break;
+
+				case nameof(CanonicalEdgeSoftness):
+					property["tooltip"] = "EdgeFeather: boundary fade width in normalized u-space.";
+					break;
+
+				case nameof(CanonicalBetaScale):
+					property["tooltip"] = "Coupling (Beta): response gain scaling (canonical beta).";
+					break;
+
+				case nameof(Amp):
+					property["tooltip"] = "Strength: source amplitude.";
+					break;
+
+				case nameof(ApplyAcademicDefaults):
+					property["tooltip"] = "One-click preset: rInner=0, rOuter=10, strength=0.02, coupling=0.001, power gamma=1";
+					break;
+
+				case nameof(DebugVizShowDensityZones):
+					property["tooltip"] = "Enable interpolated density zone rings.";
+					break;
+
+				case nameof(DebugVizDensityZoneCount):
+				case nameof(DebugVizRingSegments):
+				case nameof(DebugVizDensityZoneColorMin):
+				case nameof(DebugVizDensityZoneColorMax):
+					visible = DebugVizShowDensityZones;
+					if (propertyName == nameof(DebugVizDensityZoneColorMin))
+					{
+						property["tooltip"] = "Density zone color at minimum profile strength.";
+					}
+					else if (propertyName == nameof(DebugVizDensityZoneColorMax))
+					{
+						property["tooltip"] = "Density zone color at maximum profile strength.";
+					}
+					break;
+
+				case nameof(DebugVizShowDensityVectors):
+					property["tooltip"] = "Enable density vector glyph overlays.";
+					break;
+
+				case nameof(DebugVizDensityVectorLayers):
+				case nameof(DebugVizDensityVectorCount):
+				case nameof(DebugVizDensityVectorScale):
+				case nameof(DebugVizDensityArrowMinLength):
+				case nameof(DebugVizDensityArrowMaxLength):
+				case nameof(DebugVizDensityArrowMinHeadSize):
+				case nameof(DebugVizDensityArrowMaxHeadSize):
+				case nameof(DebugVizDensityArrowMinThicknessBands):
+				case nameof(DebugVizDensityArrowMaxThicknessBands):
+				case nameof(DebugVizDensityArrowThicknessIntensity):
+				case nameof(DebugVizDensityVectorColorMin):
+				case nameof(DebugVizDensityVectorColorMax):
+					visible = DebugVizShowDensityVectors;
+					if (propertyName == nameof(DebugVizDensityVectorColorMin))
+					{
+						property["tooltip"] = "Density vector color at minimum profile strength.";
+					}
+					else if (propertyName == nameof(DebugVizDensityVectorColorMax))
+					{
+						property["tooltip"] = "Density vector color at maximum profile strength.";
+					}
+					break;
+
+				case nameof(ShowLegacyControls):
+					property["tooltip"] = "Off by default to keep deprecated controls collapsed.";
+					break;
+
+				case nameof(Attract):
+				case nameof(Strength):
+				case nameof(MinRadius):
+				case nameof(MaxRadius):
+				case nameof(Profile):
+				case nameof(OverrideGamma):
+				case nameof(Gamma):
+				case nameof(OverrideBetaScale):
+				case nameof(BetaScale):
+				case nameof(InnerRadius):
+				case nameof(OuterRadius):
+				case nameof(EdgeSoftness):
+					visible = ShowLegacyControls;
+					if (!IsCanonicalUnset())
+					{
+						property["tooltip"] = "Ignored: canonical fields are set.";
+					}
+					break;
+			}
+
+			SetPropertyVisibility(property, visible);
+		}
+		catch (Exception ex)
+		{
+			GD.PushWarning($"[FieldSource3D] _ValidateProperty failed: {ex.Message}");
+		}
+	}
+
+	private static void SetPropertyVisibility(Godot.Collections.Dictionary property, bool visible)
+	{
+		long usageRaw = ReadUsageValue(property["usage"]);
+		PropertyUsageFlags usage = (PropertyUsageFlags)usageRaw;
+
+		if (visible)
+		{
+			usage &= ~PropertyUsageFlags.NoEditor;
+		}
+		else
+		{
+			usage |= PropertyUsageFlags.NoEditor;
+		}
+
+		property["usage"] = (long)usage;
+	}
+
+	private static long ReadUsageValue(Variant value)
+	{
+		return value.VariantType switch
+		{
+			Variant.Type.Int => (long)(int)value,
+			Variant.Type.Float => (long)(float)value,
+			_ => (long)PropertyUsageFlags.Default
+		};
+	}
+
+	private void RefreshInspectorVisibility()
+	{
+		if (!Engine.IsEditorHint())
+		{
+			return;
+		}
+
+		bool changed = !_inspectorStateInitialized
+			|| _inspectorCurveType != CurveType
+			|| _inspectorShapeType != ShapeType
+			|| _inspectorInnerRadiusEnabled != CanonicalEnableInnerRadius
+			|| _inspectorLegacyOverrideBeta != CanonicalOverrideBetaScale
+			|| _inspectorShowLegacyControls != ShowLegacyControls
+			|| _inspectorShowDensityZones != DebugVizShowDensityZones
+			|| _inspectorShowDensityVectors != DebugVizShowDensityVectors;
+
+		if (!changed)
+		{
+			return;
+		}
+
+		_inspectorStateInitialized = true;
+		_inspectorCurveType = CurveType;
+		_inspectorShapeType = ShapeType;
+		_inspectorInnerRadiusEnabled = CanonicalEnableInnerRadius;
+		_inspectorLegacyOverrideBeta = CanonicalOverrideBetaScale;
+		_inspectorShowLegacyControls = ShowLegacyControls;
+		_inspectorShowDensityZones = DebugVizShowDensityZones;
+		_inspectorShowDensityVectors = DebugVizShowDensityVectors;
+		NotifyPropertyListChanged();
+	}
+
 	public bool IsCanonicalUnset()
 	{
+		float effectiveInner = GetEffectiveCanonicalInnerRadius();
 		return Mathf.Abs(Amp) <= ResolveEps
 			&& Mathf.Abs(CurveA) <= ResolveEps
 			&& Mathf.Abs(CurveB) <= ResolveEps
 			&& Mathf.Abs(CurveC) <= ResolveEps
-			&& Mathf.Abs(RInner) <= ResolveEps
+			&& Mathf.Abs(effectiveInner) <= ResolveEps
 			&& Mathf.Abs(ROuter) <= ResolveEps
 			&& CustomCurve == null
 			&& ModeFlags == 0u
@@ -562,7 +865,7 @@ public partial class FieldSource3D : Node3D
 
 	private ResolvedFieldParams BuildCanonicalParams()
 	{
-		float inner = Mathf.Max(0f, RInner);
+		float inner = Mathf.Max(0f, GetEffectiveCanonicalInnerRadius());
 		float outer = Mathf.Max(0f, ROuter);
 		if (outer > 0f && outer < inner)
 		{
@@ -588,6 +891,11 @@ public partial class FieldSource3D : Node3D
 			edgeSoftness = Mathf.Clamp(CanonicalEdgeSoftness, 0f, 1f),
 			customCurve = CustomCurve
 		};
+	}
+
+	private float GetEffectiveCanonicalInnerRadius()
+	{
+		return CanonicalEnableInnerRadius ? RInner : 0f;
 	}
 
 	private ResolvedFieldParams ResolveLegacyCanonicalParams()
@@ -712,12 +1020,32 @@ public partial class FieldSource3D : Node3D
 	{
 		ResolvedFieldParams resolved = ResolveEffectiveParams(out string source);
 		string curveCore = BuildCoreCurveEquation(resolved);
+		string curveReference = resolved.curveType switch
+		{
+			FieldCurveType.Linear => "Linear: f(u) = 1-u",
+			FieldCurveType.Power => $"Power: f(u) = (1-u)^gamma (gamma={resolved.a:0.###})",
+			FieldCurveType.Polynomial => $"Polynomial: f(u) = A + B*u + C*u^2 (A={resolved.a:0.###}, B={resolved.b:0.###}, C={resolved.c:0.###})",
+			FieldCurveType.Exponential => $"Gaussian: f(u) = exp(-(u/sigma)^2) (sigma={Mathf.Max(ResolveEps, resolved.sigma):0.###})",
+			FieldCurveType.CustomCurve => resolved.customCurve != null
+				? "CustomCurve: f(u) = Curve.Sample(u)"
+				: $"CustomCurve fallback: f(u) = pow(1-u,{resolved.a:0.###})",
+			_ => "Linear: f(u) = 1-u"
+		};
 		string betaExpr = resolved.overrideBetaScale
 			? $"(|beta_g|>eps ? beta_g*{resolved.betaScale:0.###} : {resolved.betaScale:0.###})"
 			: "beta_g";
 		string edgeExpr = resolved.edgeSoftness > ResolveEps
 			? $"edge_ramp=smoothstep(0,{resolved.edgeSoftness:0.###},u) * (1-smoothstep({1f - resolved.edgeSoftness:0.###},1,u))"
 			: "edge_ramp=1 (disabled)";
+		AcademicReference =
+			"Canonical baseline (read only)\n" +
+			"r = |p-c| (or softened)\n" +
+			"u = clamp((r-rInner)/(rOuter-rInner),0,1)\n" +
+			$"{curveReference}\n" +
+			"a = dir * beta_eff * Amp * f(u) * edgeRamp(u)\n" +
+			"Amp = source strength, beta_eff/coupling = response gain\n" +
+			"CoreSoftening = core stability, EdgeFeather = boundary fade\n" +
+			"Units: scene units";
 		EffectiveEquationCore =
 			$"source={source}\n" +
 			"r=|p-c|\n" +
@@ -780,9 +1108,10 @@ public partial class FieldSource3D : Node3D
 			warned = true;
 		}
 
-		if (ROuter < RInner)
+		float effectiveInner = Mathf.Max(0f, GetEffectiveCanonicalInnerRadius());
+		if (ROuter < effectiveInner)
 		{
-			ROuter = RInner;
+			ROuter = effectiveInner;
 			warned = true;
 		}
 
@@ -882,6 +1211,8 @@ public partial class FieldSource3D : Node3D
 			DensityArrowThicknessIntensity = DebugVizDensityArrowThicknessIntensity,
 			ShowDensityZones = DebugVizShowDensityZones && hasInnerOuter,
 			DensityZoneCount = DebugVizDensityZoneCount,
+			DensityZoneColorMin = DebugVizDensityZoneColorMin,
+			DensityZoneColorMax = DebugVizDensityZoneColorMax,
 			ModeFlags = resolved.modeFlags,
 			CurveType = resolved.curveType,
 			CurveA = resolved.a,
@@ -899,6 +1230,8 @@ public partial class FieldSource3D : Node3D
 			InnerColor = DebugVizColorInner,
 			OuterColor = DebugVizColorOuter,
 			SigmaColor = DebugVizColorSigma,
+			DensityVectorColorMin = DebugVizDensityVectorColorMin,
+			DensityVectorColorMax = DebugVizDensityVectorColorMax,
 			Transform = GlobalTransform
 		};
 	}
@@ -1082,7 +1415,7 @@ public partial class FieldSource3D : Node3D
 			float t = (i + 1f) / (zoneCount + 1f);
 			float radius = Mathf.Lerp(state.InnerRadius, state.OuterRadius, t);
 			float strength = EvaluateDensityStrengthAtT(t, state);
-			Color zoneColor = GetDensityZoneColor(strength);
+			Color zoneColor = InterpolateDensityColor(strength, state.DensityZoneColorMin, state.DensityZoneColorMax);
 			bool dashed = (i & 1) != 0;
 			AddWireRingPlanes(radius, zoneColor, state, dashed);
 		}
@@ -1103,14 +1436,14 @@ public partial class FieldSource3D : Node3D
 		}
 
 		bool invert = (state.ModeFlags & ModeFlagInvertSign) != 0u;
-		Color vectorColor = new Color(1.0f, 0.45f, 0.2f, 0.95f);
-
-		AddLineSurface(GetLineColorForMode(vectorColor, state), state, () =>
+		for (int r = 0; r < rings.Length; r++)
 		{
-			for (int r = 0; r < rings.Length; r++)
+			DensityRingSample ring = rings[r];
+			float sizeT = Mathf.Clamp(ring.Strength, 0f, 1f);
+			Color vectorColor = InterpolateDensityColor(sizeT, state.DensityVectorColorMin, state.DensityVectorColorMax);
+
+			AddLineSurface(GetLineColorForMode(vectorColor, state), state, () =>
 			{
-				DensityRingSample ring = rings[r];
-				float sizeT = Mathf.Clamp(ring.Strength, 0f, 1f);
 				float thicknessT = Mathf.Clamp(Mathf.Pow(sizeT, state.DensityArrowThicknessIntensity), 0f, 1f);
 				float length = Mathf.Lerp(state.DensityArrowMinLength, state.DensityArrowMaxLength, sizeT) * state.DensityVectorScale;
 				float head = Mathf.Lerp(state.DensityArrowMinHeadSize, state.DensityArrowMaxHeadSize, sizeT);
@@ -1134,8 +1467,8 @@ public partial class FieldSource3D : Node3D
 				{
 					AddVectorRingSet(ring.Radius, count, Vector3.Up, Vector3.Forward, Vector3.Right, invert, length, head, strokeBands, strokeOffset);
 				}
-			}
-		});
+			});
+		}
 	}
 
 	private DensityRingSample[] BuildDensityVectorRingSamples(DebugVizState state)
@@ -1257,12 +1590,10 @@ public partial class FieldSource3D : Node3D
 		return Mathf.Clamp(profile * edgeRamp, 0f, 1f);
 	}
 
-	private static Color GetDensityZoneColor(float strength)
+	private static Color InterpolateDensityColor(float strength, Color minColor, Color maxColor)
 	{
 		float s = Mathf.Clamp(strength, 0f, 1f);
-		Color low = new Color(1.0f, 0.95f, 0.25f, 0.9f);
-		Color high = new Color(1.0f, 0.3f, 0.16f, 0.95f);
-		return low.Lerp(high, s);
+		return minColor.Lerp(maxColor, s);
 	}
 
 	private readonly struct DensityRingSample
@@ -1471,6 +1802,8 @@ public partial class FieldSource3D : Node3D
 		public float DensityArrowThicknessIntensity;
 		public bool ShowDensityZones;
 		public int DensityZoneCount;
+		public Color DensityZoneColorMin;
+		public Color DensityZoneColorMax;
 		public uint ModeFlags;
 		public FieldCurveType CurveType;
 		public float CurveA;
@@ -1488,6 +1821,8 @@ public partial class FieldSource3D : Node3D
 		public Color InnerColor;
 		public Color OuterColor;
 		public Color SigmaColor;
+		public Color DensityVectorColorMin;
+		public Color DensityVectorColorMax;
 		public Transform3D Transform;
 
 		public bool Equals(DebugVizState other)
@@ -1512,6 +1847,8 @@ public partial class FieldSource3D : Node3D
 				&& Mathf.IsEqualApprox(DensityArrowThicknessIntensity, other.DensityArrowThicknessIntensity)
 				&& ShowDensityZones == other.ShowDensityZones
 				&& DensityZoneCount == other.DensityZoneCount
+				&& ColorsEqual(DensityZoneColorMin, other.DensityZoneColorMin)
+				&& ColorsEqual(DensityZoneColorMax, other.DensityZoneColorMax)
 				&& ModeFlags == other.ModeFlags
 				&& CurveType == other.CurveType
 				&& Mathf.IsEqualApprox(CurveA, other.CurveA)
@@ -1529,6 +1866,8 @@ public partial class FieldSource3D : Node3D
 				&& ColorsEqual(InnerColor, other.InnerColor)
 				&& ColorsEqual(OuterColor, other.OuterColor)
 				&& ColorsEqual(SigmaColor, other.SigmaColor)
+				&& ColorsEqual(DensityVectorColorMin, other.DensityVectorColorMin)
+				&& ColorsEqual(DensityVectorColorMax, other.DensityVectorColorMax)
 				&& TransformsEqual(Transform, other.Transform);
 		}
 

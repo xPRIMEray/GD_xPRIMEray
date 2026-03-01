@@ -28,34 +28,21 @@ shape = SubResource("SphereShape3D_target")
 
 [node name="FieldSource3D" type="Node3D" parent="."]
 script = ExtResource("1_field")
-ROuter = 10.0
-Amp = 1.0
-CurveType = 1
-CurveA = 0.2
+CurveA = 1.0
+Sigma = 0.0
 Attract = false
 InnerRadius = 0.01
-DebugVizOpacityMode = 2
-DebugVizShowSigma = true
-DebugVizShowDensityVectors = true
-DebugVizDensityVectorLayers = 5
-DebugVizDensityVectorCount = 11
-DebugVizDensityArrowMinLength = 0.1
-DebugVizDensityArrowMaxLength = 1.0
-DebugVizDensityArrowMinHeadSize = 0.1
-DebugVizDensityArrowMaxHeadSize = 0.5
-DebugVizDensityArrowMaxThicknessBands = 3
 DebugVizDensityZoneCount = 6
-DebugVizRingSegments = 24
-DebugVizLineWidth = 3.0
-DebugVizInGame = true
-DebugVizSummary = "shape=SphereRadial curve=Power amp=1 a=0.2 b=0 c=0 r=[0,10] sigma=5 source=canonical inner=0 outer=10 reason=canonical"
+DebugVizRingSegments = 137
+DebugVizDensityZoneColorMin = Color(1, 0, 0.016666412, 0.9019608)
+DebugVizDensityZoneColorMax = Color(0, 0.7666669, 1, 0.9019608)
 EffectiveEquationCore = "source=canonical
-core: r=|p_local|, u=clamp((r-rInner)/max(eps,rOuter-rInner),0,1)
-f(u)=(1-u)^0.2; a_local=+normalize(p_local)*(amp*f(u))"
-EffectiveEquationIntegrated = "integration: r=sqrt(|p-c|^2+soft^2), beta_eff=(|beta_g|>eps?beta_g*amp:amp)
-A=beta_eff*BendScale*FieldStrength; dir=-rvec/r
-profile=r^0.2 (gamma=0.2, sigma=5); a=dir*(A*profile)"
-DebugDrawInGame = true
-DebugDrawAlwaysOnTop = true
-DebugRingSegments = 24
-DebugLineWidth = 3.0
+r=|p-c|
+u=clamp((r-rInner)/max(eps,rOuter-rInner),0,1)
+f(u)=(1-u)^1
+edge_ramp=smoothstep(0,0.1,u) * (1-smoothstep(0.9,1,u))"
+EffectiveEquationIntegrated = "dir=-normalize(p-c) (ModeFlagInvertSign=0)
+beta_eff=(|beta_g|>eps ? beta_g*0.001 : 0.001)
+mag=beta_eff*amp*f(u)*edge_ramp   (gamma=1)
+sigma=0 (unused for Power)
+a=dir*mag"
