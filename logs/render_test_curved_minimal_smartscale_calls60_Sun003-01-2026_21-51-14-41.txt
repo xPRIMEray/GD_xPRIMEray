@@ -1,0 +1,63 @@
+Godot Engine v4.5.1.stable.mono.official.f62fdbde1 - https://godotengine.org
+OpenGL API 3.3.0 Core Profile Context 25.11.1.251104 - Compatibility - Using Device: ATI Technologies Inc. - AMD Radeon RX 6700 XT
+
+✅ GrinFilmCamera READY: /root/TestHarness/GrinFilmCamera
+[RBRRef][Startup] configured path=../RayBeamRenderer
+[RBRRef] resolved ok name=RayBeamRenderer
+[RBRRef][Startup] resolved=True
+RayBeamRenderer found? True
+GrinFilmCamera: UpdateEveryFrame is false; FrameSnapshotBus will not update.
+[BroadphaseEffective] mode=Policy policy=OverlapOnly quick=False overlap=True reason=policy
+[SharedSnap] steps=400 stepLen=0.05 minStep=0.001 maxStep=0.3 collEvery=1 collRad=0.03 mask=0x0000FFFF debug=Off
+[EffectiveCfg] broadphase=Policy(policy) policy=OverlapOnly quick=0 overlap=1 softgate=0 score=1 minSeg=0.1 attempts=5000 sub=10000 stride=1 resScale=1 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF envRadScale=1.1 envAabbExpand=0 geomPrune=1 maxDist=50
+FilmView found? True
+[RBRRef][Startup] HasRenderer(after mirror)=True
+✅ GrinFilmCamera ready. Rendering film.
+[DBG] dbgMesh inTree=True parent=RayBeamRenderer world=(0, 0, 0)
+[RenderTestRunner] _Ready reached.
+[RenderTestRunner][CLIFlags] autocal=1 shadow_eval=1 autocal_verbose=1 autocal_apply=0 lifecycle_stress=0 smartscale=1 smartscale_goal=maxhits
+[RenderTestRunner] TokenDetected=False shouldStart=True
+[RenderTestRunner] Switching to fixture scene: fixture=CurvedMinimal path=res://test-curved-minimal.tscn
+WARNING: [FieldSource3D][Warn] canonical+legacy both set; using canonical. (legacy ignored)
+   at: void FieldSource3D.WarnIfCanonicalAndLegacyBothSet() (res://FieldSource3D.cs:802)
+   C# backtrace (most recent call first):
+       [0] void Godot.GD.PushWarning(string) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/GD.cs:396)
+       [1] void FieldSource3D.WarnIfCanonicalAndLegacyBothSet() (C:\godot\godot_xPRIMEray\FieldSource3D.cs:802)
+       [2] void FieldSource3D._Ready() (C:\godot\godot_xPRIMEray\FieldSource3D.cs:360)
+       [3] bool Godot.Node.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node.cs:2660)
+       [4] bool Godot.Node3D.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node3D.cs:1126)
+       [5] bool FieldSource3D.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\FieldSource3D_ScriptMethods.generated.cs:358)
+       [6] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+[FieldSource3D] /root/TestCurvedMinimalHarness/FixtureCurvedMinimal/FieldSource3D shape=SphereRadial curve=Power amp=1 a=1 b=0 c=0 r=[0,2] sigma=0 edge=0 beta=override(beta_scale=1) custom=n/a source=canonical
+✅ GrinFilmCamera READY: /root/TestCurvedMinimalHarness/GrinFilmCamera
+[RBRRef][Startup] configured path=../RayBeamRenderer
+[RBRRef] resolved ok name=RayBeamRenderer
+[RBRRef][Startup] resolved=True
+RayBeamRenderer found? True
+[BroadphaseEffective] mode=Policy policy=Both quick=True overlap=True reason=policy
+[SharedSnap] steps=400 stepLen=0.05 minStep=0.001 maxStep=0.3 collEvery=1 collRad=0.03 mask=0x0000FFFF debug=Off
+[EffectiveCfg] broadphase=Policy(policy) policy=Both quick=1 overlap=1 softgate=0 score=1 minSeg=0.1 attempts=5000 sub=10000 stride=1 resScale=0.5 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF envRadScale=1.1 envAabbExpand=0 geomPrune=1 maxDist=50
+FilmView found? True
+[RBRRef][Startup] HasRenderer(after mirror)=True
+✅ GrinFilmCamera ready. Rendering film.
+[DBG] dbgMesh inTree=True parent=RayBeamRenderer world=(0, 0, 0)
+[RenderTestRunner] _Ready reached.
+Curved_Minimal invalid: curvature not applied | deviated_rays=0/16 min_required=6 d_min=0.001 max_dev=0 dev_sum=0 bendScale=1 fieldStrength=1 transport=1 probe_accel=[0.735433,0.581531,0.554672,0.624751]
+ERROR: Curved_Minimal invalid: curvature not applied | deviated_rays=0/16 min_required=6 d_min=0.001 max_dev=0 dev_sum=0 bendScale=1 fieldStrength=1 transport=1 probe_accel=[0.735433,0.581531,0.554672,0.624751]
+   at: void CurvedMinimalFingerprint.FailInvalid(string, string) (res://Fixtures/CurvedMinimalFingerprint.cs:308)
+   C# backtrace (most recent call first):
+       [0] void Godot.GD.PushError(string) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/GD.cs:366)
+       [1] void CurvedMinimalFingerprint.FailInvalid(string, string) (C:\godot\godot_xPRIMEray\Fixtures\CurvedMinimalFingerprint.cs:308)
+       [2] void CurvedMinimalFingerprint._Ready() (C:\godot\godot_xPRIMEray\Fixtures\CurvedMinimalFingerprint.cs:177)
+       [3] bool Godot.Node.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node.cs:2660)
+       [4] bool Godot.Node3D.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node3D.cs:1126)
+       [5] bool CurvedMinimalFingerprint.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\CurvedMinimalFingerprint_ScriptMethods.generated.cs:88)
+       [6] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+[CurvedFixture][FAIL] Requesting quit code=1 due to fixture invariant failure.
+Rebuild ENTER
+Rebuild on node: /root/TestCurvedMinimalHarness/RayBeamRenderer  TerminateTrailOnHit=True StopOnHit=False RequireHitToRender=False
+READY node: /root/TestCurvedMinimalHarness/RayBeamRenderer  Script=<CSharpScript#-9223372011269520005>  TerminateTrailOnHit=True
+RayBeamRenderer: field sources in group = 1
+Toggles: AdaptiveSubsteps=0 SingleProbeSubdivide=0 BandHitSkip=0 RequireHit=0 StopOnHit=0 TerminateTrailOnHit=1 UpdateEveryFrame=1
+[Cfg] Pass2SoftGateEnableQuickRayMiss=0 Pass2SoftGateScoringEnabled=1 Pass2SoftGateMinSegmentLength=0.1 Pass2SoftGateScoreThreshold=1 Pass2SoftGateScoreTurnAngleWeight=1 Pass2SoftGateScorePrevHitLostBonus=0.75 Pass2SoftGateRandomProbeChance=0.01 Pass2SoftGateScoreBudgetPerFrame=32 Pass2SoftGateMaxAttemptsPerPixel=2 Pass2SoftGateMaxAttemptsPerFrame=5000 Pass2SoftGateMaxSubdividedCallsPerFrame=10000 UpdateEveryFrame=1
+[Warn] Broadphase QuickRay may miss hits under curved marching; consider OverlapOnly/Both or disable broadphase.

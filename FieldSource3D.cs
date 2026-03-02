@@ -64,7 +64,7 @@ public partial class FieldSource3D : Node3D
 	[Export] public bool Enabled = true;
 	[Export] public MetricModel MetricModel { get; set; } = MetricModel.GRIN;
 	[Export] public FieldShapeType ShapeType { get; set; } = FieldShapeType.SphereRadial;
-	[Export] public float ROuter { get; set; } = 10.0f;
+	[Export] public float ROuter { get; set; } = 2.0f;
 	[Export] public bool ApplyAcademicDefaults
 	{
 		get => false;

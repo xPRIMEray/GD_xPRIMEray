@@ -3,8 +3,8 @@
 [ext_resource type="Script" uid="uid://vmh5vusla1nv" path="res://FieldSource3D.cs" id="1_field"]
 
 [sub_resource type="SphereMesh" id="SphereMesh_target"]
-radius = 0.6
-height = 1.2
+radius = 1.0
+height = 2.0
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_target"]
 radius = 0.6
@@ -12,13 +12,13 @@ radius = 0.6
 [node name="FixtureCurvedMinimal" type="Node3D"]
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.99026805, 0.1391731, 0, -0.1391731, 0.99026805, 0, 0.5, 5.5)
+transform = Transform3D(1, 0, 0, 0, 0.9056799, 0.42396238, 0, -0.42396238, 0.9056799, 0, 5.1510434, 13.535316)
 current = true
 fov = 70.0
 near = 0.01
 
 [node name="fixture_target" type="StaticBody3D" parent="."]
-transform = Transform3D(3.6, 0, 0, 0, 3.6, 0, 0, 0, 3.6, 0, 0, -6)
+transform = Transform3D(3.6, 0, 0, 0, 3.6, 0, 0, 0, 3.6, 0, 0, 0)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="fixture_target"]
 mesh = SubResource("SphereMesh_target")
@@ -32,10 +32,10 @@ Attract = false
 EffectiveEquationCore = "source=canonical
 r=|p-c|
 u=clamp((r-rInner)/max(eps,rOuter-rInner),0,1)
-f(u)=(1-u)^1
-edge_ramp=smoothstep(0,0.1,u) * (1-smoothstep(0.9,1,u))"
+f(u)=(1-u)^0.1
+edge_ramp=1 (disabled)"
 EffectiveEquationIntegrated = "dir=-normalize(p-c) (ModeFlagInvertSign=0)
 beta_eff=(|beta_g|>eps ? beta_g*1 : 1)
 mag=beta_eff*amp*f(u)*edge_ramp
-gamma=1
+gamma=0.1
 a=dir*mag"

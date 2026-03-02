@@ -72,16 +72,13 @@ Contributions may include:
 
 ---
 
-## Wiki
- https://aethertopologist.github.io/GD_xPRIMEray/
-
----
-
 ## 📄 License & Citation
 
 Licensed under MIT — recommended for both academic and creative use.
 
 If used in academic work, please cite accordingly.
+
+![Screenshot](screenshots/2026-03-01_CurvedMinimalFixture.png)
 
 ![Screenshot](screenshots/2026-02-26_GenericScene-4fields-5obj.png)
 
