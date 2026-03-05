@@ -20,9 +20,9 @@ FilmResolutionScale = 0.5
 SkyColor = Color(0.12665671, 0.00020911609, 0.24455094, 1)
 ShadingMode = 1
 FlipNormalToCamera = false
-UpdateEveryFrameBudgetMs = 320.0
+UpdateEveryFrameBudgetMs = 500.0
 UpdateEveryFrameMaxRowsPerStep = 1024
-RenderStepMaxMs = 500
+RenderStepMaxMs = 1000
 RenderStepMaxSegmentsPerFrame = 200000000
 TargetMsPerFrame = 50
 MaxRowsPerFrameCap = 1024
@@ -83,7 +83,7 @@ metadata/_edit_use_anchors_ = true
 
 [node name="RenderTestRunner" type="Node" parent="."]
 script = ExtResource("3_runner")
-StartWhenCmdArgPresent = false
+StartWhenCmdArgPresent = true
 Fixture = 2
 FramesPerRun = 300
 WarmupFrames = 30

@@ -1,0 +1,57 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://FieldSource3D.cs" id="1_field"]
+[ext_resource type="Script" path="res://RayBeamRenderer.cs" id="2_rbr"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_marker"]
+radius = 0.18
+height = 0.36
+
+[sub_resource type="BoxMesh" id="BoxMesh_background_screen"]
+size = Vector3(80, 80, 0.2)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_background_screen"]
+size = Vector3(80, 80, 0.2)
+
+[node name="FixtureBlackholeMinimal" type="Node3D"]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.9056799, 0.42396238, 0, -0.42396238, 0.9056799, 0, 5.1510434, 13.535316)
+current = true
+fov = 70.0
+near = 0.01
+
+[node name="blackhole_center_marker" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_marker")
+
+[node name="background_screen" type="StaticBody3D" parent="." groups=["raytrace_geometry", "fixture_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -6, -16)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="background_screen"]
+mesh = SubResource("BoxMesh_background_screen")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="background_screen"]
+shape = SubResource("BoxShape3D_background_screen")
+
+[node name="FieldSource3D" type="Node3D" parent="."]
+script = ExtResource("1_field")
+Attract = false
+
+[node name="PhotonBandSource" type="Node3D" parent="."]
+script = ExtResource("1_field")
+
+[node name="RayBeamRenderer" type="Node3D" parent="."]
+visible = false
+script = ExtResource("2_rbr")
+CameraPath = NodePath("../Camera3D")
+StepsPerRay = 400
+StepLength = 0.05
+MinStepLength = 0.001
+MaxStepLength = 0.3
+LowCurvaturePerpAccel = 0.3
+BendScale = 1.0
+FieldCenterIsCamera = false
+DebugMode = 0
+DebugNormalLen = 0.295
+Alpha = 1.0
+UpdateEveryFrame = false

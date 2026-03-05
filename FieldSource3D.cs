@@ -57,6 +57,7 @@ public partial class FieldSource3D : Node3D
 	}
 
 	private const uint ModeFlagInvertSign = FieldMath.ModeFlagInvertSign;
+	private const uint ModeFlagAbsorbInsideInnerRadius = FieldMath.ModeFlagAbsorbInsideInnerRadius;
 	private const float ResolveEps = 1e-6f;
 
 	// Primary: academic baseline controls.
@@ -1099,6 +1100,7 @@ public partial class FieldSource3D : Node3D
 			$"{edgeExpr}";
 
 		bool invertSign = (resolved.modeFlags & ModeFlagInvertSign) != 0u;
+		bool absorbInsideInnerRadius = (resolved.modeFlags & ModeFlagAbsorbInsideInnerRadius) != 0u;
 		string dirExpr = invertSign ? "+normalize(p-c)" : "-normalize(p-c)";
 		string paramNote = resolved.curveType switch
 		{
@@ -1110,6 +1112,7 @@ public partial class FieldSource3D : Node3D
 		};
 		EffectiveEquationIntegrated =
 			$"dir={dirExpr} (ModeFlagInvertSign={(invertSign ? 1 : 0)})\n" +
+			$"absorb_if_r_lt_rInner={(absorbInsideInnerRadius ? 1 : 0)}\n" +
 			$"beta_eff={betaExpr}\n" +
 			$"mag=beta_eff*amp*f(u)*edge_ramp\n" +
 			$"{paramNote}\n" +

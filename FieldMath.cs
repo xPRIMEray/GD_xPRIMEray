@@ -8,6 +8,7 @@ public static class FieldMath
 {
 	public const float Epsilon = 1e-6f;
 	public const uint ModeFlagInvertSign = 1u << 0;
+	public const uint ModeFlagAbsorbInsideInnerRadius = 1u << 1;
 
 	public readonly struct EvalResult
 	{

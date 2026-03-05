@@ -402,6 +402,13 @@ public partial class RayBeamRenderer : Node3D
 		public int HitPayloadIndex; // -1 if none
 	}
 
+	public enum RayTerminationReason
+	{
+		None = 0,
+		Hit = 1,
+		AbsorbedInsideInnerRadius = 2
+	}
+
 	public struct HitPayload {
 		public bool Valid;
 		public Vector3 Position;
@@ -410,6 +417,8 @@ public partial class RayBeamRenderer : Node3D
 		public float Distance;     // path length to hit
 		public Vector3 Normal;     // (optional for v0)
 		public Color Albedo;       // (optional; can be constant for v0)
+		public int Absorbed;       // 1 when terminated by inner-radius absorption.
+		public RayTerminationReason TerminationReason;
 	}
 
 	public struct RaySeg
@@ -1019,6 +1028,8 @@ public partial class RayBeamRenderer : Node3D
 					// DECISION: print hit details only when debug enabled for this ray.
 					if (debugThisRay && meta.HadHit)
 						GD.Print($"[DBG] HIT collider='{hit.ColliderName}' id={hit.ColliderId} pos={hit.Position}");
+					if (debugThisRay && hit.Absorbed == 1)
+						GD.Print($"[DBG] ABSORB reason={hit.TerminationReason} distance={hit.Distance:0.###}");
 
 					// DECISION: print per-ray meta only when debug enabled for this ray.
 					if (debugThisRay)
@@ -1491,6 +1502,8 @@ public partial class RayBeamRenderer : Node3D
 		ulong hitColliderId = 0;
 		string hitColliderName = "<none>";
 		int trailStopCount = int.MaxValue;
+		bool absorbedByInnerRadius = false;
+		RayTerminationReason terminationReason = RayTerminationReason.None;
 
 		int sampleStart = _sampleWriteHead;
 		int sampleCount = 0;
@@ -1525,6 +1538,13 @@ public partial class RayBeamRenderer : Node3D
 		// DECISION: integrate along the ray for up to StepsPerRay steps.
 		for (int s = 0; s <= StepsPerRay; s++)
 		{
+			if (UseIntegratedField && hasSources && TryGetAbsorbingSourceAtPoint(p, fieldSources, out _))
+			{
+				absorbedByInnerRadius = true;
+				terminationReason = RayTerminationReason.AbsorbedInsideInnerRadius;
+				break;
+			}
+
 			Vector3 a = Vector3.Zero;
 			Vector3 next = p;
 
@@ -1694,6 +1714,10 @@ public partial class RayBeamRenderer : Node3D
 						rayHit = true;
 						hadHit = true;
 						hitPos = hp;
+						if (terminationReason == RayTerminationReason.None)
+						{
+							terminationReason = RayTerminationReason.Hit;
+						}
 
 						hitColliderId = cid;
 						hitColliderName = cname;
@@ -1727,10 +1751,11 @@ public partial class RayBeamRenderer : Node3D
 			Position = hitPos,
 			ColliderId = hitColliderId,
 			ColliderName = hitColliderName,
-			// NEW (important)
-			Distance = hitDist,              // ← this is the key one
+			Distance = absorbedByInnerRadius ? traveled : hitDist,
 			Normal = Vector3.Zero,             // v0 placeholder
-			Albedo = Colors.White              // v0 placeholder
+			Albedo = Colors.White,             // v0 placeholder
+			Absorbed = absorbedByInnerRadius ? 1 : 0,
+			TerminationReason = terminationReason
 		};
 
 		return new RayMeta
@@ -1757,6 +1782,8 @@ public partial class RayBeamRenderer : Node3D
 		Vector3 hitPos = Vector3.Zero;
 		ulong colliderId = 0;
 		string colliderName = "<none>";
+		bool absorbedByInnerRadius = false;
+		RayTerminationReason terminationReason = RayTerminationReason.None;
 		float traveled = 0.0f;
 		float hitDistance = 0f;
 
@@ -1773,6 +1800,13 @@ public partial class RayBeamRenderer : Node3D
 		// DECISION: integrate along the ray for up to StepsPerRay steps.
 		for (int s = 0; s <= StepsPerRay; s++)
 		{
+			if (UseIntegratedField && hasSources && TryGetAbsorbingSourceAtPoint(p, fieldSources, out _))
+			{
+				absorbedByInnerRadius = true;
+				terminationReason = RayTerminationReason.AbsorbedInsideInnerRadius;
+				break;
+			}
+
 			Vector3 next = p;
 
 			// DECISION: integrated vs analytic field path.
@@ -1872,6 +1906,7 @@ public partial class RayBeamRenderer : Node3D
 					{
 						hadHit = true;
 						hitPos = hp;
+						terminationReason = RayTerminationReason.Hit;
 
 						// EFFECT: more accurate path-length to hit within the segment.
 						hitDistance = traveled - segLen + (hitPos - segA).Length();
@@ -1890,9 +1925,11 @@ public partial class RayBeamRenderer : Node3D
 			Position = hitPos,
 			ColliderId = colliderId,
 			ColliderName = colliderName,
-			Distance = hitDistance,
+			Distance = absorbedByInnerRadius ? traveled : hitDistance,
 			Normal = Vector3.Zero,
-			Albedo = Colors.White
+			Albedo = Colors.White,
+			Absorbed = absorbedByInnerRadius ? 1 : 0,
+			TerminationReason = terminationReason
 		};
 
 		return new RayMeta
@@ -1965,6 +2002,11 @@ public partial class RayBeamRenderer : Node3D
 		// DECISION: integrate along the ray for up to StepsPerRay steps.
 		for (int s = 0; s <= StepsPerRay; s++)
 		{
+			if (UseIntegratedField && hasSources && TryGetAbsorbingSourceAtPoint(p, fieldSnaps, out _))
+			{
+				break;
+			}
+
 			Vector3 next = p;
 
 			// DECISION: integrated vs analytic field path.
@@ -2189,6 +2231,13 @@ public partial class RayBeamRenderer : Node3D
 		{
 			stepsIntegrated++;
 			float prevTraveled = traveled;
+
+			if (UseIntegratedField && hasSources && TryGetAbsorbingSourceAtPoint(p, fieldSnaps, out _))
+			{
+				stoppedEarly = true;
+				break;
+			}
+
 			Vector3 next = p;
 
 			// DECISION: integrated vs analytic field path.
@@ -2437,6 +2486,46 @@ public partial class RayBeamRenderer : Node3D
 			EdgeSoftness = Mathf.Clamp(resolved.edgeSoftness, 0f, 1f),
 			CustomCurve = resolved.customCurve
 		};
+	}
+
+	private static bool TryGetAbsorbingSourceAtPoint(
+		Vector3 p,
+		FieldSourceSnap[] sources,
+		out int sourceIndex)
+	{
+		sourceIndex = -1;
+		if (sources == null || sources.Length == 0)
+		{
+			return false;
+		}
+
+		for (int i = 0; i < sources.Length; i++)
+		{
+			ref readonly FieldSourceSnap source = ref sources[i];
+			if (!source.Enabled)
+			{
+				continue;
+			}
+
+			if ((source.ModeFlags & FieldMath.ModeFlagAbsorbInsideInnerRadius) == 0u)
+			{
+				continue;
+			}
+
+			float inner = source.RInner;
+			if (inner <= 0f)
+			{
+				continue;
+			}
+
+			if (p.DistanceSquaredTo(source.Center) < (inner * inner))
+			{
+				sourceIndex = i;
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	public static Vector3 ComputeAccelerationAtPointSnap(

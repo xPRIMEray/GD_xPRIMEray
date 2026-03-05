@@ -32,10 +32,10 @@ Attract = false
 EffectiveEquationCore = "source=canonical
 r=|p-c|
 u=clamp((r-rInner)/max(eps,rOuter-rInner),0,1)
-f(u)=(1-u)^0.1
+f(u)=(1-u)^1
 edge_ramp=1 (disabled)"
 EffectiveEquationIntegrated = "dir=-normalize(p-c) (ModeFlagInvertSign=0)
 beta_eff=(|beta_g|>eps ? beta_g*1 : 1)
 mag=beta_eff*amp*f(u)*edge_ramp
-gamma=0.1
+gamma=1
 a=dir*mag"

@@ -1,19 +1,19 @@
 {
   "runs": [
     {
-      "runName": "__unscoped__:render_test_log_curved_minimal.txt",
-      "pruneMode": "on",
+      "runName": "baseline_prune_off",
+      "pruneMode": "off",
       "meanMs": "na",
       "p95Ms": "na",
-      "totalWindows": 136,
-      "trustedWindows": 136,
+      "totalWindows": 1,
+      "trustedWindows": 1,
       "pctLowRaytests": "0.000",
-      "meanPerPxOffNumeric": "na",
-      "meanPerPxOnNumeric": "6.123",
+      "meanPerPxOffNumeric": "499.388",
+      "meanPerPxOnNumeric": "na",
       "meanSavedPctNumeric": "na",
-      "meanP2Samp": "225.228",
-      "meanHitRate": "0.023",
-      "effectiveCfgShort": "",
+      "meanP2Samp": "72411.000",
+      "meanHitRate": "0.000",
+      "effectiveCfgShort": "broadphase=Policy(policy);policy=QuickRayOnly;quick=1;overlap=0;softgate=0;score=0;stride=2;resScale=0.25;rows=8;geomPrune=0;maxDist=50",
       "scene_signature_hash64": "",
       "scene_archetype": "",
       "canonical_signature_hash64": "",
@@ -49,9 +49,9 @@
   ],
   "global": {
     "totalRuns": 1,
-    "totalWindows": 136,
+    "totalWindows": 1,
     "trustReasonHistogram": {
-      "ok": 136
+      "ok": 1
     }
   },
   "worst_windows": []

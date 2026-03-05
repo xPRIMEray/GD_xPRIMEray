@@ -11,7 +11,8 @@ public partial class RenderTestRunner : Node
 	{
 		Default = 0,
 		Straight = 1,
-		CurvedMinimal = 2
+		CurvedMinimal = 2,
+		BlackholeMinimal = 3
 	}
 
 	public enum SmartScaleMode
@@ -65,6 +66,7 @@ public partial class RenderTestRunner : Node
 	private const string RenderTestDefaultScenePath = "res://test.tscn";
 	private const string RenderTestStraightScenePath = "res://test-straight.tscn";
 	private const string RenderTestCurvedMinimalScenePath = "res://test-curved-minimal.tscn";
+	private const string RenderTestBlackholeMinimalScenePath = "res://test-blackhole-minimal.tscn";
 	private const string RenderTestStraightArgToken = "--render-test-straight";
 	private const string RenderTestStraightSceneHint = "straight";
 	private const string RenderTestFixtureArgPrefix = "--render-test-fixture=";
@@ -90,6 +92,7 @@ public partial class RenderTestRunner : Node
 	private const int RenderTestStatsFullFrameEveryNSteps = 8;
 	private const int RenderTestTrustPass2SampleEveryNSegments = 8;
 	private const int RenderTestTrustMinP2Samples = 8;
+	private const int RenderTestStartGuardFrameLimit = 30;
 	// X% gain threshold for trusted probe promotion over baseline.
 	private const double SmartScaleSignificantGeomPixGainRatio = 1.15;
 	// Productive-partial fallback threshold over baseline geomPix.
@@ -117,6 +120,11 @@ public partial class RenderTestRunner : Node
 	private ulong _runSeriesId = 0;
 	private long _matrixStartTimestamp = 0;
 	private bool _renderTestMode = false;
+	private bool _renderTestStartGuardActive = false;
+	private int _renderTestStartGuardFramesSinceReady = 0;
+	private bool _renderTestStartGuardHasToken = false;
+	private bool _renderTestStartGuardShouldStart = false;
+	private string _renderTestStartGuardParsedArgs = "[]";
 	private bool _startupDependencyErrorLogged = false;
 	private bool _baselineApplied = false;
 	private HarnessState _harnessState = HarnessState.Idle;
@@ -354,7 +362,13 @@ public partial class RenderTestRunner : Node
 		ProcessPriority = 100;
 		bool hasToken = HasCmdArgToken();
 		bool shouldStart = AutoStart || (StartWhenCmdArgPresent && hasToken);
+		bool hasRenderTestToken = HasCmdArg("--render-test");
 		_renderTestMode = IsRenderTestMode() || shouldStart;
+		_renderTestStartGuardActive = hasRenderTestToken;
+		_renderTestStartGuardFramesSinceReady = 0;
+		_renderTestStartGuardHasToken = hasToken;
+		_renderTestStartGuardShouldStart = shouldStart;
+		_renderTestStartGuardParsedArgs = GetCmdlineArgsSummary();
 		_requestedFixture = GetRequestedFixture();
 		ApplyStartupCliFlagOverrides();
 		ConfigureLifecycleStressSessionFromFlags();
@@ -394,6 +408,33 @@ public partial class RenderTestRunner : Node
 
 	public override void _Process(double delta)
 	{
+		if (_renderTestStartGuardActive)
+		{
+			if (_matrixRunning)
+			{
+				_renderTestStartGuardActive = false;
+			}
+			else
+			{
+				_renderTestStartGuardFramesSinceReady++;
+				// Prevent CI hangs when --render-test is present but matrix start gates block startup.
+				if (_renderTestStartGuardFramesSinceReady >= RenderTestStartGuardFrameLimit)
+				{
+					GD.PrintErr(
+						$"[RenderTestRunner] ERROR: render-test harness misconfigured (matrix did not start within {RenderTestStartGuardFrameLimit} frames). " +
+						$"HasToken={_renderTestStartGuardHasToken} StartWhenCmdArgPresent={StartWhenCmdArgPresent} AutoStart={AutoStart} " +
+						$"ShouldStart={_renderTestStartGuardShouldStart} RenderTestMode={_renderTestMode} HarnessState={_harnessState} " +
+						$"parsed_args={_renderTestStartGuardParsedArgs}");
+					StopFilmRenderingForExitIfNeeded();
+					GD.Print("[RenderTestRunner] Requesting deferred quit code=2");
+					GD.Print("[RenderTestRunner][ExitCode] forced=2 reason=harness_misconfigured");
+					CallDeferred(nameof(QuitDeferred), 2);
+					_renderTestStartGuardActive = false;
+				}
+				return;
+			}
+		}
+
 		if (!_matrixRunning)
 		{
 			return;
@@ -2698,6 +2739,22 @@ public partial class RenderTestRunner : Node
 		return false;
 	}
 
+	private static string GetCmdlineArgsSummary()
+	{
+		string[] args = OS.GetCmdlineUserArgs();
+		if (args == null || args.Length == 0)
+		{
+			return "[]";
+		}
+
+		for (int i = 0; i < args.Length; i++)
+		{
+			args[i] = string.IsNullOrWhiteSpace(args[i]) ? string.Empty : args[i].Trim();
+		}
+
+		return $"[{string.Join(", ", args)}]";
+	}
+
 	private void ApplyStartupCliFlagOverrides()
 	{
 		ConfigureSmartScaleFromFlags();
@@ -3026,6 +3083,11 @@ public partial class RenderTestRunner : Node
 				fixture = RenderTestFixture.CurvedMinimal;
 				return true;
 			}
+			if (string.Equals(value, "blackhole_minimal", StringComparison.OrdinalIgnoreCase))
+			{
+				fixture = RenderTestFixture.BlackholeMinimal;
+				return true;
+			}
 			if (string.Equals(value, "default", StringComparison.OrdinalIgnoreCase))
 			{
 				fixture = RenderTestFixture.Default;
@@ -3042,6 +3104,7 @@ public partial class RenderTestRunner : Node
 		{
 			RenderTestFixture.Straight => RenderTestStraightScenePath,
 			RenderTestFixture.CurvedMinimal => RenderTestCurvedMinimalScenePath,
+			RenderTestFixture.BlackholeMinimal => RenderTestBlackholeMinimalScenePath,
 			_ => RenderTestDefaultScenePath
 		};
 	}
@@ -3283,6 +3346,7 @@ public partial class RenderTestRunner : Node
 		{
 			RenderTestFixture.Straight => "straight",
 			RenderTestFixture.CurvedMinimal => "curved_minimal",
+			RenderTestFixture.BlackholeMinimal => "blackhole_minimal",
 			_ => "default"
 		};
 	}
