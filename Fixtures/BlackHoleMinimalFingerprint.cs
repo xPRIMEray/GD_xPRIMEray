@@ -17,9 +17,9 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 	[Export] public SourcePatternMode PatternMode = SourcePatternMode.CrossXY;
 	[Export(PropertyHint.Range, "1,21,1")] public int SourceCountX = 5;
 	[Export(PropertyHint.Range, "1,21,1")] public int SourceCountY = 5;
-	[Export(PropertyHint.Range, "0,5,0.01")] public float SourceSpacingX = 0.45f;
-	[Export(PropertyHint.Range, "0,5,0.01")] public float SourceSpacingY = 0.45f;
-	[Export(PropertyHint.Range, "0.01,3,0.01")] public float SourceMarkerRadius = 0.24f;
+	[Export(PropertyHint.Range, "0,20,0.01")] public float SourceSpacingX = 4.50f;
+	[Export(PropertyHint.Range, "0,20,0.01")] public float SourceSpacingY = 4.50f;
+	[Export(PropertyHint.Range, "0.01,6,0.01")] public float SourceMarkerRadius = 0.60f;
 	[Export] public Vector3 PatternOriginLocal = new(0f, 0f, -12f);
 	[Export] public bool IncludeCenterPoint = true;
 
@@ -106,6 +106,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 	private bool _loggedBroadphaseLock;
 	private Node3D _sourcePatternRoot;
 	private SourceMarkerSphere[] _sourceMarkers = Array.Empty<SourceMarkerSphere>();
+	private const float ManualMarkerMeshScale = 1.18f;
 
 	private readonly struct PhotonBandShell
 	{
@@ -346,6 +347,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			return;
 		}
 		LogSourcePatternSummary();
+		LogSourcePatternMarkerDetails();
 
 		string sphereScale = sphere != null ? FormatVec3(sphere.Scale) : "n/a";
 		string spherePos = sphere != null ? FormatVec3(sphere.GlobalTransform.Origin) : "n/a";
@@ -744,6 +746,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		}
 
 		float safeRadius = Mathf.Max(0.01f, SourceMarkerRadius);
+		bool manualMode = !IsRenderTestMode();
 		SourcePatternConfig cfg = new(
 			PatternMode,
 			SourceCountX,
@@ -770,10 +773,21 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 				Name = "MeshInstance3D",
 				Mesh = templateMesh.Duplicate() as Mesh ?? templateMesh
 			};
+			Vector3 localDelta = localPos - PatternOriginLocal;
+			Color axisColor = ResolveAxisColor(localDelta, manualMode);
 			if (mesh.Mesh is SphereMesh sphereMesh)
 			{
-				sphereMesh.Radius = safeRadius;
-				sphereMesh.Height = safeRadius * 2f;
+				float meshRadius = manualMode ? safeRadius * ManualMarkerMeshScale : safeRadius;
+				sphereMesh.Radius = meshRadius;
+				sphereMesh.Height = meshRadius * 2f;
+			}
+			if (manualMode)
+			{
+				mesh.MaterialOverride = new StandardMaterial3D
+				{
+					AlbedoColor = axisColor,
+					ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+				};
 			}
 			marker.AddChild(mesh);
 
@@ -826,6 +840,140 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			$"[BlackHoleFixture][SourcePattern] mode={PatternMode} count={_sourceMarkers.Length} spacing=({Mathf.Max(0f, SourceSpacingX):0.###},{Mathf.Max(0f, SourceSpacingY):0.###}) " +
 			$"radius={Mathf.Max(0.01f, SourceMarkerRadius):0.###} originLocal={FormatVec3(PatternOriginLocal)} includeCenter={(IncludeCenterPoint ? 1 : 0)} " +
 			$"localSample=[{localBuilder}] worldSample=[{worldBuilder}] checksum={checksum}");
+	}
+
+	private void LogSourcePatternMarkerDetails()
+	{
+		if (_sourcePatternRoot == null || !IsInstanceValid(_sourcePatternRoot))
+		{
+			return;
+		}
+
+		int markerCount = _sourcePatternRoot.GetChildCount();
+		bool crossExpectedCheck = PatternMode == SourcePatternMode.CrossXY && SourceCountX == 5 && SourceCountY == 5 && IncludeCenterPoint;
+		if (crossExpectedCheck)
+		{
+			GD.Print($"[BlackHoleFixture][SourcePatternCheck] cross_expected_count=9 actual={markerCount} ok={(markerCount == 9 ? 1 : 0)}");
+		}
+
+		int overlapExactCount = 0;
+		float minDistance = float.PositiveInfinity;
+		for (int i = 0; i < _sourceMarkers.Length; i++)
+		{
+			for (int j = i + 1; j < _sourceMarkers.Length; j++)
+			{
+				float d = _sourceMarkers[i].WorldCenter.DistanceTo(_sourceMarkers[j].WorldCenter);
+				if (d < minDistance)
+				{
+					minDistance = d;
+				}
+				if (d <= 1e-4f)
+				{
+					overlapExactCount++;
+				}
+			}
+		}
+		if (!float.IsFinite(minDistance))
+		{
+			minDistance = 0f;
+		}
+
+		Node3D centerMarker = GetNodeOrNull<Node3D>(SpherePath);
+		float centerZ = centerMarker?.GlobalPosition.Z ?? 0f;
+		float zMin = float.PositiveInfinity;
+		float zMax = float.NegativeInfinity;
+		for (int i = 0; i < _sourceMarkers.Length; i++)
+		{
+			float z = _sourceMarkers[i].WorldCenter.Z;
+			if (z < zMin) zMin = z;
+			if (z > zMax) zMax = z;
+		}
+		if (!float.IsFinite(zMin)) zMin = 0f;
+		if (!float.IsFinite(zMax)) zMax = 0f;
+		int behindCenter = zMax <= centerZ ? 1 : 0;
+
+		GD.Print(
+			$"[BlackHoleFixture][SourcePatternLayout] markers={markerCount} overlap_exact={overlapExactCount} min_pair_dist={minDistance:0.######} " +
+			$"z_range=({zMin:0.###},{zMax:0.###}) center_z={centerZ:0.###} behind_center={behindCenter}");
+
+		for (int i = 0; i < _sourcePatternRoot.GetChildCount(); i++)
+		{
+			if (_sourcePatternRoot.GetChild(i) is not StaticBody3D marker)
+			{
+				continue;
+			}
+			CollisionShape3D collision = marker.GetNodeOrNull<CollisionShape3D>("CollisionShape3D");
+			MeshInstance3D mesh = marker.GetNodeOrNull<MeshInstance3D>("MeshInstance3D");
+			string groups = BuildMarkerGroups(marker);
+			Vector3 localPos = marker.Position;
+			Vector3 worldPos = marker.GlobalPosition;
+			int collisionEnabled = (collision != null && !collision.Disabled) ? 1 : 0;
+			int visible = (marker.Visible && (mesh?.Visible ?? true)) ? 1 : 0;
+			GD.Print(
+				$"[BlackHoleFixture][SourcePatternMarker] i={i} name={marker.Name} local={FormatVec3(localPos)} global={FormatVec3(worldPos)} " +
+				$"groups=[{groups}] collision_enabled={collisionEnabled} visible={visible}");
+		}
+	}
+
+	private static string BuildMarkerGroups(Node marker)
+	{
+		StringBuilder b = new StringBuilder(48);
+		if (marker.IsInGroup("raytrace_geometry")) b.Append("raytrace_geometry");
+		if (marker.IsInGroup("fixture_geometry"))
+		{
+			if (b.Length > 0) b.Append(',');
+			b.Append("fixture_geometry");
+		}
+		if (marker.IsInGroup("fixture_source"))
+		{
+			if (b.Length > 0) b.Append(',');
+			b.Append("fixture_source");
+		}
+		return b.ToString();
+	}
+
+	private static Color ResolveAxisColor(Vector3 localDelta, bool manualMode)
+	{
+		if (!manualMode)
+		{
+			return Colors.White;
+		}
+
+		bool onX = Mathf.Abs(localDelta.Y) <= 1e-4f;
+		bool onY = Mathf.Abs(localDelta.X) <= 1e-4f;
+		if (onX && onY)
+		{
+			return new Color(1f, 1f, 1f, 1f);
+		}
+		if (onX)
+		{
+			return new Color(1f, 0.6f, 0.2f, 1f);
+		}
+		if (onY)
+		{
+			return new Color(0.2f, 0.95f, 1f, 1f);
+		}
+		return new Color(0.9f, 0.9f, 0.9f, 1f);
+	}
+
+	private static bool IsRenderTestMode()
+	{
+		string[] args = OS.GetCmdlineArgs();
+		if (args == null || args.Length == 0)
+		{
+			return false;
+		}
+		for (int i = 0; i < args.Length; i++)
+		{
+			string arg = args[i] ?? string.Empty;
+			if (arg.Equals("--render-test", StringComparison.Ordinal) ||
+				arg.StartsWith("--render-test-", StringComparison.Ordinal) ||
+				arg.StartsWith("--render-test-fixture=", StringComparison.Ordinal))
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static string BuildSourcePatternSignature(SourceMarkerSphere[] markers)

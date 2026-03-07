@@ -31,19 +31,8 @@ near = 0.01
 [node name="blackhole_center_marker" type="MeshInstance3D" parent="."]
 mesh = SubResource("SphereMesh_marker")
 
-[node name="background_screen2" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry"]]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -12, -16.222351)
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="background_screen2"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.5, 0, 0)
-mesh = SubResource("BoxMesh_background_screen")
-skeleton = NodePath("../../background_screen2")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="background_screen2"]
-shape = SubResource("BoxShape3D_background_screen")
-
 [node name="background_screen" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry"]]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, -6, -38)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -38)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="background_screen"]
 mesh = SubResource("BoxMesh_background_screen")
