@@ -15,7 +15,7 @@ config/description="This demo showcases a physical light and camera units setup.
 This allows you to use real world units for lights (lumen, lux, Kelvin)
 and cameras (shutter speed, aperture, ISO sensitivity)."
 config/tags=PackedStringArray("3d", "blackhole", "curvature", "demo", "geodesic", "grin", "null", "rendering", "wormhole")
-run/main_scene="uid://t2xyvpcd8ste"
+run/main_scene="uid://cu1pi4gpm7oa8"
 config/features=PackedStringArray("4.5", "C#")
 config/icon="res://icon.webp"
 

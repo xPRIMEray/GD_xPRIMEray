@@ -12,7 +12,16 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 	private static readonly NodePath CameraPath = new("FixtureBlackholeMinimal/Camera3D");
 	private static readonly NodePath SpherePath = new("FixtureBlackholeMinimal/blackhole_center_marker");
 	private static readonly NodePath RendererPath = new("FixtureBlackholeMinimal/RayBeamRenderer");
+	private static readonly NodePath SourceTemplatePath = new("FixtureBlackholeMinimal/source_marker_template");
 	private static readonly NodePath FilmCameraPath = new("GrinFilmCamera");
+	[Export] public SourcePatternMode PatternMode = SourcePatternMode.CrossXY;
+	[Export(PropertyHint.Range, "1,21,1")] public int SourceCountX = 5;
+	[Export(PropertyHint.Range, "1,21,1")] public int SourceCountY = 5;
+	[Export(PropertyHint.Range, "0,5,0.01")] public float SourceSpacingX = 0.45f;
+	[Export(PropertyHint.Range, "0,5,0.01")] public float SourceSpacingY = 0.45f;
+	[Export(PropertyHint.Range, "0.01,3,0.01")] public float SourceMarkerRadius = 0.24f;
+	[Export] public Vector3 PatternOriginLocal = new(0f, 0f, -12f);
+	[Export] public bool IncludeCenterPoint = true;
 
 	private static readonly Vector3[] CurvatureProbeOffsets =
 	{
@@ -95,6 +104,8 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 
 	private bool _invalidFixture;
 	private bool _loggedBroadphaseLock;
+	private Node3D _sourcePatternRoot;
+	private SourceMarkerSphere[] _sourceMarkers = Array.Empty<SourceMarkerSphere>();
 
 	private readonly struct PhotonBandShell
 	{
@@ -109,6 +120,20 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			Width = width;
 			RInner = rInner;
 			ROuter = rOuter;
+		}
+	}
+
+	private readonly struct SourceMarkerSphere
+	{
+		public readonly Vector3 LocalCenter;
+		public readonly Vector3 WorldCenter;
+		public readonly float Radius;
+
+		public SourceMarkerSphere(Vector3 localCenter, Vector3 worldCenter, float radius)
+		{
+			LocalCenter = localCenter;
+			WorldCenter = worldCenter;
+			Radius = radius;
 		}
 	}
 
@@ -316,6 +341,11 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		photonBandField.Gamma = 1.0f;
 		photonBandField.DebugDrawBounds = FixedDebugDrawBounds;
 		photonBandField.DebugDrawInGame = FixedDebugDrawInGame;
+		if (!RebuildSourcePatternMarkers())
+		{
+			return;
+		}
+		LogSourcePatternSummary();
 
 		string sphereScale = sphere != null ? FormatVec3(sphere.Scale) : "n/a";
 		string spherePos = sphere != null ? FormatVec3(sphere.GlobalTransform.Origin) : "n/a";
@@ -427,6 +457,11 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			$"maxStep={F(Mathf.Max(rayRenderer.MinStepLength, rayRenderer.MaxStepLength))};" +
 			$"stepAdaptGain={F(rayRenderer.StepAdaptGain)};" +
 			$"maxSteps={rayRenderer.StepsPerRay};" +
+			$"sourcePatternMode={PatternMode};" +
+			$"sourcePatternCount={_sourceMarkers.Length};" +
+			$"sourceSpacingX={F(Mathf.Max(0f, SourceSpacingX))};" +
+			$"sourceSpacingY={F(Mathf.Max(0f, SourceSpacingY))};" +
+			$"sourceMarkerRadius={F(Mathf.Max(0.01f, SourceMarkerRadius))};" +
 			$"rayK={FingerprintRaySteps};" +
 			$"accelMass=[{massAccelVector}];" +
 			$"accelBand=[{bandAccelVector}];" +
@@ -657,6 +692,165 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		}
 
 		return absorbedRayCount;
+	}
+
+	private bool RebuildSourcePatternMarkers()
+	{
+		StaticBody3D template = GetNodeOrNull<StaticBody3D>(SourceTemplatePath);
+		if (template == null)
+		{
+			FailInvalid("missing source marker template", $"template_path={SourceTemplatePath}");
+			return false;
+		}
+		template.Visible = false;
+		CollisionShape3D templateCollision = template.GetNodeOrNull<CollisionShape3D>("CollisionShape3D");
+		if (templateCollision != null)
+		{
+			templateCollision.Disabled = true;
+		}
+
+		if (_sourcePatternRoot == null || !IsInstanceValid(_sourcePatternRoot))
+		{
+			_sourcePatternRoot = new Node3D
+			{
+				Name = "source_pattern_runtime"
+			};
+			Node parent = template.GetParent();
+			if (parent == null)
+			{
+				FailInvalid("missing source marker template parent", $"template_path={SourceTemplatePath}");
+				return false;
+			}
+			parent.AddChild(_sourcePatternRoot);
+		}
+
+		for (int i = _sourcePatternRoot.GetChildCount() - 1; i >= 0; i--)
+		{
+			_sourcePatternRoot.GetChild(i).QueueFree();
+		}
+
+		Mesh templateMesh = template.GetNodeOrNull<MeshInstance3D>("MeshInstance3D")?.Mesh;
+		if (templateMesh == null)
+		{
+			FailInvalid("invalid source marker template", "missing MeshInstance3D mesh");
+			return false;
+		}
+
+		Shape3D templateShape = templateCollision?.Shape;
+		if (templateShape == null)
+		{
+			FailInvalid("invalid source marker template", "missing CollisionShape3D shape");
+			return false;
+		}
+
+		float safeRadius = Mathf.Max(0.01f, SourceMarkerRadius);
+		SourcePatternConfig cfg = new(
+			PatternMode,
+			SourceCountX,
+			SourceCountY,
+			SourceSpacingX,
+			SourceSpacingY,
+			IncludeCenterPoint);
+		Vector3[] offsets = SourcePatternHelper.BuildLocalOffsets(in cfg);
+		SourceMarkerSphere[] markers = new SourceMarkerSphere[offsets.Length];
+		for (int i = 0; i < offsets.Length; i++)
+		{
+			Vector3 localPos = PatternOriginLocal + offsets[i];
+			StaticBody3D marker = new StaticBody3D
+			{
+				Name = $"source_marker_{i:000}",
+				Transform = new Transform3D(Basis.Identity, localPos)
+			};
+			marker.AddToGroup("raytrace_geometry");
+			marker.AddToGroup("fixture_geometry");
+			marker.AddToGroup("fixture_source");
+
+			MeshInstance3D mesh = new MeshInstance3D
+			{
+				Name = "MeshInstance3D",
+				Mesh = templateMesh.Duplicate() as Mesh ?? templateMesh
+			};
+			if (mesh.Mesh is SphereMesh sphereMesh)
+			{
+				sphereMesh.Radius = safeRadius;
+				sphereMesh.Height = safeRadius * 2f;
+			}
+			marker.AddChild(mesh);
+
+			CollisionShape3D collision = new CollisionShape3D
+			{
+				Name = "CollisionShape3D",
+				Shape = templateShape.Duplicate() as Shape3D ?? templateShape
+			};
+			if (collision.Shape is SphereShape3D sphereShape)
+			{
+				sphereShape.Radius = safeRadius;
+			}
+			marker.AddChild(collision);
+			_sourcePatternRoot.AddChild(marker);
+
+			markers[i] = new SourceMarkerSphere(localPos, marker.GlobalPosition, safeRadius);
+		}
+
+		_sourceMarkers = markers;
+		return true;
+	}
+
+	private void LogSourcePatternSummary()
+	{
+		if (_sourceMarkers == null || _sourceMarkers.Length == 0)
+		{
+			GD.Print(
+				$"[BlackHoleFixture][SourcePattern] mode={PatternMode} count=0 spacing=({SourceSpacingX:0.###},{SourceSpacingY:0.###}) " +
+				$"radius={Mathf.Max(0.01f, SourceMarkerRadius):0.###} originLocal={FormatVec3(PatternOriginLocal)} includeCenter={(IncludeCenterPoint ? 1 : 0)}");
+			return;
+		}
+
+		int showCount = Mathf.Min(6, _sourceMarkers.Length);
+		StringBuilder localBuilder = new StringBuilder(showCount * 20);
+		StringBuilder worldBuilder = new StringBuilder(showCount * 20);
+		for (int i = 0; i < showCount; i++)
+		{
+			if (i > 0)
+			{
+				localBuilder.Append('|');
+				worldBuilder.Append('|');
+			}
+			localBuilder.Append(FormatVec3(_sourceMarkers[i].LocalCenter));
+			worldBuilder.Append(FormatVec3(_sourceMarkers[i].WorldCenter));
+		}
+
+		string signature = BuildSourcePatternSignature(_sourceMarkers);
+		string checksum = ComputeSha256Hex(signature);
+		GD.Print(
+			$"[BlackHoleFixture][SourcePattern] mode={PatternMode} count={_sourceMarkers.Length} spacing=({Mathf.Max(0f, SourceSpacingX):0.###},{Mathf.Max(0f, SourceSpacingY):0.###}) " +
+			$"radius={Mathf.Max(0.01f, SourceMarkerRadius):0.###} originLocal={FormatVec3(PatternOriginLocal)} includeCenter={(IncludeCenterPoint ? 1 : 0)} " +
+			$"localSample=[{localBuilder}] worldSample=[{worldBuilder}] checksum={checksum}");
+	}
+
+	private static string BuildSourcePatternSignature(SourceMarkerSphere[] markers)
+	{
+		if (markers == null || markers.Length == 0)
+		{
+			return string.Empty;
+		}
+
+		StringBuilder builder = new StringBuilder(markers.Length * 32);
+		for (int i = 0; i < markers.Length; i++)
+		{
+			if (i > 0)
+			{
+				builder.Append('|');
+			}
+			builder.Append(F(markers[i].LocalCenter.X));
+			builder.Append(',');
+			builder.Append(F(markers[i].LocalCenter.Y));
+			builder.Append(',');
+			builder.Append(F(markers[i].LocalCenter.Z));
+			builder.Append(',');
+			builder.Append(F(markers[i].Radius));
+		}
+		return builder.ToString();
 	}
 
 	private void FailInvalid(string reason, string details)

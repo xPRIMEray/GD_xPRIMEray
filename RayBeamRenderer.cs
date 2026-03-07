@@ -570,7 +570,9 @@ public partial class RayBeamRenderer : Node3D
 
 			// If you want it visible in the editor tree when running,
 			// set Owner to the current edited scene root (not Owner).
-			_dbgMeshInstance.Owner = GetTree().EditedSceneRoot;
+			var ownerTree = GetTree();
+			if (ownerTree != null)
+				_dbgMeshInstance.Owner = ownerTree.EditedSceneRoot;
 		}
 		else
 		{
@@ -586,8 +588,14 @@ public partial class RayBeamRenderer : Node3D
 
 		GD.Print($"[DBG] dbgMesh inTree={_dbgMeshInstance.IsInsideTree()} parent={_dbgMeshInstance.GetParent()?.Name} world={_dbgMeshInstance.GlobalTransform.Origin}");
 
+		var startupTree = GetTree();
+		if (!_lifecycleInTree || !IsInsideTree() || startupTree == null)
+			return;
+
 		// 3) Await frame (lets scene settle)
-		await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+		await ToSignal(startupTree, SceneTree.SignalName.ProcessFrame);
+		if (!_lifecycleInTree || !IsInsideTree() || GetTree() == null)
+			return;
 
 		// 4) Rebuild
 		Rebuild();

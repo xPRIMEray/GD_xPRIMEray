@@ -293,6 +293,26 @@ public partial class GrinFilmCamera : Node
 	/// <summary>Fetches collider names for debug output.</summary>
 	// CONTROL FACTOR: Fetch collider names; true adds lookup cost but improves debug readability.
 	[Export] public bool NeedColliderNames = false;
+	/// <summary>Fixture-scoped debug coloring for hit classes (source/background/absorbed).</summary>
+	// CONTROL FACTOR: Off by default; enable only for fixture/test visualization.
+	[Export] public bool FixtureDebugHitColoringEnabled = false;
+	/// <summary>Group name used to classify source hits for fixture debug coloring.</summary>
+	// CONTROL FACTOR: Nodes in this group are treated as source hits.
+	[Export] public string FixtureDebugSourceGroup = "fixture_source";
+	/// <summary>Color for fixture source hits when fixture debug coloring is enabled.</summary>
+	[Export] public Color FixtureDebugSourceHitColor = new Color(1f, 1f, 0.9f, 1f);
+	/// <summary>Color for fixture detector/background hits when fixture debug coloring is enabled.</summary>
+	[Export] public Color FixtureDebugBackgroundHitColor = new Color(0.16f, 0.24f, 0.40f, 1f);
+	/// <summary>Color for absorbed rays when fixture debug coloring is enabled.</summary>
+	[Export] public Color FixtureDebugAbsorbedColor = new Color(0f, 0f, 0f, 1f);
+	/// <summary>When enabled, fixture debug hit colors remain the final authority for this render mode.</summary>
+	[Export] public bool FixtureDebugColorAuthorityEnabled = false;
+	/// <summary>Logs sampled fixture hit classifications and final film colors.</summary>
+	[Export] public bool FixtureDebugTraceEnabled = false;
+	/// <summary>Modulo used for deterministic fixture debug trace sampling.</summary>
+	[Export(PropertyHint.Range, "1,997,1")] public int FixtureDebugTraceSampleModulo = 43;
+	/// <summary>Maximum fixture debug trace logs emitted per RenderStep call.</summary>
+	[Export(PropertyHint.Range, "0,256,1")] public int FixtureDebugTraceMaxLogsPerStep = 12;
 	/// <summary>Caches field source snapshots for faster updates.</summary>
 	// CONTROL FACTOR: Cache field sources; true reduces per-frame scanning but may lag changes.
 	[Export] public bool UseFieldSourceCache = false;
@@ -845,6 +865,7 @@ public partial class GrinFilmCamera : Node
 	private PhysicsShapeQueryParameters3D _overlapQuery;
 	private SphereShape3D _overlapSphere;
 	private readonly System.Collections.Generic.List<Godot.Collections.Dictionary> _pass2OverlapCandidatesScratch = new System.Collections.Generic.List<Godot.Collections.Dictionary>(64);
+	private readonly System.Collections.Generic.HashSet<ulong> _fixtureDebugSourceIds = new System.Collections.Generic.HashSet<ulong>();
 	private readonly PerfStats _perfStats = new PerfStats(60);
 	private PerfFrameReport _perfFrame;
 
@@ -1471,6 +1492,15 @@ public partial class GrinFilmCamera : Node
 		public bool FramePerfVerbose;
 		public int FramePerfLogEveryNFrames;
 		public bool NeedColliderNames;
+		public bool FixtureDebugHitColoringEnabled;
+		public string FixtureDebugSourceGroup;
+		public Color FixtureDebugSourceHitColor;
+		public Color FixtureDebugBackgroundHitColor;
+		public Color FixtureDebugAbsorbedColor;
+		public bool FixtureDebugColorAuthorityEnabled;
+		public bool FixtureDebugTraceEnabled;
+		public int FixtureDebugTraceSampleModulo;
+		public int FixtureDebugTraceMaxLogsPerStep;
 		public bool UseFieldSourceCache;
 		public int FieldSourceRefreshIntervalFrames;
 		public FilmShadingMode ShadingMode;
@@ -3067,6 +3097,14 @@ public partial class GrinFilmCamera : Node
 			EffectiveFilmSettings filmCfg = cfg.Film;
 			bool effQuickRay = broadphaseCfg.UseQuickRay;
 			bool effOverlap = broadphaseCfg.UseOverlap;
+			int fixtureDebugTraceLogsRemainingThisStep = cfg.FixtureDebugTraceEnabled
+				? Math.Max(0, cfg.FixtureDebugTraceMaxLogsPerStep)
+				: 0;
+			// Deterministic per-kind quotas ensure rare classes (e.g. source/absorbed) are still sampled.
+			int fixtureTraceSourceRemaining = cfg.FixtureDebugTraceEnabled ? 3 : 0;
+			int fixtureTraceBackgroundRemaining = cfg.FixtureDebugTraceEnabled ? 3 : 0;
+			int fixtureTraceAbsorbedRemaining = cfg.FixtureDebugTraceEnabled ? 3 : 0;
+			int fixtureTraceMissRemaining = cfg.FixtureDebugTraceEnabled ? 3 : 0;
 
 		// DECISION: record starting row for forward-progress guard.
 		int startRow = _rowCursor;
@@ -3796,6 +3834,8 @@ public partial class GrinFilmCamera : Node
 			// DECISION: throttle verbose field source logs to once per frame.
 			if (cfg.VerbosePerfLogs && (_rowCursor % filmH) == 0)
 				GD.Print($"fieldSnaps={fieldSnaps.Length} hasSources={hasSources}");
+			if (cfg.FixtureDebugHitColoringEnabled)
+				RefreshFixtureDebugSourceIds(cfg.FixtureDebugSourceGroup);
 
 
 			float beta = 0f;
@@ -4029,6 +4069,8 @@ public partial class GrinFilmCamera : Node
 						skipBandPhysics = true;
 				}
 			}
+			if (skipBandPhysics && cfg.FixtureDebugHitColoringEnabled && cfg.FixtureDebugColorAuthorityEnabled)
+				skipBandPhysics = false;
 
 			// allocate / reuse buffers
 			int segTotal = pixelCount * maxSeg;
@@ -5176,6 +5218,8 @@ public partial class GrinFilmCamera : Node
 						float bestHitDistAlongRay = float.PositiveInfinity;
 						Vector3 bestHp = Vector3.Zero;
 						Vector3 bestHn = Vector3.Up;
+						ulong bestCid = 0;
+						bool absorbedByInnerRadius = false;
 
 						int segCount = _segCountPerPixel[pi];
 						int segOffset = pi * maxSeg;
@@ -6566,6 +6610,7 @@ public partial class GrinFilmCamera : Node
 										if (needHitName) hitName = cname;
 										bestHp = hp;      // ADD
 										bestHn = hn;      // ADD
+										bestCid = cid;
 									}
 
 									// If you only want the nearest hit, keep scanning segments
@@ -6652,12 +6697,20 @@ public partial class GrinFilmCamera : Node
 						ulong physEnd = Time.GetTicksUsec();
 						_perfFrame.AddPass2PhysUsec(physEnd - physStart);
 					}
+					if (!hadHit && cfg.FixtureDebugHitColoringEnabled && segCount > 0)
+					{
+						Vector3 terminalPoint = _segBuf[segOffset + (segCount - 1)].B;
+						absorbedByInnerRadius = IsInsideAbsorbingSource(terminalPoint, fieldSnaps);
+					}
 
 						////
 						////////////////////////
 						ulong shadeStart = 0;
 						if (shadeTimingEnabled) shadeStart = Time.GetTicksUsec();
 						Color col = cfg.SkyColor;
+						string fixtureHitKind = "miss";
+						Color fixtureChosenDebugColor = cfg.SkyColor;
+						bool fixtureDebugColorChosen = false;
 						bool skipShading = rayCfg.RequireHitToRender && !hadHit;
 						if (skipShading)
 						{
@@ -6724,8 +6777,83 @@ public partial class GrinFilmCamera : Node
 							if (logCenterSample)
 								GD.Print($"Film hit: dist={hitDistance:0.000} name={hitName} mode={cfg.ShadingMode}");
 						}
+						if (cfg.FixtureDebugHitColoringEnabled)
+						{
+							if (hadHit)
+							{
+								bool sourceHit = _fixtureDebugSourceIds.Contains(bestCid);
+								fixtureHitKind = sourceHit ? "source" : "background";
+								col = sourceHit
+									? cfg.FixtureDebugSourceHitColor
+									: cfg.FixtureDebugBackgroundHitColor;
+								fixtureChosenDebugColor = col;
+								fixtureDebugColorChosen = true;
+							}
+							else if (absorbedByInnerRadius)
+							{
+								fixtureHitKind = "absorbed";
+								col = cfg.FixtureDebugAbsorbedColor;
+								fixtureChosenDebugColor = col;
+								fixtureDebugColorChosen = true;
+							}
+							else
+							{
+								fixtureHitKind = "miss";
+								fixtureChosenDebugColor = cfg.SkyColor;
+							}
+						}
 
 						int filled = FillPixelBlock(x, y, stride, col, filmW, filmH);
+						bool fixtureTraceByKind = false;
+						if (cfg.FixtureDebugTraceEnabled)
+						{
+							switch (fixtureHitKind)
+							{
+								case "source":
+									if (fixtureTraceSourceRemaining > 0)
+									{
+										fixtureTraceSourceRemaining--;
+										fixtureTraceByKind = true;
+									}
+									break;
+								case "background":
+									if (fixtureTraceBackgroundRemaining > 0)
+									{
+										fixtureTraceBackgroundRemaining--;
+										fixtureTraceByKind = true;
+									}
+									break;
+								case "absorbed":
+									if (fixtureTraceAbsorbedRemaining > 0)
+									{
+										fixtureTraceAbsorbedRemaining--;
+										fixtureTraceByKind = true;
+									}
+									break;
+								default:
+									if (fixtureTraceMissRemaining > 0)
+									{
+										fixtureTraceMissRemaining--;
+										fixtureTraceByKind = true;
+									}
+									break;
+							}
+						}
+						bool fixtureTraceByModulo = cfg.FixtureDebugTraceEnabled
+							&& fixtureDebugTraceLogsRemainingThisStep > 0
+							&& ShouldTraceFixtureDebugSample(x, y, cfg.FixtureDebugTraceSampleModulo);
+						if (cfg.FixtureDebugTraceEnabled
+							&& (fixtureTraceByKind || fixtureTraceByModulo))
+						{
+							Color finalWrittenColor = _img.GetPixel(x, y);
+							GD.Print(
+								$"[FixtureDebugTrace] frame={_frameIndex} row={y} x={x} kind={fixtureHitKind} hadHit={(hadHit ? 1 : 0)} " +
+								$"cid={bestCid} debugChosen={FormatColorCompact(fixtureChosenDebugColor)} " +
+								$"finalWritten={FormatColorCompact(finalWrittenColor)} auth={(cfg.FixtureDebugColorAuthorityEnabled ? 1 : 0)} " +
+								$"chosen={(fixtureDebugColorChosen ? 1 : 0)}");
+							if (fixtureDebugTraceLogsRemainingThisStep > 0)
+								fixtureDebugTraceLogsRemainingThisStep--;
+						}
 						if (statsEnabled) _perfFrame.FilledPixels += filled;
 						if (framePerfEnabled) bandFilledPixels += filled;
 						if (shadeTimingEnabled)
@@ -6801,7 +6929,7 @@ public partial class GrinFilmCamera : Node
 									Position = bestHp,
 									Normal = bestHn,
 									Distance = hitDistance,
-									ColliderId = 0,
+									ColliderId = bestCid,
 									ColliderName = needHitName ? hitName : "<none>",
 									Albedo = Colors.White
 								};
@@ -7608,6 +7736,75 @@ public partial class GrinFilmCamera : Node
 		if (_fieldSourceNodes.Length < count) Array.Resize(ref _fieldSourceNodes, count);
 		if (_fieldSourceXforms.Length < count) Array.Resize(ref _fieldSourceXforms, count);
 		if (_fieldSourceIds.Length < count) Array.Resize(ref _fieldSourceIds, count);
+	}
+
+	private void RefreshFixtureDebugSourceIds(string sourceGroup)
+	{
+		_fixtureDebugSourceIds.Clear();
+		SceneTree tree = GetTree();
+		if (tree == null)
+		{
+			return;
+		}
+
+		string group = string.IsNullOrWhiteSpace(sourceGroup) ? "fixture_source" : sourceGroup;
+		var nodes = tree.GetNodesInGroup(group);
+		foreach (var node in nodes)
+		{
+			if (node is Node sourceNode)
+			{
+				_fixtureDebugSourceIds.Add(sourceNode.GetInstanceId());
+			}
+		}
+	}
+
+	private static bool ShouldTraceFixtureDebugSample(int x, int y, int modulo)
+	{
+		int m = Math.Max(1, modulo);
+		int hx = (x * 73856093) ^ (y * 19349663);
+		if (hx < 0)
+			hx = -hx;
+		return (hx % m) == 0;
+	}
+
+	private static string FormatColorCompact(Color c)
+	{
+		return $"({c.R:0.###},{c.G:0.###},{c.B:0.###},{c.A:0.###})";
+	}
+
+	private static bool IsInsideAbsorbingSource(Vector3 point, RayBeamRenderer.FieldSourceSnap[] sources)
+	{
+		if (sources == null || sources.Length == 0)
+		{
+			return false;
+		}
+
+		for (int i = 0; i < sources.Length; i++)
+		{
+			ref readonly RayBeamRenderer.FieldSourceSnap source = ref sources[i];
+			if (!source.Enabled)
+			{
+				continue;
+			}
+
+			if ((source.ModeFlags & FieldMath.ModeFlagAbsorbInsideInnerRadius) == 0u)
+			{
+				continue;
+			}
+
+			float inner = source.RInner;
+			if (inner <= 0f)
+			{
+				continue;
+			}
+
+			if (point.DistanceSquaredTo(source.Center) < (inner * inner))
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private void EnsureGeomScratchCapacity(int n)
@@ -8529,6 +8726,15 @@ public partial class GrinFilmCamera : Node
 			FramePerfVerbose = FramePerfVerbose,
 			FramePerfLogEveryNFrames = FramePerfLogEveryNFrames,
 			NeedColliderNames = NeedColliderNames,
+			FixtureDebugHitColoringEnabled = FixtureDebugHitColoringEnabled,
+			FixtureDebugSourceGroup = string.IsNullOrWhiteSpace(FixtureDebugSourceGroup) ? "fixture_source" : FixtureDebugSourceGroup.Trim(),
+			FixtureDebugSourceHitColor = FixtureDebugSourceHitColor,
+			FixtureDebugBackgroundHitColor = FixtureDebugBackgroundHitColor,
+			FixtureDebugAbsorbedColor = FixtureDebugAbsorbedColor,
+			FixtureDebugColorAuthorityEnabled = FixtureDebugColorAuthorityEnabled,
+			FixtureDebugTraceEnabled = FixtureDebugTraceEnabled,
+			FixtureDebugTraceSampleModulo = Math.Max(1, FixtureDebugTraceSampleModulo),
+			FixtureDebugTraceMaxLogsPerStep = Math.Max(0, FixtureDebugTraceMaxLogsPerStep),
 			UseFieldSourceCache = UseFieldSourceCache,
 			FieldSourceRefreshIntervalFrames = FieldSourceRefreshIntervalFrames,
 			ShadingMode = ShadingMode,
@@ -8796,6 +9002,24 @@ public partial class GrinFilmCamera : Node
 		hash.Add(cfg.FramePerfVerbose);
 		hash.Add(cfg.FramePerfLogEveryNFrames);
 		hash.Add(cfg.NeedColliderNames);
+		hash.Add(cfg.FixtureDebugHitColoringEnabled);
+		hash.Add(cfg.FixtureDebugSourceGroup ?? string.Empty);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugSourceHitColor.R));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugSourceHitColor.G));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugSourceHitColor.B));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugSourceHitColor.A));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugBackgroundHitColor.R));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugBackgroundHitColor.G));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugBackgroundHitColor.B));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugBackgroundHitColor.A));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugAbsorbedColor.R));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugAbsorbedColor.G));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugAbsorbedColor.B));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugAbsorbedColor.A));
+		hash.Add(cfg.FixtureDebugColorAuthorityEnabled);
+		hash.Add(cfg.FixtureDebugTraceEnabled);
+		hash.Add(cfg.FixtureDebugTraceSampleModulo);
+		hash.Add(cfg.FixtureDebugTraceMaxLogsPerStep);
 		hash.Add(cfg.UseFieldSourceCache);
 		hash.Add(cfg.FieldSourceRefreshIntervalFrames);
 		hash.Add(cfg.ShadingMode);

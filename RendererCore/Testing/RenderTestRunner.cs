@@ -12,7 +12,8 @@ public partial class RenderTestRunner : Node
 		Default = 0,
 		Straight = 1,
 		CurvedMinimal = 2,
-		BlackholeMinimal = 3
+		BlackholeMinimal = 3,
+		EinsteinRingMinimal = 4
 	}
 
 	public enum SmartScaleMode
@@ -67,6 +68,7 @@ public partial class RenderTestRunner : Node
 	private const string RenderTestStraightScenePath = "res://test-straight.tscn";
 	private const string RenderTestCurvedMinimalScenePath = "res://test-curved-minimal.tscn";
 	private const string RenderTestBlackholeMinimalScenePath = "res://test-blackhole-minimal.tscn";
+	private const string RenderTestEinsteinRingMinimalScenePath = "res://test-einstein-ring-minimal.tscn";
 	private const string RenderTestStraightArgToken = "--render-test-straight";
 	private const string RenderTestStraightSceneHint = "straight";
 	private const string RenderTestFixtureArgPrefix = "--render-test-fixture=";
@@ -3088,6 +3090,11 @@ public partial class RenderTestRunner : Node
 				fixture = RenderTestFixture.BlackholeMinimal;
 				return true;
 			}
+			if (string.Equals(value, "einstein_ring_minimal", StringComparison.OrdinalIgnoreCase))
+			{
+				fixture = RenderTestFixture.EinsteinRingMinimal;
+				return true;
+			}
 			if (string.Equals(value, "default", StringComparison.OrdinalIgnoreCase))
 			{
 				fixture = RenderTestFixture.Default;
@@ -3105,6 +3112,7 @@ public partial class RenderTestRunner : Node
 			RenderTestFixture.Straight => RenderTestStraightScenePath,
 			RenderTestFixture.CurvedMinimal => RenderTestCurvedMinimalScenePath,
 			RenderTestFixture.BlackholeMinimal => RenderTestBlackholeMinimalScenePath,
+			RenderTestFixture.EinsteinRingMinimal => RenderTestEinsteinRingMinimalScenePath,
 			_ => RenderTestDefaultScenePath
 		};
 	}
@@ -3347,6 +3355,7 @@ public partial class RenderTestRunner : Node
 			RenderTestFixture.Straight => "straight",
 			RenderTestFixture.CurvedMinimal => "curved_minimal",
 			RenderTestFixture.BlackholeMinimal => "blackhole_minimal",
+			RenderTestFixture.EinsteinRingMinimal => "einstein_ring_minimal",
 			_ => "default"
 		};
 	}

@@ -1,0 +1,74 @@
+[gd_scene load_steps=6 format=3 uid="uid://cu1pi4gpm7oa8"]
+
+[ext_resource type="PackedScene" uid="uid://tap28novdjn0" path="res://Fixtures/fixture_einstein_ring_minimal.tscn" id="1_fixture"]
+[ext_resource type="Script" uid="uid://b3y1shfx51f53" path="res://GrinFilmCamera.cs" id="2_grin"]
+[ext_resource type="Script" uid="uid://dg263rv7q0mtq" path="res://RendererCore/Testing/RenderTestRunner.cs" id="3_runner"]
+[ext_resource type="Script" uid="uid://c0nlk0rn3oilh" path="res://FilmOverlay2D.cs" id="4_overlay"]
+[ext_resource type="Script" uid="uid://b78blc82i6i7" path="res://Fixtures/EinsteinRingMinimalFingerprint.cs" id="5_fp"]
+
+[node name="TestEinsteinRingMinimalHarness" type="Node3D"]
+script = ExtResource("5_fp")
+
+[node name="FixtureEinsteinRingMinimal" parent="." instance=ExtResource("1_fixture")]
+
+[node name="GrinFilmCamera" type="Node" parent="."]
+script = ExtResource("2_grin")
+Width = 320
+Height = 180
+FilmResolutionScale = 0.5
+SkyColor = Color(0.12665671, 0.00020911609, 0.24455094, 1)
+ShadingMode = 1
+FlipNormalToCamera = false
+UpdateEveryFrameBudgetMs = 500.0
+UpdateEveryFrameMaxRowsPerStep = 1024
+RenderStepMaxMs = 1000
+RenderStepMaxSegmentsPerFrame = 200000000
+TargetMsPerFrame = 50
+MaxRowsPerFrameCap = 1024
+EnableFramePerf = false
+RenderStepPhaseLog = false
+RenderStepBandLog = false
+DebugSnapshotLog = false
+DebugProbeLog = false
+DebugGeomPruneAuditEnabled = true
+AutoRangeMin = 0.01
+BroadphasePolicy = 2
+RayBeamRendererPath = NodePath("../FixtureEinsteinRingMinimal/RayBeamRenderer")
+FilmViewPath = NodePath("../CanvasLayer/FilmView")
+FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+layer = -2
+
+[node name="FilmView" type="TextureRect" parent="CanvasLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_behavior_recursive = 1
+metadata/_edit_use_anchors_ = true
+
+[node name="FilmOverlay2D" type="TextureRect" parent="CanvasLayer"]
+modulate = Color(1, 1, 1, 0.60784316)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_behavior_recursive = 1
+script = ExtResource("4_overlay")
+CameraPath = NodePath("../../FixtureEinsteinRingMinimal/Camera3D")
+DrawFilmGradientNormals = true
+RayWidth = 2.0
+FilmGradientScale = 30.0
+metadata/_edit_use_anchors_ = true
+
+[node name="RenderTestRunner" type="Node" parent="."]
+script = ExtResource("3_runner")
+AutoStart = true
+AutoQuitOnComplete = true
+Fixture = 4
+FramesPerRun = 300
+WarmupFrames = 30
+TargetCameraPath = NodePath("../FixtureEinsteinRingMinimal/Camera3D")
