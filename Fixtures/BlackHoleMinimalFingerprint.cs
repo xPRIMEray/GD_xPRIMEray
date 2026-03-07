@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using Godot;
+using RendererCore.Config;
 using RendererCore.Fields;
 
 public partial class BlackHoleMinimalFingerprint : Node3D
@@ -15,8 +16,8 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 	private static readonly NodePath SourceTemplatePath = new("FixtureBlackholeMinimal/source_marker_template");
 	private static readonly NodePath FilmCameraPath = new("GrinFilmCamera");
 	[Export] public SourcePatternMode PatternMode = SourcePatternMode.CrossXY;
-	[Export(PropertyHint.Range, "1,21,1")] public int SourceCountX = 5;
-	[Export(PropertyHint.Range, "1,21,1")] public int SourceCountY = 5;
+	[Export(PropertyHint.Range, "1,101,1")] public int SourceCountX = 25;
+	[Export(PropertyHint.Range, "1,101,1")] public int SourceCountY = 25;
 	[Export(PropertyHint.Range, "0,20,0.01")] public float SourceSpacingX = 4.50f;
 	[Export(PropertyHint.Range, "0,20,0.01")] public float SourceSpacingY = 4.50f;
 	[Export(PropertyHint.Range, "0.01,6,0.01")] public float SourceMarkerRadius = 0.60f;
@@ -74,6 +75,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 	private const float FixedEdgeSoftness = 0.0f;
 	private const bool FixedDebugDrawBounds = false;
 	private const bool FixedDebugDrawInGame = false;
+	private const TransportModel FixedTransportModel = TransportModel.GRIN_Optical;
 
 	private const bool FixedPhotonBandEnabled = true;
 	private const FieldCurveType FixedPhotonBandCurveType = FieldCurveType.Polynomial;
@@ -87,6 +89,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 	private const bool FixedPhotonBandOverrideBetaScale = true;
 	private const float FixedPhotonBandBetaScale = 1.0f;
 	private const uint FixedPhotonBandModeFlags = 0u;
+	private const TransportModel FixedPhotonBandTransportModel = TransportModel.GRIN_Optical;
 	private const float FixedPhotonBandSoftening = 0.05f;
 	private const float FixedPhotonBandEdgeSoftness = 0.0f;
 
@@ -437,6 +440,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			$"massB={F(massResolved.b)};" +
 			$"massC={F(massResolved.c)};" +
 			$"massModeFlags={massResolved.modeFlags};" +
+			$"massTransport={massSnap.TransportModel};" +
 			$"massBetaMode={(massResolved.overrideBetaScale ? "override" : "global")};" +
 			$"massBetaScale={F(massResolved.betaScale)};" +
 			$"bandEnabled={(bandResolved.enabled ? 1 : 0)};" +
@@ -449,6 +453,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			$"bandB={F(bandResolved.b)};" +
 			$"bandC={F(bandResolved.c)};" +
 			$"bandModeFlags={bandResolved.modeFlags};" +
+			$"bandTransport={bandSnap.TransportModel};" +
 			$"bandBetaMode={(bandResolved.overrideBetaScale ? "override" : "global")};" +
 			$"bandBetaScale={F(bandResolved.betaScale)};" +
 			$"useIntegrated={(rayRenderer.UseIntegratedField ? 1 : 0)};" +
@@ -539,6 +544,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		field.CurveB = 0.0f;
 		field.CurveC = 0.0f;
 		field.ModeFlags = FixedModeFlags;
+		field.TransportModel = FixedTransportModel;
 		field.Softening = FixedSoftening;
 		field.CanonicalEdgeSoftness = FixedEdgeSoftness;
 		field.DebugDrawBounds = FixedDebugDrawBounds;
@@ -571,6 +577,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		photonBandField.CanonicalOverrideBetaScale = FixedPhotonBandOverrideBetaScale;
 		photonBandField.CanonicalBetaScale = FixedPhotonBandBetaScale;
 		photonBandField.ModeFlags = FixedPhotonBandModeFlags;
+		photonBandField.TransportModel = FixedPhotonBandTransportModel;
 		photonBandField.Softening = FixedPhotonBandSoftening;
 		photonBandField.CanonicalEdgeSoftness = FixedPhotonBandEdgeSoftness;
 		photonBandField.DebugDrawBounds = FixedDebugDrawBounds;

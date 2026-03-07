@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using RendererCore.Config;
 using RendererCore.Fields;
 
 public partial class RayBeamRenderer : Node3D
@@ -361,6 +362,10 @@ public partial class RayBeamRenderer : Node3D
 	private Vector3 _lastCamPos = new Vector3(float.NaN, float.NaN, float.NaN);
 	private float _lastCamFocal = float.NaN;
 	private int _lastFieldSourceCount = -1;
+	private TransportModel _lastLoggedTransportModel = TransportModel.GRIN_Optical;
+	private bool _hasLoggedTransportModel = false;
+	private bool _loggedMetricStubFallback = false;
+	private bool _loggedHybridStubFallback = false;
 
 	private Plane _insightPlane;
 	private bool _hasInsightPlane = false;
@@ -444,6 +449,7 @@ public partial class RayBeamRenderer : Node3D
 	{
 		public bool Enabled;
 		public Vector3 Center;
+		public TransportModel TransportModel;
 		public uint ModeFlags;
 		public FieldShapeType ShapeType;
 		public FieldCurveType CurveType;
@@ -1559,39 +1565,27 @@ public partial class RayBeamRenderer : Node3D
 			// DECISION: integrated vs analytic field path.
 			if (UseIntegratedField)
 			{
-				// DECISION: use field sources if any; else use global radial field.
-				if (hasSources)
-					a = ComputeAccelerationAtPointSnap(p, fieldSources, beta, gamma, BendScale, FieldStrength);
-				else
+				// Transport interpretation branch lives here; FieldMath remains canonical baseline.
+				if (!TryStepIntegratedTransport(
+					p,
+					v,
+					center,
+					beta,
+					gamma,
+					fieldSources,
+					hasSources,
+					e.MaxDistance,
+					traveled,
+					minStep,
+					maxStep,
+					applyLowCurvatureBoost: false,
+					out next,
+					out v,
+					out a,
+					out float step))
 				{
-					Vector3 rvec = p - center;
-					float rr = Mathf.Max(0.001f, rvec.Length());
-					a = (-rvec / rr) * (beta * FastPow(rr, gamma) * BendScale * FieldStrength);
+					break;
 				}
-
-				float aLen = a.Length();
-
-				// DECISION: sanitize non-finite acceleration.
-				if (!float.IsFinite(aLen))
-				{
-					a = Vector3.Zero;
-					aLen = 0.0f;
-				}
-				// DECISION: clamp extreme acceleration to avoid instability.
-				else if (aLen > 50.0f)
-				{
-					a = a * (50.0f / aLen);
-					aLen = 50.0f;
-				}
-
-				// CONTROL FACTOR: StepLength/StepAdaptGain control adaptive step size.
-				float step = Mathf.Clamp(StepLength / (1.0f + aLen * StepAdaptGain), minStep, maxStep);
-				v = SafeNormalized(v + a * step, v);
-				next = p + v * step;
-
-				float remaining = e.MaxDistance - traveled;
-				// DECISION: clamp step to remaining distance to avoid overshoot.
-				if (step > remaining) step = remaining; // DECISION: clamp step to remaining distance.
 
 				///////////////////////////
 				///////////////////////////
@@ -1820,30 +1814,27 @@ public partial class RayBeamRenderer : Node3D
 			// DECISION: integrated vs analytic field path.
 			if (UseIntegratedField)
 			{
-				Vector3 a = Vector3.Zero;
-
-				// DECISION: use field sources if any; else use global radial field.
-				if (hasSources)
-					a = ComputeAccelerationAtPointSnap(p, fieldSources, beta, gamma, BendScale, FieldStrength);
-				else
+				if (!TryStepIntegratedTransport(
+					p,
+					v,
+					center,
+					beta,
+					gamma,
+					fieldSources,
+					hasSources,
+					maxDistance,
+					traveled,
+					minStep,
+					maxStep,
+					applyLowCurvatureBoost: false,
+					out next,
+					out v,
+					out _,
+					out float step))
 				{
-					Vector3 rvec = p - center;
-					float rr = Mathf.Max(0.001f, rvec.Length());
-					a = (-rvec / rr) * (beta * FastPow(rr, gamma) * BendScale * FieldStrength);
+					break;
 				}
 
-				float aLen = a.Length();
-				// DECISION: sanitize non-finite/overlarge acceleration.
-				if (!float.IsFinite(aLen)) { a = Vector3.Zero; aLen = 0f; }
-				else if (aLen > 50f) { a = a * (50f / aLen); aLen = 50f; } // DECISION: clamp extreme acceleration.
-
-				float step = Mathf.Clamp(StepLength / (1.0f + aLen * StepAdaptGain), minStep, maxStep);
-
-				v = SafeNormalized(v + a * step, v);
-				next = p + v * step;
-
-				//float segLenStep = (next - p).Length();
-				//traveled += segLenStep;
 				traveled += step;
 
 				// DECISION: stop integrating when max distance exceeded.
@@ -2000,9 +1991,7 @@ public partial class RayBeamRenderer : Node3D
 
 		// Precompute for non-integrated mode
 		float bendScale = BendScale;
-		float fieldStrength = FieldStrength;
 		float stepLength = StepLength;
-		float stepAdaptGain = StepAdaptGain;
 		/////////////////////////
 		/// 
 
@@ -2020,48 +2009,26 @@ public partial class RayBeamRenderer : Node3D
 			// DECISION: integrated vs analytic field path.
 			if (UseIntegratedField)
 			{
-				// Early-out if we are already at/over max distance
-				float remaining = maxDistance - traveled;
-				// DECISION: stop when max distance reached.
-				if (remaining <= 0f) break;
-
-				Vector3 a;
-
-				// DECISION: use field sources if any; else use global radial field.
-				if (hasSources)
-					a = ComputeAccelerationAtPointSnap(p, fieldSnaps, beta, gamma, bendScale, fieldStrength);
-				else
+				if (!TryStepIntegratedTransport(
+					p,
+					v,
+					center,
+					beta,
+					gamma,
+					fieldSnaps,
+					hasSources,
+					maxDistance,
+					traveled,
+					minStep,
+					maxStep,
+					applyLowCurvatureBoost: true,
+					out next,
+					out v,
+					out Vector3 a,
+					out float step))
 				{
-					Vector3 rvec = p - center;
-					float rr = Mathf.Max(0.001f, rvec.Length());
-					a = (-rvec / rr) * (beta * FastPow(rr, gamma) * bendScale * fieldStrength);
+					break;
 				}
-
-				////////////
-				////////////////
-				///////////////////////////////////
-				float aLen = a.Length();
-				// DECISION: sanitize non-finite/overlarge acceleration.
-				if (!float.IsFinite(aLen)) { a = Vector3.Zero; aLen = 0f; }
-				else if (aLen > 50f) { a *= (50f / aLen); aLen = 50f; } // DECISION: clamp extreme acceleration.
-
-				// Compute step FIRST
-				float step = stepLength / (1.0f + aLen * stepAdaptGain);
-				step = Mathf.Clamp(step, minStep, maxStep);
-
-				// CONTROL FACTOR: LowCurvatureStepBoost/LowCurvaturePerpAccel adjust step size.
-				// DECISION: boost step size on low curvature.
-				if (LowCurvatureStepBoost > 1.0f)
-				{
-					Vector3 aPerp = a - v * a.Dot(v);
-					float aPerpLen = aPerp.Length();
-					// DECISION: treat low perpendicular acceleration as low curvature.
-					if (aPerpLen < LowCurvaturePerpAccel)
-						step = Mathf.Min(step * LowCurvatureStepBoost, maxStep);
-				}
-
-				// DECISION: clamp to remaining distance so we don't overshoot maxDistance.
-				if (step > remaining) step = remaining; // DECISION: clamp step to remaining distance.
 
 				//////////////////////////////
 				/// ////////////
@@ -2080,9 +2047,6 @@ public partial class RayBeamRenderer : Node3D
 				{
 					ce = ceBase;
 				}
-
-				v = SafeNormalized(v + a * step, v);
-				next = p + v * step;
 
 				// traveled increment is ~step (v is normalized)
 				traveled += step;
@@ -2218,7 +2182,6 @@ public partial class RayBeamRenderer : Node3D
 
 		// Precompute for non-integrated mode
 		float bendScale = BendScale;
-		float fieldStrength = FieldStrength;
 		float stepLength = StepLength;
 		float stepAdaptGain = StepAdaptGain;
 		float radiusSafety = RadiusSafety;
@@ -2258,6 +2221,7 @@ public partial class RayBeamRenderer : Node3D
 
 				Vector3 a;
 				a = Vector3.Zero;
+				TransportModel activeTransport = hasSources ? ResolveActiveTransportModel(fieldSnaps) : TransportModel.GRIN_Optical;
 
 				// DECISION: prefer field grid sampling when available.
 				if (fieldGrid != null && fieldGrid.TrySample(p, out a))
@@ -2270,7 +2234,7 @@ public partial class RayBeamRenderer : Node3D
 					fieldGridMisses++;
 					if (hasSources)
 					{
-						a = ComputeAccelerationAtPointSnap(p, fieldSnaps, beta, gamma, bendScale, fieldStrength);
+						a = ComputeTransportAccelerationForActiveModel(activeTransport, p, v, center, beta, gamma, fieldSnaps, hasSources);
 						fieldGridFallbacks++;
 						fieldSourceEvals++;
 					}
@@ -2278,14 +2242,12 @@ public partial class RayBeamRenderer : Node3D
 				// DECISION: fall back to field sources if any.
 				else if (hasSources)
 				{
-					a = ComputeAccelerationAtPointSnap(p, fieldSnaps, beta, gamma, bendScale, fieldStrength);
+					a = ComputeTransportAccelerationForActiveModel(activeTransport, p, v, center, beta, gamma, fieldSnaps, hasSources);
 					fieldSourceEvals++;
 				}
 				else
 				{
-					Vector3 rvec = p - center;
-					float rr = Mathf.Max(0.001f, rvec.Length());
-					a = (-rvec / rr) * (beta * FastPow(rr, gamma) * bendScale * fieldStrength);
+					a = StepTransport_GRIN(p, center, beta, gamma, fieldSnaps, hasSources);
 					fieldSourceEvals++;
 				}
 				fieldEvals++;
@@ -2462,7 +2424,9 @@ public partial class RayBeamRenderer : Node3D
 			list.Add(BuildFieldSourceSnap(fs));
 		}
 
-		return list.ToArray();
+		FieldSourceSnap[] snaps = list.ToArray();
+		MaybeLogActiveTransport(snaps);
+		return snaps;
 	}
 
 	public static FieldSourceSnap BuildFieldSourceSnap(FieldSource3D fs)
@@ -2479,6 +2443,7 @@ public partial class RayBeamRenderer : Node3D
 		{
 			Enabled = resolved.enabled,
 			Center = fs.GlobalPosition,
+			TransportModel = fs.TransportModel,
 			ModeFlags = resolved.modeFlags,
 			ShapeType = resolved.shapeType,
 			CurveType = resolved.curveType,
@@ -2494,6 +2459,39 @@ public partial class RayBeamRenderer : Node3D
 			EdgeSoftness = Mathf.Clamp(resolved.edgeSoftness, 0f, 1f),
 			CustomCurve = resolved.customCurve
 		};
+	}
+
+	public static TransportModel ResolveActiveTransportModel(FieldSourceSnap[] sources)
+	{
+		if (sources == null || sources.Length == 0)
+		{
+			return TransportModel.GRIN_Optical;
+		}
+
+		for (int i = 0; i < sources.Length; i++)
+		{
+			if (!sources[i].Enabled)
+			{
+				continue;
+			}
+
+			return sources[i].TransportModel;
+		}
+
+		return TransportModel.GRIN_Optical;
+	}
+
+	private void MaybeLogActiveTransport(FieldSourceSnap[] sources)
+	{
+		TransportModel active = ResolveActiveTransportModel(sources);
+		if (_hasLoggedTransportModel && _lastLoggedTransportModel == active)
+		{
+			return;
+		}
+
+		_lastLoggedTransportModel = active;
+		_hasLoggedTransportModel = true;
+		GD.Print($"[Transport] active={active}");
 	}
 
 	private static bool TryGetAbsorbingSourceAtPoint(
@@ -2536,6 +2534,8 @@ public partial class RayBeamRenderer : Node3D
 		return false;
 	}
 
+	// FieldMath remains the canonical field baseline evaluator.
+	// Transport interpretation is selected in integrator step helpers.
 	public static Vector3 ComputeAccelerationAtPointSnap(
 		Vector3 p,
 		FieldSourceSnap[] sources,
@@ -2575,6 +2575,189 @@ public partial class RayBeamRenderer : Node3D
 		}
 
 		return aSum;
+	}
+
+	private readonly struct MetricTransportStepContext
+	{
+		public readonly Vector3 SourceCenter;
+		public readonly float RadialDistance;
+		public readonly Vector3 Direction;
+		public readonly float StepSize;
+		public readonly float WeakFieldScalar;
+
+		public MetricTransportStepContext(
+			Vector3 sourceCenter,
+			float radialDistance,
+			Vector3 direction,
+			float stepSize,
+			float weakFieldScalar)
+		{
+			SourceCenter = sourceCenter;
+			RadialDistance = radialDistance;
+			Direction = direction;
+			StepSize = stepSize;
+			WeakFieldScalar = weakFieldScalar;
+		}
+	}
+
+	private bool TryStepIntegratedTransport(
+		Vector3 p,
+		Vector3 v,
+		Vector3 center,
+		float beta,
+		float gamma,
+		FieldSourceSnap[] fieldSources,
+		bool hasSources,
+		float maxDistance,
+		float traveled,
+		float minStep,
+		float maxStep,
+		bool applyLowCurvatureBoost,
+		out Vector3 next,
+		out Vector3 vNext,
+		out Vector3 acceleration,
+		out float step)
+	{
+		next = p;
+		vNext = v;
+		acceleration = Vector3.Zero;
+		step = 0f;
+
+		float remaining = maxDistance - traveled;
+		if (remaining <= 0f)
+		{
+			return false;
+		}
+
+		TransportModel active = hasSources ? ResolveActiveTransportModel(fieldSources) : TransportModel.GRIN_Optical;
+		acceleration = ComputeTransportAccelerationForActiveModel(active, p, v, center, beta, gamma, fieldSources, hasSources);
+
+		float aLen = acceleration.Length();
+		if (!float.IsFinite(aLen))
+		{
+			acceleration = Vector3.Zero;
+			aLen = 0f;
+		}
+		else if (aLen > 50f)
+		{
+			acceleration *= (50f / aLen);
+			aLen = 50f;
+		}
+
+		step = Mathf.Clamp(StepLength / (1.0f + aLen * StepAdaptGain), minStep, maxStep);
+		if (applyLowCurvatureBoost && LowCurvatureStepBoost > 1.0f)
+		{
+			Vector3 aPerp = acceleration - v * acceleration.Dot(v);
+			float aPerpLen = aPerp.Length();
+			if (aPerpLen < LowCurvaturePerpAccel)
+			{
+				step = Mathf.Min(step * LowCurvatureStepBoost, maxStep);
+			}
+		}
+
+		if (step > remaining)
+		{
+			step = remaining;
+		}
+
+		vNext = SafeNormalized(v + acceleration * step, v);
+		next = p + vNext * step;
+		return true;
+	}
+
+	private Vector3 ComputeTransportAccelerationForActiveModel(
+		TransportModel active,
+		Vector3 p,
+		Vector3 v,
+		Vector3 center,
+		float beta,
+		float gamma,
+		FieldSourceSnap[] fieldSources,
+		bool hasSources)
+	{
+		return active switch
+		{
+			TransportModel.Metric_NullGeodesic => StepTransport_MetricStub(p, v, center, beta, gamma, fieldSources, hasSources),
+			TransportModel.Hybrid_Research => StepTransport_HybridStub(p, v, center, beta, gamma, fieldSources, hasSources),
+			_ => StepTransport_GRIN(p, center, beta, gamma, fieldSources, hasSources)
+		};
+	}
+
+	// GRIN_Optical is the currently validated transport mode.
+	private Vector3 StepTransport_GRIN(
+		Vector3 p,
+		Vector3 center,
+		float beta,
+		float gamma,
+		FieldSourceSnap[] fieldSources,
+		bool hasSources)
+	{
+		if (hasSources)
+		{
+			return ComputeAccelerationAtPointSnap(p, fieldSources, beta, gamma, BendScale, FieldStrength);
+		}
+
+		Vector3 rvec = p - center;
+		float rr = Mathf.Max(0.001f, rvec.Length());
+		return (-rvec / rr) * (beta * FastPow(rr, gamma) * BendScale * FieldStrength);
+	}
+
+	// Metric_NullGeodesic is scaffolded; safe fallback remains GRIN until metric update is implemented.
+	private Vector3 StepTransport_MetricStub(
+		Vector3 p,
+		Vector3 v,
+		Vector3 center,
+		float beta,
+		float gamma,
+		FieldSourceSnap[] fieldSources,
+		bool hasSources)
+	{
+		Vector3 grinAccel = StepTransport_GRIN(p, center, beta, gamma, fieldSources, hasSources);
+		Vector3 sourceCenter = hasSources ? fieldSources[0].Center : center;
+		float radialDistance = p.DistanceTo(sourceCenter);
+		float weakFieldScalar = grinAccel.Length();
+		var metricContext = new MetricTransportStepContext(sourceCenter, radialDistance, v, StepLength, weakFieldScalar);
+		Vector3 metricDirectionDelta = EvaluateMetricDirectionDeltaStub(in metricContext);
+		if (!_loggedMetricStubFallback)
+		{
+			_loggedMetricStubFallback = true;
+			GD.Print("[Transport] Metric_NullGeodesic stub active; falling back to GRIN_Optical transport.");
+		}
+
+		// Future metric branch can return non-zero direction delta from effective metric terms.
+		if (metricDirectionDelta.LengthSquared() <= 0f || metricContext.StepSize <= 1e-6f)
+		{
+			return grinAccel;
+		}
+
+		return grinAccel + (metricDirectionDelta / metricContext.StepSize);
+	}
+
+	private Vector3 StepTransport_HybridStub(
+		Vector3 p,
+		Vector3 v,
+		Vector3 center,
+		float beta,
+		float gamma,
+		FieldSourceSnap[] fieldSources,
+		bool hasSources)
+	{
+		_ = v;
+		if (!_loggedHybridStubFallback)
+		{
+			_loggedHybridStubFallback = true;
+			GD.Print("[Transport] Hybrid_Research stub active; falling back to GRIN_Optical transport.");
+		}
+
+		return StepTransport_GRIN(p, center, beta, gamma, fieldSources, hasSources);
+	}
+
+	// Hook contract for next phase metric transport (weak-field / null-geodesic update).
+	private static Vector3 EvaluateMetricDirectionDeltaStub(in MetricTransportStepContext context)
+	{
+		_ = context;
+		// TODO(metric): Use center/radial distance/direction/step/weak-field scalar to produce a direction delta.
+		return Vector3.Zero;
 	}
 
 	private float GetPixelsPerRadian(Camera3D cam)

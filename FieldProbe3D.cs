@@ -85,6 +85,7 @@ public partial class FieldProbe3D : Node3D
 		SetProcess(true);
 		RefreshSourceCache();
 		EnsureDebugDraw();
+		GD.Print("[FieldProbe3D] canonical probe sampling uses FieldMath; transport interpretation is selected downstream in renderer integration.");
 	}
 
 	public override void _ExitTree()
@@ -295,6 +296,7 @@ public partial class FieldProbe3D : Node3D
 				considered++;
 				nearest = Mathf.Min(nearest, r);
 
+				// Probe stays transport-agnostic: canonical FieldMath only.
 				FieldMath.EvalResult eval = FieldMath.EvalFieldAccel(
 					samplePosition,
 					snap.Center,

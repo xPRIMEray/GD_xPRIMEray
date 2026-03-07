@@ -64,6 +64,7 @@ public partial class FieldSource3D : Node3D
 	[ExportGroup("Primary (Academic Baseline)")]
 	[Export] public bool Enabled = true;
 	[Export] public MetricModel MetricModel { get; set; } = MetricModel.GRIN;
+	[Export] public RendererCore.Config.TransportModel TransportModel { get; set; } = RendererCore.Config.TransportModel.GRIN_Optical;
 	[Export] public FieldShapeType ShapeType { get; set; } = FieldShapeType.SphereRadial;
 	[Export] public float ROuter { get; set; } = 2.0f;
 	[Export] public bool ApplyAcademicDefaults
@@ -416,6 +417,11 @@ public partial class FieldSource3D : Node3D
 				case nameof(MetricModel):
 					property["hint"] = (int)PropertyHint.Enum;
 					property["hint_string"] = "GRIN:0,GordonMetric (Experimental):1";
+					break;
+
+				case nameof(TransportModel):
+					property["hint"] = (int)PropertyHint.Enum;
+					property["hint_string"] = "GRIN_Optical:0,Metric_NullGeodesic:1,Hybrid_Research:2";
 					break;
 
 				case nameof(RInner):

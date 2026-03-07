@@ -13,7 +13,8 @@ public enum TransportModel
 {
     GRIN_Optical = 0,
     Metric_NullGeodesic = 1,
-    Metric_Adapter_EffectiveMedium = 2,
+    Hybrid_Research = 2,
+    Metric_Adapter_EffectiveMedium = Hybrid_Research,
 }
 
 public enum IntegratorKind

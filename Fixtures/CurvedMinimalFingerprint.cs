@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using Godot;
+using RendererCore.Config;
 using RendererCore.Fields;
 
 public partial class CurvedMinimalFingerprint : Node3D
@@ -69,6 +70,7 @@ public partial class CurvedMinimalFingerprint : Node3D
 	private const float FixedEdgeSoftness = 0.0f;
 	private const bool FixedDebugDrawBounds = false;
 	private const bool FixedDebugDrawInGame = false;
+	private const TransportModel FixedTransportModel = TransportModel.GRIN_Optical;
 	private const float CurvatureAccelEpsilon = 1e-6f;
 	private const float FarAccelEpsilon = 1e-6f;
 	private const float CurvatureDeviationMin = 1e-3f;
@@ -288,6 +290,7 @@ public partial class CurvedMinimalFingerprint : Node3D
 			$"B={F(resolved.b)};" +
 			$"C={F(resolved.c)};" +
 			$"modeFlags={resolved.modeFlags};" +
+			$"transport={snap.TransportModel};" +
 			$"betaMode={(resolved.overrideBetaScale ? "override" : "global")};" +
 			$"betaScale={F(resolved.betaScale)};" +
 			$"useIntegrated={(rayRenderer.UseIntegratedField ? 1 : 0)};" +
@@ -335,6 +338,7 @@ public partial class CurvedMinimalFingerprint : Node3D
 		field.CanonicalOverrideBetaScale = FixedOverrideBetaScale;
 		field.CanonicalBetaScale = FixedBetaScale;
 		field.ModeFlags = FixedModeFlags;
+		field.TransportModel = FixedTransportModel;
 		field.Softening = FixedSoftening;
 		field.CanonicalEdgeSoftness = FixedEdgeSoftness;
 		field.DebugDrawBounds = FixedDebugDrawBounds;
