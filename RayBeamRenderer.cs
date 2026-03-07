@@ -365,6 +365,7 @@ public partial class RayBeamRenderer : Node3D
 	private TransportModel _lastLoggedTransportModel = TransportModel.GRIN_Optical;
 	private bool _hasLoggedTransportModel = false;
 	private bool _loggedMetricStubFallback = false;
+	private bool _loggedMetricWeakFieldMapping = false;
 	private bool _loggedHybridStubFallback = false;
 
 	private Plane _insightPlane;
@@ -2579,6 +2580,7 @@ public partial class RayBeamRenderer : Node3D
 
 	private readonly struct MetricTransportStepContext
 	{
+		public readonly Vector3 Position;
 		public readonly Vector3 SourceCenter;
 		public readonly float RadialDistance;
 		public readonly Vector3 Direction;
@@ -2586,18 +2588,58 @@ public partial class RayBeamRenderer : Node3D
 		public readonly float WeakFieldScalar;
 
 		public MetricTransportStepContext(
+			Vector3 position,
 			Vector3 sourceCenter,
 			float radialDistance,
 			Vector3 direction,
 			float stepSize,
 			float weakFieldScalar)
 		{
+			Position = position;
 			SourceCenter = sourceCenter;
 			RadialDistance = radialDistance;
 			Direction = direction;
 			StepSize = stepSize;
 			WeakFieldScalar = weakFieldScalar;
 		}
+	}
+
+	// Research scalar mapping for Metric_NullGeodesic scaffold:
+	// weakField ~= |Amp| * betaScaleEff * BendScale * FieldStrength.
+	// This keeps metric tuning tied to existing fixture/source parameters without modifying FieldMath.
+	public static float ComputeMetricWeakFieldScalarProxy(
+		FieldSourceSnap[] sources,
+		float globalBeta,
+		float bendScale,
+		float fieldStrength)
+	{
+		float betaEff = Mathf.Abs(globalBeta);
+		float amp = 0f;
+		bool foundEnabledSource = false;
+		if (sources != null)
+		{
+			for (int i = 0; i < sources.Length; i++)
+			{
+				ref readonly FieldSourceSnap source = ref sources[i];
+				if (!source.Enabled)
+				{
+					continue;
+				}
+
+				foundEnabledSource = true;
+				amp = Mathf.Abs(source.Amp);
+				betaEff = Mathf.Abs(source.OverrideBetaScale ? source.BetaScale : globalBeta);
+				break;
+			}
+		}
+
+		// Fallback preserves non-zero coupling when no sources are active.
+		if (!foundEnabledSource)
+		{
+			amp = 1f;
+		}
+
+		return Mathf.Max(0f, amp * betaEff * Mathf.Abs(bendScale) * Mathf.Abs(fieldStrength));
 	}
 
 	private bool TryStepIntegratedTransport(
@@ -2715,22 +2757,40 @@ public partial class RayBeamRenderer : Node3D
 		Vector3 grinAccel = StepTransport_GRIN(p, center, beta, gamma, fieldSources, hasSources);
 		Vector3 sourceCenter = hasSources ? fieldSources[0].Center : center;
 		float radialDistance = p.DistanceTo(sourceCenter);
-		float weakFieldScalar = grinAccel.Length();
-		var metricContext = new MetricTransportStepContext(sourceCenter, radialDistance, v, StepLength, weakFieldScalar);
+		float mappedWeakFieldScalar = ComputeMetricWeakFieldScalarProxy(fieldSources, beta, BendScale, FieldStrength);
+		float weakFieldScalar = Mathf.Max(mappedWeakFieldScalar, grinAccel.Length());
+		var metricContext = new MetricTransportStepContext(p, sourceCenter, radialDistance, v, StepLength, weakFieldScalar);
 		Vector3 metricDirectionDelta = EvaluateMetricDirectionDeltaStub(in metricContext);
-		if (!_loggedMetricStubFallback)
+		if (!_loggedMetricWeakFieldMapping)
 		{
-			_loggedMetricStubFallback = true;
-			GD.Print("[Transport] Metric_NullGeodesic stub active; falling back to GRIN_Optical transport.");
+			_loggedMetricWeakFieldMapping = true;
+			GD.Print(
+				$"[Transport] Metric_NullGeodesic weak-field scaffold active. " +
+				$"effectiveMetricScalar={weakFieldScalar:0.######} " +
+				$"(mapped={mappedWeakFieldScalar:0.######}, grinAccelMag={grinAccel.Length():0.######}, " +
+				$"formula=|Amp|*betaScaleEff*BendScale*FieldStrength).");
 		}
 
-		// Future metric branch can return non-zero direction delta from effective metric terms.
 		if (metricDirectionDelta.LengthSquared() <= 0f || metricContext.StepSize <= 1e-6f)
+		{
+			if (!_loggedMetricStubFallback)
+			{
+				_loggedMetricStubFallback = true;
+				GD.Print("[Transport] Metric_NullGeodesic produced zero direction delta; using GRIN acceleration fallback.");
+			}
+
+			return grinAccel;
+		}
+
+		Vector3 dir = SafeNormalized(v, Vector3.Forward);
+		Vector3 dirNext = SafeNormalized(dir + metricDirectionDelta, dir);
+		Vector3 metricEquivalentAccel = (dirNext - dir) / metricContext.StepSize;
+		if (!IsFinite(metricEquivalentAccel))
 		{
 			return grinAccel;
 		}
 
-		return grinAccel + (metricDirectionDelta / metricContext.StepSize);
+		return metricEquivalentAccel;
 	}
 
 	private Vector3 StepTransport_HybridStub(
@@ -2755,9 +2815,35 @@ public partial class RayBeamRenderer : Node3D
 	// Hook contract for next phase metric transport (weak-field / null-geodesic update).
 	private static Vector3 EvaluateMetricDirectionDeltaStub(in MetricTransportStepContext context)
 	{
-		_ = context;
-		// TODO(metric): Use center/radial distance/direction/step/weak-field scalar to produce a direction delta.
-		return Vector3.Zero;
+		// Research scaffold only:
+		// First-order weak-field, Schwarzschild-inspired radial bending surrogate.
+		// This is NOT a tensor/Christoffel geodesic solver; it only applies a small turn
+		// toward the source center in the plane perpendicular to the current direction.
+		Vector3 dir = SafeNormalized(context.Direction, Vector3.Forward);
+		Vector3 toCenter = context.SourceCenter - context.Position;
+		float toCenterLenSq = toCenter.LengthSquared();
+		if (toCenterLenSq <= 1e-12f || context.StepSize <= 1e-6f)
+		{
+			return Vector3.Zero;
+		}
+
+		Vector3 radialDir = toCenter / Mathf.Sqrt(toCenterLenSq);
+		Vector3 bendDirPerp = radialDir - dir * radialDir.Dot(dir);
+		float bendPerpLenSq = bendDirPerp.LengthSquared();
+		if (bendPerpLenSq <= 1e-12f)
+		{
+			return Vector3.Zero;
+		}
+
+		bendDirPerp /= Mathf.Sqrt(bendPerpLenSq);
+		float r = Mathf.Max(1e-3f, context.RadialDistance);
+		float weak = Mathf.Max(0f, context.WeakFieldScalar);
+		const float radialSoftening = 0.5f;
+		const float metricGain = 8f;
+		float invR = 1f / (r + radialSoftening);
+		float dTheta = weak * context.StepSize * metricGain * invR;
+		float clampedDTheta = Mathf.Clamp(dTheta, 0f, 0.15f);
+		return bendDirPerp * clampedDTheta;
 	}
 
 	private float GetPixelsPerRadian(Camera3D cam)

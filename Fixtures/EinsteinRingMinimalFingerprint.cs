@@ -87,7 +87,8 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 	private const float FixedEdgeSoftness = 0.0f;
 	private const bool FixedDebugDrawBounds = false;
 	private const bool FixedDebugDrawInGame = false;
-	private const TransportModel FixedTransportModel = TransportModel.GRIN_Optical;
+	private const TransportModel FixtureTransportModel = TransportModel.GRIN_Optical;
+	private const TransportModel FixedTransportModel = FixtureTransportModel;
 
 	private const bool FixedPhotonBandEnabled = true;
 	private const FieldCurveType FixedPhotonBandCurveType = FieldCurveType.Polynomial;
@@ -101,7 +102,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 	private const bool FixedPhotonBandOverrideBetaScale = true;
 	private const float FixedPhotonBandBetaScale = 1.0f;
 	private const uint FixedPhotonBandModeFlags = 0u;
-	private const TransportModel FixedPhotonBandTransportModel = TransportModel.GRIN_Optical;
+	private const TransportModel FixedPhotonBandTransportModel = FixtureTransportModel;
 	private const float FixedPhotonBandSoftening = 0.05f;
 	private const float FixedPhotonBandEdgeSoftness = 0.0f;
 
@@ -687,6 +688,13 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		string totalAccelVector = FormatRoundedFloatVector(totalAccelMags);
 		string rayEndpointVector = FormatRoundedVec3Vector(rayEndpoints);
 		string rayEndpointChecksum = ComputeSha256Hex(rayEndpointVector);
+		TransportModel activeTransportModel = RayBeamRenderer.ResolveActiveTransportModel(snaps);
+		float effectiveMetricScalar = activeTransportModel == TransportModel.Metric_NullGeodesic
+			? RayBeamRenderer.ComputeMetricWeakFieldScalarProxy(snaps, FixedBetaScale, rayRenderer.BendScale, rayRenderer.FieldStrength)
+			: 0f;
+		string metricFingerprintSuffix = activeTransportModel == TransportModel.Metric_NullGeodesic
+			? $";transportModel={activeTransportModel};effectiveMetricScalar={F(effectiveMetricScalar)}"
+			: string.Empty;
 
 		string fingerprintCore =
 			$"v=4;" +
@@ -771,7 +779,8 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 			$"accelMass=[{massAccelVector}];" +
 			$"accelBand=[{bandAccelVector}];" +
 			$"accelTotal=[{totalAccelVector}];" +
-			$"rayChecksum={rayEndpointChecksum}";
+			$"rayChecksum={rayEndpointChecksum}" +
+			metricFingerprintSuffix;
 
 		string fingerprintHash = ComputeSha256Hex(fingerprintCore);
 		GD.Print(
