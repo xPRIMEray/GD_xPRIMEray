@@ -90,6 +90,7 @@ public partial class RenderTestRunner : Node
 	private const string SmartScaleRowsPerRunCmdArgPrefix = "--smartscale-rows-per-run=";
 	private const int RenderTestMinFramesPerRun = 90;
 	private const string FastBlackholeComparisonProfileToken = "blackhole_compare_fast";
+	private const string FastEinsteinComparisonProfileToken = "einstein_compare_fast";
 	private const int FastBlackholeComparisonFramesPerRun = 80;
 	private const int FastBlackholeComparisonWarmupFrames = 10;
 	private const int SmartScaleProbeFramesPerRun = 60;
@@ -188,6 +189,7 @@ public partial class RenderTestRunner : Node
 	private bool _straightFixtureSceneActive = false;
 	private RenderTestFixture _requestedFixture = RenderTestFixture.Default;
 	private bool _useFastBlackholeComparisonProfile = false;
+	private bool _useFastEinsteinComparisonProfile = false;
 	private bool _shadowEvalPendingForCurrentMatrixRun = false;
 	private bool _shadowEvalActiveRun = false;
 	private bool _shadowEvalDefaultsCaptured = false;
@@ -626,13 +628,14 @@ public partial class RenderTestRunner : Node
 		_runs.Clear();
 		_straightFixtureSceneActive = IsStraightFixtureSceneActive();
 		_useFastBlackholeComparisonProfile = ShouldUseFastBlackholeComparisonProfile();
+		_useFastEinsteinComparisonProfile = ShouldUseFastEinsteinComparisonProfile();
 		ApplyScopedRenderTestProfileOverrides();
 		if (IsSmartScaleActive())
 		{
 			ConfigureSmartScaleProbeSchedule();
 			_runs.AddRange(BuildSmartScaleRuns());
 		}
-		else if (_useFastBlackholeComparisonProfile)
+		else if (_useFastBlackholeComparisonProfile || _useFastEinsteinComparisonProfile)
 		{
 			_runs.AddRange(BuildFastBlackholeComparisonRuns());
 		}
@@ -3176,17 +3179,38 @@ public partial class RenderTestRunner : Node
 		return string.Equals(profile, FastBlackholeComparisonProfileToken, StringComparison.OrdinalIgnoreCase);
 	}
 
+	private bool ShouldUseFastEinsteinComparisonProfile()
+	{
+		if (_requestedFixture != RenderTestFixture.EinsteinRingMinimal)
+		{
+			return false;
+		}
+		if (IsSmartScaleActive() || IsLifecycleStressActive())
+		{
+			return false;
+		}
+		if (!TryGetStringCmdArgValue(RenderTestProfileArgPrefix, out string profile))
+		{
+			return false;
+		}
+
+		return string.Equals(profile, FastEinsteinComparisonProfileToken, StringComparison.OrdinalIgnoreCase);
+	}
+
 	private void ApplyScopedRenderTestProfileOverrides()
 	{
-		if (!_useFastBlackholeComparisonProfile)
+		if (!_useFastBlackholeComparisonProfile && !_useFastEinsteinComparisonProfile)
 		{
 			return;
 		}
 
 		FramesPerRun = FastBlackholeComparisonFramesPerRun;
 		WarmupFrames = FastBlackholeComparisonWarmupFrames;
+		string profileToken = _useFastEinsteinComparisonProfile
+			? FastEinsteinComparisonProfileToken
+			: FastBlackholeComparisonProfileToken;
 		GD.Print(
-			$"[RenderTestRunner] Applied scoped render-test profile profile={FastBlackholeComparisonProfileToken} " +
+			$"[RenderTestRunner] Applied scoped render-test profile profile={profileToken} " +
 			$"fixture={_requestedFixture} runs=2 framesPerRun={FramesPerRun} warmup={WarmupFrames}");
 	}
 

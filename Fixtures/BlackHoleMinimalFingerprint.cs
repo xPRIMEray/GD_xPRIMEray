@@ -439,6 +439,11 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 
 		string fingerprint = BuildBlackHoleMinimalFingerprint();
 		GD.Print($"BlackHoleMinimalFingerprint: {fingerprint}");
+		string fingerprintHash = ExtractFingerprintHash(fingerprint);
+		GD.Print(
+			$"[BlackHoleCompare] transportModel={activeTransportModel} absorbCount={probeSummary.AbsorbedHits} " +
+			$"absorbRate={probeSummary.AbsorbRate:0.######} hitRate={probeSummary.HitRate:0.######} " +
+			$"sourcePatternMode={PatternMode} sourcePatternCount={_sourceMarkers.Length} fingerprint={fingerprintHash}");
 	}
 
 	public override void _Process(double delta)
@@ -575,6 +580,26 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 	private static bool IsCanonicalResolve(string resolveReason)
 	{
 		return string.Equals(resolveReason, "canonical", StringComparison.Ordinal);
+	}
+
+	private static string ExtractFingerprintHash(string fingerprint)
+	{
+		if (string.IsNullOrWhiteSpace(fingerprint))
+		{
+			return "n/a";
+		}
+
+		const string marker = ";sha256=";
+		int markerIndex = fingerprint.LastIndexOf(marker, StringComparison.Ordinal);
+		if (markerIndex < 0)
+		{
+			return fingerprint;
+		}
+
+		int hashIndex = markerIndex + marker.Length;
+		return hashIndex < fingerprint.Length
+			? fingerprint.Substring(hashIndex)
+			: "n/a";
 	}
 
 	private static string BuildResolvedSummary(string sourceLabel, string resolveReason, FieldSource3D.ResolvedFieldParams resolved)

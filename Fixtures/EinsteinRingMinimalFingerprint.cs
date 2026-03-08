@@ -642,6 +642,12 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 			offAxisRingSummary2,
 			offAxisOffset2);
 		GD.Print($"EinsteinRingMinimalFingerprint: {fingerprint}");
+		string fingerprintHash = ExtractFingerprintHash(fingerprint);
+		GD.Print(
+			$"[EinsteinCompare] transportModel={activeTransportModel} sourceHits={onAxisRingSummary.SourceHits} " +
+			$"backgroundHits={onAxisRingSummary.BackgroundHits} absorbedHits={onAxisRingSummary.AbsorbedHits} missHits={onAxisRingSummary.MissHits} " +
+			$"radiusMean={onAxisRingSummary.RadiusMean:0.######} radiusStdDev={onAxisRingSummary.RadiusStdDev:0.######} radiusRange={onAxisRingSummary.RadiusRange:0.######} " +
+			$"histogram=[{onAxisRingSummary.RadiusHistogram}] sourcePatternMode={PatternMode} sourcePatternCount={_sourceMarkers.Length} fingerprint={fingerprintHash}");
 	}
 
 	private readonly struct SourceMarkerSphere
@@ -818,6 +824,26 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 	private static bool IsCanonicalResolve(string resolveReason)
 	{
 		return string.Equals(resolveReason, "canonical", StringComparison.Ordinal);
+	}
+
+	private static string ExtractFingerprintHash(string fingerprint)
+	{
+		if (string.IsNullOrWhiteSpace(fingerprint))
+		{
+			return "n/a";
+		}
+
+		const string marker = ";sha256=";
+		int markerIndex = fingerprint.LastIndexOf(marker, StringComparison.Ordinal);
+		if (markerIndex < 0)
+		{
+			return fingerprint;
+		}
+
+		int hashIndex = markerIndex + marker.Length;
+		return hashIndex < fingerprint.Length
+			? fingerprint.Substring(hashIndex)
+			: "n/a";
 	}
 
 	private static string BuildResolvedSummary(string sourceLabel, string resolveReason, FieldSource3D.ResolvedFieldParams resolved)
