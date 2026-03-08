@@ -72,6 +72,7 @@ public partial class RenderTestRunner : Node
 	private const string RenderTestStraightArgToken = "--render-test-straight";
 	private const string RenderTestStraightSceneHint = "straight";
 	private const string RenderTestFixtureArgPrefix = "--render-test-fixture=";
+	private const string RenderTestProfileArgPrefix = "--render-test-profile=";
 	private const string AutoCalCmdArgPrefix = "--autocal=";
 	private const string ShadowEvalCmdArgPrefix = "--shadow-eval=";
 	private const string ShadowPruneOffTargetMsCmdArgPrefix = "--shadow-pruneoff-target-ms=";
@@ -88,6 +89,9 @@ public partial class RenderTestRunner : Node
 	private const string SmartScaleBudgetNCmdArgPrefix = "--smartscale-budget-n=";
 	private const string SmartScaleRowsPerRunCmdArgPrefix = "--smartscale-rows-per-run=";
 	private const int RenderTestMinFramesPerRun = 90;
+	private const string FastBlackholeComparisonProfileToken = "blackhole_compare_fast";
+	private const int FastBlackholeComparisonFramesPerRun = 80;
+	private const int FastBlackholeComparisonWarmupFrames = 10;
 	private const int SmartScaleProbeFramesPerRun = 60;
 	private const int SmartScaleProbeDefaultRowsBudget = 512;
 	private const int SmartScaleProbeWarmupFrames = 3;
@@ -183,6 +187,7 @@ public partial class RenderTestRunner : Node
 	private int _renderTestTrustMinP2 = RenderTestTrustMinP2Samples;
 	private bool _straightFixtureSceneActive = false;
 	private RenderTestFixture _requestedFixture = RenderTestFixture.Default;
+	private bool _useFastBlackholeComparisonProfile = false;
 	private bool _shadowEvalPendingForCurrentMatrixRun = false;
 	private bool _shadowEvalActiveRun = false;
 	private bool _shadowEvalDefaultsCaptured = false;
@@ -377,6 +382,7 @@ public partial class RenderTestRunner : Node
 
 		if (_renderTestMode)
 		{
+			GD.Print($"[RenderTestRunner][CmdArgs] {_renderTestStartGuardParsedArgs}");
 			GD.Print(
 				$"[RenderTestRunner][CLIFlags] autocal={(EnableSceneAutoCalibration ? 1 : 0)} " +
 				$"shadow_eval={(EnableShadowCalibrationEvaluation ? 1 : 0)} " +
@@ -619,10 +625,16 @@ public partial class RenderTestRunner : Node
 
 		_runs.Clear();
 		_straightFixtureSceneActive = IsStraightFixtureSceneActive();
+		_useFastBlackholeComparisonProfile = ShouldUseFastBlackholeComparisonProfile();
+		ApplyScopedRenderTestProfileOverrides();
 		if (IsSmartScaleActive())
 		{
 			ConfigureSmartScaleProbeSchedule();
 			_runs.AddRange(BuildSmartScaleRuns());
+		}
+		else if (_useFastBlackholeComparisonProfile)
+		{
+			_runs.AddRange(BuildFastBlackholeComparisonRuns());
 		}
 		else
 		{
@@ -2528,6 +2540,47 @@ public partial class RenderTestRunner : Node
 		return runs;
 	}
 
+	private List<GrinFilmCamera.TestRunConfig> BuildFastBlackholeComparisonRuns()
+	{
+		Vector3 camPos = _camera.GlobalPosition;
+		Vector3 lookAt = camPos + (-_camera.GlobalTransform.Basis.Z) * 3.0f;
+		const float orbitRadius = 2.8f;
+		const float orbitHeight = 1.2f;
+		const float orbitPeriodFrames = 300f;
+
+		return new List<GrinFilmCamera.TestRunConfig>
+		{
+			new GrinFilmCamera.TestRunConfig
+			{
+				Name = "baseline_prune_off",
+				UpdateEveryFrame = true,
+				UseGeometryTLASPruning = false,
+				UsePass2CollisionStride = false,
+				Pass2SoftGateEnableQuickRayMiss = false,
+				CameraMode = GrinFilmCamera.TestCameraMode.Orbit,
+				CameraLookAt = lookAt,
+				CameraFixedPosition = camPos,
+				CameraOrbitRadius = orbitRadius,
+				CameraOrbitHeight = orbitHeight,
+				CameraOrbitPeriodFrames = orbitPeriodFrames
+			},
+			new GrinFilmCamera.TestRunConfig
+			{
+				Name = "prune_on_default",
+				UpdateEveryFrame = true,
+				UseGeometryTLASPruning = true,
+				UsePass2CollisionStride = true,
+				Pass2SoftGateEnableQuickRayMiss = true,
+				CameraMode = GrinFilmCamera.TestCameraMode.Orbit,
+				CameraLookAt = lookAt,
+				CameraFixedPosition = camPos,
+				CameraOrbitRadius = orbitRadius,
+				CameraOrbitHeight = orbitHeight,
+				CameraOrbitPeriodFrames = orbitPeriodFrames
+			}
+		};
+	}
+
 	private List<GrinFilmCamera.TestRunConfig> BuildSmartScaleRuns()
 	{
 		Vector3 camPos = _camera.GlobalPosition;
@@ -2666,7 +2719,7 @@ public partial class RenderTestRunner : Node
 			return false;
 		}
 
-		foreach (string arg in OS.GetCmdlineUserArgs())
+		foreach (string arg in GetCmdArgsForParsing())
 		{
 			if (string.IsNullOrWhiteSpace(arg))
 			{
@@ -2725,7 +2778,7 @@ public partial class RenderTestRunner : Node
 			return false;
 		}
 
-		foreach (string arg in OS.GetCmdlineUserArgs())
+		foreach (string arg in GetCmdArgsForParsing())
 		{
 			if (string.IsNullOrWhiteSpace(arg))
 			{
@@ -2743,7 +2796,7 @@ public partial class RenderTestRunner : Node
 
 	private static string GetCmdlineArgsSummary()
 	{
-		string[] args = OS.GetCmdlineUserArgs();
+		string[] args = GetCmdArgsForParsing();
 		if (args == null || args.Length == 0)
 		{
 			return "[]";
@@ -2881,7 +2934,7 @@ public partial class RenderTestRunner : Node
 			return false;
 		}
 
-		foreach (string arg in OS.GetCmdlineUserArgs())
+		foreach (string arg in GetCmdArgsForParsing())
 		{
 			if (string.IsNullOrWhiteSpace(arg))
 			{
@@ -2913,7 +2966,7 @@ public partial class RenderTestRunner : Node
 			return false;
 		}
 
-		foreach (string arg in OS.GetCmdlineUserArgs())
+		foreach (string arg in GetCmdArgsForParsing())
 		{
 			if (string.IsNullOrWhiteSpace(arg))
 			{
@@ -2941,7 +2994,7 @@ public partial class RenderTestRunner : Node
 			return false;
 		}
 
-		string[] args = OS.GetCmdlineUserArgs();
+		string[] args = GetCmdArgsForParsing();
 		string exactToken = argPrefix.EndsWith("=", StringComparison.Ordinal)
 			? argPrefix.Substring(0, argPrefix.Length - 1)
 			: argPrefix;
@@ -3061,7 +3114,7 @@ public partial class RenderTestRunner : Node
 	private bool TryGetFixtureFromCmdArgs(out RenderTestFixture fixture)
 	{
 		fixture = RenderTestFixture.Default;
-		foreach (string arg in OS.GetCmdlineUserArgs())
+		foreach (string arg in GetCmdArgsForParsing())
 		{
 			if (string.IsNullOrWhiteSpace(arg))
 			{
@@ -3105,6 +3158,38 @@ public partial class RenderTestRunner : Node
 		return false;
 	}
 
+	private bool ShouldUseFastBlackholeComparisonProfile()
+	{
+		if (_requestedFixture != RenderTestFixture.BlackholeMinimal)
+		{
+			return false;
+		}
+		if (IsSmartScaleActive() || IsLifecycleStressActive())
+		{
+			return false;
+		}
+		if (!TryGetStringCmdArgValue(RenderTestProfileArgPrefix, out string profile))
+		{
+			return false;
+		}
+
+		return string.Equals(profile, FastBlackholeComparisonProfileToken, StringComparison.OrdinalIgnoreCase);
+	}
+
+	private void ApplyScopedRenderTestProfileOverrides()
+	{
+		if (!_useFastBlackholeComparisonProfile)
+		{
+			return;
+		}
+
+		FramesPerRun = FastBlackholeComparisonFramesPerRun;
+		WarmupFrames = FastBlackholeComparisonWarmupFrames;
+		GD.Print(
+			$"[RenderTestRunner] Applied scoped render-test profile profile={FastBlackholeComparisonProfileToken} " +
+			$"fixture={_requestedFixture} runs=2 framesPerRun={FramesPerRun} warmup={WarmupFrames}");
+	}
+
 	private static string GetScenePathForFixture(RenderTestFixture fixture)
 	{
 		return fixture switch
@@ -3125,7 +3210,7 @@ public partial class RenderTestRunner : Node
 
 	private bool IsRenderTestMode()
 	{
-		foreach (string arg in OS.GetCmdlineUserArgs())
+		foreach (string arg in GetCmdArgsForParsing())
 		{
 			if (string.IsNullOrWhiteSpace(arg))
 			{
@@ -3142,6 +3227,55 @@ public partial class RenderTestRunner : Node
 		}
 
 		return false;
+	}
+
+	private static string[] GetCmdArgsForParsing()
+	{
+		string[] userArgs = OS.GetCmdlineUserArgs();
+		string[] args = OS.GetCmdlineArgs();
+		if ((userArgs == null || userArgs.Length == 0) && (args == null || args.Length == 0))
+		{
+			return Array.Empty<string>();
+		}
+		if (userArgs == null || userArgs.Length == 0)
+		{
+			return args ?? Array.Empty<string>();
+		}
+		if (args == null || args.Length == 0)
+		{
+			return userArgs;
+		}
+
+		HashSet<string> merged = new HashSet<string>(StringComparer.Ordinal);
+		List<string> ordered = new List<string>(userArgs.Length + args.Length);
+		for (int i = 0; i < userArgs.Length; i++)
+		{
+			string raw = userArgs[i];
+			if (string.IsNullOrWhiteSpace(raw))
+			{
+				continue;
+			}
+			string token = raw.Trim();
+			if (merged.Add(token))
+			{
+				ordered.Add(token);
+			}
+		}
+		for (int i = 0; i < args.Length; i++)
+		{
+			string raw = args[i];
+			if (string.IsNullOrWhiteSpace(raw))
+			{
+				continue;
+			}
+			string token = raw.Trim();
+			if (merged.Add(token))
+			{
+				ordered.Add(token);
+			}
+		}
+
+		return ordered.ToArray();
 	}
 
 	private void SwitchToFixtureSceneDeferred(string scenePath)

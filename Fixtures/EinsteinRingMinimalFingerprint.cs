@@ -88,7 +88,8 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 	private const bool FixedDebugDrawBounds = false;
 	private const bool FixedDebugDrawInGame = false;
 	private const TransportModel FixtureTransportModel = TransportModel.GRIN_Optical;
-	private const TransportModel FixedTransportModel = FixtureTransportModel;
+	private const string TransportArgPrefix = "--transport-model=";
+	private const string FixtureTransportArgPrefix = "--einstein-transport-model=";
 
 	private const bool FixedPhotonBandEnabled = true;
 	private const FieldCurveType FixedPhotonBandCurveType = FieldCurveType.Polynomial;
@@ -102,7 +103,6 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 	private const bool FixedPhotonBandOverrideBetaScale = true;
 	private const float FixedPhotonBandBetaScale = 1.0f;
 	private const uint FixedPhotonBandModeFlags = 0u;
-	private const TransportModel FixedPhotonBandTransportModel = FixtureTransportModel;
 	private const float FixedPhotonBandSoftening = 0.05f;
 	private const float FixedPhotonBandEdgeSoftness = 0.0f;
 
@@ -134,6 +134,9 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 	private Node3D _sourcePatternRoot;
 	private SourceMarkerSphere[] _sourceMarkers = Array.Empty<SourceMarkerSphere>();
 	private Vector2[] _ringProbeNdc = Array.Empty<Vector2>();
+	private TransportModel _activeFixtureTransportModel = FixtureTransportModel;
+	private float _activeFixtureMetricScalar;
+	private string _sourcePatternSummary = "mode=unknown;count=0";
 	private const float ManualMarkerMeshScale = 1.18f;
 
 	private readonly struct PhotonBandShell
@@ -224,6 +227,8 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 
 	public override void _Ready()
 	{
+		TransportModel fixtureTransportModel = ResolveFixtureTransportModel();
+		_activeFixtureTransportModel = fixtureTransportModel;
 		FieldSource3D massField = GetNodeOrNull<FieldSource3D>(FieldPath);
 		if (massField == null)
 		{
@@ -238,15 +243,16 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 			return;
 		}
 
-		ApplyCanonicalFixtureParams(massField);
+		ApplyCanonicalFixtureParams(massField, fixtureTransportModel);
 		PhotonBandShell photonBandShell = ComputePhotonBandShell(FixedROuter, FixedRInner);
-		ApplyPhotonBandFixtureParams(photonBandField, photonBandShell);
+		ApplyPhotonBandFixtureParams(photonBandField, photonBandShell, fixtureTransportModel);
 
 		FieldSource3D.ResolvedFieldParams massResolved = massField.ResolveEffectiveParams(out string massResolveReason);
 		FieldSource3D.ResolvedFieldParams bandResolved = photonBandField.ResolveEffectiveParams(out string bandResolveReason);
 		RayBeamRenderer.FieldSourceSnap massSnap = RayBeamRenderer.BuildFieldSourceSnap(massField);
 		RayBeamRenderer.FieldSourceSnap bandSnap = RayBeamRenderer.BuildFieldSourceSnap(photonBandField);
 		RayBeamRenderer.FieldSourceSnap[] snaps = BuildSourceArray(massSnap, bandSnap);
+		TransportModel activeTransportModel = RayBeamRenderer.ResolveActiveTransportModel(snaps);
 
 		string massResolvedSummary = BuildResolvedSummary("mass", massResolveReason, massResolved);
 		string bandResolvedSummary = BuildResolvedSummary("band", bandResolveReason, bandResolved);
@@ -279,6 +285,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		{
 			return;
 		}
+		_sourcePatternSummary = BuildSourcePatternSummaryToken();
 		LogSourcePatternSummary();
 		LogSourcePatternMarkerDetails();
 
@@ -330,6 +337,12 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		float bendScale = hasRenderer ? rayRenderer.BendScale : 0f;
 		float fieldStrength = hasRenderer ? rayRenderer.FieldStrength : 0f;
 		float transportStrength = Mathf.Abs(bendScale * fieldStrength);
+		float effectiveMetricScalar = hasRenderer
+			? RayBeamRenderer.ComputeMetricWeakFieldScalarProxy(snaps, FixedBetaScale, bendScale, fieldStrength)
+			: 0f;
+		_activeFixtureMetricScalar = effectiveMetricScalar;
+		GD.Print(
+			$"[Transport] active={activeTransportModel} fixture=einstein_ring_minimal effectiveMetricScalar={effectiveMetricScalar:0.######}");
 		string rendererSummary = BuildRendererSummary(hasRenderer, useIntegrated, bendScale, fieldStrength, transportStrength);
 
 		bool canonicalMatchesMass =
@@ -414,7 +427,9 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 			rayRenderer,
 			Mathf.Clamp(rayRenderer.StepsPerRay, 64, CurvatureRayStepCap));
 		float absorbedRate = absorbedRayCount / (float)RayProbeNdc.Length;
-		GD.Print($"[EinsteinFixture][Absorption] absorbed_rays={absorbedRayCount}/{RayProbeNdc.Length} rate={absorbedRate:0.###}");
+		GD.Print(
+			$"[EinsteinFixture][Absorption] transportModel={activeTransportModel} effectiveMetricScalar={effectiveMetricScalar:0.######} " +
+			$"absorbed_rays={absorbedRayCount}/{RayProbeNdc.Length} rate={absorbedRate:0.###}");
 		if (absorbedRate < AbsorptionRateMin || absorbedRate > AbsorptionRateMax)
 		{
 			FailInvalid(
@@ -525,7 +540,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		float ringAbsorbedRate = onAxisRingSummary.AbsorbedHits / (float)ringRayCount;
 		float missRate = onAxisRingSummary.MissHits / (float)ringRayCount;
 		GD.Print(
-			$"[EinsteinFixture][HitRate] rays={ringRayCount} source={onAxisRingSummary.SourceHits} background={onAxisRingSummary.BackgroundHits} " +
+			$"[EinsteinFixture][HitRate] transportModel={activeTransportModel} effectiveMetricScalar={effectiveMetricScalar:0.######} rays={ringRayCount} source={onAxisRingSummary.SourceHits} background={onAxisRingSummary.BackgroundHits} " +
 			$"absorbed={onAxisRingSummary.AbsorbedHits} miss={onAxisRingSummary.MissHits} source_rate={sourceHitRate:0.###} " +
 			$"background_rate={backgroundHitRate:0.###} absorbed_rate={ringAbsorbedRate:0.###} miss_rate={missRate:0.###}");
 		LogRingRadialSummary($"on_axis_selected_r{sourceRadius:0.00}", Vector3.Zero, onAxisRingSummary, histogramBins);
@@ -537,6 +552,11 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		{
 			LogRingRadialSummary("off_axis_2", offAxisOffset2, offAxisRingSummary2, histogramBins);
 		}
+		GD.Print(
+			$"[EinsteinFixture][ComparisonSummary] transportModel={activeTransportModel} effectiveMetricScalar={effectiveMetricScalar:0.######} " +
+			$"sourcePatternSummary={_sourcePatternSummary} sourceHits={onAxisRingSummary.SourceHits} backgroundHits={onAxisRingSummary.BackgroundHits} " +
+			$"absorbedHits={onAxisRingSummary.AbsorbedHits} missHits={onAxisRingSummary.MissHits} radiusMean={onAxisRingSummary.RadiusMean:0.######} " +
+			$"radiusStdDev={onAxisRingSummary.RadiusStdDev:0.######} radiusRange={onAxisRingSummary.RadiusRange:0.######} histogram=[{onAxisRingSummary.RadiusHistogram}]");
 
 		bool ringLike =
 			onAxisRingSummary.SourceHits >= RingMinSourceHits &&
@@ -664,9 +684,10 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 				$"error=missing_nodes mass_field={(massField != null ? 1 : 0)} band_field={(photonBandField != null ? 1 : 0)} renderer={(rayRenderer != null ? 1 : 0)}";
 		}
 
-		ApplyCanonicalFixtureParams(massField);
+		TransportModel fixtureTransportModel = ResolveFixtureTransportModel();
+		ApplyCanonicalFixtureParams(massField, fixtureTransportModel);
 		PhotonBandShell photonBandShell = ComputePhotonBandShell(FixedROuter, FixedRInner);
-		ApplyPhotonBandFixtureParams(photonBandField, photonBandShell);
+		ApplyPhotonBandFixtureParams(photonBandField, photonBandShell, fixtureTransportModel);
 
 		FieldSource3D.ResolvedFieldParams massResolved = massField.ResolveEffectiveParams(out string massResolveReason);
 		FieldSource3D.ResolvedFieldParams bandResolved = photonBandField.ResolveEffectiveParams(out string bandResolveReason);
@@ -689,12 +710,8 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		string rayEndpointVector = FormatRoundedVec3Vector(rayEndpoints);
 		string rayEndpointChecksum = ComputeSha256Hex(rayEndpointVector);
 		TransportModel activeTransportModel = RayBeamRenderer.ResolveActiveTransportModel(snaps);
-		float effectiveMetricScalar = activeTransportModel == TransportModel.Metric_NullGeodesic
-			? RayBeamRenderer.ComputeMetricWeakFieldScalarProxy(snaps, FixedBetaScale, rayRenderer.BendScale, rayRenderer.FieldStrength)
-			: 0f;
-		string metricFingerprintSuffix = activeTransportModel == TransportModel.Metric_NullGeodesic
-			? $";transportModel={activeTransportModel};effectiveMetricScalar={F(effectiveMetricScalar)}"
-			: string.Empty;
+		float effectiveMetricScalar = RayBeamRenderer.ComputeMetricWeakFieldScalarProxy(snaps, FixedBetaScale, rayRenderer.BendScale, rayRenderer.FieldStrength);
+		string sourcePatternSummary = BuildSourcePatternSummaryToken();
 
 		string fingerprintCore =
 			$"v=4;" +
@@ -735,6 +752,9 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 			$"maxStep={F(Mathf.Max(rayRenderer.MinStepLength, rayRenderer.MaxStepLength))};" +
 			$"stepAdaptGain={F(rayRenderer.StepAdaptGain)};" +
 			$"maxSteps={rayRenderer.StepsPerRay};" +
+			$"transportModel={activeTransportModel};" +
+			$"effectiveMetricScalar={F(effectiveMetricScalar)};" +
+			$"sourcePatternSummary={sourcePatternSummary};" +
 			$"sourcePatternMode={PatternMode};" +
 			$"sourcePatternCount={_sourceMarkers.Length};" +
 			$"sourceSpacingX={F(Mathf.Max(0f, SourceSpacingX))};" +
@@ -779,12 +799,15 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 			$"accelMass=[{massAccelVector}];" +
 			$"accelBand=[{bandAccelVector}];" +
 			$"accelTotal=[{totalAccelVector}];" +
-			$"rayChecksum={rayEndpointChecksum}" +
-			metricFingerprintSuffix;
+			$"rayChecksum={rayEndpointChecksum}";
 
 		string fingerprintHash = ComputeSha256Hex(fingerprintCore);
 		GD.Print(
-			$"EinsteinRingMinimalFingerprintRaw: accelMass=[{massAccelVector}] accelBand=[{bandAccelVector}] accelTotal=[{totalAccelVector}] " +
+			$"EinsteinRingMinimalFingerprintRaw: transportModel={activeTransportModel} effectiveMetricScalar={effectiveMetricScalar:0.######} " +
+			$"sourcePatternSummary={sourcePatternSummary} sourceRadius={sourceRadius:0.######} absorbCount={absorbedRayCount} absorbRate={absorbedRate:0.######} " +
+			$"sourceHits={onAxisRingSummary.SourceHits} backgroundHits={onAxisRingSummary.BackgroundHits} absorbedHits={onAxisRingSummary.AbsorbedHits} missHits={onAxisRingSummary.MissHits} " +
+			$"radiusMean={onAxisRingSummary.RadiusMean:0.######} radiusStdDev={onAxisRingSummary.RadiusStdDev:0.######} radiusRange={onAxisRingSummary.RadiusRange:0.######} " +
+			$"ringHist=[{onAxisRingSummary.RadiusHistogram}] accelMass=[{massAccelVector}] accelBand=[{bandAccelVector}] accelTotal=[{totalAccelVector}] " +
 			$"rayEndpoints=[{rayEndpointVector}] rayChecksum={rayEndpointChecksum} " +
 			$"onAxisOutcome=[{onAxisRingSummary.OutcomeVector}] onAxisRadii=[{onAxisRingSummary.RadiusVector}] onAxisChecksum={onAxisRingSummary.Checksum} " +
 			$"offAxisOutcome=[{offAxisRingSummary.OutcomeVector}] offAxisRadii=[{offAxisRingSummary.RadiusVector}] offAxisChecksum={offAxisRingSummary.Checksum} " +
@@ -888,6 +911,88 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		return false;
 	}
 
+	private TransportModel ResolveFixtureTransportModel()
+	{
+		if (TryParseTransportOverrideArg(OS.GetCmdlineUserArgs(), out TransportModel fromUser))
+		{
+			return fromUser;
+		}
+		if (TryParseTransportOverrideArg(OS.GetCmdlineArgs(), out TransportModel fromArgs))
+		{
+			return fromArgs;
+		}
+		return FixtureTransportModel;
+	}
+
+	private static bool TryParseTransportOverrideArg(string[] args, out TransportModel model)
+	{
+		model = FixtureTransportModel;
+		if (args == null || args.Length == 0)
+		{
+			return false;
+		}
+
+		for (int i = 0; i < args.Length; i++)
+		{
+			string arg = args[i] ?? string.Empty;
+			if (TryParseTransportArgValue(arg, FixtureTransportArgPrefix, out model))
+			{
+				return true;
+			}
+			if (TryParseTransportArgValue(arg, TransportArgPrefix, out model))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private static bool TryParseTransportArgValue(string arg, string prefix, out TransportModel model)
+	{
+		model = FixtureTransportModel;
+		if (!arg.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+		{
+			return false;
+		}
+
+		string value = arg.Substring(prefix.Length).Trim();
+		return TryParseTransportModelToken(value, out model);
+	}
+
+	private static bool TryParseTransportModelToken(string token, out TransportModel model)
+	{
+		model = FixtureTransportModel;
+		if (string.IsNullOrWhiteSpace(token))
+		{
+			return false;
+		}
+
+		string normalized = token.Trim().ToLowerInvariant();
+		if (normalized == "grin" || normalized == "grin_optical" || normalized == "optical")
+		{
+			model = TransportModel.GRIN_Optical;
+			return true;
+		}
+		if (normalized == "metric" || normalized == "metric_nullgeodesic" || normalized == "nullgeodesic")
+		{
+			model = TransportModel.Metric_NullGeodesic;
+			return true;
+		}
+
+		return Enum.TryParse(token, true, out model);
+	}
+
+	private string BuildSourcePatternSummaryToken()
+	{
+		int count = _sourceMarkers?.Length ?? 0;
+		string signature = BuildSourcePatternSignature(_sourceMarkers);
+		string checksum = ComputeSha256Hex(signature);
+		return
+			$"mode={PatternMode}|count={count}|spacingX={F(Mathf.Max(0f, SourceSpacingX))}|spacingY={F(Mathf.Max(0f, SourceSpacingY))}|" +
+			$"radius={F(Mathf.Max(0.01f, SourceMarkerRadius))}|origin={FormatVec3(PatternOriginLocal)}|includeCenter={(IncludeCenterPoint ? 1 : 0)}|checksum={checksum}";
+	}
+
 	private static bool HasRenderTestFlag(string[] args)
 	{
 		if (args == null || args.Length == 0)
@@ -914,12 +1019,12 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 			? $" histogram_bins={histogramBins} histogram=[{summary.RadiusHistogram}]"
 			: string.Empty;
 		GD.Print(
-			$"[EinsteinFixture][RadialSummary] case={caseLabel} sourceOffset={FormatVec3(sourceOffset)} sourceHitCount={summary.SourceHits} " +
+			$"[EinsteinFixture][RadialSummary] transportModel={_activeFixtureTransportModel} effectiveMetricScalar={_activeFixtureMetricScalar:0.######} case={caseLabel} sourceOffset={FormatVec3(sourceOffset)} sourceHitCount={summary.SourceHits} " +
 			$"meanDetectorRadius={summary.RadiusMean:0.###} stddevDetectorRadius={summary.RadiusStdDev:0.###} " +
 			$"minDetectorRadius={summary.RadiusMin:0.###} maxDetectorRadius={summary.RadiusMax:0.###}{histogramToken}");
 	}
 
-	private static void ApplyCanonicalFixtureParams(FieldSource3D field)
+	private static void ApplyCanonicalFixtureParams(FieldSource3D field, TransportModel transportModel)
 	{
 		field.Enabled = FixedEnabled;
 		field.ShapeType = FieldShapeType.SphereRadial;
@@ -935,7 +1040,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		field.CurveB = 0.0f;
 		field.CurveC = 0.0f;
 		field.ModeFlags = FixedModeFlags;
-		field.TransportModel = FixedTransportModel;
+		field.TransportModel = transportModel;
 		field.Softening = FixedSoftening;
 		field.CanonicalEdgeSoftness = FixedEdgeSoftness;
 		field.DebugDrawBounds = FixedDebugDrawBounds;
@@ -952,7 +1057,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		return new PhotonBandShell(center, width, rInner, rOuter);
 	}
 
-	private static void ApplyPhotonBandFixtureParams(FieldSource3D photonBandField, PhotonBandShell shell)
+	private static void ApplyPhotonBandFixtureParams(FieldSource3D photonBandField, PhotonBandShell shell, TransportModel transportModel)
 	{
 		photonBandField.Enabled = FixedPhotonBandEnabled;
 		photonBandField.ShapeType = FieldShapeType.SphereRadial;
@@ -968,7 +1073,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		photonBandField.CanonicalOverrideBetaScale = FixedPhotonBandOverrideBetaScale;
 		photonBandField.CanonicalBetaScale = FixedPhotonBandBetaScale;
 		photonBandField.ModeFlags = FixedPhotonBandModeFlags;
-		photonBandField.TransportModel = FixedPhotonBandTransportModel;
+		photonBandField.TransportModel = transportModel;
 		photonBandField.Softening = FixedPhotonBandSoftening;
 		photonBandField.CanonicalEdgeSoftness = FixedPhotonBandEdgeSoftness;
 		photonBandField.DebugDrawBounds = FixedDebugDrawBounds;

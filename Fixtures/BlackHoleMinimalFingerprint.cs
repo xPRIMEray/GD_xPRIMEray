@@ -76,7 +76,8 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 	private const bool FixedDebugDrawBounds = false;
 	private const bool FixedDebugDrawInGame = false;
 	private const TransportModel FixtureTransportModel = TransportModel.GRIN_Optical;
-	private const TransportModel FixedTransportModel = FixtureTransportModel;
+	private const string TransportArgPrefix = "--transport-model=";
+	private const string FixtureTransportArgPrefix = "--blackhole-transport-model=";
 
 	private const bool FixedPhotonBandEnabled = true;
 	private const FieldCurveType FixedPhotonBandCurveType = FieldCurveType.Polynomial;
@@ -90,7 +91,6 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 	private const bool FixedPhotonBandOverrideBetaScale = true;
 	private const float FixedPhotonBandBetaScale = 1.0f;
 	private const uint FixedPhotonBandModeFlags = 0u;
-	private const TransportModel FixedPhotonBandTransportModel = FixtureTransportModel;
 	private const float FixedPhotonBandSoftening = 0.05f;
 	private const float FixedPhotonBandEdgeSoftness = 0.0f;
 
@@ -110,6 +110,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 	private bool _loggedBroadphaseLock;
 	private Node3D _sourcePatternRoot;
 	private SourceMarkerSphere[] _sourceMarkers = Array.Empty<SourceMarkerSphere>();
+	private string _sourcePatternSummary = "mode=unknown;count=0";
 	private const float ManualMarkerMeshScale = 1.18f;
 
 	private readonly struct PhotonBandShell
@@ -142,8 +143,47 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		}
 	}
 
+	private readonly struct BlackHoleProbeSummary
+	{
+		public readonly int SourceHits;
+		public readonly int BackgroundHits;
+		public readonly int AbsorbedHits;
+		public readonly int MissHits;
+		public readonly float AbsorbRate;
+		public readonly float HitRate;
+		public readonly float AbsorbedRadiusMean;
+		public readonly float AbsorbedRadiusStdDev;
+		public readonly float AbsorbedRadiusRange;
+		public readonly string AbsorbedRadiusHistogram;
+
+		public BlackHoleProbeSummary(
+			int sourceHits,
+			int backgroundHits,
+			int absorbedHits,
+			int missHits,
+			float absorbRate,
+			float hitRate,
+			float absorbedRadiusMean,
+			float absorbedRadiusStdDev,
+			float absorbedRadiusRange,
+			string absorbedRadiusHistogram)
+		{
+			SourceHits = sourceHits;
+			BackgroundHits = backgroundHits;
+			AbsorbedHits = absorbedHits;
+			MissHits = missHits;
+			AbsorbRate = absorbRate;
+			HitRate = hitRate;
+			AbsorbedRadiusMean = absorbedRadiusMean;
+			AbsorbedRadiusStdDev = absorbedRadiusStdDev;
+			AbsorbedRadiusRange = absorbedRadiusRange;
+			AbsorbedRadiusHistogram = absorbedRadiusHistogram ?? string.Empty;
+		}
+	}
+
 	public override void _Ready()
 	{
+		TransportModel fixtureTransportModel = ResolveFixtureTransportModel();
 		FieldSource3D massField = GetNodeOrNull<FieldSource3D>(FieldPath);
 		if (massField == null)
 		{
@@ -158,15 +198,16 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			return;
 		}
 
-		ApplyCanonicalFixtureParams(massField);
+		ApplyCanonicalFixtureParams(massField, fixtureTransportModel);
 		PhotonBandShell photonBandShell = ComputePhotonBandShell(FixedROuter, FixedRInner);
-		ApplyPhotonBandFixtureParams(photonBandField, photonBandShell);
+		ApplyPhotonBandFixtureParams(photonBandField, photonBandShell, fixtureTransportModel);
 
 		FieldSource3D.ResolvedFieldParams massResolved = massField.ResolveEffectiveParams(out string massResolveReason);
 		FieldSource3D.ResolvedFieldParams bandResolved = photonBandField.ResolveEffectiveParams(out string bandResolveReason);
 		RayBeamRenderer.FieldSourceSnap massSnap = RayBeamRenderer.BuildFieldSourceSnap(massField);
 		RayBeamRenderer.FieldSourceSnap bandSnap = RayBeamRenderer.BuildFieldSourceSnap(photonBandField);
 		RayBeamRenderer.FieldSourceSnap[] snaps = BuildSourceArray(massSnap, bandSnap);
+		TransportModel activeTransportModel = RayBeamRenderer.ResolveActiveTransportModel(snaps);
 
 		string massResolvedSummary = BuildResolvedSummary("mass", massResolveReason, massResolved);
 		string bandResolvedSummary = BuildResolvedSummary("band", bandResolveReason, bandResolved);
@@ -234,6 +275,11 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		float bendScale = hasRenderer ? rayRenderer.BendScale : 0f;
 		float fieldStrength = hasRenderer ? rayRenderer.FieldStrength : 0f;
 		float transportStrength = Mathf.Abs(bendScale * fieldStrength);
+		float effectiveMetricScalar = hasRenderer
+			? RayBeamRenderer.ComputeMetricWeakFieldScalarProxy(snaps, FixedBetaScale, bendScale, fieldStrength)
+			: 0f;
+		GD.Print(
+			$"[Transport] active={activeTransportModel} fixture=blackhole_minimal effectiveMetricScalar={effectiveMetricScalar:0.######}");
 		string rendererSummary = BuildRendererSummary(hasRenderer, useIntegrated, bendScale, fieldStrength, transportStrength);
 
 		bool canonicalMatchesMass =
@@ -311,14 +357,6 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			$"[BlackHoleFixture][CurvatureApplied] deviated_rays={deviatedRayCount}/{RayProbeNdc.Length} " +
 			$"max_dev={maxDeviation:0.######} dev_sum={deviationSum:0.######} min_dev_threshold={CurvatureDeviationMin:0.######}");
 
-		int absorbedRayCount = CountAbsorbedRayProbes(
-			snaps,
-			massSnap.Center,
-			massSnap.ROuter,
-			rayRenderer,
-			Mathf.Clamp(rayRenderer.StepsPerRay, 64, CurvatureRayStepCap));
-		GD.Print($"[BlackHoleFixture][Absorption] absorbed_rays={absorbedRayCount}/{RayProbeNdc.Length}");
-
 		float curvatureEnergy = totalProbeSum * transportStrength;
 		GD.Print(
 			$"[BlackHoleFixture][CurvatureMetric] accel_sum_total={totalProbeSum:0.######} accel_sum_mass={massProbeSum:0.######} accel_sum_band={bandProbeSum:0.######} " +
@@ -350,8 +388,26 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		{
 			return;
 		}
+		_sourcePatternSummary = BuildSourcePatternSummaryToken();
 		LogSourcePatternSummary();
 		LogSourcePatternMarkerDetails();
+		BlackHoleProbeSummary probeSummary = RunBlackHoleProbeSummary(
+			rayRenderer,
+			snaps,
+			massSnap.Center,
+			massSnap.ROuter,
+			Mathf.Clamp(rayRenderer.StepsPerRay, 64, CurvatureRayStepCap),
+			_sourceMarkers);
+		GD.Print(
+			$"[BlackHoleFixture][Absorption] transportModel={activeTransportModel} effectiveMetricScalar={effectiveMetricScalar:0.######} " +
+			$"absorbed_rays={probeSummary.AbsorbedHits}/{RayProbeNdc.Length} absorb_rate={probeSummary.AbsorbRate:0.###}");
+		GD.Print(
+			$"[BlackHoleFixture][ComparisonSummary] transportModel={activeTransportModel} effectiveMetricScalar={effectiveMetricScalar:0.######} " +
+			$"sourcePatternSummary={_sourcePatternSummary} probeN={RayProbeNdc.Length} absorbCount={probeSummary.AbsorbedHits} absorbRate={probeSummary.AbsorbRate:0.######} " +
+			$"hitRate={probeSummary.HitRate:0.######} sourceHits={probeSummary.SourceHits} backgroundHits={probeSummary.BackgroundHits} detectorHits={probeSummary.BackgroundHits} " +
+			$"absorbedHits={probeSummary.AbsorbedHits} missHits={probeSummary.MissHits} silhouetteRadiusMean={probeSummary.AbsorbedRadiusMean:0.######} " +
+			$"silhouetteRadiusStdDev={probeSummary.AbsorbedRadiusStdDev:0.######} silhouetteRadiusRange={probeSummary.AbsorbedRadiusRange:0.######} " +
+			$"silhouetteHistogram=[{probeSummary.AbsorbedRadiusHistogram}]");
 
 		string sphereScale = sphere != null ? FormatVec3(sphere.Scale) : "n/a";
 		string spherePos = sphere != null ? FormatVec3(sphere.GlobalTransform.Origin) : "n/a";
@@ -401,9 +457,10 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 				$"error=missing_nodes mass_field={(massField != null ? 1 : 0)} band_field={(photonBandField != null ? 1 : 0)} renderer={(rayRenderer != null ? 1 : 0)}";
 		}
 
-		ApplyCanonicalFixtureParams(massField);
+		TransportModel fixtureTransportModel = ResolveFixtureTransportModel();
+		ApplyCanonicalFixtureParams(massField, fixtureTransportModel);
 		PhotonBandShell photonBandShell = ComputePhotonBandShell(FixedROuter, FixedRInner);
-		ApplyPhotonBandFixtureParams(photonBandField, photonBandShell);
+		ApplyPhotonBandFixtureParams(photonBandField, photonBandShell, fixtureTransportModel);
 
 		FieldSource3D.ResolvedFieldParams massResolved = massField.ResolveEffectiveParams(out string massResolveReason);
 		FieldSource3D.ResolvedFieldParams bandResolved = photonBandField.ResolveEffectiveParams(out string bandResolveReason);
@@ -426,12 +483,15 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		string rayEndpointVector = FormatRoundedVec3Vector(rayEndpoints);
 		string rayEndpointChecksum = ComputeSha256Hex(rayEndpointVector);
 		TransportModel activeTransportModel = RayBeamRenderer.ResolveActiveTransportModel(snaps);
-		float effectiveMetricScalar = activeTransportModel == TransportModel.Metric_NullGeodesic
-			? RayBeamRenderer.ComputeMetricWeakFieldScalarProxy(snaps, FixedBetaScale, rayRenderer.BendScale, rayRenderer.FieldStrength)
-			: 0f;
-		string metricFingerprintSuffix = activeTransportModel == TransportModel.Metric_NullGeodesic
-			? $";transportModel={activeTransportModel};effectiveMetricScalar={F(effectiveMetricScalar)}"
-			: string.Empty;
+		float effectiveMetricScalar = RayBeamRenderer.ComputeMetricWeakFieldScalarProxy(snaps, FixedBetaScale, rayRenderer.BendScale, rayRenderer.FieldStrength);
+		string sourcePatternSummary = BuildSourcePatternSummaryToken();
+		BlackHoleProbeSummary probeSummary = RunBlackHoleProbeSummary(
+			rayRenderer,
+			snaps,
+			massSnap.Center,
+			massSnap.ROuter,
+			Mathf.Clamp(rayRenderer.StepsPerRay, 64, CurvatureRayStepCap),
+			_sourceMarkers);
 
 		string fingerprintCore =
 			$"v=2;" +
@@ -472,21 +532,42 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			$"maxStep={F(Mathf.Max(rayRenderer.MinStepLength, rayRenderer.MaxStepLength))};" +
 			$"stepAdaptGain={F(rayRenderer.StepAdaptGain)};" +
 			$"maxSteps={rayRenderer.StepsPerRay};" +
+			$"transportModel={activeTransportModel};" +
+			$"effectiveMetricScalar={F(effectiveMetricScalar)};" +
+			$"sourcePatternSummary={sourcePatternSummary};" +
 			$"sourcePatternMode={PatternMode};" +
 			$"sourcePatternCount={_sourceMarkers.Length};" +
 			$"sourceSpacingX={F(Mathf.Max(0f, SourceSpacingX))};" +
 			$"sourceSpacingY={F(Mathf.Max(0f, SourceSpacingY))};" +
 			$"sourceMarkerRadius={F(Mathf.Max(0.01f, SourceMarkerRadius))};" +
+			$"probeN={RayProbeNdc.Length};" +
+			$"absorbCount={probeSummary.AbsorbedHits};" +
+			$"absorbRate={F(probeSummary.AbsorbRate)};" +
+			$"hitRate={F(probeSummary.HitRate)};" +
+			$"sourceHits={probeSummary.SourceHits};" +
+			$"backgroundHits={probeSummary.BackgroundHits};" +
+			$"detectorHits={probeSummary.BackgroundHits};" +
+			$"absorbedHits={probeSummary.AbsorbedHits};" +
+			$"missHits={probeSummary.MissHits};" +
+			$"silhouetteRadiusMean={F(probeSummary.AbsorbedRadiusMean)};" +
+			$"silhouetteRadiusStdDev={F(probeSummary.AbsorbedRadiusStdDev)};" +
+			$"silhouetteRadiusRange={F(probeSummary.AbsorbedRadiusRange)};" +
+			$"silhouetteHistogram=[{probeSummary.AbsorbedRadiusHistogram}];" +
 			$"rayK={FingerprintRaySteps};" +
 			$"accelMass=[{massAccelVector}];" +
 			$"accelBand=[{bandAccelVector}];" +
 			$"accelTotal=[{totalAccelVector}];" +
-			$"rayChecksum={rayEndpointChecksum}" +
-			metricFingerprintSuffix;
+			$"rayChecksum={rayEndpointChecksum}";
 
 		string fingerprintHash = ComputeSha256Hex(fingerprintCore);
 		GD.Print(
-			$"BlackHoleMinimalFingerprintRaw: accelMass=[{massAccelVector}] accelBand=[{bandAccelVector}] accelTotal=[{totalAccelVector}] " +
+			$"BlackHoleMinimalFingerprintRaw: transportModel={activeTransportModel} effectiveMetricScalar={effectiveMetricScalar:0.######} " +
+			$"sourcePatternSummary={sourcePatternSummary} sourceHits={probeSummary.SourceHits} backgroundHits={probeSummary.BackgroundHits} " +
+			$"detectorHits={probeSummary.BackgroundHits} absorbedHits={probeSummary.AbsorbedHits} missHits={probeSummary.MissHits} " +
+			$"absorbCount={probeSummary.AbsorbedHits} absorbRate={probeSummary.AbsorbRate:0.######} hitRate={probeSummary.HitRate:0.######} " +
+			$"silhouetteRadiusMean={probeSummary.AbsorbedRadiusMean:0.######} silhouetteRadiusStdDev={probeSummary.AbsorbedRadiusStdDev:0.######} " +
+			$"silhouetteRadiusRange={probeSummary.AbsorbedRadiusRange:0.######} silhouetteHistogram=[{probeSummary.AbsorbedRadiusHistogram}] " +
+			$"accelMass=[{massAccelVector}] accelBand=[{bandAccelVector}] accelTotal=[{totalAccelVector}] " +
 			$"rayEndpoints=[{rayEndpointVector}] rayChecksum={rayEndpointChecksum}");
 		return $"{fingerprintCore};sha256={fingerprintHash}";
 	}
@@ -537,7 +618,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		}
 	}
 
-	private static void ApplyCanonicalFixtureParams(FieldSource3D field)
+	private static void ApplyCanonicalFixtureParams(FieldSource3D field, TransportModel transportModel)
 	{
 		field.Enabled = FixedEnabled;
 		field.ShapeType = FieldShapeType.SphereRadial;
@@ -553,7 +634,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		field.CurveB = 0.0f;
 		field.CurveC = 0.0f;
 		field.ModeFlags = FixedModeFlags;
-		field.TransportModel = FixedTransportModel;
+		field.TransportModel = transportModel;
 		field.Softening = FixedSoftening;
 		field.CanonicalEdgeSoftness = FixedEdgeSoftness;
 		field.DebugDrawBounds = FixedDebugDrawBounds;
@@ -570,7 +651,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		return new PhotonBandShell(center, width, rInner, rOuter);
 	}
 
-	private static void ApplyPhotonBandFixtureParams(FieldSource3D photonBandField, PhotonBandShell shell)
+	private static void ApplyPhotonBandFixtureParams(FieldSource3D photonBandField, PhotonBandShell shell, TransportModel transportModel)
 	{
 		photonBandField.Enabled = FixedPhotonBandEnabled;
 		photonBandField.ShapeType = FieldShapeType.SphereRadial;
@@ -586,7 +667,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		photonBandField.CanonicalOverrideBetaScale = FixedPhotonBandOverrideBetaScale;
 		photonBandField.CanonicalBetaScale = FixedPhotonBandBetaScale;
 		photonBandField.ModeFlags = FixedPhotonBandModeFlags;
-		photonBandField.TransportModel = FixedPhotonBandTransportModel;
+		photonBandField.TransportModel = transportModel;
 		photonBandField.Softening = FixedPhotonBandSoftening;
 		photonBandField.CanonicalEdgeSoftness = FixedPhotonBandEdgeSoftness;
 		photonBandField.DebugDrawBounds = FixedDebugDrawBounds;
@@ -661,19 +742,26 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		}
 	}
 
-	private static int CountAbsorbedRayProbes(
+	private static BlackHoleProbeSummary RunBlackHoleProbeSummary(
+		RayBeamRenderer rayRenderer,
 		RayBeamRenderer.FieldSourceSnap[] snaps,
 		Vector3 launchCenter,
 		float launchOuterRadius,
-		RayBeamRenderer rayRenderer,
-		int steps)
+		int steps,
+		SourceMarkerSphere[] markers)
 	{
-		if (!HasAbsorbingSource(snaps))
+		if (snaps == null || snaps.Length == 0 || rayRenderer == null)
 		{
-			return 0;
+			return new BlackHoleProbeSummary(0, 0, 0, RayProbeNdc.Length, 0f, 0f, 0f, 0f, 0f, string.Empty);
 		}
 
-		int absorbedRayCount = 0;
+		int sourceHits = 0;
+		int backgroundHits = 0;
+		int absorbedHits = 0;
+		int missHits = 0;
+		const int silhouetteBins = 6;
+		float[] absorbedRadii = new float[RayProbeNdc.Length];
+		int absorbedRadiiCount = 0;
 		float stepLength = Mathf.Max(0.0001f, rayRenderer.StepLength);
 		float minStep = Mathf.Max(0.0001f, Mathf.Min(rayRenderer.MinStepLength, rayRenderer.MaxStepLength));
 		float maxStep = Mathf.Max(minStep, Mathf.Max(rayRenderer.MinStepLength, rayRenderer.MaxStepLength));
@@ -682,6 +770,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		float fieldStrength = rayRenderer.FieldStrength;
 		float launchZ = -Mathf.Max(0.25f, launchOuterRadius * 0.5f);
 		float launchXY = Mathf.Max(0.1f, launchOuterRadius * 0.2f);
+		float escapeDistance = Mathf.Max(launchOuterRadius + 16f, 20f);
 		Vector3 baseOrigin = launchCenter + new Vector3(0f, 0f, launchZ);
 		Vector3 marchDirection = Vector3.Back;
 
@@ -690,11 +779,14 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			Vector2 ndc = RayProbeNdc[i];
 			Vector3 p = baseOrigin + new Vector3(ndc.X * launchXY, ndc.Y * launchXY, 0f);
 			Vector3 v = marchDirection;
+			bool resolved = false;
 			for (int s = 0; s < steps; s++)
 			{
 				if (IsAbsorbedAtPoint(p, snaps))
 				{
-					absorbedRayCount++;
+					absorbedHits++;
+					absorbedRadii[absorbedRadiiCount++] = Mathf.Sqrt(ndc.X * ndc.X + ndc.Y * ndc.Y);
+					resolved = true;
 					break;
 				}
 
@@ -705,11 +797,197 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 				{
 					v = nextVelocity;
 				}
-				p += v * step;
+				Vector3 nextP = p + v * step;
+				if (markers != null && markers.Length > 0 && TryIntersectSegmentAnySource(p, nextP, markers))
+				{
+					sourceHits++;
+					resolved = true;
+					break;
+				}
+				p = nextP;
+			}
+
+			if (resolved)
+			{
+				continue;
+			}
+
+			if (p.DistanceTo(launchCenter) >= escapeDistance)
+			{
+				backgroundHits++;
+			}
+			else
+			{
+				missHits++;
 			}
 		}
 
-		return absorbedRayCount;
+		int probeCount = RayProbeNdc.Length;
+		float absorbRate = probeCount > 0 ? absorbedHits / (float)probeCount : 0f;
+		float hitRate = probeCount > 0 ? sourceHits / (float)probeCount : 0f;
+		ComputeRadiusStats(absorbedRadii, absorbedRadiiCount, out float mean, out float stdDev, out _, out _, out float range);
+		string histogram = BuildRadialHistogram(absorbedRadii, absorbedRadiiCount, silhouetteBins);
+		return new BlackHoleProbeSummary(
+			sourceHits,
+			backgroundHits,
+			absorbedHits,
+			missHits,
+			absorbRate,
+			hitRate,
+			mean,
+			stdDev,
+			range,
+			histogram);
+	}
+
+	private static bool TryIntersectSegmentAnySource(Vector3 p0, Vector3 p1, SourceMarkerSphere[] markers)
+	{
+		if (markers == null || markers.Length == 0)
+		{
+			return false;
+		}
+
+		for (int i = 0; i < markers.Length; i++)
+		{
+			SourceMarkerSphere marker = markers[i];
+			if (TryIntersectSegmentSphere(p0, p1, marker.WorldCenter, Mathf.Max(0.01f, marker.Radius), out _))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static bool TryIntersectSegmentSphere(Vector3 p0, Vector3 p1, Vector3 center, float radius, out float t)
+	{
+		t = 0f;
+		if (radius <= 0f)
+		{
+			return false;
+		}
+
+		Vector3 d = p1 - p0;
+		float a = d.Dot(d);
+		if (a <= 1e-8f)
+		{
+			return false;
+		}
+
+		Vector3 m = p0 - center;
+		float b = 2f * m.Dot(d);
+		float c = m.Dot(m) - (radius * radius);
+		float disc = b * b - 4f * a * c;
+		if (disc < 0f)
+		{
+			return false;
+		}
+
+		float sqrtDisc = Mathf.Sqrt(disc);
+		float invDenom = 0.5f / a;
+		float t0 = (-b - sqrtDisc) * invDenom;
+		float t1 = (-b + sqrtDisc) * invDenom;
+		float best = float.PositiveInfinity;
+		if (t0 >= 0f && t0 <= 1f)
+		{
+			best = t0;
+		}
+		if (t1 >= 0f && t1 <= 1f && t1 < best)
+		{
+			best = t1;
+		}
+		if (!float.IsFinite(best))
+		{
+			return false;
+		}
+
+		t = best;
+		return true;
+	}
+
+	private static void ComputeRadiusStats(
+		float[] values,
+		int count,
+		out float mean,
+		out float stdDev,
+		out float min,
+		out float max,
+		out float range)
+	{
+		mean = 0f;
+		stdDev = 0f;
+		min = 0f;
+		max = 0f;
+		range = 0f;
+		if (values == null || count <= 0)
+		{
+			return;
+		}
+
+		min = values[0];
+		max = values[0];
+		for (int i = 0; i < count; i++)
+		{
+			float v = values[i];
+			mean += v;
+			if (v < min) min = v;
+			if (v > max) max = v;
+		}
+		mean /= count;
+
+		float variance = 0f;
+		for (int i = 0; i < count; i++)
+		{
+			float d = values[i] - mean;
+			variance += d * d;
+		}
+		stdDev = Mathf.Sqrt(variance / count);
+		range = max - min;
+	}
+
+	private static string BuildRadialHistogram(float[] values, int count, int bins)
+	{
+		if (values == null || count <= 0 || bins < 2)
+		{
+			return string.Empty;
+		}
+
+		float min = values[0];
+		float max = values[0];
+		for (int i = 1; i < count; i++)
+		{
+			float v = values[i];
+			if (v < min) min = v;
+			if (v > max) max = v;
+		}
+
+		int safeBins = Mathf.Max(2, bins);
+		int[] histogram = new int[safeBins];
+		float range = max - min;
+		if (range <= 1e-6f)
+		{
+			histogram[0] = count;
+		}
+		else
+		{
+			float inv = 1f / range;
+			for (int i = 0; i < count; i++)
+			{
+				float normalized = (values[i] - min) * inv;
+				int index = Mathf.Clamp((int)Mathf.Floor(normalized * safeBins), 0, safeBins - 1);
+				histogram[index]++;
+			}
+		}
+
+		StringBuilder builder = new StringBuilder(safeBins * 4);
+		for (int i = 0; i < safeBins; i++)
+		{
+			if (i > 0)
+			{
+				builder.Append(',');
+			}
+			builder.Append(histogram[i]);
+		}
+		return builder.ToString();
 	}
 
 	private bool RebuildSourcePatternMarkers()
@@ -992,6 +1270,88 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		return false;
 	}
 
+	private TransportModel ResolveFixtureTransportModel()
+	{
+		if (TryParseTransportOverrideArg(OS.GetCmdlineUserArgs(), out TransportModel fromUser))
+		{
+			return fromUser;
+		}
+		if (TryParseTransportOverrideArg(OS.GetCmdlineArgs(), out TransportModel fromArgs))
+		{
+			return fromArgs;
+		}
+		return FixtureTransportModel;
+	}
+
+	private static bool TryParseTransportOverrideArg(string[] args, out TransportModel model)
+	{
+		model = FixtureTransportModel;
+		if (args == null || args.Length == 0)
+		{
+			return false;
+		}
+
+		for (int i = 0; i < args.Length; i++)
+		{
+			string arg = args[i] ?? string.Empty;
+			if (TryParseTransportArgValue(arg, FixtureTransportArgPrefix, out model))
+			{
+				return true;
+			}
+			if (TryParseTransportArgValue(arg, TransportArgPrefix, out model))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private static bool TryParseTransportArgValue(string arg, string prefix, out TransportModel model)
+	{
+		model = FixtureTransportModel;
+		if (!arg.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+		{
+			return false;
+		}
+
+		string value = arg.Substring(prefix.Length).Trim();
+		return TryParseTransportModelToken(value, out model);
+	}
+
+	private static bool TryParseTransportModelToken(string token, out TransportModel model)
+	{
+		model = FixtureTransportModel;
+		if (string.IsNullOrWhiteSpace(token))
+		{
+			return false;
+		}
+
+		string normalized = token.Trim().ToLowerInvariant();
+		if (normalized == "grin" || normalized == "grin_optical" || normalized == "optical")
+		{
+			model = TransportModel.GRIN_Optical;
+			return true;
+		}
+		if (normalized == "metric" || normalized == "metric_nullgeodesic" || normalized == "nullgeodesic")
+		{
+			model = TransportModel.Metric_NullGeodesic;
+			return true;
+		}
+
+		return Enum.TryParse(token, true, out model);
+	}
+
+	private string BuildSourcePatternSummaryToken()
+	{
+		int count = _sourceMarkers?.Length ?? 0;
+		string signature = BuildSourcePatternSignature(_sourceMarkers);
+		string checksum = ComputeSha256Hex(signature);
+		return
+			$"mode={PatternMode}|count={count}|spacingX={F(Mathf.Max(0f, SourceSpacingX))}|spacingY={F(Mathf.Max(0f, SourceSpacingY))}|" +
+			$"radius={F(Mathf.Max(0.01f, SourceMarkerRadius))}|origin={FormatVec3(PatternOriginLocal)}|includeCenter={(IncludeCenterPoint ? 1 : 0)}|checksum={checksum}";
+	}
+
 	private static string BuildSourcePatternSignature(SourceMarkerSphere[] markers)
 	{
 		if (markers == null || markers.Length == 0)
@@ -1208,30 +1568,6 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		}
 
 		return accel;
-	}
-
-	private static bool HasAbsorbingSource(RayBeamRenderer.FieldSourceSnap[] snaps)
-	{
-		if (snaps == null || snaps.Length == 0)
-		{
-			return false;
-		}
-
-		for (int i = 0; i < snaps.Length; i++)
-		{
-			ref readonly RayBeamRenderer.FieldSourceSnap snap = ref snaps[i];
-			if (!snap.Enabled)
-			{
-				continue;
-			}
-
-			if ((snap.ModeFlags & FieldMath.ModeFlagAbsorbInsideInnerRadius) != 0u && snap.RInner > 0f)
-			{
-				return true;
-			}
-		}
-
-		return false;
 	}
 
 	private static bool IsAbsorbedAtPoint(Vector3 p, RayBeamRenderer.FieldSourceSnap[] snaps)
