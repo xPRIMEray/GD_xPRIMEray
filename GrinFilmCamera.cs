@@ -1011,6 +1011,13 @@ public partial class GrinFilmCamera : Node
 	private int _geomPruneAuditSamplesTakenThisWindow = 0;
 	private double _lastFrameRenderMs = 0.0;
 	private readonly StringBuilder _overlayHudSb = new StringBuilder(256);
+	private string _hudFixtureName = string.Empty;
+	private string _hudTransportModel = string.Empty;
+	private string _hudProfileToken = string.Empty;
+	private string _hudSourcePatternMode = string.Empty;
+	private bool _hudMetricGainOverrideActive = false;
+	private float _hudMetricGainOverride = 1.0f;
+	private string _lastLoggedHudMetadata = string.Empty;
 	private long _lastRenderHealthEmissionTimestamp = 0;
 	private bool _hasLastRenderHealthEmissionTimestamp = false;
 	private double _rowsPerSecEma = 0.0;
@@ -2837,6 +2844,12 @@ public partial class GrinFilmCamera : Node
 
 		_overlayHudSb.Clear();
 		var lines = new System.Collections.Generic.List<string>(6);
+		string hudMetadata = BuildHudMetadataLine();
+		if (!string.IsNullOrWhiteSpace(hudMetadata))
+		{
+			MaybeLogHudMetadata(hudMetadata);
+			lines.Add(hudMetadata);
+		}
 		RenderHealthSample latest = default;
 		bool hasLatest = _renderHealthCount > 0;
 		if (hasLatest)
@@ -2957,6 +2970,214 @@ public partial class GrinFilmCamera : Node
 
 		Vector2 overlayBasePos = new Vector2(16f, 24f);
 		DebugOverlayBus.AddText(overlayBasePos, string.Join("\n", lines), Colors.White);
+	}
+
+	public void SetHudFixtureName(string fixtureName)
+	{
+		_hudFixtureName = NormalizeHudValue(fixtureName);
+	}
+
+	public void SetHudTransportModel(string transportModel)
+	{
+		_hudTransportModel = NormalizeHudValue(transportModel);
+	}
+
+	public void SetHudProfileToken(string profileToken)
+	{
+		_hudProfileToken = NormalizeHudValue(profileToken);
+	}
+
+	public void SetHudSourcePatternMode(string sourcePatternMode)
+	{
+		_hudSourcePatternMode = NormalizeHudValue(sourcePatternMode);
+	}
+
+	public void SetHudMetricGainOverride(float metricGainOverride, bool active)
+	{
+		_hudMetricGainOverride = float.IsFinite(metricGainOverride) ? metricGainOverride : 1.0f;
+		_hudMetricGainOverrideActive = active && float.IsFinite(metricGainOverride);
+	}
+
+	private string BuildHudMetadataLine()
+	{
+		_overlayHudSb.Clear();
+		AppendHudToken(_overlayHudSb, "fixture", ResolveHudFixtureName());
+		AppendHudToken(_overlayHudSb, "transport", ResolveHudTransportModel());
+		AppendHudToken(_overlayHudSb, "profile", ResolveHudProfileToken());
+
+		if (TryResolveHudMetricGainOverride(out float metricGainOverride))
+		{
+			AppendHudToken(_overlayHudSb, "metricGain", metricGainOverride.ToString("0.0##"));
+		}
+
+		AppendHudToken(_overlayHudSb, "sourcePattern", ResolveHudSourcePatternMode());
+		return _overlayHudSb.ToString();
+	}
+
+	private void MaybeLogHudMetadata(string metadata)
+	{
+		if (string.IsNullOrWhiteSpace(metadata) ||
+			string.Equals(metadata, _lastLoggedHudMetadata, StringComparison.Ordinal))
+		{
+			return;
+		}
+
+		_lastLoggedHudMetadata = metadata;
+		GD.Print($"[HUDMeta] {metadata}");
+	}
+
+	private string ResolveHudFixtureName()
+	{
+		if (!string.IsNullOrWhiteSpace(_hudFixtureName))
+			return _hudFixtureName;
+
+		string scenePath = GetTree().CurrentScene?.SceneFilePath ?? string.Empty;
+		if (scenePath.IndexOf("blackhole", StringComparison.OrdinalIgnoreCase) >= 0)
+			return "blackhole_minimal";
+		if (scenePath.IndexOf("einstein", StringComparison.OrdinalIgnoreCase) >= 0)
+			return "einstein_ring_minimal";
+		if (scenePath.IndexOf("curved-minimal", StringComparison.OrdinalIgnoreCase) >= 0)
+			return "curved_minimal";
+		if (scenePath.IndexOf("straight", StringComparison.OrdinalIgnoreCase) >= 0)
+			return "straight";
+		return string.Empty;
+	}
+
+	private string ResolveHudTransportModel()
+	{
+		if (!string.IsNullOrWhiteSpace(_hudTransportModel))
+			return _hudTransportModel;
+
+		foreach (string arg in GetHudCmdArgs())
+		{
+			if (TryGetHudArgValue(arg, "--blackhole-transport-model=", out string value) ||
+				TryGetHudArgValue(arg, "--einstein-transport-model=", out value) ||
+				TryGetHudArgValue(arg, "--transport-model=", out value))
+			{
+				return NormalizeTransportHudValue(value);
+			}
+		}
+
+		return string.Empty;
+	}
+
+	private string ResolveHudProfileToken()
+	{
+		if (!string.IsNullOrWhiteSpace(_hudProfileToken))
+			return _hudProfileToken;
+
+		foreach (string arg in GetHudCmdArgs())
+		{
+			if (TryGetHudArgValue(arg, "--render-test-profile=", out string value))
+				return NormalizeHudValue(value);
+		}
+
+		return string.Empty;
+	}
+
+	private string ResolveHudSourcePatternMode()
+	{
+		return _hudSourcePatternMode;
+	}
+
+	private bool TryResolveHudMetricGainOverride(out float metricGainOverride)
+	{
+		metricGainOverride = 1.0f;
+		if (_hudMetricGainOverrideActive)
+		{
+			metricGainOverride = _hudMetricGainOverride;
+			return true;
+		}
+
+		string transportModel = ResolveHudTransportModel();
+		if (!string.Equals(transportModel, TransportModel.Metric_NullGeodesic.ToString(), StringComparison.Ordinal))
+			return false;
+
+		float parsedOverride = RayBeamRenderer.ResolveMetricComparisonScalarOverride();
+		if (!float.IsFinite(parsedOverride) || Mathf.IsEqualApprox(parsedOverride, 1.0f))
+			return false;
+
+		metricGainOverride = parsedOverride;
+		return true;
+	}
+
+	private static void AppendHudToken(StringBuilder sb, string key, string value)
+	{
+		if (sb == null || string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(value))
+			return;
+
+		if (sb.Length > 0)
+			sb.Append(' ');
+
+		sb.Append(key).Append('=').Append(value);
+	}
+
+	private static string NormalizeHudValue(string value)
+	{
+		return string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
+	}
+
+	private static string NormalizeTransportHudValue(string value)
+	{
+		string normalized = NormalizeHudValue(value);
+		if (string.IsNullOrWhiteSpace(normalized))
+			return string.Empty;
+
+		if (string.Equals(normalized, "grin", StringComparison.OrdinalIgnoreCase) ||
+			string.Equals(normalized, "optical", StringComparison.OrdinalIgnoreCase))
+		{
+			return TransportModel.GRIN_Optical.ToString();
+		}
+		if (string.Equals(normalized, "metric", StringComparison.OrdinalIgnoreCase) ||
+			string.Equals(normalized, "nullgeodesic", StringComparison.OrdinalIgnoreCase))
+		{
+			return TransportModel.Metric_NullGeodesic.ToString();
+		}
+
+		return normalized;
+	}
+
+	private static bool TryGetHudArgValue(string arg, string prefix, out string value)
+	{
+		value = string.Empty;
+		if (string.IsNullOrWhiteSpace(arg) || string.IsNullOrWhiteSpace(prefix))
+			return false;
+
+		string trimmed = arg.Trim();
+		if (!trimmed.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+			return false;
+
+		value = NormalizeHudValue(trimmed.Substring(prefix.Length));
+		return !string.IsNullOrWhiteSpace(value);
+	}
+
+	private static string[] GetHudCmdArgs()
+	{
+		string[] userArgs = OS.GetCmdlineUserArgs();
+		string[] args = OS.GetCmdlineArgs();
+		if ((userArgs == null || userArgs.Length == 0) && (args == null || args.Length == 0))
+			return Array.Empty<string>();
+		if (userArgs == null || userArgs.Length == 0)
+			return args ?? Array.Empty<string>();
+		if (args == null || args.Length == 0)
+			return userArgs;
+
+		var merged = new System.Collections.Generic.HashSet<string>(StringComparer.Ordinal);
+		var ordered = new System.Collections.Generic.List<string>(userArgs.Length + args.Length);
+		for (int i = 0; i < userArgs.Length; i++)
+		{
+			string token = NormalizeHudValue(userArgs[i]);
+			if (!string.IsNullOrWhiteSpace(token) && merged.Add(token))
+				ordered.Add(token);
+		}
+		for (int i = 0; i < args.Length; i++)
+		{
+			string token = NormalizeHudValue(args[i]);
+			if (!string.IsNullOrWhiteSpace(token) && merged.Add(token))
+				ordered.Add(token);
+		}
+
+		return ordered.ToArray();
 	}
 
 	private void ThrottleBusLog(double delta, SceneSnapshot snapshot)

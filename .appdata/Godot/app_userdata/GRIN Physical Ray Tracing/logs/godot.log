@@ -89,11 +89,20 @@ FilmView found? True
 [EinsteinFixture][RadialSummary] transportModel=Metric_NullGeodesic effectiveMetricScalar=0.151 case=on_axis_r1.00 sourceOffset=(0,0,0) sourceHitCount=36 meanDetectorRadius=6.024 stddevDetectorRadius=0.511 minDetectorRadius=5.04 maxDetectorRadius=6.96 histogram_bins=8 histogram=[3,3,5,6,6,5,5,3]
 [EinsteinFixture][RadialSummary] transportModel=Metric_NullGeodesic effectiveMetricScalar=0.151 case=on_axis_r1.25 sourceOffset=(0,0,0) sourceHitCount=44 meanDetectorRadius=6.028 stddevDetectorRadius=0.578 minDetectorRadius=5.01 maxDetectorRadius=7.019 histogram_bins=8 histogram=[4,5,6,6,6,6,6,5]
 [EinsteinFixture][RadialSummary] transportModel=Metric_NullGeodesic effectiveMetricScalar=0.151 case=on_axis_r1.50 sourceOffset=(0,0,0) sourceHitCount=60 meanDetectorRadius=6.051 stddevDetectorRadius=0.592 minDetectorRadius=5.005 maxDetectorRadius=7.096 histogram_bins=8 histogram=[5,7,8,8,8,9,8,7]
+[Transport][MetricDiagSample] eval=1 status=nonzero reason=none radiusFlag=r_ok r=2.28217 bendPerp=0.167313 dTheta=0.006561
+[Transport] Metric_NullGeodesic weak-field scaffold active. effectiveMetricScalar=0.151 (mapped=0.151, grinAccelMag=0.000653, metricScalarOverride=1, formula=weakFieldScalar*step*boundedLensingWeight).
+[Transport][MetricDiagSample] eval=2 status=nonzero reason=none radiusFlag=r_ok r=2.233157 bendPerp=0.164415 dTheta=0.006234
+[Transport][MetricDiagSample] eval=3 status=nonzero reason=none radiusFlag=r_ok r=2.184108 bendPerp=0.161856 dTheta=0.00592
+[Transport][MetricDiagSample] eval=4 status=nonzero reason=none radiusFlag=r_ok r=2.135025 bendPerp=0.159633 dTheta=0.005619
+[Transport][MetricDiagSample] eval=5 status=nonzero reason=none radiusFlag=r_ok r=2.085912 bendPerp=0.157743 dTheta=0.005331
+[Transport][MetricDiagSample] eval=6 status=nonzero reason=none radiusFlag=r_ok r=2.036774 bendPerp=0.156184 dTheta=0.005055
 [EinsteinFixture][HitRate] transportModel=Metric_NullGeodesic effectiveMetricScalar=0.151 rays=64 source=60 background=4 absorbed=0 miss=0 source_rate=0.938 background_rate=0.063 absorbed_rate=0 miss_rate=0
 [EinsteinFixture][RadialSummary] transportModel=Metric_NullGeodesic effectiveMetricScalar=0.151 case=on_axis_selected_r1.50 sourceOffset=(0,0,0) sourceHitCount=60 meanDetectorRadius=6.051 stddevDetectorRadius=0.592 minDetectorRadius=5.005 maxDetectorRadius=7.096 histogram_bins=8 histogram=[5,7,8,8,8,9,8,7]
 [EinsteinFixture][RadialSummary] transportModel=Metric_NullGeodesic effectiveMetricScalar=0.151 case=off_axis sourceOffset=(0.2,0,0) sourceHitCount=58 meanDetectorRadius=6.065 stddevDetectorRadius=0.608 minDetectorRadius=5.005 maxDetectorRadius=7.19 histogram_bins=8 histogram=[6,9,7,8,8,7,7,6]
 [EinsteinFixture][RadialSummary] transportModel=Metric_NullGeodesic effectiveMetricScalar=0.151 case=off_axis_2 sourceOffset=(0.35,0,0) sourceHitCount=54 meanDetectorRadius=6.073 stddevDetectorRadius=0.602 minDetectorRadius=5.01 maxDetectorRadius=7.19 histogram_bins=8 histogram=[7,7,7,7,7,7,6,6]
-[EinsteinFixture][ComparisonSummary] transportModel=Metric_NullGeodesic effectiveMetricScalar=0.151 sourcePatternSummary=mode=CrossXY|count=49|spacingX=6.000000|spacingY=6.000000|radius=1.000000|origin=(0,0,-12)|includeCenter=1|checksum=324a4a4aadc42a88454df3ecfe60a74c9a9e9a01fa3c666d3df2648927866337 sourceHits=60 backgroundHits=4 absorbedHits=0 missHits=0 radiusMean=6.051251 radiusStdDev=0.591821 radiusRange=2.090636 histogram=[5,7,8,8,8,9,8,7]
+[EinsteinFixture][MetricDiagnostics] metricDeltaZeroCount=0 metricDeltaNonzeroCount=2576 metricFallbackCount=0 metricContributionRatio=1 zeroReasons=none
+[TransportSteering] transportModel=Metric_NullGeodesic meanTurn=0.010719 maxTurn=0.024177 radialBins=[r<0.5R:0.001618@1252,0.5R-1R:0.014293@600,1R-2R:0.023497@724,2R-4R:0@0,4R-8R:0@0,r>=8R:0@0]
+[EinsteinFixture][ComparisonSummary] transportModel=Metric_NullGeodesic effectiveMetricScalar=0.151 sourcePatternSummary=mode=CrossXY|count=49|spacingX=6.000000|spacingY=6.000000|radius=1.000000|origin=(0,0,-12)|includeCenter=1|checksum=324a4a4aadc42a88454df3ecfe60a74c9a9e9a01fa3c666d3df2648927866337 sourceHits=60 backgroundHits=4 absorbedHits=0 missHits=0 radiusMean=6.051251 radiusStdDev=0.591821 radiusRange=2.090636 metricDeltaZeroCount=0 metricDeltaNonzeroCount=2576 metricFallbackCount=0 metricContributionRatio=1 histogram=[5,7,8,8,8,9,8,7]
 [EinsteinFixture][CurvatureMetric] accel_sum_total=0.083583 accel_sum_mass=0.070081 accel_sum_band=0.013502 curvature_energy=0.083583 max_probe_accel=0.031352 far_accel=0
 [EinsteinFixture] mass_strength=0.151 mass_radius=4.5 band_strength=0.03 band_r_inner=1.305 band_r_outer=1.845 mass_node_path=/root/TestEinsteinRingMinimalHarness/FixtureEinsteinRingMinimal/FieldSource3D band_node_path=/root/TestEinsteinRingMinimalHarness/FixtureEinsteinRingMinimal/PhotonBandSource sphere_global_pos=(0,0,0) sphere_scale=(1,1,1) cam_fov=82 camera_global_pos=(0,-7.376,19.832) cam_to_sphere=21.16
 [EinsteinFixture][ResolvedMass] source=canonical curve=Power modeFlags=2 rInner=0.12 rOuter=4.5 amp=0.151 gamma=8 beta_mode=override beta_scale=1
@@ -118,9 +127,9 @@ RayBeamRenderer: field sources in group = 2
 [RenderTestRunner][INIT] mode=render-test startupDelayFrames=2 scene=res://test-einstein-ring-minimal.tscn
 [EinsteinFixture][Broadphase] enforcing policy=OverlapOnly mode=Policy
 [BroadphaseEffective] mode=Policy policy=OverlapOnly quick=False overlap=True reason=policy
-[RenderTest][MATRIX START] id=1772992253 runs=2 framesPerRun=80 warmup=10
+[RenderTest][MATRIX START] id=1773021767 runs=2 framesPerRun=80 warmup=10
 [MATRIX START] runs=2 framesPerRun=80 warmup=10 scene=res://test-einstein-ring-minimal.tscn
-[RenderTest][RUN START] matrix=1772992253 idx=1/2 name=baseline_prune_off frames=80 warmup=10 prune=off
+[RenderTest][RUN START] matrix=1773021767 idx=1/2 name=baseline_prune_off frames=80 warmup=10 prune=off
 [RUN START] name=baseline_prune_off prune=off stride=off envScale=inherit aabbExpand=inherit updateEveryFrame=on
 [RenderTestRunner] Trust enforcement (mode=default): scaledFilm=80x45 minGeomPix=1024 minRayTests=4096 minP2=8 p2Every=8 rollingSec=10
 [RenderHealth][StatsMode] scaledFilm=80x45 rowsPerStep=6 fullFrameEveryNSteps<=8
@@ -128,16 +137,22 @@ RayBeamRenderer: field sources in group = 2
 [EffectiveCfg] broadphase=Policy(policy) policy=OverlapOnly quick=0 overlap=1 softgate=0 score=0 minSeg=0.1 attempts=600 sub=1000 stride=2 resScale=0.25 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF envRadScale=1.02 envAabbExpand=0.01 geomPrune=0 maxDist=50
 Toggles: AdaptiveSubsteps=0 SingleProbeSubdivide=0 BandHitSkip=0 RequireHit=0 StopOnHit=0 TerminateTrailOnHit=1 UpdateEveryFrame=1
 [Cfg] Pass2SoftGateEnableQuickRayMiss=0 Pass2SoftGateScoringEnabled=0 Pass2SoftGateMinSegmentLength=0.1 Pass2SoftGateScoreThreshold=1 Pass2SoftGateScoreTurnAngleWeight=1 Pass2SoftGateScorePrevHitLostBonus=0.75 Pass2SoftGateRandomProbeChance=0.01 Pass2SoftGateScoreBudgetPerFrame=256 Pass2SoftGateMaxAttemptsPerPixel=4 Pass2SoftGateMaxAttemptsPerFrame=600 Pass2SoftGateMaxSubdividedCallsPerFrame=1000 UpdateEveryFrame=1
-[Transport] Metric_NullGeodesic weak-field scaffold active. effectiveMetricScalar=0.151 (mapped=0.151, grinAccelMag=0, formula=|Amp|*betaScaleEff*BendScale*FieldStrength).
-[Transport] Metric_NullGeodesic produced zero direction delta; using GRIN acceleration fallback.
+[Transport][MetricDiagSample] eval=5 status=nonzero reason=none radiusFlag=r_hi r=21.15959 bendPerp=0.76823 dTheta=0.00386
+[Transport][MetricDiagSample] eval=5 status=nonzero reason=none radiusFlag=r_hi r=21.15959 bendPerp=0.541657 dTheta=0.003722
+[Transport][MetricDiagSample] eval=5 status=nonzero reason=none radiusFlag=r_hi r=21.15959 bendPerp=0.752015 dTheta=0.003853
+[Transport][MetricDiagSample] eval=8 status=nonzero reason=none radiusFlag=r_hi r=21.15959 bendPerp=0.633114 dTheta=0.003788
+[Transport][MetricDiagSample] eval=5 status=nonzero reason=none radiusFlag=r_hi r=21.15959 bendPerp=0.783774 dTheta=0.003867
+[Transport][MetricDiagSample] eval=5 status=nonzero reason=none radiusFlag=r_hi r=21.15959 bendPerp=0.095397 dTheta=0.002378
 [FixtureDebugTrace] frame=1 row=0 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=1 row=0 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=1 row=0 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=1 row=0 x=32 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=1 row=2 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=1 row=4 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
-[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=2 rows_advanced_total=6 trust_window=na/na/na geomPixProcessedRaw=120 geomRayTestsTotalRaw=30897 budget_exit_reason=none
-[RenderTestLive] name=baseline_prune_off frame=1/80 lastRow=6 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=30897 geomTrusted=0 geomHealthPartial=1 geomTrustReason=warming_up hitRate=0 budgetStop=none
+[HUDMeta] fixture=einstein_ring_minimal transport=Metric_NullGeodesic profile=einstein_compare_fast sourcePattern=CrossXY
+[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=2 rows_advanced_total=6 trust_window=na/na/na geomPixProcessedRaw=120 geomRayTestsTotalRaw=25993 budget_exit_reason=none
+[RenderTestLive] name=baseline_prune_off frame=1/80 lastRow=6 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=25993 geomTrusted=0 geomHealthPartial=1 geomTrustReason=warming_up hitRate=0 budgetStop=none
+[Transport] Metric_NullGeodesic produced zero direction delta; using GRIN acceleration fallback. reason=dtheta0 radiusFlag=r_ok r=5.023326 bendPerp=0 dTheta=0
 [FixtureDebugTrace] frame=1 row=6 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=1 row=6 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=1 row=6 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -176,13 +191,13 @@ Toggles: AdaptiveSubsteps=0 SingleProbeSubdivide=0 BandHitSkip=0 RequireHit=0 St
 [FixtureDebugTrace] frame=1 row=34 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=1 row=34 x=54 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=1 row=34 x=78 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
-[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=7 rows_advanced_total=6 trust_window=na/na/na geomPixProcessedRaw=120 geomRayTestsTotalRaw=37301 budget_exit_reason=none
-[RenderTestLive] name=baseline_prune_off frame=6/80 lastRow=36 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=37301 geomTrusted=0 geomHealthPartial=1 geomTrustReason=warming_up hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=1 row=36 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=1 row=36 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=1 row=36 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=1 row=38 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=1 row=40 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
+[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=8 rows_advanced_total=6 trust_window=na/na/na geomPixProcessedRaw=120 geomRayTestsTotalRaw=30549 budget_exit_reason=none
+[RenderTestLive] name=baseline_prune_off frame=7/80 lastRow=42 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=30549 geomTrusted=0 geomHealthPartial=1 geomTrustReason=warming_up hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=1 row=42 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=1 row=42 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=1 row=42 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -220,8 +235,6 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=2 row=20 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=2 row=22 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=2 row=22 x=34 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
-[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=13 rows_advanced_total=6 trust_window=na/na/na geomPixProcessedRaw=120 geomRayTestsTotalRaw=32668 budget_exit_reason=none
-[RenderTestLive] name=baseline_prune_off frame=12/80 lastRow=24 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=32668 geomTrusted=0 geomHealthPartial=1 geomTrustReason=warming_up hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=2 row=24 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=2 row=24 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=2 row=24 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -238,6 +251,8 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=2 row=34 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=2 row=34 x=54 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=2 row=34 x=78 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
+[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=15 rows_advanced_total=6 trust_window=na/na/na geomPixProcessedRaw=120 geomRayTestsTotalRaw=28951 budget_exit_reason=none
+[RenderTestLive] name=baseline_prune_off frame=14/80 lastRow=36 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=28951 geomTrusted=0 geomHealthPartial=1 geomTrustReason=warming_up hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=2 row=36 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=2 row=36 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=2 row=36 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -265,8 +280,6 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=3 row=8 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=3 row=8 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=3 row=10 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
-[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=19 rows_advanced_total=6 trust_window=na/na/na geomPixProcessedRaw=120 geomRayTestsTotalRaw=31166 budget_exit_reason=none
-[RenderTestLive] name=baseline_prune_off frame=18/80 lastRow=12 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=31166 geomTrusted=0 geomHealthPartial=1 geomTrustReason=warming_up hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=3 row=12 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=3 row=12 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=3 row=12 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -288,6 +301,8 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=3 row=26 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=3 row=26 x=16 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=3 row=28 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
+[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=22 rows_advanced_total=6 trust_window=na/na/na geomPixProcessedRaw=120 geomRayTestsTotalRaw=27710 budget_exit_reason=none
+[RenderTestLive] name=baseline_prune_off frame=21/80 lastRow=30 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=27710 geomTrusted=0 geomHealthPartial=1 geomTrustReason=warming_up hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=3 row=30 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=3 row=30 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=3 row=30 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -312,8 +327,6 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=3 row=42 x=78 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=3 row=44 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FrameReset] reason=completed prevRow=45 frame=3
-[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=25 rows_advanced_total=3 trust_window=na/na/na geomPixProcessedRaw=80 geomRayTestsTotalRaw=30625 budget_exit_reason=none
-[RenderTestLive] name=baseline_prune_off frame=24/80 lastRow=0 rowsAdv=3 bands=1 geomPixProcessed=80 geomRayTestsTotal=30625 geomTrusted=0 geomHealthPartial=1 geomTrustReason=warming_up hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=4 row=0 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=4 row=0 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=4 row=0 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -342,6 +355,8 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=4 row=20 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=4 row=22 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=4 row=22 x=34 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
+[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=29 rows_advanced_total=6 trust_window=na/na/na geomPixProcessedRaw=120 geomRayTestsTotalRaw=26900 budget_exit_reason=none
+[RenderTestLive] name=baseline_prune_off frame=28/80 lastRow=24 rowsAdv=6 bands=1 geomPixProcessed=120 geomRayTestsTotal=26900 geomTrusted=0 geomHealthPartial=1 geomTrustReason=warming_up hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=4 row=24 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=4 row=24 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=4 row=24 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -358,13 +373,11 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=4 row=34 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=4 row=34 x=54 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=4 row=34 x=78 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
-[RenderHealth] step=30 lastRow=36 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=na geomSegQueried=na geomSegWithCandidates=na geomSegZero=na geomSegZeroRatePct=na geomPixProcessed=na geomPixHadAnyCandidates=na geomPixNoCand=na geomPixNoCandRatePct=na geomHitOk=0 geomHitReject=0 geomPrune=off geomPruneRequested=0 geomPruneEffective=off geomRayTestsTotal=341900 geomRayTestsAccepted=0 geomRayTestsRejected=0 geomRayTestsPerPxOn=na geomRayTestsPerPxOff=294.741 geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=42738 radAvg=0.01 radMax=0.01 envDiagAvg=0.152 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=na cand1to2=na cand3to8=na cand9to32=na cand33p=na geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
-[RenderHealth][GeomCoverage] step=30 geomPrune=off geomPixProcessedRaw=1160 geomRayTestsTotalRaw=341900 geomSegQueriedRaw=0 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=0 geomPixNoCandRaw=0 geomRayTestsEligibleRaw=0 p2SampRaw=42738
-[RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=341900 geomRayTestsEligibleRaw=0 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
+[RenderHealth] step=30 lastRow=36 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=na geomSegQueried=na geomSegWithCandidates=na geomSegZero=na geomSegZeroRatePct=na geomPixProcessed=na geomPixHadAnyCandidates=na geomPixNoCand=na geomPixNoCandRatePct=na geomHitOk=0 geomHitReject=0 geomPrune=off geomPruneRequested=0 geomPruneEffective=off geomRayTestsTotal=270669 geomRayTestsAccepted=0 geomRayTestsRejected=0 geomRayTestsPerPxOn=na geomRayTestsPerPxOff=233.335 geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=33834 radAvg=0.01 radMax=0.01 envDiagAvg=0.163 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=na cand1to2=na cand3to8=na cand9to32=na cand33p=na geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
+[RenderHealth][GeomCoverage] step=30 geomPrune=off geomPixProcessedRaw=1160 geomRayTestsTotalRaw=270669 geomSegQueriedRaw=0 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=0 geomPixNoCandRaw=0 geomRayTestsEligibleRaw=0 p2SampRaw=33834
+[RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=270669 geomRayTestsEligibleRaw=0 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [RenderTestRunner] RenderHealth snapshot ready at step=30 frame=30
-[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=31 rows_advanced_total=6 trust_window=1/0/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=341900 budget_exit_reason=none
-[RenderTestLive] name=baseline_prune_off frame=30/80 lastRow=36 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=341900 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0 budgetStop=none
 [BUS SET] frameId=31 grid=OK fields=2
 SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNodes=1, GeometryTLASNodes=31, MetricModel(GRIN=2, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1, FirstFields=[0:(rInner=0.12, rOuter=4.5, amp=0.151, curveType=1, shapeType=0), 1:(rInner=1.305, rOuter=1.8449999, amp=0.03, curveType=2, shapeType=0)]
 [FixtureDebugTrace] frame=4 row=36 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -401,14 +414,14 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=5 row=16 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=5 row=16 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=5 row=16 x=74 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
+[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=36 rows_advanced_total=6 trust_window=1/0/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=270669 budget_exit_reason=none
+[RenderTestLive] name=baseline_prune_off frame=35/80 lastRow=18 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=270669 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=5 row=18 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=5 row=18 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=5 row=18 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=5 row=20 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=5 row=22 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=5 row=22 x=34 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
-[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=37 rows_advanced_total=6 trust_window=1/0/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=341900 budget_exit_reason=none
-[RenderTestLive] name=baseline_prune_off frame=36/80 lastRow=24 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=341900 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=5 row=24 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=5 row=24 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=5 row=24 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -452,8 +465,8 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=6 row=8 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=6 row=8 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=6 row=10 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
-[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=43 rows_advanced_total=6 trust_window=1/0/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=341900 budget_exit_reason=none
-[RenderTestLive] name=baseline_prune_off frame=42/80 lastRow=12 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=341900 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0 budgetStop=none
+[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=43 rows_advanced_total=6 trust_window=1/0/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=270669 budget_exit_reason=none
+[RenderTestLive] name=baseline_prune_off frame=42/80 lastRow=12 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=270669 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=6 row=12 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=6 row=12 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=6 row=12 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -499,14 +512,14 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=6 row=42 x=78 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=6 row=44 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FrameReset] reason=completed prevRow=45 frame=6
-[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=49 rows_advanced_total=3 trust_window=1/0/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=341900 budget_exit_reason=none
-[RenderTestLive] name=baseline_prune_off frame=48/80 lastRow=0 rowsAdv=3 bands=1 geomPixProcessed=1160 geomRayTestsTotal=341900 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=7 row=0 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=7 row=0 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=7 row=0 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=7 row=0 x=32 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=7 row=2 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=7 row=4 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
+[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=50 rows_advanced_total=6 trust_window=1/0/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=270669 budget_exit_reason=none
+[RenderTestLive] name=baseline_prune_off frame=49/80 lastRow=6 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=270669 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=7 row=6 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=7 row=6 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=7 row=6 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -547,8 +560,6 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=7 row=34 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=7 row=34 x=54 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=7 row=34 x=78 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
-[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=55 rows_advanced_total=6 trust_window=1/0/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=341900 budget_exit_reason=none
-[RenderTestLive] name=baseline_prune_off frame=54/80 lastRow=36 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=341900 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=7 row=36 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=7 row=36 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=7 row=36 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -561,6 +572,8 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=7 row=42 x=78 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=7 row=44 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FrameReset] reason=completed prevRow=45 frame=7
+[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=57 rows_advanced_total=3 trust_window=1/0/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=270669 budget_exit_reason=none
+[RenderTestLive] name=baseline_prune_off frame=56/80 lastRow=0 rowsAdv=3 bands=1 geomPixProcessed=1160 geomRayTestsTotal=270669 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=8 row=0 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=8 row=0 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=8 row=0 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -589,12 +602,10 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=8 row=20 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=8 row=22 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=8 row=22 x=34 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
-[RenderHealth] step=60 lastRow=24 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=na geomSegQueried=na geomSegWithCandidates=na geomSegZero=na geomSegZeroRatePct=na geomPixProcessed=na geomPixHadAnyCandidates=na geomPixNoCand=na geomPixNoCandRatePct=na geomHitOk=0 geomHitReject=0 geomPrune=off geomPruneRequested=0 geomPruneEffective=off geomRayTestsTotal=334471 geomRayTestsAccepted=0 geomRayTestsRejected=0 geomRayTestsPerPxOn=na geomRayTestsPerPxOff=288.337 geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=41809 radAvg=0.01 radMax=0.01 envDiagAvg=0.151 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=na cand1to2=na cand3to8=na cand9to32=na cand33p=na geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
-[RenderHealth][GeomCoverage] step=60 geomPrune=off geomPixProcessedRaw=1160 geomRayTestsTotalRaw=334471 geomSegQueriedRaw=0 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=0 geomPixNoCandRaw=0 geomRayTestsEligibleRaw=0 p2SampRaw=41809
-[RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=334471 geomRayTestsEligibleRaw=0 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
+[RenderHealth] step=60 lastRow=24 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=na geomSegQueried=na geomSegWithCandidates=na geomSegZero=na geomSegZeroRatePct=na geomPixProcessed=na geomPixHadAnyCandidates=na geomPixNoCand=na geomPixNoCandRatePct=na geomHitOk=0 geomHitReject=0 geomPrune=off geomPruneRequested=0 geomPruneEffective=off geomRayTestsTotal=267298 geomRayTestsAccepted=0 geomRayTestsRejected=0 geomRayTestsPerPxOn=na geomRayTestsPerPxOff=230.429 geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=33412 radAvg=0.01 radMax=0.01 envDiagAvg=0.163 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=na cand1to2=na cand3to8=na cand9to32=na cand33p=na geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
+[RenderHealth][GeomCoverage] step=60 geomPrune=off geomPixProcessedRaw=1160 geomRayTestsTotalRaw=267298 geomSegQueriedRaw=0 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=0 geomPixNoCandRaw=0 geomRayTestsEligibleRaw=0 p2SampRaw=33412
+[RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=267298 geomRayTestsEligibleRaw=0 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
-[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=61 rows_advanced_total=6 trust_window=1/0/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=334471 budget_exit_reason=none
-[RenderTestLive] name=baseline_prune_off frame=60/80 lastRow=24 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=334471 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0 budgetStop=none
 [BUS SET] frameId=61 grid=OK fields=2
 SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNodes=1, GeometryTLASNodes=31, MetricModel(GRIN=2, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1, FirstFields=[0:(rInner=0.12, rOuter=4.5, amp=0.151, curveType=1, shapeType=0), 1:(rInner=1.305, rOuter=1.8449999, amp=0.03, curveType=2, shapeType=0)]
 [FixtureDebugTrace] frame=8 row=24 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -613,6 +624,8 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=8 row=34 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=8 row=34 x=54 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=8 row=34 x=78 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
+[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=63 rows_advanced_total=6 trust_window=1/0/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=267298 budget_exit_reason=none
+[RenderTestLive] name=baseline_prune_off frame=62/80 lastRow=36 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=267298 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=8 row=36 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=8 row=36 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=8 row=36 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -638,8 +651,6 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=9 row=8 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=9 row=8 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=9 row=10 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
-[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=67 rows_advanced_total=6 trust_window=1/0/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=334471 budget_exit_reason=none
-[RenderTestLive] name=baseline_prune_off frame=66/80 lastRow=12 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=334471 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=9 row=12 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=9 row=12 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=9 row=12 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -663,6 +674,8 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=9 row=26 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=9 row=26 x=16 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=9 row=28 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
+[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=70 rows_advanced_total=6 trust_window=1/0/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=267298 budget_exit_reason=none
+[RenderTestLive] name=baseline_prune_off frame=69/80 lastRow=30 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=267298 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=9 row=30 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=9 row=30 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=9 row=30 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -685,8 +698,6 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=9 row=42 x=78 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=9 row=44 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FrameReset] reason=completed prevRow=45 frame=9
-[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=73 rows_advanced_total=3 trust_window=1/0/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=334471 budget_exit_reason=none
-[RenderTestLive] name=baseline_prune_off frame=72/80 lastRow=0 rowsAdv=3 bands=1 geomPixProcessed=1160 geomRayTestsTotal=334471 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=10 row=0 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=10 row=0 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=10 row=0 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -717,6 +728,8 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=10 row=20 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=10 row=22 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=10 row=22 x=34 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
+[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=77 rows_advanced_total=6 trust_window=1/0/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=267298 budget_exit_reason=none
+[RenderTestLive] name=baseline_prune_off frame=76/80 lastRow=24 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=267298 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=10 row=24 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=10 row=24 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=10 row=24 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -733,8 +746,6 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=10 row=34 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=10 row=34 x=54 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=10 row=34 x=78 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
-[RenderTestRunner][Live] fixture=einstein_ring_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=79 rows_advanced_total=6 trust_window=1/0/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=334471 budget_exit_reason=none
-[RenderTestLive] name=baseline_prune_off frame=78/80 lastRow=36 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=334471 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=10 row=36 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=10 row=36 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=10 row=36 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -747,10 +758,10 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=10 row=42 x=78 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=10 row=44 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FrameReset] reason=completed prevRow=45 frame=10
-[RenderTest][RUN SUMMARY] matrix=1772992253 idx=1/2 name=baseline_prune_off samples=70 meanMsPerFrame=171.807 p95MsPerFrame=216.214 meanSegsPerPixel=na geomTrusted=1 geomTrustReason=ok geomRayTestsSavedPct=na
-[RenderTest][RUN END] matrix=1772992253 idx=1/2 name=baseline_prune_off run_id=1 frames=80 warmup=10 samples=70
-[RUN END] name=baseline_prune_off run_id=1 frames=80 samples=70 meanMs=171.807 p95Ms=216.214
-[RenderTest][RUN START] matrix=1772992253 idx=2/2 name=prune_on_default frames=80 warmup=10 prune=on
+[RenderTest][RUN SUMMARY] matrix=1773021767 idx=1/2 name=baseline_prune_off samples=70 meanMsPerFrame=156.531 p95MsPerFrame=178.743 meanSegsPerPixel=na geomTrusted=1 geomTrustReason=ok geomRayTestsSavedPct=na
+[RenderTest][RUN END] matrix=1773021767 idx=1/2 name=baseline_prune_off run_id=1 frames=80 warmup=10 samples=70
+[RUN END] name=baseline_prune_off run_id=1 frames=80 samples=70 meanMs=156.531 p95Ms=178.743
+[RenderTest][RUN START] matrix=1773021767 idx=2/2 name=prune_on_default frames=80 warmup=10 prune=on
 [RUN START] name=prune_on_default prune=on stride=on(inherit->inherit) envScale=inherit aabbExpand=inherit updateEveryFrame=on
 [RenderTestRunner] Trust enforcement (mode=default): scaledFilm=80x45 minGeomPix=1024 minRayTests=4096 minP2=8 p2Every=8 rollingSec=10
 [RenderHealth][StatsMode] scaledFilm=80x45 rowsPerStep=6 fullFrameEveryNSteps<=8
@@ -762,8 +773,8 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=11 row=0 x=32 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=11 row=2 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=11 row=4 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
-[RenderTestRunner][Live] fixture=einstein_ring_minimal run=prune_on_default probe=baseline budget_mode=na budget_n=na renderstep_calls=82 rows_advanced_total=6 trust_window=na/na/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=334471 budget_exit_reason=none
-[RenderTestLive] name=prune_on_default frame=1/80 lastRow=6 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=334471 geomTrusted=0 geomHealthPartial=1 geomTrustReason=warming_up hitRate=0 budgetStop=none
+[RenderTestRunner][Live] fixture=einstein_ring_minimal run=prune_on_default probe=baseline budget_mode=na budget_n=na renderstep_calls=82 rows_advanced_total=6 trust_window=na/na/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=267298 budget_exit_reason=none
+[RenderTestLive] name=prune_on_default frame=1/80 lastRow=6 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=267298 geomTrusted=0 geomHealthPartial=1 geomTrustReason=warming_up hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=11 row=6 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=11 row=6 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=11 row=6 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -820,6 +831,8 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=12 row=0 x=32 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=12 row=2 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=12 row=4 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
+[BUS SET] frameId=90 grid=OK fields=2
+SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNodes=1, GeometryTLASNodes=31, MetricModel(GRIN=2, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1, FirstFields=[0:(rInner=0.12, rOuter=4.5, amp=0.151, curveType=1, shapeType=0), 1:(rInner=1.305, rOuter=1.8449999, amp=0.03, curveType=2, shapeType=0)]
 [FixtureDebugTrace] frame=12 row=6 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=12 row=6 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=12 row=6 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -827,9 +840,9 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=12 row=8 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=12 row=8 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=12 row=10 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
-[RenderHealth] step=90 lastRow=12 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=0.084 geomSegQueried=332241 geomSegWithCandidates=9243 geomSegZero=322998 geomSegZeroRatePct=97.22 geomPixProcessed=1160 geomPixHadAnyCandidates=1160 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=0 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=9492 geomRayTestsAccepted=0 geomRayTestsRejected=0 geomRayTestsPerPxOn=8.183 geomRayTestsPerPxOff=656.512 geomRayTestsSavedPct=98.75 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=41531 radAvg=0.01 radMax=0.01 envDiagAvg=0.151 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=40359 cand1to2=0 cand3to8=1172 cand9to32=0 cand33p=0 geomPruneAuditSamp=256 geomPruneAuditFalseNeg=0 geomPruneAuditFalsePos=0 geomPruneAuditCand0Hit=0 geomPruneAuditFalseNegRate=0
-[RenderHealth][GeomCoverage] step=90 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=9492 geomSegQueriedRaw=332241 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1160 geomPixNoCandRaw=0 geomRayTestsEligibleRaw=1160 p2SampRaw=41531
-[RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=9492 geomRayTestsEligibleRaw=1160 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
+[RenderHealth] step=90 lastRow=12 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=na geomSegQueried=na geomSegWithCandidates=na geomSegZero=na geomSegZeroRatePct=na geomPixProcessed=na geomPixHadAnyCandidates=na geomPixNoCand=na geomPixNoCandRatePct=na geomHitOk=na geomHitReject=na geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=na geomRayTestsAccepted=na geomRayTestsRejected=na geomRayTestsPerPxOn=na geomRayTestsPerPxOff=na geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=0 geomHealthPartial=1 geomHealthModeSamples=10 geomTrustReason=low_raytests geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=33266 radAvg=0.01 radMax=0.01 envDiagAvg=0.163 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=na cand1to2=na cand3to8=na cand9to32=na cand33p=na geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
+[RenderHealth][GeomCoverage] step=90 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=3113 geomSegQueriedRaw=266125 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1160 geomPixNoCandRaw=0 geomRayTestsEligibleRaw=1160 p2SampRaw=33266
+[RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=3113 geomRayTestsEligibleRaw=1160 trustGeomPixMet=1 trustRayTestsMet=0 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [RenderTestRunner] RenderHealth snapshot ready at step=90 frame=10
 [FixtureDebugTrace] frame=12 row=12 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -863,8 +876,6 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=12 row=34 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=12 row=34 x=54 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=12 row=34 x=78 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
-[BUS SET] frameId=95 grid=OK fields=2
-SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNodes=1, GeometryTLASNodes=31, MetricModel(GRIN=2, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1, FirstFields=[0:(rInner=0.12, rOuter=4.5, amp=0.151, curveType=1, shapeType=0), 1:(rInner=1.305, rOuter=1.8449999, amp=0.03, curveType=2, shapeType=0)]
 [FixtureDebugTrace] frame=12 row=36 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=12 row=36 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=12 row=36 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -911,6 +922,8 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=13 row=26 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=13 row=26 x=16 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=13 row=28 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
+[RenderTestRunner][Live] fixture=einstein_ring_minimal run=prune_on_default probe=baseline budget_mode=na budget_n=na renderstep_calls=102 rows_advanced_total=6 trust_window=0/1/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=3113 budget_exit_reason=none
+[RenderTestLive] name=prune_on_default frame=21/80 lastRow=30 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=3113 geomTrusted=0 geomHealthPartial=1 geomTrustReason=low_raytests hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=13 row=30 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=13 row=30 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=13 row=30 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -961,6 +974,8 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=14 row=20 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=14 row=22 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=14 row=22 x=34 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
+[BUS SET] frameId=109 grid=OK fields=2
+SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNodes=1, GeometryTLASNodes=31, MetricModel(GRIN=2, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1, FirstFields=[0:(rInner=0.12, rOuter=4.5, amp=0.151, curveType=1, shapeType=0), 1:(rInner=1.305, rOuter=1.8449999, amp=0.03, curveType=2, shapeType=0)]
 [FixtureDebugTrace] frame=14 row=24 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=14 row=24 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=14 row=24 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -1002,8 +1017,6 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=15 row=8 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=15 row=8 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=15 row=10 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
-[RenderTestRunner][Live] fixture=einstein_ring_minimal run=prune_on_default probe=baseline budget_mode=na budget_n=na renderstep_calls=115 rows_advanced_total=6 trust_window=1/0/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=9492 budget_exit_reason=none
-[RenderTestLive] name=prune_on_default frame=34/80 lastRow=12 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=9492 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=15 row=12 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=15 row=12 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=15 row=12 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -1047,9 +1060,9 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=15 row=42 x=78 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=15 row=44 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FrameReset] reason=completed prevRow=45 frame=15
-[RenderHealth] step=120 lastRow=0 rowsAdv=3 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=0.108 geomSegQueried=342278 geomSegWithCandidates=12325 geomSegZero=329953 geomSegZeroRatePct=96.40 geomPixProcessed=1120 geomPixHadAnyCandidates=1120 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=0 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=12325 geomRayTestsAccepted=0 geomRayTestsRejected=0 geomRayTestsPerPxOn=11.004 geomRayTestsPerPxOff=656.512 geomRayTestsSavedPct=98.32 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=42785 radAvg=0.01 radMax=0.01 envDiagAvg=0.152 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=41238 cand1to2=0 cand3to8=1547 cand9to32=0 cand33p=0 geomPruneAuditSamp=0 geomPruneAuditFalseNeg=0 geomPruneAuditFalsePos=0 geomPruneAuditCand0Hit=0 geomPruneAuditFalseNegRate=0
-[RenderHealth][GeomCoverage] step=120 geomPrune=on geomPixProcessedRaw=1120 geomRayTestsTotalRaw=12325 geomSegQueriedRaw=342278 pass2PixelsRaw=1120 geomPixHadAnyCandidatesRaw=1120 geomPixNoCandRaw=0 geomRayTestsEligibleRaw=1120 p2SampRaw=42785
-[RenderHealth][TrustGateDebug] geomPixProcessedRaw=1120 geomRayTestsTotalRaw=12325 geomRayTestsEligibleRaw=1120 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
+[RenderHealth] step=120 lastRow=0 rowsAdv=3 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=na geomSegQueried=na geomSegWithCandidates=na geomSegZero=na geomSegZeroRatePct=na geomPixProcessed=na geomPixHadAnyCandidates=na geomPixNoCand=na geomPixNoCandRatePct=na geomHitOk=na geomHitReject=na geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=na geomRayTestsAccepted=na geomRayTestsRejected=na geomRayTestsPerPxOn=na geomRayTestsPerPxOff=na geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=0 geomHealthPartial=1 geomHealthModeSamples=10 geomTrustReason=low_raytests geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=33243 radAvg=0.01 radMax=0.01 envDiagAvg=0.164 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=na cand1to2=na cand3to8=na cand9to32=na cand33p=na geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
+[RenderHealth][GeomCoverage] step=120 geomPrune=on geomPixProcessedRaw=1120 geomRayTestsTotalRaw=3015 geomSegQueriedRaw=265948 pass2PixelsRaw=1120 geomPixHadAnyCandidatesRaw=1120 geomPixNoCandRaw=0 geomRayTestsEligibleRaw=1120 p2SampRaw=33243
+[RenderHealth][TrustGateDebug] geomPixProcessedRaw=1120 geomRayTestsTotalRaw=3015 geomRayTestsEligibleRaw=1120 trustGeomPixMet=1 trustRayTestsMet=0 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FixtureDebugTrace] frame=16 row=0 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=16 row=0 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -1057,6 +1070,8 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=16 row=0 x=32 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=16 row=2 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=16 row=4 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
+[RenderTestRunner][Live] fixture=einstein_ring_minimal run=prune_on_default probe=baseline budget_mode=na budget_n=na renderstep_calls=122 rows_advanced_total=6 trust_window=0/1/na geomPixProcessedRaw=1120 geomRayTestsTotalRaw=3015 budget_exit_reason=none
+[RenderTestLive] name=prune_on_default frame=41/80 lastRow=6 rowsAdv=6 bands=1 geomPixProcessed=1120 geomRayTestsTotal=3015 geomTrusted=0 geomHealthPartial=1 geomTrustReason=low_raytests hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=16 row=6 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=16 row=6 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=16 row=6 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -1095,8 +1110,6 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=16 row=34 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=16 row=34 x=54 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=16 row=34 x=78 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
-[BUS SET] frameId=127 grid=OK fields=2
-SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNodes=1, GeometryTLASNodes=31, MetricModel(GRIN=2, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1, FirstFields=[0:(rInner=0.12, rOuter=4.5, amp=0.151, curveType=1, shapeType=0), 1:(rInner=1.305, rOuter=1.8449999, amp=0.03, curveType=2, shapeType=0)]
 [FixtureDebugTrace] frame=16 row=36 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=16 row=36 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=16 row=36 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -1109,6 +1122,8 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=16 row=42 x=78 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=16 row=44 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FrameReset] reason=completed prevRow=45 frame=16
+[BUS SET] frameId=129 grid=OK fields=2
+SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNodes=1, GeometryTLASNodes=31, MetricModel(GRIN=2, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1, FirstFields=[0:(rInner=0.12, rOuter=4.5, amp=0.151, curveType=1, shapeType=0), 1:(rInner=1.305, rOuter=1.8449999, amp=0.03, curveType=2, shapeType=0)]
 [FixtureDebugTrace] frame=17 row=0 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=17 row=0 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=17 row=0 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -1199,6 +1214,8 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=18 row=26 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=18 row=26 x=16 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=18 row=28 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
+[RenderTestRunner][Live] fixture=einstein_ring_minimal run=prune_on_default probe=baseline budget_mode=na budget_n=na renderstep_calls=142 rows_advanced_total=6 trust_window=0/1/na geomPixProcessedRaw=1120 geomRayTestsTotalRaw=3015 budget_exit_reason=none
+[RenderTestLive] name=prune_on_default frame=61/80 lastRow=30 rowsAdv=6 bands=1 geomPixProcessed=1120 geomRayTestsTotal=3015 geomTrusted=0 geomHealthPartial=1 geomTrustReason=low_raytests hitRate=0 budgetStop=none
 [FixtureDebugTrace] frame=18 row=30 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=18 row=30 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=18 row=30 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -1243,8 +1260,8 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=19 row=16 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=19 row=16 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=19 row=16 x=74 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
-[RenderTestRunner][Live] fixture=einstein_ring_minimal run=prune_on_default probe=baseline budget_mode=na budget_n=na renderstep_calls=148 rows_advanced_total=6 trust_window=1/0/na geomPixProcessedRaw=1120 geomRayTestsTotalRaw=12325 budget_exit_reason=none
-[RenderTestLive] name=prune_on_default frame=67/80 lastRow=18 rowsAdv=6 bands=1 geomPixProcessed=1120 geomRayTestsTotal=12325 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0 budgetStop=none
+[BUS SET] frameId=148 grid=OK fields=2
+SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNodes=1, GeometryTLASNodes=31, MetricModel(GRIN=2, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1, FirstFields=[0:(rInner=0.12, rOuter=4.5, amp=0.151, curveType=1, shapeType=0), 1:(rInner=1.305, rOuter=1.8449999, amp=0.03, curveType=2, shapeType=0)]
 [FixtureDebugTrace] frame=19 row=18 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=19 row=18 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=19 row=18 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -1267,9 +1284,9 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=19 row=34 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=19 row=34 x=54 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=19 row=34 x=78 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
-[RenderHealth] step=150 lastRow=36 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=0.094 geomSegQueried=341900 geomSegWithCandidates=10648 geomSegZero=331252 geomSegZeroRatePct=96.89 geomPixProcessed=1160 geomPixHadAnyCandidates=1160 geomPixNoCand=0 geomPixNoCandRatePct=0.00 geomHitOk=0 geomHitReject=0 geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=10648 geomRayTestsAccepted=0 geomRayTestsRejected=0 geomRayTestsPerPxOn=9.179 geomRayTestsPerPxOff=656.512 geomRayTestsSavedPct=98.6 geomPruneSwitched=0 geomTrusted=1 geomHealthPartial=0 geomHealthModeSamples=10 geomTrustReason=ok geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=42737 radAvg=0.01 radMax=0.01 envDiagAvg=0.151 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=41382 cand1to2=0 cand3to8=1355 cand9to32=0 cand33p=0 geomPruneAuditSamp=0 geomPruneAuditFalseNeg=0 geomPruneAuditFalsePos=0 geomPruneAuditCand0Hit=0 geomPruneAuditFalseNegRate=0
-[RenderHealth][GeomCoverage] step=150 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=10648 geomSegQueriedRaw=341900 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1160 geomPixNoCandRaw=0 geomRayTestsEligibleRaw=1160 p2SampRaw=42737
-[RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=10648 geomRayTestsEligibleRaw=1160 trustGeomPixMet=1 trustRayTestsMet=1 minGeomPix=1024 minRayTests=4096
+[RenderHealth] step=150 lastRow=36 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=na geomSegQueried=na geomSegWithCandidates=na geomSegZero=na geomSegZeroRatePct=na geomPixProcessed=na geomPixHadAnyCandidates=na geomPixNoCand=na geomPixNoCandRatePct=na geomHitOk=na geomHitReject=na geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=na geomRayTestsAccepted=na geomRayTestsRejected=na geomRayTestsPerPxOn=na geomRayTestsPerPxOff=na geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=0 geomHealthPartial=1 geomHealthModeSamples=10 geomTrustReason=low_raytests geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=33834 radAvg=0.01 radMax=0.01 envDiagAvg=0.163 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=na cand1to2=na cand3to8=na cand9to32=na cand33p=na geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
+[RenderHealth][GeomCoverage] step=150 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=2964 geomSegQueriedRaw=270669 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1160 geomPixNoCandRaw=0 geomRayTestsEligibleRaw=1160 p2SampRaw=33834
+[RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=2964 geomRayTestsEligibleRaw=1160 trustGeomPixMet=1 trustRayTestsMet=0 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FixtureDebugTrace] frame=19 row=36 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=19 row=36 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -1327,8 +1344,6 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=20 row=34 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=20 row=34 x=54 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=20 row=34 x=78 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
-[BUS SET] frameId=159 grid=OK fields=2
-SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNodes=1, GeometryTLASNodes=31, MetricModel(GRIN=2, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1, FirstFields=[0:(rInner=0.12, rOuter=4.5, amp=0.151, curveType=1, shapeType=0), 1:(rInner=1.305, rOuter=1.8449999, amp=0.03, curveType=2, shapeType=0)]
 [FixtureDebugTrace] frame=20 row=36 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=20 row=36 x=2 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=20 row=36 x=4 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
@@ -1341,11 +1356,11 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [FixtureDebugTrace] frame=20 row=42 x=78 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FixtureDebugTrace] frame=20 row=44 x=0 kind=absorbed hadHit=0 cid=0 debugChosen=(0,0,0,1) finalWritten=(0,0,0,1) auth=1 chosen=1
 [FrameReset] reason=completed prevRow=45 frame=20
-[RenderTest][RUN SUMMARY] matrix=1772992253 idx=2/2 name=prune_on_default samples=70 meanMsPerFrame=26.014 p95MsPerFrame=31.311 meanSegsPerPixel=na geomTrusted=1 geomTrustReason=ok geomRayTestsSavedPct=98.6
-[RenderTest][RUN END] matrix=1772992253 idx=2/2 name=prune_on_default run_id=2 frames=80 warmup=10 samples=70
-[RUN END] name=prune_on_default run_id=2 frames=80 samples=70 meanMs=26.014 p95Ms=31.311
-[RenderTest][MATRIX END] id=1772992253 runs=2
-[MATRIX END] totalRuns=2 elapsedMs=16892.698
+[RenderTest][RUN SUMMARY] matrix=1773021767 idx=2/2 name=prune_on_default samples=70 meanMsPerFrame=46.184 p95MsPerFrame=51.919 meanSegsPerPixel=na geomTrusted=0 geomTrustReason=low_raytests geomRayTestsSavedPct=na
+[RenderTest][RUN END] matrix=1773021767 idx=2/2 name=prune_on_default run_id=2 frames=80 warmup=10 samples=70
+[RUN END] name=prune_on_default run_id=2 frames=80 samples=70 meanMs=46.184 p95Ms=51.919
+[RenderTest][MATRIX END] id=1773021767 runs=2
+[MATRIX END] totalRuns=2 elapsedMs=17367.368
 [RenderTestRunner] Quitting (render-test mode).
 [RenderTestRunner] Requesting deferred quit code=0
 [RenderTestRunner][ExitCode] forced=0 reason=harness_success

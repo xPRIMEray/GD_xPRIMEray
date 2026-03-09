@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using RendererCore.Config;
 using RendererCore.Fields;
 
@@ -365,8 +366,34 @@ public partial class RayBeamRenderer : Node3D
 	private TransportModel _lastLoggedTransportModel = TransportModel.GRIN_Optical;
 	private bool _hasLoggedTransportModel = false;
 	private bool _loggedMetricStubFallback = false;
+	private bool _loggedMetricEquivalentFallback = false;
 	private bool _loggedMetricWeakFieldMapping = false;
 	private bool _loggedHybridStubFallback = false;
+	private static bool _metricComparisonScalarOverrideResolved = false;
+	private static float _metricComparisonScalarOverride = 1.0f;
+	private const int TransportSteeringBucketCount = 6;
+	private int _metricDeltaZeroCount = 0;
+	private int _metricDeltaNonzeroCount = 0;
+	private int _metricFallbackCount = 0;
+	private int _metricContributionAppliedCount = 0;
+	private int _metricParallelRawCount = 0;
+	private int _metricParallelRecoveredCount = 0;
+	private int _metricParallelFallbackCount = 0;
+	private int _metricZeroReasonParallelCount = 0;
+	private int _metricZeroReasonPerpEpsilonCount = 0;
+	private int _metricZeroReasonRadiusLowCount = 0;
+	private int _metricZeroReasonRadiusHighCount = 0;
+	private int _metricZeroReasonNonFiniteCount = 0;
+	private int _metricZeroReasonCoincidentCount = 0;
+	private int _metricZeroReasonStepGuardCount = 0;
+	private int _metricZeroReasonZeroTurnCount = 0;
+	private int _metricDiagnosticEvalCount = 0;
+	private int _metricDiagnosticSampleLogsEmitted = 0;
+	private double _transportSteeringTurnSum = 0.0;
+	private float _transportSteeringMaxTurn = 0f;
+	private int _transportSteeringTurnCount = 0;
+	private readonly double[] _transportSteeringRadialTurnSums = new double[TransportSteeringBucketCount];
+	private readonly int[] _transportSteeringRadialCounts = new int[TransportSteeringBucketCount];
 
 	private Plane _insightPlane;
 	private bool _hasInsightPlane = false;
@@ -726,6 +753,167 @@ public partial class RayBeamRenderer : Node3D
 		_lifecycleDebugExecutedDeferredTokens.Clear();
 	}
 
+	public readonly struct MetricTransportDiagnosticsSnapshot
+	{
+		public readonly int MetricDeltaZeroCount;
+		public readonly int MetricDeltaNonzeroCount;
+		public readonly int MetricFallbackCount;
+		public readonly float MetricContributionRatio;
+		public readonly int SteeringTurnCount;
+		public readonly float MeanTurn;
+		public readonly float MaxTurn;
+		public readonly string RadialTurnSummary;
+		public readonly string ZeroReasonSummary;
+
+		public MetricTransportDiagnosticsSnapshot(
+			int metricDeltaZeroCount,
+			int metricDeltaNonzeroCount,
+			int metricFallbackCount,
+			float metricContributionRatio,
+			int steeringTurnCount,
+			float meanTurn,
+			float maxTurn,
+			string radialTurnSummary,
+			string zeroReasonSummary)
+		{
+			MetricDeltaZeroCount = metricDeltaZeroCount;
+			MetricDeltaNonzeroCount = metricDeltaNonzeroCount;
+			MetricFallbackCount = metricFallbackCount;
+			MetricContributionRatio = metricContributionRatio;
+			SteeringTurnCount = steeringTurnCount;
+			MeanTurn = meanTurn;
+			MaxTurn = maxTurn;
+			RadialTurnSummary = radialTurnSummary ?? "none";
+			ZeroReasonSummary = zeroReasonSummary ?? "none";
+		}
+	}
+
+	public MetricTransportDiagnosticsSnapshot GetMetricTransportDiagnosticsSnapshot()
+	{
+		int totalResolved = _metricContributionAppliedCount + _metricFallbackCount;
+		float contributionRatio = totalResolved > 0
+			? _metricContributionAppliedCount / (float)totalResolved
+			: 0f;
+		float meanTurn = _transportSteeringTurnCount > 0
+			? (float)(_transportSteeringTurnSum / _transportSteeringTurnCount)
+			: 0f;
+		return new MetricTransportDiagnosticsSnapshot(
+			_metricDeltaZeroCount,
+			_metricDeltaNonzeroCount,
+			_metricFallbackCount,
+			contributionRatio,
+			_transportSteeringTurnCount,
+			meanTurn,
+			_transportSteeringMaxTurn,
+			BuildTransportSteeringRadialSummary(),
+			BuildMetricZeroReasonSummary());
+	}
+
+	public void ResetMetricTransportDiagnostics()
+	{
+		_metricDeltaZeroCount = 0;
+		_metricDeltaNonzeroCount = 0;
+		_metricFallbackCount = 0;
+		_metricContributionAppliedCount = 0;
+		_metricParallelRawCount = 0;
+		_metricParallelRecoveredCount = 0;
+		_metricParallelFallbackCount = 0;
+		_metricZeroReasonParallelCount = 0;
+		_metricZeroReasonPerpEpsilonCount = 0;
+		_metricZeroReasonRadiusLowCount = 0;
+		_metricZeroReasonRadiusHighCount = 0;
+		_metricZeroReasonNonFiniteCount = 0;
+		_metricZeroReasonCoincidentCount = 0;
+		_metricZeroReasonStepGuardCount = 0;
+		_metricZeroReasonZeroTurnCount = 0;
+		_metricDiagnosticEvalCount = 0;
+		_metricDiagnosticSampleLogsEmitted = 0;
+		_transportSteeringTurnSum = 0.0;
+		_transportSteeringMaxTurn = 0f;
+		_transportSteeringTurnCount = 0;
+		Array.Clear(_transportSteeringRadialTurnSums, 0, _transportSteeringRadialTurnSums.Length);
+		Array.Clear(_transportSteeringRadialCounts, 0, _transportSteeringRadialCounts.Length);
+	}
+
+	public Vector3 ComputeActiveTransportAccelerationForDiagnostics(
+		Vector3 p,
+		Vector3 v,
+		Vector3 center,
+		float beta,
+		float gamma,
+		FieldSourceSnap[] fieldSources,
+		bool hasSources)
+	{
+		TransportModel active = hasSources ? ResolveActiveTransportModel(fieldSources) : TransportModel.GRIN_Optical;
+		return ComputeTransportAccelerationForActiveModel(active, p, v, center, beta, gamma, fieldSources, hasSources);
+	}
+
+	public bool TryStepActiveTransportForDiagnostics(
+		Vector3 p,
+		Vector3 v,
+		Vector3 center,
+		float beta,
+		float gamma,
+		FieldSourceSnap[] fieldSources,
+		bool hasSources,
+		float maxDistance,
+		float traveled,
+		float minStep,
+		float maxStep,
+		out Vector3 next,
+		out Vector3 vNext,
+		out float step)
+	{
+		return TryStepIntegratedTransport(
+			p,
+			v,
+			center,
+			beta,
+			gamma,
+			fieldSources,
+			hasSources,
+			maxDistance,
+			traveled,
+			minStep,
+			maxStep,
+			applyLowCurvatureBoost: false,
+			out next,
+			out vNext,
+			out _,
+			out step);
+	}
+
+	private string BuildMetricZeroReasonSummary()
+	{
+		var parts = new List<string>(10);
+		if (_metricParallelRawCount > 0) parts.Add($"parallel_raw={_metricParallelRawCount}");
+		if (_metricParallelRecoveredCount > 0) parts.Add($"parallel_recovered={_metricParallelRecoveredCount}");
+		if (_metricParallelFallbackCount > 0) parts.Add($"parallel_fallback={_metricParallelFallbackCount}");
+		if (_metricZeroReasonPerpEpsilonCount > 0) parts.Add($"perp_eps={_metricZeroReasonPerpEpsilonCount}");
+		if (_metricZeroReasonRadiusLowCount > 0) parts.Add($"r_lo={_metricZeroReasonRadiusLowCount}");
+		if (_metricZeroReasonRadiusHighCount > 0) parts.Add($"r_hi={_metricZeroReasonRadiusHighCount}");
+		if (_metricZeroReasonNonFiniteCount > 0) parts.Add($"nonfinite={_metricZeroReasonNonFiniteCount}");
+		if (_metricZeroReasonCoincidentCount > 0) parts.Add($"coincident={_metricZeroReasonCoincidentCount}");
+		if (_metricZeroReasonStepGuardCount > 0) parts.Add($"step={_metricZeroReasonStepGuardCount}");
+		if (_metricZeroReasonZeroTurnCount > 0) parts.Add($"dtheta0={_metricZeroReasonZeroTurnCount}");
+		return parts.Count > 0 ? string.Join(",", parts) : "none";
+	}
+
+	private string BuildTransportSteeringRadialSummary()
+	{
+		var parts = new string[TransportSteeringBucketCount];
+		for (int i = 0; i < TransportSteeringBucketCount; i++)
+		{
+			int count = _transportSteeringRadialCounts[i];
+			float meanTurn = count > 0
+				? (float)(_transportSteeringRadialTurnSums[i] / count)
+				: 0f;
+			parts[i] = $"{GetTransportSteeringBucketLabel(i)}:{meanTurn:0.######}@{count}";
+		}
+
+		return string.Join(",", parts);
+	}
+
 	private void RequestRebuild()
 	{
 		// DECISION: if a rebuild is already running, just queue another.
@@ -894,11 +1082,13 @@ public partial class RayBeamRenderer : Node3D
 
 			_lastBeta = beta;
 			_lastGamma = gamma;
+			ResetMetricTransportDiagnostics();
 
 			var fieldSources = GetTree().GetNodesInGroup("field_sources");
 			GD.Print("RayBeamRenderer: field sources in group = ", fieldSources.Count);
 			FieldSourceSnap[] fieldSourceSnaps = SnapshotFieldSources(fieldSources);
 			bool hasSources = fieldSourceSnaps.Length > 0;
+			TransportModel rebuildTransportModel = hasSources ? ResolveActiveTransportModel(fieldSourceSnaps) : TransportModel.GRIN_Optical;
 
 			var emitters = GetTree().GetNodesInGroup("ray_emitters");
 			int emitterCount = emitters.Count;
@@ -1097,6 +1287,14 @@ public partial class RayBeamRenderer : Node3D
 			if (DebugRender)
 			{
 				GD.Print($"[DBG] Rebuild summary: totalTarget={total} idxWritten={idx} InstanceCount={_mm.InstanceCount} VisibleCount={_mm.VisibleInstanceCount} hits={hitCount}");
+			}
+			if (rebuildTransportModel == TransportModel.Metric_NullGeodesic)
+			{
+				MetricTransportDiagnosticsSnapshot metricDiagnostics = GetMetricTransportDiagnosticsSnapshot();
+				GD.Print(
+					$"[Transport][MetricDiagSummary] metricDeltaZeroCount={metricDiagnostics.MetricDeltaZeroCount} " +
+					$"metricDeltaNonzeroCount={metricDiagnostics.MetricDeltaNonzeroCount} metricFallbackCount={metricDiagnostics.MetricFallbackCount} " +
+					$"metricContributionRatio={metricDiagnostics.MetricContributionRatio:0.######} zeroReasons={metricDiagnostics.ZeroReasonSummary}");
 			}
 
 			// =======================
@@ -2583,6 +2781,7 @@ public partial class RayBeamRenderer : Node3D
 		public readonly Vector3 Position;
 		public readonly Vector3 SourceCenter;
 		public readonly float RadialDistance;
+		public readonly float CharacteristicRadius;
 		public readonly Vector3 Direction;
 		public readonly float StepSize;
 		public readonly float WeakFieldScalar;
@@ -2591,6 +2790,7 @@ public partial class RayBeamRenderer : Node3D
 			Vector3 position,
 			Vector3 sourceCenter,
 			float radialDistance,
+			float characteristicRadius,
 			Vector3 direction,
 			float stepSize,
 			float weakFieldScalar)
@@ -2598,10 +2798,59 @@ public partial class RayBeamRenderer : Node3D
 			Position = position;
 			SourceCenter = sourceCenter;
 			RadialDistance = radialDistance;
+			CharacteristicRadius = characteristicRadius;
 			Direction = direction;
 			StepSize = stepSize;
 			WeakFieldScalar = weakFieldScalar;
 		}
+	}
+
+	private enum MetricDeltaZeroReason
+	{
+		None = 0,
+		StepGuard = 1,
+		NonFiniteOrNormalizationGuard = 2,
+		SourceCoincident = 3,
+		RadialParallel = 4,
+		BendPerpBelowEpsilon = 5,
+		ZeroTurn = 6
+	}
+
+	private readonly struct MetricDirectionDeltaEvaluation
+	{
+		public readonly Vector3 Delta;
+		public readonly MetricDeltaZeroReason ZeroReason;
+		public readonly float Radius;
+		public readonly float BendPerpMagnitude;
+		public readonly float DTheta;
+		public readonly bool EncounteredRawParallel;
+		public readonly bool UsedParallelRecovery;
+		public readonly bool RadiusBelowDiagnosticThreshold;
+		public readonly bool RadiusAboveDiagnosticThreshold;
+
+		public MetricDirectionDeltaEvaluation(
+			Vector3 delta,
+			MetricDeltaZeroReason zeroReason,
+			float radius,
+			float bendPerpMagnitude,
+			float dTheta,
+			bool encounteredRawParallel,
+			bool usedParallelRecovery,
+			bool radiusBelowDiagnosticThreshold,
+			bool radiusAboveDiagnosticThreshold)
+		{
+			Delta = delta;
+			ZeroReason = zeroReason;
+			Radius = radius;
+			BendPerpMagnitude = bendPerpMagnitude;
+			DTheta = dTheta;
+			EncounteredRawParallel = encounteredRawParallel;
+			UsedParallelRecovery = usedParallelRecovery;
+			RadiusBelowDiagnosticThreshold = radiusBelowDiagnosticThreshold;
+			RadiusAboveDiagnosticThreshold = radiusAboveDiagnosticThreshold;
+		}
+
+		public bool IsZero => Delta.LengthSquared() <= 0f;
 	}
 
 	// Research scalar mapping for Metric_NullGeodesic scaffold:
@@ -2640,6 +2889,328 @@ public partial class RayBeamRenderer : Node3D
 		}
 
 		return Mathf.Max(0f, amp * betaEff * Mathf.Abs(bendScale) * Mathf.Abs(fieldStrength));
+	}
+
+	public static float ComputeMetricWeakFieldScalarForActiveModel(
+		FieldSourceSnap[] sources,
+		float globalBeta,
+		float bendScale,
+		float fieldStrength,
+		TransportModel activeTransportModel)
+	{
+		float scalar = ComputeMetricWeakFieldScalarProxy(sources, globalBeta, bendScale, fieldStrength);
+		if (activeTransportModel != TransportModel.Metric_NullGeodesic)
+		{
+			return scalar;
+		}
+
+		return scalar * ResolveMetricComparisonScalarOverride();
+	}
+
+	public static float ResolveMetricComparisonScalarOverride()
+	{
+		if (_metricComparisonScalarOverrideResolved)
+		{
+			return _metricComparisonScalarOverride;
+		}
+
+		_metricComparisonScalarOverrideResolved = true;
+		_metricComparisonScalarOverride = 1.0f;
+		if (!HasRenderTestFlagForMetricComparisonOverride())
+		{
+			return _metricComparisonScalarOverride;
+		}
+
+		string[] args = GetCmdArgsForMetricComparisonOverride();
+		for (int i = 0; i < args.Length; i++)
+		{
+			string arg = args[i] ?? string.Empty;
+			if (TryParseMetricComparisonOverrideArg(arg, "--metric-scalar-multiplier=", out float scalarOverride) ||
+				TryParseMetricComparisonOverrideArg(arg, "--metric-gain=", out scalarOverride))
+			{
+				_metricComparisonScalarOverride = scalarOverride;
+				break;
+			}
+		}
+
+		return _metricComparisonScalarOverride;
+	}
+
+	private static string GetMetricDeltaZeroReasonToken(MetricDeltaZeroReason reason)
+	{
+		return reason switch
+		{
+			MetricDeltaZeroReason.StepGuard => "step",
+			MetricDeltaZeroReason.NonFiniteOrNormalizationGuard => "nonfinite",
+			MetricDeltaZeroReason.SourceCoincident => "coincident",
+			MetricDeltaZeroReason.RadialParallel => "parallel_fallback",
+			MetricDeltaZeroReason.BendPerpBelowEpsilon => "perp_eps",
+			MetricDeltaZeroReason.ZeroTurn => "dtheta0",
+			_ => "none"
+		};
+	}
+
+	private static string GetMetricDiagnosticReasonToken(in MetricDirectionDeltaEvaluation evaluation)
+	{
+		if (evaluation.EncounteredRawParallel)
+		{
+			if (evaluation.UsedParallelRecovery)
+			{
+				return "parallel_recovered";
+			}
+			if (evaluation.ZeroReason == MetricDeltaZeroReason.RadialParallel)
+			{
+				return "parallel_fallback";
+			}
+			return "parallel_raw";
+		}
+
+		return evaluation.IsZero ? GetMetricDeltaZeroReasonToken(evaluation.ZeroReason) : "none";
+	}
+
+	private static bool ShouldLogMetricDiagnosticSamples()
+	{
+		return HasRenderTestFlagForMetricComparisonOverride();
+	}
+
+	private void RecordMetricDirectionDeltaEvaluation(in MetricDirectionDeltaEvaluation evaluation)
+	{
+		_metricDiagnosticEvalCount++;
+		if (evaluation.EncounteredRawParallel)
+		{
+			_metricParallelRawCount++;
+		}
+		if (evaluation.UsedParallelRecovery)
+		{
+			_metricParallelRecoveredCount++;
+		}
+		if (evaluation.IsZero)
+		{
+			_metricDeltaZeroCount++;
+			switch (evaluation.ZeroReason)
+			{
+				case MetricDeltaZeroReason.StepGuard:
+					_metricZeroReasonStepGuardCount++;
+					break;
+				case MetricDeltaZeroReason.NonFiniteOrNormalizationGuard:
+					_metricZeroReasonNonFiniteCount++;
+					break;
+				case MetricDeltaZeroReason.SourceCoincident:
+					_metricZeroReasonCoincidentCount++;
+					break;
+				case MetricDeltaZeroReason.RadialParallel:
+					_metricParallelFallbackCount++;
+					_metricZeroReasonParallelCount++;
+					break;
+				case MetricDeltaZeroReason.BendPerpBelowEpsilon:
+					_metricZeroReasonPerpEpsilonCount++;
+					break;
+				case MetricDeltaZeroReason.ZeroTurn:
+					_metricZeroReasonZeroTurnCount++;
+					break;
+			}
+
+			if (evaluation.RadiusBelowDiagnosticThreshold)
+			{
+				_metricZeroReasonRadiusLowCount++;
+			}
+			if (evaluation.RadiusAboveDiagnosticThreshold)
+			{
+				_metricZeroReasonRadiusHighCount++;
+			}
+			return;
+		}
+
+		_metricDeltaNonzeroCount++;
+	}
+
+	private void MaybeLogMetricDiagnosticSample(in MetricDirectionDeltaEvaluation evaluation)
+	{
+		if (!ShouldLogMetricDiagnosticSamples() || _metricDiagnosticSampleLogsEmitted >= 6)
+		{
+			return;
+		}
+
+		_metricDiagnosticSampleLogsEmitted++;
+		string status = evaluation.IsZero ? "zero" : "nonzero";
+		string reason = GetMetricDiagnosticReasonToken(in evaluation);
+		string radiusFlag = evaluation.RadiusBelowDiagnosticThreshold
+			? "r_lo"
+			: (evaluation.RadiusAboveDiagnosticThreshold ? "r_hi" : "r_ok");
+		GD.Print(
+			$"[Transport][MetricDiagSample] eval={_metricDiagnosticEvalCount} status={status} reason={reason} radiusFlag={radiusFlag} " +
+			$"r={evaluation.Radius:0.######} bendPerp={evaluation.BendPerpMagnitude:0.######} dTheta={evaluation.DTheta:0.######}");
+	}
+
+	private void RecordTransportSteeringStep(
+		Vector3 p,
+		Vector3 vBefore,
+		Vector3 vAfter,
+		Vector3 center,
+		FieldSourceSnap[] fieldSources,
+		bool hasSources)
+	{
+		Vector3 dirBefore = SafeNormalized(vBefore, Vector3.Forward);
+		Vector3 dirAfter = SafeNormalized(vAfter, dirBefore);
+		if (!IsFinite(dirBefore) || !IsFinite(dirAfter))
+		{
+			return;
+		}
+
+		float dot = Mathf.Clamp(dirBefore.Dot(dirAfter), -1f, 1f);
+		float crossLen = dirBefore.Cross(dirAfter).Length();
+		float turn = Mathf.Atan2(crossLen, dot);
+		if (!float.IsFinite(turn))
+		{
+			return;
+		}
+
+		ResolveTransportSteeringRadialFrame(center, fieldSources, hasSources, out Vector3 sourceCenter, out float radialScale);
+		float radiusRatio = p.DistanceTo(sourceCenter) / radialScale;
+		int bucketIndex = GetTransportSteeringBucketIndex(radiusRatio);
+
+		_transportSteeringTurnCount++;
+		_transportSteeringTurnSum += turn;
+		_transportSteeringMaxTurn = Mathf.Max(_transportSteeringMaxTurn, turn);
+		_transportSteeringRadialTurnSums[bucketIndex] += turn;
+		_transportSteeringRadialCounts[bucketIndex]++;
+	}
+
+	private static void ResolveTransportSteeringRadialFrame(
+		Vector3 fallbackCenter,
+		FieldSourceSnap[] fieldSources,
+		bool hasSources,
+		out Vector3 sourceCenter,
+		out float radialScale)
+	{
+		if (hasSources && fieldSources != null && fieldSources.Length > 0)
+		{
+			sourceCenter = fieldSources[0].Center;
+			radialScale = Mathf.Max(0.001f, fieldSources[0].ROuter);
+			return;
+		}
+
+		sourceCenter = fallbackCenter;
+		radialScale = 1f;
+	}
+
+	private static int GetTransportSteeringBucketIndex(float radiusRatio)
+	{
+		if (!float.IsFinite(radiusRatio) || radiusRatio < 0f)
+		{
+			return TransportSteeringBucketCount - 1;
+		}
+		if (radiusRatio < 0.5f) return 0;
+		if (radiusRatio < 1f) return 1;
+		if (radiusRatio < 2f) return 2;
+		if (radiusRatio < 4f) return 3;
+		if (radiusRatio < 8f) return 4;
+		return 5;
+	}
+
+	private static string GetTransportSteeringBucketLabel(int bucketIndex)
+	{
+		return bucketIndex switch
+		{
+			0 => "r<0.5R",
+			1 => "0.5R-1R",
+			2 => "1R-2R",
+			3 => "2R-4R",
+			4 => "4R-8R",
+			_ => "r>=8R"
+		};
+	}
+
+	private static bool TryParseMetricComparisonOverrideArg(string arg, string prefix, out float scalarOverride)
+	{
+		scalarOverride = 1.0f;
+		if (string.IsNullOrWhiteSpace(arg) ||
+			!arg.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+		{
+			return false;
+		}
+
+		string token = arg.Substring(prefix.Length).Trim();
+		if (!float.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsed))
+		{
+			return false;
+		}
+
+		if (!float.IsFinite(parsed) || parsed <= 0f)
+		{
+			return false;
+		}
+
+		scalarOverride = parsed;
+		return true;
+	}
+
+	private static bool HasRenderTestFlagForMetricComparisonOverride()
+	{
+		string[] args = GetCmdArgsForMetricComparisonOverride();
+		for (int i = 0; i < args.Length; i++)
+		{
+			string token = (args[i] ?? string.Empty).Trim();
+			if (string.Equals(token, "--render-test", StringComparison.OrdinalIgnoreCase) ||
+				token.StartsWith("--render-test-", StringComparison.OrdinalIgnoreCase) ||
+				token.StartsWith("--render-test-fixture=", StringComparison.OrdinalIgnoreCase))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private static string[] GetCmdArgsForMetricComparisonOverride()
+	{
+		string[] userArgs = OS.GetCmdlineUserArgs();
+		string[] args = OS.GetCmdlineArgs();
+		if ((userArgs == null || userArgs.Length == 0) && (args == null || args.Length == 0))
+		{
+			return Array.Empty<string>();
+		}
+		if (userArgs == null || userArgs.Length == 0)
+		{
+			return args ?? Array.Empty<string>();
+		}
+		if (args == null || args.Length == 0)
+		{
+			return userArgs;
+		}
+
+		HashSet<string> merged = new(StringComparer.Ordinal);
+		List<string> ordered = new(userArgs.Length + args.Length);
+		for (int i = 0; i < userArgs.Length; i++)
+		{
+			string raw = userArgs[i];
+			if (string.IsNullOrWhiteSpace(raw))
+			{
+				continue;
+			}
+
+			string token = raw.Trim();
+			if (merged.Add(token))
+			{
+				ordered.Add(token);
+			}
+		}
+		for (int i = 0; i < args.Length; i++)
+		{
+			string raw = args[i];
+			if (string.IsNullOrWhiteSpace(raw))
+			{
+				continue;
+			}
+
+			string token = raw.Trim();
+			if (merged.Add(token))
+			{
+				ordered.Add(token);
+			}
+		}
+
+		return ordered.ToArray();
 	}
 
 	private bool TryStepIntegratedTransport(
@@ -2702,7 +3273,9 @@ public partial class RayBeamRenderer : Node3D
 			step = remaining;
 		}
 
+		Vector3 vBeforeStep = v;
 		vNext = SafeNormalized(v + acceleration * step, v);
+		RecordTransportSteeringStep(p, vBeforeStep, vNext, center, fieldSources, hasSources);
 		next = p + vNext * step;
 		return true;
 	}
@@ -2757,39 +3330,71 @@ public partial class RayBeamRenderer : Node3D
 		Vector3 grinAccel = StepTransport_GRIN(p, center, beta, gamma, fieldSources, hasSources);
 		Vector3 sourceCenter = hasSources ? fieldSources[0].Center : center;
 		float radialDistance = p.DistanceTo(sourceCenter);
-		float mappedWeakFieldScalar = ComputeMetricWeakFieldScalarProxy(fieldSources, beta, BendScale, FieldStrength);
+		float characteristicRadius = hasSources
+			? Mathf.Max(0.25f, fieldSources[0].ROuter)
+			: Mathf.Max(0.25f, radialDistance);
+		float metricScalarOverride = ResolveMetricComparisonScalarOverride();
+		float mappedWeakFieldScalar = ComputeMetricWeakFieldScalarForActiveModel(
+			fieldSources,
+			beta,
+			BendScale,
+			FieldStrength,
+			TransportModel.Metric_NullGeodesic);
 		float weakFieldScalar = Mathf.Max(mappedWeakFieldScalar, grinAccel.Length());
-		var metricContext = new MetricTransportStepContext(p, sourceCenter, radialDistance, v, StepLength, weakFieldScalar);
-		Vector3 metricDirectionDelta = EvaluateMetricDirectionDeltaStub(in metricContext);
+		var metricContext = new MetricTransportStepContext(
+			p,
+			sourceCenter,
+			radialDistance,
+			characteristicRadius,
+			v,
+			StepLength,
+			weakFieldScalar);
+		MetricDirectionDeltaEvaluation metricEval = EvaluateMetricDirectionDeltaStub(in metricContext);
+		RecordMetricDirectionDeltaEvaluation(in metricEval);
+		MaybeLogMetricDiagnosticSample(in metricEval);
 		if (!_loggedMetricWeakFieldMapping)
 		{
 			_loggedMetricWeakFieldMapping = true;
 			GD.Print(
 				$"[Transport] Metric_NullGeodesic weak-field scaffold active. " +
 				$"effectiveMetricScalar={weakFieldScalar:0.######} " +
-				$"(mapped={mappedWeakFieldScalar:0.######}, grinAccelMag={grinAccel.Length():0.######}, " +
-				$"formula=|Amp|*betaScaleEff*BendScale*FieldStrength).");
+				$"(mapped={mappedWeakFieldScalar:0.######}, grinAccelMag={grinAccel.Length():0.######}, metricScalarOverride={metricScalarOverride:0.###}, " +
+				$"formula=weakFieldScalar*step*boundedLensingWeight).");
 		}
 
-		if (metricDirectionDelta.LengthSquared() <= 0f || metricContext.StepSize <= 1e-6f)
+		if (metricEval.IsZero)
 		{
+			_metricFallbackCount++;
 			if (!_loggedMetricStubFallback)
 			{
 				_loggedMetricStubFallback = true;
-				GD.Print("[Transport] Metric_NullGeodesic produced zero direction delta; using GRIN acceleration fallback.");
+				string radiusFlag = metricEval.RadiusBelowDiagnosticThreshold
+					? "r_lo"
+					: (metricEval.RadiusAboveDiagnosticThreshold ? "r_hi" : "r_ok");
+				GD.Print(
+					$"[Transport] Metric_NullGeodesic produced zero direction delta; using GRIN acceleration fallback. " +
+					$"reason={GetMetricDeltaZeroReasonToken(metricEval.ZeroReason)} radiusFlag={radiusFlag} " +
+					$"r={metricEval.Radius:0.######} bendPerp={metricEval.BendPerpMagnitude:0.######} dTheta={metricEval.DTheta:0.######}");
 			}
 
 			return grinAccel;
 		}
 
 		Vector3 dir = SafeNormalized(v, Vector3.Forward);
-		Vector3 dirNext = SafeNormalized(dir + metricDirectionDelta, dir);
+		Vector3 dirNext = SafeNormalized(dir + metricEval.Delta, dir);
 		Vector3 metricEquivalentAccel = (dirNext - dir) / metricContext.StepSize;
 		if (!IsFinite(metricEquivalentAccel))
 		{
+			_metricFallbackCount++;
+			if (!_loggedMetricEquivalentFallback)
+			{
+				_loggedMetricEquivalentFallback = true;
+				GD.Print("[Transport] Metric_NullGeodesic produced non-finite equivalent acceleration; using GRIN fallback.");
+			}
 			return grinAccel;
 		}
 
+		_metricContributionAppliedCount++;
 		return metricEquivalentAccel;
 	}
 
@@ -2813,37 +3418,211 @@ public partial class RayBeamRenderer : Node3D
 	}
 
 	// Hook contract for next phase metric transport (weak-field / null-geodesic update).
-	private static Vector3 EvaluateMetricDirectionDeltaStub(in MetricTransportStepContext context)
+	private static MetricDirectionDeltaEvaluation EvaluateMetricDirectionDeltaStub(in MetricTransportStepContext context)
 	{
 		// Research scaffold only:
 		// First-order weak-field, Schwarzschild-inspired radial bending surrogate.
 		// This is NOT a tensor/Christoffel geodesic solver; it only applies a small turn
 		// toward the source center in the plane perpendicular to the current direction.
+		const float radiusLowDiagnosticThreshold = 0.01f;
+		const float radiusHighDiagnosticThreshold = 16f;
+		if (!IsFinite(context.Position) ||
+			!IsFinite(context.SourceCenter) ||
+			!IsFinite(context.Direction) ||
+			!float.IsFinite(context.StepSize) ||
+			!float.IsFinite(context.WeakFieldScalar) ||
+			context.Direction.LengthSquared() <= 1e-12f)
+		{
+			float invalidRadius = float.IsFinite(context.RadialDistance) ? Mathf.Abs(context.RadialDistance) : 0f;
+			bool radiusLow = invalidRadius <= radiusLowDiagnosticThreshold;
+			bool radiusHigh = invalidRadius >= radiusHighDiagnosticThreshold;
+			return new MetricDirectionDeltaEvaluation(
+				Vector3.Zero,
+				MetricDeltaZeroReason.NonFiniteOrNormalizationGuard,
+				invalidRadius,
+				0f,
+				0f,
+				false,
+				false,
+				radiusLow,
+				radiusHigh);
+		}
+
+		float rawRadius = Mathf.Abs(context.RadialDistance);
+		bool radiusBelowThreshold = rawRadius <= radiusLowDiagnosticThreshold;
+		bool radiusAboveThreshold = rawRadius >= radiusHighDiagnosticThreshold;
+		if (context.StepSize <= 1e-6f)
+		{
+			return new MetricDirectionDeltaEvaluation(
+				Vector3.Zero,
+				MetricDeltaZeroReason.StepGuard,
+				rawRadius,
+				0f,
+				0f,
+				false,
+				false,
+				radiusBelowThreshold,
+				radiusAboveThreshold);
+		}
+
 		Vector3 dir = SafeNormalized(context.Direction, Vector3.Forward);
 		Vector3 toCenter = context.SourceCenter - context.Position;
 		float toCenterLenSq = toCenter.LengthSquared();
-		if (toCenterLenSq <= 1e-12f || context.StepSize <= 1e-6f)
+		if (toCenterLenSq <= 1e-12f)
 		{
-			return Vector3.Zero;
+			return new MetricDirectionDeltaEvaluation(
+				Vector3.Zero,
+				MetricDeltaZeroReason.SourceCoincident,
+				rawRadius,
+				0f,
+				0f,
+				false,
+				false,
+				radiusBelowThreshold,
+				radiusAboveThreshold);
 		}
 
 		Vector3 radialDir = toCenter / Mathf.Sqrt(toCenterLenSq);
 		Vector3 bendDirPerp = radialDir - dir * radialDir.Dot(dir);
 		float bendPerpLenSq = bendDirPerp.LengthSquared();
-		if (bendPerpLenSq <= 1e-12f)
+		float bendPerpMagnitude = bendPerpLenSq > 0f ? Mathf.Sqrt(bendPerpLenSq) : 0f;
+		const float parallelAlignmentThreshold = 0.999999f;
+		const float parallelRecoveryPerpThreshold = 1e-5f;
+		const float parallelRecoveryPerpThresholdSq = parallelRecoveryPerpThreshold * parallelRecoveryPerpThreshold;
+		float radialAlignment = Mathf.Abs(radialDir.Dot(dir));
+		bool encounteredRawParallel = radialAlignment >= parallelAlignmentThreshold;
+		bool usedParallelRecovery = false;
+		if (encounteredRawParallel && bendPerpLenSq <= parallelRecoveryPerpThresholdSq)
 		{
-			return Vector3.Zero;
+			if (TryBuildStableMetricPerpendicular(dir, bendDirPerp, out Vector3 recoveredPerp))
+			{
+				bendDirPerp = recoveredPerp;
+				usedParallelRecovery = true;
+			}
+			else
+			{
+				return new MetricDirectionDeltaEvaluation(
+					Vector3.Zero,
+					MetricDeltaZeroReason.RadialParallel,
+					rawRadius,
+					bendPerpMagnitude,
+					0f,
+					true,
+					false,
+					radiusBelowThreshold,
+					radiusAboveThreshold);
+			}
+		}
+		else if (bendPerpLenSq <= 1e-12f)
+		{
+			return new MetricDirectionDeltaEvaluation(
+				Vector3.Zero,
+				MetricDeltaZeroReason.BendPerpBelowEpsilon,
+				rawRadius,
+				bendPerpMagnitude,
+				0f,
+				encounteredRawParallel,
+				false,
+				radiusBelowThreshold,
+				radiusAboveThreshold);
+		}
+		else
+		{
+			bendDirPerp /= bendPerpMagnitude;
+		}
+		float r = Mathf.Max(1e-3f, rawRadius);
+		float weak = Mathf.Max(0f, context.WeakFieldScalar);
+		float characteristicRadius = Mathf.Max(0.25f, context.CharacteristicRadius);
+		float transverseDistance = Mathf.Max(0f, rawRadius * bendPerpMagnitude);
+		float radiusNorm = r / characteristicRadius;
+		float transverseNorm = transverseDistance / characteristicRadius;
+		const float impactSoftening = 0.35f;
+		const float coreRise = 0.5f;
+		const float outerTailGain = 0.6f;
+		const float metricGain = 8f;
+		float impactWeight = transverseNorm / (transverseNorm + impactSoftening);
+		float coreSuppression = 1f - Mathf.Exp(-(radiusNorm * radiusNorm) / (coreRise * coreRise));
+		float outerEnvelope = 1f / (1f + radiusNorm * radiusNorm * outerTailGain);
+		float lensingWeight = impactWeight * coreSuppression * outerEnvelope;
+		float dTheta = weak * context.StepSize * metricGain * lensingWeight;
+		float clampedDTheta = Mathf.Clamp(dTheta, 0f, 0.08f);
+		if (!float.IsFinite(clampedDTheta) || clampedDTheta <= 0f)
+		{
+			return new MetricDirectionDeltaEvaluation(
+				Vector3.Zero,
+				MetricDeltaZeroReason.ZeroTurn,
+				rawRadius,
+				bendPerpMagnitude,
+				float.IsFinite(clampedDTheta) ? clampedDTheta : 0f,
+				encounteredRawParallel,
+				usedParallelRecovery,
+				radiusBelowThreshold,
+				radiusAboveThreshold);
 		}
 
-		bendDirPerp /= Mathf.Sqrt(bendPerpLenSq);
-		float r = Mathf.Max(1e-3f, context.RadialDistance);
-		float weak = Mathf.Max(0f, context.WeakFieldScalar);
-		const float radialSoftening = 0.5f;
-		const float metricGain = 8f;
-		float invR = 1f / (r + radialSoftening);
-		float dTheta = weak * context.StepSize * metricGain * invR;
-		float clampedDTheta = Mathf.Clamp(dTheta, 0f, 0.15f);
-		return bendDirPerp * clampedDTheta;
+		return new MetricDirectionDeltaEvaluation(
+			bendDirPerp * clampedDTheta,
+			MetricDeltaZeroReason.None,
+			rawRadius,
+			bendPerpMagnitude,
+			clampedDTheta,
+			encounteredRawParallel,
+			usedParallelRecovery,
+			radiusBelowThreshold,
+			radiusAboveThreshold);
+	}
+
+	private static bool TryBuildStableMetricPerpendicular(Vector3 dir, Vector3 preferredPerp, out Vector3 recoveredPerp)
+	{
+		Vector3 axis = SelectLeastAlignedMetricAxis(dir);
+		if (!TryProjectMetricAxisPerpendicular(dir, axis, out recoveredPerp))
+		{
+			Vector3 fallbackAxisA = axis == Vector3.Right ? Vector3.Up : Vector3.Right;
+			Vector3 fallbackAxisB = axis == Vector3.Forward ? Vector3.Up : Vector3.Forward;
+			if (!TryProjectMetricAxisPerpendicular(dir, fallbackAxisA, out recoveredPerp) &&
+				!TryProjectMetricAxisPerpendicular(dir, fallbackAxisB, out recoveredPerp))
+			{
+				recoveredPerp = Vector3.Zero;
+				return false;
+			}
+		}
+
+		if (preferredPerp.LengthSquared() > 1e-20f && recoveredPerp.Dot(preferredPerp) < 0f)
+		{
+			recoveredPerp = -recoveredPerp;
+		}
+
+		return IsFinite(recoveredPerp);
+	}
+
+	private static bool TryProjectMetricAxisPerpendicular(Vector3 dir, Vector3 axis, out Vector3 recoveredPerp)
+	{
+		recoveredPerp = axis - dir * axis.Dot(dir);
+		float recoveredLenSq = recoveredPerp.LengthSquared();
+		if (recoveredLenSq <= 1e-12f)
+		{
+			recoveredPerp = Vector3.Zero;
+			return false;
+		}
+
+		recoveredPerp /= Mathf.Sqrt(recoveredLenSq);
+		return IsFinite(recoveredPerp);
+	}
+
+	private static Vector3 SelectLeastAlignedMetricAxis(Vector3 dir)
+	{
+		float ax = Mathf.Abs(dir.X);
+		float ay = Mathf.Abs(dir.Y);
+		float az = Mathf.Abs(dir.Z);
+		if (ax <= ay && ax <= az)
+		{
+			return Vector3.Right;
+		}
+		if (ay <= az)
+		{
+			return Vector3.Up;
+		}
+		return Vector3.Forward;
 	}
 
 	private float GetPixelsPerRadian(Camera3D cam)

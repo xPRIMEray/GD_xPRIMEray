@@ -57,6 +57,16 @@ public static class DebugOverlayBus
 
 	public static void AddText(Vector2 pos, string text, Color color)
 	{
-		_items.Add(new DebugOverlayItem(DebugOverlayItemType.Text, default, default, pos, text ?? string.Empty, color, 0f));
+		var item = new DebugOverlayItem(DebugOverlayItemType.Text, default, default, pos, text ?? string.Empty, color, 0f);
+		for (int i = 0; i < _items.Count; i++)
+		{
+			if (_items[i].Type == DebugOverlayItemType.Text && _items[i].Pos == pos)
+			{
+				_items[i] = item;
+				return;
+			}
+		}
+
+		_items.Add(item);
 	}
 }

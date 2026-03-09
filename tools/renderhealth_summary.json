@@ -3,15 +3,15 @@
     {
       "runName": "baseline_prune_off",
       "pruneMode": "off",
-      "meanMs": "171.807",
-      "p95Ms": "216.214",
+      "meanMs": "156.531",
+      "p95Ms": "178.743",
       "totalWindows": 2,
       "trustedWindows": 2,
       "pctLowRaytests": "0.000",
-      "meanPerPxOffNumeric": "291.539",
+      "meanPerPxOffNumeric": "231.882",
       "meanPerPxOnNumeric": "na",
       "meanSavedPctNumeric": "na",
-      "meanP2Samp": "42273.500",
+      "meanP2Samp": "33623.000",
       "meanHitRate": "0.000",
       "effectiveCfgShort": "broadphase=Policy(policy);policy=OverlapOnly;quick=0;overlap=1;softgate=0;score=0;stride=2;resScale=0.25;rows=8;geomPrune=0;maxDist=50",
       "scene_signature_hash64": "",
@@ -49,15 +49,15 @@
     {
       "runName": "prune_on_default",
       "pruneMode": "on",
-      "meanMs": "26.014",
-      "p95Ms": "31.311",
+      "meanMs": "46.184",
+      "p95Ms": "51.919",
       "totalWindows": 3,
-      "trustedWindows": 3,
-      "pctLowRaytests": "0.000",
-      "meanPerPxOffNumeric": "656.512",
-      "meanPerPxOnNumeric": "9.455",
-      "meanSavedPctNumeric": "98.557",
-      "meanP2Samp": "42351.000",
+      "trustedWindows": 0,
+      "pctLowRaytests": "100.000",
+      "meanPerPxOffNumeric": "na",
+      "meanPerPxOnNumeric": "na",
+      "meanSavedPctNumeric": "na",
+      "meanP2Samp": "33447.667",
       "meanHitRate": "0.000",
       "effectiveCfgShort": "broadphase=Policy(policy);policy=OverlapOnly;quick=0;overlap=1;softgate=1;score=0;stride=2;resScale=0.25;rows=8;geomPrune=1;maxDist=50",
       "scene_signature_hash64": "",
@@ -97,8 +97,55 @@
     "totalRuns": 2,
     "totalWindows": 5,
     "trustReasonHistogram": {
-      "ok": 5
+      "ok": 2,
+      "low_raytests": 3
     }
   },
-  "worst_windows": []
+  "worst_windows": [
+    {
+      "runName": "prune_on_default",
+      "logPath": "logs\\ab_einstein_metric_fast_compare.log",
+      "step": 150,
+      "trustReason": "low_raytests",
+      "raytestsDeficit": 1132.0,
+      "geomPixDeficit": 0.0,
+      "p2Deficit": null,
+      "geomRayTestsTotalRaw": 2964.0,
+      "minRayTests": 4096.0,
+      "geomPixProcessedRaw": 1160.0,
+      "minGeomPix": 1024.0,
+      "p2SampRaw": 33834.0,
+      "minP2SamplesForTrust": null
+    },
+    {
+      "runName": "prune_on_default",
+      "logPath": "logs\\ab_einstein_metric_fast_compare.log",
+      "step": 120,
+      "trustReason": "low_raytests",
+      "raytestsDeficit": 1081.0,
+      "geomPixDeficit": 0.0,
+      "p2Deficit": null,
+      "geomRayTestsTotalRaw": 3015.0,
+      "minRayTests": 4096.0,
+      "geomPixProcessedRaw": 1120.0,
+      "minGeomPix": 1024.0,
+      "p2SampRaw": 33243.0,
+      "minP2SamplesForTrust": null
+    },
+    {
+      "runName": "prune_on_default",
+      "logPath": "logs\\ab_einstein_metric_fast_compare.log",
+      "step": 90,
+      "trustReason": "low_raytests",
+      "raytestsDeficit": 983.0,
+      "geomPixDeficit": 0.0,
+      "p2Deficit": null,
+      "geomRayTestsTotalRaw": 3113.0,
+      "minRayTests": 4096.0,
+      "geomPixProcessedRaw": 1160.0,
+      "minGeomPix": 1024.0,
+      "p2SampRaw": 33266.0,
+      "minP2SamplesForTrust": null
+    }
+  ]
 }

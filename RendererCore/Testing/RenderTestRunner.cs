@@ -629,6 +629,7 @@ public partial class RenderTestRunner : Node
 		_straightFixtureSceneActive = IsStraightFixtureSceneActive();
 		_useFastBlackholeComparisonProfile = ShouldUseFastBlackholeComparisonProfile();
 		_useFastEinsteinComparisonProfile = ShouldUseFastEinsteinComparisonProfile();
+		ApplyHudRenderTestMetadata();
 		ApplyScopedRenderTestProfileOverrides();
 		if (IsSmartScaleActive())
 		{
@@ -3212,6 +3213,37 @@ public partial class RenderTestRunner : Node
 		GD.Print(
 			$"[RenderTestRunner] Applied scoped render-test profile profile={profileToken} " +
 			$"fixture={_requestedFixture} runs=2 framesPerRun={FramesPerRun} warmup={WarmupFrames}");
+	}
+
+	private void ApplyHudRenderTestMetadata()
+	{
+		if (_film == null || !GodotObject.IsInstanceValid(_film))
+		{
+			return;
+		}
+
+		string fixtureToken = GetHudFixtureToken(_requestedFixture);
+		if (!string.IsNullOrWhiteSpace(fixtureToken))
+		{
+			_film.SetHudFixtureName(fixtureToken);
+		}
+
+		if (TryGetStringCmdArgValue(RenderTestProfileArgPrefix, out string profileToken))
+		{
+			_film.SetHudProfileToken(profileToken);
+		}
+	}
+
+	private static string GetHudFixtureToken(RenderTestFixture fixture)
+	{
+		return fixture switch
+		{
+			RenderTestFixture.Straight => "straight",
+			RenderTestFixture.CurvedMinimal => "curved_minimal",
+			RenderTestFixture.BlackholeMinimal => "blackhole_minimal",
+			RenderTestFixture.EinsteinRingMinimal => "einstein_ring_minimal",
+			_ => string.Empty
+		};
 	}
 
 	private static string GetScenePathForFixture(RenderTestFixture fixture)

@@ -37,7 +37,7 @@ set LOCALAPPDATA=%PROJECT_PATH%\.localappdata
 set USERPROFILE=%PROJECT_PATH%\.userprofile
 if not exist "%APPDATA%\Godot\app_userdata\GRIN Physical Ray Tracing\logs" mkdir "%APPDATA%\Godot\app_userdata\GRIN Physical Ray Tracing\logs"
 
-%GODOT_EXE% --path . -- --render-test --render-test-fixture=blackhole_minimal --render-test-profile=blackhole_compare_fast --blackhole-transport-model=metric --lifecycle-stress=0 --smartscale=0 > %LOG_FILE% 2>&1
+%GODOT_EXE% --path . -- --render-test --render-test-fixture=blackhole_minimal --render-test-profile=blackhole_compare_fast --blackhole-transport-model=metric --lifecycle-stress=0 --smartscale=0 %* > %LOG_FILE% 2>&1
 
 python tools\renderhealth_regress.py %LOG_FILE%
 

@@ -286,6 +286,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 			return;
 		}
 		_sourcePatternSummary = BuildSourcePatternSummaryToken();
+		ApplyHudMetadata(filmCamera, activeTransportModel);
 		LogSourcePatternSummary();
 		LogSourcePatternMarkerDetails();
 
@@ -338,7 +339,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		float fieldStrength = hasRenderer ? rayRenderer.FieldStrength : 0f;
 		float transportStrength = Mathf.Abs(bendScale * fieldStrength);
 		float effectiveMetricScalar = hasRenderer
-			? RayBeamRenderer.ComputeMetricWeakFieldScalarProxy(snaps, FixedBetaScale, bendScale, fieldStrength)
+			? RayBeamRenderer.ComputeMetricWeakFieldScalarForActiveModel(snaps, FixedBetaScale, bendScale, fieldStrength, activeTransportModel)
 			: 0f;
 		_activeFixtureMetricScalar = effectiveMetricScalar;
 		GD.Print(
@@ -533,6 +534,12 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 			sourceRadius,
 			ringSteps,
 			histogramBins);
+		RayBeamRenderer.MetricTransportDiagnosticsSnapshot metricDiagnostics = RunMetricTransportDiagnosticProbe(
+			rayRenderer,
+			snaps,
+			massSnap.Center,
+			massSnap.ROuter,
+			Mathf.Clamp(rayRenderer.StepsPerRay, 64, CurvatureRayStepCap));
 
 		int ringRayCount = _ringProbeNdc.Length;
 		float sourceHitRate = onAxisRingSummary.SourceHits / (float)ringRayCount;
@@ -553,10 +560,20 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 			LogRingRadialSummary("off_axis_2", offAxisOffset2, offAxisRingSummary2, histogramBins);
 		}
 		GD.Print(
+			$"[EinsteinFixture][MetricDiagnostics] metricDeltaZeroCount={metricDiagnostics.MetricDeltaZeroCount} " +
+			$"metricDeltaNonzeroCount={metricDiagnostics.MetricDeltaNonzeroCount} metricFallbackCount={metricDiagnostics.MetricFallbackCount} " +
+			$"metricContributionRatio={metricDiagnostics.MetricContributionRatio:0.######} zeroReasons={metricDiagnostics.ZeroReasonSummary}");
+		GD.Print(
+			$"[TransportSteering] transportModel={activeTransportModel} meanTurn={metricDiagnostics.MeanTurn:0.######} " +
+			$"maxTurn={metricDiagnostics.MaxTurn:0.######} radialBins=[{metricDiagnostics.RadialTurnSummary}]");
+		GD.Print(
 			$"[EinsteinFixture][ComparisonSummary] transportModel={activeTransportModel} effectiveMetricScalar={effectiveMetricScalar:0.######} " +
 			$"sourcePatternSummary={_sourcePatternSummary} sourceHits={onAxisRingSummary.SourceHits} backgroundHits={onAxisRingSummary.BackgroundHits} " +
 			$"absorbedHits={onAxisRingSummary.AbsorbedHits} missHits={onAxisRingSummary.MissHits} radiusMean={onAxisRingSummary.RadiusMean:0.######} " +
-			$"radiusStdDev={onAxisRingSummary.RadiusStdDev:0.######} radiusRange={onAxisRingSummary.RadiusRange:0.######} histogram=[{onAxisRingSummary.RadiusHistogram}]");
+			$"radiusStdDev={onAxisRingSummary.RadiusStdDev:0.######} radiusRange={onAxisRingSummary.RadiusRange:0.######} " +
+			$"metricDeltaZeroCount={metricDiagnostics.MetricDeltaZeroCount} metricDeltaNonzeroCount={metricDiagnostics.MetricDeltaNonzeroCount} " +
+			$"metricFallbackCount={metricDiagnostics.MetricFallbackCount} metricContributionRatio={metricDiagnostics.MetricContributionRatio:0.######} " +
+			$"histogram=[{onAxisRingSummary.RadiusHistogram}]");
 
 		bool ringLike =
 			onAxisRingSummary.SourceHits >= RingMinSourceHits &&
@@ -716,7 +733,12 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		string rayEndpointVector = FormatRoundedVec3Vector(rayEndpoints);
 		string rayEndpointChecksum = ComputeSha256Hex(rayEndpointVector);
 		TransportModel activeTransportModel = RayBeamRenderer.ResolveActiveTransportModel(snaps);
-		float effectiveMetricScalar = RayBeamRenderer.ComputeMetricWeakFieldScalarProxy(snaps, FixedBetaScale, rayRenderer.BendScale, rayRenderer.FieldStrength);
+		float effectiveMetricScalar = RayBeamRenderer.ComputeMetricWeakFieldScalarForActiveModel(
+			snaps,
+			FixedBetaScale,
+			rayRenderer.BendScale,
+			rayRenderer.FieldStrength,
+			activeTransportModel);
 		string sourcePatternSummary = BuildSourcePatternSummaryToken();
 
 		string fingerprintCore =
@@ -1007,6 +1029,23 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		}
 
 		return Enum.TryParse(token, true, out model);
+	}
+
+	private void ApplyHudMetadata(GrinFilmCamera filmCamera, TransportModel activeTransportModel)
+	{
+		if (filmCamera == null || !GodotObject.IsInstanceValid(filmCamera))
+		{
+			return;
+		}
+
+		filmCamera.SetHudFixtureName("einstein_ring_minimal");
+		filmCamera.SetHudTransportModel(activeTransportModel.ToString());
+		filmCamera.SetHudSourcePatternMode(PatternMode.ToString());
+		float metricGainOverride = RayBeamRenderer.ResolveMetricComparisonScalarOverride();
+		bool metricGainActive = activeTransportModel == TransportModel.Metric_NullGeodesic &&
+			float.IsFinite(metricGainOverride) &&
+			!Mathf.IsEqualApprox(metricGainOverride, 1.0f);
+		filmCamera.SetHudMetricGainOverride(metricGainOverride, metricGainActive);
 	}
 
 	private string BuildSourcePatternSummaryToken()
@@ -1842,6 +1881,74 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		}
 
 		return 16f / 9f;
+	}
+
+	private static RayBeamRenderer.MetricTransportDiagnosticsSnapshot RunMetricTransportDiagnosticProbe(
+		RayBeamRenderer rayRenderer,
+		RayBeamRenderer.FieldSourceSnap[] snaps,
+		Vector3 launchCenter,
+		float launchOuterRadius,
+		int steps)
+	{
+		if (rayRenderer == null)
+		{
+			return default;
+		}
+
+		rayRenderer.ResetMetricTransportDiagnostics();
+		if (snaps == null || snaps.Length == 0 || steps <= 0)
+		{
+			return rayRenderer.GetMetricTransportDiagnosticsSnapshot();
+		}
+
+		bool hasSources = true;
+		float minStep = Mathf.Max(0.0001f, Mathf.Min(rayRenderer.MinStepLength, rayRenderer.MaxStepLength));
+		float maxStep = Mathf.Max(minStep, Mathf.Max(rayRenderer.MinStepLength, rayRenderer.MaxStepLength));
+		float launchZ = -Mathf.Max(0.25f, launchOuterRadius * 0.5f);
+		float launchXY = Mathf.Max(0.1f, launchOuterRadius * 0.2f);
+		float escapeDistance = Mathf.Max(launchOuterRadius + 16f, 20f);
+		Vector3 baseOrigin = launchCenter + new Vector3(0f, 0f, launchZ);
+		Vector3 marchDirection = Vector3.Back;
+
+		for (int i = 0; i < RayProbeNdc.Length; i++)
+		{
+			Vector2 ndc = RayProbeNdc[i];
+			Vector3 p = baseOrigin + new Vector3(ndc.X * launchXY, ndc.Y * launchXY, 0f);
+			Vector3 v = marchDirection;
+			float traveled = 0f;
+			for (int s = 0; s < steps; s++)
+			{
+				if (IsAbsorbedAtPoint(p, snaps) || p.DistanceTo(launchCenter) >= escapeDistance)
+				{
+					break;
+				}
+
+				if (!rayRenderer.TryStepActiveTransportForDiagnostics(
+					p,
+					v,
+					launchCenter,
+					FixedBetaScale,
+					FixedGamma,
+					snaps,
+					hasSources,
+					escapeDistance,
+					traveled,
+					minStep,
+					maxStep,
+					out Vector3 next,
+					out Vector3 nextVelocity,
+					out float step))
+				{
+					break;
+				}
+
+				traveled += step;
+				p = next;
+				v = nextVelocity;
+			}
+		}
+
+		return rayRenderer.GetMetricTransportDiagnosticsSnapshot();
 	}
 
 	private static RingProbeSummary RunRingProbePass(
