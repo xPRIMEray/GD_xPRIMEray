@@ -79,6 +79,10 @@ public partial class GrinFilmCamera : Node
 		public bool? Pass2SoftGateEnableQuickRayMiss;
 		public bool? Pass2SoftGateScoringEnabled;
 		public int? TargetMsPerFrame;
+		public int? SharedRbrStepsPerRay;
+		public float? SharedRbrMinStepLength;
+		public float? SharedRbrMaxStepLength;
+		public float? SharedRbrStepAdaptGain;
 		public TestCameraMode CameraMode;
 		public Vector3 CameraFixedPosition;
 		public Vector3 CameraLookAt;
@@ -101,6 +105,33 @@ public partial class GrinFilmCamera : Node
 		public bool Pass2SoftGateEnableQuickRayMiss;
 		public bool Pass2SoftGateScoringEnabled;
 		public int TargetMsPerFrame;
+		public int SharedRbrStepsPerRay;
+		public float SharedRbrMinStepLength;
+		public float SharedRbrMaxStepLength;
+		public float SharedRbrStepAdaptGain;
+	}
+
+	public readonly struct FixtureDebugStatsSnapshot
+	{
+		public readonly long SourceHits;
+		public readonly long BackgroundHits;
+		public readonly long AbsorbedHits;
+		public readonly long MissHits;
+		public readonly long TracedPixels;
+
+		public FixtureDebugStatsSnapshot(
+			long sourceHits,
+			long backgroundHits,
+			long absorbedHits,
+			long missHits,
+			long tracedPixels)
+		{
+			SourceHits = sourceHits;
+			BackgroundHits = backgroundHits;
+			AbsorbedHits = absorbedHits;
+			MissHits = missHits;
+			TracedPixels = tracedPixels;
+		}
 	}
 
 	[ExportGroup("Presets")]
@@ -1049,6 +1080,10 @@ public partial class GrinFilmCamera : Node
 	private long _renderHealthTestMinGeomRayTestsTotalPerWindow = 0;
 	private int _renderHealthTestPass2SampleEveryNSegmentsOverride = 0;
 	private int _renderHealthTestMinPass2SamplesForTrustOverride = 0;
+	private long _fixtureDebugSourceHitsThisRun = 0;
+	private long _fixtureDebugBackgroundHitsThisRun = 0;
+	private long _fixtureDebugAbsorbedHitsThisRun = 0;
+	private long _fixtureDebugMissHitsThisRun = 0;
 
 	// band hit ROI history
 	private float[] _bandHitRate = Array.Empty<float>();
@@ -2626,6 +2661,7 @@ public partial class GrinFilmCamera : Node
 
 	public TestRunDefaults CaptureTestRunDefaults()
 	{
+		ResolveRayBeamRendererReference();
 		return new TestRunDefaults
 		{
 			UpdateEveryFrame = UpdateEveryFrame,
@@ -2639,12 +2675,17 @@ public partial class GrinFilmCamera : Node
 			MinSegLenForStrideSkip = MinSegLenForStrideSkip,
 			Pass2SoftGateEnableQuickRayMiss = Pass2SoftGateEnableQuickRayMiss,
 			Pass2SoftGateScoringEnabled = Pass2SoftGateScoringEnabled,
-			TargetMsPerFrame = TargetMsPerFrame
+			TargetMsPerFrame = TargetMsPerFrame,
+			SharedRbrStepsPerRay = _rbr != null ? _rbr.StepsPerRay : 0,
+			SharedRbrMinStepLength = _rbr != null ? _rbr.MinStepLength : 0f,
+			SharedRbrMaxStepLength = _rbr != null ? _rbr.MaxStepLength : 0f,
+			SharedRbrStepAdaptGain = _rbr != null ? _rbr.StepAdaptGain : 0f
 		};
 	}
 
 	public void ApplyTestRunConfig(in TestRunConfig run)
 	{
+		ResolveRayBeamRendererReference();
 		UpdateEveryFrame = run.UpdateEveryFrame ?? true;
 		if (run.UseGeometryTLASPruning.HasValue) UseGeometryTLASPruning = run.UseGeometryTLASPruning.Value;
 		if (run.Pass2GeomEnvelopeRadiusScale.HasValue) Pass2GeomEnvelopeRadiusScale = Mathf.Max(1.0f, run.Pass2GeomEnvelopeRadiusScale.Value);
@@ -2657,10 +2698,18 @@ public partial class GrinFilmCamera : Node
 		if (run.Pass2SoftGateEnableQuickRayMiss.HasValue) Pass2SoftGateEnableQuickRayMiss = run.Pass2SoftGateEnableQuickRayMiss.Value;
 		if (run.Pass2SoftGateScoringEnabled.HasValue) Pass2SoftGateScoringEnabled = run.Pass2SoftGateScoringEnabled.Value;
 		if (run.TargetMsPerFrame.HasValue) TargetMsPerFrame = Math.Max(1, run.TargetMsPerFrame.Value);
+		if (_rbr != null)
+		{
+			if (run.SharedRbrStepsPerRay.HasValue) _rbr.StepsPerRay = Math.Max(1, run.SharedRbrStepsPerRay.Value);
+			if (run.SharedRbrMinStepLength.HasValue) _rbr.MinStepLength = Mathf.Max(0.0001f, run.SharedRbrMinStepLength.Value);
+			if (run.SharedRbrMaxStepLength.HasValue) _rbr.MaxStepLength = Mathf.Max(0.0001f, run.SharedRbrMaxStepLength.Value);
+			if (run.SharedRbrStepAdaptGain.HasValue) _rbr.StepAdaptGain = Mathf.Max(0.0f, run.SharedRbrStepAdaptGain.Value);
+		}
 	}
 
 	public void RestoreTestRunDefaults(in TestRunDefaults defaults)
 	{
+		ResolveRayBeamRendererReference();
 		UpdateEveryFrame = defaults.UpdateEveryFrame;
 		UseGeometryTLASPruning = defaults.UseGeometryTLASPruning;
 		Pass2GeomEnvelopeRadiusScale = defaults.Pass2GeomEnvelopeRadiusScale;
@@ -2673,6 +2722,13 @@ public partial class GrinFilmCamera : Node
 		Pass2SoftGateEnableQuickRayMiss = defaults.Pass2SoftGateEnableQuickRayMiss;
 		Pass2SoftGateScoringEnabled = defaults.Pass2SoftGateScoringEnabled;
 		TargetMsPerFrame = defaults.TargetMsPerFrame;
+		if (_rbr != null)
+		{
+			_rbr.StepsPerRay = Math.Max(1, defaults.SharedRbrStepsPerRay);
+			_rbr.MinStepLength = Mathf.Max(0.0001f, defaults.SharedRbrMinStepLength);
+			_rbr.MaxStepLength = Mathf.Max(0.0001f, defaults.SharedRbrMaxStepLength);
+			_rbr.StepAdaptGain = Mathf.Max(0.0f, defaults.SharedRbrStepAdaptGain);
+		}
 	}
 
 	public void GetLatestFrameMetricsForTesting(out double frameMs, out bool hasSegsPerPixel, out double segsPerPixel)
@@ -2691,6 +2747,29 @@ public partial class GrinFilmCamera : Node
 		savedPct = _testLastGeomSavedPct;
 		trustReason = _testLastGeomTrustReason;
 		return _testHasRenderHealthSnapshot;
+	}
+
+	public void ResetFixtureDebugStatsForRunStart()
+	{
+		_fixtureDebugSourceHitsThisRun = 0;
+		_fixtureDebugBackgroundHitsThisRun = 0;
+		_fixtureDebugAbsorbedHitsThisRun = 0;
+		_fixtureDebugMissHitsThisRun = 0;
+	}
+
+	public bool TryGetFixtureDebugStatsForTesting(out FixtureDebugStatsSnapshot snapshot)
+	{
+		long tracedPixels = _fixtureDebugSourceHitsThisRun +
+			_fixtureDebugBackgroundHitsThisRun +
+			_fixtureDebugAbsorbedHitsThisRun +
+			_fixtureDebugMissHitsThisRun;
+		snapshot = new FixtureDebugStatsSnapshot(
+			_fixtureDebugSourceHitsThisRun,
+			_fixtureDebugBackgroundHitsThisRun,
+			_fixtureDebugAbsorbedHitsThisRun,
+			_fixtureDebugMissHitsThisRun,
+			tracedPixels);
+		return tracedPixels > 0;
 	}
 
 	public void ResetRenderHealthOverlayRollingForRunStart()
@@ -3057,6 +3136,12 @@ public partial class GrinFilmCamera : Node
 				return NormalizeTransportHudValue(value);
 			}
 		}
+
+		string scenePath = GetTree().CurrentScene?.SceneFilePath ?? string.Empty;
+		if (scenePath.IndexOf("-metric", StringComparison.OrdinalIgnoreCase) >= 0)
+			return TransportModel.Metric_NullGeodesic.ToString();
+		if (scenePath.IndexOf("-grin", StringComparison.OrdinalIgnoreCase) >= 0)
+			return TransportModel.GRIN_Optical.ToString();
 
 		return string.Empty;
 	}
@@ -4055,7 +4140,7 @@ public partial class GrinFilmCamera : Node
 			// DECISION: throttle verbose field source logs to once per frame.
 			if (cfg.VerbosePerfLogs && (_rowCursor % filmH) == 0)
 				GD.Print($"fieldSnaps={fieldSnaps.Length} hasSources={hasSources}");
-			if (cfg.FixtureDebugHitColoringEnabled)
+			if (cfg.FixtureDebugHitColoringEnabled || cfg.FixtureDebugTraceEnabled || _renderHealthTestTrustEnforcementEnabled)
 				RefreshFixtureDebugSourceIds(cfg.FixtureDebugSourceGroup);
 
 
@@ -6998,30 +7083,53 @@ public partial class GrinFilmCamera : Node
 							if (logCenterSample)
 								GD.Print($"Film hit: dist={hitDistance:0.000} name={hitName} mode={cfg.ShadingMode}");
 						}
+						bool fixtureSourceHit = hadHit && _fixtureDebugSourceIds.Contains(bestCid);
+						fixtureHitKind = hadHit
+							? (fixtureSourceHit ? "source" : "background")
+							: (absorbedByInnerRadius ? "absorbed" : "miss");
+
 						if (cfg.FixtureDebugHitColoringEnabled)
 						{
-							if (hadHit)
+							if (fixtureHitKind == "source")
 							{
-								bool sourceHit = _fixtureDebugSourceIds.Contains(bestCid);
-								fixtureHitKind = sourceHit ? "source" : "background";
-								col = sourceHit
+								col = fixtureSourceHit
 									? cfg.FixtureDebugSourceHitColor
 									: cfg.FixtureDebugBackgroundHitColor;
 								fixtureChosenDebugColor = col;
 								fixtureDebugColorChosen = true;
 							}
-							else if (absorbedByInnerRadius)
+							else if (fixtureHitKind == "background")
 							{
-								fixtureHitKind = "absorbed";
+								col = cfg.FixtureDebugBackgroundHitColor;
+								fixtureChosenDebugColor = col;
+								fixtureDebugColorChosen = true;
+							}
+							else if (fixtureHitKind == "absorbed")
+							{
 								col = cfg.FixtureDebugAbsorbedColor;
 								fixtureChosenDebugColor = col;
 								fixtureDebugColorChosen = true;
 							}
 							else
 							{
-								fixtureHitKind = "miss";
 								fixtureChosenDebugColor = cfg.SkyColor;
 							}
+						}
+
+						switch (fixtureHitKind)
+						{
+							case "source":
+								_fixtureDebugSourceHitsThisRun++;
+								break;
+							case "background":
+								_fixtureDebugBackgroundHitsThisRun++;
+								break;
+							case "absorbed":
+								_fixtureDebugAbsorbedHitsThisRun++;
+								break;
+							default:
+								_fixtureDebugMissHitsThisRun++;
+								break;
 						}
 
 						int filled = FillPixelBlock(x, y, stride, col, filmW, filmH);

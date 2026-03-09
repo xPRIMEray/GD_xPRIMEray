@@ -91,8 +91,12 @@ public partial class RenderTestRunner : Node
 	private const int RenderTestMinFramesPerRun = 90;
 	private const string FastBlackholeComparisonProfileToken = "blackhole_compare_fast";
 	private const string FastEinsteinComparisonProfileToken = "einstein_compare_fast";
+	private const string FastBlackholeMetricSearchProfileToken = "blackhole_metric_search_compare_fast";
+	private const string FastEinsteinMetricSearchProfileToken = "einstein_metric_search_compare_fast";
 	private const int FastBlackholeComparisonFramesPerRun = 80;
 	private const int FastBlackholeComparisonWarmupFrames = 10;
+	private const int FastMetricSearchComparisonFramesPerRun = 70;
+	private const int FastMetricSearchComparisonWarmupFrames = 8;
 	private const int SmartScaleProbeFramesPerRun = 60;
 	private const int SmartScaleProbeDefaultRowsBudget = 512;
 	private const int SmartScaleProbeWarmupFrames = 3;
@@ -190,6 +194,7 @@ public partial class RenderTestRunner : Node
 	private RenderTestFixture _requestedFixture = RenderTestFixture.Default;
 	private bool _useFastBlackholeComparisonProfile = false;
 	private bool _useFastEinsteinComparisonProfile = false;
+	private bool _useFastMetricSearchComparisonProfile = false;
 	private bool _shadowEvalPendingForCurrentMatrixRun = false;
 	private bool _shadowEvalActiveRun = false;
 	private bool _shadowEvalDefaultsCaptured = false;
@@ -349,6 +354,23 @@ public partial class RenderTestRunner : Node
 		public int RowCursorEnd;
 		public bool FilmHeightKnown;
 		public int FilmHeight;
+		public bool FixtureStatsKnown;
+		public long FixtureSourceHits;
+		public long FixtureBackgroundHits;
+		public long FixtureAbsorbedHits;
+		public long FixtureMissHits;
+		public bool FixtureHitRateKnown;
+		public double FixtureHitRate;
+		public bool MetricDiagKnown;
+		public int MetricDeltaZeroCount;
+		public int MetricDeltaNonzeroCount;
+		public int MetricFallbackCount;
+		public float MetricContributionRatio;
+		public int SteeringTurnCount;
+		public float SteeringMeanTurn;
+		public float SteeringMaxTurn;
+		public string SteeringRadialSummary;
+		public string MetricZeroReasonSummary;
 	}
 
 	private struct ShadowEvalMatrixDecisionAggregate
@@ -629,12 +651,17 @@ public partial class RenderTestRunner : Node
 		_straightFixtureSceneActive = IsStraightFixtureSceneActive();
 		_useFastBlackholeComparisonProfile = ShouldUseFastBlackholeComparisonProfile();
 		_useFastEinsteinComparisonProfile = ShouldUseFastEinsteinComparisonProfile();
+		_useFastMetricSearchComparisonProfile = ShouldUseFastMetricSearchComparisonProfile();
 		ApplyHudRenderTestMetadata();
 		ApplyScopedRenderTestProfileOverrides();
 		if (IsSmartScaleActive())
 		{
 			ConfigureSmartScaleProbeSchedule();
 			_runs.AddRange(BuildSmartScaleRuns());
+		}
+		else if (_useFastMetricSearchComparisonProfile)
+		{
+			_runs.AddRange(BuildFastMetricSearchComparisonRuns());
 		}
 		else if (_useFastBlackholeComparisonProfile || _useFastEinsteinComparisonProfile)
 		{
@@ -950,7 +977,12 @@ public partial class RenderTestRunner : Node
 
 		_activeRunHarnessStopwatch.Restart();
 		_film.ResetRenderHealthWindowForRunStart();
+		_film.ResetFixtureDebugStatsForRunStart();
 		_film.ApplyTestRunConfig(in _activeRunConfig);
+		if (TryGetSharedRayBeamRenderer(out RayBeamRenderer diagRbr) && GodotObject.IsInstanceValid(diagRbr))
+		{
+			diagRbr.ResetMetricTransportDiagnostics();
+		}
 		if (_renderTestMode && IsStraightRun(_activeRunConfig.Name))
 		{
 			ApplyStraightRunOverrides(in _activeRunConfig);
@@ -1002,6 +1034,12 @@ public partial class RenderTestRunner : Node
 			$"stride={FormatStride(_activeRunConfig)} envScale={FormatNullableFloat(_activeRunConfig.Pass2GeomEnvelopeRadiusScale)} " +
 			$"aabbExpand={FormatNullableFloat(_activeRunConfig.Pass2GeomEnvelopeAabbExpand)} " +
 			$"updateEveryFrame={(runWantsUpdateEveryFrame ? "on" : "off")}");
+		if (TryGetSharedRayBeamRenderer(out RayBeamRenderer runRbr) && GodotObject.IsInstanceValid(runRbr))
+		{
+			GD.Print(
+				$"[RenderTestRunner][RaySearch] run={Sanitize(_activeRunConfig.Name)} steps={runRbr.StepsPerRay} " +
+				$"minStep={runRbr.MinStepLength:0.######} maxStep={runRbr.MaxStepLength:0.######} stepAdaptGain={runRbr.StepAdaptGain:0.######}");
+		}
 		if (TryGetSmartScaleProbeOverride(in _activeRunConfig, out SmartScaleProbeOverride smartProbe))
 		{
 			string budgetMode = GetSmartScaleProbeBudgetModeToken();
@@ -1940,6 +1978,16 @@ public partial class RenderTestRunner : Node
 			string meanMsStr = sampleCount > 0 ? meanMs.ToString("0.###") : "na";
 			string p95MsStr = sampleCount > 0 ? p95Ms.ToString("0.###") : "na";
 			string meanSegStr = _runSegsPerPxCount > 0 ? (_runSegsPerPxSum / _runSegsPerPxCount).ToString("0.###") : "na";
+			bool hasFixtureStats = _film.TryGetFixtureDebugStatsForTesting(out GrinFilmCamera.FixtureDebugStatsSnapshot fixtureStats);
+			long fixtureVisibleHits = fixtureStats.SourceHits + fixtureStats.BackgroundHits;
+			bool fixtureHitRateKnown = hasFixtureStats && fixtureStats.TracedPixels > 0;
+			double fixtureHitRate = fixtureHitRateKnown
+				? fixtureVisibleHits / (double)Math.Max(1L, fixtureStats.TracedPixels)
+				: 0.0;
+			bool hasMetricDiag = TryGetSharedRayBeamRenderer(out RayBeamRenderer metricDiagRbr) && GodotObject.IsInstanceValid(metricDiagRbr);
+			RayBeamRenderer.MetricTransportDiagnosticsSnapshot metricDiag = hasMetricDiag
+				? metricDiagRbr.GetMetricTransportDiagnosticsSnapshot()
+				: default;
 
 			bool hasRh = _film.TryGetLatestRenderHealthForTesting(out bool trusted, out bool savedPctAvailable, out double savedPct, out string trustReason);
 			string trustReasonOut = hasRh ? Sanitize(trustReason) : "no_renderhealth";
@@ -1957,6 +2005,20 @@ public partial class RenderTestRunner : Node
 			GD.Print(
 				$"[RUN END] name={Sanitize(run.Name)} run_id={runExecId} frames={FramesPerRun} samples={sampleCount} " +
 				$"meanMs={meanMsStr} p95Ms={p95MsStr}");
+			GD.Print(
+				$"[RenderTest][RUN DETAIL] matrix={_runSeriesId} idx={_runIndex + 1}/{_runs.Count} name={Sanitize(run.Name)} " +
+				$"fixtureStatsKnown={(hasFixtureStats ? 1 : 0)} sourceHits={fixtureStats.SourceHits} backgroundHits={fixtureStats.BackgroundHits} " +
+				$"absorbedHits={fixtureStats.AbsorbedHits} missHits={fixtureStats.MissHits} traced={fixtureStats.TracedPixels} " +
+				$"hitRate={(fixtureHitRateKnown ? fixtureHitRate.ToString("0.######") : "na")} " +
+				$"metricDiagKnown={(hasMetricDiag ? 1 : 0)} metricDeltaZeroCount={(hasMetricDiag ? metricDiag.MetricDeltaZeroCount.ToString() : "na")} " +
+				$"metricDeltaNonzeroCount={(hasMetricDiag ? metricDiag.MetricDeltaNonzeroCount.ToString() : "na")} " +
+				$"metricFallbackCount={(hasMetricDiag ? metricDiag.MetricFallbackCount.ToString() : "na")} " +
+				$"metricContributionRatio={(hasMetricDiag ? metricDiag.MetricContributionRatio.ToString("0.######") : "na")} " +
+				$"steeringTurnCount={(hasMetricDiag ? metricDiag.SteeringTurnCount.ToString() : "na")} " +
+				$"steeringMeanTurn={(hasMetricDiag ? metricDiag.MeanTurn.ToString("0.######") : "na")} " +
+				$"steeringMaxTurn={(hasMetricDiag ? metricDiag.MaxTurn.ToString("0.######") : "na")} " +
+				$"steeringRadial={(hasMetricDiag ? Sanitize(metricDiag.RadialTurnSummary) : "na")} " +
+				$"metricZeroReasons={(hasMetricDiag ? Sanitize(metricDiag.ZeroReasonSummary) : "na")}");
 
 			bool hasRhLiveSnapshot = TryGetLatestRenderHealthLiveSnapshot(out RenderHealthLiveSnapshot finalRhSnap);
 			bool filmValidForMetrics = _film != null && GodotObject.IsInstanceValid(_film);
@@ -2026,7 +2088,24 @@ public partial class RenderTestRunner : Node
 				RowCursorEndKnown = _smartScaleRowCursorEndKnownCurrentRun,
 				RowCursorEnd = _smartScaleRowCursorEndCurrentRun,
 				FilmHeightKnown = _smartScaleFilmHeightKnownCurrentRun,
-				FilmHeight = _smartScaleFilmHeightCurrentRun
+				FilmHeight = _smartScaleFilmHeightCurrentRun,
+				FixtureStatsKnown = hasFixtureStats,
+				FixtureSourceHits = fixtureStats.SourceHits,
+				FixtureBackgroundHits = fixtureStats.BackgroundHits,
+				FixtureAbsorbedHits = fixtureStats.AbsorbedHits,
+				FixtureMissHits = fixtureStats.MissHits,
+				FixtureHitRateKnown = fixtureHitRateKnown,
+				FixtureHitRate = fixtureHitRate,
+				MetricDiagKnown = hasMetricDiag,
+				MetricDeltaZeroCount = hasMetricDiag ? metricDiag.MetricDeltaZeroCount : 0,
+				MetricDeltaNonzeroCount = hasMetricDiag ? metricDiag.MetricDeltaNonzeroCount : 0,
+				MetricFallbackCount = hasMetricDiag ? metricDiag.MetricFallbackCount : 0,
+				MetricContributionRatio = hasMetricDiag ? metricDiag.MetricContributionRatio : 0f,
+				SteeringTurnCount = hasMetricDiag ? metricDiag.SteeringTurnCount : 0,
+				SteeringMeanTurn = hasMetricDiag ? metricDiag.MeanTurn : 0f,
+				SteeringMaxTurn = hasMetricDiag ? metricDiag.MaxTurn : 0f,
+				SteeringRadialSummary = hasMetricDiag ? metricDiag.RadialTurnSummary ?? string.Empty : string.Empty,
+				MetricZeroReasonSummary = hasMetricDiag ? metricDiag.ZeroReasonSummary ?? string.Empty : string.Empty
 			};
 			if (hasRhLiveSnapshot)
 			{
@@ -2575,6 +2654,53 @@ public partial class RenderTestRunner : Node
 				UseGeometryTLASPruning = true,
 				UsePass2CollisionStride = true,
 				Pass2SoftGateEnableQuickRayMiss = true,
+				CameraMode = GrinFilmCamera.TestCameraMode.Orbit,
+				CameraLookAt = lookAt,
+				CameraFixedPosition = camPos,
+				CameraOrbitRadius = orbitRadius,
+				CameraOrbitHeight = orbitHeight,
+				CameraOrbitPeriodFrames = orbitPeriodFrames
+			}
+		};
+	}
+
+	private List<GrinFilmCamera.TestRunConfig> BuildFastMetricSearchComparisonRuns()
+	{
+		Vector3 camPos = _camera.GlobalPosition;
+		Vector3 lookAt = camPos + (-_camera.GlobalTransform.Basis.Z) * 3.0f;
+		const float orbitRadius = 2.8f;
+		const float orbitHeight = 1.2f;
+		const float orbitPeriodFrames = 300f;
+
+		return new List<GrinFilmCamera.TestRunConfig>
+		{
+			new GrinFilmCamera.TestRunConfig
+			{
+				Name = "metric_default_search",
+				UpdateEveryFrame = true,
+				UseGeometryTLASPruning = true,
+				UsePass2CollisionStride = true,
+				Pass2SoftGateEnableQuickRayMiss = true,
+				CameraMode = GrinFilmCamera.TestCameraMode.Orbit,
+				CameraLookAt = lookAt,
+				CameraFixedPosition = camPos,
+				CameraOrbitRadius = orbitRadius,
+				CameraOrbitHeight = orbitHeight,
+				CameraOrbitPeriodFrames = orbitPeriodFrames
+			},
+			new GrinFilmCamera.TestRunConfig
+			{
+				Name = "metric_relaxed_search",
+				UpdateEveryFrame = true,
+				UseGeometryTLASPruning = true,
+				Pass2GeomEnvelopeRadiusScale = 1.08f,
+				Pass2GeomEnvelopeAabbExpand = 0.03f,
+				UsePass2CollisionStride = false,
+				Pass2SoftGateEnableQuickRayMiss = true,
+				SharedRbrStepsPerRay = 900,
+				SharedRbrMinStepLength = 0.0005f,
+				SharedRbrMaxStepLength = 0.3f,
+				SharedRbrStepAdaptGain = 0.08f,
 				CameraMode = GrinFilmCamera.TestCameraMode.Orbit,
 				CameraLookAt = lookAt,
 				CameraFixedPosition = camPos,
@@ -3198,21 +3324,102 @@ public partial class RenderTestRunner : Node
 		return string.Equals(profile, FastEinsteinComparisonProfileToken, StringComparison.OrdinalIgnoreCase);
 	}
 
+	private bool ShouldUseFastMetricSearchComparisonProfile()
+	{
+		if (_requestedFixture != RenderTestFixture.BlackholeMinimal &&
+			_requestedFixture != RenderTestFixture.EinsteinRingMinimal)
+		{
+			return false;
+		}
+		if (IsSmartScaleActive() || IsLifecycleStressActive())
+		{
+			return false;
+		}
+		if (!TryGetStringCmdArgValue(RenderTestProfileArgPrefix, out string profile))
+		{
+			return false;
+		}
+		if (!string.Equals(profile, FastBlackholeMetricSearchProfileToken, StringComparison.OrdinalIgnoreCase) &&
+			!string.Equals(profile, FastEinsteinMetricSearchProfileToken, StringComparison.OrdinalIgnoreCase))
+		{
+			return false;
+		}
+
+		return IsMetricTransportRequestedForFixture();
+	}
+
 	private void ApplyScopedRenderTestProfileOverrides()
 	{
-		if (!_useFastBlackholeComparisonProfile && !_useFastEinsteinComparisonProfile)
+		if (!_useFastBlackholeComparisonProfile &&
+			!_useFastEinsteinComparisonProfile &&
+			!_useFastMetricSearchComparisonProfile)
 		{
 			return;
 		}
 
-		FramesPerRun = FastBlackholeComparisonFramesPerRun;
-		WarmupFrames = FastBlackholeComparisonWarmupFrames;
-		string profileToken = _useFastEinsteinComparisonProfile
-			? FastEinsteinComparisonProfileToken
-			: FastBlackholeComparisonProfileToken;
+		bool metricSearchProfile = _useFastMetricSearchComparisonProfile;
+		FramesPerRun = metricSearchProfile ? FastMetricSearchComparisonFramesPerRun : FastBlackholeComparisonFramesPerRun;
+		WarmupFrames = metricSearchProfile ? FastMetricSearchComparisonWarmupFrames : FastBlackholeComparisonWarmupFrames;
+		string profileToken = _useFastMetricSearchComparisonProfile
+			? (_requestedFixture == RenderTestFixture.EinsteinRingMinimal
+				? FastEinsteinMetricSearchProfileToken
+				: FastBlackholeMetricSearchProfileToken)
+			: (_useFastEinsteinComparisonProfile
+				? FastEinsteinComparisonProfileToken
+				: FastBlackholeComparisonProfileToken);
 		GD.Print(
 			$"[RenderTestRunner] Applied scoped render-test profile profile={profileToken} " +
 			$"fixture={_requestedFixture} runs=2 framesPerRun={FramesPerRun} warmup={WarmupFrames}");
+	}
+
+	private bool IsMetricTransportRequestedForFixture()
+	{
+		string general = GetTransportOverrideArgValue("--transport-model=");
+		if (string.IsNullOrWhiteSpace(general))
+		{
+			string fixtureSpecificPrefix = _requestedFixture switch
+			{
+				RenderTestFixture.BlackholeMinimal => "--blackhole-transport-model=",
+				RenderTestFixture.EinsteinRingMinimal => "--einstein-transport-model=",
+				_ => string.Empty
+			};
+			general = GetTransportOverrideArgValue(fixtureSpecificPrefix);
+		}
+
+		if (string.IsNullOrWhiteSpace(general))
+		{
+			return false;
+		}
+
+		return string.Equals(general, "metric", StringComparison.OrdinalIgnoreCase) ||
+			string.Equals(general, "metric_nullgeodesic", StringComparison.OrdinalIgnoreCase) ||
+			string.Equals(general, "nullgeodesic", StringComparison.OrdinalIgnoreCase);
+	}
+
+	private string GetTransportOverrideArgValue(string prefix)
+	{
+		if (string.IsNullOrWhiteSpace(prefix))
+		{
+			return string.Empty;
+		}
+
+		foreach (string arg in GetCmdArgsForParsing())
+		{
+			if (string.IsNullOrWhiteSpace(arg))
+			{
+				continue;
+			}
+
+			string trimmed = arg.Trim();
+			if (!trimmed.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+			{
+				continue;
+			}
+
+			return trimmed.Substring(prefix.Length).Trim();
+		}
+
+		return string.Empty;
 	}
 
 	private void ApplyHudRenderTestMetadata()

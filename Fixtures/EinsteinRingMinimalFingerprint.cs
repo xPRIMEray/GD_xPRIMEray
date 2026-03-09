@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using Godot;
@@ -87,7 +88,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 	private const float FixedEdgeSoftness = 0.0f;
 	private const bool FixedDebugDrawBounds = false;
 	private const bool FixedDebugDrawInGame = false;
-	private const TransportModel FixtureTransportModel = TransportModel.GRIN_Optical;
+	private const TransportModel DefaultFixtureTransportModel = TransportModel.GRIN_Optical;
 	private const string TransportArgPrefix = "--transport-model=";
 	private const string FixtureTransportArgPrefix = "--einstein-transport-model=";
 
@@ -134,7 +135,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 	private Node3D _sourcePatternRoot;
 	private SourceMarkerSphere[] _sourceMarkers = Array.Empty<SourceMarkerSphere>();
 	private Vector2[] _ringProbeNdc = Array.Empty<Vector2>();
-	private TransportModel _activeFixtureTransportModel = FixtureTransportModel;
+	private TransportModel _activeFixtureTransportModel = DefaultFixtureTransportModel;
 	private float _activeFixtureMetricScalar;
 	private string _sourcePatternSummary = "mode=unknown;count=0";
 	private const float ManualMarkerMeshScale = 1.18f;
@@ -227,7 +228,8 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 
 	public override void _Ready()
 	{
-		TransportModel fixtureTransportModel = ResolveFixtureTransportModel();
+		TransportModel fixtureTransportModel = ResolveFixtureTransportModel(out string transportSource);
+		LogStartupVariant(fixtureTransportModel, transportSource);
 		_activeFixtureTransportModel = fixtureTransportModel;
 		FieldSource3D massField = GetNodeOrNull<FieldSource3D>(FieldPath);
 		if (massField == null)
@@ -536,6 +538,8 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 			histogramBins);
 		RayBeamRenderer.MetricTransportDiagnosticsSnapshot metricDiagnostics = RunMetricTransportDiagnosticProbe(
 			rayRenderer,
+			filmCamera,
+			camera,
 			snaps,
 			massSnap.Center,
 			massSnap.ROuter,
@@ -563,6 +567,9 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 			$"[EinsteinFixture][MetricDiagnostics] metricDeltaZeroCount={metricDiagnostics.MetricDeltaZeroCount} " +
 			$"metricDeltaNonzeroCount={metricDiagnostics.MetricDeltaNonzeroCount} metricFallbackCount={metricDiagnostics.MetricFallbackCount} " +
 			$"metricContributionRatio={metricDiagnostics.MetricContributionRatio:0.######} zeroReasons={metricDiagnostics.ZeroReasonSummary}");
+		GD.Print(
+			$"[MetricIsolation] metricDirectSteps={metricDiagnostics.MetricDirectSteps} gridBypassSteps={metricDiagnostics.GridBypassSteps} " +
+			$"grinFallbackSteps={metricDiagnostics.GrinFallbackSteps} grinScalarDominatedSteps={metricDiagnostics.GrinScalarDominatedSteps}");
 		GD.Print(
 			$"[TransportSteering] transportModel={activeTransportModel} meanTurn={metricDiagnostics.MeanTurn:0.######} " +
 			$"maxTurn={metricDiagnostics.MaxTurn:0.######} radialBins=[{metricDiagnostics.RadialTurnSummary}]");
@@ -961,20 +968,34 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 
 	private TransportModel ResolveFixtureTransportModel()
 	{
+		return ResolveFixtureTransportModel(out _);
+	}
+
+	private TransportModel ResolveFixtureTransportModel(out string source)
+	{
 		if (TryParseTransportOverrideArg(OS.GetCmdlineUserArgs(), out TransportModel fromUser))
 		{
+			source = "cmdline_user";
 			return fromUser;
 		}
 		if (TryParseTransportOverrideArg(OS.GetCmdlineArgs(), out TransportModel fromArgs))
 		{
+			source = "cmdline";
 			return fromArgs;
 		}
-		return FixtureTransportModel;
+		if (TryResolveSceneBaselineTransportModel(out TransportModel fromScene))
+		{
+			source = "scene_baseline";
+			return fromScene;
+		}
+
+		source = "fixture_default";
+		return DefaultFixtureTransportModel;
 	}
 
 	private static bool TryParseTransportOverrideArg(string[] args, out TransportModel model)
 	{
-		model = FixtureTransportModel;
+		model = DefaultFixtureTransportModel;
 		if (args == null || args.Length == 0)
 		{
 			return false;
@@ -998,7 +1019,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 
 	private static bool TryParseTransportArgValue(string arg, string prefix, out TransportModel model)
 	{
-		model = FixtureTransportModel;
+		model = DefaultFixtureTransportModel;
 		if (!arg.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
 		{
 			return false;
@@ -1010,7 +1031,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 
 	private static bool TryParseTransportModelToken(string token, out TransportModel model)
 	{
-		model = FixtureTransportModel;
+		model = DefaultFixtureTransportModel;
 		if (string.IsNullOrWhiteSpace(token))
 		{
 			return false;
@@ -1029,6 +1050,35 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		}
 
 		return Enum.TryParse(token, true, out model);
+	}
+
+	private bool TryResolveSceneBaselineTransportModel(out TransportModel model)
+	{
+		model = DefaultFixtureTransportModel;
+		FieldSource3D massField = GetNodeOrNull<FieldSource3D>(FieldPath);
+		FieldSource3D photonBandField = GetNodeOrNull<FieldSource3D>(PhotonBandFieldPath);
+		if (massField != null)
+		{
+			model = massField.TransportModel;
+			return true;
+		}
+		if (photonBandField != null)
+		{
+			model = photonBandField.TransportModel;
+			return true;
+		}
+
+		return false;
+	}
+
+	private void LogStartupVariant(TransportModel transportModel, string transportSource)
+	{
+		string scenePath = GetTree().CurrentScene?.SceneFilePath ?? string.Empty;
+		string variant = string.IsNullOrWhiteSpace(scenePath)
+			? "test-einstein-ring-minimal"
+			: Path.GetFileNameWithoutExtension(scenePath);
+		GD.Print(
+			$"[FixtureStartup] fixture=einstein_ring_minimal variant={variant} transport={transportModel} source={transportSource}");
 	}
 
 	private void ApplyHudMetadata(GrinFilmCamera filmCamera, TransportModel activeTransportModel)
@@ -1883,8 +1933,42 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		return 16f / 9f;
 	}
 
+	private static FieldGrid3D BuildMetricDiagnosticFieldGrid(
+		GrinFilmCamera filmCamera,
+		Camera3D camera,
+		RayBeamRenderer rayRenderer,
+		RayBeamRenderer.FieldSourceSnap[] snaps,
+		Vector3 launchCenter,
+		float launchOuterRadius)
+	{
+		if (filmCamera == null || !filmCamera.UseFieldGrid || rayRenderer == null || snaps == null || snaps.Length == 0)
+		{
+			return null;
+		}
+
+		float cellSize = Mathf.Max(0.001f, filmCamera.FieldGridCellSize);
+		float escapeDistance = Mathf.Max(launchOuterRadius + 16f, 20f);
+		float radius = Mathf.Max(0.01f, escapeDistance + filmCamera.FieldGridBoundsPadding);
+		Vector3 gridCenter = camera != null ? camera.GlobalPosition : launchCenter;
+		Vector3 half = new Vector3(radius, radius, radius);
+		Aabb bounds = new Aabb(gridCenter - half, half * 2f);
+
+		var fieldGrid = new FieldGrid3D();
+		fieldGrid.BuildFromSources(
+			snaps,
+			FixedBetaScale,
+			FixedGamma,
+			rayRenderer.BendScale,
+			rayRenderer.FieldStrength,
+			bounds,
+			cellSize);
+		return fieldGrid;
+	}
+
 	private static RayBeamRenderer.MetricTransportDiagnosticsSnapshot RunMetricTransportDiagnosticProbe(
 		RayBeamRenderer rayRenderer,
+		GrinFilmCamera filmCamera,
+		Camera3D camera,
 		RayBeamRenderer.FieldSourceSnap[] snaps,
 		Vector3 launchCenter,
 		float launchOuterRadius,
@@ -1902,6 +1986,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		}
 
 		bool hasSources = true;
+		FieldGrid3D fieldGrid = BuildMetricDiagnosticFieldGrid(filmCamera, camera, rayRenderer, snaps, launchCenter, launchOuterRadius);
 		float minStep = Mathf.Max(0.0001f, Mathf.Min(rayRenderer.MinStepLength, rayRenderer.MaxStepLength));
 		float maxStep = Mathf.Max(minStep, Mathf.Max(rayRenderer.MinStepLength, rayRenderer.MaxStepLength));
 		float launchZ = -Mathf.Max(0.25f, launchOuterRadius * 0.5f);
@@ -1935,6 +2020,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 					traveled,
 					minStep,
 					maxStep,
+					fieldGrid,
 					out Vector3 next,
 					out Vector3 nextVelocity,
 					out float step))

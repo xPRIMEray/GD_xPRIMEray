@@ -1,0 +1,97 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://FieldSource3D.cs" id="1_field"]
+[ext_resource type="Script" path="res://RayBeamRenderer.cs" id="2_rbr"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_marker"]
+radius = 0.18
+height = 0.36
+
+[sub_resource type="BoxMesh" id="BoxMesh_background_screen"]
+size = Vector3(80, 80, 0.2)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_background_screen"]
+size = Vector3(80, 80, 0.2)
+
+[sub_resource type="SphereMesh" id="SphereMesh_source_sphere"]
+radius = 0.45
+height = 0.9
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_source_sphere"]
+radius = 0.45
+
+[node name="FixtureEinsteinRingMinimal" type="Node3D"]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.98764193, 0.15672755, 0, -0.15672755, 0.98764193, 0, -7.375778, 19.83245)
+current = true
+fov = 82.0
+near = 0.01
+
+[node name="blackhole_center_marker" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_marker")
+
+[node name="background_screen" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -6, -16)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="background_screen"]
+mesh = SubResource("BoxMesh_background_screen")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="background_screen"]
+shape = SubResource("BoxShape3D_background_screen")
+
+[node name="FieldSource3D" type="Node3D" parent="."]
+script = ExtResource("1_field")
+TransportModel = 0
+Attract = false
+EffectiveEquationCore = "source=canonical
+r=|p-c|
+u=clamp((r-rInner)/max(eps,rOuter-rInner),0,1)
+f(u)=(1-u)^1
+edge_ramp=1 (disabled)"
+EffectiveEquationIntegrated = "dir=-normalize(p-c) (ModeFlagInvertSign=0)
+absorb_if_r_lt_rInner=0
+beta_eff=(|beta_g|>eps ? beta_g*1 : 1)
+mag=beta_eff*amp*f(u)*edge_ramp
+gamma=1
+a=dir*mag"
+
+[node name="PhotonBandSource" type="Node3D" parent="."]
+script = ExtResource("1_field")
+TransportModel = 0
+EffectiveEquationCore = "source=canonical
+r=|p-c|
+u=clamp((r-rInner)/max(eps,rOuter-rInner),0,1)
+f(u)=(1-u)^1
+edge_ramp=1 (disabled)"
+EffectiveEquationIntegrated = "dir=-normalize(p-c) (ModeFlagInvertSign=0)
+absorb_if_r_lt_rInner=0
+beta_eff=(|beta_g|>eps ? beta_g*1 : 1)
+mag=beta_eff*amp*f(u)*edge_ramp
+gamma=1
+a=dir*mag"
+
+[node name="source_marker_template" type="StaticBody3D" parent="." groups=["fixture_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -12)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="source_marker_template"]
+mesh = SubResource("SphereMesh_source_sphere")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="source_marker_template"]
+shape = SubResource("SphereShape3D_source_sphere")
+
+[node name="RayBeamRenderer" type="Node3D" parent="."]
+visible = false
+script = ExtResource("2_rbr")
+CameraPath = NodePath("../Camera3D")
+StepsPerRay = 400
+StepLength = 0.05
+MinStepLength = 0.001
+MaxStepLength = 0.3
+LowCurvaturePerpAccel = 0.3
+BendScale = 1.0
+FieldCenterIsCamera = false
+DebugMode = 0
+DebugNormalLen = 0.295
+Alpha = 1.0
+UpdateEveryFrame = false

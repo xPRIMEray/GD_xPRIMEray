@@ -3,8 +3,8 @@
     {
       "runName": "baseline_prune_off",
       "pruneMode": "off",
-      "meanMs": "156.531",
-      "p95Ms": "178.743",
+      "meanMs": "171.670",
+      "p95Ms": "197.154",
       "totalWindows": 2,
       "trustedWindows": 2,
       "pctLowRaytests": "0.000",
@@ -49,8 +49,8 @@
     {
       "runName": "prune_on_default",
       "pruneMode": "on",
-      "meanMs": "46.184",
-      "p95Ms": "51.919",
+      "meanMs": "49.715",
+      "p95Ms": "55.974",
       "totalWindows": 3,
       "trustedWindows": 0,
       "pctLowRaytests": "100.000",

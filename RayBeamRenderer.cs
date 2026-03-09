@@ -368,6 +368,7 @@ public partial class RayBeamRenderer : Node3D
 	private bool _loggedMetricStubFallback = false;
 	private bool _loggedMetricEquivalentFallback = false;
 	private bool _loggedMetricWeakFieldMapping = false;
+	private bool _loggedMetricScalarIngredients = false;
 	private bool _loggedHybridStubFallback = false;
 	private static bool _metricComparisonScalarOverrideResolved = false;
 	private static float _metricComparisonScalarOverride = 1.0f;
@@ -376,6 +377,8 @@ public partial class RayBeamRenderer : Node3D
 	private int _metricDeltaNonzeroCount = 0;
 	private int _metricFallbackCount = 0;
 	private int _metricContributionAppliedCount = 0;
+	private int _metricGridBypassStepCount = 0;
+	private int _metricScalarDominatedStepCount = 0;
 	private int _metricParallelRawCount = 0;
 	private int _metricParallelRecoveredCount = 0;
 	private int _metricParallelFallbackCount = 0;
@@ -755,6 +758,10 @@ public partial class RayBeamRenderer : Node3D
 
 	public readonly struct MetricTransportDiagnosticsSnapshot
 	{
+		public readonly int MetricDirectSteps;
+		public readonly int GridBypassSteps;
+		public readonly int GrinFallbackSteps;
+		public readonly int GrinScalarDominatedSteps;
 		public readonly int MetricDeltaZeroCount;
 		public readonly int MetricDeltaNonzeroCount;
 		public readonly int MetricFallbackCount;
@@ -766,6 +773,10 @@ public partial class RayBeamRenderer : Node3D
 		public readonly string ZeroReasonSummary;
 
 		public MetricTransportDiagnosticsSnapshot(
+			int metricDirectSteps,
+			int gridBypassSteps,
+			int grinFallbackSteps,
+			int grinScalarDominatedSteps,
 			int metricDeltaZeroCount,
 			int metricDeltaNonzeroCount,
 			int metricFallbackCount,
@@ -776,6 +787,10 @@ public partial class RayBeamRenderer : Node3D
 			string radialTurnSummary,
 			string zeroReasonSummary)
 		{
+			MetricDirectSteps = metricDirectSteps;
+			GridBypassSteps = gridBypassSteps;
+			GrinFallbackSteps = grinFallbackSteps;
+			GrinScalarDominatedSteps = grinScalarDominatedSteps;
 			MetricDeltaZeroCount = metricDeltaZeroCount;
 			MetricDeltaNonzeroCount = metricDeltaNonzeroCount;
 			MetricFallbackCount = metricFallbackCount;
@@ -798,6 +813,10 @@ public partial class RayBeamRenderer : Node3D
 			? (float)(_transportSteeringTurnSum / _transportSteeringTurnCount)
 			: 0f;
 		return new MetricTransportDiagnosticsSnapshot(
+			_metricContributionAppliedCount,
+			_metricGridBypassStepCount,
+			_metricFallbackCount,
+			_metricScalarDominatedStepCount,
 			_metricDeltaZeroCount,
 			_metricDeltaNonzeroCount,
 			_metricFallbackCount,
@@ -815,6 +834,8 @@ public partial class RayBeamRenderer : Node3D
 		_metricDeltaNonzeroCount = 0;
 		_metricFallbackCount = 0;
 		_metricContributionAppliedCount = 0;
+		_metricGridBypassStepCount = 0;
+		_metricScalarDominatedStepCount = 0;
 		_metricParallelRawCount = 0;
 		_metricParallelRecoveredCount = 0;
 		_metricParallelFallbackCount = 0;
@@ -860,6 +881,7 @@ public partial class RayBeamRenderer : Node3D
 		float traveled,
 		float minStep,
 		float maxStep,
+		FieldGrid3D fieldGrid,
 		out Vector3 next,
 		out Vector3 vNext,
 		out float step)
@@ -876,6 +898,7 @@ public partial class RayBeamRenderer : Node3D
 			traveled,
 			minStep,
 			maxStep,
+			fieldGrid,
 			applyLowCurvatureBoost: false,
 			out next,
 			out vNext,
@@ -1777,6 +1800,7 @@ public partial class RayBeamRenderer : Node3D
 					traveled,
 					minStep,
 					maxStep,
+					fieldGrid: null,
 					applyLowCurvatureBoost: false,
 					out next,
 					out v,
@@ -2025,6 +2049,7 @@ public partial class RayBeamRenderer : Node3D
 					traveled,
 					minStep,
 					maxStep,
+					fieldGrid: null,
 					applyLowCurvatureBoost: false,
 					out next,
 					out v,
@@ -2220,6 +2245,7 @@ public partial class RayBeamRenderer : Node3D
 					traveled,
 					minStep,
 					maxStep,
+					fieldGrid: null,
 					applyLowCurvatureBoost: true,
 					out next,
 					out v,
@@ -2423,9 +2449,15 @@ public partial class RayBeamRenderer : Node3D
 				TransportModel activeTransport = hasSources ? ResolveActiveTransportModel(fieldSnaps) : TransportModel.GRIN_Optical;
 
 				// DECISION: prefer field grid sampling when available.
+				// NOTE: Metric_NullGeodesic still borrows GRIN here because FieldGrid3D caches GRIN acceleration;
+				// an in-bounds grid hit bypasses StepTransport_MetricStub for this step.
 				if (fieldGrid != null && fieldGrid.TrySample(p, out a))
 				{
 					fieldGridHits++;
+					if (activeTransport == TransportModel.Metric_NullGeodesic)
+					{
+						_metricGridBypassStepCount++;
+					}
 				}
 				// DECISION: grid exists but point is outside bounds — fall through to source eval.
 				else if (fieldGrid != null)
@@ -2853,10 +2885,53 @@ public partial class RayBeamRenderer : Node3D
 		public bool IsZero => Delta.LengthSquared() <= 0f;
 	}
 
-	// Research scalar mapping for Metric_NullGeodesic scaffold:
-	// weakField ~= |Amp| * betaScaleEff * BendScale * FieldStrength.
-	// This keeps metric tuning tied to existing fixture/source parameters without modifying FieldMath.
-	public static float ComputeMetricWeakFieldScalarProxy(
+	private readonly struct MetricWeakFieldScalarInputs
+	{
+		public readonly bool HasEnabledSource;
+		public readonly int SourceIndex;
+		public readonly float Amp;
+		public readonly float BetaScaleEff;
+		public readonly float BendScaleEff;
+		public readonly float FieldStrengthEff;
+		public readonly float Scalar;
+		public readonly float ROuter;
+		public readonly FieldCurveType CurveType;
+		public readonly bool OverrideBetaScale;
+
+		public MetricWeakFieldScalarInputs(
+			bool hasEnabledSource,
+			int sourceIndex,
+			float amp,
+			float betaScaleEff,
+			float bendScaleEff,
+			float fieldStrengthEff,
+			float scalar,
+			float rOuter,
+			FieldCurveType curveType,
+			bool overrideBetaScale)
+		{
+			HasEnabledSource = hasEnabledSource;
+			SourceIndex = sourceIndex;
+			Amp = amp;
+			BetaScaleEff = betaScaleEff;
+			BendScaleEff = bendScaleEff;
+			FieldStrengthEff = fieldStrengthEff;
+			Scalar = scalar;
+			ROuter = rOuter;
+			CurveType = curveType;
+			OverrideBetaScale = overrideBetaScale;
+		}
+	}
+
+	// Metric_NullGeodesic is still a weak-field scaffold.
+	// Direct source-side mapping is intentionally narrow:
+	// - |Amp| and resolved betaScaleEff from the first enabled source feed the metric scalar proxy.
+	// - first enabled source ROuter feeds the metric envelope radius in StepTransport_MetricStub.
+	// Curve/profile controls (CurveType/Gamma/A/B/C/Sigma/RInner/CustomCurve/EdgeSoftness) do not
+	// directly parameterize the metric turn law. They only leak in indirectly because the metric stub
+	// also computes GRIN acceleration, uses |grinAccel| as a floor on weakFieldScalar, and falls back
+	// to GRIN when the metric direction delta collapses to zero/non-finite.
+	private static MetricWeakFieldScalarInputs ResolveMetricWeakFieldScalarInputs(
 		FieldSourceSnap[] sources,
 		float globalBeta,
 		float bendScale,
@@ -2864,7 +2939,10 @@ public partial class RayBeamRenderer : Node3D
 	{
 		float betaEff = Mathf.Abs(globalBeta);
 		float amp = 0f;
-		bool foundEnabledSource = false;
+		float rOuter = 0f;
+		FieldCurveType curveType = FieldCurveType.Linear;
+		bool overrideBetaScale = false;
+		int sourceIndex = -1;
 		if (sources != null)
 		{
 			for (int i = 0; i < sources.Length; i++)
@@ -2875,20 +2953,49 @@ public partial class RayBeamRenderer : Node3D
 					continue;
 				}
 
-				foundEnabledSource = true;
+				sourceIndex = i;
 				amp = Mathf.Abs(source.Amp);
 				betaEff = Mathf.Abs(source.OverrideBetaScale ? source.BetaScale : globalBeta);
+				rOuter = Mathf.Max(0f, source.ROuter);
+				curveType = source.CurveType;
+				overrideBetaScale = source.OverrideBetaScale;
 				break;
 			}
 		}
 
 		// Fallback preserves non-zero coupling when no sources are active.
-		if (!foundEnabledSource)
+		if (sourceIndex < 0)
 		{
 			amp = 1f;
 		}
 
-		return Mathf.Max(0f, amp * betaEff * Mathf.Abs(bendScale) * Mathf.Abs(fieldStrength));
+		float bendScaleEff = Mathf.Abs(bendScale);
+		float fieldStrengthEff = Mathf.Abs(fieldStrength);
+		float scalar = Mathf.Max(0f, amp * betaEff * bendScaleEff * fieldStrengthEff);
+		return new MetricWeakFieldScalarInputs(
+			sourceIndex >= 0,
+			sourceIndex,
+			amp,
+			betaEff,
+			bendScaleEff,
+			fieldStrengthEff,
+			scalar,
+			rOuter,
+			curveType,
+			overrideBetaScale);
+	}
+
+	// Research scalar mapping for Metric_NullGeodesic scaffold:
+	// weakField ~= |Amp| * betaScaleEff * BendScale * FieldStrength.
+	// This is still GRIN-scaffolded source tuning, not a metric-only scalar path.
+	// This keeps metric tuning tied to existing fixture/source parameters without modifying FieldMath.
+	public static float ComputeMetricWeakFieldScalarProxy(
+		FieldSourceSnap[] sources,
+		float globalBeta,
+		float bendScale,
+		float fieldStrength)
+	{
+		return ResolveMetricWeakFieldScalarInputs(sources, globalBeta, bendScale, fieldStrength).Scalar;
 	}
 
 	public static float ComputeMetricWeakFieldScalarForActiveModel(
@@ -3225,6 +3332,7 @@ public partial class RayBeamRenderer : Node3D
 		float traveled,
 		float minStep,
 		float maxStep,
+		FieldGrid3D fieldGrid,
 		bool applyLowCurvatureBoost,
 		out Vector3 next,
 		out Vector3 vNext,
@@ -3243,7 +3351,14 @@ public partial class RayBeamRenderer : Node3D
 		}
 
 		TransportModel active = hasSources ? ResolveActiveTransportModel(fieldSources) : TransportModel.GRIN_Optical;
-		acceleration = ComputeTransportAccelerationForActiveModel(active, p, v, center, beta, gamma, fieldSources, hasSources);
+		if (fieldGrid != null && active == TransportModel.Metric_NullGeodesic && fieldGrid.TrySample(p, out acceleration))
+		{
+			_metricGridBypassStepCount++;
+		}
+		else
+		{
+			acceleration = ComputeTransportAccelerationForActiveModel(active, p, v, center, beta, gamma, fieldSources, hasSources);
+		}
 
 		float aLen = acceleration.Length();
 		if (!float.IsFinite(aLen))
@@ -3330,17 +3445,22 @@ public partial class RayBeamRenderer : Node3D
 		Vector3 grinAccel = StepTransport_GRIN(p, center, beta, gamma, fieldSources, hasSources);
 		Vector3 sourceCenter = hasSources ? fieldSources[0].Center : center;
 		float radialDistance = p.DistanceTo(sourceCenter);
-		float characteristicRadius = hasSources
-			? Mathf.Max(0.25f, fieldSources[0].ROuter)
-			: Mathf.Max(0.25f, radialDistance);
-		float metricScalarOverride = ResolveMetricComparisonScalarOverride();
-		float mappedWeakFieldScalar = ComputeMetricWeakFieldScalarForActiveModel(
+		MetricWeakFieldScalarInputs metricInputs = ResolveMetricWeakFieldScalarInputs(
 			fieldSources,
 			beta,
 			BendScale,
-			FieldStrength,
-			TransportModel.Metric_NullGeodesic);
-		float weakFieldScalar = Mathf.Max(mappedWeakFieldScalar, grinAccel.Length());
+			FieldStrength);
+		float characteristicRadius = hasSources
+			? Mathf.Max(0.25f, metricInputs.ROuter)
+			: Mathf.Max(0.25f, radialDistance);
+		float metricScalarOverride = ResolveMetricComparisonScalarOverride();
+		float mappedWeakFieldScalar = metricInputs.Scalar * metricScalarOverride;
+		float grinAccelMagnitude = grinAccel.Length();
+		if (grinAccelMagnitude > mappedWeakFieldScalar)
+		{
+			_metricScalarDominatedStepCount++;
+		}
+		float weakFieldScalar = Mathf.Max(mappedWeakFieldScalar, grinAccelMagnitude);
 		var metricContext = new MetricTransportStepContext(
 			p,
 			sourceCenter,
@@ -3358,8 +3478,21 @@ public partial class RayBeamRenderer : Node3D
 			GD.Print(
 				$"[Transport] Metric_NullGeodesic weak-field scaffold active. " +
 				$"effectiveMetricScalar={weakFieldScalar:0.######} " +
-				$"(mapped={mappedWeakFieldScalar:0.######}, grinAccelMag={grinAccel.Length():0.######}, metricScalarOverride={metricScalarOverride:0.###}, " +
+				$"(mapped={mappedWeakFieldScalar:0.######}, grinAccelMag={grinAccelMagnitude:0.######}, metricScalarOverride={metricScalarOverride:0.###}, " +
 				$"formula=weakFieldScalar*step*boundedLensingWeight).");
+		}
+		if (!_loggedMetricScalarIngredients)
+		{
+			_loggedMetricScalarIngredients = true;
+			string sourceToken = metricInputs.HasEnabledSource ? metricInputs.SourceIndex.ToString(CultureInfo.InvariantCulture) : "none";
+			string betaMode = metricInputs.OverrideBetaScale ? "override" : "global";
+			GD.Print(
+				$"[Transport][MetricScalarMap] sourceIndex={sourceToken} amp={metricInputs.Amp:0.######} " +
+				$"betaScaleEff={metricInputs.BetaScaleEff:0.######} betaMode={betaMode} " +
+				$"bendScaleEff={metricInputs.BendScaleEff:0.######} fieldStrengthEff={metricInputs.FieldStrengthEff:0.######} " +
+				$"rOuter={metricInputs.ROuter:0.######} mappedWeakField={mappedWeakFieldScalar:0.######} " +
+				$"grinAccelMag={grinAccelMagnitude:0.######} effectiveMetricScalar={weakFieldScalar:0.######} " +
+				$"curveIndirect={metricInputs.CurveType} note=gamma/a/b/c/sigma/rInner/curve-shape only via grinFloorOrFallback");
 		}
 
 		if (metricEval.IsZero)
