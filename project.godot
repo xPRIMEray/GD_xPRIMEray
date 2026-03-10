@@ -15,7 +15,7 @@ config/description="This demo showcases a physical light and camera units setup.
 This allows you to use real world units for lights (lumen, lux, Kelvin)
 and cameras (shutter speed, aperture, ISO sensitivity)."
 config/tags=PackedStringArray("3d", "blackhole", "curvature", "demo", "geodesic", "grin", "null", "rendering", "wormhole")
-run/main_scene="uid://cu1pi4gpm7oa8"
+run/main_scene="res://test-einstein-ring-minimal-metric.tscn"
 config/features=PackedStringArray("4.5", "C#")
 config/icon="res://icon.webp"
 
@@ -32,6 +32,10 @@ window/stretch/aspect="expand"
 
 project/assembly_name="Physical Light and Camera Units"
 
+[physics]
+
+3d/run_on_separate_thread=true
+
 [rendering]
 
 rendering_device/driver.windows="d3d12"
@@ -45,3 +49,7 @@ lights_and_shadows/positional_shadow/soft_shadow_filter_quality=3
 anti_aliasing/quality/msaa_3d=2
 global_illumination/sdfgi/probe_ray_count=5
 anti_aliasing/quality/use_debanding=true
+
+[threading]
+
+worker_pool/max_threads=24

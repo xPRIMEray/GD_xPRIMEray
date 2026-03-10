@@ -1081,6 +1081,24 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 			: Path.GetFileNameWithoutExtension(scenePath);
 		GD.Print(
 			$"[FixtureStartup] fixture=einstein_ring_minimal variant={variant} transport={transportModel} source={transportSource}");
+		LogMetricVariantTransportMismatchIfNeeded(variant, transportModel, transportSource);
+	}
+
+	private static void LogMetricVariantTransportMismatchIfNeeded(
+		string variant,
+		TransportModel transportModel,
+		string transportSource)
+	{
+		if (string.IsNullOrWhiteSpace(variant) ||
+			variant.IndexOf("-metric", StringComparison.OrdinalIgnoreCase) < 0 ||
+			transportModel != TransportModel.GRIN_Optical)
+		{
+			return;
+		}
+
+		GD.PrintErr(
+			$"[FixtureStartup][WARN] fixture=einstein_ring_minimal variant={variant} resolved_transport={transportModel} " +
+			$"source={transportSource} expected_metric_scene_baseline=Metric_NullGeodesic");
 	}
 
 	private void ApplyHudMetadata(GrinFilmCamera filmCamera, RayBeamRenderer rayRenderer, TransportModel activeTransportModel)

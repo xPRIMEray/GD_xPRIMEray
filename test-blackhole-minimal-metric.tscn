@@ -1,10 +1,10 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=6 format=3 uid="uid://dmw0uh3m8fqj5"]
 
-[ext_resource type="PackedScene" path="res://Fixtures/fixture_blackhole_minimal_metric.tscn" id="1_fixture"]
-[ext_resource type="Script" path="res://GrinFilmCamera.cs" id="2_grin"]
-[ext_resource type="Script" path="res://RendererCore/Testing/RenderTestRunner.cs" id="3_runner"]
-[ext_resource type="Script" path="res://FilmOverlay2D.cs" id="4_overlay"]
-[ext_resource type="Script" path="res://Fixtures/BlackHoleMinimalFingerprint.cs" id="5_fp"]
+[ext_resource type="PackedScene" uid="uid://b5eejq2c462d7" path="res://Fixtures/fixture_blackhole_minimal_metric.tscn" id="1_fixture"]
+[ext_resource type="Script" uid="uid://b3y1shfx51f53" path="res://GrinFilmCamera.cs" id="2_grin"]
+[ext_resource type="Script" uid="uid://dg263rv7q0mtq" path="res://RendererCore/Testing/RenderTestRunner.cs" id="3_runner"]
+[ext_resource type="Script" uid="uid://c0nlk0rn3oilh" path="res://FilmOverlay2D.cs" id="4_overlay"]
+[ext_resource type="Script" uid="uid://dfhrk0pmamjr1" path="res://Fixtures/BlackHoleMinimalFingerprint.cs" id="5_fp"]
 
 [node name="TestBlackholeMinimalMetricHarness" type="Node3D"]
 script = ExtResource("5_fp")
@@ -66,7 +66,6 @@ metadata/_edit_use_anchors_ = true
 
 [node name="RenderTestRunner" type="Node" parent="."]
 script = ExtResource("3_runner")
-StartWhenCmdArgPresent = true
 Fixture = 3
 FramesPerRun = 300
 WarmupFrames = 30

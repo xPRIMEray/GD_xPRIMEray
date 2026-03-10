@@ -82,6 +82,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 	private const string FixtureTransportArgPrefix = "--blackhole-transport-model=";
 	private const string MetricDetectorScaleArgPrefix = "--blackhole-metric-detector-scale=";
 	private const string MetricLargeDetectorArg = "--blackhole-metric-large-detector";
+	private const string MetricTrajectoryDebugArg = "--blackhole-metric-trajectory-debug";
 	private const float MetricLargeDetectorScale = 3.0f;
 
 	private const bool FixedPhotonBandEnabled = true;
@@ -110,6 +111,13 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 	private const float PhotonBandNoticeableAccelMin = 0.002f;
 	private const float ProbeAccelChaosBound = 8.0f;
 	private const float AccelClampMax = 50.0f;
+	private const int MetricTrajectoryDebugSampleStride = 8;
+	private const float MetricTrajectoryRearPlaneDistanceMin = 12.0f;
+	private const float MetricTrajectoryRearPlaneDistanceScale = 2.5f;
+	private const float MetricTrajectorySidePlaneYawDegrees = 35.0f;
+	private const float MetricTrajectorySidePlaneShiftScale = 0.75f;
+	private const float MetricTrajectorySidePlaneRearScale = 0.40f;
+	private const float MetricTrajectoryAltPlaneExtentScale = 1.35f;
 
 	private bool _invalidFixture;
 	private bool _loggedBroadphaseLock;
@@ -157,6 +165,18 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		{
 			Transform = transform;
 			HalfExtents = halfExtents;
+		}
+	}
+
+	private readonly struct DetectorDiagnosticPlacement
+	{
+		public readonly string Name;
+		public readonly DetectorPlaneData Plane;
+
+		public DetectorDiagnosticPlacement(string name, DetectorPlaneData plane)
+		{
+			Name = name ?? string.Empty;
+			Plane = plane;
 		}
 	}
 
@@ -888,6 +908,13 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		int closestApproachCount = 0;
 		float[] projectedRadii = new float[RayProbeNdc.Length];
 		int projectedRadiiCount = 0;
+		Vector3[] noPlaneFinalDirs = new Vector3[RayProbeNdc.Length];
+		Vector3[] noPlaneFinalPositions = new Vector3[RayProbeNdc.Length];
+		float[] noPlaneClosestApproach = new float[RayProbeNdc.Length];
+		float[] noPlanePlaneSignedDistances = new float[RayProbeNdc.Length];
+		int noPlaneSummaryCount = 0;
+		int noPlaneFacingHalfSpaceCount = 0;
+		int noPlaneExitedHalfSpaceCount = 0;
 		float stepLength = Mathf.Max(0.0001f, rayRenderer.StepLength);
 		float minStep = Mathf.Max(0.0001f, Mathf.Min(rayRenderer.MinStepLength, rayRenderer.MaxStepLength));
 		float maxStep = Mathf.Max(minStep, Mathf.Max(rayRenderer.MinStepLength, rayRenderer.MaxStepLength));
@@ -900,15 +927,26 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		Vector3 baseOrigin = launchCenter + new Vector3(0f, 0f, launchZ);
 		Vector3 marchDirection = Vector3.Back;
 		DetectorPlaneData detectorData = BuildDetectorPlaneData(detectorPlane);
+		DetectorDiagnosticPlacement[] alternatePlanes = BuildAlternateDetectorPlacements(detectorData, launchOuterRadius);
+		int[] alternatePlaneHits = alternatePlanes.Length > 0 ? new int[alternatePlanes.Length] : Array.Empty<int>();
+		bool debugTrajectories = ResolveMetricTrajectoryDebugEnabled();
 
 		for (int i = 0; i < RayProbeNdc.Length; i++)
 		{
 			Vector2 ndc = RayProbeNdc[i];
 			Vector3 p = baseOrigin + new Vector3(ndc.X * launchXY, ndc.Y * launchXY, 0f);
 			Vector3 v = marchDirection;
+			float launchPlaneSignedDistance = GetSignedDistanceToDetectorPlane(detectorData, p);
 			bool resolved = false;
 			bool crossedDetectorPlane = false;
 			float closestApproach = p.DistanceTo(launchCenter);
+			bool[] altPlaneHitForRay = alternatePlanes.Length > 0 ? new bool[alternatePlanes.Length] : Array.Empty<bool>();
+			StringBuilder trajectorySample = null;
+			if (debugTrajectories && ShouldCaptureMetricTrajectorySample(i))
+			{
+				trajectorySample = new StringBuilder(320);
+				AppendTrajectorySamplePoint(trajectorySample, p);
+			}
 			for (int s = 0; s < steps; s++)
 			{
 				if (IsAbsorbedAtPoint(p, snaps))
@@ -938,6 +976,24 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 					out float detectorT,
 					out float detectorRadius,
 					out bool detectorInBounds);
+				for (int altIndex = 0; altIndex < alternatePlanes.Length; altIndex++)
+				{
+					if (altPlaneHitForRay[altIndex])
+					{
+						continue;
+					}
+
+					if (TryIntersectSegmentDetector(
+						p,
+						nextP,
+						alternatePlanes[altIndex].Plane,
+						out _,
+						out _,
+						out bool altInBounds) && altInBounds)
+					{
+						altPlaneHitForRay[altIndex] = true;
+					}
+				}
 				closestApproach = Mathf.Min(closestApproach, DistancePointToSegment(launchCenter, p, nextP));
 				if (hitDetector || detectorT >= 0f)
 				{
@@ -967,6 +1023,10 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 					break;
 				}
 				p = nextP;
+				if (trajectorySample != null && ((s + 1) % MetricTrajectoryDebugSampleStride == 0 || s == steps - 1))
+				{
+					AppendTrajectorySamplePoint(trajectorySample, p);
+				}
 			}
 
 			if (resolved)
@@ -978,6 +1038,35 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			{
 				noPlaneIntersectHits++;
 				closestApproachRadii[closestApproachCount++] = closestApproach;
+				Vector3 finalDir = v.LengthSquared() > 1e-12f ? v.Normalized() : Vector3.Zero;
+				float finalPlaneSignedDistance = GetSignedDistanceToDetectorPlane(detectorData, p);
+				noPlaneFinalDirs[noPlaneSummaryCount] = finalDir;
+				noPlaneFinalPositions[noPlaneSummaryCount] = p;
+				noPlaneClosestApproach[noPlaneSummaryCount] = closestApproach;
+				noPlanePlaneSignedDistances[noPlaneSummaryCount] = finalPlaneSignedDistance;
+				if (IsSameDetectorHalfSpace(launchPlaneSignedDistance, finalPlaneSignedDistance))
+				{
+					noPlaneFacingHalfSpaceCount++;
+				}
+				else
+				{
+					noPlaneExitedHalfSpaceCount++;
+				}
+				for (int altIndex = 0; altIndex < alternatePlanes.Length; altIndex++)
+				{
+					if (altPlaneHitForRay[altIndex])
+					{
+						alternatePlaneHits[altIndex]++;
+					}
+				}
+				if (trajectorySample != null)
+				{
+					GD.Print(
+						$"[BlackHoleMetricTrajectorySample] i={i} ndc={FormatVec2(ndc)} finalPos={FormatVec3(p)} " +
+						$"finalDir={FormatVec3(finalDir)} signedPlaneDist={finalPlaneSignedDistance:0.###} closestApproach={closestApproach:0.###} " +
+						$"polyline={trajectorySample}");
+				}
+				noPlaneSummaryCount++;
 			}
 			missHits++;
 		}
@@ -988,10 +1077,25 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		ComputeRadiusStats(absorbedRadii, absorbedRadiiCount, out float mean, out float stdDev, out _, out _, out float range);
 		ComputeRadiusStats(closestApproachRadii, closestApproachCount, out float closestMean, out float closestStdDev, out _, out _, out float closestRange);
 		ComputeRadiusStats(projectedRadii, projectedRadiiCount, out float projectedMean, out float projectedStdDev, out _, out _, out float projectedRange);
+		ComputeVector3Stats(noPlaneFinalDirs, noPlaneSummaryCount, out Vector3 finalDirMean, out Vector3 finalDirSpread);
+		ComputeVector3Stats(noPlaneFinalPositions, noPlaneSummaryCount, out Vector3 finalPosMean, out _);
+		ComputeRadiusStats(noPlaneClosestApproach, noPlaneSummaryCount, out float noPlaneClosestMean, out _, out _, out _, out _);
+		ComputeRadiusStats(noPlanePlaneSignedDistances, noPlaneSummaryCount, out float planeSignedDistanceMean, out float planeSignedDistanceSpread, out _, out _, out _);
 		string histogram = BuildRadialHistogram(absorbedRadii, absorbedRadiiCount, silhouetteBins);
+		string altPlaneSummary = BuildAlternatePlaneHitSummary(alternatePlanes, alternatePlaneHits, noPlaneSummaryCount);
 		string metricPathSummary =
 			$"[BlackHoleMetricPath] detectorScale={detectorScale:0.###} absorbed={absorbedHits} offscreenDetectorHits={offscreenDetectorHits} " +
 			$"noPlaneIntersect={noPlaneIntersectHits} closestApproachMean={closestMean:0.######} projectedRadiusMean={projectedMean:0.######}";
+		if (noPlaneSummaryCount > 0)
+		{
+			metricPathSummary =
+				$"[BlackHoleMetricTrajectory] absorbed={absorbedHits} noPlaneIntersect={noPlaneIntersectHits} " +
+				$"finalDirMean={FormatVec3(finalDirMean)} finalDirSpread={FormatVec3(finalDirSpread)} " +
+				$"planeDistMean={planeSignedDistanceMean:0.###} planeDistSpread={planeSignedDistanceSpread:0.###} " +
+				$"halfSpaceFacing={noPlaneFacingHalfSpaceCount}/{noPlaneSummaryCount} exited={noPlaneExitedHalfSpaceCount} " +
+				$"closestApproachMean={noPlaneClosestMean:0.######} finalPosMean={FormatVec3(finalPosMean)} " +
+				$"{altPlaneSummary}";
+		}
 		return new BlackHoleProbeSummary(
 			sourceHits,
 			backgroundHits,
@@ -1170,6 +1274,47 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		return new DetectorPlaneData(transform, halfExtents);
 	}
 
+	private static DetectorDiagnosticPlacement[] BuildAlternateDetectorPlacements(DetectorPlaneData basePlane, float launchOuterRadius)
+	{
+		float rearOffset = Mathf.Max(MetricTrajectoryRearPlaneDistanceMin, launchOuterRadius * MetricTrajectoryRearPlaneDistanceScale);
+		Vector3 normal = basePlane.Transform.Basis.Z.Normalized();
+		Vector3 lateral = basePlane.Transform.Basis.X.Normalized();
+
+		Transform3D rearTransform = basePlane.Transform;
+		rearTransform.Origin -= normal * rearOffset;
+
+		Transform3D sideTransform = basePlane.Transform;
+		sideTransform.Basis = (sideTransform.Basis * new Basis(Vector3.Up, Mathf.DegToRad(MetricTrajectorySidePlaneYawDegrees))).Orthonormalized();
+		sideTransform.Origin += lateral * (rearOffset * MetricTrajectorySidePlaneShiftScale) - normal * (rearOffset * MetricTrajectorySidePlaneRearScale);
+
+		return new[]
+		{
+			new DetectorDiagnosticPlacement(
+				"rearFar",
+				new DetectorPlaneData(rearTransform, basePlane.HalfExtents)),
+			new DetectorDiagnosticPlacement(
+				"angledSide",
+				new DetectorPlaneData(sideTransform, basePlane.HalfExtents * MetricTrajectoryAltPlaneExtentScale))
+		};
+	}
+
+	private static float GetSignedDistanceToDetectorPlane(DetectorPlaneData detector, Vector3 point)
+	{
+		Transform3D inv = detector.Transform.AffineInverse();
+		Vector3 localPoint = inv * point;
+		return localPoint.Z;
+	}
+
+	private static bool IsSameDetectorHalfSpace(float launchSignedDistance, float finalSignedDistance)
+	{
+		if (Mathf.Abs(launchSignedDistance) <= 1e-5f || Mathf.Abs(finalSignedDistance) <= 1e-5f)
+		{
+			return true;
+		}
+
+		return Mathf.Sign(launchSignedDistance) == Mathf.Sign(finalSignedDistance);
+	}
+
 	private static bool TryIntersectSegmentDetector(
 		Vector3 p0,
 		Vector3 p1,
@@ -1288,6 +1433,35 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		}
 		stdDev = Mathf.Sqrt(variance / count);
 		range = max - min;
+	}
+
+	private static void ComputeVector3Stats(Vector3[] values, int count, out Vector3 mean, out Vector3 stdDev)
+	{
+		mean = Vector3.Zero;
+		stdDev = Vector3.Zero;
+		if (values == null || count <= 0)
+		{
+			return;
+		}
+
+		for (int i = 0; i < count; i++)
+		{
+			mean += values[i];
+		}
+		mean /= count;
+
+		Vector3 variance = Vector3.Zero;
+		for (int i = 0; i < count; i++)
+		{
+			Vector3 d = values[i] - mean;
+			variance += new Vector3(d.X * d.X, d.Y * d.Y, d.Z * d.Z);
+		}
+
+		variance /= count;
+		stdDev = new Vector3(
+			Mathf.Sqrt(variance.X),
+			Mathf.Sqrt(variance.Y),
+			Mathf.Sqrt(variance.Z));
 	}
 
 	private static float DistancePointToSegment(Vector3 point, Vector3 segA, Vector3 segB)
@@ -1648,6 +1822,12 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		return 1f;
 	}
 
+	private static bool ResolveMetricTrajectoryDebugEnabled()
+	{
+		return HasCommandLineArg(OS.GetCmdlineUserArgs(), MetricTrajectoryDebugArg) ||
+			HasCommandLineArg(OS.GetCmdlineArgs(), MetricTrajectoryDebugArg);
+	}
+
 	private TransportModel ResolveFixtureTransportModel(out string source)
 	{
 		if (TryParseTransportOverrideArg(OS.GetCmdlineUserArgs(), out TransportModel fromUser))
@@ -1763,6 +1943,24 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		return Enum.TryParse(token, true, out model);
 	}
 
+	private static bool HasCommandLineArg(string[] args, string expected)
+	{
+		if (args == null || args.Length == 0 || string.IsNullOrWhiteSpace(expected))
+		{
+			return false;
+		}
+
+		for (int i = 0; i < args.Length; i++)
+		{
+			if (string.Equals(args[i], expected, StringComparison.OrdinalIgnoreCase))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	private static float MaybeApplyMetricDetectorScaleOverride(StaticBody3D detectorPlane, TransportModel activeTransportModel)
 	{
 		float scale = ResolveMetricDetectorScaleOverride();
@@ -1806,6 +2004,24 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			: Path.GetFileNameWithoutExtension(scenePath);
 		GD.Print(
 			$"[FixtureStartup] fixture=blackhole_minimal variant={variant} transport={transportModel} source={transportSource}");
+		LogMetricVariantTransportMismatchIfNeeded(variant, transportModel, transportSource);
+	}
+
+	private static void LogMetricVariantTransportMismatchIfNeeded(
+		string variant,
+		TransportModel transportModel,
+		string transportSource)
+	{
+		if (string.IsNullOrWhiteSpace(variant) ||
+			variant.IndexOf("-metric", StringComparison.OrdinalIgnoreCase) < 0 ||
+			transportModel != TransportModel.GRIN_Optical)
+		{
+			return;
+		}
+
+		GD.PrintErr(
+			$"[FixtureStartup][WARN] fixture=blackhole_minimal variant={variant} resolved_transport={transportModel} " +
+			$"source={transportSource} expected_metric_scene_baseline=Metric_NullGeodesic");
 	}
 
 	private void ApplyHudMetadata(GrinFilmCamera filmCamera, RayBeamRenderer rayRenderer, TransportModel activeTransportModel)
@@ -1906,6 +2122,60 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 	private static string FormatVec3(Vector3 v)
 	{
 		return $"({v.X:0.###},{v.Y:0.###},{v.Z:0.###})";
+	}
+
+	private static string FormatVec2(Vector2 v)
+	{
+		return $"({v.X:0.###},{v.Y:0.###})";
+	}
+
+	private static void AppendTrajectorySamplePoint(StringBuilder builder, Vector3 point)
+	{
+		if (builder == null)
+		{
+			return;
+		}
+
+		if (builder.Length > 0)
+		{
+			builder.Append("->");
+		}
+		builder.Append(FormatVec3(point));
+	}
+
+	private static bool ShouldCaptureMetricTrajectorySample(int rayIndex)
+	{
+		return rayIndex == 0 ||
+			rayIndex == RayProbeNdc.Length / 2 ||
+			rayIndex == RayProbeNdc.Length - 1 ||
+			rayIndex == Mathf.Clamp(RayProbeNdc.Length / 2 - 1, 0, RayProbeNdc.Length - 1);
+	}
+
+	private static string BuildAlternatePlaneHitSummary(
+		DetectorDiagnosticPlacement[] alternatePlanes,
+		int[] hitCounts,
+		int sampleCount)
+	{
+		if (alternatePlanes == null || hitCounts == null || alternatePlanes.Length == 0 || hitCounts.Length == 0)
+		{
+			return "altPlaneHits=n/a";
+		}
+
+		StringBuilder builder = new StringBuilder(64);
+		builder.Append("altPlaneHits=");
+		for (int i = 0; i < alternatePlanes.Length && i < hitCounts.Length; i++)
+		{
+			if (i > 0)
+			{
+				builder.Append(',');
+			}
+			builder.Append(alternatePlanes[i].Name);
+			builder.Append(':');
+			builder.Append(hitCounts[i]);
+			builder.Append('/');
+			builder.Append(sampleCount);
+		}
+		return builder.ToString();
 	}
 
 	private static float[] BuildFingerprintAccelMagnitudes(Vector3 fieldCenter, RayBeamRenderer.FieldSourceSnap snap)

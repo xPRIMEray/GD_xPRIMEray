@@ -68,7 +68,11 @@ public partial class RenderTestRunner : Node
 	private const string RenderTestStraightScenePath = "res://test-straight.tscn";
 	private const string RenderTestCurvedMinimalScenePath = "res://test-curved-minimal.tscn";
 	private const string RenderTestBlackholeMinimalScenePath = "res://test-blackhole-minimal.tscn";
+	private const string RenderTestBlackholeMinimalMetricScenePath = "res://test-blackhole-minimal-metric.tscn";
+	private const string RenderTestBlackholeMinimalGrinScenePath = "res://test-blackhole-minimal-grin.tscn";
 	private const string RenderTestEinsteinRingMinimalScenePath = "res://test-einstein-ring-minimal.tscn";
+	private const string RenderTestEinsteinRingMinimalMetricScenePath = "res://test-einstein-ring-minimal-metric.tscn";
+	private const string RenderTestEinsteinRingMinimalGrinScenePath = "res://test-einstein-ring-minimal-grin.tscn";
 	private const string RenderTestStraightArgToken = "--render-test-straight";
 	private const string RenderTestStraightSceneHint = "straight";
 	private const string RenderTestFixtureArgPrefix = "--render-test-fixture=";
@@ -3453,16 +3457,51 @@ public partial class RenderTestRunner : Node
 		};
 	}
 
-	private static string GetScenePathForFixture(RenderTestFixture fixture)
+	private string GetScenePathForFixture(RenderTestFixture fixture)
 	{
 		return fixture switch
 		{
 			RenderTestFixture.Straight => RenderTestStraightScenePath,
 			RenderTestFixture.CurvedMinimal => RenderTestCurvedMinimalScenePath,
-			RenderTestFixture.BlackholeMinimal => RenderTestBlackholeMinimalScenePath,
-			RenderTestFixture.EinsteinRingMinimal => RenderTestEinsteinRingMinimalScenePath,
+			RenderTestFixture.BlackholeMinimal => ResolveVariantScenePath(
+				RenderTestBlackholeMinimalScenePath,
+				RenderTestBlackholeMinimalMetricScenePath,
+				RenderTestBlackholeMinimalGrinScenePath),
+			RenderTestFixture.EinsteinRingMinimal => ResolveVariantScenePath(
+				RenderTestEinsteinRingMinimalScenePath,
+				RenderTestEinsteinRingMinimalMetricScenePath,
+				RenderTestEinsteinRingMinimalGrinScenePath),
 			_ => RenderTestDefaultScenePath
 		};
+	}
+
+	private string ResolveVariantScenePath(string defaultScenePath, string metricScenePath, string grinScenePath)
+	{
+		if (IsMetricTransportRequestedForFixture())
+		{
+			return metricScenePath;
+		}
+
+		string transportOverride = GetTransportOverrideArgValue("--transport-model=");
+		if (string.IsNullOrWhiteSpace(transportOverride))
+		{
+			string fixtureSpecificPrefix = _requestedFixture switch
+			{
+				RenderTestFixture.BlackholeMinimal => "--blackhole-transport-model=",
+				RenderTestFixture.EinsteinRingMinimal => "--einstein-transport-model=",
+				_ => string.Empty
+			};
+			transportOverride = GetTransportOverrideArgValue(fixtureSpecificPrefix);
+		}
+
+		if (string.Equals(transportOverride, "grin", StringComparison.OrdinalIgnoreCase) ||
+			string.Equals(transportOverride, "grin_optical", StringComparison.OrdinalIgnoreCase) ||
+			string.Equals(transportOverride, "optical", StringComparison.OrdinalIgnoreCase))
+		{
+			return grinScenePath;
+		}
+
+		return defaultScenePath;
 	}
 
 	private bool IsCurrentScenePath(string scenePath)

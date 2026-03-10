@@ -1,10 +1,10 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=6 format=3 uid="uid://b7vaqgiy6p3bd"]
 
-[ext_resource type="PackedScene" path="res://Fixtures/fixture_einstein_ring_minimal_metric.tscn" id="1_fixture"]
-[ext_resource type="Script" path="res://GrinFilmCamera.cs" id="2_grin"]
-[ext_resource type="Script" path="res://RendererCore/Testing/RenderTestRunner.cs" id="3_runner"]
-[ext_resource type="Script" path="res://FilmOverlay2D.cs" id="4_overlay"]
-[ext_resource type="Script" path="res://Fixtures/EinsteinRingMinimalFingerprint.cs" id="5_fp"]
+[ext_resource type="PackedScene" uid="uid://dif3oh231sbal" path="res://Fixtures/fixture_einstein_ring_minimal_metric.tscn" id="1_fixture"]
+[ext_resource type="Script" uid="uid://b3y1shfx51f53" path="res://GrinFilmCamera.cs" id="2_grin"]
+[ext_resource type="Script" uid="uid://dg263rv7q0mtq" path="res://RendererCore/Testing/RenderTestRunner.cs" id="3_runner"]
+[ext_resource type="Script" uid="uid://c0nlk0rn3oilh" path="res://FilmOverlay2D.cs" id="4_overlay"]
+[ext_resource type="Script" uid="uid://b78blc82i6i7" path="res://Fixtures/EinsteinRingMinimalFingerprint.cs" id="5_fp"]
 
 [node name="TestEinsteinRingMinimalMetricHarness" type="Node3D"]
 script = ExtResource("5_fp")

@@ -1,3 +1,2 @@
-res://Fixtures/fixture_blackhole_minimal_grin.tscn
-res://Fixtures/fixture_blackhole_minimal_metric.tscn
-res://test.tscn
+res://test-einstein-ring-minimal-metric.tscn
+res://Fixtures/fixture_einstein_ring_minimal_metric.tscn
