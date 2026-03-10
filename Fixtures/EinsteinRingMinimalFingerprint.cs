@@ -245,12 +245,16 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 			return;
 		}
 
-		ApplyCanonicalFixtureParams(massField, fixtureTransportModel);
+		MaybeApplyTransportOverride(massField, fixtureTransportModel, transportSource);
+		MaybeApplyTransportOverride(photonBandField, fixtureTransportModel, transportSource);
 		PhotonBandShell photonBandShell = ComputePhotonBandShell(FixedROuter, FixedRInner);
-		ApplyPhotonBandFixtureParams(photonBandField, photonBandShell, fixtureTransportModel);
 
 		FieldSource3D.ResolvedFieldParams massResolved = massField.ResolveEffectiveParams(out string massResolveReason);
 		FieldSource3D.ResolvedFieldParams bandResolved = photonBandField.ResolveEffectiveParams(out string bandResolveReason);
+		LogFieldStartupSummary("mass", massField, massResolved, massResolveReason, transportSource);
+		LogFieldStartupSummary("photon_band", photonBandField, bandResolved, bandResolveReason, transportSource);
+		WarnUnexpectedLegacyFallback(massField, massResolveReason);
+		WarnUnexpectedLegacyFallback(photonBandField, bandResolveReason);
 		RayBeamRenderer.FieldSourceSnap massSnap = RayBeamRenderer.BuildFieldSourceSnap(massField);
 		RayBeamRenderer.FieldSourceSnap bandSnap = RayBeamRenderer.BuildFieldSourceSnap(photonBandField);
 		RayBeamRenderer.FieldSourceSnap[] snaps = BuildSourceArray(massSnap, bandSnap);
@@ -611,23 +615,6 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 				$"curvature_energy={curvatureEnergy:0.######} max_probe_accel={maxProbeAccel:0.######} far_accel={farAccelMag:0.######}");
 		}
 
-		massField.Strength = FixedAmp;
-		massField.Softening = FixedSoftening;
-		massField.OuterRadius = FixedROuter;
-		massField.OverrideGamma = true;
-		massField.Gamma = FixedGamma;
-		massField.DebugDrawBounds = FixedDebugDrawBounds;
-		massField.DebugDrawInGame = FixedDebugDrawInGame;
-
-		photonBandField.Strength = FixedPhotonBandAmp;
-		photonBandField.Softening = FixedPhotonBandSoftening;
-		photonBandField.InnerRadius = photonBandShell.RInner;
-		photonBandField.OuterRadius = photonBandShell.ROuter;
-		photonBandField.OverrideGamma = false;
-		photonBandField.Gamma = 1.0f;
-		photonBandField.DebugDrawBounds = FixedDebugDrawBounds;
-		photonBandField.DebugDrawInGame = FixedDebugDrawInGame;
-
 		string sphereScale = sphere != null ? FormatVec3(sphere.Scale) : "n/a";
 		string spherePos = sphere != null ? FormatVec3(sphere.GlobalTransform.Origin) : "n/a";
 		string camFov = camera != null ? $"{camera.Fov:0.###}" : "n/a";
@@ -714,10 +701,10 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 				$"error=missing_nodes mass_field={(massField != null ? 1 : 0)} band_field={(photonBandField != null ? 1 : 0)} renderer={(rayRenderer != null ? 1 : 0)}";
 		}
 
-		TransportModel fixtureTransportModel = ResolveFixtureTransportModel();
-		ApplyCanonicalFixtureParams(massField, fixtureTransportModel);
+		TransportModel fixtureTransportModel = ResolveFixtureTransportModel(out string transportSource);
+		MaybeApplyTransportOverride(massField, fixtureTransportModel, transportSource);
+		MaybeApplyTransportOverride(photonBandField, fixtureTransportModel, transportSource);
 		PhotonBandShell photonBandShell = ComputePhotonBandShell(FixedROuter, FixedRInner);
-		ApplyPhotonBandFixtureParams(photonBandField, photonBandShell, fixtureTransportModel);
 
 		FieldSource3D.ResolvedFieldParams massResolved = massField.ResolveEffectiveParams(out string massResolveReason);
 		FieldSource3D.ResolvedFieldParams bandResolved = photonBandField.ResolveEffectiveParams(out string bandResolveReason);
@@ -1163,27 +1150,17 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 			$"minDetectorRadius={summary.RadiusMin:0.###} maxDetectorRadius={summary.RadiusMax:0.###}{histogramToken}");
 	}
 
-	private static void ApplyCanonicalFixtureParams(FieldSource3D field, TransportModel transportModel)
+	private void MaybeApplyTransportOverride(FieldSource3D field, TransportModel transportModel, string transportSource)
 	{
-		field.Enabled = FixedEnabled;
-		field.ShapeType = FieldShapeType.SphereRadial;
-		field.CurveType = FixedCurveType;
-		field.CanonicalEnableInnerRadius = FixedEnableInnerRadius;
-		field.RInner = FixedRInner;
-		field.ROuter = FixedROuter;
-		field.Amp = FixedAmp;
-		field.CanonicalGamma = FixedGamma;
-		field.CanonicalOverrideBetaScale = FixedOverrideBetaScale;
-		field.CanonicalBetaScale = FixedBetaScale;
-		field.CurveA = FixedGamma;
-		field.CurveB = 0.0f;
-		field.CurveC = 0.0f;
-		field.ModeFlags = FixedModeFlags;
+		if (field == null || !IsCmdlineTransportSource(transportSource) || field.TransportModel == transportModel)
+		{
+			return;
+		}
+
+		TransportModel previous = field.TransportModel;
 		field.TransportModel = transportModel;
-		field.Softening = FixedSoftening;
-		field.CanonicalEdgeSoftness = FixedEdgeSoftness;
-		field.DebugDrawBounds = FixedDebugDrawBounds;
-		field.DebugDrawInGame = FixedDebugDrawInGame;
+		GD.Print(
+			$"[FixtureStartup][TransportOverride] fixture=einstein_ring_minimal node={field.Name} from={previous} to={transportModel} source={transportSource}");
 	}
 
 	private static PhotonBandShell ComputePhotonBandShell(float massOuterRadius, float massInnerRadius)
@@ -1196,27 +1173,64 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		return new PhotonBandShell(center, width, rInner, rOuter);
 	}
 
-	private static void ApplyPhotonBandFixtureParams(FieldSource3D photonBandField, PhotonBandShell shell, TransportModel transportModel)
+	private void LogFieldStartupSummary(
+		string label,
+		FieldSource3D field,
+		FieldSource3D.ResolvedFieldParams resolved,
+		string resolveReason,
+		string transportSource)
 	{
-		photonBandField.Enabled = FixedPhotonBandEnabled;
-		photonBandField.ShapeType = FieldShapeType.SphereRadial;
-		photonBandField.CurveType = FixedPhotonBandCurveType;
-		photonBandField.CanonicalEnableInnerRadius = true;
-		photonBandField.RInner = shell.RInner;
-		photonBandField.ROuter = shell.ROuter;
-		photonBandField.Amp = FixedPhotonBandAmp;
-		photonBandField.CanonicalGamma = 1.0f;
-		photonBandField.CurveA = FixedPhotonBandCurveA;
-		photonBandField.CurveB = FixedPhotonBandCurveB;
-		photonBandField.CurveC = FixedPhotonBandCurveC;
-		photonBandField.CanonicalOverrideBetaScale = FixedPhotonBandOverrideBetaScale;
-		photonBandField.CanonicalBetaScale = FixedPhotonBandBetaScale;
-		photonBandField.ModeFlags = FixedPhotonBandModeFlags;
-		photonBandField.TransportModel = transportModel;
-		photonBandField.Softening = FixedPhotonBandSoftening;
-		photonBandField.CanonicalEdgeSoftness = FixedPhotonBandEdgeSoftness;
-		photonBandField.DebugDrawBounds = FixedDebugDrawBounds;
-		photonBandField.DebugDrawInGame = FixedDebugDrawInGame;
+		string resolvedSource = ResolveFieldParamSource(resolveReason, transportSource);
+		bool legacyActive = field.HasActiveLegacyFallbackInputs(out string legacyActiveReason);
+		bool legacyIgnored = field.HasIgnoredLegacyInputs(out string legacyIgnoredReason);
+		string legacyState = legacyActive
+			? $"active({legacyActiveReason})"
+			: legacyIgnored ? $"ignored({legacyIgnoredReason})" : "inactive";
+		string curveParams = resolved.curveType switch
+		{
+			FieldCurveType.Power => $" gamma={resolved.a:0.###}",
+			FieldCurveType.Polynomial => $" a={resolved.a:0.###} b={resolved.b:0.###} c={resolved.c:0.###}",
+			FieldCurveType.Exponential => $" sigma={resolved.sigma:0.###}",
+			_ => string.Empty
+		};
+
+		GD.Print(
+			$"[FixtureField] fixture=einstein_ring_minimal node={field.Name} label={label} source={resolvedSource} transport={field.TransportModel} " +
+			$"curve={resolved.curveType} rInnerEnabled={(field.CanonicalEnableInnerRadius ? 1 : 0)} rInner={resolved.rInner:0.###} rOuter={resolved.rOuter:0.###} " +
+			$"amp={resolved.amp:0.###} betaMode={(resolved.overrideBetaScale ? "override" : "global")} betaScale={resolved.betaScale:0.###}{curveParams} legacy={legacyState}");
+	}
+
+	private void WarnUnexpectedLegacyFallback(FieldSource3D field, string resolveReason)
+	{
+		if (!IsLegacyResolve(resolveReason) || field == null || field.IsCanonicalUnset())
+		{
+			return;
+		}
+
+		GD.PushWarning(
+			$"[FixtureStartup][WARN] fixture=einstein_ring_minimal node={field.Name} resolved_from=legacy_fallback despite scene-authored canonical values.");
+	}
+
+	private static string ResolveFieldParamSource(string resolveReason, string transportSource)
+	{
+		if (IsLegacyResolve(resolveReason))
+		{
+			return "legacy_fallback";
+		}
+
+		return IsCmdlineTransportSource(transportSource) ? "cmdline_override" : "scene_baseline";
+	}
+
+	private static bool IsCmdlineTransportSource(string transportSource)
+	{
+		return string.Equals(transportSource, "cmdline", StringComparison.OrdinalIgnoreCase) ||
+			string.Equals(transportSource, "cmdline_user", StringComparison.OrdinalIgnoreCase);
+	}
+
+	private static bool IsLegacyResolve(string resolveReason)
+	{
+		return !string.IsNullOrWhiteSpace(resolveReason) &&
+			resolveReason.IndexOf("legacy", StringComparison.OrdinalIgnoreCase) >= 0;
 	}
 
 	private static RayBeamRenderer.FieldSourceSnap[] BuildSourceArray(

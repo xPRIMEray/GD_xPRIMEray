@@ -642,6 +642,30 @@ public partial class FieldSource3D : Node3D
 			&& CurveType == FieldCurveType.Linear;
 	}
 
+	public bool HasActiveLegacyFallbackInputs(out string reason)
+	{
+		return HasMeaningfulLegacyParams(out reason);
+	}
+
+	public bool HasIgnoredLegacyInputs(out string reason)
+	{
+		reason = "none";
+		if (IsCanonicalUnset() || !HasMeaningfulLegacyParams(out string legacyReason))
+		{
+			return false;
+		}
+
+		ResolvedFieldParams canonical = BuildCanonicalParams();
+		ResolvedFieldParams legacyMapped = ResolveLegacyCanonicalParams();
+		if (!AreMateriallyDifferent(canonical, legacyMapped))
+		{
+			return false;
+		}
+
+		reason = legacyReason;
+		return true;
+	}
+
 	public ResolvedFieldParams ResolveEffectiveParams(out string reason)
 	{
 		ResolvedFieldParams resolved;
@@ -793,20 +817,13 @@ public partial class FieldSource3D : Node3D
 
 	private void WarnIfCanonicalAndLegacyBothSet()
 	{
-		if (_warnedCanonicalLegacyConflict || IsCanonicalUnset() || !HasLegacyNonDefaultOverrides())
-		{
-			return;
-		}
-
-		ResolvedFieldParams canonical = BuildCanonicalParams();
-		ResolvedFieldParams legacyMapped = ResolveLegacyCanonicalParams();
-		if (!AreMateriallyDifferent(canonical, legacyMapped))
+		if (_warnedCanonicalLegacyConflict || !HasIgnoredLegacyInputs(out string legacyReason))
 		{
 			return;
 		}
 
 		_warnedCanonicalLegacyConflict = true;
-		GD.PushWarning("[FieldSource3D][Warn] canonical+legacy both set; using canonical. (legacy ignored)");
+		GD.PushWarning($"[FieldSource3D][Warn] canonical+legacy both set; using canonical. (legacy ignored, reason={legacyReason})");
 	}
 
 	private bool HasLegacyNonDefaultOverrides()
