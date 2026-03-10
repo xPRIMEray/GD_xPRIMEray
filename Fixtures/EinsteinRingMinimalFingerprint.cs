@@ -288,7 +288,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 			return;
 		}
 		_sourcePatternSummary = BuildSourcePatternSummaryToken();
-		ApplyHudMetadata(filmCamera, activeTransportModel);
+		ApplyHudMetadata(filmCamera, rayRenderer, activeTransportModel);
 		LogSourcePatternSummary();
 		LogSourcePatternMarkerDetails();
 
@@ -564,17 +564,17 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 			LogRingRadialSummary("off_axis_2", offAxisOffset2, offAxisRingSummary2, histogramBins);
 		}
 		GD.Print(
-			$"[EinsteinFixture][MetricDiagnostics] metricDeltaZeroCount={metricDiagnostics.MetricDeltaZeroCount} " +
+			$"[EinsteinFixture][MetricDiagnostics] metricLaw={metricDiagnostics.MetricSteeringLawToken} metricDeltaZeroCount={metricDiagnostics.MetricDeltaZeroCount} " +
 			$"metricDeltaNonzeroCount={metricDiagnostics.MetricDeltaNonzeroCount} metricFallbackCount={metricDiagnostics.MetricFallbackCount} " +
 			$"metricContributionRatio={metricDiagnostics.MetricContributionRatio:0.######} zeroReasons={metricDiagnostics.ZeroReasonSummary}");
 		GD.Print(
-			$"[MetricIsolation] metricDirectSteps={metricDiagnostics.MetricDirectSteps} gridBypassSteps={metricDiagnostics.GridBypassSteps} " +
+			$"[MetricIsolation] metricLaw={metricDiagnostics.MetricSteeringLawToken} metricDirectSteps={metricDiagnostics.MetricDirectSteps} gridBypassSteps={metricDiagnostics.GridBypassSteps} " +
 			$"grinFallbackSteps={metricDiagnostics.GrinFallbackSteps} grinScalarDominatedSteps={metricDiagnostics.GrinScalarDominatedSteps}");
 		GD.Print(
-			$"[TransportSteering] transportModel={activeTransportModel} meanTurn={metricDiagnostics.MeanTurn:0.######} " +
+			$"[TransportSteering] transportModel={activeTransportModel} metricLaw={metricDiagnostics.MetricSteeringLawToken} meanTurn={metricDiagnostics.MeanTurn:0.######} " +
 			$"maxTurn={metricDiagnostics.MaxTurn:0.######} radialBins=[{metricDiagnostics.RadialTurnSummary}]");
 		GD.Print(
-			$"[EinsteinFixture][ComparisonSummary] transportModel={activeTransportModel} effectiveMetricScalar={effectiveMetricScalar:0.######} " +
+			$"[EinsteinFixture][ComparisonSummary] transportModel={activeTransportModel} metricLaw={metricDiagnostics.MetricSteeringLawToken} effectiveMetricScalar={effectiveMetricScalar:0.######} " +
 			$"sourcePatternSummary={_sourcePatternSummary} sourceHits={onAxisRingSummary.SourceHits} backgroundHits={onAxisRingSummary.BackgroundHits} " +
 			$"absorbedHits={onAxisRingSummary.AbsorbedHits} missHits={onAxisRingSummary.MissHits} radiusMean={onAxisRingSummary.RadiusMean:0.######} " +
 			$"radiusStdDev={onAxisRingSummary.RadiusStdDev:0.######} radiusRange={onAxisRingSummary.RadiusRange:0.######} " +
@@ -740,6 +740,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		string rayEndpointVector = FormatRoundedVec3Vector(rayEndpoints);
 		string rayEndpointChecksum = ComputeSha256Hex(rayEndpointVector);
 		TransportModel activeTransportModel = RayBeamRenderer.ResolveActiveTransportModel(snaps);
+		string metricSteeringLaw = RayBeamRenderer.GetMetricSteeringLawToken(rayRenderer.GetEffectiveMetricSteeringLaw());
 		float effectiveMetricScalar = RayBeamRenderer.ComputeMetricWeakFieldScalarForActiveModel(
 			snaps,
 			FixedBetaScale,
@@ -749,7 +750,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		string sourcePatternSummary = BuildSourcePatternSummaryToken();
 
 		string fingerprintCore =
-			$"v=4;" +
+			$"v=5;" +
 			$"sourceCount=2;" +
 			$"massCanonical={(IsCanonicalResolve(massResolveReason) ? 1 : 0)};" +
 			$"bandCanonical={(IsCanonicalResolve(bandResolveReason) ? 1 : 0)};" +
@@ -788,6 +789,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 			$"stepAdaptGain={F(rayRenderer.StepAdaptGain)};" +
 			$"maxSteps={rayRenderer.StepsPerRay};" +
 			$"transportModel={activeTransportModel};" +
+			$"metricLaw={metricSteeringLaw};" +
 			$"effectiveMetricScalar={F(effectiveMetricScalar)};" +
 			$"sourcePatternSummary={sourcePatternSummary};" +
 			$"sourcePatternMode={PatternMode};" +
@@ -838,7 +840,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 
 		string fingerprintHash = ComputeSha256Hex(fingerprintCore);
 		GD.Print(
-			$"EinsteinRingMinimalFingerprintRaw: transportModel={activeTransportModel} effectiveMetricScalar={effectiveMetricScalar:0.######} " +
+			$"EinsteinRingMinimalFingerprintRaw: transportModel={activeTransportModel} metricLaw={metricSteeringLaw} effectiveMetricScalar={effectiveMetricScalar:0.######} " +
 			$"sourcePatternSummary={sourcePatternSummary} sourceRadius={sourceRadius:0.######} absorbCount={absorbedRayCount} absorbRate={absorbedRate:0.######} " +
 			$"sourceHits={onAxisRingSummary.SourceHits} backgroundHits={onAxisRingSummary.BackgroundHits} absorbedHits={onAxisRingSummary.AbsorbedHits} missHits={onAxisRingSummary.MissHits} " +
 			$"radiusMean={onAxisRingSummary.RadiusMean:0.######} radiusStdDev={onAxisRingSummary.RadiusStdDev:0.######} radiusRange={onAxisRingSummary.RadiusRange:0.######} " +
@@ -1081,7 +1083,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 			$"[FixtureStartup] fixture=einstein_ring_minimal variant={variant} transport={transportModel} source={transportSource}");
 	}
 
-	private void ApplyHudMetadata(GrinFilmCamera filmCamera, TransportModel activeTransportModel)
+	private void ApplyHudMetadata(GrinFilmCamera filmCamera, RayBeamRenderer rayRenderer, TransportModel activeTransportModel)
 	{
 		if (filmCamera == null || !GodotObject.IsInstanceValid(filmCamera))
 		{
@@ -1091,6 +1093,10 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		filmCamera.SetHudFixtureName("einstein_ring_minimal");
 		filmCamera.SetHudTransportModel(activeTransportModel.ToString());
 		filmCamera.SetHudSourcePatternMode(PatternMode.ToString());
+		string metricSteeringLaw = rayRenderer != null
+			? RayBeamRenderer.GetMetricSteeringLawToken(rayRenderer.GetEffectiveMetricSteeringLaw())
+			: string.Empty;
+		filmCamera.SetHudMetricSteeringLaw(metricSteeringLaw);
 		float metricGainOverride = RayBeamRenderer.ResolveMetricComparisonScalarOverride();
 		bool metricGainActive = activeTransportModel == TransportModel.Metric_NullGeodesic &&
 			float.IsFinite(metricGainOverride) &&

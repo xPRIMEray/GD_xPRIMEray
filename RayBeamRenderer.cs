@@ -67,6 +67,9 @@ public partial class RayBeamRenderer : Node3D
 	/// <summary>Extra multiplier for field strength.</summary>
 	// CONTROL FACTOR: Global field strength multiplier; higher = stronger attraction/repulsion.
 	[Export] public float FieldStrength = 1.0f;
+	/// <summary>Selects the experimental metric steering surrogate used by Metric_NullGeodesic.</summary>
+	// CONTROL FACTOR: Keeps the current envelope law as baseline and allows impact-parameter-focused steering for comparisons.
+	[Export] public MetricSteeringLaw MetricSteeringLawMode = MetricSteeringLaw.MetricLaw_CurrentEnvelope;
 	/// <summary>World center for field when not using camera.</summary>
 	// CONTROL FACTOR: Field center (world space) when not camera-driven.
 	[Export] public Vector3 FieldCenter = Vector3.Zero;
@@ -369,9 +372,12 @@ public partial class RayBeamRenderer : Node3D
 	private bool _loggedMetricEquivalentFallback = false;
 	private bool _loggedMetricWeakFieldMapping = false;
 	private bool _loggedMetricScalarIngredients = false;
+	private bool _loggedMetricSteeringLaw = false;
 	private bool _loggedHybridStubFallback = false;
 	private static bool _metricComparisonScalarOverrideResolved = false;
 	private static float _metricComparisonScalarOverride = 1.0f;
+	private static bool _metricSteeringLawOverrideResolved = false;
+	private static MetricSteeringLaw _metricSteeringLawOverride = MetricSteeringLaw.MetricLaw_CurrentEnvelope;
 	private const int TransportSteeringBucketCount = 6;
 	private int _metricDeltaZeroCount = 0;
 	private int _metricDeltaNonzeroCount = 0;
@@ -758,6 +764,7 @@ public partial class RayBeamRenderer : Node3D
 
 	public readonly struct MetricTransportDiagnosticsSnapshot
 	{
+		public readonly string MetricSteeringLawToken;
 		public readonly int MetricDirectSteps;
 		public readonly int GridBypassSteps;
 		public readonly int GrinFallbackSteps;
@@ -773,6 +780,7 @@ public partial class RayBeamRenderer : Node3D
 		public readonly string ZeroReasonSummary;
 
 		public MetricTransportDiagnosticsSnapshot(
+			string metricSteeringLawToken,
 			int metricDirectSteps,
 			int gridBypassSteps,
 			int grinFallbackSteps,
@@ -787,6 +795,9 @@ public partial class RayBeamRenderer : Node3D
 			string radialTurnSummary,
 			string zeroReasonSummary)
 		{
+			MetricSteeringLawToken = string.IsNullOrWhiteSpace(metricSteeringLawToken)
+				? GetMetricSteeringLawToken(MetricSteeringLaw.MetricLaw_CurrentEnvelope)
+				: metricSteeringLawToken;
 			MetricDirectSteps = metricDirectSteps;
 			GridBypassSteps = gridBypassSteps;
 			GrinFallbackSteps = grinFallbackSteps;
@@ -813,6 +824,7 @@ public partial class RayBeamRenderer : Node3D
 			? (float)(_transportSteeringTurnSum / _transportSteeringTurnCount)
 			: 0f;
 		return new MetricTransportDiagnosticsSnapshot(
+			GetMetricSteeringLawToken(GetEffectiveMetricSteeringLaw()),
 			_metricContributionAppliedCount,
 			_metricGridBypassStepCount,
 			_metricFallbackCount,
@@ -830,6 +842,7 @@ public partial class RayBeamRenderer : Node3D
 
 	public void ResetMetricTransportDiagnostics()
 	{
+		_loggedMetricSteeringLaw = false;
 		_metricDeltaZeroCount = 0;
 		_metricDeltaNonzeroCount = 0;
 		_metricFallbackCount = 0;
@@ -1315,7 +1328,7 @@ public partial class RayBeamRenderer : Node3D
 			{
 				MetricTransportDiagnosticsSnapshot metricDiagnostics = GetMetricTransportDiagnosticsSnapshot();
 				GD.Print(
-					$"[Transport][MetricDiagSummary] metricDeltaZeroCount={metricDiagnostics.MetricDeltaZeroCount} " +
+					$"[Transport][MetricDiagSummary] metricLaw={metricDiagnostics.MetricSteeringLawToken} metricDeltaZeroCount={metricDiagnostics.MetricDeltaZeroCount} " +
 					$"metricDeltaNonzeroCount={metricDiagnostics.MetricDeltaNonzeroCount} metricFallbackCount={metricDiagnostics.MetricFallbackCount} " +
 					$"metricContributionRatio={metricDiagnostics.MetricContributionRatio:0.######} zeroReasons={metricDiagnostics.ZeroReasonSummary}");
 			}
@@ -3014,6 +3027,50 @@ public partial class RayBeamRenderer : Node3D
 		return scalar * ResolveMetricComparisonScalarOverride();
 	}
 
+	public MetricSteeringLaw GetEffectiveMetricSteeringLaw()
+	{
+		return ResolveMetricSteeringLawOverride(MetricSteeringLawMode);
+	}
+
+	public static string GetMetricSteeringLawToken(MetricSteeringLaw law)
+	{
+		return law switch
+		{
+			MetricSteeringLaw.MetricLaw_ImpactParameterApprox => "MetricLaw_ImpactParameterApprox",
+			_ => "MetricLaw_CurrentEnvelope"
+		};
+	}
+
+	public static MetricSteeringLaw ResolveMetricSteeringLawOverride(
+		MetricSteeringLaw fallbackLaw = MetricSteeringLaw.MetricLaw_CurrentEnvelope)
+	{
+		if (_metricSteeringLawOverrideResolved)
+		{
+			return _metricSteeringLawOverride;
+		}
+
+		_metricSteeringLawOverrideResolved = true;
+		_metricSteeringLawOverride = fallbackLaw;
+		if (!HasRenderTestFlagForMetricComparisonOverride())
+		{
+			return _metricSteeringLawOverride;
+		}
+
+		string[] args = GetCmdArgsForMetricComparisonOverride();
+		for (int i = 0; i < args.Length; i++)
+		{
+			string arg = args[i] ?? string.Empty;
+			if (TryParseMetricSteeringLawArg(arg, "--metric-steering-law=", out MetricSteeringLaw parsedLaw) ||
+				TryParseMetricSteeringLawArg(arg, "--metric-law=", out parsedLaw))
+			{
+				_metricSteeringLawOverride = parsedLaw;
+				break;
+			}
+		}
+
+		return _metricSteeringLawOverride;
+	}
+
 	public static float ResolveMetricComparisonScalarOverride()
 	{
 		if (_metricComparisonScalarOverrideResolved)
@@ -3252,6 +3309,44 @@ public partial class RayBeamRenderer : Node3D
 		return true;
 	}
 
+	private static bool TryParseMetricSteeringLawArg(string arg, string prefix, out MetricSteeringLaw law)
+	{
+		law = MetricSteeringLaw.MetricLaw_CurrentEnvelope;
+		if (string.IsNullOrWhiteSpace(arg) ||
+			!arg.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+		{
+			return false;
+		}
+
+		string token = arg.Substring(prefix.Length).Trim();
+		if (string.IsNullOrWhiteSpace(token))
+		{
+			return false;
+		}
+
+		string normalized = token.Replace("-", string.Empty)
+			.Replace("_", string.Empty)
+			.Trim()
+			.ToLowerInvariant();
+		switch (normalized)
+		{
+			case "current":
+			case "currentenvelope":
+			case "metriclawcurrentenvelope":
+			case "baseline":
+				law = MetricSteeringLaw.MetricLaw_CurrentEnvelope;
+				return true;
+			case "impact":
+			case "impactparameter":
+			case "impactparameterapprox":
+			case "metriclawimpactparameterapprox":
+				law = MetricSteeringLaw.MetricLaw_ImpactParameterApprox;
+				return true;
+		}
+
+		return Enum.TryParse(token, true, out law);
+	}
+
 	private static bool HasRenderTestFlagForMetricComparisonOverride()
 	{
 		string[] args = GetCmdArgsForMetricComparisonOverride();
@@ -3443,6 +3538,7 @@ public partial class RayBeamRenderer : Node3D
 		bool hasSources)
 	{
 		Vector3 grinAccel = StepTransport_GRIN(p, center, beta, gamma, fieldSources, hasSources);
+		MetricSteeringLaw metricLaw = GetEffectiveMetricSteeringLaw();
 		Vector3 sourceCenter = hasSources ? fieldSources[0].Center : center;
 		float radialDistance = p.DistanceTo(sourceCenter);
 		MetricWeakFieldScalarInputs metricInputs = ResolveMetricWeakFieldScalarInputs(
@@ -3469,9 +3565,15 @@ public partial class RayBeamRenderer : Node3D
 			v,
 			StepLength,
 			weakFieldScalar);
-		MetricDirectionDeltaEvaluation metricEval = EvaluateMetricDirectionDeltaStub(in metricContext);
+		MetricDirectionDeltaEvaluation metricEval = EvaluateMetricDirectionDeltaStub(in metricContext, metricLaw);
 		RecordMetricDirectionDeltaEvaluation(in metricEval);
 		MaybeLogMetricDiagnosticSample(in metricEval);
+		if (!_loggedMetricSteeringLaw)
+		{
+			_loggedMetricSteeringLaw = true;
+			GD.Print(
+				$"[Transport][MetricLaw] active={GetMetricSteeringLawToken(metricLaw)} transport={TransportModel.Metric_NullGeodesic}");
+		}
 		if (!_loggedMetricWeakFieldMapping)
 		{
 			_loggedMetricWeakFieldMapping = true;
@@ -3479,7 +3581,7 @@ public partial class RayBeamRenderer : Node3D
 				$"[Transport] Metric_NullGeodesic weak-field scaffold active. " +
 				$"effectiveMetricScalar={weakFieldScalar:0.######} " +
 				$"(mapped={mappedWeakFieldScalar:0.######}, grinAccelMag={grinAccelMagnitude:0.######}, metricScalarOverride={metricScalarOverride:0.###}, " +
-				$"formula=weakFieldScalar*step*boundedLensingWeight).");
+				$"metricLaw={GetMetricSteeringLawToken(metricLaw)}, formula=weakFieldScalar*step*boundedLensingWeight).");
 		}
 		if (!_loggedMetricScalarIngredients)
 		{
@@ -3551,7 +3653,9 @@ public partial class RayBeamRenderer : Node3D
 	}
 
 	// Hook contract for next phase metric transport (weak-field / null-geodesic update).
-	private static MetricDirectionDeltaEvaluation EvaluateMetricDirectionDeltaStub(in MetricTransportStepContext context)
+	private static MetricDirectionDeltaEvaluation EvaluateMetricDirectionDeltaStub(
+		in MetricTransportStepContext context,
+		MetricSteeringLaw metricLaw)
 	{
 		// Research scaffold only:
 		// First-order weak-field, Schwarzschild-inspired radial bending surrogate.
@@ -3630,6 +3734,7 @@ public partial class RayBeamRenderer : Node3D
 			if (TryBuildStableMetricPerpendicular(dir, bendDirPerp, out Vector3 recoveredPerp))
 			{
 				bendDirPerp = recoveredPerp;
+				bendPerpMagnitude = recoveredPerp.Length();
 				usedParallelRecovery = true;
 			}
 			else
@@ -3663,21 +3768,26 @@ public partial class RayBeamRenderer : Node3D
 		{
 			bendDirPerp /= bendPerpMagnitude;
 		}
+
 		float r = Mathf.Max(1e-3f, rawRadius);
 		float weak = Mathf.Max(0f, context.WeakFieldScalar);
 		float characteristicRadius = Mathf.Max(0.25f, context.CharacteristicRadius);
 		float transverseDistance = Mathf.Max(0f, rawRadius * bendPerpMagnitude);
 		float radiusNorm = r / characteristicRadius;
-		float transverseNorm = transverseDistance / characteristicRadius;
-		const float impactSoftening = 0.35f;
-		const float coreRise = 0.5f;
-		const float outerTailGain = 0.6f;
-		const float metricGain = 8f;
-		float impactWeight = transverseNorm / (transverseNorm + impactSoftening);
-		float coreSuppression = 1f - Mathf.Exp(-(radiusNorm * radiusNorm) / (coreRise * coreRise));
-		float outerEnvelope = 1f / (1f + radiusNorm * radiusNorm * outerTailGain);
-		float lensingWeight = impactWeight * coreSuppression * outerEnvelope;
-		float dTheta = weak * context.StepSize * metricGain * lensingWeight;
+		float impactParameterNorm = transverseDistance / characteristicRadius;
+		float dTheta = metricLaw switch
+		{
+			MetricSteeringLaw.MetricLaw_ImpactParameterApprox => EvaluateMetricImpactParameterApproxTurn(
+				weak,
+				context.StepSize,
+				radiusNorm,
+				impactParameterNorm),
+			_ => EvaluateMetricCurrentEnvelopeTurn(
+				weak,
+				context.StepSize,
+				radiusNorm,
+				impactParameterNorm)
+		};
 		float clampedDTheta = Mathf.Clamp(dTheta, 0f, 0.08f);
 		if (!float.IsFinite(clampedDTheta) || clampedDTheta <= 0f)
 		{
@@ -3703,6 +3813,44 @@ public partial class RayBeamRenderer : Node3D
 			usedParallelRecovery,
 			radiusBelowThreshold,
 			radiusAboveThreshold);
+	}
+
+	private static float EvaluateMetricCurrentEnvelopeTurn(
+		float weak,
+		float stepSize,
+		float radiusNorm,
+		float impactParameterNorm)
+	{
+		const float impactSoftening = 0.35f;
+		const float coreRise = 0.5f;
+		const float outerTailGain = 0.6f;
+		const float metricGain = 8f;
+		float impactWeight = impactParameterNorm / (impactParameterNorm + impactSoftening);
+		float coreSuppression = 1f - Mathf.Exp(-(radiusNorm * radiusNorm) / (coreRise * coreRise));
+		float outerEnvelope = 1f / (1f + radiusNorm * radiusNorm * outerTailGain);
+		float lensingWeight = impactWeight * coreSuppression * outerEnvelope;
+		return weak * stepSize * metricGain * lensingWeight;
+	}
+
+	private static float EvaluateMetricImpactParameterApproxTurn(
+		float weak,
+		float stepSize,
+		float radiusNorm,
+		float impactParameterNorm)
+	{
+		const float impactPeak = 0.95f;
+		const float impactWidth = 0.55f;
+		const float impactCenterSoftening = 0.22f;
+		const float impactOuterTail = 0.18f;
+		const float radiusEnvelopeGain = 0.18f;
+		const float metricGain = 12f;
+		float centeredImpact = (impactParameterNorm - impactPeak) / impactWidth;
+		float bandFocus = 1f / (1f + centeredImpact * centeredImpact * centeredImpact * centeredImpact);
+		float centerSuppression = 1f - Mathf.Exp(-(impactParameterNorm * impactParameterNorm) / (impactCenterSoftening * impactCenterSoftening));
+		float impactTail = 1f / (1f + impactParameterNorm * impactParameterNorm * impactOuterTail);
+		float radiusEnvelope = 1f / (1f + radiusNorm * radiusNorm * radiusEnvelopeGain);
+		float lensingWeight = bandFocus * centerSuppression * impactTail * radiusEnvelope;
+		return weak * stepSize * metricGain * lensingWeight;
 	}
 
 	private static bool TryBuildStableMetricPerpendicular(Vector3 dir, Vector3 preferredPerp, out Vector3 recoveredPerp)

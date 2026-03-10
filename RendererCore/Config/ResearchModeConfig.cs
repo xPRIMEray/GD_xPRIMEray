@@ -17,6 +17,12 @@ public enum TransportModel
     Metric_Adapter_EffectiveMedium = Hybrid_Research,
 }
 
+public enum MetricSteeringLaw
+{
+    MetricLaw_CurrentEnvelope = 0,
+    MetricLaw_ImpactParameterApprox = 1,
+}
+
 public enum IntegratorKind
 {
     Heuristic = 0,

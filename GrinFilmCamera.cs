@@ -1046,6 +1046,7 @@ public partial class GrinFilmCamera : Node
 	private string _hudTransportModel = string.Empty;
 	private string _hudProfileToken = string.Empty;
 	private string _hudSourcePatternMode = string.Empty;
+	private string _hudMetricSteeringLaw = string.Empty;
 	private bool _hudMetricGainOverrideActive = false;
 	private float _hudMetricGainOverride = 1.0f;
 	private string _lastLoggedHudMetadata = string.Empty;
@@ -3071,6 +3072,11 @@ public partial class GrinFilmCamera : Node
 		_hudSourcePatternMode = NormalizeHudValue(sourcePatternMode);
 	}
 
+	public void SetHudMetricSteeringLaw(string metricSteeringLaw)
+	{
+		_hudMetricSteeringLaw = NormalizeHudValue(metricSteeringLaw);
+	}
+
 	public void SetHudMetricGainOverride(float metricGainOverride, bool active)
 	{
 		_hudMetricGainOverride = float.IsFinite(metricGainOverride) ? metricGainOverride : 1.0f;
@@ -3087,6 +3093,11 @@ public partial class GrinFilmCamera : Node
 		if (TryResolveHudMetricGainOverride(out float metricGainOverride))
 		{
 			AppendHudToken(_overlayHudSb, "metricGain", metricGainOverride.ToString("0.0##"));
+		}
+		string metricSteeringLaw = ResolveHudMetricSteeringLaw();
+		if (!string.IsNullOrWhiteSpace(metricSteeringLaw))
+		{
+			AppendHudToken(_overlayHudSb, "metricLaw", metricSteeringLaw);
 		}
 
 		AppendHudToken(_overlayHudSb, "sourcePattern", ResolveHudSourcePatternMode());
@@ -3165,6 +3176,32 @@ public partial class GrinFilmCamera : Node
 		return _hudSourcePatternMode;
 	}
 
+	private string ResolveHudMetricSteeringLaw()
+	{
+		if (!string.IsNullOrWhiteSpace(_hudMetricSteeringLaw))
+		{
+			return _hudMetricSteeringLaw;
+		}
+
+		string transportModel = ResolveHudTransportModel();
+		if (!string.Equals(transportModel, TransportModel.Metric_NullGeodesic.ToString(), StringComparison.Ordinal))
+		{
+			return string.Empty;
+		}
+
+		foreach (string arg in GetHudCmdArgs())
+		{
+			if (TryGetHudArgValue(arg, "--metric-steering-law=", out string value) ||
+				TryGetHudArgValue(arg, "--metric-law=", out value))
+			{
+				return NormalizeMetricSteeringLawHudValue(value);
+			}
+		}
+
+		return RayBeamRenderer.GetMetricSteeringLawToken(
+			RayBeamRenderer.ResolveMetricSteeringLawOverride(MetricSteeringLaw.MetricLaw_CurrentEnvelope));
+	}
+
 	private bool TryResolveHudMetricGainOverride(out float metricGainOverride)
 	{
 		metricGainOverride = 1.0f;
@@ -3220,6 +3257,27 @@ public partial class GrinFilmCamera : Node
 		}
 
 		return normalized;
+	}
+
+	private static string NormalizeMetricSteeringLawHudValue(string value)
+	{
+		if (string.IsNullOrWhiteSpace(value))
+		{
+			return string.Empty;
+		}
+
+		string normalized = value.Replace("-", string.Empty)
+			.Replace("_", string.Empty)
+			.Trim()
+			.ToLowerInvariant();
+		return normalized switch
+		{
+			"impact" or "impactparameter" or "impactparameterapprox" or "metriclawimpactparameterapprox"
+				=> RayBeamRenderer.GetMetricSteeringLawToken(MetricSteeringLaw.MetricLaw_ImpactParameterApprox),
+			"current" or "currentenvelope" or "metriclawcurrentenvelope" or "baseline"
+				=> RayBeamRenderer.GetMetricSteeringLawToken(MetricSteeringLaw.MetricLaw_CurrentEnvelope),
+			_ => NormalizeHudValue(value)
+		};
 	}
 
 	private static bool TryGetHudArgValue(string arg, string prefix, out string value)

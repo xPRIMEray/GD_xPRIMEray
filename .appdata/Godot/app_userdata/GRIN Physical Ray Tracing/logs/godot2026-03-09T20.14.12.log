@@ -239,10 +239,10 @@ RayBeamRenderer: field sources in group = 2
 [EffectiveCfg] broadphase=Policy(policy) policy=OverlapOnly quick=0 overlap=1 softgate=0 score=0 minSeg=0.1 attempts=600 sub=1000 stride=2 resScale=0.25 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF envRadScale=1.02 envAabbExpand=0.01 geomPrune=0 maxDist=50
 Toggles: AdaptiveSubsteps=0 SingleProbeSubdivide=0 BandHitSkip=0 RequireHit=0 StopOnHit=0 TerminateTrailOnHit=1 UpdateEveryFrame=1
 [Cfg] Pass2SoftGateEnableQuickRayMiss=0 Pass2SoftGateScoringEnabled=0 Pass2SoftGateMinSegmentLength=0.1 Pass2SoftGateScoreThreshold=1 Pass2SoftGateScoreTurnAngleWeight=1 Pass2SoftGateScorePrevHitLostBonus=0.75 Pass2SoftGateRandomProbeChance=0.01 Pass2SoftGateScoreBudgetPerFrame=256 Pass2SoftGateMaxAttemptsPerPixel=4 Pass2SoftGateMaxAttemptsPerFrame=600 Pass2SoftGateMaxSubdividedCallsPerFrame=1000 UpdateEveryFrame=1
-[Transport][MetricDiagSample] eval=8 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.649751 dTheta=0.000006
 [Transport][MetricDiagSample] eval=8 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.793011 dTheta=0.000002
 [Transport][MetricDiagSample] eval=8 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.797664 dTheta=0.000002
 [Transport][MetricDiagSample] eval=8 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.622322 dTheta=0.000008
+[Transport][MetricDiagSample] eval=8 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.649751 dTheta=0.000006
 [Transport][MetricDiagSample] eval=8 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.788711 dTheta=0.000002
 [Transport][MetricDiagSample] eval=6 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.691554 dTheta=0.000004
 [Transport][MetricLaw] active=MetricLaw_ImpactParameterApprox transport=Metric_NullGeodesic

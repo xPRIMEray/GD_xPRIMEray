@@ -26,7 +26,7 @@ FilmView found? True
 [RBRRef][Startup] HasRenderer(after mirror)=True
 ✅ GrinFilmCamera ready. Rendering film.
 [RenderTestRunner] _Ready reached.
-[RenderTestRunner][CmdArgs] [--render-test, --render-test-fixture=blackhole_minimal, --render-test-profile=blackhole_compare_fast, --blackhole-transport-model=metric, --blackhole-metric-large-detector, --lifecycle-stress=0, --smartscale=0]
+[RenderTestRunner][CmdArgs] [--render-test, --render-test-fixture=blackhole_minimal, --render-test-profile=blackhole_compare_fast, --blackhole-transport-model=metric, --lifecycle-stress=0, --smartscale=0]
 [RenderTestRunner][CLIFlags] autocal=0 shadow_eval=0 autocal_verbose=0 autocal_apply=0 lifecycle_stress=0 smartscale=0 smartscale_goal=none
 [RenderTestRunner] TokenDetected=True shouldStart=True
 [RenderTestRunner] Switching to fixture scene: fixture=BlackholeMinimal path=res://test-blackhole-minimal.tscn
@@ -132,11 +132,10 @@ FilmView found? True
 [RBRRef][Startup] HasRenderer(after mirror)=True
 ✅ GrinFilmCamera ready. Rendering film.
 [RenderTestRunner] _Ready reached.
-[RenderTestRunner][CmdArgs] [--render-test, --render-test-fixture=blackhole_minimal, --render-test-profile=blackhole_compare_fast, --blackhole-transport-model=metric, --blackhole-metric-large-detector, --lifecycle-stress=0, --smartscale=0]
+[RenderTestRunner][CmdArgs] [--render-test, --render-test-fixture=blackhole_minimal, --render-test-profile=blackhole_compare_fast, --blackhole-transport-model=metric, --lifecycle-stress=0, --smartscale=0]
 [RenderTestRunner][CLIFlags] autocal=0 shadow_eval=0 autocal_verbose=0 autocal_apply=0 lifecycle_stress=0 smartscale=0 smartscale_goal=none
 [RenderTestRunner] TokenDetected=True shouldStart=True
 [FixtureStartup] fixture=blackhole_minimal variant=test-blackhole-minimal transport=Metric_NullGeodesic source=cmdline_user
-[BlackHoleMetricPath][DetectorMode] detectorScale=3 transportModel=Metric_NullGeodesic
 [Transport] active=Metric_NullGeodesic fixture=blackhole_minimal effectiveMetricScalar=0.151
 [BlackHoleFixture][CurvatureEngaged] mass_match=1 band_match=1 probe_any=1 band_noticeable=1 mass_primary=1 far_accel=0 transport=1 probe_mass=[0.031352,0.012257,0.010145,0.016328] probe_band=[0,0,0.013502,0] probe_total=[0.031352,0.012257,0.023646,0.016328]
 [BlackHoleFixture][CurvatureApplied] deviated_rays=16/16 max_dev=0.700204 dev_sum=10.45615 min_dev_threshold=0.001
@@ -205,15 +204,15 @@ FilmView found? True
 [BlackHoleFixture][MetricDiagnostics] metricLaw=MetricLaw_CurrentEnvelope metricDeltaZeroCount=0 metricDeltaNonzeroCount=2576 metricFallbackCount=0 metricContributionRatio=1 zeroReasons=none
 [MetricIsolation] metricLaw=MetricLaw_CurrentEnvelope metricDirectSteps=2576 gridBypassSteps=0 grinFallbackSteps=0 grinScalarDominatedSteps=0
 [TransportSteering] transportModel=Metric_NullGeodesic metricLaw=MetricLaw_CurrentEnvelope meanTurn=0.010719 maxTurn=0.024177 radialBins=[r<0.5R:0.001618@1252,0.5R-1R:0.014293@600,1R-2R:0.023497@724,2R-4R:0@0,4R-8R:0@0,r>=8R:0@0]
-[BlackHoleFixture][ComparisonSummary] transportModel=Metric_NullGeodesic metricLaw=MetricLaw_CurrentEnvelope effectiveMetricScalar=0.151 sourcePatternSummary=mode=CrossXY|count=49|spacingX=4.500000|spacingY=4.500000|radius=0.600000|origin=(0,0,-12)|includeCenter=1|checksum=d2dc5d7f5c2ff5db8947386ab147590f02b7ac52680c9ddbf4171def12339e5d probeN=16 absorbCount=4 absorbRate=0.25 hitRate=0 sourceHits=0 backgroundHits=0 detectorHits=0 absorbedHits=4 missHits=12 offscreenDetectorHits=0 noPlaneIntersect=12 closestApproachMean=0.254028 projectedRadiusMean=0 detectorScale=3 silhouetteRadiusMean=0.141421 silhouetteRadiusStdDev=0 silhouetteRadiusRange=0 metricDeltaZeroCount=0 metricDeltaNonzeroCount=2576 metricFallbackCount=0 metricContributionRatio=1 silhouetteHistogram=[4,0,0,0,0,0]
-[BlackHoleMetricPath] detectorScale=3 absorbed=4 offscreenDetectorHits=0 noPlaneIntersect=12 closestApproachMean=0.254028 projectedRadiusMean=0
+[BlackHoleFixture][ComparisonSummary] transportModel=Metric_NullGeodesic metricLaw=MetricLaw_CurrentEnvelope effectiveMetricScalar=0.151 sourcePatternSummary=mode=CrossXY|count=49|spacingX=4.500000|spacingY=4.500000|radius=0.600000|origin=(0,0,-12)|includeCenter=1|checksum=d2dc5d7f5c2ff5db8947386ab147590f02b7ac52680c9ddbf4171def12339e5d probeN=16 absorbCount=4 absorbRate=0.25 hitRate=0 sourceHits=0 backgroundHits=0 detectorHits=0 absorbedHits=4 missHits=12 offscreenDetectorHits=0 noPlaneIntersect=12 closestApproachMean=0.254028 projectedRadiusMean=0 detectorScale=1 silhouetteRadiusMean=0.141421 silhouetteRadiusStdDev=0 silhouetteRadiusRange=0 metricDeltaZeroCount=0 metricDeltaNonzeroCount=2576 metricFallbackCount=0 metricContributionRatio=1 silhouetteHistogram=[4,0,0,0,0,0]
+[BlackHoleMetricPath] detectorScale=1 absorbed=4 offscreenDetectorHits=0 noPlaneIntersect=12 closestApproachMean=0.254028 projectedRadiusMean=0
 [BlackHoleFixture] mass_strength=0.151 mass_radius=4.5 band_strength=0.03 band_r_inner=1.305 band_r_outer=1.845 mass_node_path=/root/TestBlackholeMinimalHarness/FixtureBlackholeMinimal/FieldSource3D band_node_path=/root/TestBlackholeMinimalHarness/FixtureBlackholeMinimal/PhotonBandSource sphere_global_pos=(0,0,0) sphere_scale=(1,1,1) cam_fov=70 camera_global_pos=(0,9.409,23.912) cam_to_sphere=25.697
 [BlackHoleFixture][ResolvedMass] source=canonical curve=Power modeFlags=2 rInner=0.12 rOuter=4.5 amp=0.151 gamma=8 beta_mode=override beta_scale=1
 [BlackHoleFixture][ResolvedPhotonBand] source=canonical enabled=1 curve=Polynomial modeFlags=0 rInner=1.305 rOuter=1.845 amp=0.03 A=0 B=4 C=-4 beta_mode=override beta_scale=1
 [BlackHoleFixture][Renderer] useIntegrated=1 bendScale=1 fieldStrength=1
-BlackHoleMinimalFingerprintRaw: transportModel=Metric_NullGeodesic metricLaw=MetricLaw_CurrentEnvelope effectiveMetricScalar=0.151 sourcePatternSummary=mode=CrossXY|count=49|spacingX=4.500000|spacingY=4.500000|radius=0.600000|origin=(0,0,-12)|includeCenter=1|checksum=d2dc5d7f5c2ff5db8947386ab147590f02b7ac52680c9ddbf4171def12339e5d sourceHits=0 backgroundHits=0 detectorHits=0 absorbedHits=4 missHits=12 offscreenDetectorHits=0 noPlaneIntersect=12 closestApproachMean=0.254028 projectedRadiusMean=0 detectorScale=3 absorbCount=4 absorbRate=0.25 hitRate=0 silhouetteRadiusMean=0.141421 silhouetteRadiusStdDev=0 silhouetteRadiusRange=0 silhouetteHistogram=[4,0,0,0,0,0] accelMass=[0.130296,0.012257,0.012024,0.006997,0.001981] accelBand=[0.000000,0.000000,0.000590,0.028595,0.000000] accelTotal=[0.130296,0.012257,0.012614,0.035592,0.001981] rayEndpoints=[-0.294049,-0.294049,0.193827|-0.082239,-0.287837,0.200091|0.123758,-0.288768,0.199247|0.287837,-0.082239,0.200091|0.288768,0.123758,0.199247|0.082239,0.287837,0.200091|-0.123758,0.288768,0.199247|-0.287837,0.082239,0.200091] rayChecksum=f9dcece68cc35848c3e63929ff7fb9a3b9a9cba85fabbd9aa205a95f8a851e83
-BlackHoleMinimalFingerprint: v=3;sourceCount=2;massCanonical=1;bandCanonical=1;massSource=canonical;massCurve=Power;massRInner=0.120000;massROuter=4.500000;massAmp=0.151000;massGamma=8.000000;massA=8.000000;massB=0.000000;massC=0.000000;massModeFlags=2;massTransport=Metric_NullGeodesic;massBetaMode=override;massBetaScale=1.000000;bandEnabled=1;bandSource=canonical;bandCurve=Polynomial;bandRInner=1.305000;bandROuter=1.845000;bandAmp=0.030000;bandA=0.000000;bandB=4.000000;bandC=-4.000000;bandModeFlags=0;bandTransport=Metric_NullGeodesic;bandBetaMode=override;bandBetaScale=1.000000;useIntegrated=1;bendScale=1.000000;fieldStrength=1.000000;stepLength=0.050000;minStep=0.001000;maxStep=0.300000;stepAdaptGain=0.050000;maxSteps=400;transportModel=Metric_NullGeodesic;metricLaw=MetricLaw_CurrentEnvelope;effectiveMetricScalar=0.151000;sourcePatternSummary=mode=CrossXY|count=49|spacingX=4.500000|spacingY=4.500000|radius=0.600000|origin=(0,0,-12)|includeCenter=1|checksum=d2dc5d7f5c2ff5db8947386ab147590f02b7ac52680c9ddbf4171def12339e5d;sourcePatternMode=CrossXY;sourcePatternCount=49;sourceSpacingX=4.500000;sourceSpacingY=4.500000;sourceMarkerRadius=0.600000;probeN=16;absorbCount=4;absorbRate=0.250000;hitRate=0.000000;sourceHits=0;backgroundHits=0;detectorHits=0;absorbedHits=4;missHits=12;offscreenDetectorHits=0;noPlaneIntersect=12;closestApproachMean=0.254028;projectedRadiusMean=0.000000;detectorScale=3.000000;silhouetteRadiusMean=0.141421;silhouetteRadiusStdDev=0.000000;silhouetteRadiusRange=0.000000;silhouetteHistogram=[4,0,0,0,0,0];rayK=48;accelMass=[0.130296,0.012257,0.012024,0.006997,0.001981];accelBand=[0.000000,0.000000,0.000590,0.028595,0.000000];accelTotal=[0.130296,0.012257,0.012614,0.035592,0.001981];rayChecksum=f9dcece68cc35848c3e63929ff7fb9a3b9a9cba85fabbd9aa205a95f8a851e83;sha256=e07de74be6ea652322d1287e3f10c6cea779504bd94a61042d9fa73c0b21c784
-[BlackHoleCompare] transportModel=Metric_NullGeodesic absorbCount=4 absorbRate=0.25 hitRate=0 sourcePatternMode=CrossXY sourcePatternCount=49 fingerprint=e07de74be6ea652322d1287e3f10c6cea779504bd94a61042d9fa73c0b21c784
+BlackHoleMinimalFingerprintRaw: transportModel=Metric_NullGeodesic metricLaw=MetricLaw_CurrentEnvelope effectiveMetricScalar=0.151 sourcePatternSummary=mode=CrossXY|count=49|spacingX=4.500000|spacingY=4.500000|radius=0.600000|origin=(0,0,-12)|includeCenter=1|checksum=d2dc5d7f5c2ff5db8947386ab147590f02b7ac52680c9ddbf4171def12339e5d sourceHits=0 backgroundHits=0 detectorHits=0 absorbedHits=4 missHits=12 offscreenDetectorHits=0 noPlaneIntersect=12 closestApproachMean=0.254028 projectedRadiusMean=0 detectorScale=1 absorbCount=4 absorbRate=0.25 hitRate=0 silhouetteRadiusMean=0.141421 silhouetteRadiusStdDev=0 silhouetteRadiusRange=0 silhouetteHistogram=[4,0,0,0,0,0] accelMass=[0.130296,0.012257,0.012024,0.006997,0.001981] accelBand=[0.000000,0.000000,0.000590,0.028595,0.000000] accelTotal=[0.130296,0.012257,0.012614,0.035592,0.001981] rayEndpoints=[-0.294049,-0.294049,0.193827|-0.082239,-0.287837,0.200091|0.123758,-0.288768,0.199247|0.287837,-0.082239,0.200091|0.288768,0.123758,0.199247|0.082239,0.287837,0.200091|-0.123758,0.288768,0.199247|-0.287837,0.082239,0.200091] rayChecksum=f9dcece68cc35848c3e63929ff7fb9a3b9a9cba85fabbd9aa205a95f8a851e83
+BlackHoleMinimalFingerprint: v=3;sourceCount=2;massCanonical=1;bandCanonical=1;massSource=canonical;massCurve=Power;massRInner=0.120000;massROuter=4.500000;massAmp=0.151000;massGamma=8.000000;massA=8.000000;massB=0.000000;massC=0.000000;massModeFlags=2;massTransport=Metric_NullGeodesic;massBetaMode=override;massBetaScale=1.000000;bandEnabled=1;bandSource=canonical;bandCurve=Polynomial;bandRInner=1.305000;bandROuter=1.845000;bandAmp=0.030000;bandA=0.000000;bandB=4.000000;bandC=-4.000000;bandModeFlags=0;bandTransport=Metric_NullGeodesic;bandBetaMode=override;bandBetaScale=1.000000;useIntegrated=1;bendScale=1.000000;fieldStrength=1.000000;stepLength=0.050000;minStep=0.001000;maxStep=0.300000;stepAdaptGain=0.050000;maxSteps=400;transportModel=Metric_NullGeodesic;metricLaw=MetricLaw_CurrentEnvelope;effectiveMetricScalar=0.151000;sourcePatternSummary=mode=CrossXY|count=49|spacingX=4.500000|spacingY=4.500000|radius=0.600000|origin=(0,0,-12)|includeCenter=1|checksum=d2dc5d7f5c2ff5db8947386ab147590f02b7ac52680c9ddbf4171def12339e5d;sourcePatternMode=CrossXY;sourcePatternCount=49;sourceSpacingX=4.500000;sourceSpacingY=4.500000;sourceMarkerRadius=0.600000;probeN=16;absorbCount=4;absorbRate=0.250000;hitRate=0.000000;sourceHits=0;backgroundHits=0;detectorHits=0;absorbedHits=4;missHits=12;offscreenDetectorHits=0;noPlaneIntersect=12;closestApproachMean=0.254028;projectedRadiusMean=0.000000;detectorScale=1.000000;silhouetteRadiusMean=0.141421;silhouetteRadiusStdDev=0.000000;silhouetteRadiusRange=0.000000;silhouetteHistogram=[4,0,0,0,0,0];rayK=48;accelMass=[0.130296,0.012257,0.012024,0.006997,0.001981];accelBand=[0.000000,0.000000,0.000590,0.028595,0.000000];accelTotal=[0.130296,0.012257,0.012614,0.035592,0.001981];rayChecksum=f9dcece68cc35848c3e63929ff7fb9a3b9a9cba85fabbd9aa205a95f8a851e83;sha256=eec58c5333406b0bb64ea3e545e331a02714511eb6762abbb14d23f30a885fbf
+[BlackHoleCompare] transportModel=Metric_NullGeodesic absorbCount=4 absorbRate=0.25 hitRate=0 sourcePatternMode=CrossXY sourcePatternCount=49 fingerprint=eec58c5333406b0bb64ea3e545e331a02714511eb6762abbb14d23f30a885fbf
 [RenderTestRunner] RenderHealth overrides: p2Every=8 minP2=8
 [RenderTestRunner] Render-test baseline: scaledFilmPx=3600 rowsPerStep=6 minGeomPix=1024 minRayTests=4096 trustEnforcement=on
 [RenderTestRunner] Trust target (render-test): scaledFilm=80x45 scaledPixels=3600 minGeomPix=1024 minRayTests=4096
@@ -230,9 +229,9 @@ RayBeamRenderer: field sources in group = 2
 [RenderTestRunner][INIT] mode=render-test startupDelayFrames=2 scene=res://test-blackhole-minimal.tscn
 [BlackHoleFixture][Broadphase] enforcing policy=OverlapOnly mode=Policy
 [BroadphaseEffective] mode=Policy policy=OverlapOnly quick=False overlap=True reason=policy
-[RenderTest][MATRIX START] id=1773105289 runs=2 framesPerRun=80 warmup=10
+[RenderTest][MATRIX START] id=1773105263 runs=2 framesPerRun=80 warmup=10
 [MATRIX START] runs=2 framesPerRun=80 warmup=10 scene=res://test-blackhole-minimal.tscn
-[RenderTest][RUN START] matrix=1773105289 idx=1/2 name=baseline_prune_off frames=80 warmup=10 prune=off
+[RenderTest][RUN START] matrix=1773105263 idx=1/2 name=baseline_prune_off frames=80 warmup=10 prune=off
 [RUN START] name=baseline_prune_off prune=off stride=off envScale=inherit aabbExpand=inherit updateEveryFrame=on
 [RenderTestRunner][RaySearch] run=baseline_prune_off steps=600 minStep=0.001 maxStep=0.3 stepAdaptGain=0.05
 [RenderTestRunner] Trust enforcement (mode=default): scaledFilm=80x45 minGeomPix=1024 minRayTests=4096 minP2=8 p2Every=8 rollingSec=10
@@ -241,12 +240,12 @@ RayBeamRenderer: field sources in group = 2
 [EffectiveCfg] broadphase=Policy(policy) policy=OverlapOnly quick=0 overlap=1 softgate=0 score=0 minSeg=0.1 attempts=600 sub=1000 stride=2 resScale=0.25 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF envRadScale=1.02 envAabbExpand=0.01 geomPrune=0 maxDist=50
 Toggles: AdaptiveSubsteps=0 SingleProbeSubdivide=0 BandHitSkip=0 RequireHit=0 StopOnHit=0 TerminateTrailOnHit=1 UpdateEveryFrame=1
 [Cfg] Pass2SoftGateEnableQuickRayMiss=0 Pass2SoftGateScoringEnabled=0 Pass2SoftGateMinSegmentLength=0.1 Pass2SoftGateScoreThreshold=1 Pass2SoftGateScoreTurnAngleWeight=1 Pass2SoftGateScorePrevHitLostBonus=0.75 Pass2SoftGateRandomProbeChance=0.01 Pass2SoftGateScoreBudgetPerFrame=256 Pass2SoftGateMaxAttemptsPerPixel=4 Pass2SoftGateMaxAttemptsPerFrame=600 Pass2SoftGateMaxSubdividedCallsPerFrame=1000 UpdateEveryFrame=1
-[Transport][MetricDiagSample] eval=3 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.649751 dTheta=0.002684
-[Transport][MetricDiagSample] eval=4 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.797664 dTheta=0.002727
-[Transport][MetricDiagSample] eval=4 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.785559 dTheta=0.002724
-[Transport][MetricDiagSample] eval=6 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.691554 dTheta=0.002698
-[Transport][MetricDiagSample] eval=4 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.433046 dTheta=0.002573
+[Transport][MetricDiagSample] eval=3 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.797664 dTheta=0.002727
+[Transport][MetricDiagSample] eval=5 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.622322 dTheta=0.002674
+[Transport][MetricDiagSample] eval=6 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.793011 dTheta=0.002726
+[Transport][MetricDiagSample] eval=7 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.649751 dTheta=0.002684
 [Transport][MetricLaw] active=MetricLaw_CurrentEnvelope transport=Metric_NullGeodesic
+[Transport][MetricDiagSample] eval=7 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.691554 dTheta=0.002698
 [Transport][MetricDiagSample] eval=7 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.788711 dTheta=0.002725
 [HUDMeta] fixture=blackhole_minimal transport=Metric_NullGeodesic profile=blackhole_compare_fast metricLaw=MetricLaw_CurrentEnvelope sourcePattern=CrossXY
 [RenderTestRunner][Live] fixture=blackhole_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=2 rows_advanced_total=6 trust_window=na/na/na geomPixProcessedRaw=120 geomRayTestsTotalRaw=32422 budget_exit_reason=none
@@ -301,7 +300,7 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [RenderTestRunner][Live] fixture=blackhole_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=61 rows_advanced_total=6 trust_window=1/0/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=311069 budget_exit_reason=none
 [RenderTestLive] name=baseline_prune_off frame=60/80 lastRow=24 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=311069 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0 budgetStop=none
-[BUS SET] frameId=62 grid=OK fields=2
+[BUS SET] frameId=61 grid=OK fields=2
 SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNodes=1, GeometryTLASNodes=31, MetricModel(GRIN=2, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1, FirstFields=[0:(rInner=0.12, rOuter=4.5, amp=0.151, curveType=1, shapeType=0), 1:(rInner=1.305, rOuter=1.8449999, amp=0.03, curveType=2, shapeType=0)]
 [FrameReset] reason=completed prevRow=45 frame=8
 [RenderTestRunner][Live] fixture=blackhole_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=67 rows_advanced_total=6 trust_window=1/0/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=311069 budget_exit_reason=none
@@ -316,24 +315,24 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [RenderTestRunner][Live] fixture=blackhole_minimal run=baseline_prune_off probe=baseline budget_mode=na budget_n=na renderstep_calls=79 rows_advanced_total=6 trust_window=1/0/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=311069 budget_exit_reason=none
 [RenderTestLive] name=baseline_prune_off frame=78/80 lastRow=36 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=311069 geomTrusted=1 geomHealthPartial=0 geomTrustReason=ok hitRate=0 budgetStop=none
 [FrameReset] reason=completed prevRow=45 frame=10
-[RenderTest][RUN SUMMARY] matrix=1773105289 idx=1/2 name=baseline_prune_off samples=70 meanMsPerFrame=172.171 p95MsPerFrame=193.716 meanSegsPerPixel=na geomTrusted=1 geomTrustReason=ok geomRayTestsSavedPct=na
-[RenderTest][RUN END] matrix=1773105289 idx=1/2 name=baseline_prune_off run_id=1 frames=80 warmup=10 samples=70
-[RUN END] name=baseline_prune_off run_id=1 frames=80 samples=70 meanMs=172.171 p95Ms=193.716
-[RenderTest][RUN DETAIL] matrix=1773105289 idx=1/2 name=baseline_prune_off fixtureStatsKnown=1 sourceHits=0 backgroundHits=0 absorbedHits=0 missHits=9200 traced=9200 hitRate=0 metricDiagKnown=1 metricDeltaZeroCount=0 metricDeltaNonzeroCount=2424141 metricFallbackCount=0 metricContributionRatio=1 steeringTurnCount=0 steeringMeanTurn=0 steeringMaxTurn=0 steeringRadial=r<0.5R:0@0,0.5R-1R:0@0,1R-2R:0@0,2R-4R:0@0,4R-8R:0@0,r>=8R:0@0 metricZeroReasons=parallel_raw=844267,parallel_recovered=23156
-[RenderTest][RUN START] matrix=1773105289 idx=2/2 name=prune_on_default frames=80 warmup=10 prune=on
+[RenderTest][RUN SUMMARY] matrix=1773105263 idx=1/2 name=baseline_prune_off samples=70 meanMsPerFrame=168.662 p95MsPerFrame=189.448 meanSegsPerPixel=na geomTrusted=1 geomTrustReason=ok geomRayTestsSavedPct=na
+[RenderTest][RUN END] matrix=1773105263 idx=1/2 name=baseline_prune_off run_id=1 frames=80 warmup=10 samples=70
+[RUN END] name=baseline_prune_off run_id=1 frames=80 samples=70 meanMs=168.662 p95Ms=189.448
+[RenderTest][RUN DETAIL] matrix=1773105263 idx=1/2 name=baseline_prune_off fixtureStatsKnown=1 sourceHits=0 backgroundHits=0 absorbedHits=0 missHits=9200 traced=9200 hitRate=0 metricDiagKnown=1 metricDeltaZeroCount=0 metricDeltaNonzeroCount=2416697 metricFallbackCount=0 metricContributionRatio=1 steeringTurnCount=0 steeringMeanTurn=0 steeringMaxTurn=0 steeringRadial=r<0.5R:0@0,0.5R-1R:0@0,1R-2R:0@0,2R-4R:0@0,4R-8R:0@0,r>=8R:0@0 metricZeroReasons=parallel_raw=844696,parallel_recovered=23154
+[RenderTest][RUN START] matrix=1773105263 idx=2/2 name=prune_on_default frames=80 warmup=10 prune=on
 [RUN START] name=prune_on_default prune=on stride=on(inherit->inherit) envScale=inherit aabbExpand=inherit updateEveryFrame=on
 [RenderTestRunner][RaySearch] run=prune_on_default steps=600 minStep=0.001 maxStep=0.3 stepAdaptGain=0.05
 [RenderTestRunner] Trust enforcement (mode=default): scaledFilm=80x45 minGeomPix=1024 minRayTests=4096 minP2=8 p2Every=8 rollingSec=10
 [RenderHealth][StatsMode] scaledFilm=80x45 rowsPerStep=6 fullFrameEveryNSteps<=8
 [EffectiveCfg] broadphase=Policy(policy) policy=OverlapOnly quick=0 overlap=1 softgate=1 score=0 minSeg=0.1 attempts=600 sub=1000 stride=2 resScale=0.25 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF envRadScale=1.02 envAabbExpand=0.01 geomPrune=1 maxDist=50
 [Cfg] Pass2SoftGateEnableQuickRayMiss=1 Pass2SoftGateScoringEnabled=0 Pass2SoftGateMinSegmentLength=0.1 Pass2SoftGateScoreThreshold=1 Pass2SoftGateScoreTurnAngleWeight=1 Pass2SoftGateScorePrevHitLostBonus=0.75 Pass2SoftGateRandomProbeChance=0.01 Pass2SoftGateScoreBudgetPerFrame=256 Pass2SoftGateMaxAttemptsPerPixel=4 Pass2SoftGateMaxAttemptsPerFrame=600 Pass2SoftGateMaxSubdividedCallsPerFrame=1000 UpdateEveryFrame=1
-[Transport][MetricDiagSample] eval=1 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.797664 dTheta=0.002727
+[Transport][MetricDiagSample] eval=2 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.797664 dTheta=0.002727
 [Transport][MetricDiagSample] eval=2 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.649751 dTheta=0.002684
-[Transport][MetricDiagSample] eval=3 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.793011 dTheta=0.002726
 [Transport][MetricDiagSample] eval=6 status=nonzero reason=none radiusFlag=r_hi r=25.62054 bendPerp=0.647589 dTheta=0.002698
+[Transport][MetricDiagSample] eval=3 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.793011 dTheta=0.002726
+[Transport][MetricDiagSample] eval=5 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.788711 dTheta=0.002725
 [Transport][MetricLaw] active=MetricLaw_CurrentEnvelope transport=Metric_NullGeodesic
 [Transport][MetricDiagSample] eval=5 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.622322 dTheta=0.002674
-[Transport][MetricDiagSample] eval=6 status=nonzero reason=none radiusFlag=r_hi r=25.69662 bendPerp=0.788711 dTheta=0.002725
 [RenderTestRunner][Live] fixture=blackhole_minimal run=prune_on_default probe=baseline budget_mode=na budget_n=na renderstep_calls=82 rows_advanced_total=6 trust_window=na/na/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=311069 budget_exit_reason=none
 [RenderTestLive] name=prune_on_default frame=1/80 lastRow=6 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=311069 geomTrusted=0 geomHealthPartial=1 geomTrustReason=warming_up hitRate=0 budgetStop=none
 [FrameReset] reason=completed prevRow=45 frame=11
@@ -345,42 +344,40 @@ SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNode
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [RenderTestRunner] RenderHealth snapshot ready at step=90 frame=10
 [FrameReset] reason=completed prevRow=45 frame=12
-[RenderTestRunner][Live] fixture=blackhole_minimal run=prune_on_default probe=baseline budget_mode=na budget_n=na renderstep_calls=101 rows_advanced_total=6 trust_window=0/1/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=2836 budget_exit_reason=none
-[RenderTestLive] name=prune_on_default frame=20/80 lastRow=24 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=2836 geomTrusted=0 geomHealthPartial=1 geomTrustReason=low_raytests hitRate=0 budgetStop=none
+[RenderTestRunner][Live] fixture=blackhole_minimal run=prune_on_default probe=baseline budget_mode=na budget_n=na renderstep_calls=102 rows_advanced_total=6 trust_window=0/1/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=2836 budget_exit_reason=none
+[RenderTestLive] name=prune_on_default frame=21/80 lastRow=30 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=2836 geomTrusted=0 geomHealthPartial=1 geomTrustReason=low_raytests hitRate=0 budgetStop=none
 [FrameReset] reason=completed prevRow=45 frame=13
-[BUS SET] frameId=108 grid=OK fields=2
+[BUS SET] frameId=110 grid=OK fields=2
 SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNodes=1, GeometryTLASNodes=31, MetricModel(GRIN=2, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1, FirstFields=[0:(rInner=0.12, rOuter=4.5, amp=0.151, curveType=1, shapeType=0), 1:(rInner=1.305, rOuter=1.8449999, amp=0.03, curveType=2, shapeType=0)]
 [FrameReset] reason=completed prevRow=45 frame=14
-[RenderTestRunner][Live] fixture=blackhole_minimal run=prune_on_default probe=baseline budget_mode=na budget_n=na renderstep_calls=120 rows_advanced_total=6 trust_window=0/1/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=2836 budget_exit_reason=none
-[RenderTestLive] name=prune_on_default frame=39/80 lastRow=42 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=2836 geomTrusted=0 geomHealthPartial=1 geomTrustReason=low_raytests hitRate=0 budgetStop=none
 [FrameReset] reason=completed prevRow=45 frame=15
 [RenderHealth] step=120 lastRow=0 rowsAdv=3 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=na geomSegQueried=na geomSegWithCandidates=na geomSegZero=na geomSegZeroRatePct=na geomPixProcessed=na geomPixHadAnyCandidates=na geomPixNoCand=na geomPixNoCandRatePct=na geomHitOk=na geomHitReject=na geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=na geomRayTestsAccepted=na geomRayTestsRejected=na geomRayTestsPerPxOn=na geomRayTestsPerPxOff=na geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=0 geomHealthPartial=1 geomHealthModeSamples=10 geomTrustReason=low_raytests geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=37762 radAvg=0.01 radMax=0.01 envDiagAvg=0.162 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=na cand1to2=na cand3to8=na cand9to32=na cand33p=na geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=120 geomPrune=on geomPixProcessedRaw=1120 geomRayTestsTotalRaw=2450 geomSegQueriedRaw=302097 pass2PixelsRaw=1120 geomPixHadAnyCandidatesRaw=1120 geomPixNoCandRaw=0 geomRayTestsEligibleRaw=1120 p2SampRaw=37762
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1120 geomRayTestsTotalRaw=2450 geomRayTestsEligibleRaw=1120 trustGeomPixMet=1 trustRayTestsMet=0 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
-[BUS SET] frameId=127 grid=OK fields=2
-SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNodes=1, GeometryTLASNodes=31, MetricModel(GRIN=2, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1, FirstFields=[0:(rInner=0.12, rOuter=4.5, amp=0.151, curveType=1, shapeType=0), 1:(rInner=1.305, rOuter=1.8449999, amp=0.03, curveType=2, shapeType=0)]
+[RenderTestRunner][Live] fixture=blackhole_minimal run=prune_on_default probe=baseline budget_mode=na budget_n=na renderstep_calls=122 rows_advanced_total=6 trust_window=0/1/na geomPixProcessedRaw=1120 geomRayTestsTotalRaw=2450 budget_exit_reason=none
+[RenderTestLive] name=prune_on_default frame=41/80 lastRow=6 rowsAdv=6 bands=1 geomPixProcessed=1120 geomRayTestsTotal=2450 geomTrusted=0 geomHealthPartial=1 geomTrustReason=low_raytests hitRate=0 budgetStop=none
 [FrameReset] reason=completed prevRow=45 frame=16
+[BUS SET] frameId=129 grid=OK fields=2
+SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNodes=1, GeometryTLASNodes=31, MetricModel(GRIN=2, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1, FirstFields=[0:(rInner=0.12, rOuter=4.5, amp=0.151, curveType=1, shapeType=0), 1:(rInner=1.305, rOuter=1.8449999, amp=0.03, curveType=2, shapeType=0)]
 [FrameReset] reason=completed prevRow=45 frame=17
-[RenderTestRunner][Live] fixture=blackhole_minimal run=prune_on_default probe=baseline budget_mode=na budget_n=na renderstep_calls=139 rows_advanced_total=6 trust_window=0/1/na geomPixProcessedRaw=1120 geomRayTestsTotalRaw=2450 budget_exit_reason=none
-[RenderTestLive] name=prune_on_default frame=58/80 lastRow=12 rowsAdv=6 bands=1 geomPixProcessed=1120 geomRayTestsTotal=2450 geomTrusted=0 geomHealthPartial=1 geomTrustReason=low_raytests hitRate=0 budgetStop=none
+[RenderTestRunner][Live] fixture=blackhole_minimal run=prune_on_default probe=baseline budget_mode=na budget_n=na renderstep_calls=142 rows_advanced_total=6 trust_window=0/1/na geomPixProcessedRaw=1120 geomRayTestsTotalRaw=2450 budget_exit_reason=none
+[RenderTestLive] name=prune_on_default frame=61/80 lastRow=30 rowsAdv=6 bands=1 geomPixProcessed=1120 geomRayTestsTotal=2450 geomTrusted=0 geomHealthPartial=1 geomTrustReason=low_raytests hitRate=0 budgetStop=none
 [FrameReset] reason=completed prevRow=45 frame=18
-[BUS SET] frameId=146 grid=OK fields=2
+[BUS SET] frameId=149 grid=OK fields=2
 SceneSnapshot: Instances=0, Fields=2, Geometry=54, FieldParams=16, FieldTLASNodes=1, GeometryTLASNodes=31, MetricModel(GRIN=2, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1, FirstFields=[0:(rInner=0.12, rOuter=4.5, amp=0.151, curveType=1, shapeType=0), 1:(rInner=1.305, rOuter=1.8449999, amp=0.03, curveType=2, shapeType=0)]
 [RenderHealth] step=150 lastRow=36 rowsAdv=6 bands=1 stalledSteps=0 exit=none topExit=none hitRate=0 avgSteps=0 qray0=0 hybridFallback=0 hybridFallbackHit=0 hybridFallbackMiss=0 noCandidates=0 geomCandAvg=na geomSegQueried=na geomSegWithCandidates=na geomSegZero=na geomSegZeroRatePct=na geomPixProcessed=na geomPixHadAnyCandidates=na geomPixNoCand=na geomPixNoCandRatePct=na geomHitOk=na geomHitReject=na geomPrune=on geomPruneRequested=1 geomPruneEffective=on geomRayTestsTotal=na geomRayTestsAccepted=na geomRayTestsRejected=na geomRayTestsPerPxOn=na geomRayTestsPerPxOff=na geomRayTestsSavedPct=na geomPruneSwitched=0 geomTrusted=0 geomHealthPartial=1 geomHealthModeSamples=10 geomTrustReason=low_raytests geomRejectSampleMissing=0 geomRejectSampleInList=0 geomRejectSampleCandHit=0 geomRejectSampleDominant=none p2Samp=38937 radAvg=0.01 radMax=0.01 envDiagAvg=0.162 envDiagMax=0.17 envInflAvg=0.01 envInflMax=0.01 cand0=na cand1to2=na cand3to8=na cand9to32=na cand33p=na geomPruneAuditSamp=na geomPruneAuditFalseNeg=na geomPruneAuditFalsePos=na geomPruneAuditCand0Hit=na geomPruneAuditFalseNegRate=na
 [RenderHealth][GeomCoverage] step=150 geomPrune=on geomPixProcessedRaw=1160 geomRayTestsTotalRaw=2546 geomSegQueriedRaw=311491 pass2PixelsRaw=1160 geomPixHadAnyCandidatesRaw=1160 geomPixNoCandRaw=0 geomRayTestsEligibleRaw=1160 p2SampRaw=38937
 [RenderHealth][TrustGateDebug] geomPixProcessedRaw=1160 geomRayTestsTotalRaw=2546 geomRayTestsEligibleRaw=1160 trustGeomPixMet=1 trustRayTestsMet=0 minGeomPix=1024 minRayTests=4096
 [RenderHealth][TrustCfg] p2SampleEveryNSeg=8 minP2SamplesForTrust=8
 [FrameReset] reason=completed prevRow=45 frame=19
-[RenderTestRunner][Live] fixture=blackhole_minimal run=prune_on_default probe=baseline budget_mode=na budget_n=na renderstep_calls=158 rows_advanced_total=6 trust_window=0/1/na geomPixProcessedRaw=1160 geomRayTestsTotalRaw=2546 budget_exit_reason=none
-[RenderTestLive] name=prune_on_default frame=77/80 lastRow=30 rowsAdv=6 bands=1 geomPixProcessed=1160 geomRayTestsTotal=2546 geomTrusted=0 geomHealthPartial=1 geomTrustReason=low_raytests hitRate=0 budgetStop=none
 [FrameReset] reason=completed prevRow=45 frame=20
-[RenderTest][RUN SUMMARY] matrix=1773105289 idx=2/2 name=prune_on_default samples=70 meanMsPerFrame=49.177 p95MsPerFrame=52.431 meanSegsPerPixel=na geomTrusted=0 geomTrustReason=low_raytests geomRayTestsSavedPct=na
-[RenderTest][RUN END] matrix=1773105289 idx=2/2 name=prune_on_default run_id=2 frames=80 warmup=10 samples=70
-[RUN END] name=prune_on_default run_id=2 frames=80 samples=70 meanMs=49.177 p95Ms=52.431
-[RenderTest][RUN DETAIL] matrix=1773105289 idx=2/2 name=prune_on_default fixtureStatsKnown=1 sourceHits=0 backgroundHits=0 absorbedHits=0 missHits=9200 traced=9200 hitRate=0 metricDiagKnown=1 metricDeltaZeroCount=0 metricDeltaNonzeroCount=2406624 metricFallbackCount=0 metricContributionRatio=1 steeringTurnCount=0 steeringMeanTurn=0 steeringMaxTurn=0 steeringRadial=r<0.5R:0@0,0.5R-1R:0@0,1R-2R:0@0,2R-4R:0@0,4R-8R:0@0,r>=8R:0@0 metricZeroReasons=parallel_raw=843270,parallel_recovered=23153
-[RenderTest][MATRIX END] id=1773105289 runs=2
-[MATRIX END] totalRuns=2 elapsedMs=18922.564
+[RenderTest][RUN SUMMARY] matrix=1773105263 idx=2/2 name=prune_on_default samples=70 meanMsPerFrame=46.332 p95MsPerFrame=51.1 meanSegsPerPixel=na geomTrusted=0 geomTrustReason=low_raytests geomRayTestsSavedPct=na
+[RenderTest][RUN END] matrix=1773105263 idx=2/2 name=prune_on_default run_id=2 frames=80 warmup=10 samples=70
+[RUN END] name=prune_on_default run_id=2 frames=80 samples=70 meanMs=46.332 p95Ms=51.1
+[RenderTest][RUN DETAIL] matrix=1773105263 idx=2/2 name=prune_on_default fixtureStatsKnown=1 sourceHits=0 backgroundHits=0 absorbedHits=0 missHits=9200 traced=9200 hitRate=0 metricDiagKnown=1 metricDeltaZeroCount=0 metricDeltaNonzeroCount=2398228 metricFallbackCount=0 metricContributionRatio=1 steeringTurnCount=0 steeringMeanTurn=0 steeringMaxTurn=0 steeringRadial=r<0.5R:0@0,0.5R-1R:0@0,1R-2R:0@0,2R-4R:0@0,4R-8R:0@0,r>=8R:0@0 metricZeroReasons=parallel_raw=843155,parallel_recovered=23156
+[RenderTest][MATRIX END] id=1773105263 runs=2
+[MATRIX END] totalRuns=2 elapsedMs=18273.306
 [RenderTestRunner] Quitting (render-test mode).
 [RenderTestRunner] Requesting deferred quit code=0
 [RenderTestRunner][ExitCode] forced=0 reason=harness_success
