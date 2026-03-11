@@ -1,0 +1,52 @@
+Einstein_Ring_Minimal invalid: absorption out of range | absorbed_rays=0/16 rate=0 expected=[0.1,0.4]
+ERROR: Einstein_Ring_Minimal invalid: absorption out of range | absorbed_rays=0/16 rate=0 expected=[0.1,0.4]
+   at: void EinsteinRingMinimalFingerprint.FailInvalid(string, string) (res://Fixtures/EinsteinRingMinimalFingerprint.cs:1510)
+   C# backtrace (most recent call first):
+       [0] void Godot.GD.PushError(string) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/GD.cs:366)
+       [1] void EinsteinRingMinimalFingerprint.FailInvalid(string, string) (C:\godot\godot_xPRIMEray\Fixtures\EinsteinRingMinimalFingerprint.cs:1510)
+       [2] void EinsteinRingMinimalFingerprint._Ready() (C:\godot\godot_xPRIMEray\Fixtures\EinsteinRingMinimalFingerprint.cs:456)
+       [3] bool Godot.Node.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node.cs:2660)
+       [4] bool Godot.Node3D.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node3D.cs:1126)
+       [5] bool EinsteinRingMinimalFingerprint.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\EinsteinRingMinimalFingerprint_ScriptMethods.generated.cs:418)
+       [6] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+[EinsteinFixture][FAIL] Requesting quit code=1 due to fixture invariant failure.
+ERROR: Parameter "data.tree" is null.
+   at: get_tree (scene/main/node.h:507)
+   C# backtrace (most recent call first):
+       [0] Godot.GodotObject Godot.NativeCalls.godot_icall_0_53(nint, nint) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:466)
+       [1] Godot.SceneTree Godot.Node.GetTree() (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node.cs:1853)
+       [2] void EinsteinRingMinimalFingerprint.QuitInvalidFixtureIfHarnessed() (C:\godot\godot_xPRIMEray\Fixtures\EinsteinRingMinimalFingerprint.cs:1524)
+       [3] bool EinsteinRingMinimalFingerprint.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\EinsteinRingMinimalFingerprint_ScriptMethods.generated.cs:334)
+       [4] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+WARNING: [FieldSource3D][Warn] canonical+legacy both set; using canonical. (legacy ignored, reason=legacy Strength)
+   at: void FieldSource3D.WarnIfCanonicalAndLegacyBothSet() (res://FieldSource3D.cs:826)
+   C# backtrace (most recent call first):
+       [0] void Godot.GD.PushWarning(string) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/GD.cs:396)
+       [1] void FieldSource3D.WarnIfCanonicalAndLegacyBothSet() (C:\godot\godot_xPRIMEray\FieldSource3D.cs:826)
+       [2] void FieldSource3D._Ready() (C:\godot\godot_xPRIMEray\FieldSource3D.cs:362)
+       [3] bool Godot.Node.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node.cs:2660)
+       [4] bool Godot.Node3D.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node3D.cs:1126)
+       [5] bool FieldSource3D.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\FieldSource3D_ScriptMethods.generated.cs:358)
+       [6] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+WARNING: [FieldSource3D][Warn] canonical+legacy both set; using canonical. (legacy ignored, reason=legacy Strength)
+   at: void FieldSource3D.WarnIfCanonicalAndLegacyBothSet() (res://FieldSource3D.cs:826)
+   C# backtrace (most recent call first):
+       [0] void Godot.GD.PushWarning(string) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/GD.cs:396)
+       [1] void FieldSource3D.WarnIfCanonicalAndLegacyBothSet() (C:\godot\godot_xPRIMEray\FieldSource3D.cs:826)
+       [2] void FieldSource3D._Ready() (C:\godot\godot_xPRIMEray\FieldSource3D.cs:362)
+       [3] bool Godot.Node.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node.cs:2660)
+       [4] bool Godot.Node3D.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node3D.cs:1126)
+       [5] bool FieldSource3D.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\FieldSource3D_ScriptMethods.generated.cs:358)
+       [6] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+Einstein_Ring_Minimal invalid: curvature not engaged | mass_match=0 band_match=1 mass_primary=1 band_noticeable=1 bounded=1 hasRenderer=1 useIntegrated=1 bendScale=1 fieldStrength=1 transport=1 mass_resolve_reason=canonical mass_enabled=1 mass_curve=Power mass_modeFlags=0 mass_amp=1 mass_rInner=0 mass_rOuter=2 mass_A=1 mass_B=0 mass_C=0 mass_beta_mode=override mass_beta_scale=1 band_resolve_reason=canonical band_enabled=0 band_curve=Power band_modeFlags=0 band_amp=0 band_rInner=0 band_rOuter=2 band_A=1 band_B=0 band_C=0 band_beta_mode=override band_beta_scale=1 probe_mass=[0.549306,0.35,0.312614,0.408392] probe_band=[0,0,0,0] probe_total=[0.549306,0.35,0.312614,0.408392] far_accel=0
+ERROR: Einstein_Ring_Minimal invalid: curvature not engaged | mass_match=0 band_match=1 mass_primary=1 band_noticeable=1 bounded=1 hasRenderer=1 useIntegrated=1 bendScale=1 fieldStrength=1 transport=1 mass_resolve_reason=canonical mass_enabled=1 mass_curve=Power mass_modeFlags=0 mass_amp=1 mass_rInner=0 mass_rOuter=2 mass_A=1 mass_B=0 mass_C=0 mass_beta_mode=override mass_beta_scale=1 band_resolve_reason=canonical band_enabled=0 band_curve=Power band_modeFlags=0 band_amp=0 band_rInner=0 band_rOuter=2 band_A=1 band_B=0 band_C=0 band_beta_mode=override band_beta_scale=1 probe_mass=[0.549306,0.35,0.312614,0.408392] probe_band=[0,0,0,0] probe_total=[0.549306,0.35,0.312614,0.408392] far_accel=0
+   at: void EinsteinRingMinimalFingerprint.FailInvalid(string, string) (res://Fixtures/EinsteinRingMinimalFingerprint.cs:1510)
+   C# backtrace (most recent call first):
+       [0] void Godot.GD.PushError(string) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/GD.cs:366)
+       [1] void EinsteinRingMinimalFingerprint.FailInvalid(string, string) (C:\godot\godot_xPRIMEray\Fixtures\EinsteinRingMinimalFingerprint.cs:1510)
+       [2] void EinsteinRingMinimalFingerprint._Ready() (C:\godot\godot_xPRIMEray\Fixtures\EinsteinRingMinimalFingerprint.cs:400)
+       [3] bool Godot.Node.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node.cs:2660)
+       [4] bool Godot.Node3D.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node3D.cs:1126)
+       [5] bool EinsteinRingMinimalFingerprint.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\EinsteinRingMinimalFingerprint_ScriptMethods.generated.cs:418)
+       [6] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+[EinsteinFixture][FAIL] Requesting quit code=1 due to fixture invariant failure.

@@ -42,18 +42,6 @@ shape = SubResource("BoxShape3D_background_screen")
 
 [node name="FieldSource3D" type="Node3D" parent="."]
 script = ExtResource("1_field")
-TransportModel = 1
-CurveType = 1
-ROuter = 4.5
-Amp = 0.151
-CanonicalGamma = 8.0
-CanonicalBetaScale = 1.0
-CanonicalEnableInnerRadius = true
-RInner = 0.12
-Softening = 0.1
-CanonicalOverrideBetaScale = true
-ModeFlags = 2
-Attract = true
 Strength = 0.0
 OverrideGamma = false
 Gamma = 0.0
@@ -76,18 +64,6 @@ a=dir*mag"
 
 [node name="PhotonBandSource" type="Node3D" parent="."]
 script = ExtResource("1_field")
-TransportModel = 1
-CurveType = 2
-ROuter = 1.845
-CurveB = 4.0
-CurveC = -4.0
-Amp = 0.03
-CanonicalBetaScale = 1.0
-CanonicalEnableInnerRadius = true
-RInner = 1.305
-Softening = 0.05
-CanonicalOverrideBetaScale = true
-Attract = true
 Strength = 0.0
 OverrideGamma = false
 Gamma = 0.0

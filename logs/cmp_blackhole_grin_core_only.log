@@ -1,0 +1,131 @@
+Godot Engine v4.5.1.stable.mono.official.f62fdbde1 - https://godotengine.org
+OpenGL API 3.3.0 Core Profile Context 25.11.1.251104 - Compatibility - Using Device: ATI Technologies Inc. - AMD Radeon RX 6700 XT
+
+[FieldSource3D] /root/TestBlackholeMinimalGrinHarness/FixtureBlackholeMinimal/FieldSource3D shape=SphereRadial curve=Power amp=0.151 a=8 b=0 c=0 r=[0.12,4.5] sigma=0 edge=0 beta=override(beta_scale=1) custom=n/a source=canonical
+[FieldSource3D] /root/TestBlackholeMinimalGrinHarness/FixtureBlackholeMinimal/PhotonBandSource shape=SphereRadial curve=Polynomial amp=0.03 a=0 b=4 c=-4 r=[1.305,1.845] sigma=0 edge=0 beta=override(beta_scale=1) custom=n/a source=canonical
+[DBG] dbgMesh inTree=True parent=RayBeamRenderer world=(0, 0, 0)
+✅ GrinFilmCamera READY: /root/TestBlackholeMinimalGrinHarness/GrinFilmCamera
+[RBRRef][Startup] configured path=../FixtureBlackholeMinimal/RayBeamRenderer
+[RBRRef] resolved ok name=RayBeamRenderer
+[RBRRef][Startup] resolved=True
+RayBeamRenderer found? True
+[BroadphaseEffective] mode=Policy policy=OverlapOnly quick=False overlap=True reason=policy
+[SharedSnap] steps=400 stepLen=0.05 minStep=0.001 maxStep=0.3 collEvery=1 collRad=0.03 mask=0x0000FFFF debug=Off
+[EffectiveCfg] broadphase=Policy(policy) policy=OverlapOnly quick=0 overlap=1 softgate=0 score=1 minSeg=0.1 attempts=5000 sub=10000 stride=1 resScale=0.5 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF envRadScale=1.1 envAabbExpand=0 geomPrune=1 maxDist=50
+FilmView found? True
+[RBRRef][Startup] HasRenderer(after mirror)=True
+✅ GrinFilmCamera ready. Rendering film.
+[RenderTestRunner] _Ready reached.
+[RenderTestRunner][CmdArgs] [--render-test, --render-test-fixture=blackhole_minimal, --render-test-profile=blackhole_compare_fast, --lifecycle-stress=0, --smartscale=0, --blackhole-photon-band=off, --scene, res://test-blackhole-minimal-grin.tscn]
+[RenderTestRunner][CLIFlags] autocal=0 shadow_eval=0 autocal_verbose=0 autocal_apply=0 lifecycle_stress=0 smartscale=0 smartscale_goal=none
+[RenderTestRunner] TokenDetected=True shouldStart=True
+[RenderTestRunner] Switching to fixture scene: fixture=BlackholeMinimal path=res://test-blackhole-minimal.tscn
+[FixtureStartup] fixture=blackhole_minimal variant=test-blackhole-minimal-grin transport=GRIN_Optical source=scene_baseline
+[FixtureField] fixture=blackhole_minimal node=FieldSource3D label=mass source=scene_baseline transport=GRIN_Optical curve=Power rInnerEnabled=1 rInner=0.12 rOuter=4.5 amp=0.151 betaMode=override betaScale=1 gamma=8 legacy=inactive
+[FixtureField] fixture=blackhole_minimal node=PhotonBandSource label=photon_band source=scene_baseline transport=GRIN_Optical curve=Polynomial rInnerEnabled=1 rInner=1.305 rOuter=1.845 amp=0.03 betaMode=override betaScale=1 a=0 b=4 c=-4 legacy=inactive
+[BlackHoleFixture][PhotonBandMode] mode=core_only source=cmdline_user authored_enabled=1 effective_enabled=0
+[Transport] active=GRIN_Optical fixture=blackhole_minimal effectiveMetricScalar=0.151
+[BlackHoleFixture][CurvatureEngaged] mass_match=1 band_match=1 probe_any=1 band_noticeable=1 mass_primary=1 far_accel=0 transport=1 probe_mass=[0.031352,0.012257,0.010145,0.016328] probe_band=[0,0,0,0] probe_total=[0.031352,0.012257,0.010145,0.016328]
+[BlackHoleFixture][CurvatureApplied] deviated_rays=16/16 max_dev=0.668924 dev_sum=10.12669 min_dev_threshold=0.001
+[BlackHoleFixture][CurvatureMetric] accel_sum_total=0.070081 accel_sum_mass=0.070081 accel_sum_band=0 curvature_energy=0.070081 max_probe_accel=0.031352 far_accel=0
+[BlackHoleFixture][SourcePattern] mode=CrossXY count=49 spacing=(4.5,4.5) radius=0.6 originLocal=(0,0,-12) includeCenter=1 localSample=[(-54,0,-12)|(-49.5,0,-12)|(-45,0,-12)|(-40.5,0,-12)|(-36,0,-12)|(-31.5,0,-12)] worldSample=[(-54,0,-12)|(-49.5,0,-12)|(-45,0,-12)|(-40.5,0,-12)|(-36,0,-12)|(-31.5,0,-12)] checksum=d2dc5d7f5c2ff5db8947386ab147590f02b7ac52680c9ddbf4171def12339e5d
+[BlackHoleFixture][SourcePatternLayout] markers=49 overlap_exact=0 min_pair_dist=4.5 z_range=(-12,-12) center_z=0 behind_center=1
+[BlackHoleFixture][SourcePatternMarker] i=0 name=source_marker_000 local=(-54,0,-12) global=(-54,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=1 name=source_marker_001 local=(-49.5,0,-12) global=(-49.5,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=2 name=source_marker_002 local=(-45,0,-12) global=(-45,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=3 name=source_marker_003 local=(-40.5,0,-12) global=(-40.5,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=4 name=source_marker_004 local=(-36,0,-12) global=(-36,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=5 name=source_marker_005 local=(-31.5,0,-12) global=(-31.5,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=6 name=source_marker_006 local=(-27,0,-12) global=(-27,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=7 name=source_marker_007 local=(-22.5,0,-12) global=(-22.5,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=8 name=source_marker_008 local=(-18,0,-12) global=(-18,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=9 name=source_marker_009 local=(-13.5,0,-12) global=(-13.5,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=10 name=source_marker_010 local=(-9,0,-12) global=(-9,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=11 name=source_marker_011 local=(-4.5,0,-12) global=(-4.5,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=12 name=source_marker_012 local=(0,0,-12) global=(0,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=13 name=source_marker_013 local=(4.5,0,-12) global=(4.5,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=14 name=source_marker_014 local=(9,0,-12) global=(9,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=15 name=source_marker_015 local=(13.5,0,-12) global=(13.5,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=16 name=source_marker_016 local=(18,0,-12) global=(18,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=17 name=source_marker_017 local=(22.5,0,-12) global=(22.5,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=18 name=source_marker_018 local=(27,0,-12) global=(27,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=19 name=source_marker_019 local=(31.5,0,-12) global=(31.5,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=20 name=source_marker_020 local=(36,0,-12) global=(36,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=21 name=source_marker_021 local=(40.5,0,-12) global=(40.5,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=22 name=source_marker_022 local=(45,0,-12) global=(45,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=23 name=source_marker_023 local=(49.5,0,-12) global=(49.5,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=24 name=source_marker_024 local=(54,0,-12) global=(54,0,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=25 name=source_marker_025 local=(0,-54,-12) global=(0,-54,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=26 name=source_marker_026 local=(0,-49.5,-12) global=(0,-49.5,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=27 name=source_marker_027 local=(0,-45,-12) global=(0,-45,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=28 name=source_marker_028 local=(0,-40.5,-12) global=(0,-40.5,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=29 name=source_marker_029 local=(0,-36,-12) global=(0,-36,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=30 name=source_marker_030 local=(0,-31.5,-12) global=(0,-31.5,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=31 name=source_marker_031 local=(0,-27,-12) global=(0,-27,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=32 name=source_marker_032 local=(0,-22.5,-12) global=(0,-22.5,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=33 name=source_marker_033 local=(0,-18,-12) global=(0,-18,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=34 name=source_marker_034 local=(0,-13.5,-12) global=(0,-13.5,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=35 name=source_marker_035 local=(0,-9,-12) global=(0,-9,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=36 name=source_marker_036 local=(0,-4.5,-12) global=(0,-4.5,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=37 name=source_marker_037 local=(0,4.5,-12) global=(0,4.5,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=38 name=source_marker_038 local=(0,9,-12) global=(0,9,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=39 name=source_marker_039 local=(0,13.5,-12) global=(0,13.5,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=40 name=source_marker_040 local=(0,18,-12) global=(0,18,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=41 name=source_marker_041 local=(0,22.5,-12) global=(0,22.5,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=42 name=source_marker_042 local=(0,27,-12) global=(0,27,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=43 name=source_marker_043 local=(0,31.5,-12) global=(0,31.5,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=44 name=source_marker_044 local=(0,36,-12) global=(0,36,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=45 name=source_marker_045 local=(0,40.5,-12) global=(0,40.5,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=46 name=source_marker_046 local=(0,45,-12) global=(0,45,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=47 name=source_marker_047 local=(0,49.5,-12) global=(0,49.5,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][SourcePatternMarker] i=48 name=source_marker_048 local=(0,54,-12) global=(0,54,-12) groups=[raytrace_geometry,fixture_geometry,fixture_source] collision_enabled=1 visible=1
+[BlackHoleFixture][Absorption] transportModel=GRIN_Optical effectiveMetricScalar=0.151 absorbed_rays=0/16 absorb_rate=0
+[BlackHoleFixture][MetricDiagnostics] metricLaw=MetricLaw_CurrentEnvelope metricDeltaZeroCount=0 metricDeltaNonzeroCount=0 metricFallbackCount=0 metricContributionRatio=0 zeroReasons=none
+[MetricIsolation] metricLaw=MetricLaw_CurrentEnvelope metricDirectSteps=0 gridBypassSteps=0 grinFallbackSteps=0 grinScalarDominatedSteps=0
+[TransportSteering] transportModel=GRIN_Optical metricLaw=MetricLaw_CurrentEnvelope meanTurn=0.000479 maxTurn=0.006595 radialBins=[r<0.5R:0.000984@1256,0.5R-1R:0.000001@556,1R-2R:0@768,2R-4R:0@0,4R-8R:0@0,r>=8R:0@0]
+[BlackHoleFixture][PhotonBandContribution] mode=core_only source=cmdline_user enabled=0 probeAccelSum=0 probeAccelShare=0 farAccel=0
+[BlackHoleFixture][ComparisonSummary] transportModel=GRIN_Optical metricLaw=MetricLaw_CurrentEnvelope effectiveMetricScalar=0.151 photonBandMode=core_only photonBandModeSource=cmdline_user photonBandEnabled=0 photonBandProbeAccelSum=0 photonBandProbeAccelShare=0 sourcePatternSummary=mode=CrossXY|count=49|spacingX=4.500000|spacingY=4.500000|radius=0.600000|origin=(0,0,-12)|includeCenter=1|checksum=d2dc5d7f5c2ff5db8947386ab147590f02b7ac52680c9ddbf4171def12339e5d probeN=16 absorbCount=0 absorbRate=0 hitRate=0 sourceHits=0 backgroundHits=0 detectorHits=0 absorbedHits=0 missHits=16 offscreenDetectorHits=0 noPlaneIntersect=16 closestApproachMean=0.256516 projectedRadiusMean=0 detectorScale=1 silhouetteRadiusMean=0 silhouetteRadiusStdDev=0 silhouetteRadiusRange=0 metricDeltaZeroCount=0 metricDeltaNonzeroCount=0 metricFallbackCount=0 metricContributionRatio=0 silhouetteHistogram=[]
+[BlackHoleFixture] mass_strength=0.151 mass_radius=4.5 band_strength=0.03 band_r_inner=1.305 band_r_outer=1.845 mass_node_path=/root/TestBlackholeMinimalGrinHarness/FixtureBlackholeMinimal/FieldSource3D band_node_path=/root/TestBlackholeMinimalGrinHarness/FixtureBlackholeMinimal/PhotonBandSource sphere_global_pos=(0,0,0) sphere_scale=(1,1,1) cam_fov=70 camera_global_pos=(0,9.409,23.912) cam_to_sphere=25.697
+[BlackHoleFixture][ResolvedMass] source=canonical curve=Power modeFlags=2 rInner=0.12 rOuter=4.5 amp=0.151 gamma=8 beta_mode=override beta_scale=1
+[BlackHoleFixture][ResolvedPhotonBand] source=canonical mode=core_only enabled=0 curve=Polynomial modeFlags=0 rInner=1.305 rOuter=1.845 amp=0 A=0 B=4 C=-4 beta_mode=override beta_scale=1
+[BlackHoleFixture][Renderer] useIntegrated=1 bendScale=1 fieldStrength=1
+BlackHoleMinimalFingerprintRaw: transportModel=GRIN_Optical metricLaw=MetricLaw_CurrentEnvelope effectiveMetricScalar=0.151 sourcePatternSummary=mode=CrossXY|count=49|spacingX=4.500000|spacingY=4.500000|radius=0.600000|origin=(0,0,-12)|includeCenter=1|checksum=d2dc5d7f5c2ff5db8947386ab147590f02b7ac52680c9ddbf4171def12339e5d sourceHits=0 backgroundHits=0 detectorHits=0 absorbedHits=0 missHits=16 offscreenDetectorHits=0 noPlaneIntersect=16 closestApproachMean=0.256516 projectedRadiusMean=0 detectorScale=1 absorbCount=0 absorbRate=0 hitRate=0 silhouetteRadiusMean=0 silhouetteRadiusStdDev=0 silhouetteRadiusRange=0 silhouetteHistogram=[] accelMass=[0.130296,0.012257,0.012024,0.006997,0.001981] accelBand=[0.000000,0.000000,0.000000,0.000000,0.000000] accelTotal=[0.130296,0.012257,0.012024,0.006997,0.001981] rayEndpoints=[-0.298106,-0.298106,0.176552|-0.083451,-0.292078,0.182461|0.125560,-0.292975,0.181676|0.292078,-0.083451,0.182461|0.292975,0.125560,0.181676|0.083451,0.292078,0.182461|-0.125560,0.292975,0.181676|-0.292078,0.083451,0.182461] rayChecksum=7d3eeb31b73b923efa4585e8d4e74aad3a59724b58d0b9fc156088e3d3105066
+BlackHoleMinimalFingerprint: v=3;sourceCount=1;bandMode=core_only;bandModeSource=cmdline_user;massCanonical=1;bandCanonical=0;massSource=canonical;massCurve=Power;massRInner=0.120000;massROuter=4.500000;massAmp=0.151000;massGamma=8.000000;massA=8.000000;massB=0.000000;massC=0.000000;massModeFlags=2;massTransport=GRIN_Optical;massBetaMode=override;massBetaScale=1.000000;bandEnabled=0;bandSource=canonical;bandCurve=Polynomial;bandRInner=1.305000;bandROuter=1.845000;bandAmp=0.000000;bandA=0.000000;bandB=4.000000;bandC=-4.000000;bandModeFlags=0;bandTransport=GRIN_Optical;bandBetaMode=override;bandBetaScale=1.000000;useIntegrated=1;bendScale=1.000000;fieldStrength=1.000000;stepLength=0.050000;minStep=0.001000;maxStep=0.300000;stepAdaptGain=0.050000;maxSteps=400;transportModel=GRIN_Optical;metricLaw=MetricLaw_CurrentEnvelope;effectiveMetricScalar=0.151000;sourcePatternSummary=mode=CrossXY|count=49|spacingX=4.500000|spacingY=4.500000|radius=0.600000|origin=(0,0,-12)|includeCenter=1|checksum=d2dc5d7f5c2ff5db8947386ab147590f02b7ac52680c9ddbf4171def12339e5d;sourcePatternMode=CrossXY;sourcePatternCount=49;sourceSpacingX=4.500000;sourceSpacingY=4.500000;sourceMarkerRadius=0.600000;probeN=16;absorbCount=0;absorbRate=0.000000;hitRate=0.000000;sourceHits=0;backgroundHits=0;detectorHits=0;absorbedHits=0;missHits=16;offscreenDetectorHits=0;noPlaneIntersect=16;closestApproachMean=0.256516;projectedRadiusMean=0.000000;detectorScale=1.000000;silhouetteRadiusMean=0.000000;silhouetteRadiusStdDev=0.000000;silhouetteRadiusRange=0.000000;silhouetteHistogram=[];rayK=48;accelMass=[0.130296,0.012257,0.012024,0.006997,0.001981];accelBand=[0.000000,0.000000,0.000000,0.000000,0.000000];accelTotal=[0.130296,0.012257,0.012024,0.006997,0.001981];rayChecksum=7d3eeb31b73b923efa4585e8d4e74aad3a59724b58d0b9fc156088e3d3105066;sha256=1cd506d69f33c6cb6964f26dbcd67ca7daa69434e022036fc6a5928a4e582884
+[BlackHoleCompare] transportModel=GRIN_Optical absorbCount=0 absorbRate=0 hitRate=0 sourcePatternMode=CrossXY sourcePatternCount=49 fingerprint=1cd506d69f33c6cb6964f26dbcd67ca7daa69434e022036fc6a5928a4e582884
+[FieldSource3D] /root/TestBlackholeMinimalHarness/FixtureBlackholeMinimal/FieldSource3D shape=SphereRadial curve=Power amp=1 a=1 b=0 c=0 r=[0,2] sigma=0 edge=0 beta=override(beta_scale=1) custom=n/a source=canonical
+[FieldSource3D] /root/TestBlackholeMinimalHarness/FixtureBlackholeMinimal/PhotonBandSource shape=SphereRadial curve=Power amp=1 a=1 b=0 c=0 r=[0,2] sigma=0 edge=0 beta=override(beta_scale=1) custom=n/a source=canonical
+[DBG] dbgMesh inTree=True parent=RayBeamRenderer world=(0, 0, 0)
+✅ GrinFilmCamera READY: /root/TestBlackholeMinimalHarness/GrinFilmCamera
+[RBRRef][Startup] configured path=../FixtureBlackholeMinimal/RayBeamRenderer
+[RBRRef] resolved ok name=RayBeamRenderer
+[RBRRef][Startup] resolved=True
+RayBeamRenderer found? True
+[BroadphaseEffective] mode=Policy policy=OverlapOnly quick=False overlap=True reason=policy
+[SharedSnap] steps=400 stepLen=0.05 minStep=0.001 maxStep=0.3 collEvery=1 collRad=0.03 mask=0x0000FFFF debug=Off
+[EffectiveCfg] broadphase=Policy(policy) policy=OverlapOnly quick=0 overlap=1 softgate=0 score=1 minSeg=0.1 attempts=5000 sub=10000 stride=1 resScale=0.5 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF envRadScale=1.1 envAabbExpand=0 geomPrune=1 maxDist=50
+FilmView found? True
+[RBRRef][Startup] HasRenderer(after mirror)=True
+✅ GrinFilmCamera ready. Rendering film.
+[RenderTestRunner] _Ready reached.
+[RenderTestRunner][CmdArgs] [--render-test, --render-test-fixture=blackhole_minimal, --render-test-profile=blackhole_compare_fast, --lifecycle-stress=0, --smartscale=0, --blackhole-photon-band=off, --scene, res://test-blackhole-minimal-grin.tscn]
+[RenderTestRunner][CLIFlags] autocal=0 shadow_eval=0 autocal_verbose=0 autocal_apply=0 lifecycle_stress=0 smartscale=0 smartscale_goal=none
+[RenderTestRunner] TokenDetected=True shouldStart=True
+[FixtureStartup] fixture=blackhole_minimal variant=test-blackhole-minimal transport=GRIN_Optical source=scene_baseline
+[FixtureField] fixture=blackhole_minimal node=FieldSource3D label=mass source=scene_baseline transport=GRIN_Optical curve=Power rInnerEnabled=0 rInner=0 rOuter=2 amp=1 betaMode=override betaScale=1 gamma=1 legacy=active(legacy Strength)
+[FixtureField] fixture=blackhole_minimal node=PhotonBandSource label=photon_band source=scene_baseline transport=GRIN_Optical curve=Power rInnerEnabled=0 rInner=0 rOuter=2 amp=1 betaMode=override betaScale=1 gamma=1 legacy=active(legacy Strength)
+[BlackHoleFixture][PhotonBandMode] mode=core_only source=cmdline_user authored_enabled=1 effective_enabled=0
+[Transport] active=GRIN_Optical fixture=blackhole_minimal effectiveMetricScalar=1
+[RenderTestRunner] RenderHealth overrides: p2Every=8 minP2=8
+[RenderTestRunner] Render-test baseline: scaledFilmPx=3600 rowsPerStep=6 minGeomPix=1024 minRayTests=4096 trustEnforcement=on
+[RenderTestRunner] Trust target (render-test): scaledFilm=80x45 scaledPixels=3600 minGeomPix=1024 minRayTests=4096
+[RenderTestRunner] Applied bbNew baseline profile (render-test mode).
+[RenderTestRunner] Captured camera transform for deterministic tests.
+[RenderTestRunner] Applied scoped render-test profile profile=blackhole_compare_fast fixture=BlackholeMinimal runs=2 framesPerRun=80 warmup=10
+Rebuild ENTER
+Rebuild on node: /root/TestBlackholeMinimalHarness/FixtureBlackholeMinimal/RayBeamRenderer  TerminateTrailOnHit=True StopOnHit=False RequireHitToRender=False
+READY node: /root/TestBlackholeMinimalHarness/FixtureBlackholeMinimal/RayBeamRenderer  Script=<CSharpScript#-9223372011336628869>  TerminateTrailOnHit=True
+RayBeamRenderer: field sources in group = 2
+[Transport] active=GRIN_Optical
+[PresetApply] reason=process quality=1 perf=0 user=1 scene=1 preset=Walk perfPreset=None quality=Barebones resScale=0.25 stride=2 rows=8 broadphaseMode=Policy broadphasePolicy=QuickRayOnly
+[BroadphaseEffective] mode=Policy policy=QuickRayOnly quick=True overlap=False reason=policy
+[RenderTestRunner][INIT] mode=render-test startupDelayFrames=2 scene=res://test-blackhole-minimal.tscn

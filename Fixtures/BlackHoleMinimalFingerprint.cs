@@ -80,6 +80,8 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 	private const TransportModel DefaultFixtureTransportModel = TransportModel.GRIN_Optical;
 	private const string TransportArgPrefix = "--transport-model=";
 	private const string FixtureTransportArgPrefix = "--blackhole-transport-model=";
+	private const string PhotonBandArgPrefix = "--photon-band=";
+	private const string FixturePhotonBandArgPrefix = "--blackhole-photon-band=";
 	private const string MetricDetectorScaleArgPrefix = "--blackhole-metric-detector-scale=";
 	private const string MetricLargeDetectorArg = "--blackhole-metric-large-detector";
 	private const string MetricTrajectoryDebugArg = "--blackhole-metric-trajectory-debug";
@@ -125,6 +127,12 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 	private SourceMarkerSphere[] _sourceMarkers = Array.Empty<SourceMarkerSphere>();
 	private string _sourcePatternSummary = "mode=unknown;count=0";
 	private const float ManualMarkerMeshScale = 1.18f;
+
+	private enum PhotonBandFixtureMode
+	{
+		SceneAuthored,
+		Disabled
+	}
 
 	private readonly struct PhotonBandShell
 	{
@@ -251,6 +259,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 	public override void _Ready()
 	{
 		TransportModel fixtureTransportModel = ResolveFixtureTransportModel(out string transportSource);
+		PhotonBandFixtureMode photonBandMode = ResolvePhotonBandFixtureMode(out string photonBandModeSource);
 		LogStartupVariant(fixtureTransportModel, transportSource);
 		FieldSource3D massField = GetNodeOrNull<FieldSource3D>(FieldPath);
 		if (massField == null)
@@ -272,19 +281,24 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 
 		FieldSource3D.ResolvedFieldParams massResolved = massField.ResolveEffectiveParams(out string massResolveReason);
 		FieldSource3D.ResolvedFieldParams bandResolved = photonBandField.ResolveEffectiveParams(out string bandResolveReason);
+		FieldSource3D.ResolvedFieldParams effectiveBandResolved = BuildEffectivePhotonBandResolved(bandResolved, photonBandMode);
 		LogFieldStartupSummary("mass", massField, massResolved, massResolveReason, transportSource);
 		LogFieldStartupSummary("photon_band", photonBandField, bandResolved, bandResolveReason, transportSource);
+		LogPhotonBandMode(photonBandMode, photonBandModeSource, bandResolved.enabled, effectiveBandResolved.enabled);
 		WarnUnexpectedLegacyFallback(massField, massResolveReason);
 		WarnUnexpectedLegacyFallback(photonBandField, bandResolveReason);
 		RayBeamRenderer.FieldSourceSnap massSnap = RayBeamRenderer.BuildFieldSourceSnap(massField);
-		RayBeamRenderer.FieldSourceSnap bandSnap = RayBeamRenderer.BuildFieldSourceSnap(photonBandField);
+		RayBeamRenderer.FieldSourceSnap bandSnap = BuildEffectivePhotonBandSnap(
+			RayBeamRenderer.BuildFieldSourceSnap(photonBandField),
+			photonBandMode);
 		RayBeamRenderer.FieldSourceSnap[] snaps = BuildSourceArray(massSnap, bandSnap);
 		TransportModel activeTransportModel = RayBeamRenderer.ResolveActiveTransportModel(snaps);
+		bool photonBandActive = IsPhotonBandActive(effectiveBandResolved);
 
 		string massResolvedSummary = BuildResolvedSummary("mass", massResolveReason, massResolved);
-		string bandResolvedSummary = BuildResolvedSummary("band", bandResolveReason, bandResolved);
+		string bandResolvedSummary = BuildResolvedSummary("band", bandResolveReason, effectiveBandResolved);
 		bool massCanonical = IsCanonicalResolve(massResolveReason);
-		bool bandCanonical = !FixedPhotonBandEnabled || IsCanonicalResolve(bandResolveReason);
+		bool bandCanonical = !photonBandActive || IsCanonicalResolve(bandResolveReason);
 		if (!massCanonical || !bandCanonical)
 		{
 			FailInvalid(
@@ -309,7 +323,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		float totalProbeSum = 0f;
 		float maxProbeAccel = 0f;
 		bool anyProbeAboveEps = false;
-		bool bandNoticeable = !FixedPhotonBandEnabled;
+		bool bandNoticeable = !photonBandActive;
 		for (int i = 0; i < CurvatureProbeOffsets.Length; i++)
 		{
 			Vector3 probe = massField.GlobalPosition + CurvatureProbeOffsets[i];
@@ -339,7 +353,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			}
 		}
 
-		float maxOuter = Mathf.Max(massSnap.ROuter, bandSnap.ROuter);
+		float maxOuter = photonBandActive ? Mathf.Max(massSnap.ROuter, bandSnap.ROuter) : massSnap.ROuter;
 		float farDistance = Mathf.Max(maxOuter + 16f, 20f);
 		Vector3 farProbe = massField.GlobalPosition + new Vector3(0f, 0f, farDistance);
 		float farAccelMag = ComputeCombinedRawAcceleration(farProbe, snaps).Length();
@@ -366,21 +380,21 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			Mathf.IsEqualApprox(massResolved.betaScale, FixedBetaScale) &&
 			massResolved.modeFlags == FixedModeFlags;
 
-		bool canonicalMatchesBand = !FixedPhotonBandEnabled || (
-			bandResolved.enabled &&
-			bandResolved.curveType == FixedPhotonBandCurveType &&
-			Mathf.IsEqualApprox(bandResolved.rInner, photonBandShell.RInner) &&
-			Mathf.IsEqualApprox(bandResolved.rOuter, photonBandShell.ROuter) &&
-			Mathf.IsEqualApprox(bandResolved.amp, FixedPhotonBandAmp) &&
-			Mathf.IsEqualApprox(bandResolved.a, FixedPhotonBandCurveA) &&
-			Mathf.IsEqualApprox(bandResolved.b, FixedPhotonBandCurveB) &&
-			Mathf.IsEqualApprox(bandResolved.c, FixedPhotonBandCurveC) &&
-			bandResolved.overrideBetaScale == FixedPhotonBandOverrideBetaScale &&
-			Mathf.IsEqualApprox(bandResolved.betaScale, FixedPhotonBandBetaScale) &&
-			bandResolved.modeFlags == FixedPhotonBandModeFlags);
+		bool canonicalMatchesBand = !photonBandActive || (
+			effectiveBandResolved.enabled &&
+			effectiveBandResolved.curveType == FixedPhotonBandCurveType &&
+			Mathf.IsEqualApprox(effectiveBandResolved.rInner, photonBandShell.RInner) &&
+			Mathf.IsEqualApprox(effectiveBandResolved.rOuter, photonBandShell.ROuter) &&
+			Mathf.IsEqualApprox(effectiveBandResolved.amp, FixedPhotonBandAmp) &&
+			Mathf.IsEqualApprox(effectiveBandResolved.a, FixedPhotonBandCurveA) &&
+			Mathf.IsEqualApprox(effectiveBandResolved.b, FixedPhotonBandCurveB) &&
+			Mathf.IsEqualApprox(effectiveBandResolved.c, FixedPhotonBandCurveC) &&
+			effectiveBandResolved.overrideBetaScale == FixedPhotonBandOverrideBetaScale &&
+			Mathf.IsEqualApprox(effectiveBandResolved.betaScale, FixedPhotonBandBetaScale) &&
+			effectiveBandResolved.modeFlags == FixedPhotonBandModeFlags);
 
-		bool massPrimary = !FixedPhotonBandEnabled || (
-			massResolved.amp > bandResolved.amp &&
+		bool massPrimary = !photonBandActive || (
+			massResolved.amp > effectiveBandResolved.amp &&
 			massProbeSum > bandProbeSum);
 		bool bounded = maxProbeAccel <= ProbeAccelChaosBound;
 
@@ -480,7 +494,11 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			$"[TransportSteering] transportModel={activeTransportModel} metricLaw={metricDiagnostics.MetricSteeringLawToken} meanTurn={metricDiagnostics.MeanTurn:0.######} " +
 			$"maxTurn={metricDiagnostics.MaxTurn:0.######} radialBins=[{metricDiagnostics.RadialTurnSummary}]");
 		GD.Print(
+			$"[BlackHoleFixture][PhotonBandContribution] mode={PhotonBandModeToToken(photonBandMode)} source={photonBandModeSource} enabled={(photonBandActive ? 1 : 0)} " +
+			$"probeAccelSum={bandProbeSum:0.######} probeAccelShare={(totalProbeSum > CurvatureAccelEpsilon ? bandProbeSum / totalProbeSum : 0f):0.######} farAccel={(photonBandActive ? ComputeCombinedRawAcceleration(farProbe, new[] { bandSnap }).Length() : 0f):0.######}");
+		GD.Print(
 			$"[BlackHoleFixture][ComparisonSummary] transportModel={activeTransportModel} metricLaw={metricDiagnostics.MetricSteeringLawToken} effectiveMetricScalar={effectiveMetricScalar:0.######} " +
+			$"photonBandMode={PhotonBandModeToToken(photonBandMode)} photonBandModeSource={photonBandModeSource} photonBandEnabled={(photonBandActive ? 1 : 0)} photonBandProbeAccelSum={bandProbeSum:0.######} photonBandProbeAccelShare={(totalProbeSum > CurvatureAccelEpsilon ? bandProbeSum / totalProbeSum : 0f):0.######} " +
 			$"sourcePatternSummary={_sourcePatternSummary} probeN={RayProbeNdc.Length} absorbCount={probeSummary.AbsorbedHits} absorbRate={probeSummary.AbsorbRate:0.######} " +
 			$"hitRate={probeSummary.HitRate:0.######} sourceHits={probeSummary.SourceHits} backgroundHits={probeSummary.BackgroundHits} detectorHits={probeSummary.BackgroundHits} " +
 			$"absorbedHits={probeSummary.AbsorbedHits} missHits={probeSummary.MissHits} offscreenDetectorHits={probeSummary.OffscreenDetectorHits} noPlaneIntersect={probeSummary.NoPlaneIntersectHits} " +
@@ -514,10 +532,10 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			$"gamma={massResolved.a:0.###} beta_mode={(massResolved.overrideBetaScale ? "override" : "global")} beta_scale={massResolved.betaScale:0.###}");
 
 		GD.Print(
-			$"[BlackHoleFixture][ResolvedPhotonBand] source={bandResolveReason} enabled={(bandResolved.enabled ? 1 : 0)} curve={bandResolved.curveType} modeFlags={bandResolved.modeFlags} " +
-			$"rInner={bandResolved.rInner:0.###} rOuter={bandResolved.rOuter:0.###} amp={bandResolved.amp:0.###} " +
-			$"A={bandResolved.a:0.###} B={bandResolved.b:0.###} C={bandResolved.c:0.###} " +
-			$"beta_mode={(bandResolved.overrideBetaScale ? "override" : "global")} beta_scale={bandResolved.betaScale:0.###}");
+			$"[BlackHoleFixture][ResolvedPhotonBand] source={bandResolveReason} mode={PhotonBandModeToToken(photonBandMode)} enabled={(effectiveBandResolved.enabled ? 1 : 0)} curve={effectiveBandResolved.curveType} modeFlags={effectiveBandResolved.modeFlags} " +
+			$"rInner={effectiveBandResolved.rInner:0.###} rOuter={effectiveBandResolved.rOuter:0.###} amp={effectiveBandResolved.amp:0.###} " +
+			$"A={effectiveBandResolved.a:0.###} B={effectiveBandResolved.b:0.###} C={effectiveBandResolved.c:0.###} " +
+			$"beta_mode={(effectiveBandResolved.overrideBetaScale ? "override" : "global")} beta_scale={effectiveBandResolved.betaScale:0.###}");
 
 		GD.Print(
 			$"[BlackHoleFixture][Renderer] useIntegrated={(useIntegrated ? 1 : 0)} bendScale={bendScale:0.###} fieldStrength={fieldStrength:0.###}");
@@ -548,14 +566,18 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		}
 
 		TransportModel fixtureTransportModel = ResolveFixtureTransportModel(out string transportSource);
+		PhotonBandFixtureMode photonBandMode = ResolvePhotonBandFixtureMode(out string photonBandModeSource);
 		MaybeApplyTransportOverride(massField, fixtureTransportModel, transportSource);
 		MaybeApplyTransportOverride(photonBandField, fixtureTransportModel, transportSource);
 		PhotonBandShell photonBandShell = ComputePhotonBandShell(FixedROuter, FixedRInner);
 
 		FieldSource3D.ResolvedFieldParams massResolved = massField.ResolveEffectiveParams(out string massResolveReason);
 		FieldSource3D.ResolvedFieldParams bandResolved = photonBandField.ResolveEffectiveParams(out string bandResolveReason);
+		FieldSource3D.ResolvedFieldParams effectiveBandResolved = BuildEffectivePhotonBandResolved(bandResolved, photonBandMode);
 		RayBeamRenderer.FieldSourceSnap massSnap = RayBeamRenderer.BuildFieldSourceSnap(massField);
-		RayBeamRenderer.FieldSourceSnap bandSnap = RayBeamRenderer.BuildFieldSourceSnap(photonBandField);
+		RayBeamRenderer.FieldSourceSnap bandSnap = BuildEffectivePhotonBandSnap(
+			RayBeamRenderer.BuildFieldSourceSnap(photonBandField),
+			photonBandMode);
 		RayBeamRenderer.FieldSourceSnap[] snaps = BuildSourceArray(massSnap, bandSnap);
 
 		float[] massAccelMags = BuildFingerprintAccelMagnitudes(massSnap.Center, massSnap);
@@ -593,9 +615,11 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 
 		string fingerprintCore =
 			$"v=3;" +
-			$"sourceCount=2;" +
+			$"sourceCount={(IsPhotonBandActive(effectiveBandResolved) ? 2 : 1)};" +
+			$"bandMode={PhotonBandModeToToken(photonBandMode)};" +
+			$"bandModeSource={photonBandModeSource};" +
 			$"massCanonical={(IsCanonicalResolve(massResolveReason) ? 1 : 0)};" +
-			$"bandCanonical={(IsCanonicalResolve(bandResolveReason) ? 1 : 0)};" +
+			$"bandCanonical={(IsPhotonBandActive(effectiveBandResolved) && IsCanonicalResolve(bandResolveReason) ? 1 : 0)};" +
 			$"massSource={massResolveReason};" +
 			$"massCurve={massResolved.curveType};" +
 			$"massRInner={F(massResolved.rInner)};" +
@@ -609,19 +633,19 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			$"massTransport={massSnap.TransportModel};" +
 			$"massBetaMode={(massResolved.overrideBetaScale ? "override" : "global")};" +
 			$"massBetaScale={F(massResolved.betaScale)};" +
-			$"bandEnabled={(bandResolved.enabled ? 1 : 0)};" +
+			$"bandEnabled={(effectiveBandResolved.enabled ? 1 : 0)};" +
 			$"bandSource={bandResolveReason};" +
-			$"bandCurve={bandResolved.curveType};" +
-			$"bandRInner={F(bandResolved.rInner)};" +
-			$"bandROuter={F(bandResolved.rOuter)};" +
-			$"bandAmp={F(bandResolved.amp)};" +
-			$"bandA={F(bandResolved.a)};" +
-			$"bandB={F(bandResolved.b)};" +
-			$"bandC={F(bandResolved.c)};" +
-			$"bandModeFlags={bandResolved.modeFlags};" +
+			$"bandCurve={effectiveBandResolved.curveType};" +
+			$"bandRInner={F(effectiveBandResolved.rInner)};" +
+			$"bandROuter={F(effectiveBandResolved.rOuter)};" +
+			$"bandAmp={F(effectiveBandResolved.amp)};" +
+			$"bandA={F(effectiveBandResolved.a)};" +
+			$"bandB={F(effectiveBandResolved.b)};" +
+			$"bandC={F(effectiveBandResolved.c)};" +
+			$"bandModeFlags={effectiveBandResolved.modeFlags};" +
 			$"bandTransport={bandSnap.TransportModel};" +
-			$"bandBetaMode={(bandResolved.overrideBetaScale ? "override" : "global")};" +
-			$"bandBetaScale={F(bandResolved.betaScale)};" +
+			$"bandBetaMode={(effectiveBandResolved.overrideBetaScale ? "override" : "global")};" +
+			$"bandBetaScale={F(effectiveBandResolved.betaScale)};" +
 			$"useIntegrated={(rayRenderer.UseIntegratedField ? 1 : 0)};" +
 			$"bendScale={F(rayRenderer.BendScale)};" +
 			$"fieldStrength={F(rayRenderer.FieldStrength)};" +
@@ -1818,6 +1842,132 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		return false;
 	}
 
+	private PhotonBandFixtureMode ResolvePhotonBandFixtureMode(out string source)
+	{
+		if (TryParsePhotonBandModeArg(OS.GetCmdlineUserArgs(), out PhotonBandFixtureMode fromUser))
+		{
+			source = "cmdline_user";
+			return fromUser;
+		}
+		if (TryParsePhotonBandModeArg(OS.GetCmdlineArgs(), out PhotonBandFixtureMode fromArgs))
+		{
+			source = "cmdline";
+			return fromArgs;
+		}
+
+		source = "scene_authored";
+		return PhotonBandFixtureMode.SceneAuthored;
+	}
+
+	private static bool TryParsePhotonBandModeArg(string[] args, out PhotonBandFixtureMode mode)
+	{
+		mode = PhotonBandFixtureMode.SceneAuthored;
+		if (args == null || args.Length == 0)
+		{
+			return false;
+		}
+
+		for (int i = 0; i < args.Length; i++)
+		{
+			string arg = args[i] ?? string.Empty;
+			if (TryParsePhotonBandModeValue(arg, FixturePhotonBandArgPrefix, out mode))
+			{
+				return true;
+			}
+			if (TryParsePhotonBandModeValue(arg, PhotonBandArgPrefix, out mode))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private static bool TryParsePhotonBandModeValue(string arg, string prefix, out PhotonBandFixtureMode mode)
+	{
+		mode = PhotonBandFixtureMode.SceneAuthored;
+		if (!arg.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+		{
+			return false;
+		}
+
+		string value = arg.Substring(prefix.Length).Trim();
+		return TryParsePhotonBandModeToken(value, out mode);
+	}
+
+	private static bool TryParsePhotonBandModeToken(string token, out PhotonBandFixtureMode mode)
+	{
+		mode = PhotonBandFixtureMode.SceneAuthored;
+		if (string.IsNullOrWhiteSpace(token))
+		{
+			return false;
+		}
+
+		string normalized = token.Trim().ToLowerInvariant();
+		if (normalized == "off" || normalized == "disable" || normalized == "disabled" ||
+			normalized == "core" || normalized == "core-only" || normalized == "core_only")
+		{
+			mode = PhotonBandFixtureMode.Disabled;
+			return true;
+		}
+		if (normalized == "on" || normalized == "enable" || normalized == "enabled" ||
+			normalized == "band" || normalized == "core+band" || normalized == "core_plus_band")
+		{
+			mode = PhotonBandFixtureMode.SceneAuthored;
+			return true;
+		}
+
+		return false;
+	}
+
+	private static string PhotonBandModeToToken(PhotonBandFixtureMode mode)
+	{
+		return mode == PhotonBandFixtureMode.Disabled ? "core_only" : "core_plus_band";
+	}
+
+	private static FieldSource3D.ResolvedFieldParams BuildEffectivePhotonBandResolved(
+		FieldSource3D.ResolvedFieldParams resolved,
+		PhotonBandFixtureMode mode)
+	{
+		if (mode != PhotonBandFixtureMode.Disabled)
+		{
+			return resolved;
+		}
+
+		resolved.enabled = false;
+		resolved.amp = 0f;
+		return resolved;
+	}
+
+	private static RayBeamRenderer.FieldSourceSnap BuildEffectivePhotonBandSnap(
+		RayBeamRenderer.FieldSourceSnap snap,
+		PhotonBandFixtureMode mode)
+	{
+		if (mode != PhotonBandFixtureMode.Disabled)
+		{
+			return snap;
+		}
+
+		snap.Enabled = false;
+		snap.Amp = 0f;
+		return snap;
+	}
+
+	private static bool IsPhotonBandActive(FieldSource3D.ResolvedFieldParams resolved)
+	{
+		return resolved.enabled && resolved.amp > CurvatureAccelEpsilon;
+	}
+
+	private static void LogPhotonBandMode(
+		PhotonBandFixtureMode mode,
+		string source,
+		bool authoredEnabled,
+		bool effectiveEnabled)
+	{
+		GD.Print(
+			$"[BlackHoleFixture][PhotonBandMode] mode={PhotonBandModeToToken(mode)} source={source} authored_enabled={(authoredEnabled ? 1 : 0)} effective_enabled={(effectiveEnabled ? 1 : 0)}");
+	}
+
 	private TransportModel ResolveFixtureTransportModel()
 	{
 		return ResolveFixtureTransportModel(out _);
@@ -2110,7 +2260,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			return;
 		}
 
-		if (GetNodeOrNull<Node>("RenderTestRunner") != null)
+		if (GetNodeOrNull<Node>("RenderTestRunner") != null && IsRenderTestMode())
 		{
 			GD.PrintErr("[BlackHoleFixture][FAIL] Requesting quit code=1 due to fixture invariant failure.");
 			GetTree()?.Quit(1);

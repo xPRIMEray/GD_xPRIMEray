@@ -65,13 +65,13 @@ EdgeSoftness = 0.0
 EffectiveEquationCore = "source=canonical
 r=|p-c|
 u=clamp((r-rInner)/max(eps,rOuter-rInner),0,1)
-f(u)=(1-u)^1
+f(u)=(1-u)^8
 edge_ramp=1 (disabled)"
 EffectiveEquationIntegrated = "dir=-normalize(p-c) (ModeFlagInvertSign=0)
-absorb_if_r_lt_rInner=0
+absorb_if_r_lt_rInner=1
 beta_eff=(|beta_g|>eps ? beta_g*1 : 1)
 mag=beta_eff*amp*f(u)*edge_ramp
-gamma=1
+gamma=8
 a=dir*mag"
 
 [node name="PhotonBandSource" type="Node3D" parent="."]
@@ -79,6 +79,7 @@ script = ExtResource("1_field")
 TransportModel = 0
 CurveType = 2
 ROuter = 1.845
+CurveA = 0.0
 CurveB = 4.0
 CurveC = -4.0
 Amp = 0.03
@@ -99,13 +100,13 @@ EdgeSoftness = 0.0
 EffectiveEquationCore = "source=canonical
 r=|p-c|
 u=clamp((r-rInner)/max(eps,rOuter-rInner),0,1)
-f(u)=(1-u)^1
+f(u)=1+(0*u)+(4*u)+(-4*u^2)
 edge_ramp=1 (disabled)"
 EffectiveEquationIntegrated = "dir=-normalize(p-c) (ModeFlagInvertSign=0)
 absorb_if_r_lt_rInner=0
 beta_eff=(|beta_g|>eps ? beta_g*1 : 1)
 mag=beta_eff*amp*f(u)*edge_ramp
-gamma=1
+A=0, B=4, C=-4
 a=dir*mag"
 
 [node name="source_marker_template" type="StaticBody3D" parent="." groups=["fixture_geometry"]]

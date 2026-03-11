@@ -1,0 +1,33 @@
+[FixtureStartup][WARN] fixture=einstein_ring_minimal variant=test-einstein-ring-minimal-metric resolved_transport=GRIN_Optical source=cmdline_user expected_metric_scene_baseline=Metric_NullGeodesic
+Einstein_Ring_Minimal invalid: absorption out of range | absorbed_rays=0/16 rate=0 expected=[0.1,0.4]
+ERROR: Einstein_Ring_Minimal invalid: absorption out of range | absorbed_rays=0/16 rate=0 expected=[0.1,0.4]
+   at: void EinsteinRingMinimalFingerprint.FailInvalid(string, string) (res://Fixtures/EinsteinRingMinimalFingerprint.cs:1510)
+   C# backtrace (most recent call first):
+       [0] void Godot.GD.PushError(string) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/GD.cs:366)
+       [1] void EinsteinRingMinimalFingerprint.FailInvalid(string, string) (C:\godot\godot_xPRIMEray\Fixtures\EinsteinRingMinimalFingerprint.cs:1510)
+       [2] void EinsteinRingMinimalFingerprint._Ready() (C:\godot\godot_xPRIMEray\Fixtures\EinsteinRingMinimalFingerprint.cs:456)
+       [3] bool Godot.Node.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node.cs:2660)
+       [4] bool Godot.Node3D.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node3D.cs:1126)
+       [5] bool EinsteinRingMinimalFingerprint.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\EinsteinRingMinimalFingerprint_ScriptMethods.generated.cs:418)
+       [6] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+[EinsteinFixture][FAIL] Requesting quit code=1 due to fixture invariant failure.
+ERROR: Parameter "data.tree" is null.
+   at: get_tree (scene/main/node.h:507)
+   C# backtrace (most recent call first):
+       [0] Godot.GodotObject Godot.NativeCalls.godot_icall_0_53(nint, nint) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:466)
+       [1] Godot.SceneTree Godot.Node.GetTree() (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node.cs:1853)
+       [2] void EinsteinRingMinimalFingerprint.QuitInvalidFixtureIfHarnessed() (C:\godot\godot_xPRIMEray\Fixtures\EinsteinRingMinimalFingerprint.cs:1524)
+       [3] bool EinsteinRingMinimalFingerprint.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\EinsteinRingMinimalFingerprint_ScriptMethods.generated.cs:334)
+       [4] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+Einstein_Ring_Minimal invalid: absorption out of range | absorbed_rays=0/16 rate=0 expected=[0.1,0.4]
+ERROR: Einstein_Ring_Minimal invalid: absorption out of range | absorbed_rays=0/16 rate=0 expected=[0.1,0.4]
+   at: void EinsteinRingMinimalFingerprint.FailInvalid(string, string) (res://Fixtures/EinsteinRingMinimalFingerprint.cs:1510)
+   C# backtrace (most recent call first):
+       [0] void Godot.GD.PushError(string) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/GD.cs:366)
+       [1] void EinsteinRingMinimalFingerprint.FailInvalid(string, string) (C:\godot\godot_xPRIMEray\Fixtures\EinsteinRingMinimalFingerprint.cs:1510)
+       [2] void EinsteinRingMinimalFingerprint._Ready() (C:\godot\godot_xPRIMEray\Fixtures\EinsteinRingMinimalFingerprint.cs:456)
+       [3] bool Godot.Node.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node.cs:2660)
+       [4] bool Godot.Node3D.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node3D.cs:1126)
+       [5] bool EinsteinRingMinimalFingerprint.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\EinsteinRingMinimalFingerprint_ScriptMethods.generated.cs:418)
+       [6] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+[EinsteinFixture][FAIL] Requesting quit code=1 due to fixture invariant failure.
