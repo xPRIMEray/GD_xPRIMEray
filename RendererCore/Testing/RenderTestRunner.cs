@@ -3439,6 +3439,9 @@ public partial class RenderTestRunner : Node
 			_film.SetHudFixtureName(fixtureToken);
 		}
 
+		_film.SetHudRenderTestMode("FIXTURE PROBE");
+		_film.SetHudRenderLoopStatus("DISABLED");
+
 		if (TryGetStringCmdArgValue(RenderTestProfileArgPrefix, out string profileToken))
 		{
 			_film.SetHudProfileToken(profileToken);

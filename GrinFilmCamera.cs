@@ -1046,6 +1046,9 @@ public partial class GrinFilmCamera : Node
 	private string _hudTransportModel = string.Empty;
 	private string _hudProfileToken = string.Empty;
 	private string _hudSourcePatternMode = string.Empty;
+	private string _hudRenderTestMode = string.Empty;
+	private string _hudRenderLoopStatus = string.Empty;
+	private int _hudRenderProbeRayCount = -1;
 	private string _hudMetricSteeringLaw = string.Empty;
 	private bool _hudMetricGainOverrideActive = false;
 	private float _hudMetricGainOverride = 1.0f;
@@ -2063,6 +2066,10 @@ public partial class GrinFilmCamera : Node
 			// Keep broadphase controls in sync each frame so the inspector reflects effective state.
 			UpdateBroadphaseEffectiveState();
 			PumpSmartScaleController();
+			if (!UpdateEveryFrame && ShouldEmitMetadataOnlyOverlay())
+			{
+				EmitRenderMetricsOverlay();
+			}
 			// DECISION: only render when UpdateEveryFrame is enabled.
 			if (!UpdateEveryFrame) return;
 		RenderFrameBackend(delta);
@@ -2934,6 +2941,14 @@ public partial class GrinFilmCamera : Node
 		bool hasLatest = _renderHealthCount > 0;
 		if (hasLatest)
 			latest = GetRenderHealthSampleFromEnd(0);
+		bool showProbeOnlyStatus = !UpdateEveryFrame && !hasLatest && HasHudProbeStatus();
+		if (showProbeOnlyStatus)
+		{
+			AddHudProbeStatusLines(lines);
+			Vector2 probeOverlayBasePos = new Vector2(16f, 24f);
+			DebugOverlayBus.AddText(probeOverlayBasePos, string.Join("\n", lines), Colors.White);
+			return;
+		}
 
 		double engineFps = Engine.GetFramesPerSecond();
 		string FmtInt(bool has, int value) => has ? value.ToString() : "na";
@@ -3072,6 +3087,21 @@ public partial class GrinFilmCamera : Node
 		_hudSourcePatternMode = NormalizeHudValue(sourcePatternMode);
 	}
 
+	public void SetHudRenderTestMode(string renderTestMode)
+	{
+		_hudRenderTestMode = NormalizeHudValue(renderTestMode).ToUpperInvariant();
+	}
+
+	public void SetHudRenderLoopStatus(string renderLoopStatus)
+	{
+		_hudRenderLoopStatus = NormalizeHudValue(renderLoopStatus).ToUpperInvariant();
+	}
+
+	public void SetHudRenderProbeRayCount(int rayCount)
+	{
+		_hudRenderProbeRayCount = rayCount >= 0 ? rayCount : -1;
+	}
+
 	public void SetHudMetricSteeringLaw(string metricSteeringLaw)
 	{
 		_hudMetricSteeringLaw = NormalizeHudValue(metricSteeringLaw);
@@ -3174,6 +3204,31 @@ public partial class GrinFilmCamera : Node
 	private string ResolveHudSourcePatternMode()
 	{
 		return _hudSourcePatternMode;
+	}
+
+	private bool ShouldEmitMetadataOnlyOverlay()
+	{
+		return HasHudProbeStatus();
+	}
+
+	private bool HasHudProbeStatus()
+	{
+		return !string.IsNullOrWhiteSpace(_hudRenderTestMode)
+			|| !string.IsNullOrWhiteSpace(_hudRenderLoopStatus)
+			|| _hudRenderProbeRayCount >= 0;
+	}
+
+	private void AddHudProbeStatusLines(System.Collections.Generic.List<string> lines)
+	{
+		if (lines == null)
+			return;
+
+		if (!string.IsNullOrWhiteSpace(_hudRenderTestMode))
+			lines.Add($"MODE: {_hudRenderTestMode}");
+		if (_hudRenderProbeRayCount >= 0)
+			lines.Add($"RAYS: {_hudRenderProbeRayCount}");
+		if (!string.IsNullOrWhiteSpace(_hudRenderLoopStatus))
+			lines.Add($"RENDER LOOP: {_hudRenderLoopStatus}");
 	}
 
 	private string ResolveHudMetricSteeringLaw()

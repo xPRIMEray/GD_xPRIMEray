@@ -1248,6 +1248,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		filmCamera.SetHudFixtureName("einstein_ring_minimal");
 		filmCamera.SetHudTransportModel(activeTransportModel.ToString());
 		filmCamera.SetHudSourcePatternMode(PatternMode.ToString());
+		filmCamera.SetHudRenderProbeRayCount(_sourceMarkers?.Length ?? 0);
 		string metricSteeringLaw = rayRenderer != null
 			? RayBeamRenderer.GetMetricSteeringLawToken(rayRenderer.GetEffectiveMetricSteeringLaw())
 			: string.Empty;
