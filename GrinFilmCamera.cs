@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Threading;
 using XPrimeRay.Perf; // adjust namespace new PerfScope.cs
@@ -1053,6 +1054,7 @@ public partial class GrinFilmCamera : Node
 	private bool _hudMetricGainOverrideActive = false;
 	private float _hudMetricGainOverride = 1.0f;
 	private string _lastLoggedHudMetadata = string.Empty;
+	private string _lastLoggedHudRuntimeSummary = string.Empty;
 	private long _lastRenderHealthEmissionTimestamp = 0;
 	private bool _hasLastRenderHealthEmissionTimestamp = false;
 	private double _rowsPerSecEma = 0.0;
@@ -2937,6 +2939,7 @@ public partial class GrinFilmCamera : Node
 			MaybeLogHudMetadata(hudMetadata);
 			lines.Add(hudMetadata);
 		}
+		MaybeLogHudRuntimeSummary();
 		RenderHealthSample latest = default;
 		bool hasLatest = _renderHealthCount > 0;
 		if (hasLatest)
@@ -3131,6 +3134,8 @@ public partial class GrinFilmCamera : Node
 		}
 
 		AppendHudToken(_overlayHudSb, "sourcePattern", ResolveHudSourcePatternMode());
+		AppendHudToken(_overlayHudSb, "MODE", ResolveHudModePath());
+		AppendHudToken(_overlayHudSb, "FILM_ACCUM", ResolveHudFilmAccumulationStatus());
 		return _overlayHudSb.ToString();
 	}
 
@@ -3144,6 +3149,19 @@ public partial class GrinFilmCamera : Node
 
 		_lastLoggedHudMetadata = metadata;
 		GD.Print($"[HUDMeta] {metadata}");
+	}
+
+	private void MaybeLogHudRuntimeSummary()
+	{
+		string summary = BuildHudRuntimeSummaryLine();
+		if (string.IsNullOrWhiteSpace(summary) ||
+			string.Equals(summary, _lastLoggedHudRuntimeSummary, StringComparison.Ordinal))
+		{
+			return;
+		}
+
+		_lastLoggedHudRuntimeSummary = summary;
+		GD.Print($"[RuntimeMode] {summary}");
 	}
 
 	private string ResolveHudFixtureName()
@@ -3208,7 +3226,7 @@ public partial class GrinFilmCamera : Node
 
 	private bool ShouldEmitMetadataOnlyOverlay()
 	{
-		return HasHudProbeStatus();
+		return HasHudProbeStatus() || !string.IsNullOrWhiteSpace(ResolveHudModePath());
 	}
 
 	private bool HasHudProbeStatus()
@@ -3223,12 +3241,73 @@ public partial class GrinFilmCamera : Node
 		if (lines == null)
 			return;
 
-		if (!string.IsNullOrWhiteSpace(_hudRenderTestMode))
-			lines.Add($"MODE: {_hudRenderTestMode}");
 		if (_hudRenderProbeRayCount >= 0)
-			lines.Add($"RAYS: {_hudRenderProbeRayCount}");
+			lines.Add($"RAYS={_hudRenderProbeRayCount}");
+	}
+
+	private string ResolveHudModePath()
+	{
+		if (!string.IsNullOrWhiteSpace(_hudRenderTestMode))
+			return _hudRenderTestMode;
+
+		foreach (string arg in GetHudCmdArgs())
+		{
+			string trimmed = NormalizeHudValue(arg);
+			if (string.Equals(trimmed, "--render-test", StringComparison.OrdinalIgnoreCase) ||
+				trimmed.StartsWith("--render-test-", StringComparison.OrdinalIgnoreCase) ||
+				trimmed.StartsWith("--render-test-fixture=", StringComparison.OrdinalIgnoreCase))
+			{
+				return "RENDER_TEST_MATRIX";
+			}
+		}
+
+		return UpdateEveryFrame ? "FULL_RENDER" : "FIXTURE_PROBE";
+	}
+
+	private string ResolveHudFilmAccumulationStatus()
+	{
 		if (!string.IsNullOrWhiteSpace(_hudRenderLoopStatus))
-			lines.Add($"RENDER LOOP: {_hudRenderLoopStatus}");
+		{
+			string explicitStatus = _hudRenderLoopStatus.ToUpperInvariant();
+			if (explicitStatus is "ENABLED" or "ON" or "TRUE" or "1")
+				return "ON";
+			if (explicitStatus is "DISABLED" or "OFF" or "FALSE" or "0")
+				return "OFF";
+			return explicitStatus;
+		}
+
+		foreach (string arg in GetHudCmdArgs())
+		{
+			string trimmed = NormalizeHudValue(arg);
+			if (string.Equals(trimmed, "--render-test", StringComparison.OrdinalIgnoreCase) ||
+				trimmed.StartsWith("--render-test-", StringComparison.OrdinalIgnoreCase) ||
+				trimmed.StartsWith("--render-test-fixture=", StringComparison.OrdinalIgnoreCase))
+			{
+				return "ON";
+			}
+		}
+
+		return UpdateEveryFrame ? "ON" : "OFF";
+	}
+
+	private string BuildHudRuntimeSummaryLine()
+	{
+		_overlayHudSb.Clear();
+		AppendHudToken(_overlayHudSb, "scene", ResolveHudSceneName());
+		AppendHudToken(_overlayHudSb, "fixture", ResolveHudFixtureName());
+		AppendHudToken(_overlayHudSb, "transport", ResolveHudTransportModel());
+		AppendHudToken(_overlayHudSb, "mode", ResolveHudModePath());
+		AppendHudToken(_overlayHudSb, "filmAccum", ResolveHudFilmAccumulationStatus());
+		return _overlayHudSb.ToString();
+	}
+
+	private string ResolveHudSceneName()
+	{
+		string scenePath = GetTree().CurrentScene?.SceneFilePath ?? string.Empty;
+		if (!string.IsNullOrWhiteSpace(scenePath))
+			return NormalizeHudValue(Path.GetFileNameWithoutExtension(scenePath));
+
+		return NormalizeHudValue(GetTree().CurrentScene?.Name ?? string.Empty);
 	}
 
 	private string ResolveHudMetricSteeringLaw()
