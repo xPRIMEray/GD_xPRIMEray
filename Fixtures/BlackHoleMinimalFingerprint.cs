@@ -544,8 +544,15 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		GD.Print($"BlackHoleMinimalFingerprint: {fingerprint}");
 		string fingerprintHash = ExtractFingerprintHash(fingerprint);
 		GD.Print(
-			$"[BlackHoleCompare] transportModel={activeTransportModel} absorbCount={probeSummary.AbsorbedHits} " +
+			$"[FixtureCompare] fixture=blackhole_minimal transport={activeTransportModel} photonBand={(photonBandActive ? "ON" : "OFF")} " +
+			$"photonBandMode={PhotonBandModeToToken(photonBandMode)} absorbCount={probeSummary.AbsorbedHits} " +
 			$"absorbRate={probeSummary.AbsorbRate:0.######} hitRate={probeSummary.HitRate:0.######} " +
+			$"sourceHits={probeSummary.SourceHits} backgroundHits={probeSummary.BackgroundHits} " +
+			$"absorbedHits={probeSummary.AbsorbedHits} missHits={probeSummary.MissHits} " +
+			$"silhouetteRadiusMean={probeSummary.AbsorbedRadiusMean:0.######} " +
+			$"silhouetteRadiusStdDev={probeSummary.AbsorbedRadiusStdDev:0.######} " +
+			$"silhouetteRadiusRange={probeSummary.AbsorbedRadiusRange:0.######} " +
+			$"metricContributionRatio={metricDiagnostics.MetricContributionRatio:0.######} " +
 			$"sourcePatternMode={PatternMode} sourcePatternCount={_sourceMarkers.Length} fingerprint={fingerprintHash}");
 	}
 

@@ -122,6 +122,7 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 	private const float AccelClampMax = 50.0f;
 	private const float AbsorptionRateMin = 0.10f;
 	private const float AbsorptionRateMax = 0.40f;
+	private const float PhotonBandDisabledAbsorptionRateMin = 0.00f;
 	private const int RingProbeStepCap = 500;
 	private const int RingMinSourceHits = 4;
 	private const float RingRadiusStdDevMax = 8.0f;
@@ -451,12 +452,13 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		GD.Print(
 			$"[EinsteinFixture][Absorption] transportModel={activeTransportModel} effectiveMetricScalar={effectiveMetricScalar:0.######} " +
 			$"absorbed_rays={absorbedRayCount}/{RayProbeNdc.Length} rate={absorbedRate:0.###}");
-		if (absorbedRate < AbsorptionRateMin || absorbedRate > AbsorptionRateMax)
+		float expectedAbsorptionRateMin = ResolveExpectedAbsorptionRateMin(photonBandActive);
+		if (absorbedRate < expectedAbsorptionRateMin || absorbedRate > AbsorptionRateMax)
 		{
 			FailInvalid(
 				"absorption out of range",
 				$"absorbed_rays={absorbedRayCount}/{RayProbeNdc.Length} rate={absorbedRate:0.######} " +
-				$"expected=[{AbsorptionRateMin:0.###},{AbsorptionRateMax:0.###}]");
+				$"expected=[{expectedAbsorptionRateMin:0.###},{AbsorptionRateMax:0.###}] photonBand={(photonBandActive ? "ON" : "OFF")}");
 			return;
 		}
 
@@ -673,9 +675,11 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 		GD.Print($"EinsteinRingMinimalFingerprint: {fingerprint}");
 		string fingerprintHash = ExtractFingerprintHash(fingerprint);
 		GD.Print(
-			$"[EinsteinCompare] transportModel={activeTransportModel} sourceHits={onAxisRingSummary.SourceHits} " +
+			$"[FixtureCompare] fixture=einstein_ring_minimal transport={activeTransportModel} photonBand={(photonBandActive ? "ON" : "OFF")} " +
+			$"photonBandMode={PhotonBandModeToToken(photonBandMode)} sourceHits={onAxisRingSummary.SourceHits} " +
 			$"backgroundHits={onAxisRingSummary.BackgroundHits} absorbedHits={onAxisRingSummary.AbsorbedHits} missHits={onAxisRingSummary.MissHits} " +
 			$"radiusMean={onAxisRingSummary.RadiusMean:0.######} radiusStdDev={onAxisRingSummary.RadiusStdDev:0.######} radiusRange={onAxisRingSummary.RadiusRange:0.######} " +
+			$"metricContributionRatio={metricDiagnostics.MetricContributionRatio:0.######} " +
 			$"histogram=[{onAxisRingSummary.RadiusHistogram}] sourcePatternMode={PatternMode} sourcePatternCount={_sourceMarkers.Length} fingerprint={fingerprintHash}");
 	}
 
@@ -1093,6 +1097,11 @@ public partial class EinsteinRingMinimalFingerprint : Node3D
 	private static bool IsPhotonBandActive(FieldSource3D.ResolvedFieldParams resolved)
 	{
 		return resolved.enabled && resolved.amp > CurvatureAccelEpsilon;
+	}
+
+	private static float ResolveExpectedAbsorptionRateMin(bool photonBandActive)
+	{
+		return photonBandActive ? AbsorptionRateMin : PhotonBandDisabledAbsorptionRateMin;
 	}
 
 	private static void LogPhotonBandMode(
