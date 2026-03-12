@@ -82,6 +82,9 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 	private const string FixtureTransportArgPrefix = "--blackhole-transport-model=";
 	private const string PhotonBandArgPrefix = "--photon-band=";
 	private const string FixturePhotonBandArgPrefix = "--blackhole-photon-band=";
+	private const string FixturePhotonBandRInnerArgPrefix = "--blackhole-photon-band-r-inner=";
+	private const string FixturePhotonBandROuterArgPrefix = "--blackhole-photon-band-r-outer=";
+	private const string FixturePhotonBandAmpArgPrefix = "--blackhole-photon-band-amp=";
 	private const string MetricDetectorScaleArgPrefix = "--blackhole-metric-detector-scale=";
 	private const string MetricLargeDetectorArg = "--blackhole-metric-large-detector";
 	private const string MetricTrajectoryDebugArg = "--blackhole-metric-trajectory-debug";
@@ -162,6 +165,37 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			WorldCenter = worldCenter;
 			Radius = radius;
 		}
+	}
+
+	private readonly struct PhotonBandCompareOverride
+	{
+		public readonly bool HasRInner;
+		public readonly bool HasROuter;
+		public readonly bool HasAmp;
+		public readonly float RInner;
+		public readonly float ROuter;
+		public readonly float Amp;
+		public readonly string Source;
+
+		public PhotonBandCompareOverride(
+			bool hasRInner,
+			bool hasROuter,
+			bool hasAmp,
+			float rInner,
+			float rOuter,
+			float amp,
+			string source)
+		{
+			HasRInner = hasRInner;
+			HasROuter = hasROuter;
+			HasAmp = hasAmp;
+			RInner = rInner;
+			ROuter = rOuter;
+			Amp = amp;
+			Source = source ?? "none";
+		}
+
+		public bool HasAny => HasRInner || HasROuter || HasAmp;
 	}
 
 	private readonly struct DetectorPlaneData
@@ -260,6 +294,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 	{
 		TransportModel fixtureTransportModel = ResolveFixtureTransportModel(out string transportSource);
 		PhotonBandFixtureMode photonBandMode = ResolvePhotonBandFixtureMode(out string photonBandModeSource);
+		PhotonBandCompareOverride photonBandOverride = ResolvePhotonBandCompareOverride();
 		LogStartupVariant(fixtureTransportModel, transportSource);
 		FieldSource3D massField = GetNodeOrNull<FieldSource3D>(FieldPath);
 		if (massField == null)
@@ -277,11 +312,11 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 
 		MaybeApplyTransportOverride(massField, fixtureTransportModel, transportSource);
 		MaybeApplyTransportOverride(photonBandField, fixtureTransportModel, transportSource);
-		PhotonBandShell photonBandShell = ComputePhotonBandShell(FixedROuter, FixedRInner);
+		PhotonBandShell photonBandShell = ResolveEffectivePhotonBandShell(photonBandOverride);
 
 		FieldSource3D.ResolvedFieldParams massResolved = massField.ResolveEffectiveParams(out string massResolveReason);
 		FieldSource3D.ResolvedFieldParams bandResolved = photonBandField.ResolveEffectiveParams(out string bandResolveReason);
-		FieldSource3D.ResolvedFieldParams effectiveBandResolved = BuildEffectivePhotonBandResolved(bandResolved, photonBandMode);
+		FieldSource3D.ResolvedFieldParams effectiveBandResolved = BuildEffectivePhotonBandResolved(bandResolved, photonBandMode, photonBandShell, photonBandOverride);
 		LogFieldStartupSummary("mass", massField, massResolved, massResolveReason, transportSource);
 		LogFieldStartupSummary("photon_band", photonBandField, bandResolved, bandResolveReason, transportSource);
 		LogPhotonBandMode(photonBandMode, photonBandModeSource, bandResolved.enabled, effectiveBandResolved.enabled);
@@ -290,15 +325,18 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		RayBeamRenderer.FieldSourceSnap massSnap = RayBeamRenderer.BuildFieldSourceSnap(massField);
 		RayBeamRenderer.FieldSourceSnap bandSnap = BuildEffectivePhotonBandSnap(
 			RayBeamRenderer.BuildFieldSourceSnap(photonBandField),
-			photonBandMode);
+			photonBandMode,
+			photonBandShell,
+			photonBandOverride);
 		RayBeamRenderer.FieldSourceSnap[] snaps = BuildSourceArray(massSnap, bandSnap);
 		TransportModel activeTransportModel = RayBeamRenderer.ResolveActiveTransportModel(snaps);
 		bool photonBandActive = IsPhotonBandActive(effectiveBandResolved);
+		string effectiveBandSource = ResolveEffectivePhotonBandSource(bandResolveReason, photonBandOverride);
 
 		string massResolvedSummary = BuildResolvedSummary("mass", massResolveReason, massResolved);
-		string bandResolvedSummary = BuildResolvedSummary("band", bandResolveReason, effectiveBandResolved);
+		string bandResolvedSummary = BuildResolvedSummary("band", effectiveBandSource, effectiveBandResolved);
 		bool massCanonical = IsCanonicalResolve(massResolveReason);
-		bool bandCanonical = !photonBandActive || IsCanonicalResolve(bandResolveReason);
+		bool bandCanonical = !photonBandActive || IsCanonicalResolve(bandResolveReason) || photonBandOverride.HasAny;
 		if (!massCanonical || !bandCanonical)
 		{
 			FailInvalid(
@@ -385,7 +423,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			effectiveBandResolved.curveType == FixedPhotonBandCurveType &&
 			Mathf.IsEqualApprox(effectiveBandResolved.rInner, photonBandShell.RInner) &&
 			Mathf.IsEqualApprox(effectiveBandResolved.rOuter, photonBandShell.ROuter) &&
-			Mathf.IsEqualApprox(effectiveBandResolved.amp, FixedPhotonBandAmp) &&
+			Mathf.IsEqualApprox(effectiveBandResolved.amp, photonBandOverride.HasAmp ? photonBandOverride.Amp : FixedPhotonBandAmp) &&
 			Mathf.IsEqualApprox(effectiveBandResolved.a, FixedPhotonBandCurveA) &&
 			Mathf.IsEqualApprox(effectiveBandResolved.b, FixedPhotonBandCurveB) &&
 			Mathf.IsEqualApprox(effectiveBandResolved.c, FixedPhotonBandCurveC) &&
@@ -397,14 +435,15 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			massResolved.amp > effectiveBandResolved.amp &&
 			massProbeSum > bandProbeSum);
 		bool bounded = maxProbeAccel <= ProbeAccelChaosBound;
+		bool requireBandNoticeable = !photonBandOverride.HasAny;
 
-		if (!canonicalMatchesMass || !canonicalMatchesBand || !massPrimary || !bandNoticeable ||
+		if (!canonicalMatchesMass || !canonicalMatchesBand || !massPrimary || (!bandNoticeable && requireBandNoticeable) ||
 			!bounded || !anyProbeAboveEps || farAccelMag > FarAccelEpsilon || !useIntegrated || transportStrength <= CurvatureAccelEpsilon)
 		{
 			FailInvalid(
 				"curvature not engaged",
 				$"mass_match={(canonicalMatchesMass ? 1 : 0)} band_match={(canonicalMatchesBand ? 1 : 0)} mass_primary={(massPrimary ? 1 : 0)} " +
-				$"band_noticeable={(bandNoticeable ? 1 : 0)} bounded={(bounded ? 1 : 0)} {rendererSummary} " +
+				$"band_noticeable={(bandNoticeable ? 1 : 0)} require_band_noticeable={(requireBandNoticeable ? 1 : 0)} bounded={(bounded ? 1 : 0)} {rendererSummary} " +
 				$"{massResolvedSummary} {bandResolvedSummary} " +
 				$"probe_mass=[{FormatFloatArray(massProbeAccels)}] probe_band=[{FormatFloatArray(bandProbeAccels)}] probe_total=[{FormatFloatArray(totalProbeAccels)}] " +
 				$"far_accel={farAccelMag:0.######}");
@@ -412,7 +451,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		}
 
 		GD.Print(
-			$"[BlackHoleFixture][CurvatureEngaged] mass_match=1 band_match=1 probe_any=1 band_noticeable=1 mass_primary=1 " +
+			$"[BlackHoleFixture][CurvatureEngaged] mass_match=1 band_match=1 probe_any=1 band_noticeable={(bandNoticeable ? 1 : 0)} require_band_noticeable={(requireBandNoticeable ? 1 : 0)} mass_primary=1 " +
 			$"far_accel={farAccelMag:0.######} transport={transportStrength:0.######} " +
 			$"probe_mass=[{FormatFloatArray(massProbeAccels)}] probe_band=[{FormatFloatArray(bandProbeAccels)}] probe_total=[{FormatFloatArray(totalProbeAccels)}]");
 
@@ -498,7 +537,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			$"probeAccelSum={bandProbeSum:0.######} probeAccelShare={(totalProbeSum > CurvatureAccelEpsilon ? bandProbeSum / totalProbeSum : 0f):0.######} farAccel={(photonBandActive ? ComputeCombinedRawAcceleration(farProbe, new[] { bandSnap }).Length() : 0f):0.######}");
 		GD.Print(
 			$"[BlackHoleFixture][ComparisonSummary] transportModel={activeTransportModel} metricLaw={metricDiagnostics.MetricSteeringLawToken} effectiveMetricScalar={effectiveMetricScalar:0.######} " +
-			$"photonBandMode={PhotonBandModeToToken(photonBandMode)} photonBandModeSource={photonBandModeSource} photonBandEnabled={(photonBandActive ? 1 : 0)} photonBandProbeAccelSum={bandProbeSum:0.######} photonBandProbeAccelShare={(totalProbeSum > CurvatureAccelEpsilon ? bandProbeSum / totalProbeSum : 0f):0.######} " +
+			$"photonBandMode={PhotonBandModeToToken(photonBandMode)} photonBandModeSource={photonBandModeSource} photonBandEnabled={(photonBandActive ? 1 : 0)} photonBandRInner={effectiveBandResolved.rInner:0.######} photonBandROuter={effectiveBandResolved.rOuter:0.######} photonBandAmp={effectiveBandResolved.amp:0.######} photonBandProbeAccelSum={bandProbeSum:0.######} photonBandProbeAccelShare={(totalProbeSum > CurvatureAccelEpsilon ? bandProbeSum / totalProbeSum : 0f):0.######} " +
 			$"sourcePatternSummary={_sourcePatternSummary} probeN={RayProbeNdc.Length} absorbCount={probeSummary.AbsorbedHits} absorbRate={probeSummary.AbsorbRate:0.######} " +
 			$"hitRate={probeSummary.HitRate:0.######} sourceHits={probeSummary.SourceHits} backgroundHits={probeSummary.BackgroundHits} detectorHits={probeSummary.BackgroundHits} " +
 			$"absorbedHits={probeSummary.AbsorbedHits} missHits={probeSummary.MissHits} offscreenDetectorHits={probeSummary.OffscreenDetectorHits} noPlaneIntersect={probeSummary.NoPlaneIntersectHits} " +
@@ -522,7 +561,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 
 		GD.Print(
 			$"[BlackHoleFixture] mass_strength={massResolved.amp:0.###} mass_radius={massResolved.rOuter:0.###} " +
-			$"band_strength={bandResolved.amp:0.###} band_r_inner={bandResolved.rInner:0.###} band_r_outer={bandResolved.rOuter:0.###} " +
+			$"band_strength={effectiveBandResolved.amp:0.###} band_r_inner={effectiveBandResolved.rInner:0.###} band_r_outer={effectiveBandResolved.rOuter:0.###} " +
 			$"mass_node_path={massField.GetPath()} band_node_path={photonBandField.GetPath()} sphere_global_pos={spherePos} sphere_scale={sphereScale} " +
 			$"cam_fov={camFov} camera_global_pos={camPos} cam_to_sphere={camToSphere}");
 
@@ -532,7 +571,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			$"gamma={massResolved.a:0.###} beta_mode={(massResolved.overrideBetaScale ? "override" : "global")} beta_scale={massResolved.betaScale:0.###}");
 
 		GD.Print(
-			$"[BlackHoleFixture][ResolvedPhotonBand] source={bandResolveReason} mode={PhotonBandModeToToken(photonBandMode)} enabled={(effectiveBandResolved.enabled ? 1 : 0)} curve={effectiveBandResolved.curveType} modeFlags={effectiveBandResolved.modeFlags} " +
+			$"[BlackHoleFixture][ResolvedPhotonBand] source={effectiveBandSource} mode={PhotonBandModeToToken(photonBandMode)} enabled={(effectiveBandResolved.enabled ? 1 : 0)} curve={effectiveBandResolved.curveType} modeFlags={effectiveBandResolved.modeFlags} " +
 			$"rInner={effectiveBandResolved.rInner:0.###} rOuter={effectiveBandResolved.rOuter:0.###} amp={effectiveBandResolved.amp:0.###} " +
 			$"A={effectiveBandResolved.a:0.###} B={effectiveBandResolved.b:0.###} C={effectiveBandResolved.c:0.###} " +
 			$"beta_mode={(effectiveBandResolved.overrideBetaScale ? "override" : "global")} beta_scale={effectiveBandResolved.betaScale:0.###}");
@@ -545,7 +584,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		string fingerprintHash = ExtractFingerprintHash(fingerprint);
 		GD.Print(
 			$"[FixtureCompare] fixture=blackhole_minimal transport={activeTransportModel} photonBand={(photonBandActive ? "ON" : "OFF")} " +
-			$"photonBandMode={PhotonBandModeToToken(photonBandMode)} absorbCount={probeSummary.AbsorbedHits} " +
+			$"photonBandMode={PhotonBandModeToToken(photonBandMode)} photonBandRInner={effectiveBandResolved.rInner:0.######} photonBandROuter={effectiveBandResolved.rOuter:0.######} photonBandAmp={effectiveBandResolved.amp:0.######} absorbCount={probeSummary.AbsorbedHits} " +
 			$"absorbRate={probeSummary.AbsorbRate:0.######} hitRate={probeSummary.HitRate:0.######} " +
 			$"sourceHits={probeSummary.SourceHits} backgroundHits={probeSummary.BackgroundHits} " +
 			$"absorbedHits={probeSummary.AbsorbedHits} missHits={probeSummary.MissHits} " +
@@ -574,17 +613,20 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 
 		TransportModel fixtureTransportModel = ResolveFixtureTransportModel(out string transportSource);
 		PhotonBandFixtureMode photonBandMode = ResolvePhotonBandFixtureMode(out string photonBandModeSource);
+		PhotonBandCompareOverride photonBandOverride = ResolvePhotonBandCompareOverride();
 		MaybeApplyTransportOverride(massField, fixtureTransportModel, transportSource);
 		MaybeApplyTransportOverride(photonBandField, fixtureTransportModel, transportSource);
-		PhotonBandShell photonBandShell = ComputePhotonBandShell(FixedROuter, FixedRInner);
+		PhotonBandShell photonBandShell = ResolveEffectivePhotonBandShell(photonBandOverride);
 
 		FieldSource3D.ResolvedFieldParams massResolved = massField.ResolveEffectiveParams(out string massResolveReason);
 		FieldSource3D.ResolvedFieldParams bandResolved = photonBandField.ResolveEffectiveParams(out string bandResolveReason);
-		FieldSource3D.ResolvedFieldParams effectiveBandResolved = BuildEffectivePhotonBandResolved(bandResolved, photonBandMode);
+		FieldSource3D.ResolvedFieldParams effectiveBandResolved = BuildEffectivePhotonBandResolved(bandResolved, photonBandMode, photonBandShell, photonBandOverride);
 		RayBeamRenderer.FieldSourceSnap massSnap = RayBeamRenderer.BuildFieldSourceSnap(massField);
 		RayBeamRenderer.FieldSourceSnap bandSnap = BuildEffectivePhotonBandSnap(
 			RayBeamRenderer.BuildFieldSourceSnap(photonBandField),
-			photonBandMode);
+			photonBandMode,
+			photonBandShell,
+			photonBandOverride);
 		RayBeamRenderer.FieldSourceSnap[] snaps = BuildSourceArray(massSnap, bandSnap);
 
 		float[] massAccelMags = BuildFingerprintAccelMagnitudes(massSnap.Center, massSnap);
@@ -621,7 +663,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			ResolveMetricDetectorScaleOverride());
 
 		string fingerprintCore =
-			$"v=3;" +
+			$"v=4;" +
 			$"sourceCount={(IsPhotonBandActive(effectiveBandResolved) ? 2 : 1)};" +
 			$"bandMode={PhotonBandModeToToken(photonBandMode)};" +
 			$"bandModeSource={photonBandModeSource};" +
@@ -641,7 +683,7 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 			$"massBetaMode={(massResolved.overrideBetaScale ? "override" : "global")};" +
 			$"massBetaScale={F(massResolved.betaScale)};" +
 			$"bandEnabled={(effectiveBandResolved.enabled ? 1 : 0)};" +
-			$"bandSource={bandResolveReason};" +
+			$"bandSource={ResolveEffectivePhotonBandSource(bandResolveReason, photonBandOverride)};" +
 			$"bandCurve={effectiveBandResolved.curveType};" +
 			$"bandRInner={F(effectiveBandResolved.rInner)};" +
 			$"bandROuter={F(effectiveBandResolved.rOuter)};" +
@@ -795,6 +837,33 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		float rInner = Mathf.Max(massInnerRadius + 0.05f, center - halfWidth);
 		float rOuter = Mathf.Max(rInner + 0.05f, center + halfWidth);
 		return new PhotonBandShell(center, width, rInner, rOuter);
+	}
+
+	private static PhotonBandShell ResolveEffectivePhotonBandShell(PhotonBandCompareOverride compareOverride)
+	{
+		PhotonBandShell canonical = ComputePhotonBandShell(FixedROuter, FixedRInner);
+		if (!compareOverride.HasAny)
+		{
+			return canonical;
+		}
+
+		float rInner = compareOverride.HasRInner ? compareOverride.RInner : canonical.RInner;
+		float minOuter = rInner + 0.05f;
+		float rOuter = compareOverride.HasROuter ? compareOverride.ROuter : canonical.ROuter;
+		rOuter = Mathf.Max(minOuter, rOuter);
+		float width = Mathf.Max(rOuter - rInner, 0.05f);
+		float center = rInner + (width * 0.5f);
+		return new PhotonBandShell(center, width, rInner, rOuter);
+	}
+
+	private static string ResolveEffectivePhotonBandSource(string resolveReason, PhotonBandCompareOverride compareOverride)
+	{
+		if (!compareOverride.HasAny)
+		{
+			return resolveReason;
+		}
+
+		return $"compare_override({compareOverride.Source})";
 	}
 
 	private void LogFieldStartupSummary(
@@ -1866,6 +1935,20 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		return PhotonBandFixtureMode.SceneAuthored;
 	}
 
+	private static PhotonBandCompareOverride ResolvePhotonBandCompareOverride()
+	{
+		if (TryParsePhotonBandCompareOverride(OS.GetCmdlineUserArgs(), "cmdline_user", out PhotonBandCompareOverride fromUser))
+		{
+			return fromUser;
+		}
+		if (TryParsePhotonBandCompareOverride(OS.GetCmdlineArgs(), "cmdline", out PhotonBandCompareOverride fromArgs))
+		{
+			return fromArgs;
+		}
+
+		return new PhotonBandCompareOverride(false, false, false, 0f, 0f, 0f, "none");
+	}
+
 	private static bool TryParsePhotonBandModeArg(string[] args, out PhotonBandFixtureMode mode)
 	{
 		mode = PhotonBandFixtureMode.SceneAuthored;
@@ -1888,6 +1971,51 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		}
 
 		return false;
+	}
+
+	private static bool TryParsePhotonBandCompareOverride(string[] args, string source, out PhotonBandCompareOverride compareOverride)
+	{
+		compareOverride = new PhotonBandCompareOverride(false, false, false, 0f, 0f, 0f, source);
+		if (args == null || args.Length == 0)
+		{
+			return false;
+		}
+
+		bool hasRInner = false;
+		bool hasROuter = false;
+		bool hasAmp = false;
+		float rInner = 0f;
+		float rOuter = 0f;
+		float amp = 0f;
+		for (int i = 0; i < args.Length; i++)
+		{
+			string arg = args[i] ?? string.Empty;
+			if (TryParseFloatArgValue(arg, FixturePhotonBandRInnerArgPrefix, out float parsedRInner))
+			{
+				hasRInner = true;
+				rInner = Mathf.Max(0f, parsedRInner);
+				continue;
+			}
+			if (TryParseFloatArgValue(arg, FixturePhotonBandROuterArgPrefix, out float parsedROuter))
+			{
+				hasROuter = true;
+				rOuter = Mathf.Max(0f, parsedROuter);
+				continue;
+			}
+			if (TryParseFloatArgValue(arg, FixturePhotonBandAmpArgPrefix, out float parsedAmp))
+			{
+				hasAmp = true;
+				amp = parsedAmp;
+			}
+		}
+
+		if (!hasRInner && !hasROuter && !hasAmp)
+		{
+			return false;
+		}
+
+		compareOverride = new PhotonBandCompareOverride(hasRInner, hasROuter, hasAmp, rInner, rOuter, amp, source);
+		return true;
 	}
 
 	private static bool TryParsePhotonBandModeValue(string arg, string prefix, out PhotonBandFixtureMode mode)
@@ -1934,8 +2062,20 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 
 	private static FieldSource3D.ResolvedFieldParams BuildEffectivePhotonBandResolved(
 		FieldSource3D.ResolvedFieldParams resolved,
-		PhotonBandFixtureMode mode)
+		PhotonBandFixtureMode mode,
+		PhotonBandShell shell,
+		PhotonBandCompareOverride compareOverride)
 	{
+		if (compareOverride.HasAny)
+		{
+			resolved.rInner = shell.RInner;
+			resolved.rOuter = shell.ROuter;
+			if (compareOverride.HasAmp)
+			{
+				resolved.amp = compareOverride.Amp;
+			}
+		}
+
 		if (mode != PhotonBandFixtureMode.Disabled)
 		{
 			return resolved;
@@ -1948,8 +2088,20 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 
 	private static RayBeamRenderer.FieldSourceSnap BuildEffectivePhotonBandSnap(
 		RayBeamRenderer.FieldSourceSnap snap,
-		PhotonBandFixtureMode mode)
+		PhotonBandFixtureMode mode,
+		PhotonBandShell shell,
+		PhotonBandCompareOverride compareOverride)
 	{
+		if (compareOverride.HasAny)
+		{
+			snap.RInner = shell.RInner;
+			snap.ROuter = shell.ROuter;
+			if (compareOverride.HasAmp)
+			{
+				snap.Amp = compareOverride.Amp;
+			}
+		}
+
 		if (mode != PhotonBandFixtureMode.Disabled)
 		{
 			return snap;
@@ -2077,6 +2229,18 @@ public partial class BlackHoleMinimalFingerprint : Node3D
 		}
 
 		return false;
+	}
+
+	private static bool TryParseFloatArgValue(string arg, string prefix, out float value)
+	{
+		value = 0f;
+		if (!arg.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+		{
+			return false;
+		}
+
+		string token = arg.Substring(prefix.Length).Trim();
+		return float.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
 	}
 
 	private static bool TryParseTransportArgValue(string arg, string prefix, out TransportModel model)
