@@ -2937,7 +2937,7 @@ public partial class GrinFilmCamera : Node
 		if (!string.IsNullOrWhiteSpace(hudMetadata))
 		{
 			MaybeLogHudMetadata(hudMetadata);
-			lines.Add(hudMetadata);
+			AddHudMetadataOverlayLines(lines);
 		}
 		MaybeLogHudRuntimeSummary();
 		RenderHealthSample latest = default;
@@ -3063,8 +3063,8 @@ public partial class GrinFilmCamera : Node
 			lines.Add(_overlayHudSb.ToString());
 		}
 
-		if (lines.Count > 6)
-			lines.RemoveRange(6, lines.Count - 6);
+		if (lines.Count > 7)
+			lines.RemoveRange(7, lines.Count - 7);
 
 		Vector2 overlayBasePos = new Vector2(16f, 24f);
 		DebugOverlayBus.AddText(overlayBasePos, string.Join("\n", lines), Colors.White);
@@ -3137,6 +3137,35 @@ public partial class GrinFilmCamera : Node
 		AppendHudToken(_overlayHudSb, "MODE", ResolveHudModePath());
 		AppendHudToken(_overlayHudSb, "FILM_ACCUM", ResolveHudFilmAccumulationStatus());
 		return _overlayHudSb.ToString();
+	}
+
+	private void AddHudMetadataOverlayLines(System.Collections.Generic.List<string> lines)
+	{
+		if (lines == null)
+			return;
+
+		_overlayHudSb.Clear();
+		AppendHudToken(_overlayHudSb, "fixture", ResolveHudFixtureName());
+		AppendHudToken(_overlayHudSb, "transport", ResolveHudTransportModel());
+		AppendHudToken(_overlayHudSb, "mode", ResolveHudModePath());
+		if (_overlayHudSb.Length > 0)
+			lines.Add(_overlayHudSb.ToString());
+
+		_overlayHudSb.Clear();
+		AppendHudToken(_overlayHudSb, "profile", ResolveHudProfileToken());
+		if (TryResolveHudMetricGainOverride(out float metricGainOverride))
+		{
+			AppendHudToken(_overlayHudSb, "metricGain", metricGainOverride.ToString("0.0##"));
+		}
+		string metricSteeringLaw = ResolveHudMetricSteeringLaw();
+		if (!string.IsNullOrWhiteSpace(metricSteeringLaw))
+		{
+			AppendHudToken(_overlayHudSb, "metricLaw", metricSteeringLaw);
+		}
+		AppendHudToken(_overlayHudSb, "sourcePattern", ResolveHudSourcePatternMode());
+		AppendHudToken(_overlayHudSb, "filmAccum", ResolveHudFilmAccumulationStatus());
+		if (_overlayHudSb.Length > 0)
+			lines.Add(_overlayHudSb.ToString());
 	}
 
 	private void MaybeLogHudMetadata(string metadata)

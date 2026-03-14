@@ -1,0 +1,17 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://d38q5yvdij51w"
+
+[deps]
+
+files=["res://logs/photon_band_sweep_results.caseName.translation", "res://logs/photon_band_sweep_results.photonBand.translation", "res://logs/photon_band_sweep_results.rInner.translation", "res://logs/photon_band_sweep_results.rOuter.translation", "res://logs/photon_band_sweep_results.amp.translation", "res://logs/photon_band_sweep_results.absorbCount.translation", "res://logs/photon_band_sweep_results.absorbRate.translation", "res://logs/photon_band_sweep_results.silhouetteRadiusMean.translation", "res://logs/photon_band_sweep_results.hitRate.translation", "res://logs/photon_band_sweep_results.steeringSummary.translation", "res://logs/photon_band_sweep_results.fingerprintHash.translation", "res://logs/photon_band_sweep_results.stdoutLog.translation", "res://logs/photon_band_sweep_results.stderrLog.translation"]
+
+source_file="res://logs/photon_band_sweep_results.csv"
+dest_files=["res://logs/photon_band_sweep_results.caseName.translation", "res://logs/photon_band_sweep_results.photonBand.translation", "res://logs/photon_band_sweep_results.rInner.translation", "res://logs/photon_band_sweep_results.rOuter.translation", "res://logs/photon_band_sweep_results.amp.translation", "res://logs/photon_band_sweep_results.absorbCount.translation", "res://logs/photon_band_sweep_results.absorbRate.translation", "res://logs/photon_band_sweep_results.silhouetteRadiusMean.translation", "res://logs/photon_band_sweep_results.hitRate.translation", "res://logs/photon_band_sweep_results.steeringSummary.translation", "res://logs/photon_band_sweep_results.fingerprintHash.translation", "res://logs/photon_band_sweep_results.stdoutLog.translation", "res://logs/photon_band_sweep_results.stderrLog.translation"]
+
+[params]
+
+compress=true
+delimiter=0
