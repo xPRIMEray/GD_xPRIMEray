@@ -1,7 +1,13 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=7 format=3 uid="uid://cgiqsq17xt8b2"]
 
-[ext_resource type="Script" path="res://FieldSource3D.cs" id="1_field"]
-[ext_resource type="Script" path="res://RayBeamRenderer.cs" id="2_rbr"]
+[ext_resource type="Script" uid="uid://vmh5vusla1nv" path="res://FieldSource3D.cs" id="1_field"]
+[ext_resource type="Script" uid="uid://dg2asfleehqsw" path="res://RayBeamRenderer.cs" id="2_rbr"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_backdrop"]
+size = Vector3(28, 18, 0.25)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_backdrop"]
+size = Vector3(28, 18, 0.25)
 
 [sub_resource type="SphereMesh" id="SphereMesh_dot"]
 radius = 0.55
@@ -9,12 +15,6 @@ height = 1.1
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_dot"]
 radius = 0.55
-
-[sub_resource type="BoxMesh" id="BoxMesh_backdrop"]
-size = Vector3(28, 18, 0.25)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_backdrop"]
-size = Vector3(28, 18, 0.25)
 
 [node name="FixtureGrinBasicVisual" type="Node3D"]
 
@@ -169,21 +169,18 @@ mesh = SubResource("SphereMesh_dot")
 shape = SubResource("SphereShape3D_dot")
 
 [node name="FieldSource3D" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -6)
 script = ExtResource("1_field")
-TransportModel = 0
-CurveType = 1
-ROuter = 6.5
-Amp = 1.35
-CanonicalGamma = 2.4
-CanonicalBetaScale = 1.0
-CanonicalEnableInnerRadius = false
-RInner = 0.0
-Softening = 0.05
-CanonicalOverrideBetaScale = true
-ModeFlags = 0
-DebugVizEnabled = true
-DebugVizInGame = false
+EffectiveEquationCore = "source=canonical
+r=|p-c|
+u=clamp((r-rInner)/max(eps,rOuter-rInner),0,1)
+f(u)=(1-u)^1
+edge_ramp=1 (disabled)"
+EffectiveEquationIntegrated = "dir=-normalize(p-c) (ModeFlagInvertSign=0)
+absorb_if_r_lt_rInner=0
+beta_eff=(|beta_g|>eps ? beta_g*1 : 1)
+mag=beta_eff*amp*f(u)*edge_ramp
+gamma=1
+a=dir*mag"
 
 [node name="RayBeamRenderer" type="Node3D" parent="."]
 visible = false
@@ -191,7 +188,6 @@ script = ExtResource("2_rbr")
 CameraPath = NodePath("../Camera3D")
 StepsPerRay = 500
 StepLength = 0.05
-MinStepLength = 0.002
 MaxStepLength = 0.2
 StepAdaptGain = 0.7
 LowCurvaturePerpAccel = 0.3

@@ -36,6 +36,12 @@ public partial class FieldSource3D : Node3D
 		All = XY | XZ | YZ
 	}
 
+	public enum DebugVizDensityRayModeKind
+	{
+		TransportRays = 0,
+		DensityStreamlines = 1
+	}
+
 	public struct ResolvedFieldParams
 	{
 		public bool enabled;
@@ -190,6 +196,14 @@ public partial class FieldSource3D : Node3D
 	[Export] public Color DebugVizDensityVectorColorMin { get; set; } = new Color(0.0f, 0.90f, 1.00f, 0.85f);
 	[Export] public Color DebugVizDensityVectorColorMax { get; set; } = new Color(1.0f, 0, 0.10f, 0.95f);
 
+	[ExportSubgroup("Density Rays")]
+	[Export] public bool DebugVizShowDensityRays { get; set; } = false;
+	[Export] public DebugVizDensityRayModeKind DebugVizDensityRayMode { get; set; } = DebugVizDensityRayModeKind.TransportRays;
+	[Export(PropertyHint.Range, "1,18,1")] public int DebugVizDensityRaySeedCount { get; set; } = 6;
+	[Export(PropertyHint.Range, "2,256,1")] public int DebugVizDensityRaySteps { get; set; } = 24;
+	[Export(PropertyHint.Range, "0.01,2.0,0.01")] public float DebugVizDensityRayStepSize { get; set; } = 0.15f;
+	[Export] public bool DebugVizDensityRayForwardOnly { get; set; } = true;
+
 	[ExportSubgroup("Render")]
 	[Export(PropertyHint.Range, "0.0,1.0,0.01")] public float DebugVizGlobalOpacity { get; set; } = 0.90f;
 	[Export] public bool DebugVizAlwaysOnTop { get; set; } = true;
@@ -325,6 +339,7 @@ public partial class FieldSource3D : Node3D
 	private bool _inspectorShowLegacyControls;
 	private bool _inspectorShowDensityZones;
 	private bool _inspectorShowDensityVectors;
+	private bool _inspectorShowDensityRays;
 	private bool _usedLegacyMigration;
 	private bool _loggedLegacyMigration;
 	private bool _warnedCanonicalLegacyConflict;
@@ -485,11 +500,9 @@ public partial class FieldSource3D : Node3D
 					break;
 
 				case nameof(DebugVizDensityZoneCount):
-				case nameof(DebugVizRingSegments):
-				case nameof(DebugVizZeroInnerRadiusEpsilonFraction):
 				case nameof(DebugVizDensityZoneColorMin):
 				case nameof(DebugVizDensityZoneColorMax):
-					visible = DebugVizShowDensityZones || DebugVizShowDensityVectors;
+					visible = DebugVizShowDensityZones;
 					if (propertyName == nameof(DebugVizDensityZoneColorMin))
 					{
 						property["tooltip"] = "Density zone color at minimum profile strength.";
@@ -498,7 +511,12 @@ public partial class FieldSource3D : Node3D
 					{
 						property["tooltip"] = "Density zone color at maximum profile strength.";
 					}
-					else if (propertyName == nameof(DebugVizZeroInnerRadiusEpsilonFraction))
+					break;
+
+				case nameof(DebugVizRingSegments):
+				case nameof(DebugVizZeroInnerRadiusEpsilonFraction):
+					visible = DebugVizShowDensityZones || DebugVizShowDensityVectors || DebugVizShowDensityRays;
+					if (propertyName == nameof(DebugVizZeroInnerRadiusEpsilonFraction))
 					{
 						property["tooltip"] = "When inner radius is zero, use this fraction of outer radius as a sampling offset.";
 					}
@@ -519,20 +537,55 @@ public partial class FieldSource3D : Node3D
 				case nameof(DebugVizDensityArrowMaxThicknessBands):
 				case nameof(DebugVizDensityArrowThicknessIntensity):
 				case nameof(DebugVizDensityVectorTipAtOrigin):
-				case nameof(DebugVizDensityVectorColorMin):
-				case nameof(DebugVizDensityVectorColorMax):
 					visible = DebugVizShowDensityVectors;
 					if (propertyName == nameof(DebugVizDensityVectorTipAtOrigin))
 					{
 						property["tooltip"] = "When enabled, arrow tip is anchored at the sample point and tail extends backward.";
 					}
-					else if (propertyName == nameof(DebugVizDensityVectorColorMin))
+					break;
+
+				case nameof(DebugVizDensityVectorColorMin):
+				case nameof(DebugVizDensityVectorColorMax):
+					visible = DebugVizShowDensityVectors || DebugVizShowDensityRays;
+					if (propertyName == nameof(DebugVizDensityVectorColorMin))
 					{
-						property["tooltip"] = "Density vector color at minimum profile strength.";
+						property["tooltip"] = "Density vector/ray color at minimum profile strength.";
 					}
-					else if (propertyName == nameof(DebugVizDensityVectorColorMax))
+					else
 					{
-						property["tooltip"] = "Density vector color at maximum profile strength.";
+						property["tooltip"] = "Density vector/ray color at maximum profile strength.";
+					}
+					break;
+
+				case nameof(DebugVizShowDensityRays):
+					property["tooltip"] = "Enable traced density polylines using the existing FieldSource3D debug mesh path. First pass supports SphereRadial best.";
+					break;
+
+				case nameof(DebugVizDensityRayMode):
+					visible = DebugVizShowDensityRays;
+					property["tooltip"] = "Transport Rays matches renderer-style direction integration; Density Streamlines follows the field itself.";
+					break;
+
+				case nameof(DebugVizDensityRaySeedCount):
+				case nameof(DebugVizDensityRaySteps):
+				case nameof(DebugVizDensityRayStepSize):
+				case nameof(DebugVizDensityRayForwardOnly):
+					visible = DebugVizShowDensityRays;
+					if (propertyName == nameof(DebugVizDensityRaySeedCount))
+					{
+						property["tooltip"] = "Ordered deterministic seed set: +/-X, +/-Y, +/-Z first, then plane diagonals.";
+					}
+					else if (propertyName == nameof(DebugVizDensityRaySteps))
+					{
+						property["tooltip"] = "Maximum connected segments emitted per traced density ray.";
+					}
+					else if (propertyName == nameof(DebugVizDensityRayStepSize))
+					{
+						property["tooltip"] = "Distance between sampled points when tracing density rays.";
+					}
+					else if (propertyName == nameof(DebugVizDensityRayForwardOnly))
+					{
+						property["tooltip"] = "Trace only along the sampled field direction; disable to trace both directions from the seed point.";
 					}
 					break;
 
@@ -609,7 +662,8 @@ public partial class FieldSource3D : Node3D
 			|| _inspectorLegacyOverrideBeta != CanonicalOverrideBetaScale
 			|| _inspectorShowLegacyControls != ShowLegacyControls
 			|| _inspectorShowDensityZones != DebugVizShowDensityZones
-			|| _inspectorShowDensityVectors != DebugVizShowDensityVectors;
+			|| _inspectorShowDensityVectors != DebugVizShowDensityVectors
+			|| _inspectorShowDensityRays != DebugVizShowDensityRays;
 
 		if (!changed)
 		{
@@ -624,6 +678,7 @@ public partial class FieldSource3D : Node3D
 		_inspectorShowLegacyControls = ShowLegacyControls;
 		_inspectorShowDensityZones = DebugVizShowDensityZones;
 		_inspectorShowDensityVectors = DebugVizShowDensityVectors;
+		_inspectorShowDensityRays = DebugVizShowDensityRays;
 		NotifyPropertyListChanged();
 	}
 
@@ -1231,6 +1286,9 @@ public partial class FieldSource3D : Node3D
 		}
 
 		DebugVizDensityArrowThicknessIntensity = Mathf.Clamp(DebugVizDensityArrowThicknessIntensity, 0.2f, 3.0f);
+		DebugVizDensityRaySeedCount = Mathf.Clamp(DebugVizDensityRaySeedCount, 1, 18);
+		DebugVizDensityRaySteps = Mathf.Clamp(DebugVizDensityRaySteps, 2, 256);
+		DebugVizDensityRayStepSize = Mathf.Max(0.01f, DebugVizDensityRayStepSize);
 		DebugVizDensityZoneCount = Mathf.Clamp(DebugVizDensityZoneCount, 2, 6);
 		DebugVizZeroInnerRadiusEpsilonFraction = Mathf.Clamp(DebugVizZeroInnerRadiusEpsilonFraction, 0f, 0.25f);
 		DebugVizGlobalOpacity = Mathf.Clamp(DebugVizGlobalOpacity, 0f, 1f);
@@ -1258,6 +1316,7 @@ public partial class FieldSource3D : Node3D
 	{
 		bool hasInnerOuter = ResolveAcademicRadii(out float inner, out float outer, out string reason);
 		ResolvedFieldParams resolved = ResolveEffectiveParams(out _);
+		ResolveAcademicBetaGamma(out float betaEff, out float resolvedGamma, out _);
 		UpdateDebugSummary(hasInnerOuter, inner, outer, reason);
 
 		if (!hasInnerOuter && !_warnedNoRadii)
@@ -1288,11 +1347,21 @@ public partial class FieldSource3D : Node3D
 			DensityArrowMaxThicknessBands = DebugVizDensityArrowMaxThicknessBands,
 			DensityArrowThicknessIntensity = DebugVizDensityArrowThicknessIntensity,
 			DensityVectorTipAtOrigin = DebugVizDensityVectorTipAtOrigin,
+			ShowDensityRays = DebugVizShowDensityRays && hasInnerOuter && resolved.shapeType == FieldShapeType.SphereRadial,
+			DensityRayMode = DebugVizDensityRayMode,
+			DensityRaySeedCount = DebugVizDensityRaySeedCount,
+			DensityRaySteps = DebugVizDensityRaySteps,
+			DensityRayStepSize = DebugVizDensityRayStepSize,
+			DensityRayForwardOnly = DebugVizDensityRayForwardOnly,
 			ShowDensityZones = DebugVizShowDensityZones && hasInnerOuter,
 			DensityZoneCount = DebugVizDensityZoneCount,
 			DensityZoneColorMin = DebugVizDensityZoneColorMin,
 			DensityZoneColorMax = DebugVizDensityZoneColorMax,
 			ModeFlags = resolved.modeFlags,
+			ShapeType = resolved.shapeType,
+			Amp = resolved.amp,
+			BetaEff = betaEff,
+			ResolvedGamma = resolved.curveType == FieldCurveType.Power ? resolvedGamma : resolved.a,
 			CurveType = resolved.curveType,
 			CurveA = resolved.a,
 			CurveB = resolved.b,
@@ -1404,6 +1473,7 @@ public partial class FieldSource3D : Node3D
 
 		AddDensityZoneRings(state);
 		AddDensityVectors(state);
+		AddDensityRays(state);
 
 		// Keep a small center marker for orientation.
 		AddCenterMarker(state);
@@ -1548,6 +1618,453 @@ public partial class FieldSource3D : Node3D
 					AddVectorRingSet(ring.Radius, count, Vector3.Up, Vector3.Forward, Vector3.Right, invert, length, head, strokeBands, strokeOffset, state.DensityVectorTipAtOrigin);
 				}
 			});
+		}
+	}
+
+	private void AddDensityRays(DebugVizState state)
+	{
+		if (!state.ShowDensityRays || !state.HasInnerOuter || state.ShapeType != FieldShapeType.SphereRadial)
+		{
+			return;
+		}
+
+		Vector3[] seeds = BuildDensityRaySeedDirections(state);
+		if (seeds.Length == 0)
+		{
+			return;
+		}
+
+		float seedRadius = ComputeDensityRaySeedRadius(state);
+		if (seedRadius <= ResolveEps)
+		{
+			return;
+		}
+
+		float u = ComputeDensityUFromRadius(state, seedRadius);
+		float strength = Mathf.Clamp(EvaluateDensityStrengthAtT(u, state), 0f, 1f);
+		Color rayColor = InterpolateDensityColor(strength, state.DensityVectorColorMin, state.DensityVectorColorMax);
+
+		AddLineSurface(GetLineColorForMode(rayColor, state), state, () =>
+		{
+			for (int i = 0; i < seeds.Length; i++)
+			{
+				TraceDensityRay(state, seeds[i], seedRadius, forward: true);
+				if (!state.DensityRayForwardOnly)
+				{
+					TraceDensityRay(state, seeds[i], seedRadius, forward: false);
+				}
+			}
+		});
+	}
+
+	private Vector3[] BuildDensityRaySeedDirections(DebugVizState state)
+	{
+		int requested = Mathf.Clamp(state.DensityRaySeedCount, 1, 18);
+		var seeds = new List<Vector3>(requested);
+
+		bool useX = (state.Planes & (DebugVizPlaneFlags.XY | DebugVizPlaneFlags.XZ)) != 0;
+		bool useY = (state.Planes & (DebugVizPlaneFlags.XY | DebugVizPlaneFlags.YZ)) != 0;
+		bool useZ = (state.Planes & (DebugVizPlaneFlags.XZ | DebugVizPlaneFlags.YZ)) != 0;
+
+		if (useX)
+		{
+			TryAddSeedDirection(seeds, Vector3.Right);
+			TryAddSeedDirection(seeds, Vector3.Left);
+		}
+		if (useY)
+		{
+			TryAddSeedDirection(seeds, Vector3.Up);
+			TryAddSeedDirection(seeds, Vector3.Down);
+		}
+		if (useZ)
+		{
+			TryAddSeedDirection(seeds, Vector3.Forward);
+			TryAddSeedDirection(seeds, Vector3.Back);
+		}
+
+		if (seeds.Count < requested)
+		{
+			if ((state.Planes & DebugVizPlaneFlags.XY) != 0)
+			{
+				AddPlanarDiagonalSeedDirections(seeds, Vector3.Right, Vector3.Up);
+			}
+			if ((state.Planes & DebugVizPlaneFlags.XZ) != 0)
+			{
+				AddPlanarDiagonalSeedDirections(seeds, Vector3.Right, Vector3.Forward);
+			}
+			if ((state.Planes & DebugVizPlaneFlags.YZ) != 0)
+			{
+				AddPlanarDiagonalSeedDirections(seeds, Vector3.Up, Vector3.Forward);
+			}
+		}
+
+		if (seeds.Count > requested)
+		{
+			seeds.RemoveRange(requested, seeds.Count - requested);
+		}
+
+		return seeds.ToArray();
+	}
+
+	private static void AddPlanarDiagonalSeedDirections(List<Vector3> seeds, Vector3 axisA, Vector3 axisB)
+	{
+		TryAddSeedDirection(seeds, (axisA + axisB).Normalized());
+		TryAddSeedDirection(seeds, (axisA - axisB).Normalized());
+		TryAddSeedDirection(seeds, (-axisA + axisB).Normalized());
+		TryAddSeedDirection(seeds, (-axisA - axisB).Normalized());
+	}
+
+	private static void TryAddSeedDirection(List<Vector3> seeds, Vector3 direction)
+	{
+		if (direction.LengthSquared() <= ResolveEps)
+		{
+			return;
+		}
+
+		Vector3 normalized = direction.Normalized();
+		for (int i = 0; i < seeds.Count; i++)
+		{
+			if (seeds[i].Dot(normalized) > 0.999f)
+			{
+				return;
+			}
+		}
+
+		seeds.Add(normalized);
+	}
+
+	private float ComputeDensityRaySeedRadius(DebugVizState state)
+	{
+		float inner = Mathf.Max(0f, state.DensitySampleInnerRadius);
+		float outer = Mathf.Max(inner, state.OuterRadius);
+		if (outer <= ResolveEps)
+		{
+			return 0f;
+		}
+
+		if (Mathf.IsEqualApprox(inner, outer))
+		{
+			return outer;
+		}
+
+		return Mathf.Lerp(inner, outer, 0.5f);
+	}
+
+	private void TraceDensityRay(DebugVizState state, Vector3 seedDirection, float seedRadius, bool forward)
+	{
+		Vector3[] points = BuildDensityRayPoints(state, seedDirection, seedRadius, forward);
+		for (int i = 0; i < points.Length - 1; i++)
+		{
+			AddLine(points[i], points[i + 1]);
+		}
+	}
+
+	private Vector3[] BuildDensityRayPoints(DebugVizState state, Vector3 seedDirection, float seedRadius, bool forward)
+	{
+		return state.DensityRayMode == DebugVizDensityRayModeKind.DensityStreamlines
+			? BuildDensityStreamlinePoints(state, seedDirection, seedRadius, forward)
+			: BuildDensityTransportRayPoints(state, seedDirection, seedRadius, forward);
+	}
+
+	private Vector3[] BuildDensityStreamlinePoints(DebugVizState state, Vector3 seedDirection, float seedRadius, bool forward)
+	{
+		Vector3 p = seedDirection * seedRadius;
+		if (IsDensityRayOutsideBounds(p, state))
+		{
+			return Array.Empty<Vector3>();
+		}
+
+		int maxSteps = Mathf.Clamp(state.DensityRaySteps, 2, 256);
+		float stepSize = Mathf.Max(0.01f, state.DensityRayStepSize);
+		Vector3 dir = ResolveDensityRayInitialDirection(state, p, seedDirection, forward);
+		if (!IsFinite(dir) || dir.LengthSquared() <= ResolveEps)
+		{
+			return Array.Empty<Vector3>();
+		}
+
+		var points = new List<Vector3>(maxSteps + 1) { p };
+		for (int step = 0; step < maxSteps; step++)
+		{
+			FieldMath.EvalResult eval = FieldMath.EvalFieldAccel(
+				p,
+				Vector3.Zero,
+				state.CurveType,
+				state.InnerRadius,
+				state.OuterRadius,
+				state.Amp,
+				state.ResolvedGamma,
+				state.Sigma,
+				state.CurveA,
+				state.CurveB,
+				state.CurveC,
+				state.CustomCurve,
+				state.ModeFlags,
+				float.NaN,
+				true,
+				state.BetaEff,
+				state.EdgeSoftness);
+
+			Vector3 accel = eval.Acceleration;
+			if (!forward)
+			{
+				accel = -accel;
+			}
+
+			if (!IsFinite(accel))
+			{
+				break;
+			}
+
+			if (accel.LengthSquared() > ResolveEps)
+			{
+				dir = (dir + (accel * stepSize)).Normalized();
+			}
+
+			if (!IsFinite(dir) || dir.LengthSquared() <= ResolveEps)
+			{
+				break;
+			}
+
+			float allowedStep = ComputeDistanceToDensityBoundary(p, dir, state);
+			if (!(allowedStep > ResolveEps))
+			{
+				break;
+			}
+
+			float actualStep = Mathf.Min(stepSize, allowedStep);
+			Vector3 pNext = p + (dir * actualStep);
+			if (!IsFinite(pNext) || pNext.DistanceSquaredTo(p) <= (ResolveEps * ResolveEps))
+			{
+				break;
+			}
+
+			points.Add(pNext);
+			p = pNext;
+
+			if (actualStep < stepSize || IsDensityRayOutsideBounds(p, state))
+			{
+				break;
+			}
+		}
+
+		return points.Count >= 2 ? points.ToArray() : Array.Empty<Vector3>();
+	}
+
+	private Vector3[] BuildDensityTransportRayPoints(DebugVizState state, Vector3 seedDirection, float seedRadius, bool forward)
+	{
+		Vector3 p = seedDirection * seedRadius;
+		if (IsDensityRayOutsideBounds(p, state))
+		{
+			return Array.Empty<Vector3>();
+		}
+
+		int maxSteps = Mathf.Clamp(state.DensityRaySteps, 2, 256);
+		float stepSize = Mathf.Max(0.01f, state.DensityRayStepSize);
+		Vector3 velocity = ResolveDensityRayTransportInitialDirection(state, seedDirection, forward);
+		if (!IsFinite(velocity) || velocity.LengthSquared() <= ResolveEps)
+		{
+			return Array.Empty<Vector3>();
+		}
+
+		var points = new List<Vector3>(maxSteps + 1) { p };
+		for (int step = 0; step < maxSteps; step++)
+		{
+			Vector3 accel = EvaluateDensityRayAcceleration(state, p);
+			float accelLength = accel.Length();
+			if (!float.IsFinite(accelLength))
+			{
+				accel = Vector3.Zero;
+			}
+			else if (accelLength > 50f)
+			{
+				accel *= (50f / accelLength);
+			}
+
+			float allowedStep = ComputeDistanceToDensityBoundary(p, velocity, state);
+			if (!(allowedStep > ResolveEps))
+			{
+				break;
+			}
+
+			float actualStep = Mathf.Min(stepSize, allowedStep);
+			velocity = SafeNormalized(velocity + (accel * actualStep), velocity);
+			if (!IsFinite(velocity) || velocity.LengthSquared() <= ResolveEps)
+			{
+				break;
+			}
+
+			Vector3 pNext = p + (velocity * actualStep);
+			if (!IsFinite(pNext) || pNext.DistanceSquaredTo(p) <= (ResolveEps * ResolveEps))
+			{
+				break;
+			}
+
+			points.Add(pNext);
+			p = pNext;
+
+			if (actualStep < stepSize || IsDensityRayOutsideBounds(p, state))
+			{
+				break;
+			}
+		}
+
+		return points.Count >= 2 ? points.ToArray() : Array.Empty<Vector3>();
+	}
+
+	private Vector3 EvaluateDensityRayAcceleration(DebugVizState state, Vector3 point)
+	{
+		FieldMath.EvalResult eval = FieldMath.EvalFieldAccel(
+			point,
+			Vector3.Zero,
+			state.CurveType,
+			state.InnerRadius,
+			state.OuterRadius,
+			state.Amp,
+			state.ResolvedGamma,
+			state.Sigma,
+			state.CurveA,
+			state.CurveB,
+			state.CurveC,
+			state.CustomCurve,
+			state.ModeFlags,
+			float.NaN,
+			true,
+			state.BetaEff,
+			state.EdgeSoftness);
+		return eval.Acceleration;
+	}
+
+	private Vector3 ResolveDensityRayInitialDirection(DebugVizState state, Vector3 point, Vector3 seedDirection, bool forward)
+	{
+		Vector3 dir = EvaluateDensityRayAcceleration(state, point);
+		if (!forward)
+		{
+			dir = -dir;
+		}
+
+		if (IsFinite(dir) && dir.LengthSquared() > ResolveEps)
+		{
+			return dir.Normalized();
+		}
+
+		Vector3 fallback = forward ? -seedDirection : seedDirection;
+		if (IsFinite(fallback) && fallback.LengthSquared() > ResolveEps)
+		{
+			return fallback.Normalized();
+		}
+
+		return Vector3.Zero;
+	}
+
+	private Vector3 ResolveDensityRayTransportInitialDirection(DebugVizState state, Vector3 seedDirection, bool forward)
+	{
+		Vector3 tangent = Vector3.Zero;
+		if ((state.Planes & DebugVizPlaneFlags.XY) != 0 && Mathf.Abs(seedDirection.Z) <= 0.001f)
+		{
+			tangent = Vector3.Forward.Cross(seedDirection);
+		}
+		else if ((state.Planes & DebugVizPlaneFlags.XZ) != 0 && Mathf.Abs(seedDirection.Y) <= 0.001f)
+		{
+			tangent = Vector3.Up.Cross(seedDirection);
+		}
+		else if ((state.Planes & DebugVizPlaneFlags.YZ) != 0 && Mathf.Abs(seedDirection.X) <= 0.001f)
+		{
+			tangent = Vector3.Right.Cross(seedDirection);
+		}
+
+		if (tangent.LengthSquared() <= ResolveEps)
+		{
+			tangent = BuildPerpendicularDirection(seedDirection);
+		}
+
+		if (!forward)
+		{
+			tangent = -tangent;
+		}
+
+		return SafeNormalized(tangent, Vector3.Right);
+	}
+
+	private static bool IsFinite(Vector3 value)
+	{
+		return float.IsFinite(value.X) && float.IsFinite(value.Y) && float.IsFinite(value.Z);
+	}
+
+	private static Vector3 SafeNormalized(Vector3 value, Vector3 fallback)
+	{
+		if (!IsFinite(value) || value.LengthSquared() <= ResolveEps)
+		{
+			return fallback;
+		}
+
+		return value.Normalized();
+	}
+
+	private static Vector3 BuildPerpendicularDirection(Vector3 direction)
+	{
+		Vector3 reference = Mathf.Abs(direction.Y) < 0.99f ? Vector3.Up : Vector3.Right;
+		Vector3 perpendicular = reference.Cross(direction);
+		if (!IsFinite(perpendicular) || perpendicular.LengthSquared() <= ResolveEps)
+		{
+			perpendicular = Vector3.Forward.Cross(direction);
+		}
+
+		return SafeNormalized(perpendicular, Vector3.Right);
+	}
+
+	private static bool IsDensityRayOutsideBounds(Vector3 point, DebugVizState state)
+	{
+		float r = point.Length();
+		if (r > state.OuterRadius + ResolveEps)
+		{
+			return true;
+		}
+
+		return state.InnerRadius > ResolveEps && r < state.InnerRadius - ResolveEps;
+	}
+
+	private static float ComputeDistanceToDensityBoundary(Vector3 point, Vector3 direction, DebugVizState state)
+	{
+		if (!IsFinite(point) || !IsFinite(direction) || direction.LengthSquared() <= ResolveEps)
+		{
+			return 0f;
+		}
+
+		float nearest = float.PositiveInfinity;
+		TryAccumulateBoundaryHitDistance(point, direction, state.OuterRadius, ref nearest);
+		if (state.InnerRadius > ResolveEps)
+		{
+			TryAccumulateBoundaryHitDistance(point, direction, state.InnerRadius, ref nearest);
+		}
+
+		return float.IsFinite(nearest) ? nearest : 0f;
+	}
+
+	private static void TryAccumulateBoundaryHitDistance(Vector3 point, Vector3 direction, float radius, ref float nearest)
+	{
+		if (!(radius > ResolveEps))
+		{
+			return;
+		}
+
+		float b = point.Dot(direction);
+		float c = point.LengthSquared() - (radius * radius);
+		float discriminant = (b * b) - c;
+		if (discriminant < 0f)
+		{
+			return;
+		}
+
+		float sqrtDisc = Mathf.Sqrt(Mathf.Max(0f, discriminant));
+		TryAccumulatePositiveDistance(-b - sqrtDisc, ref nearest);
+		TryAccumulatePositiveDistance(-b + sqrtDisc, ref nearest);
+	}
+
+	private static void TryAccumulatePositiveDistance(float distance, ref float nearest)
+	{
+		if (distance > ResolveEps && distance < nearest)
+		{
+			nearest = distance;
 		}
 	}
 
@@ -1908,11 +2425,21 @@ public partial class FieldSource3D : Node3D
 		public int DensityArrowMaxThicknessBands;
 		public float DensityArrowThicknessIntensity;
 		public bool DensityVectorTipAtOrigin;
+		public bool ShowDensityRays;
+		public DebugVizDensityRayModeKind DensityRayMode;
+		public int DensityRaySeedCount;
+		public int DensityRaySteps;
+		public float DensityRayStepSize;
+		public bool DensityRayForwardOnly;
 		public bool ShowDensityZones;
 		public int DensityZoneCount;
 		public Color DensityZoneColorMin;
 		public Color DensityZoneColorMax;
 		public uint ModeFlags;
+		public FieldShapeType ShapeType;
+		public float Amp;
+		public float BetaEff;
+		public float ResolvedGamma;
 		public FieldCurveType CurveType;
 		public float CurveA;
 		public float CurveB;
@@ -1955,11 +2482,21 @@ public partial class FieldSource3D : Node3D
 				&& DensityArrowMaxThicknessBands == other.DensityArrowMaxThicknessBands
 				&& Mathf.IsEqualApprox(DensityArrowThicknessIntensity, other.DensityArrowThicknessIntensity)
 				&& DensityVectorTipAtOrigin == other.DensityVectorTipAtOrigin
+				&& ShowDensityRays == other.ShowDensityRays
+				&& DensityRayMode == other.DensityRayMode
+				&& DensityRaySeedCount == other.DensityRaySeedCount
+				&& DensityRaySteps == other.DensityRaySteps
+				&& Mathf.IsEqualApprox(DensityRayStepSize, other.DensityRayStepSize)
+				&& DensityRayForwardOnly == other.DensityRayForwardOnly
 				&& ShowDensityZones == other.ShowDensityZones
 				&& DensityZoneCount == other.DensityZoneCount
 				&& ColorsEqual(DensityZoneColorMin, other.DensityZoneColorMin)
 				&& ColorsEqual(DensityZoneColorMax, other.DensityZoneColorMax)
 				&& ModeFlags == other.ModeFlags
+				&& ShapeType == other.ShapeType
+				&& Mathf.IsEqualApprox(Amp, other.Amp)
+				&& Mathf.IsEqualApprox(BetaEff, other.BetaEff)
+				&& Mathf.IsEqualApprox(ResolvedGamma, other.ResolvedGamma)
 				&& CurveType == other.CurveType
 				&& Mathf.IsEqualApprox(CurveA, other.CurveA)
 				&& Mathf.IsEqualApprox(CurveB, other.CurveB)
