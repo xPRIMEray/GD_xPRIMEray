@@ -90,7 +90,7 @@ metadata/_edit_use_anchors_ = true
 script = ExtResource("2_runner")
 AutoStart = true
 AutoQuitOnComplete = true
-CmdArgToken = "--render-test-straight"
+Fixture = 1
 FramesPerRun = 300
 WarmupFrames = 30
 

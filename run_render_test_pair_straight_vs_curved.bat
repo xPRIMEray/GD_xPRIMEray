@@ -71,14 +71,30 @@ setlocal
 set "FIXTURE=%~1"
 set "LOG_FILE=%~2"
 set "REGRESS_OUT=%~3"
+set "SCENE_PATH="
+set "LAUNCHER_NAME="
+
+if /I "%FIXTURE%"=="straight" (
+    set "SCENE_PATH=res://test-straight.tscn"
+    set "LAUNCHER_NAME=run_render_test_pair_straight_vs_curved:straight"
+) else if /I "%FIXTURE%"=="curved_minimal" (
+    set "SCENE_PATH=res://test-curved-minimal.tscn"
+    set "LAUNCHER_NAME=run_render_test_pair_straight_vs_curved:curved_minimal"
+) else (
+    echo ERROR: Unsupported fixture=%FIXTURE%
+    endlocal & exit /b 1
+)
+
+set "XPRIMERAY_REQUESTED_LAUNCHER=%LAUNCHER_NAME%"
 
 echo.
 echo ------------------------------------------------------------
 echo Running fixture: %FIXTURE%
 echo Log file: %LOG_FILE%
+echo Scene path: %SCENE_PATH%
 echo ------------------------------------------------------------
 
-%GODOT_EXE% --path . -- --render-test-fixture=%FIXTURE% --autocal=1 --shadow-eval=1 --autocal-verbose=1 --autocal-apply=0 > "%LOG_FILE%" 2>&1
+%GODOT_EXE% --path . --scene %SCENE_PATH% -- --render-test --render-test-fixture=%FIXTURE% --autocal=1 --shadow-eval=1 --autocal-verbose=1 --autocal-apply=0 > "%LOG_FILE%" 2>&1
 if errorlevel 1 (
     echo ERROR: Godot run failed for fixture=%FIXTURE%
     echo See log: %LOG_FILE%

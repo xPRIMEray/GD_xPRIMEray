@@ -876,6 +876,12 @@ public partial class GrinFilmCamera : Node
 	private ulong _lastCameraInstanceId = 0;
 	private bool _hasLastCameraInstanceId = false;
 	private Camera3D _cam;
+	private bool _physicsRunsOnSeparateThread = false;
+	private PhysicsDirectSpaceState3D _cachedRenderSpaceState;
+	private ulong _cachedRenderSpaceWorldId = 0;
+	private bool _hasCachedRenderSpaceWorldId = false;
+	private bool _renderSpaceUnavailableWarned = false;
+	private int _renderSpaceRayQueryWarned = 0;
 	// CROSS-CLASS CONTRACT: _rbr supplies ray integration, segment builders, and hit payloads.
 	// ASSUMPTION: _rbr settings are synchronized with film expectations (step lengths, collision cadence).
 	// EFFECT: mismatched settings skew pass-1/2 collision accuracy and debug overlays.
@@ -1951,6 +1957,8 @@ public partial class GrinFilmCamera : Node
 			GD.PushError("GrinFilmCamera: No active Camera3D found in viewport.");
 			return;
 		}
+		_physicsRunsOnSeparateThread = ProjectSettings.GetSetting("physics/3d/run_on_separate_thread").AsBool();
+		SetPhysicsProcess(true);
 		_lastCameraInstanceId = _cam.GetInstanceId();
 		_hasLastCameraInstanceId = true;
 
@@ -2056,6 +2064,232 @@ public partial class GrinFilmCamera : Node
 			CallDeferred(nameof(EmitFixtureCurvatureDisabledWarning));
 		}
 
+	private static bool IsUsablePhysicsSpaceState(PhysicsDirectSpaceState3D space)
+	{
+		return space != null && GodotObject.IsInstanceValid(space);
+	}
+
+	private void ClearCachedRenderSpaceState()
+	{
+		_cachedRenderSpaceState = null;
+		_cachedRenderSpaceWorldId = 0;
+		_hasCachedRenderSpaceWorldId = false;
+	}
+
+	private void RefreshCachedRenderSpaceState()
+	{
+		Camera3D cam = _cam;
+		if (cam == null || !GodotObject.IsInstanceValid(cam))
+		{
+			cam = GetViewport()?.GetCamera3D();
+			if (cam != null && GodotObject.IsInstanceValid(cam))
+				_cam = cam;
+		}
+
+		if (cam == null || !GodotObject.IsInstanceValid(cam))
+		{
+			ClearCachedRenderSpaceState();
+			return;
+		}
+
+		World3D world = cam.GetWorld3D();
+		if (world == null || !GodotObject.IsInstanceValid(world))
+		{
+			ClearCachedRenderSpaceState();
+			return;
+		}
+
+		_cachedRenderSpaceWorldId = world.GetInstanceId();
+		_hasCachedRenderSpaceWorldId = true;
+		try
+		{
+			_cachedRenderSpaceState = world.DirectSpaceState;
+			if (!IsUsablePhysicsSpaceState(_cachedRenderSpaceState))
+				ClearCachedRenderSpaceState();
+		}
+		catch (NullReferenceException)
+		{
+			ClearCachedRenderSpaceState();
+		}
+		catch (ObjectDisposedException)
+		{
+			ClearCachedRenderSpaceState();
+		}
+	}
+
+	private bool TryResolveRenderSpaceState(out PhysicsDirectSpaceState3D space, out string source)
+	{
+		space = null;
+		source = "unknown";
+
+		Camera3D cam = _cam;
+		if (cam == null || !GodotObject.IsInstanceValid(cam))
+		{
+			cam = GetViewport()?.GetCamera3D();
+			if (cam != null && GodotObject.IsInstanceValid(cam))
+				_cam = cam;
+		}
+
+		if (cam == null || !GodotObject.IsInstanceValid(cam))
+		{
+			source = "no_camera";
+			return false;
+		}
+
+		World3D world = cam.GetWorld3D();
+		if (world == null || !GodotObject.IsInstanceValid(world))
+		{
+			source = "no_world";
+			return false;
+		}
+
+		ulong worldId = world.GetInstanceId();
+		if (_hasCachedRenderSpaceWorldId
+			&& _cachedRenderSpaceWorldId == worldId
+			&& IsUsablePhysicsSpaceState(_cachedRenderSpaceState))
+		{
+			space = _cachedRenderSpaceState;
+			source = "physics_cache";
+			return true;
+		}
+
+		if (_physicsRunsOnSeparateThread)
+		{
+			if (!_hasCachedRenderSpaceWorldId)
+			{
+				source = "physics_cache_missing";
+				return false;
+			}
+			if (_cachedRenderSpaceWorldId != worldId)
+			{
+				source = "physics_cache_world_mismatch";
+				return false;
+			}
+			if (!IsUsablePhysicsSpaceState(_cachedRenderSpaceState))
+			{
+				source = "physics_cache_empty";
+				return false;
+			}
+
+			space = _cachedRenderSpaceState;
+			source = "physics_cache";
+			return true;
+		}
+
+		try
+		{
+			space = world.DirectSpaceState;
+		}
+		catch (NullReferenceException)
+		{
+			source = "direct_exception_nullref";
+			return false;
+		}
+		catch (ObjectDisposedException)
+		{
+			source = "direct_exception_disposed";
+			return false;
+		}
+		if (!IsUsablePhysicsSpaceState(space))
+		{
+			source = "direct_unavailable";
+			return false;
+		}
+
+		source = "direct";
+		return true;
+	}
+
+	private void LogRenderSpaceUnavailableOnce(string source, bool pass1ProbeRequested, string reason)
+	{
+		if (_renderSpaceUnavailableWarned)
+			return;
+
+		_renderSpaceUnavailableWarned = true;
+		GD.PushWarning(
+			$"[RenderSpace][WARN] scene={ResolveHudSceneName()} fixture={ResolveHudFixtureName()} " +
+			$"mode={ResolveHudModePath()} separateThread={(_physicsRunsOnSeparateThread ? 1 : 0)} " +
+			$"source={source} pass1ProbeRequested={(pass1ProbeRequested ? 1 : 0)} reason={reason}");
+	}
+
+	private static string FormatRenderDiagToken(string value)
+	{
+		return string.IsNullOrWhiteSpace(value) ? "unknown" : value;
+	}
+
+	private bool TryIntersectRenderSpaceRaySafe(
+		PhysicsDirectSpaceState3D space,
+		PhysicsRayQueryParameters3D query,
+		bool pass1ProbeEnabled,
+		string queryKind,
+		string renderSpaceSource,
+		string sceneName,
+		string fixtureName,
+		string modeToken,
+		ref int warnedState,
+		out Godot.Collections.Dictionary hit)
+	{
+		hit = new Godot.Collections.Dictionary();
+		bool spaceUsable = IsUsablePhysicsSpaceState(space);
+		bool queryValid = query != null;
+		string sceneToken = FormatRenderDiagToken(sceneName);
+		string fixtureToken = FormatRenderDiagToken(fixtureName);
+		string modeValue = FormatRenderDiagToken(modeToken);
+		string sourceToken = FormatRenderDiagToken(renderSpaceSource);
+		string queryToken = FormatRenderDiagToken(queryKind);
+
+		if (!spaceUsable || !queryValid)
+		{
+			if (Interlocked.Exchange(ref warnedState, 1) == 0)
+			{
+				GD.PushWarning(
+					$"[RenderSpace][RayGuard] scene={sceneToken} fixture={fixtureToken} mode={modeValue} " +
+					$"queryKind={queryToken} source={sourceToken} separateThread={(_physicsRunsOnSeparateThread ? 1 : 0)} " +
+					$"spaceNull={(space == null ? 1 : 0)} spaceUsable={(spaceUsable ? 1 : 0)} " +
+					$"quickRayValid={(queryValid ? 1 : 0)} pass1ProbeEnabled={(pass1ProbeEnabled ? 1 : 0)} " +
+					$"exception=none reason=skip_query_without_crash");
+			}
+			return false;
+		}
+
+		try
+		{
+			hit = space.IntersectRay(query);
+			return true;
+		}
+		catch (NullReferenceException ex)
+		{
+			if (Interlocked.Exchange(ref warnedState, 1) == 0)
+			{
+				GD.PushWarning(
+					$"[RenderSpace][RayGuard] scene={sceneToken} fixture={fixtureToken} mode={modeValue} " +
+					$"queryKind={queryToken} source={sourceToken} separateThread={(_physicsRunsOnSeparateThread ? 1 : 0)} " +
+					$"spaceNull={(space == null ? 1 : 0)} spaceUsable={(spaceUsable ? 1 : 0)} " +
+					$"quickRayValid={(queryValid ? 1 : 0)} pass1ProbeEnabled={(pass1ProbeEnabled ? 1 : 0)} " +
+					$"exception={ex.GetType().Name} reason=skip_query_without_crash");
+			}
+			return false;
+		}
+		catch (ObjectDisposedException ex)
+		{
+			if (Interlocked.Exchange(ref warnedState, 1) == 0)
+			{
+				GD.PushWarning(
+					$"[RenderSpace][RayGuard] scene={sceneToken} fixture={fixtureToken} mode={modeValue} " +
+					$"queryKind={queryToken} source={sourceToken} separateThread={(_physicsRunsOnSeparateThread ? 1 : 0)} " +
+					$"spaceNull={(space == null ? 1 : 0)} spaceUsable={(spaceUsable ? 1 : 0)} " +
+					$"quickRayValid={(queryValid ? 1 : 0)} pass1ProbeEnabled={(pass1ProbeEnabled ? 1 : 0)} " +
+					$"exception={ex.GetType().Name} reason=skip_query_without_crash");
+			}
+			return false;
+		}
+	}
+
+	public override void _PhysicsProcess(double delta)
+	{
+		RefreshCachedRenderSpaceState();
+	}
+
 		public override void _Process(double delta)
 	{
 		DebugLogConfig.EnableSnapshotLog = DebugSnapshotLog;
@@ -2074,6 +2308,12 @@ public partial class GrinFilmCamera : Node
 			}
 			// DECISION: only render when UpdateEveryFrame is enabled.
 			if (!UpdateEveryFrame) return;
+		if (_physicsRunsOnSeparateThread && !TryResolveRenderSpaceState(out _, out string renderSpaceSource))
+		{
+			LogRenderSpaceUnavailableOnce(renderSpaceSource, Pass1DoHitTest, "render_frame_skipped_until_physics_space_ready");
+			return;
+		}
+		_renderSpaceUnavailableWarned = false;
 		RenderFrameBackend(delta);
 	}
 
@@ -3869,6 +4109,7 @@ public partial class GrinFilmCamera : Node
 				int rowCursorBefore = _rowCursor;
 				int bandRows = Math.Max(0, bandEnd - bandStart);
 				int advanceRows = Math.Max(1, bandRows);
+				bool preservePendingPass2 = string.Equals(reason, "max_ms_after_pass1", StringComparison.Ordinal);
 				int filmHLocal = _filmHeight;
 				int nextRow = bandStart + advanceRows;
 				if (filmHLocal > 0)
@@ -3892,7 +4133,7 @@ public partial class GrinFilmCamera : Node
 				_rowCursor = nextRow;
 				bandCommittedThisStep = true;
 				ResetNoHitStall();
-				if (_pendingBandHasPass1)
+				if (_pendingBandHasPass1 && !preservePendingPass2)
 				{
 					_pendingBandRowStart = -1;
 					_pendingBandRowCount = 0;
@@ -4331,7 +4572,17 @@ public partial class GrinFilmCamera : Node
 				MaybePrintSoftGateConfigSnapshot(in cfg);
 			}
 
-			var space = _cam.GetWorld3D().DirectSpaceState;
+			bool pass1ProbeRequestedForStep = cfg.Pass1DoHitTest;
+			if (!TryResolveRenderSpaceState(out PhysicsDirectSpaceState3D space, out string renderSpaceSource))
+			{
+				LogRenderSpaceUnavailableOnce(renderSpaceSource, pass1ProbeRequestedForStep, "render_step_space_unavailable");
+				AbortRenderStep("Physics space unavailable for render step");
+				return;
+			}
+			_renderSpaceUnavailableWarned = false;
+			string renderSceneName = ResolveHudSceneName();
+			string renderFixtureName = ResolveHudFixtureName();
+			string renderModeToken = ResolveHudModePath();
 			var snap = FrameSnapshotBus.CurrentSnapshot;
 			var geomTlasForStep = snap?.GeometryTLAS;
 			var geomEntitiesForStep = snap?.Geometry;
@@ -4747,6 +4998,8 @@ public partial class GrinFilmCamera : Node
 
 				bool collectPass1Perf = framePerfEnabled;
 				bool collectPass1Steps = framePerfEnabled || cfg.VerbosePerfLogs;
+				bool pass1SpaceAvailable = IsUsablePhysicsSpaceState(space);
+				int pass1ProbeGuardLogState = 0;
 
 				// DECISION: parallelize pass1 over all pixels in the band.
 				System.Threading.Tasks.Parallel.For(
@@ -4801,6 +5054,26 @@ public partial class GrinFilmCamera : Node
 						Vector3 bendDir = basisLocal.X;
 
 						int segOffset = pi * maxSeg;
+						if (local.QuickRayParams == null)
+						{
+							local.QuickRayParams = new PhysicsRayQueryParameters3D
+							{
+								CollisionMask = rayCfg.CollisionMask,
+								CollideWithBodies = true,
+								CollideWithAreas = true,
+								HitFromInside = cfg.Pass2HitFromInside,
+								HitBackFaces = cfg.Pass2HitBackFaces
+							};
+						}
+						bool quickRayParamsValid = local.QuickRayParams != null;
+						bool pass1ProbeEnabledForRay = cfg.Pass1DoHitTest && pass1SpaceAvailable && quickRayParamsValid;
+						if (cfg.Pass1DoHitTest && !pass1ProbeEnabledForRay && Interlocked.Exchange(ref pass1ProbeGuardLogState, 1) == 0)
+						{
+							GD.PushWarning(
+								$"[Pass1Probe][Guard] scene={renderSceneName} fixture={renderFixtureName} mode={renderModeToken} " +
+								$"spaceNull={(pass1SpaceAvailable ? 0 : 1)} quickRayValid={(quickRayParamsValid ? 1 : 0)} " +
+								$"pass1ProbeRequested=1 pass1ProbeEnabled=0 source={renderSpaceSource}");
+						}
 
 						// CROSS-CLASS CONTRACT: RayBeamRenderer builds segments + pass1 hit info.
 						int count = _rbr.BuildRaySegmentsCamera_Pass1(
@@ -4814,9 +5087,13 @@ public partial class GrinFilmCamera : Node
 							_segBuf, segOffset, maxSeg,
 							insightPlane, useInsightPlane, insightEps,
 							pass1StopOnHit,
-							cfg.Pass1DoHitTest,
+							pass1ProbeEnabledForRay,
 							cfg.Pass1ProbeEveryNSegments,
 							cfg.Pass1ProbeMinTravelDelta,
+							renderSpaceSource,
+							renderSceneName,
+							renderFixtureName,
+							renderModeToken,
 							out RayBeamRenderer.Pass1HitInfo hitInfo,
 							out bool stoppedEarly,
 							out int hitSegIndex,
@@ -6015,7 +6292,11 @@ public partial class GrinFilmCamera : Node
 												out int pruneAuditRayQueries,
 												includeColliderName: false,
 												hitBackFaces: pass2Flags.HitBackFaces,
-												hitFromInside: pass2Flags.HitFromInside);
+												hitFromInside: pass2Flags.HitFromInside,
+												diagnosticSceneName: renderSceneName,
+												diagnosticFixtureName: renderFixtureName,
+												diagnosticModeToken: renderModeToken,
+												diagnosticQueryKind: "pass2_prune_audit_subdivided_ray");
 											if (pruneAuditRayQueries > 0)
 												_geomRayTestsTotalThisFrame += pruneAuditRayQueries;
 										}
@@ -6441,11 +6722,24 @@ public partial class GrinFilmCamera : Node
 										_quickRayParams.From = p0;
 										_quickRayParams.To = p1;
 										MarkGeomPixelProcessedForWork();
-										var hit0 = localSpace.IntersectRay(_quickRayParams);
-										_geomRayTestsTotalThisFrame++;
-										if (statsEnabled) _perfFrame.IntersectRayCalls++;
-										if (bandCountersEnabled) bandPhysicsQueries++;
-										if ((statsEnabled || framePerfEnabled) && !segCounted)
+										bool quickRaySucceeded = TryIntersectRenderSpaceRaySafe(
+											localSpace,
+											_quickRayParams,
+											cfg.Pass1DoHitTest,
+											"pass2_quickray_local",
+											renderSpaceSource,
+											renderSceneName,
+											renderFixtureName,
+											renderModeToken,
+											ref _renderSpaceRayQueryWarned,
+											out var hit0);
+										if (quickRaySucceeded)
+										{
+											_geomRayTestsTotalThisFrame++;
+											if (statsEnabled) _perfFrame.IntersectRayCalls++;
+											if (bandCountersEnabled) bandPhysicsQueries++;
+										}
+										if (quickRaySucceeded && (statsEnabled || framePerfEnabled) && !segCounted)
 										{
 											if (statsEnabled) _perfFrame.SegsTested++;
 											if (bandCountersEnabled) bandSegsTested++;
@@ -6454,11 +6748,11 @@ public partial class GrinFilmCamera : Node
 										if (hit0.Count == 0)
 										{
 											qrayCount = 0;
-											if (useHybridBroadphase)
+											if (quickRaySucceeded && useHybridBroadphase)
 											{
 												MarkHybridQuickRayMissPending(ax, ay, az, bx, by, bz, false);
 											}
-											else
+											else if (quickRaySucceeded)
 											{
 												AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, false, 0f);
 											}
@@ -6795,11 +7089,24 @@ public partial class GrinFilmCamera : Node
 											_quickRayParams.From = segA;
 											_quickRayParams.To = segB;
 											MarkGeomPixelProcessedForWork();
-											var hit0 = space.IntersectRay(_quickRayParams);
-											_geomRayTestsTotalThisFrame++;
-											if (statsEnabled) _perfFrame.IntersectRayCalls++;
-											if (bandCountersEnabled) bandPhysicsQueries++;
-											if ((statsEnabled || framePerfEnabled) && !segCounted)
+											bool quickRaySucceeded = TryIntersectRenderSpaceRaySafe(
+												space,
+												_quickRayParams,
+												cfg.Pass1DoHitTest,
+												"pass2_quickray_segment",
+												renderSpaceSource,
+												renderSceneName,
+												renderFixtureName,
+												renderModeToken,
+												ref _renderSpaceRayQueryWarned,
+												out var hit0);
+											if (quickRaySucceeded)
+											{
+												_geomRayTestsTotalThisFrame++;
+												if (statsEnabled) _perfFrame.IntersectRayCalls++;
+												if (bandCountersEnabled) bandPhysicsQueries++;
+											}
+											if (quickRaySucceeded && (statsEnabled || framePerfEnabled) && !segCounted)
 											{
 												if (statsEnabled) _perfFrame.SegsTested++;
 												if (bandCountersEnabled) bandSegsTested++;
@@ -6807,7 +7114,8 @@ public partial class GrinFilmCamera : Node
 											}
 											if (hit0.Count == 0)
 											{
-												AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, false, 0f);
+												if (quickRaySucceeded)
+													AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, false, 0f);
 												if (framePerfEnabled) _framePerf.Pass2QuickRayMisses++;
 												CountQuickRayResult(false);
 												_quickRayZeroCountThisFrame++;
@@ -6959,7 +7267,11 @@ public partial class GrinFilmCamera : Node
 											out int rayQueries,
 											includeColliderName: needHitName,
 											hitBackFaces: pass2Flags.HitBackFaces,
-											hitFromInside: pass2Flags.HitFromInside);
+											hitFromInside: pass2Flags.HitFromInside,
+											diagnosticSceneName: renderSceneName,
+											diagnosticFixtureName: renderFixtureName,
+											diagnosticModeToken: renderModeToken,
+											diagnosticQueryKind: "pass2_subdivided_ray");
 									if (rayQueries > 0)
 										_geomRayTestsTotalThisFrame += rayQueries;
 									if (statsEnabled)

@@ -374,6 +374,9 @@ public partial class RayBeamRenderer : Node3D
 	private bool _loggedMetricScalarIngredients = false;
 	private bool _loggedMetricSteeringLaw = false;
 	private bool _loggedHybridStubFallback = false;
+	private static int _pass1ProbeUnavailableWarned = 0;
+	private static int _pass1ProbeQueryFailureWarned = 0;
+	private static int _subdividedRayQueryFailureWarned = 0;
 	private static bool _metricComparisonScalarOverrideResolved = false;
 	private static float _metricComparisonScalarOverride = 1.0f;
 	private static bool _metricSteeringLawOverrideResolved = false;
@@ -1562,6 +1565,83 @@ public partial class RayBeamRenderer : Node3D
 		return false;
 	}
 
+	private static bool IsUsablePhysicsSpaceState(PhysicsDirectSpaceState3D space)
+	{
+		return space != null && GodotObject.IsInstanceValid(space);
+	}
+
+	private static string FormatRayDiagToken(string value)
+	{
+		return string.IsNullOrWhiteSpace(value) ? "unknown" : value;
+	}
+
+	private static bool TryIntersectRayWithGuard(
+		PhysicsDirectSpaceState3D space,
+		PhysicsRayQueryParameters3D query,
+		bool pass1ProbeEnabled,
+		string queryKind,
+		string renderSpaceSource,
+		string sceneName,
+		string fixtureName,
+		string modeToken,
+		ref int warnedState,
+		out Godot.Collections.Dictionary hit)
+	{
+		hit = new Godot.Collections.Dictionary();
+		bool spaceUsable = IsUsablePhysicsSpaceState(space);
+		bool queryValid = query != null;
+		string sceneToken = FormatRayDiagToken(sceneName);
+		string fixtureToken = FormatRayDiagToken(fixtureName);
+		string modeValue = FormatRayDiagToken(modeToken);
+		string queryToken = FormatRayDiagToken(queryKind);
+		string sourceToken = FormatRayDiagToken(renderSpaceSource);
+
+		if (!spaceUsable || !queryValid)
+		{
+			if (System.Threading.Interlocked.Exchange(ref warnedState, 1) == 0)
+			{
+				GD.PushWarning(
+					$"[RenderSpace][RayGuard] scene={sceneToken} fixture={fixtureToken} mode={modeValue} " +
+					$"queryKind={queryToken} source={sourceToken} spaceNull={(space == null ? 1 : 0)} " +
+					$"spaceUsable={(spaceUsable ? 1 : 0)} quickRayValid={(queryValid ? 1 : 0)} " +
+					$"pass1ProbeEnabled={(pass1ProbeEnabled ? 1 : 0)} exception=none reason=skip_query_without_crash");
+			}
+			return false;
+		}
+
+		try
+		{
+			hit = space.IntersectRay(query);
+			return true;
+		}
+		catch (NullReferenceException ex)
+		{
+			if (System.Threading.Interlocked.Exchange(ref warnedState, 1) == 0)
+			{
+				GD.PushWarning(
+					$"[RenderSpace][RayGuard] scene={sceneToken} fixture={fixtureToken} mode={modeValue} " +
+					$"queryKind={queryToken} source={sourceToken} spaceNull={(space == null ? 1 : 0)} " +
+					$"spaceUsable={(spaceUsable ? 1 : 0)} quickRayValid={(queryValid ? 1 : 0)} " +
+					$"pass1ProbeEnabled={(pass1ProbeEnabled ? 1 : 0)} exception={ex.GetType().Name} " +
+					$"reason=skip_query_without_crash");
+			}
+			return false;
+		}
+		catch (ObjectDisposedException ex)
+		{
+			if (System.Threading.Interlocked.Exchange(ref warnedState, 1) == 0)
+			{
+				GD.PushWarning(
+					$"[RenderSpace][RayGuard] scene={sceneToken} fixture={fixtureToken} mode={modeValue} " +
+					$"queryKind={queryToken} source={sourceToken} spaceNull={(space == null ? 1 : 0)} " +
+					$"spaceUsable={(spaceUsable ? 1 : 0)} quickRayValid={(queryValid ? 1 : 0)} " +
+					$"pass1ProbeEnabled={(pass1ProbeEnabled ? 1 : 0)} exception={ex.GetType().Name} " +
+					$"reason=skip_query_without_crash");
+			}
+			return false;
+		}
+	}
+
 	// Baseline method
 	public static bool SubdividedRayHit(PhysicsDirectSpaceState3D space,
 										Vector3 a, Vector3 b, uint mask,
@@ -1644,7 +1724,11 @@ public partial class RayBeamRenderer : Node3D
 		out int rayQueryCount,
 		bool includeColliderName,
 		bool hitBackFaces = false,
-		bool hitFromInside = false)
+		bool hitFromInside = false,
+		string diagnosticSceneName = "",
+		string diagnosticFixtureName = "",
+		string diagnosticModeToken = "",
+		string diagnosticQueryKind = "subdivided_ray")
 	{
 		hitPos = Vector3.Zero;
 		hitNormal = Vector3.Up;
@@ -1673,7 +1757,20 @@ public partial class RayBeamRenderer : Node3D
 			rq.HitFromInside = hitFromInside;
 
 			rayQueryCount++;
-			var hit = space.IntersectRay(rq);
+			if (!TryIntersectRayWithGuard(
+				space,
+				rq,
+				pass1ProbeEnabled: false,
+				queryKind: diagnosticQueryKind,
+				renderSpaceSource: "render_space",
+				sceneName: diagnosticSceneName,
+				fixtureName: diagnosticFixtureName,
+				modeToken: diagnosticModeToken,
+				ref _subdividedRayQueryFailureWarned,
+				out var hit))
+			{
+				return false;
+			}
 			// DECISION: first hit wins.
 			if (hit.Count > 0)
 			{
@@ -2358,6 +2455,10 @@ public partial class RayBeamRenderer : Node3D
 		bool pass1DoHitTest,
 		int pass1ProbeEveryNSegments,
 		float pass1ProbeMinTravelDelta,
+		string renderSpaceSource,
+		string diagnosticSceneName,
+		string diagnosticFixtureName,
+		string diagnosticModeToken,
 		out Pass1HitInfo hitInfo,
 		out bool stoppedEarly,
 		out int hitSegIndex,
@@ -2602,8 +2703,27 @@ public partial class RayBeamRenderer : Node3D
 				bool probeByCountdown = useProbeEvery && (probeCountdown <= 0);
 				// DECISION: only probe when pass1DoHitTest enabled and a probe gate is satisfied.
 				bool doProbe = pass1DoHitTest && (probeByTravel || probeByCountdown);
+				bool probeSpaceValid = space != null && GodotObject.IsInstanceValid(space);
+				bool probeQueryValid = quickRayParams != null;
 
 				// DECISION: only probe when allowed by gates and budget.
+				if (doProbe)
+				{
+					if (!probeSpaceValid || !probeQueryValid)
+					{
+						if (System.Threading.Interlocked.Exchange(ref _pass1ProbeUnavailableWarned, 1) == 0)
+						{
+							GD.PushWarning(
+								$"[Pass1Probe][RendererGuard] scene={FormatRayDiagToken(diagnosticSceneName)} " +
+								$"fixture={FormatRayDiagToken(diagnosticFixtureName)} mode={FormatRayDiagToken(diagnosticModeToken)} " +
+								$"source={FormatRayDiagToken(renderSpaceSource)} spaceNull={(probeSpaceValid ? 0 : 1)} " +
+								$"quickRayValid={(probeQueryValid ? 1 : 0)} pass1ProbeEnabled={(pass1DoHitTest ? 1 : 0)} " +
+								$"reason=skip_probe_without_crash");
+						}
+						doProbe = false;
+					}
+				}
+
 				if (doProbe)
 				{
 					traveledSinceProbe = 0f;
@@ -2613,7 +2733,20 @@ public partial class RayBeamRenderer : Node3D
 					pass1Raycasts++;
 					quickRayParams.From = seg.A;
 					quickRayParams.To = seg.B;
-					var hit0 = space.IntersectRay(quickRayParams);
+					if (!TryIntersectRayWithGuard(
+						space,
+						quickRayParams,
+						pass1DoHitTest,
+						"pass1_probe",
+						renderSpaceSource,
+						diagnosticSceneName,
+						diagnosticFixtureName,
+						diagnosticModeToken,
+						ref _pass1ProbeQueryFailureWarned,
+						out var hit0))
+					{
+						continue;
+					}
 					// DECISION: process hit results only when raycast hits something.
 					if (hit0.Count > 0)
 					{

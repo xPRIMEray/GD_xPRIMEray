@@ -18,7 +18,6 @@ current = true
 
 [node name="GrinFilmCamera" type="Node" parent="."]
 script = ExtResource("1_grin")
-UpdateEveryFrame = false
 UpdateEveryFrameBudgetMs = 160.0
 UpdateEveryFrameMaxRowsPerStep = 1024
 RenderStepMaxSegmentsPerFrame = 200000000
@@ -82,7 +81,7 @@ ApplyAutoCalibratedPreset = true
 AutoCalVerboseLogs = true
 EnableShadowCalibrationEvaluation = true
 ShadowEvalVerboseLogs = true
-Fixture = 2
+Fixture = 1
 FramesPerRun = 300
 WarmupFrames = 30
 

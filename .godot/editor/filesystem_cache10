@@ -1,5 +1,5 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1773519994
+::res://::1773520579
 camera_3d.gd::GDScript::3454241889599487331::1765502409::0::1::::<>Camera3D<><>0<>0<><>::
 CurvedCamera.cs::CSharpScript::5306762016452856891::1771027735::0::1::::CurvedCamera<>Camera3D<><>0<>0<><>::
 curved_ray_postprocess.gdshader::Shader::3282317646427007636::1771364093::0::1::::<><><>0<>0<><>::
@@ -118,7 +118,7 @@ fig_01_architecture.png::CompressedTexture2D::4119938928718055796::1772217910::1
 C1_0_g_1.md::TextFile::-1::1771820798::0::1::::<><><>0<>0<><>::
 C1_7_g_X.md::TextFile::-1::1772040719::0::1::::<><><>0<>0<><>::
 ::res://Docs/stylesheets/::1772218438
-::res://Fixtures/::1773519504
+::res://Fixtures/::1773520529
 BlackHoleMinimalFingerprint.cs::CSharpScript::7525708297165489952::1773376809::0::1::::<>Node3D<><>0<>0<><>::
 CurvedMinimalFingerprint.cs::CSharpScript::7627741202670024098::1772914943::0::1::::<>Node3D<><>0<>0<><>::
 EinsteinRingMinimalFingerprint.cs::CSharpScript::138254960705404476::1773278261::0::1::::<>Node3D<><>0<>0<><>::
@@ -129,7 +129,7 @@ fixture_curved_minimal.tscn::PackedScene::709584542642539015::1772427574::0::1::
 fixture_einstein_ring_minimal.tscn::PackedScene::1334548754466844383::1772913484::0::1::::<><><>0<>0<><>::uid://vmh5vusla1nv::::res://FieldSource3D.cs<>uid://dg2asfleehqsw::::res://RayBeamRenderer.cs
 fixture_einstein_ring_minimal_grin.tscn::PackedScene::-1::1773183819::0::1::::<><><>0<>0<><>::res://FieldSource3D.cs<>res://RayBeamRenderer.cs
 fixture_einstein_ring_minimal_metric.tscn::PackedScene::7732820176546806143::1773196471::0::1::::<><><>0<>0<><>::uid://vmh5vusla1nv::::res://FieldSource3D.cs<>uid://dg2asfleehqsw::::res://RayBeamRenderer.cs
-fixture_grin_basic_visual.tscn::PackedScene::5211493949445397577::1773519504::0::1::::<><><>0<>0<><>::uid://vmh5vusla1nv::::res://FieldSource3D.cs<>uid://dg2asfleehqsw::::res://RayBeamRenderer.cs
+fixture_grin_basic_visual.tscn::PackedScene::5211493949445397577::1773520529::0::1::::<><><>0<>0<><>::uid://vmh5vusla1nv::::res://FieldSource3D.cs<>uid://dg2asfleehqsw::::res://RayBeamRenderer.cs
 fixture_grin_basic_visual_straight.tscn::PackedScene::-1::1773377153::0::1::::<><><>0<>0<><>::res://FieldSource3D.cs<>res://RayBeamRenderer.cs
 GrinBasicVisualController.cs::CSharpScript::3633845031107895641::1773377153::0::1::::<>Node3D<><>0<>0<><>::
 SourcePatternHelper.cs::CSharpScript::6875638829302462410::1772849769::0::1::::<><><>0<>0<><>::

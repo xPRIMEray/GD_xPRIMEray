@@ -620,6 +620,13 @@ public partial class RenderTestRunner : Node
 			return;
 		}
 
+		if (!ValidateAndLogLaunchStartup())
+		{
+			StopFilmRenderingForExitIfNeeded();
+			CallDeferred(nameof(QuitDeferred), 1);
+			return;
+		}
+
 		if (_renderTestMode && !_baselineApplied && !ApplyRenderTestBaseline())
 		{
 			StopFilmRenderingForExitIfNeeded();
@@ -3458,6 +3465,20 @@ public partial class RenderTestRunner : Node
 			RenderTestFixture.EinsteinRingMinimal => "einstein_ring_minimal",
 			_ => string.Empty
 		};
+	}
+
+	private bool ValidateAndLogLaunchStartup()
+	{
+		string expectedScenePath = GetScenePathForFixture(_requestedFixture);
+		string expectedFixtureToken = GetHudFixtureToken(_requestedFixture);
+		string actualScenePath = GetTree().CurrentScene?.SceneFilePath ?? string.Empty;
+		string modeToken = _renderTestMode ? "RENDER_TEST_MATRIX" : "FULL_RENDER";
+		return LauncherAudit.LogAndValidateStartup(
+			expectedScenePath,
+			expectedFixtureToken,
+			actualScenePath,
+			modeToken,
+			enforceMatch: _renderTestMode);
 	}
 
 	private string GetScenePathForFixture(RenderTestFixture fixture)

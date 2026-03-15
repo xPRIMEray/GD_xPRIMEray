@@ -1,0 +1,76 @@
+WARNING: [FieldSource3D][Warn] canonical+legacy both set; using canonical. (legacy ignored, reason=legacy Strength)
+   at: void FieldSource3D.WarnIfCanonicalAndLegacyBothSet() (res://FieldSource3D.cs:887)
+   C# backtrace (most recent call first):
+       [0] void Godot.GD.PushWarning(string) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/GD.cs:396)
+       [1] void FieldSource3D.WarnIfCanonicalAndLegacyBothSet() (C:\godot\godot_xPRIMEray\FieldSource3D.cs:887)
+       [2] void FieldSource3D._Ready() (C:\godot\godot_xPRIMEray\FieldSource3D.cs:373)
+       [3] bool Godot.Node.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node.cs:2660)
+       [4] bool Godot.Node3D.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node3D.cs:1126)
+       [5] bool FieldSource3D.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\FieldSource3D_ScriptMethods.generated.cs:388)
+       [6] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[0,8) rowCursor=0 elapsedMs=1530 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[0,8) rowCursor=8 elapsedMs=505 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[8,12) rowCursor=8 elapsedMs=621 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=12 endRow=16 bandH=4 rowsPerFrame=4 ms=400
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[16,20) rowCursor=16 elapsedMs=676 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=20 endRow=24 bandH=4 rowsPerFrame=4 ms=391
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[24,28) rowCursor=24 elapsedMs=641 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=28 endRow=32 bandH=4 rowsPerFrame=4 ms=469
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[32,36) rowCursor=32 elapsedMs=664 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=36 endRow=40 bandH=4 rowsPerFrame=4 ms=390
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[40,44) rowCursor=40 elapsedMs=861 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=44 endRow=48 bandH=4 rowsPerFrame=4 ms=417
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[48,52) rowCursor=48 elapsedMs=696 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=52 endRow=56 bandH=4 rowsPerFrame=4 ms=450
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[56,60) rowCursor=56 elapsedMs=695 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=60 endRow=64 bandH=4 rowsPerFrame=4 ms=478
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[64,68) rowCursor=64 elapsedMs=724 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[64,68) rowCursor=68 elapsedMs=510 attempts=0/5000 sub=0/10000 hits=32
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[68,72) rowCursor=68 elapsedMs=566 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=72 endRow=76 bandH=4 rowsPerFrame=4 ms=365
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[76,80) rowCursor=76 elapsedMs=537 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=80 endRow=84 bandH=4 rowsPerFrame=4 ms=262
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[84,88) rowCursor=84 elapsedMs=607 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=88 endRow=92 bandH=4 rowsPerFrame=4 ms=327
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[92,96) rowCursor=92 elapsedMs=552 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=96 endRow=100 bandH=4 rowsPerFrame=4 ms=373
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[100,104) rowCursor=100 elapsedMs=639 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=104 endRow=108 bandH=4 rowsPerFrame=4 ms=329
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[108,112) rowCursor=108 elapsedMs=609 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=112 endRow=116 bandH=4 rowsPerFrame=4 ms=360
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[116,120) rowCursor=116 elapsedMs=539 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=120 endRow=124 bandH=4 rowsPerFrame=4 ms=409
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[124,128) rowCursor=124 elapsedMs=635 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=128 endRow=132 bandH=4 rowsPerFrame=4 ms=466
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[132,136) rowCursor=132 elapsedMs=548 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=136 endRow=140 bandH=4 rowsPerFrame=4 ms=388
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[140,144) rowCursor=140 elapsedMs=771 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=144 endRow=148 bandH=4 rowsPerFrame=4 ms=394
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[148,152) rowCursor=148 elapsedMs=713 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=152 endRow=156 bandH=4 rowsPerFrame=4 ms=369
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[156,160) rowCursor=156 elapsedMs=723 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=160 endRow=164 bandH=4 rowsPerFrame=4 ms=393
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[164,168) rowCursor=164 elapsedMs=714 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=168 endRow=172 bandH=4 rowsPerFrame=4 ms=406
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[172,176) rowCursor=172 elapsedMs=634 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=176 endRow=180 bandH=4 rowsPerFrame=4 ms=401
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[180,184) rowCursor=180 elapsedMs=559 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=184 endRow=188 bandH=4 rowsPerFrame=4 ms=392
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[188,192) rowCursor=188 elapsedMs=606 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=192 endRow=196 bandH=4 rowsPerFrame=4 ms=293
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[196,200) rowCursor=196 elapsedMs=613 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][WARN] progress-guard forced advance reason=end startRow=200 endRow=204 bandH=4 rowsPerFrame=4 ms=390
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[204,208) rowCursor=204 elapsedMs=759 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[204,208) rowCursor=208 elapsedMs=512 attempts=0/5000 sub=0/10000 hits=4
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[208,212) rowCursor=208 elapsedMs=559 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[208,212) rowCursor=212 elapsedMs=510 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[212,216) rowCursor=212 elapsedMs=672 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[212,216) rowCursor=216 elapsedMs=509 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[216,220) rowCursor=216 elapsedMs=693 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[216,220) rowCursor=220 elapsedMs=506 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[220,224) rowCursor=220 elapsedMs=623 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[220,224) rowCursor=224 elapsedMs=507 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[224,228) rowCursor=224 elapsedMs=631 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[224,228) rowCursor=228 elapsedMs=508 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[228,232) rowCursor=228 elapsedMs=629 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[228,232) rowCursor=232 elapsedMs=507 attempts=0/5000 sub=0/10000 hits=0
