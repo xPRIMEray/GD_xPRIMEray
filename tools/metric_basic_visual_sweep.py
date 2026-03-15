@@ -129,12 +129,16 @@ def parse_log(text: str) -> dict:
 
 
 def build_args(case_data: dict, screenshot_path: Path) -> list[str]:
+    compare_grid = os.environ.get("METRIC_BASIC_SWEEP_COMPARE_GRID", "1")
+    compare_crosshair = os.environ.get("METRIC_BASIC_SWEEP_COMPARE_CROSSHAIR", "1")
     args = [
         f"--grin-basic-capture={screenshot_path.as_posix()}",
         f"--grin-basic-settle-frames={os.environ.get('METRIC_BASIC_SWEEP_SETTLE_FRAMES', '12')}",
         f"--grin-basic-min-rh-step={os.environ.get('METRIC_BASIC_SWEEP_MIN_RH_STEP', '20')}",
         f"--grin-basic-min-processed-rows={os.environ.get('METRIC_BASIC_SWEEP_MIN_PROCESSED_ROWS', '64')}",
         f"--grin-basic-capture-film-opacity={os.environ.get('METRIC_BASIC_SWEEP_CAPTURE_FILM_OPACITY', '1.0')}",
+        f"--grin-basic-compare-grid={compare_grid}",
+        f"--grin-basic-compare-crosshair={compare_crosshair}",
         "--grin-basic-exit-after-capture=1",
     ]
     renderer = case_data.get("renderer", {})

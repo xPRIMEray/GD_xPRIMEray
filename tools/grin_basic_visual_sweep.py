@@ -81,12 +81,16 @@ def build_case_args(case: dict, screenshot_path: Path) -> list[str]:
     min_rh_step = int(os.environ.get("GRIN_BASIC_SWEEP_MIN_RH_STEP", str(DEFAULT_MIN_RENDER_HEALTH_STEP)))
     min_processed_rows = int(os.environ.get("GRIN_BASIC_SWEEP_MIN_PROCESSED_ROWS", str(DEFAULT_MIN_PROCESSED_ROWS)))
     capture_film_opacity = float(os.environ.get("GRIN_BASIC_SWEEP_CAPTURE_FILM_OPACITY", str(DEFAULT_CAPTURE_FILM_OPACITY)))
+    compare_grid = os.environ.get("GRIN_BASIC_SWEEP_COMPARE_GRID", "1")
+    compare_crosshair = os.environ.get("GRIN_BASIC_SWEEP_COMPARE_CROSSHAIR", "1")
     args = [
         "--grin-basic-capture=" + screenshot_path.as_posix(),
         f"--grin-basic-settle-frames={settle_frames}",
         f"--grin-basic-min-rh-step={min_rh_step}",
         f"--grin-basic-min-processed-rows={min_processed_rows}",
         f"--grin-basic-capture-film-opacity={capture_film_opacity}",
+        f"--grin-basic-compare-grid={compare_grid}",
+        f"--grin-basic-compare-crosshair={compare_crosshair}",
         "--grin-basic-exit-after-capture=1",
     ]
     overrides = case["overrides"]

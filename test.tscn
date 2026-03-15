@@ -24,6 +24,7 @@ RenderStepMaxSegmentsPerFrame = 200000000
 TargetMsPerFrame = 50
 MaxRowsPerFrameCap = 1024
 BroadphasePolicy = 2
+HudOverlayFontScale = 0.6
 RayBeamRendererPath = NodePath("../RayBeamRenderer")
 FilmViewPath = NodePath("../CanvasLayer/FilmView")
 FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
@@ -81,7 +82,7 @@ ApplyAutoCalibratedPreset = true
 AutoCalVerboseLogs = true
 EnableShadowCalibrationEvaluation = true
 ShadowEvalVerboseLogs = true
-Fixture = 1
+Fixture = 2
 FramesPerRun = 300
 WarmupFrames = 30
 

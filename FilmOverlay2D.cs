@@ -27,6 +27,26 @@ public partial class FilmOverlay2D : TextureRect
 	[Export] public float FilmNormalWidth = 2.0f;
 	/// <summary>Scale for film gradient normal lines.</summary>
 	[Export] public float FilmGradientScale = 6.0f;
+	/// <summary>Scale applied to debug HUD text while preserving 1.0 as the current maximum/default.</summary>
+	[Export(PropertyHint.Range, "0.6,1.0,0.05")] public float HudFontScale = 1.0f;
+
+	[ExportSubgroup("Comparison Overlay")]
+	/// <summary>Draws lightweight comparison gridlines.</summary>
+	[Export] public bool ShowComparisonGrid = false;
+	/// <summary>Draws a center crosshair for alignment checks.</summary>
+	[Export] public bool ShowComparisonCrosshair = false;
+	/// <summary>Number of grid cells across the viewport.</summary>
+	[Export(PropertyHint.Range, "2,8,1")] public int ComparisonGridDivisions = 4;
+	/// <summary>Foreground line thickness for the comparison overlay.</summary>
+	[Export(PropertyHint.Range, "0.5,3.0,0.25")] public float ComparisonLineThickness = 1.0f;
+	/// <summary>Backdrop line thickness used to keep the overlay readable on bright frames.</summary>
+	[Export(PropertyHint.Range, "1.0,5.0,0.25")] public float ComparisonBackdropThickness = 2.0f;
+	/// <summary>Foreground color for the comparison overlay.</summary>
+	[Export] public Color ComparisonLineColor = new Color(1f, 1f, 1f, 0.22f);
+	/// <summary>Backdrop color for the comparison overlay.</summary>
+	[Export] public Color ComparisonBackdropColor = new Color(0f, 0f, 0f, 0.18f);
+	/// <summary>Crosshair arm length as a fraction of the smaller viewport dimension.</summary>
+	[Export(PropertyHint.Range, "0.01,0.08,0.005")] public float ComparisonCrosshairArmFraction = 0.035f;
 
 	/// <summary>Base ray color.</summary>
 	[Export] public Color RayColor = new Color(0.6f, 1.0f, 0.6f, 0.9f);
@@ -48,6 +68,8 @@ public partial class FilmOverlay2D : TextureRect
 	private static readonly Color DefaultNormalColor = new Color(1.0f, 0.2f, 0.2f, 1.0f);
 	private const float DefaultNormalWidth = 2.0f;
 	private const float DefaultNormalLenWorld = 0.25f;
+	private const float MinHudFontScale = 0.6f;
+	private const float MaxHudFontScale = 1.0f;
 
 	private Vector3[] _pts = Array.Empty<Vector3>();
 	private int[] _offsets = Array.Empty<int>();
@@ -246,10 +268,14 @@ public partial class FilmOverlay2D : TextureRect
 			}
 		}
 
+		if (ShowComparisonGrid || ShowComparisonCrosshair)
+			DrawComparisonOverlay();
+
 		if (hasOverlayItems)
 		{
 			var font = GetThemeDefaultFont();
-			int fontSize = GetThemeDefaultFontSize();
+			int fontSize = Math.Max(1, GetThemeDefaultFontSize());
+			float hudScale = ResolveHudFontScale();
 			float lineHeight = font != null ? Mathf.Max(1f, font.GetHeight(fontSize)) : (fontSize + 4f);
 			Vector2 viewportSize = GetViewportRect().Size;
 
@@ -270,8 +296,8 @@ public partial class FilmOverlay2D : TextureRect
 						if (font != null)
 						{
 							Vector2 pos = ScreenToLocal(item.Pos);
-							float maxWidth = Mathf.Max(1f, viewportSize.X - item.Pos.X - 16f);
-							float maxHeight = viewportSize.Y - item.Pos.Y - 4f;
+							float maxWidth = Mathf.Max(1f, (viewportSize.X - item.Pos.X - 16f) / hudScale);
+							float maxHeight = (viewportSize.Y - item.Pos.Y - 4f) / hudScale;
 							int maxLines = lineHeight > 0f
 								? Math.Max(0, Mathf.FloorToInt(maxHeight / lineHeight))
 								: 0;
@@ -279,6 +305,7 @@ public partial class FilmOverlay2D : TextureRect
 								break;
 							string[] rawLines = (item.Text ?? string.Empty).Split('\n');
 							int renderedLineIndex = 0;
+							DrawSetTransform(pos, 0f, new Vector2(hudScale, hudScale));
 
 							for (int lineIndex = 0; lineIndex < rawLines.Length; lineIndex++)
 							{
@@ -292,13 +319,15 @@ public partial class FilmOverlay2D : TextureRect
 								{
 									if (renderedLineIndex >= maxLines)
 										break;
-									Vector2 drawPos = pos + new Vector2(0f, renderedLineIndex * lineHeight);
-									if (drawPos.Y > viewportSize.Y)
+									float drawPosY = renderedLineIndex * lineHeight;
+									if ((item.Pos.Y + (drawPosY * hudScale)) > viewportSize.Y)
 										break;
-									DrawString(font, drawPos, wrapped, HorizontalAlignment.Left, -1f, fontSize, item.Color);
+									DrawString(font, new Vector2(0f, drawPosY), wrapped, HorizontalAlignment.Left, -1f, fontSize, item.Color);
 									renderedLineIndex++;
 								}
 							}
+
+							DrawSetTransform(Vector2.Zero, 0f, Vector2.One);
 						}
 						else
 						{
@@ -364,6 +393,54 @@ public partial class FilmOverlay2D : TextureRect
 		if (Mathf.IsEqualApprox(FilmNormalWidth, DefaultNormalWidth) && !Mathf.IsEqualApprox(NormalWidth, DefaultNormalWidth))
 			return NormalWidth;
 		return FilmNormalWidth;
+	}
+
+	private void DrawComparisonOverlay()
+	{
+		Vector2 size = GetRect().Size;
+		if (size.X <= 1f || size.Y <= 1f)
+			return;
+
+		int divisions = Math.Max(2, ComparisonGridDivisions);
+		bool skipCenterGrid = ShowComparisonCrosshair && (divisions % 2 == 0);
+		float centerGridT = skipCenterGrid ? (divisions / 2f) / divisions : -1f;
+
+		if (ShowComparisonGrid)
+		{
+			for (int i = 1; i < divisions; i++)
+			{
+				float t = i / (float)divisions;
+				if (skipCenterGrid && Mathf.IsEqualApprox(t, centerGridT))
+					continue;
+
+				float x = size.X * t;
+				float y = size.Y * t;
+				DrawComparisonLine(new Vector2(x, 0f), new Vector2(x, size.Y));
+				DrawComparisonLine(new Vector2(0f, y), new Vector2(size.X, y));
+			}
+		}
+
+		if (ShowComparisonCrosshair)
+		{
+			Vector2 center = size * 0.5f;
+			float armLength = Mathf.Clamp(Mathf.Min(size.X, size.Y) * ComparisonCrosshairArmFraction, 12f, 40f);
+			DrawComparisonLine(center + new Vector2(-armLength, 0f), center + new Vector2(armLength, 0f));
+			DrawComparisonLine(center + new Vector2(0f, -armLength), center + new Vector2(0f, armLength));
+		}
+	}
+
+	private void DrawComparisonLine(Vector2 start, Vector2 end)
+	{
+		float backdropThickness = Mathf.Max(ComparisonBackdropThickness, ComparisonLineThickness);
+		if (ComparisonBackdropColor.A > 0f && backdropThickness > 0f)
+			DrawLine(start, end, ComparisonBackdropColor, backdropThickness);
+		if (ComparisonLineColor.A > 0f && ComparisonLineThickness > 0f)
+			DrawLine(start, end, ComparisonLineColor, ComparisonLineThickness);
+	}
+
+	private float ResolveHudFontScale()
+	{
+		return Mathf.Clamp(HudFontScale, MinHudFontScale, MaxHudFontScale);
 	}
 
 	private static float Luma(Color c)

@@ -23,14 +23,19 @@ public partial class GrinBasicVisualController : Node3D
 	private const string MinProcessedRowsArgPrefix = "--grin-basic-min-processed-rows=";
 	private const string CaptureFilmOpacityArgPrefix = "--grin-basic-capture-film-opacity=";
 	private const string ExitAfterCaptureArgPrefix = "--grin-basic-exit-after-capture=";
+	private const string CompareGridArgPrefix = "--grin-basic-compare-grid=";
+	private const string CompareCrosshairArgPrefix = "--grin-basic-compare-crosshair=";
 
 	[Export] public NodePath FilmCameraPath = new("GrinFilmCamera");
 	[Export] public NodePath FieldPath = new("FixtureGrinBasicVisual/FieldSource3D");
+	[Export] public NodePath OverlayPath = new("CanvasLayer/FilmOverlay2D");
 	[Export] public string FixtureHudName = "grin_basic_visual";
 	[Export] public string SourcePatternMode = "dot_grid";
 	[Export] public float DefaultROuterOverride = -1.0f;
 	[Export] public float DefaultAmpOverride = -1.0f;
 	[Export] public float DefaultGammaOverride = -1.0f;
+	[Export] public bool ComparisonGridEnabled = true;
+	[Export] public bool ComparisonCrosshairEnabled = true;
 	[Export(PropertyHint.Range, "0,8,1")] public int StartupPhysicsFramesDelay = 2;
 	[Export(PropertyHint.Range, "1,240,1")] public int DefaultCaptureSettleFrames = 12;
 	[Export(PropertyHint.Range, "1,2048,1")] public int DefaultCaptureTimeoutFrames = 240;
@@ -40,6 +45,7 @@ public partial class GrinBasicVisualController : Node3D
 
 	private GrinFilmCamera _filmCamera;
 	private FieldSource3D _field;
+	private FilmOverlay2D _filmOverlay;
 	private RayBeamRenderer _rayBeamRenderer;
 	private bool _intendedFullRender;
 	private bool _captureRequested;
@@ -62,6 +68,7 @@ public partial class GrinBasicVisualController : Node3D
 	{
 		_filmCamera = GetNodeOrNull<GrinFilmCamera>(FilmCameraPath);
 		_field = GetNodeOrNull<FieldSource3D>(FieldPath);
+		_filmOverlay = GetNodeOrNull<FilmOverlay2D>(OverlayPath);
 		_rayBeamRenderer = ResolveRayBeamRenderer();
 		_intendedFullRender = _filmCamera != null && _filmCamera.UpdateEveryFrame;
 		ConfigureCalibrationViewport();
@@ -76,6 +83,7 @@ public partial class GrinBasicVisualController : Node3D
 		_captureMinRenderHealthStep = Math.Max(0, options.MinRenderHealthStep ?? DefaultCaptureMinRenderHealthStep);
 		_captureMinProcessedRows = Math.Max(0, options.MinProcessedRows ?? DefaultCaptureMinProcessedRows);
 		_captureFilmOpacityOverride = options.CaptureFilmOpacity ?? DefaultCaptureFilmOpacityOverride;
+		ApplyComparisonOverlayOptions(options);
 
 		if (_field != null)
 		{
@@ -152,6 +160,8 @@ public partial class GrinBasicVisualController : Node3D
 				$"settleFrames={_captureSettleFrames} timeoutFrames={_captureTimeoutFrames} " +
 				$"minRhStep={_captureMinRenderHealthStep} minRows={_captureMinProcessedRows} " +
 				$"filmOpacity={(HasCaptureOpacityOverride(_captureFilmOpacityOverride) ? _captureFilmOpacityOverride.ToString("0.##", CultureInfo.InvariantCulture) : "unchanged")} " +
+				$"compareGrid={((_filmOverlay != null && _filmOverlay.ShowComparisonGrid) ? 1 : 0)} " +
+				$"compareCrosshair={((_filmOverlay != null && _filmOverlay.ShowComparisonCrosshair) ? 1 : 0)} " +
 				$"exitAfterCapture={(_exitAfterCapture ? 1 : 0)}");
 			SetProcess(true);
 		}
@@ -516,6 +526,51 @@ public partial class GrinBasicVisualController : Node3D
 		return int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
 	}
 
+	private static bool TryParseBoolArgValue(string arg, string prefix, out bool value)
+	{
+		value = false;
+		if (string.IsNullOrWhiteSpace(arg) || !arg.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+		{
+			return false;
+		}
+
+		string raw = arg.Substring(prefix.Length).Trim();
+		if (string.IsNullOrWhiteSpace(raw))
+		{
+			return false;
+		}
+
+		if (string.Equals(raw, "1", StringComparison.OrdinalIgnoreCase) ||
+			string.Equals(raw, "true", StringComparison.OrdinalIgnoreCase) ||
+			string.Equals(raw, "on", StringComparison.OrdinalIgnoreCase) ||
+			string.Equals(raw, "yes", StringComparison.OrdinalIgnoreCase))
+		{
+			value = true;
+			return true;
+		}
+
+		if (string.Equals(raw, "0", StringComparison.OrdinalIgnoreCase) ||
+			string.Equals(raw, "false", StringComparison.OrdinalIgnoreCase) ||
+			string.Equals(raw, "off", StringComparison.OrdinalIgnoreCase) ||
+			string.Equals(raw, "no", StringComparison.OrdinalIgnoreCase))
+		{
+			value = false;
+			return true;
+		}
+
+		return false;
+	}
+
+	private void ApplyComparisonOverlayOptions(CmdlineOptions options)
+	{
+		if (_filmOverlay == null || !GodotObject.IsInstanceValid(_filmOverlay))
+			return;
+
+		_filmOverlay.ShowComparisonGrid = options.CompareGridEnabled ?? ComparisonGridEnabled;
+		_filmOverlay.ShowComparisonCrosshair = options.CompareCrosshairEnabled ?? ComparisonCrosshairEnabled;
+		_filmOverlay.QueueRedraw();
+	}
+
 	private static CmdlineOptions ParseCmdlineOptions(string[] args)
 	{
 		CmdlineOptions options = default;
@@ -604,6 +659,16 @@ public partial class GrinBasicVisualController : Node3D
 			if (TryParseIntArgValue(arg, ExitAfterCaptureArgPrefix, out int exitAfterCapture))
 			{
 				options.ExitAfterCapture = exitAfterCapture > 0;
+				continue;
+			}
+			if (TryParseBoolArgValue(arg, CompareGridArgPrefix, out bool compareGrid))
+			{
+				options.CompareGridEnabled = compareGrid;
+				continue;
+			}
+			if (TryParseBoolArgValue(arg, CompareCrosshairArgPrefix, out bool compareCrosshair))
+			{
+				options.CompareCrosshairEnabled = compareCrosshair;
 				continue;
 			}
 			if (arg.StartsWith(CaptureArgPrefix, StringComparison.OrdinalIgnoreCase))
@@ -738,6 +803,8 @@ public partial class GrinBasicVisualController : Node3D
 		public int? MinRenderHealthStep;
 		public int? MinProcessedRows;
 		public float? CaptureFilmOpacity;
+		public bool? CompareGridEnabled;
+		public bool? CompareCrosshairEnabled;
 		public string CapturePath;
 		public bool ExitAfterCapture;
 	}

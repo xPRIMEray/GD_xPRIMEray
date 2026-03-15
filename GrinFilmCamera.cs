@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -706,6 +707,7 @@ public partial class GrinFilmCamera : Node
 	// Toggle for extended rolling performance suffix on the on-screen RenderHealth HUD.
 	[Export] public bool DebugRenderHealthRollingOverlay = true;
 	[Export(PropertyHint.Range, "0.5,2.0,0.1")] public float RenderHealthRollingWindowSec = 1.0f;
+	[Export(PropertyHint.Range, "0.6,1.0,0.05")] public float HudOverlayFontScale = 1.0f;
 #endregion
 
 
@@ -856,6 +858,8 @@ public partial class GrinFilmCamera : Node
 
 
 	// ===== Cached State =====
+	private const float HudOverlayFontScaleMin = 0.6f;
+	private const float HudOverlayFontScaleMax = 1.0f;
 	private FilmOverlay2D _filmOverlay;
 	private float _rangeFar = 5f; // dynamic far distance used for mapping
 	private int _depthHistWrite = 0;
@@ -2050,6 +2054,7 @@ public partial class GrinFilmCamera : Node
 		UpdateFilmOpacity();
 
 		_filmOverlay = GetNodeOrNull<FilmOverlay2D>(FilmOverlayPath);
+		ApplyHudOverlayVisualSettings();
 
 		// Mirror RayBeamRenderer snapshot once after reference resolution.
 		{
@@ -3636,6 +3641,36 @@ public partial class GrinFilmCamera : Node
 
 		metricGainOverride = parsedOverride;
 		return true;
+	}
+
+	private void ApplyHudOverlayVisualSettings()
+	{
+		if (_filmOverlay == null || !GodotObject.IsInstanceValid(_filmOverlay))
+			return;
+
+		_filmOverlay.HudFontScale = ResolveHudOverlayFontScale();
+		_filmOverlay.QueueRedraw();
+	}
+
+	private float ResolveHudOverlayFontScale()
+	{
+		float resolved = Mathf.Clamp(HudOverlayFontScale, HudOverlayFontScaleMin, HudOverlayFontScaleMax);
+		foreach (string arg in GetHudCmdArgs())
+		{
+			if (!(TryGetHudArgValue(arg, "--hud-font-scale=", out string value) ||
+				TryGetHudArgValue(arg, "--hud-scale=", out value)))
+			{
+				continue;
+			}
+
+			if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsed) ||
+				float.TryParse(value, NumberStyles.Float, CultureInfo.CurrentCulture, out parsed))
+			{
+				resolved = parsed;
+			}
+		}
+
+		return Mathf.Clamp(resolved, HudOverlayFontScaleMin, HudOverlayFontScaleMax);
 	}
 
 	private static void AppendHudToken(StringBuilder sb, string key, string value)
@@ -7942,6 +7977,7 @@ public partial class GrinFilmCamera : Node
 			}
 
 			// ---- Debug overlay draw ONCE per band ----
+			ApplyHudOverlayVisualSettings();
 			if (wantDbg && _filmOverlay != null)
 			{
 				ulong dbgOverlayStart = 0;
