@@ -2,7 +2,7 @@
 setlocal
 
 echo ========================================
-echo GRIN Basic Visual Test
+echo GRIN Basic Visual Curved Stronger Test
 echo fixture=grin_basic_visual
 echo transport=GRIN_Optical
 echo mode=FULL_RENDER

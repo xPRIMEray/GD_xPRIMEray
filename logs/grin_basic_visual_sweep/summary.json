@@ -1,0 +1,317 @@
+{
+  "generatedAt": "2026-03-14T22:57:08",
+  "runDate": "2026-03-14",
+  "screenshotDir": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14",
+  "cases": [
+    {
+      "caseId": "straight_reference",
+      "rung": "straight",
+      "scene": "res://test-grin-basic-visual-straight.tscn",
+      "launcher": "run_grin_basic_visual_straight",
+      "requestedOverrides": {},
+      "resolved": {
+        "rOuter": 6.5,
+        "amp": 1.35,
+        "gamma": 2.4
+      },
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\straight_reference.png",
+      "capturePathLogged": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\straight_reference.png",
+      "logFile": "C:\\godot\\godot_xPRIMEray\\logs\\grin_basic_visual_sweep\\straight_reference.log",
+      "exitCode": 0,
+      "verdict": "pending_review",
+      "status": "ok",
+      "failureReason": null
+    },
+    {
+      "caseId": "minimal_baseline",
+      "rung": "minimal",
+      "scene": "res://test-grin-basic-visual-minimal.tscn",
+      "launcher": "run_grin_basic_visual_minimal",
+      "requestedOverrides": {},
+      "resolved": {
+        "rOuter": 5.0,
+        "amp": 0.9,
+        "gamma": 1.8
+      },
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\minimal_baseline.png",
+      "capturePathLogged": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\minimal_baseline.png",
+      "logFile": "C:\\godot\\godot_xPRIMEray\\logs\\grin_basic_visual_sweep\\minimal_baseline.log",
+      "exitCode": 0,
+      "verdict": "pending_review",
+      "status": "ok",
+      "failureReason": null
+    },
+    {
+      "caseId": "stronger_baseline",
+      "rung": "stronger",
+      "scene": "res://test-grin-basic-visual.tscn",
+      "launcher": "run_grin_basic_visual",
+      "requestedOverrides": {},
+      "resolved": {
+        "rOuter": 6.5,
+        "amp": 1.35,
+        "gamma": 2.4
+      },
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\stronger_baseline.png",
+      "capturePathLogged": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\stronger_baseline.png",
+      "logFile": "C:\\godot\\godot_xPRIMEray\\logs\\grin_basic_visual_sweep\\stronger_baseline.log",
+      "exitCode": 0,
+      "verdict": "pending_review",
+      "status": "ok",
+      "failureReason": null
+    },
+    {
+      "caseId": "minimal_amp_0p75",
+      "rung": "minimal",
+      "scene": "res://test-grin-basic-visual-minimal.tscn",
+      "launcher": "run_grin_basic_visual_minimal",
+      "requestedOverrides": {
+        "amp": 0.75
+      },
+      "resolved": {
+        "rOuter": 5.0,
+        "amp": 0.75,
+        "gamma": 1.8
+      },
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\minimal_amp_0p75.png",
+      "capturePathLogged": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\minimal_amp_0p75.png",
+      "logFile": "C:\\godot\\godot_xPRIMEray\\logs\\grin_basic_visual_sweep\\minimal_amp_0p75.log",
+      "exitCode": 0,
+      "verdict": "pending_review",
+      "status": "ok",
+      "failureReason": null
+    },
+    {
+      "caseId": "minimal_amp_1p05",
+      "rung": "minimal",
+      "scene": "res://test-grin-basic-visual-minimal.tscn",
+      "launcher": "run_grin_basic_visual_minimal",
+      "requestedOverrides": {
+        "amp": 1.05
+      },
+      "resolved": {
+        "rOuter": 5.0,
+        "amp": 1.05,
+        "gamma": 1.8
+      },
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\minimal_amp_1p05.png",
+      "capturePathLogged": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\minimal_amp_1p05.png",
+      "logFile": "C:\\godot\\godot_xPRIMEray\\logs\\grin_basic_visual_sweep\\minimal_amp_1p05.log",
+      "exitCode": 0,
+      "verdict": "pending_review",
+      "status": "ok",
+      "failureReason": null
+    },
+    {
+      "caseId": "minimal_router_4p5",
+      "rung": "minimal",
+      "scene": "res://test-grin-basic-visual-minimal.tscn",
+      "launcher": "run_grin_basic_visual_minimal",
+      "requestedOverrides": {
+        "r_outer": 4.5
+      },
+      "resolved": {
+        "rOuter": 4.5,
+        "amp": 0.9,
+        "gamma": 1.8
+      },
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\minimal_router_4p5.png",
+      "capturePathLogged": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\minimal_router_4p5.png",
+      "logFile": "C:\\godot\\godot_xPRIMEray\\logs\\grin_basic_visual_sweep\\minimal_router_4p5.log",
+      "exitCode": 0,
+      "verdict": "pending_review",
+      "status": "ok",
+      "failureReason": null
+    },
+    {
+      "caseId": "minimal_router_5p5",
+      "rung": "minimal",
+      "scene": "res://test-grin-basic-visual-minimal.tscn",
+      "launcher": "run_grin_basic_visual_minimal",
+      "requestedOverrides": {
+        "r_outer": 5.5
+      },
+      "resolved": {
+        "rOuter": 5.5,
+        "amp": 0.9,
+        "gamma": 1.8
+      },
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\minimal_router_5p5.png",
+      "capturePathLogged": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\minimal_router_5p5.png",
+      "logFile": "C:\\godot\\godot_xPRIMEray\\logs\\grin_basic_visual_sweep\\minimal_router_5p5.log",
+      "exitCode": 0,
+      "verdict": "pending_review",
+      "status": "ok",
+      "failureReason": null
+    },
+    {
+      "caseId": "minimal_gamma_1p4",
+      "rung": "minimal",
+      "scene": "res://test-grin-basic-visual-minimal.tscn",
+      "launcher": "run_grin_basic_visual_minimal",
+      "requestedOverrides": {
+        "gamma": 1.4
+      },
+      "resolved": {
+        "rOuter": 5.0,
+        "amp": 0.9,
+        "gamma": 1.4
+      },
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\minimal_gamma_1p4.png",
+      "capturePathLogged": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\minimal_gamma_1p4.png",
+      "logFile": "C:\\godot\\godot_xPRIMEray\\logs\\grin_basic_visual_sweep\\minimal_gamma_1p4.log",
+      "exitCode": 0,
+      "verdict": "pending_review",
+      "status": "ok",
+      "failureReason": null
+    },
+    {
+      "caseId": "minimal_gamma_2p2",
+      "rung": "minimal",
+      "scene": "res://test-grin-basic-visual-minimal.tscn",
+      "launcher": "run_grin_basic_visual_minimal",
+      "requestedOverrides": {
+        "gamma": 2.2
+      },
+      "resolved": {
+        "rOuter": 5.0,
+        "amp": 0.9,
+        "gamma": 2.2
+      },
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\minimal_gamma_2p2.png",
+      "capturePathLogged": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\minimal_gamma_2p2.png",
+      "logFile": "C:\\godot\\godot_xPRIMEray\\logs\\grin_basic_visual_sweep\\minimal_gamma_2p2.log",
+      "exitCode": 0,
+      "verdict": "pending_review",
+      "status": "ok",
+      "failureReason": null
+    },
+    {
+      "caseId": "stronger_amp_1p15",
+      "rung": "stronger",
+      "scene": "res://test-grin-basic-visual.tscn",
+      "launcher": "run_grin_basic_visual",
+      "requestedOverrides": {
+        "amp": 1.15
+      },
+      "resolved": {
+        "rOuter": 6.5,
+        "amp": 1.15,
+        "gamma": 2.4
+      },
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\stronger_amp_1p15.png",
+      "capturePathLogged": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\stronger_amp_1p15.png",
+      "logFile": "C:\\godot\\godot_xPRIMEray\\logs\\grin_basic_visual_sweep\\stronger_amp_1p15.log",
+      "exitCode": 0,
+      "verdict": "pending_review",
+      "status": "ok",
+      "failureReason": null
+    },
+    {
+      "caseId": "stronger_amp_1p55",
+      "rung": "stronger",
+      "scene": "res://test-grin-basic-visual.tscn",
+      "launcher": "run_grin_basic_visual",
+      "requestedOverrides": {
+        "amp": 1.55
+      },
+      "resolved": {
+        "rOuter": 6.5,
+        "amp": 1.55,
+        "gamma": 2.4
+      },
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\stronger_amp_1p55.png",
+      "capturePathLogged": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\stronger_amp_1p55.png",
+      "logFile": "C:\\godot\\godot_xPRIMEray\\logs\\grin_basic_visual_sweep\\stronger_amp_1p55.log",
+      "exitCode": 0,
+      "verdict": "pending_review",
+      "status": "ok",
+      "failureReason": null
+    },
+    {
+      "caseId": "stronger_router_5p5",
+      "rung": "stronger",
+      "scene": "res://test-grin-basic-visual.tscn",
+      "launcher": "run_grin_basic_visual",
+      "requestedOverrides": {
+        "r_outer": 5.5
+      },
+      "resolved": {
+        "rOuter": 5.5,
+        "amp": 1.35,
+        "gamma": 2.4
+      },
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\stronger_router_5p5.png",
+      "capturePathLogged": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\stronger_router_5p5.png",
+      "logFile": "C:\\godot\\godot_xPRIMEray\\logs\\grin_basic_visual_sweep\\stronger_router_5p5.log",
+      "exitCode": 0,
+      "verdict": "pending_review",
+      "status": "ok",
+      "failureReason": null
+    },
+    {
+      "caseId": "stronger_router_7p5",
+      "rung": "stronger",
+      "scene": "res://test-grin-basic-visual.tscn",
+      "launcher": "run_grin_basic_visual",
+      "requestedOverrides": {
+        "r_outer": 7.5
+      },
+      "resolved": {
+        "rOuter": 7.5,
+        "amp": 1.35,
+        "gamma": 2.4
+      },
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\stronger_router_7p5.png",
+      "capturePathLogged": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\stronger_router_7p5.png",
+      "logFile": "C:\\godot\\godot_xPRIMEray\\logs\\grin_basic_visual_sweep\\stronger_router_7p5.log",
+      "exitCode": 0,
+      "verdict": "pending_review",
+      "status": "ok",
+      "failureReason": null
+    },
+    {
+      "caseId": "stronger_gamma_2p0",
+      "rung": "stronger",
+      "scene": "res://test-grin-basic-visual.tscn",
+      "launcher": "run_grin_basic_visual",
+      "requestedOverrides": {
+        "gamma": 2.0
+      },
+      "resolved": {
+        "rOuter": 6.5,
+        "amp": 1.35,
+        "gamma": 2.0
+      },
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\stronger_gamma_2p0.png",
+      "capturePathLogged": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\stronger_gamma_2p0.png",
+      "logFile": "C:\\godot\\godot_xPRIMEray\\logs\\grin_basic_visual_sweep\\stronger_gamma_2p0.log",
+      "exitCode": 0,
+      "verdict": "pending_review",
+      "status": "ok",
+      "failureReason": null
+    },
+    {
+      "caseId": "stronger_gamma_2p8",
+      "rung": "stronger",
+      "scene": "res://test-grin-basic-visual.tscn",
+      "launcher": "run_grin_basic_visual",
+      "requestedOverrides": {
+        "gamma": 2.8
+      },
+      "resolved": {
+        "rOuter": 6.5,
+        "amp": 1.35,
+        "gamma": 2.8
+      },
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\stronger_gamma_2p8.png",
+      "capturePathLogged": "C:\\godot\\godot_xPRIMEray\\screenshots\\grin_basic_visual_sweep\\2026-03-14\\stronger_gamma_2p8.png",
+      "logFile": "C:\\godot\\godot_xPRIMEray\\logs\\grin_basic_visual_sweep\\stronger_gamma_2p8.log",
+      "exitCode": 0,
+      "verdict": "pending_review",
+      "status": "ok",
+      "failureReason": null
+    }
+  ],
+  "stoppedOnFailure": false
+}

@@ -22,6 +22,18 @@ public static class LauncherAudit
 		{
 			return "grin_basic_visual_straight";
 		}
+		if (normalized.Contains("test-metric-basic-visual-minimal", StringComparison.OrdinalIgnoreCase))
+		{
+			return "metric_basic_visual_minimal";
+		}
+		if (normalized.Contains("test-metric-basic-visual", StringComparison.OrdinalIgnoreCase))
+		{
+			return "metric_basic_visual";
+		}
+		if (normalized.Contains("test-grin-basic-visual-minimal", StringComparison.OrdinalIgnoreCase))
+		{
+			return "grin_basic_visual_minimal";
+		}
 		if (normalized.Contains("test-grin-basic-visual", StringComparison.OrdinalIgnoreCase))
 		{
 			return "grin_basic_visual";
@@ -63,7 +75,10 @@ public static class LauncherAudit
 			"straight" => "res://test-straight.tscn",
 			"curved_minimal" => "res://test-curved-minimal.tscn",
 			"grin_basic_visual" => "res://test-grin-basic-visual.tscn",
+			"grin_basic_visual_minimal" => "res://test-grin-basic-visual-minimal.tscn",
 			"grin_basic_visual_straight" => "res://test-grin-basic-visual-straight.tscn",
+			"metric_basic_visual" => "res://test-metric-basic-visual.tscn",
+			"metric_basic_visual_minimal" => "res://test-metric-basic-visual-minimal.tscn",
 			"blackhole_minimal" => "res://test-blackhole-minimal.tscn",
 			"einstein_ring_minimal" => "res://test-einstein-ring-minimal.tscn",
 			"default" => "res://test.tscn",

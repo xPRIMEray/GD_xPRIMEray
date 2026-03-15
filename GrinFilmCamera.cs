@@ -2999,6 +2999,12 @@ public partial class GrinFilmCamera : Node
 		return _testHasRenderHealthSnapshot;
 	}
 
+	public bool TryGetLatestRenderHealthStepForTesting(out int stepIndex)
+	{
+		stepIndex = _renderHealthStepIndex;
+		return _testHasRenderHealthSnapshot;
+	}
+
 	public void ResetFixtureDebugStatsForRunStart()
 	{
 		_fixtureDebugSourceHitsThisRun = 0;
@@ -3020,6 +3026,12 @@ public partial class GrinFilmCamera : Node
 			_fixtureDebugMissHitsThisRun,
 			tracedPixels);
 		return tracedPixels > 0;
+	}
+
+	public void SetFilmOpacityForTesting(float opacity)
+	{
+		FilmOpacity = Mathf.Clamp(opacity, 0.0f, 1.0f);
+		UpdateFilmOpacity();
 	}
 
 	public void ResetRenderHealthOverlayRollingForRunStart()
