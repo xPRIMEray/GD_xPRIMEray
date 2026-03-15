@@ -9,6 +9,14 @@ public partial class GrinBasicVisualController : Node3D
 	private const string ROuterArgPrefix = "--grin-basic-r-outer=";
 	private const string AmpArgPrefix = "--grin-basic-amp=";
 	private const string GammaArgPrefix = "--grin-basic-gamma=";
+	private const string StepScaleArgPrefix = "--grin-basic-step-scale=";
+	private const string StepLengthArgPrefix = "--grin-basic-step-length=";
+	private const string MinStepLengthArgPrefix = "--grin-basic-min-step-length=";
+	private const string MaxStepLengthArgPrefix = "--grin-basic-max-step-length=";
+	private const string StepsPerRayArgPrefix = "--grin-basic-steps-per-ray=";
+	private const string MetricGainArgPrefix = "--grin-basic-metric-gain=";
+	private const string BendScaleArgPrefix = "--grin-basic-bend-scale=";
+	private const string FieldStrengthArgPrefix = "--grin-basic-field-strength=";
 	private const string CaptureArgPrefix = "--grin-basic-capture=";
 	private const string SettleFramesArgPrefix = "--grin-basic-settle-frames=";
 	private const string MinRenderHealthStepArgPrefix = "--grin-basic-min-rh-step=";
@@ -32,6 +40,7 @@ public partial class GrinBasicVisualController : Node3D
 
 	private GrinFilmCamera _filmCamera;
 	private FieldSource3D _field;
+	private RayBeamRenderer _rayBeamRenderer;
 	private bool _intendedFullRender;
 	private bool _captureRequested;
 	private bool _exitAfterCapture;
@@ -47,11 +56,13 @@ public partial class GrinBasicVisualController : Node3D
 	private int _pendingQuitCode;
 	private float _captureFilmOpacityOverride = -1.0f;
 	private string _capturePath = string.Empty;
+	private RendererConfigSnapshot _rendererConfig;
 
 	public override void _Ready()
 	{
 		_filmCamera = GetNodeOrNull<GrinFilmCamera>(FilmCameraPath);
 		_field = GetNodeOrNull<FieldSource3D>(FieldPath);
+		_rayBeamRenderer = ResolveRayBeamRenderer();
 		_intendedFullRender = _filmCamera != null && _filmCamera.UpdateEveryFrame;
 		ConfigureCalibrationViewport();
 		TagDotNodesAsFixtureSource();
@@ -69,6 +80,10 @@ public partial class GrinBasicVisualController : Node3D
 		if (_field != null)
 		{
 			ApplyFieldOverrides(_field, options);
+		}
+		if (_rayBeamRenderer != null)
+		{
+			_rendererConfig = ApplyRendererOverrides(_rayBeamRenderer, options);
 		}
 
 		string modeToken = _intendedFullRender ? "FULL_RENDER" : "FIXTURE_PROBE";
@@ -98,6 +113,7 @@ public partial class GrinBasicVisualController : Node3D
 			{
 				_filmCamera.SetHudTransportModel(_field.TransportModel.ToString());
 			}
+			_filmCamera.SetHudMetricGainOverride(_rendererConfig.MetricGainMultiplier, _rendererConfig.MetricGainActive);
 		}
 
 		if (_field == null)
@@ -113,6 +129,17 @@ public partial class GrinBasicVisualController : Node3D
 			$"transport={_field.TransportModel} curve={resolved.curveType} rInner={resolved.rInner:0.###} " +
 			$"rOuter={resolved.rOuter:0.###} amp={resolved.amp:0.###} gamma={resolved.a:0.###} " +
 			$"betaMode={betaMode} betaScale={resolved.betaScale:0.###}");
+		if (_rayBeamRenderer != null && GodotObject.IsInstanceValid(_rayBeamRenderer))
+		{
+			GD.Print(
+				$"[GrinBasicVisual][Renderer] fixture={FixtureHudName} transport={_field.TransportModel} " +
+				$"useFieldGrid={(_filmCamera != null && _filmCamera.UseFieldGrid ? 1 : 0)} " +
+				$"researchEnabled={(_filmCamera != null && _filmCamera.ResearchEnabledInspector ? 1 : 0)} " +
+				$"stepsPerRay={_rendererConfig.StepsPerRay} stepLength={_rendererConfig.StepLength:0.######} " +
+				$"minStepLength={_rendererConfig.MinStepLength:0.######} maxStepLength={_rendererConfig.MaxStepLength:0.######} " +
+				$"bendScale={_rendererConfig.BendScale:0.######} fieldStrength={_rendererConfig.FieldStrength:0.######} " +
+				$"metricGain={_rendererConfig.MetricGainMultiplier:0.######} metricGainActive={(_rendererConfig.MetricGainActive ? 1 : 0)}");
+		}
 
 		if (_captureRequested)
 		{
@@ -193,7 +220,7 @@ public partial class GrinBasicVisualController : Node3D
 			return;
 		}
 
-		CaptureViewportAndQuit(snapshot.TracedPixels, hasRenderHealthStep ? renderHealthStep : -1, processedRows);
+		CaptureViewportAndQuit(snapshot, hasRenderHealthStep ? renderHealthStep : -1, processedRows);
 	}
 
 	private async void BeginStartupSequenceDeferred()
@@ -297,7 +324,76 @@ public partial class GrinBasicVisualController : Node3D
 		}
 	}
 
-	private void CaptureViewportAndQuit(long tracedPixels, int renderHealthStep, int processedRows)
+	private RendererConfigSnapshot ApplyRendererOverrides(RayBeamRenderer rayBeamRenderer, CmdlineOptions options)
+	{
+		float baselineStepLength = Mathf.Max(0.0001f, rayBeamRenderer.StepLength);
+		float baselineMinStepLength = Mathf.Max(0.0001f, rayBeamRenderer.MinStepLength > 0f ? rayBeamRenderer.MinStepLength : baselineStepLength);
+		float baselineMaxStepLength = Mathf.Max(baselineMinStepLength, rayBeamRenderer.MaxStepLength > 0f ? rayBeamRenderer.MaxStepLength : baselineStepLength);
+		int baselineStepsPerRay = Mathf.Max(1, rayBeamRenderer.StepsPerRay);
+		float baselineBendScale = float.IsFinite(rayBeamRenderer.BendScale) ? rayBeamRenderer.BendScale : 1.0f;
+		float baselineFieldStrength = float.IsFinite(rayBeamRenderer.FieldStrength) ? rayBeamRenderer.FieldStrength : 1.0f;
+		float stepScale = options.StepScale.HasValue && float.IsFinite(options.StepScale.Value) && options.StepScale.Value > 0.0f
+			? options.StepScale.Value
+			: 1.0f;
+		float metricGain = options.MetricGain.HasValue && float.IsFinite(options.MetricGain.Value) && options.MetricGain.Value > 0.0f
+			? options.MetricGain.Value
+			: 1.0f;
+
+		float minStepLength = options.MinStepLength.HasValue
+			? Mathf.Max(0.0001f, options.MinStepLength.Value)
+			: baselineMinStepLength * stepScale;
+		float maxStepLength = options.MaxStepLength.HasValue
+			? Mathf.Max(0.0001f, options.MaxStepLength.Value)
+			: baselineMaxStepLength * stepScale;
+		float stepLength = options.StepLength.HasValue
+			? Mathf.Max(0.0001f, options.StepLength.Value)
+			: baselineStepLength * stepScale;
+		int stepsPerRay = options.StepsPerRay.HasValue
+			? Mathf.Max(1, options.StepsPerRay.Value)
+			: baselineStepsPerRay;
+		float bendScale = options.BendScale.HasValue
+			? options.BendScale.Value
+			: baselineBendScale * metricGain;
+		float fieldStrength = options.FieldStrength.HasValue
+			? options.FieldStrength.Value
+			: baselineFieldStrength;
+
+		float resolvedMinStepLength = Mathf.Min(minStepLength, maxStepLength);
+		float resolvedMaxStepLength = Mathf.Max(minStepLength, maxStepLength);
+		rayBeamRenderer.MinStepLength = resolvedMinStepLength;
+		rayBeamRenderer.MaxStepLength = resolvedMaxStepLength;
+		rayBeamRenderer.StepLength = Mathf.Clamp(stepLength, resolvedMinStepLength, resolvedMaxStepLength);
+		rayBeamRenderer.StepsPerRay = stepsPerRay;
+		rayBeamRenderer.BendScale = bendScale;
+		rayBeamRenderer.FieldStrength = fieldStrength;
+
+		float metricGainMultiplier = 1.0f;
+		bool metricGainActive = false;
+		if (Mathf.Abs(baselineBendScale) > 1e-6f)
+		{
+			metricGainMultiplier = rayBeamRenderer.BendScale / baselineBendScale;
+			metricGainActive = Mathf.Abs(metricGainMultiplier - 1.0f) > 1e-6f;
+		}
+		else if (options.MetricGain.HasValue)
+		{
+			metricGainMultiplier = metricGain;
+			metricGainActive = true;
+		}
+
+		return new RendererConfigSnapshot
+		{
+			StepsPerRay = rayBeamRenderer.StepsPerRay,
+			StepLength = rayBeamRenderer.StepLength,
+			MinStepLength = rayBeamRenderer.MinStepLength,
+			MaxStepLength = rayBeamRenderer.MaxStepLength,
+			BendScale = rayBeamRenderer.BendScale,
+			FieldStrength = rayBeamRenderer.FieldStrength,
+			MetricGainMultiplier = metricGainMultiplier,
+			MetricGainActive = metricGainActive
+		};
+	}
+
+	private void CaptureViewportAndQuit(GrinFilmCamera.FixtureDebugStatsSnapshot snapshot, int renderHealthStep, int processedRows)
 	{
 		Viewport viewport = GetViewport();
 		Image image = viewport?.GetTexture()?.GetImage();
@@ -333,11 +429,28 @@ public partial class GrinBasicVisualController : Node3D
 			return;
 		}
 
+		if (_field != null &&
+			_field.TransportModel == RendererCore.Config.TransportModel.Metric_NullGeodesic &&
+			_rayBeamRenderer != null &&
+			GodotObject.IsInstanceValid(_rayBeamRenderer))
+		{
+			RayBeamRenderer.MetricTransportDiagnosticsSnapshot metricDiag = _rayBeamRenderer.GetMetricTransportDiagnosticsSnapshot();
+			GD.Print(
+				$"[GrinBasicVisual][MetricDiag] fixture={FixtureHudName} law={metricDiag.MetricSteeringLawToken} " +
+				$"directSteps={metricDiag.MetricDirectSteps} gridBypassSteps={metricDiag.GridBypassSteps} " +
+				$"fallbackSteps={metricDiag.GrinFallbackSteps} scalarDominatedSteps={metricDiag.GrinScalarDominatedSteps} " +
+				$"deltaZero={metricDiag.MetricDeltaZeroCount} deltaNonzero={metricDiag.MetricDeltaNonzeroCount} " +
+				$"metricFallbackCount={metricDiag.MetricFallbackCount} contributionRatio={metricDiag.MetricContributionRatio:0.######} " +
+				$"steeringTurns={metricDiag.SteeringTurnCount} meanTurn={metricDiag.MeanTurn:0.######} maxTurn={metricDiag.MaxTurn:0.######} " +
+				$"zeroReasons={metricDiag.ZeroReasonSummary} radialSummary={metricDiag.RadialTurnSummary}");
+		}
+
 		_captureComplete = true;
 		SetProcess(false);
 		GD.Print(
 			$"[GrinBasicVisual][Capture] fixture={FixtureHudName} path={capturePath} " +
-			$"tracedPixels={tracedPixels} readyFrames={_captureReadyFrames} " +
+			$"tracedPixels={snapshot.TracedPixels} sourceHits={snapshot.SourceHits} backgroundHits={snapshot.BackgroundHits} " +
+			$"absorbedHits={snapshot.AbsorbedHits} missHits={snapshot.MissHits} readyFrames={_captureReadyFrames} " +
 			$"rhStep={(renderHealthStep >= 0 ? renderHealthStep.ToString(CultureInfo.InvariantCulture) : "na")} " +
 			$"processedRows={processedRows.ToString(CultureInfo.InvariantCulture)}");
 		if (_exitAfterCapture)
@@ -362,6 +475,21 @@ public partial class GrinBasicVisualController : Node3D
 	private static bool HasCaptureOpacityOverride(float value)
 	{
 		return float.IsFinite(value) && value >= 0.0f;
+	}
+
+	private RayBeamRenderer ResolveRayBeamRenderer()
+	{
+		Node fixtureRoot = _field?.GetParent();
+		if (fixtureRoot != null && GodotObject.IsInstanceValid(fixtureRoot))
+		{
+			RayBeamRenderer fixtureRenderer = fixtureRoot.GetNodeOrNull<RayBeamRenderer>("RayBeamRenderer");
+			if (fixtureRenderer != null)
+			{
+				return fixtureRenderer;
+			}
+		}
+
+		return GetNodeOrNull<RayBeamRenderer>("RayBeamRenderer");
 	}
 
 	private static bool TryParseFloatArgValue(string arg, string prefix, out float value)
@@ -411,6 +539,46 @@ public partial class GrinBasicVisualController : Node3D
 			if (TryParseFloatArgValue(arg, GammaArgPrefix, out float gamma))
 			{
 				options.Gamma = gamma;
+				continue;
+			}
+			if (TryParseFloatArgValue(arg, StepScaleArgPrefix, out float stepScale))
+			{
+				options.StepScale = stepScale;
+				continue;
+			}
+			if (TryParseFloatArgValue(arg, StepLengthArgPrefix, out float stepLength))
+			{
+				options.StepLength = stepLength;
+				continue;
+			}
+			if (TryParseFloatArgValue(arg, MinStepLengthArgPrefix, out float minStepLength))
+			{
+				options.MinStepLength = minStepLength;
+				continue;
+			}
+			if (TryParseFloatArgValue(arg, MaxStepLengthArgPrefix, out float maxStepLength))
+			{
+				options.MaxStepLength = maxStepLength;
+				continue;
+			}
+			if (TryParseIntArgValue(arg, StepsPerRayArgPrefix, out int stepsPerRay))
+			{
+				options.StepsPerRay = stepsPerRay;
+				continue;
+			}
+			if (TryParseFloatArgValue(arg, MetricGainArgPrefix, out float metricGain))
+			{
+				options.MetricGain = metricGain;
+				continue;
+			}
+			if (TryParseFloatArgValue(arg, BendScaleArgPrefix, out float bendScale))
+			{
+				options.BendScale = bendScale;
+				continue;
+			}
+			if (TryParseFloatArgValue(arg, FieldStrengthArgPrefix, out float fieldStrength))
+			{
+				options.FieldStrength = fieldStrength;
 				continue;
 			}
 			if (TryParseIntArgValue(arg, SettleFramesArgPrefix, out int settleFrames))
@@ -558,11 +726,31 @@ public partial class GrinBasicVisualController : Node3D
 		public float? ROuter;
 		public float? Amp;
 		public float? Gamma;
+		public float? StepScale;
+		public float? StepLength;
+		public float? MinStepLength;
+		public float? MaxStepLength;
+		public int? StepsPerRay;
+		public float? MetricGain;
+		public float? BendScale;
+		public float? FieldStrength;
 		public int? SettleFrames;
 		public int? MinRenderHealthStep;
 		public int? MinProcessedRows;
 		public float? CaptureFilmOpacity;
 		public string CapturePath;
 		public bool ExitAfterCapture;
+	}
+
+	private struct RendererConfigSnapshot
+	{
+		public int StepsPerRay;
+		public float StepLength;
+		public float MinStepLength;
+		public float MaxStepLength;
+		public float BendScale;
+		public float FieldStrength;
+		public float MetricGainMultiplier;
+		public bool MetricGainActive;
 	}
 }

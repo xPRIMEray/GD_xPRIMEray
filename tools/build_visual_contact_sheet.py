@@ -67,10 +67,12 @@ def main() -> int:
     tiles = []
     for case in cases:
         image_path = Path(case["screenshotPath"])
-        label = f"{case['caseId']}\n{case['rung']}"
-        resolved = case.get("resolved") or {}
-        if resolved:
-            label += f"\nr={resolved.get('rOuter')} a={resolved.get('amp')} g={resolved.get('gamma')}"
+        label = case.get("contactSheetLabel")
+        if not label:
+            label = f"{case['caseId']}\n{case['rung']}"
+            resolved = case.get("resolved") or {}
+            if resolved:
+                label += f"\nr={resolved.get('rOuter')} a={resolved.get('amp')} g={resolved.get('gamma')}"
         tiles.append(build_tile(image_path, label, font, args.tile_width))
 
     columns = max(1, args.columns)

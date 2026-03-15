@@ -1,0 +1,124 @@
+{
+  "runDate": "2026-03-15",
+  "cases": [
+    {
+      "caseId": "straight_reference_vs_straight_reference",
+      "rung": "straight",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\metric_basic_visual_sweep\\2026-03-15\\comparisons\\straight_reference_vs_straight_reference.png",
+      "status": "ok",
+      "contactSheetLabel": "straight_reference vs straight_reference\ncontrol=straight\nchanged=0.131 mad=13.4"
+    },
+    {
+      "caseId": "minimal_baseline_vs_minimal_baseline",
+      "rung": "minimal",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\metric_basic_visual_sweep\\2026-03-15\\comparisons\\minimal_baseline_vs_minimal_baseline.png",
+      "status": "ok",
+      "contactSheetLabel": "minimal_baseline vs minimal_baseline\nbaseline=1.0\nchanged=1.000 mad=206.9"
+    },
+    {
+      "caseId": "minimal_step_0p5x_vs_minimal_baseline",
+      "rung": "minimal",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\metric_basic_visual_sweep\\2026-03-15\\comparisons\\minimal_step_0p5x_vs_minimal_baseline.png",
+      "status": "ok",
+      "contactSheetLabel": "minimal_step_0p5x vs minimal_baseline\nstep=0.5\nchanged=1.000 mad=206.9"
+    },
+    {
+      "caseId": "minimal_step_0p25x_vs_minimal_baseline",
+      "rung": "minimal",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\metric_basic_visual_sweep\\2026-03-15\\comparisons\\minimal_step_0p25x_vs_minimal_baseline.png",
+      "status": "ok",
+      "contactSheetLabel": "minimal_step_0p25x vs minimal_baseline\nstep=0.25\nchanged=1.000 mad=206.9"
+    },
+    {
+      "caseId": "minimal_gain_5x_vs_minimal_baseline",
+      "rung": "minimal",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\metric_basic_visual_sweep\\2026-03-15\\comparisons\\minimal_gain_5x_vs_minimal_baseline.png",
+      "status": "ok",
+      "contactSheetLabel": "minimal_gain_5x vs minimal_baseline\ngain=5.0\nchanged=1.000 mad=206.8"
+    },
+    {
+      "caseId": "minimal_gain_10x_vs_minimal_baseline",
+      "rung": "minimal",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\metric_basic_visual_sweep\\2026-03-15\\comparisons\\minimal_gain_10x_vs_minimal_baseline.png",
+      "status": "ok",
+      "contactSheetLabel": "minimal_gain_10x vs minimal_baseline\ngain=10.0\nchanged=1.000 mad=206.8"
+    },
+    {
+      "caseId": "minimal_gain_20x_vs_minimal_baseline",
+      "rung": "minimal",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\metric_basic_visual_sweep\\2026-03-15\\comparisons\\minimal_gain_20x_vs_minimal_baseline.png",
+      "status": "ok",
+      "contactSheetLabel": "minimal_gain_20x vs minimal_baseline\ngain=20.0\nchanged=1.000 mad=206.8"
+    },
+    {
+      "caseId": "minimal_depth_2x_vs_minimal_baseline",
+      "rung": "minimal",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\metric_basic_visual_sweep\\2026-03-15\\comparisons\\minimal_depth_2x_vs_minimal_baseline.png",
+      "status": "ok",
+      "contactSheetLabel": "minimal_depth_2x vs minimal_baseline\ndepth=2.0\nchanged=1.000 mad=206.9"
+    },
+    {
+      "caseId": "minimal_depth_4x_vs_minimal_baseline",
+      "rung": "minimal",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\metric_basic_visual_sweep\\2026-03-15\\comparisons\\minimal_depth_4x_vs_minimal_baseline.png",
+      "status": "ok",
+      "contactSheetLabel": "minimal_depth_4x vs minimal_baseline\ndepth=4.0\nchanged=1.000 mad=206.9"
+    },
+    {
+      "caseId": "stronger_baseline_vs_stronger_baseline",
+      "rung": "stronger",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\metric_basic_visual_sweep\\2026-03-15\\comparisons\\stronger_baseline_vs_stronger_baseline.png",
+      "status": "ok",
+      "contactSheetLabel": "stronger_baseline vs stronger_baseline\nbaseline=1.0\nchanged=1.000 mad=210.8"
+    },
+    {
+      "caseId": "stronger_step_0p5x_vs_stronger_baseline",
+      "rung": "stronger",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\metric_basic_visual_sweep\\2026-03-15\\comparisons\\stronger_step_0p5x_vs_stronger_baseline.png",
+      "status": "ok",
+      "contactSheetLabel": "stronger_step_0p5x vs stronger_baseline\nstep=0.5\nchanged=1.000 mad=210.8"
+    },
+    {
+      "caseId": "stronger_step_0p25x_vs_stronger_baseline",
+      "rung": "stronger",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\metric_basic_visual_sweep\\2026-03-15\\comparisons\\stronger_step_0p25x_vs_stronger_baseline.png",
+      "status": "ok",
+      "contactSheetLabel": "stronger_step_0p25x vs stronger_baseline\nstep=0.25\nchanged=1.000 mad=210.8"
+    },
+    {
+      "caseId": "stronger_gain_5x_vs_stronger_baseline",
+      "rung": "stronger",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\metric_basic_visual_sweep\\2026-03-15\\comparisons\\stronger_gain_5x_vs_stronger_baseline.png",
+      "status": "ok",
+      "contactSheetLabel": "stronger_gain_5x vs stronger_baseline\ngain=5.0\nchanged=1.000 mad=210.6"
+    },
+    {
+      "caseId": "stronger_gain_10x_vs_stronger_baseline",
+      "rung": "stronger",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\metric_basic_visual_sweep\\2026-03-15\\comparisons\\stronger_gain_10x_vs_stronger_baseline.png",
+      "status": "ok",
+      "contactSheetLabel": "stronger_gain_10x vs stronger_baseline\ngain=10.0\nchanged=1.000 mad=210.6"
+    },
+    {
+      "caseId": "stronger_gain_20x_vs_stronger_baseline",
+      "rung": "stronger",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\metric_basic_visual_sweep\\2026-03-15\\comparisons\\stronger_gain_20x_vs_stronger_baseline.png",
+      "status": "ok",
+      "contactSheetLabel": "stronger_gain_20x vs stronger_baseline\ngain=20.0\nchanged=1.000 mad=210.6"
+    },
+    {
+      "caseId": "stronger_depth_2x_vs_stronger_baseline",
+      "rung": "stronger",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\metric_basic_visual_sweep\\2026-03-15\\comparisons\\stronger_depth_2x_vs_stronger_baseline.png",
+      "status": "ok",
+      "contactSheetLabel": "stronger_depth_2x vs stronger_baseline\ndepth=2.0\nchanged=1.000 mad=210.8"
+    },
+    {
+      "caseId": "stronger_depth_4x_vs_stronger_baseline",
+      "rung": "stronger",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\metric_basic_visual_sweep\\2026-03-15\\comparisons\\stronger_depth_4x_vs_stronger_baseline.png",
+      "status": "ok",
+      "contactSheetLabel": "stronger_depth_4x vs stronger_baseline\ndepth=4.0\nchanged=1.000 mad=210.7"
+    }
+  ]
+}
