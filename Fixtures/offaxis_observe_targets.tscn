@@ -1,0 +1,142 @@
+[gd_scene load_steps=5 format=3]
+
+[sub_resource type="BoxMesh" id="BoxMesh_backdrop"]
+size = Vector3(40, 26, 0.25)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_backdrop"]
+size = Vector3(40, 26, 0.25)
+
+[sub_resource type="SphereMesh" id="SphereMesh_dot"]
+radius = 0.65
+height = 1.3
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_dot"]
+radius = 0.65
+
+[node name="OffAxisObserveTargets" type="Node3D"]
+
+[node name="observe_background_screen" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -29.5)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="observe_background_screen"]
+mesh = SubResource("BoxMesh_backdrop")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="observe_background_screen"]
+shape = SubResource("BoxShape3D_backdrop")
+
+[node name="observe_dot_top_l2" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry", "fixture_source"]]
+transform = Transform3D(1.45, 0, 0, 0, 1.45, 0, 0, 0, 1.45, -6, 5.5, -18)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="observe_dot_top_l2"]
+mesh = SubResource("SphereMesh_dot")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="observe_dot_top_l2"]
+shape = SubResource("SphereShape3D_dot")
+
+[node name="observe_dot_top_l1" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry", "fixture_source"]]
+transform = Transform3D(1.45, 0, 0, 0, 1.45, 0, 0, 0, 1.45, -3, 5.5, -18)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="observe_dot_top_l1"]
+mesh = SubResource("SphereMesh_dot")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="observe_dot_top_l1"]
+shape = SubResource("SphereShape3D_dot")
+
+[node name="observe_dot_top_c" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry", "fixture_source"]]
+transform = Transform3D(1.45, 0, 0, 0, 1.45, 0, 0, 0, 1.45, 0, 5.5, -18)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="observe_dot_top_c"]
+mesh = SubResource("SphereMesh_dot")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="observe_dot_top_c"]
+shape = SubResource("SphereShape3D_dot")
+
+[node name="observe_dot_top_r1" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry", "fixture_source"]]
+transform = Transform3D(1.45, 0, 0, 0, 1.45, 0, 0, 0, 1.45, 3, 5.5, -18)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="observe_dot_top_r1"]
+mesh = SubResource("SphereMesh_dot")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="observe_dot_top_r1"]
+shape = SubResource("SphereShape3D_dot")
+
+[node name="observe_dot_top_r2" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry", "fixture_source"]]
+transform = Transform3D(1.45, 0, 0, 0, 1.45, 0, 0, 0, 1.45, 6, 5.5, -18)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="observe_dot_top_r2"]
+mesh = SubResource("SphereMesh_dot")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="observe_dot_top_r2"]
+shape = SubResource("SphereShape3D_dot")
+
+[node name="observe_dot_bottom_l2" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry", "fixture_source"]]
+transform = Transform3D(1.45, 0, 0, 0, 1.45, 0, 0, 0, 1.45, -6, -5.5, -18)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="observe_dot_bottom_l2"]
+mesh = SubResource("SphereMesh_dot")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="observe_dot_bottom_l2"]
+shape = SubResource("SphereShape3D_dot")
+
+[node name="observe_dot_bottom_l1" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry", "fixture_source"]]
+transform = Transform3D(1.45, 0, 0, 0, 1.45, 0, 0, 0, 1.45, -3, -5.5, -18)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="observe_dot_bottom_l1"]
+mesh = SubResource("SphereMesh_dot")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="observe_dot_bottom_l1"]
+shape = SubResource("SphereShape3D_dot")
+
+[node name="observe_dot_bottom_c" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry", "fixture_source"]]
+transform = Transform3D(1.45, 0, 0, 0, 1.45, 0, 0, 0, 1.45, 0, -5.5, -18)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="observe_dot_bottom_c"]
+mesh = SubResource("SphereMesh_dot")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="observe_dot_bottom_c"]
+shape = SubResource("SphereShape3D_dot")
+
+[node name="observe_dot_bottom_r1" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry", "fixture_source"]]
+transform = Transform3D(1.45, 0, 0, 0, 1.45, 0, 0, 0, 1.45, 3, -5.5, -18)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="observe_dot_bottom_r1"]
+mesh = SubResource("SphereMesh_dot")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="observe_dot_bottom_r1"]
+shape = SubResource("SphereShape3D_dot")
+
+[node name="observe_dot_bottom_r2" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry", "fixture_source"]]
+transform = Transform3D(1.45, 0, 0, 0, 1.45, 0, 0, 0, 1.45, 6, -5.5, -18)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="observe_dot_bottom_r2"]
+mesh = SubResource("SphereMesh_dot")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="observe_dot_bottom_r2"]
+shape = SubResource("SphereShape3D_dot")
+
+[node name="observe_dot_right_top" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry", "fixture_source"]]
+transform = Transform3D(1.45, 0, 0, 0, 1.45, 0, 0, 0, 1.45, 8.5, 3.5, -18)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="observe_dot_right_top"]
+mesh = SubResource("SphereMesh_dot")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="observe_dot_right_top"]
+shape = SubResource("SphereShape3D_dot")
+
+[node name="observe_dot_right_mid" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry", "fixture_source"]]
+transform = Transform3D(1.45, 0, 0, 0, 1.45, 0, 0, 0, 1.45, 8.5, 0, -18)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="observe_dot_right_mid"]
+mesh = SubResource("SphereMesh_dot")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="observe_dot_right_mid"]
+shape = SubResource("SphereShape3D_dot")
+
+[node name="observe_dot_right_bottom" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry", "fixture_source"]]
+transform = Transform3D(1.45, 0, 0, 0, 1.45, 0, 0, 0, 1.45, 8.5, -3.5, -18)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="observe_dot_right_bottom"]
+mesh = SubResource("SphereMesh_dot")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="observe_dot_right_bottom"]
+shape = SubResource("SphereShape3D_dot")

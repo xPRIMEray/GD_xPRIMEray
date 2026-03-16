@@ -18,6 +18,11 @@ public static class LauncherAudit
 			return string.Empty;
 		}
 
+		if (normalized.Contains("test-straight-basic-visual-offaxis-observe", StringComparison.OrdinalIgnoreCase) ||
+			normalized.Contains("test-grin-basic-visual-straight-offaxis-observe", StringComparison.OrdinalIgnoreCase))
+		{
+			return "grin_basic_visual_straight_offaxis";
+		}
 		if (normalized.Contains("test-grin-basic-visual-straight-offaxis", StringComparison.OrdinalIgnoreCase))
 		{
 			return "grin_basic_visual_straight_offaxis";
@@ -126,7 +131,7 @@ public static class LauncherAudit
 		string actualFixture = NormalizeFixtureToken(ResolveFixtureTokenFromScenePath(normalizedActualScene));
 
 		bool sceneMatch = normalizedExpectedScene.Length == 0 ||
-			string.Equals(normalizedExpectedScene, normalizedActualScene, StringComparison.OrdinalIgnoreCase);
+			ScenesMatchOrAlias(normalizedExpectedScene, normalizedActualScene);
 		bool fixtureMatch = normalizedExpectedFixture.Length == 0 ||
 			string.Equals(normalizedExpectedFixture, actualFixture, StringComparison.OrdinalIgnoreCase);
 		bool ok = sceneMatch && fixtureMatch;
@@ -171,5 +176,27 @@ public static class LauncherAudit
 		}
 
 		return scenePath.Trim().Replace('\\', '/');
+	}
+
+	private static bool ScenesMatchOrAlias(string expectedScenePath, string actualScenePath)
+	{
+		if (string.Equals(expectedScenePath, actualScenePath, StringComparison.OrdinalIgnoreCase))
+		{
+			return true;
+		}
+
+		return
+			IsObserveAlias(expectedScenePath, actualScenePath, "res://test-grin-basic-visual-offaxis.tscn", "res://test-grin-basic-visual-offaxis-observe.tscn") ||
+			IsObserveAlias(expectedScenePath, actualScenePath, "res://test-grin-basic-visual-minimal-offaxis.tscn", "res://test-grin-basic-visual-minimal-offaxis-observe.tscn") ||
+			IsObserveAlias(expectedScenePath, actualScenePath, "res://test-metric-basic-visual-offaxis.tscn", "res://test-metric-basic-visual-offaxis-observe.tscn") ||
+			IsObserveAlias(expectedScenePath, actualScenePath, "res://test-metric-basic-visual-minimal-offaxis.tscn", "res://test-metric-basic-visual-minimal-offaxis-observe.tscn") ||
+			IsObserveAlias(expectedScenePath, actualScenePath, "res://test-grin-basic-visual-straight-offaxis.tscn", "res://test-straight-basic-visual-offaxis-observe.tscn") ||
+			IsObserveAlias(expectedScenePath, actualScenePath, "res://test-grin-basic-visual-straight-offaxis.tscn", "res://test-grin-basic-visual-straight-offaxis-observe.tscn");
+	}
+
+	private static bool IsObserveAlias(string expectedScenePath, string actualScenePath, string canonicalPath, string observePath)
+	{
+		return string.Equals(expectedScenePath, canonicalPath, StringComparison.OrdinalIgnoreCase) &&
+			string.Equals(actualScenePath, observePath, StringComparison.OrdinalIgnoreCase);
 	}
 }

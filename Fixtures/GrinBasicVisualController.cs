@@ -59,6 +59,9 @@ public partial class GrinBasicVisualController : Node3D
 	private int _captureObservedFrames;
 	private int _captureMinRenderHealthStep;
 	private int _captureMinProcessedRows;
+	private int _captureMaxObservedRenderHealthStep = -1;
+	private int _captureMaxObservedProcessedRows;
+	private bool _captureObservedAnyTracedPixels;
 	private int _pendingQuitCode;
 	private float _captureFilmOpacityOverride = -1.0f;
 	private string _capturePath = string.Empty;
@@ -213,12 +216,21 @@ public partial class GrinBasicVisualController : Node3D
 			_captureReadyFrames = 0;
 			return;
 		}
+		_captureObservedAnyTracedPixels = true;
 
 		int renderHealthStep = 0;
 		bool hasRenderHealthStep = _filmCamera.TryGetLatestRenderHealthStepForTesting(out renderHealthStep);
 		int processedRows = Math.Max(0, _filmCamera.FilmRowCursor);
-		if ((_captureMinRenderHealthStep > 0 && (!hasRenderHealthStep || renderHealthStep < _captureMinRenderHealthStep)) ||
-			(_captureMinProcessedRows > 0 && processedRows < _captureMinProcessedRows))
+		if (hasRenderHealthStep)
+		{
+			_captureMaxObservedRenderHealthStep = Math.Max(_captureMaxObservedRenderHealthStep, renderHealthStep);
+		}
+		_captureMaxObservedProcessedRows = Math.Max(_captureMaxObservedProcessedRows, processedRows);
+
+		int gatedRenderHealthStep = hasRenderHealthStep ? _captureMaxObservedRenderHealthStep : -1;
+		int gatedProcessedRows = _captureMaxObservedProcessedRows;
+		if ((_captureMinRenderHealthStep > 0 && gatedRenderHealthStep < _captureMinRenderHealthStep) ||
+			(_captureMinProcessedRows > 0 && gatedProcessedRows < _captureMinProcessedRows))
 		{
 			_captureReadyFrames = 0;
 			return;
@@ -230,7 +242,7 @@ public partial class GrinBasicVisualController : Node3D
 			return;
 		}
 
-		CaptureViewportAndQuit(snapshot, hasRenderHealthStep ? renderHealthStep : -1, processedRows);
+		CaptureViewportAndQuit(snapshot, gatedRenderHealthStep, gatedProcessedRows);
 	}
 
 	private async void BeginStartupSequenceDeferred()
@@ -473,7 +485,10 @@ public partial class GrinBasicVisualController : Node3D
 	{
 		_captureComplete = true;
 		SetProcess(false);
-		GD.PrintErr(message);
+		GD.PrintErr(
+			$"{message} maxRhStep={(_captureMaxObservedRenderHealthStep >= 0 ? _captureMaxObservedRenderHealthStep.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"maxProcessedRows={_captureMaxObservedProcessedRows.ToString(CultureInfo.InvariantCulture)} " +
+			$"observedTracedPixels={(_captureObservedAnyTracedPixels ? 1 : 0)}");
 		RequestQuit(2);
 	}
 

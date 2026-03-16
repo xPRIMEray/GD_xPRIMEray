@@ -1,0 +1,77 @@
+{
+  "runDate": "2026-03-15",
+  "cases": [
+    {
+      "caseId": "straight_offaxis_reference_baseline",
+      "status": "ok",
+      "screenshotPath": "c:\\godot\\godot_xPRIMEray\\screenshots\\basic_visual_offaxis\\2026-03-15\\straight_offaxis_reference.png",
+      "contactSheetLabel": "straight reference\nold off-axis\nsrc=1577 bg=10175\np_raw=na meanTurn=na"
+    },
+    {
+      "caseId": "straight_offaxis_observe_reference_observe",
+      "status": "ok",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\basic_visual_offaxis_observe\\2026-03-15\\straight_offaxis_observe_reference.png",
+      "contactSheetLabel": "straight reference\nobserve ladder\nsrc=3660 bg=23430\np_raw=None meanTurn=na"
+    },
+    {
+      "caseId": "grin_minimal_offaxis_baseline",
+      "status": "ok",
+      "screenshotPath": "c:\\godot\\godot_xPRIMEray\\screenshots\\basic_visual_offaxis\\2026-03-15\\grin_minimal_offaxis.png",
+      "contactSheetLabel": "GRIN minimal\nold off-axis\nsrc=1004 bg=6824\np_raw=na meanTurn=na"
+    },
+    {
+      "caseId": "grin_minimal_offaxis_observe_observe",
+      "status": "ok",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\basic_visual_offaxis_observe\\2026-03-15\\grin_minimal_offaxis_observe.png",
+      "contactSheetLabel": "GRIN minimal\nobserve ladder\nsrc=2295 bg=17637\np_raw=None meanTurn=na"
+    },
+    {
+      "caseId": "grin_stronger_offaxis_baseline",
+      "status": "ok",
+      "screenshotPath": "c:\\godot\\godot_xPRIMEray\\screenshots\\basic_visual_offaxis\\2026-03-15\\grin_stronger_offaxis.png",
+      "contactSheetLabel": "GRIN stronger\nold off-axis\nsrc=1160 bg=6568\np_raw=na meanTurn=na"
+    },
+    {
+      "caseId": "grin_stronger_offaxis_observe_observe",
+      "status": "ok",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\basic_visual_offaxis_observe\\2026-03-15\\grin_stronger_offaxis_observe.png",
+      "contactSheetLabel": "GRIN stronger\nobserve ladder\nsrc=1856 bg=12377\np_raw=None meanTurn=na"
+    },
+    {
+      "caseId": "metric_minimal_offaxis_baseline",
+      "status": "ok",
+      "screenshotPath": "c:\\godot\\godot_xPRIMEray\\screenshots\\basic_visual_offaxis\\2026-03-15\\metric_minimal_offaxis.png",
+      "contactSheetLabel": "Metric minimal\nold off-axis\nsrc=0 bg=0\np_raw=4525957 meanTurn=0.031524"
+    },
+    {
+      "caseId": "metric_minimal_offaxis_observe_observe",
+      "status": "ok",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\basic_visual_offaxis_observe\\2026-03-15\\metric_minimal_offaxis_observe.png",
+      "contactSheetLabel": "Metric minimal\nobserve ladder\nsrc=0 bg=0\np_raw=4505430 meanTurn=0.03151"
+    },
+    {
+      "caseId": "metric_stronger_offaxis_baseline",
+      "status": "ok",
+      "screenshotPath": "c:\\godot\\godot_xPRIMEray\\screenshots\\basic_visual_offaxis\\2026-03-15\\metric_stronger_offaxis.png",
+      "contactSheetLabel": "Metric stronger\nold off-axis\nsrc=0 bg=0\np_raw=5926532 meanTurn=0.029881"
+    },
+    {
+      "caseId": "metric_stronger_offaxis_observe_observe",
+      "status": "ok",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\basic_visual_offaxis_observe\\2026-03-15\\metric_stronger_offaxis_observe.png",
+      "contactSheetLabel": "Metric stronger\nobserve ladder\nsrc=0 bg=0\np_raw=5929494 meanTurn=0.029705"
+    },
+    {
+      "caseId": "metric_stronger_offaxis_gain10_baseline",
+      "status": "ok",
+      "screenshotPath": "c:\\godot\\godot_xPRIMEray\\screenshots\\basic_visual_offaxis\\2026-03-15\\metric_stronger_offaxis_gain10.png",
+      "contactSheetLabel": "Metric stronger gain10\nold off-axis\nsrc=0 bg=0\np_raw=836859 meanTurn=0.054917"
+    },
+    {
+      "caseId": "metric_stronger_offaxis_observe_gain10_observe",
+      "status": "ok",
+      "screenshotPath": "C:\\godot\\godot_xPRIMEray\\screenshots\\basic_visual_offaxis_observe\\2026-03-15\\metric_stronger_offaxis_observe_gain10.png",
+      "contactSheetLabel": "Metric stronger gain10\nobserve ladder\nsrc=0 bg=0\np_raw=837066 meanTurn=0.05442"
+    }
+  ]
+}

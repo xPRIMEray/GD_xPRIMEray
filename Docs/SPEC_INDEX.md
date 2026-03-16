@@ -42,3 +42,10 @@
 | Updated from existing | 7 |
 | New | 6 |
 | Charter sections covered | Sec4, Sec5, Sec7-Sec15 |
+
+---
+
+## Roadmaps and Supporting Notes
+
+- [Metric Transport Next-Gen Roadmap](metric_transport_nextgen_roadmap.md) - implementation roadmap for evolving `Metric_NullGeodesic` from the current heuristic scaffold toward persistent geodesic transport.
+- [Metric Null Geodesic Parameter Map](metric_null_geodesic_param_map.md) - current runtime mapping of authored source parameters onto the existing metric scaffold.

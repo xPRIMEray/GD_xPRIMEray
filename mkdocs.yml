@@ -60,11 +60,13 @@ nav:
   - Home: index.md
   - Core:
       - Architecture: architecture.md
-      - Transport Model: transport_model.md
-      - Integrators: integrators.md
+      - Architecture Overview: architecture_overview.md
+      - Metric Models: spec_metric_models_grin_vs_gordon.md
+      - Transport Interfaces: spec_ray_transport_interfaces_1.md
+      - Metric Param Map: metric_null_geodesic_param_map.md
+      - Metric Transport Next-Gen Roadmap: metric_transport_nextgen_roadmap.md
       - FieldSource3D Params: spec_fieldsource3d_canonical_params_1.md
   - Verification:
       - Validation: validation.md
   - Project:
-      - Roadmap: roadmap.md
       - Spec Index: SPEC_INDEX.md

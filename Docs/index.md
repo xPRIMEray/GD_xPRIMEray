@@ -23,6 +23,17 @@ This framework is intended to bridge academic optics, experimental physics, and 
 
 ---
 
+## Documentation Map
+
+- [Architecture](architecture.md) - compact pipeline summary
+- [Architecture Overview](architecture_overview.md) - renderer structure and subsystem boundaries
+- [Metric Models](spec_metric_models_grin_vs_gordon.md) - GRIN vs Gordon vs geodesic tier framing
+- [Metric Transport Next-Gen Roadmap](metric_transport_nextgen_roadmap.md) - staged plan from the current metric scaffold toward persistent geodesic transport
+- [Validation](validation.md) - validation modes and verification context
+- [Spec Index](SPEC_INDEX.md) - master spec and documentation tree
+
+---
+
 ## 🧩 Scientific Context
 
 Traditional ray tracers treat rays as straight paths between interaction points. In GD_xPRIMEray, rays follow **curved trajectories** through graded index fields — akin to real lens physics and gravitational geodesics in optical analog systems.
