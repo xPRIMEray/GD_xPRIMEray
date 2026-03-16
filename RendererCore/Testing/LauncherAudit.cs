@@ -18,6 +18,27 @@ public static class LauncherAudit
 			return string.Empty;
 		}
 
+		if (normalized.Contains("test-grin-basic-visual-straight-offaxis", StringComparison.OrdinalIgnoreCase))
+		{
+			return "grin_basic_visual_straight_offaxis";
+		}
+		if (normalized.Contains("test-grin-basic-visual-minimal-offaxis", StringComparison.OrdinalIgnoreCase))
+		{
+			return "grin_basic_visual_minimal_offaxis";
+		}
+		if (normalized.Contains("test-grin-basic-visual-offaxis", StringComparison.OrdinalIgnoreCase))
+		{
+			return "grin_basic_visual_offaxis";
+		}
+		if (normalized.Contains("test-metric-basic-visual-minimal-offaxis", StringComparison.OrdinalIgnoreCase))
+		{
+			return "metric_basic_visual_minimal_offaxis";
+		}
+		if (normalized.Contains("test-metric-basic-visual-offaxis", StringComparison.OrdinalIgnoreCase))
+		{
+			return "metric_basic_visual_offaxis";
+		}
+
 		if (normalized.Contains("test-grin-basic-visual-straight", StringComparison.OrdinalIgnoreCase))
 		{
 			return "grin_basic_visual_straight";
@@ -77,8 +98,13 @@ public static class LauncherAudit
 			"grin_basic_visual" => "res://test-grin-basic-visual.tscn",
 			"grin_basic_visual_minimal" => "res://test-grin-basic-visual-minimal.tscn",
 			"grin_basic_visual_straight" => "res://test-grin-basic-visual-straight.tscn",
+			"grin_basic_visual_offaxis" => "res://test-grin-basic-visual-offaxis.tscn",
+			"grin_basic_visual_minimal_offaxis" => "res://test-grin-basic-visual-minimal-offaxis.tscn",
+			"grin_basic_visual_straight_offaxis" => "res://test-grin-basic-visual-straight-offaxis.tscn",
 			"metric_basic_visual" => "res://test-metric-basic-visual.tscn",
 			"metric_basic_visual_minimal" => "res://test-metric-basic-visual-minimal.tscn",
+			"metric_basic_visual_offaxis" => "res://test-metric-basic-visual-offaxis.tscn",
+			"metric_basic_visual_minimal_offaxis" => "res://test-metric-basic-visual-minimal-offaxis.tscn",
 			"blackhole_minimal" => "res://test-blackhole-minimal.tscn",
 			"einstein_ring_minimal" => "res://test-einstein-ring-minimal.tscn",
 			"default" => "res://test.tscn",

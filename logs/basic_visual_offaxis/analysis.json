@@ -1,0 +1,81 @@
+{
+  "metric_minimal": {
+    "parallelRawOnAxis": 5625160,
+    "parallelRawOffAxis": 4525957,
+    "steeringTurnsOnAxis": 0,
+    "steeringTurnsOffAxis": 20714760,
+    "metricVsStraightOnAxis": {
+      "meanAbsLumaDiff": 191.2678,
+      "changedPct": 0.9999
+    },
+    "metricVsStraightOffAxis": {
+      "meanAbsLumaDiff": 189.01,
+      "changedPct": 0.9998
+    },
+    "metricVsGrinOnAxis": {
+      "meanAbsLumaDiff": 205.9937,
+      "changedPct": 1.0
+    },
+    "metricVsGrinOffAxis": {
+      "meanAbsLumaDiff": 195.9966,
+      "changedPct": 0.9999
+    },
+    "parallelRawDeltaPct": -19.54
+  },
+  "metric_stronger": {
+    "parallelRawOnAxis": 6477137,
+    "parallelRawOffAxis": 5926532,
+    "steeringTurnsOnAxis": 0,
+    "steeringTurnsOffAxis": 20770979,
+    "metricVsStraightOnAxis": {
+      "meanAbsLumaDiff": 191.5264,
+      "changedPct": 0.9999
+    },
+    "metricVsStraightOffAxis": {
+      "meanAbsLumaDiff": 189.1545,
+      "changedPct": 0.9998
+    },
+    "metricVsGrinOnAxis": {
+      "meanAbsLumaDiff": 209.855,
+      "changedPct": 1.0
+    },
+    "metricVsGrinOffAxis": {
+      "meanAbsLumaDiff": 199.3339,
+      "changedPct": 0.9999
+    },
+    "parallelRawDeltaPct": -8.5
+  },
+  "metric_stronger_gain10": {
+    "parallelRawOnAxis": 1469784,
+    "parallelRawOffAxis": 836859,
+    "steeringTurnsOnAxis": 0,
+    "steeringTurnsOffAxis": 20894259,
+    "metricVsStraightOnAxis": {
+      "meanAbsLumaDiff": 191.3012,
+      "changedPct": 0.9999
+    },
+    "metricVsStraightOffAxis": {
+      "meanAbsLumaDiff": 188.9996,
+      "changedPct": 0.9999
+    },
+    "metricVsGrinOffAxis": {
+      "meanAbsLumaDiff": 199.2384,
+      "changedPct": 0.9999
+    },
+    "parallelRawDeltaPct": -43.06
+  },
+  "asymmetry": {
+    "straight_on": 2.4617,
+    "straight_off": 7.2072,
+    "grin_min_on": 1.7095,
+    "grin_min_off": 26.5826,
+    "grin_strong_on": 0.7053,
+    "grin_strong_off": 22.0278,
+    "metric_min_on": 10.53,
+    "metric_min_off": 10.3099,
+    "metric_strong_on": 10.2186,
+    "metric_strong_off": 10.2823,
+    "metric_gain10_on": 10.2761,
+    "metric_gain10_off": 10.2828
+  }
+}

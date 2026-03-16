@@ -389,6 +389,7 @@ public partial class RayBeamRenderer : Node3D
 	private int _metricGridBypassStepCount = 0;
 	private int _metricScalarDominatedStepCount = 0;
 	private int _metricParallelRawCount = 0;
+	private int _metricParallelPreferredCount = 0;
 	private int _metricParallelRecoveredCount = 0;
 	private int _metricParallelFallbackCount = 0;
 	private int _metricZeroReasonParallelCount = 0;
@@ -401,6 +402,7 @@ public partial class RayBeamRenderer : Node3D
 	private int _metricZeroReasonZeroTurnCount = 0;
 	private int _metricDiagnosticEvalCount = 0;
 	private int _metricDiagnosticSampleLogsEmitted = 0;
+	private int _metricParallelDiagnosticSampleLogsEmitted = 0;
 	private double _transportSteeringTurnSum = 0.0;
 	private float _transportSteeringMaxTurn = 0f;
 	private int _transportSteeringTurnCount = 0;
@@ -853,6 +855,7 @@ public partial class RayBeamRenderer : Node3D
 		_metricGridBypassStepCount = 0;
 		_metricScalarDominatedStepCount = 0;
 		_metricParallelRawCount = 0;
+		_metricParallelPreferredCount = 0;
 		_metricParallelRecoveredCount = 0;
 		_metricParallelFallbackCount = 0;
 		_metricZeroReasonParallelCount = 0;
@@ -865,6 +868,7 @@ public partial class RayBeamRenderer : Node3D
 		_metricZeroReasonZeroTurnCount = 0;
 		_metricDiagnosticEvalCount = 0;
 		_metricDiagnosticSampleLogsEmitted = 0;
+		_metricParallelDiagnosticSampleLogsEmitted = 0;
 		_transportSteeringTurnSum = 0.0;
 		_transportSteeringMaxTurn = 0f;
 		_transportSteeringTurnCount = 0;
@@ -875,6 +879,7 @@ public partial class RayBeamRenderer : Node3D
 	public Vector3 ComputeActiveTransportAccelerationForDiagnostics(
 		Vector3 p,
 		Vector3 v,
+		Vector3 preferredBendDir,
 		Vector3 center,
 		float beta,
 		float gamma,
@@ -882,7 +887,7 @@ public partial class RayBeamRenderer : Node3D
 		bool hasSources)
 	{
 		TransportModel active = hasSources ? ResolveActiveTransportModel(fieldSources) : TransportModel.GRIN_Optical;
-		return ComputeTransportAccelerationForActiveModel(active, p, v, center, beta, gamma, fieldSources, hasSources);
+		return ComputeTransportAccelerationForActiveModel(active, p, v, preferredBendDir, center, beta, gamma, fieldSources, hasSources);
 	}
 
 	public bool TryStepActiveTransportForDiagnostics(
@@ -926,6 +931,7 @@ public partial class RayBeamRenderer : Node3D
 	{
 		var parts = new List<string>(10);
 		if (_metricParallelRawCount > 0) parts.Add($"parallel_raw={_metricParallelRawCount}");
+		if (_metricParallelPreferredCount > 0) parts.Add($"parallel_preferred={_metricParallelPreferredCount}");
 		if (_metricParallelRecoveredCount > 0) parts.Add($"parallel_recovered={_metricParallelRecoveredCount}");
 		if (_metricParallelFallbackCount > 0) parts.Add($"parallel_fallback={_metricParallelFallbackCount}");
 		if (_metricZeroReasonPerpEpsilonCount > 0) parts.Add($"perp_eps={_metricZeroReasonPerpEpsilonCount}");
@@ -2579,7 +2585,7 @@ public partial class RayBeamRenderer : Node3D
 					fieldGridMisses++;
 					if (hasSources)
 					{
-						a = ComputeTransportAccelerationForActiveModel(activeTransport, p, v, center, beta, gamma, fieldSnaps, hasSources);
+						a = ComputeTransportAccelerationForActiveModel(activeTransport, p, v, bendDir, center, beta, gamma, fieldSnaps, hasSources);
 						fieldGridFallbacks++;
 						fieldSourceEvals++;
 					}
@@ -2587,7 +2593,7 @@ public partial class RayBeamRenderer : Node3D
 				// DECISION: fall back to field sources if any.
 				else if (hasSources)
 				{
-					a = ComputeTransportAccelerationForActiveModel(activeTransport, p, v, center, beta, gamma, fieldSnaps, hasSources);
+					a = ComputeTransportAccelerationForActiveModel(activeTransport, p, v, bendDir, center, beta, gamma, fieldSnaps, hasSources);
 					fieldSourceEvals++;
 				}
 				else
@@ -2632,7 +2638,9 @@ public partial class RayBeamRenderer : Node3D
 					ce = ceBase;
 				}
 
+				Vector3 vBeforeStep = v;
 				v = SafeNormalized(v + a * step, v);
+				RecordTransportSteeringStep(p, vBeforeStep, v, center, fieldSnaps, hasSources);
 				next = p + v * step;
 
 				// traveled increment is ~step (v is normalized)
@@ -2961,6 +2969,7 @@ public partial class RayBeamRenderer : Node3D
 		public readonly float RadialDistance;
 		public readonly float CharacteristicRadius;
 		public readonly Vector3 Direction;
+		public readonly Vector3 PreferredBendDir;
 		public readonly float StepSize;
 		public readonly float WeakFieldScalar;
 
@@ -2970,6 +2979,7 @@ public partial class RayBeamRenderer : Node3D
 			float radialDistance,
 			float characteristicRadius,
 			Vector3 direction,
+			Vector3 preferredBendDir,
 			float stepSize,
 			float weakFieldScalar)
 		{
@@ -2978,9 +2988,17 @@ public partial class RayBeamRenderer : Node3D
 			RadialDistance = radialDistance;
 			CharacteristicRadius = characteristicRadius;
 			Direction = direction;
+			PreferredBendDir = preferredBendDir;
 			StepSize = stepSize;
 			WeakFieldScalar = weakFieldScalar;
 		}
+	}
+
+	private enum MetricPerpendicularRecoveryBasis
+	{
+		None = 0,
+		Preferred = 1,
+		Axis = 2
 	}
 
 	private enum MetricDeltaZeroReason
@@ -3003,6 +3021,8 @@ public partial class RayBeamRenderer : Node3D
 		public readonly float DTheta;
 		public readonly bool EncounteredRawParallel;
 		public readonly bool UsedParallelRecovery;
+		public readonly bool UsedPreferredBendRecovery;
+		public readonly MetricPerpendicularRecoveryBasis RecoveryBasis;
 		public readonly bool RadiusBelowDiagnosticThreshold;
 		public readonly bool RadiusAboveDiagnosticThreshold;
 
@@ -3014,6 +3034,8 @@ public partial class RayBeamRenderer : Node3D
 			float dTheta,
 			bool encounteredRawParallel,
 			bool usedParallelRecovery,
+			bool usedPreferredBendRecovery,
+			MetricPerpendicularRecoveryBasis recoveryBasis,
 			bool radiusBelowDiagnosticThreshold,
 			bool radiusAboveDiagnosticThreshold)
 		{
@@ -3024,6 +3046,8 @@ public partial class RayBeamRenderer : Node3D
 			DTheta = dTheta;
 			EncounteredRawParallel = encounteredRawParallel;
 			UsedParallelRecovery = usedParallelRecovery;
+			UsedPreferredBendRecovery = usedPreferredBendRecovery;
+			RecoveryBasis = recoveryBasis;
 			RadiusBelowDiagnosticThreshold = radiusBelowDiagnosticThreshold;
 			RadiusAboveDiagnosticThreshold = radiusAboveDiagnosticThreshold;
 		}
@@ -3251,6 +3275,10 @@ public partial class RayBeamRenderer : Node3D
 	{
 		if (evaluation.EncounteredRawParallel)
 		{
+			if (evaluation.UsedPreferredBendRecovery)
+			{
+				return "parallel_preferred";
+			}
 			if (evaluation.UsedParallelRecovery)
 			{
 				return "parallel_recovered";
@@ -3275,11 +3303,18 @@ public partial class RayBeamRenderer : Node3D
 		_metricDiagnosticEvalCount++;
 		if (evaluation.EncounteredRawParallel)
 		{
-			_metricParallelRawCount++;
-		}
-		if (evaluation.UsedParallelRecovery)
-		{
-			_metricParallelRecoveredCount++;
+			if (evaluation.UsedPreferredBendRecovery)
+			{
+				_metricParallelPreferredCount++;
+			}
+			else if (evaluation.UsedParallelRecovery)
+			{
+				_metricParallelRecoveredCount++;
+			}
+			else
+			{
+				_metricParallelRawCount++;
+			}
 		}
 		if (evaluation.IsZero)
 		{
@@ -3321,22 +3356,56 @@ public partial class RayBeamRenderer : Node3D
 		_metricDeltaNonzeroCount++;
 	}
 
-	private void MaybeLogMetricDiagnosticSample(in MetricDirectionDeltaEvaluation evaluation)
+	private void MaybeLogMetricDiagnosticSample(in MetricTransportStepContext context, in MetricDirectionDeltaEvaluation evaluation)
 	{
-		if (!ShouldLogMetricDiagnosticSamples() || _metricDiagnosticSampleLogsEmitted >= 6)
+		if (!ShouldLogMetricDiagnosticSamples())
 		{
 			return;
 		}
 
-		_metricDiagnosticSampleLogsEmitted++;
+		bool isParallelSample = evaluation.EncounteredRawParallel;
+		if (isParallelSample)
+		{
+			if (_metricParallelDiagnosticSampleLogsEmitted >= 6)
+			{
+				return;
+			}
+
+			_metricParallelDiagnosticSampleLogsEmitted++;
+		}
+		else
+		{
+			if (_metricDiagnosticSampleLogsEmitted >= 6)
+			{
+				return;
+			}
+
+			_metricDiagnosticSampleLogsEmitted++;
+		}
+
 		string status = evaluation.IsZero ? "zero" : "nonzero";
 		string reason = GetMetricDiagnosticReasonToken(in evaluation);
 		string radiusFlag = evaluation.RadiusBelowDiagnosticThreshold
 			? "r_lo"
 			: (evaluation.RadiusAboveDiagnosticThreshold ? "r_hi" : "r_ok");
+		Vector3 rayDir = SafeNormalized(context.Direction, Vector3.Forward);
+		Vector3 radialDir = SafeNormalized(context.SourceCenter - context.Position, Vector3.Zero);
+		float radialDot = radialDir == Vector3.Zero
+			? 0f
+			: Mathf.Clamp(rayDir.Dot(radialDir), -1f, 1f);
+		string zeroReason = evaluation.IsZero ? GetMetricDeltaZeroReasonToken(evaluation.ZeroReason) : "none";
+		string recoveryBasis = evaluation.RecoveryBasis switch
+		{
+			MetricPerpendicularRecoveryBasis.Preferred => "preferred",
+			MetricPerpendicularRecoveryBasis.Axis => "axis",
+			_ => "raw"
+		};
 		GD.Print(
 			$"[Transport][MetricDiagSample] eval={_metricDiagnosticEvalCount} status={status} reason={reason} radiusFlag={radiusFlag} " +
-			$"r={evaluation.Radius:0.######} bendPerp={evaluation.BendPerpMagnitude:0.######} dTheta={evaluation.DTheta:0.######}");
+			$"zeroReason={zeroReason} recoveryBasis={recoveryBasis} " +
+			$"rayDir=({rayDir.X:0.######},{rayDir.Y:0.######},{rayDir.Z:0.######}) " +
+			$"radialDir=({radialDir.X:0.######},{radialDir.Y:0.######},{radialDir.Z:0.######}) " +
+			$"dot={radialDot:0.######} r={evaluation.Radius:0.######} bendPerp={evaluation.BendPerpMagnitude:0.######} dTheta={evaluation.DTheta:0.######}");
 	}
 
 	private void RecordTransportSteeringStep(
@@ -3585,7 +3654,7 @@ public partial class RayBeamRenderer : Node3D
 		}
 		else
 		{
-			acceleration = ComputeTransportAccelerationForActiveModel(active, p, v, center, beta, gamma, fieldSources, hasSources);
+			acceleration = ComputeTransportAccelerationForActiveModel(active, p, v, Vector3.Zero, center, beta, gamma, fieldSources, hasSources);
 		}
 
 		float aLen = acceleration.Length();
@@ -3627,6 +3696,7 @@ public partial class RayBeamRenderer : Node3D
 		TransportModel active,
 		Vector3 p,
 		Vector3 v,
+		Vector3 preferredBendDir,
 		Vector3 center,
 		float beta,
 		float gamma,
@@ -3635,7 +3705,7 @@ public partial class RayBeamRenderer : Node3D
 	{
 		return active switch
 		{
-			TransportModel.Metric_NullGeodesic => StepTransport_MetricStub(p, v, center, beta, gamma, fieldSources, hasSources),
+			TransportModel.Metric_NullGeodesic => StepTransport_MetricStub(p, v, preferredBendDir, center, beta, gamma, fieldSources, hasSources),
 			TransportModel.Hybrid_Research => StepTransport_HybridStub(p, v, center, beta, gamma, fieldSources, hasSources),
 			_ => StepTransport_GRIN(p, center, beta, gamma, fieldSources, hasSources)
 		};
@@ -3664,6 +3734,7 @@ public partial class RayBeamRenderer : Node3D
 	private Vector3 StepTransport_MetricStub(
 		Vector3 p,
 		Vector3 v,
+		Vector3 preferredBendDir,
 		Vector3 center,
 		float beta,
 		float gamma,
@@ -3696,11 +3767,12 @@ public partial class RayBeamRenderer : Node3D
 			radialDistance,
 			characteristicRadius,
 			v,
+			preferredBendDir,
 			StepLength,
 			weakFieldScalar);
 		MetricDirectionDeltaEvaluation metricEval = EvaluateMetricDirectionDeltaStub(in metricContext, metricLaw);
 		RecordMetricDirectionDeltaEvaluation(in metricEval);
-		MaybeLogMetricDiagnosticSample(in metricEval);
+		MaybeLogMetricDiagnosticSample(in metricContext, in metricEval);
 		if (!_loggedMetricSteeringLaw)
 		{
 			_loggedMetricSteeringLaw = true;
@@ -3814,6 +3886,8 @@ public partial class RayBeamRenderer : Node3D
 				0f,
 				false,
 				false,
+				false,
+				MetricPerpendicularRecoveryBasis.None,
 				radiusLow,
 				radiusHigh);
 		}
@@ -3831,6 +3905,8 @@ public partial class RayBeamRenderer : Node3D
 				0f,
 				false,
 				false,
+				false,
+				MetricPerpendicularRecoveryBasis.None,
 				radiusBelowThreshold,
 				radiusAboveThreshold);
 		}
@@ -3848,6 +3924,8 @@ public partial class RayBeamRenderer : Node3D
 				0f,
 				false,
 				false,
+				false,
+				MetricPerpendicularRecoveryBasis.None,
 				radiusBelowThreshold,
 				radiusAboveThreshold);
 		}
@@ -3862,13 +3940,21 @@ public partial class RayBeamRenderer : Node3D
 		float radialAlignment = Mathf.Abs(radialDir.Dot(dir));
 		bool encounteredRawParallel = radialAlignment >= parallelAlignmentThreshold;
 		bool usedParallelRecovery = false;
+		bool usedPreferredBendRecovery = false;
+		MetricPerpendicularRecoveryBasis recoveryBasis = MetricPerpendicularRecoveryBasis.None;
 		if (encounteredRawParallel && bendPerpLenSq <= parallelRecoveryPerpThresholdSq)
 		{
-			if (TryBuildStableMetricPerpendicular(dir, bendDirPerp, out Vector3 recoveredPerp))
+			if (TryBuildStableMetricPerpendicular(
+				dir,
+				bendDirPerp,
+				context.PreferredBendDir,
+				out Vector3 recoveredPerp,
+				out recoveryBasis))
 			{
 				bendDirPerp = recoveredPerp;
 				bendPerpMagnitude = recoveredPerp.Length();
 				usedParallelRecovery = true;
+				usedPreferredBendRecovery = recoveryBasis == MetricPerpendicularRecoveryBasis.Preferred;
 			}
 			else
 			{
@@ -3880,6 +3966,8 @@ public partial class RayBeamRenderer : Node3D
 					0f,
 					true,
 					false,
+					false,
+					recoveryBasis,
 					radiusBelowThreshold,
 					radiusAboveThreshold);
 			}
@@ -3894,6 +3982,8 @@ public partial class RayBeamRenderer : Node3D
 				0f,
 				encounteredRawParallel,
 				false,
+				false,
+				recoveryBasis,
 				radiusBelowThreshold,
 				radiusAboveThreshold);
 		}
@@ -3932,6 +4022,8 @@ public partial class RayBeamRenderer : Node3D
 				float.IsFinite(clampedDTheta) ? clampedDTheta : 0f,
 				encounteredRawParallel,
 				usedParallelRecovery,
+				usedPreferredBendRecovery,
+				recoveryBasis,
 				radiusBelowThreshold,
 				radiusAboveThreshold);
 		}
@@ -3944,6 +4036,8 @@ public partial class RayBeamRenderer : Node3D
 			clampedDTheta,
 			encounteredRawParallel,
 			usedParallelRecovery,
+			usedPreferredBendRecovery,
+			recoveryBasis,
 			radiusBelowThreshold,
 			radiusAboveThreshold);
 	}
@@ -3986,8 +4080,27 @@ public partial class RayBeamRenderer : Node3D
 		return weak * stepSize * metricGain * lensingWeight;
 	}
 
-	private static bool TryBuildStableMetricPerpendicular(Vector3 dir, Vector3 preferredPerp, out Vector3 recoveredPerp)
+	private static bool TryBuildStableMetricPerpendicular(
+		Vector3 dir,
+		Vector3 preferredPerp,
+		Vector3 preferredBendDir,
+		out Vector3 recoveredPerp,
+		out MetricPerpendicularRecoveryBasis recoveryBasis)
 	{
+		recoveryBasis = MetricPerpendicularRecoveryBasis.None;
+		if (IsFinite(preferredBendDir) &&
+			preferredBendDir.LengthSquared() > 1e-12f &&
+			TryProjectMetricAxisPerpendicular(dir, preferredBendDir, out recoveredPerp))
+		{
+			if (preferredPerp.LengthSquared() > 1e-20f && recoveredPerp.Dot(preferredPerp) < 0f)
+			{
+				recoveredPerp = -recoveredPerp;
+			}
+
+			recoveryBasis = MetricPerpendicularRecoveryBasis.Preferred;
+			return true;
+		}
+
 		Vector3 axis = SelectLeastAlignedMetricAxis(dir);
 		if (!TryProjectMetricAxisPerpendicular(dir, axis, out recoveredPerp))
 		{
@@ -4006,6 +4119,7 @@ public partial class RayBeamRenderer : Node3D
 			recoveredPerp = -recoveredPerp;
 		}
 
+		recoveryBasis = MetricPerpendicularRecoveryBasis.Axis;
 		return IsFinite(recoveredPerp);
 	}
 
