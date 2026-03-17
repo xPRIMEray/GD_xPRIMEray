@@ -18,6 +18,7 @@ This renderer is a self-contained rendering system embedded inside Godot. It own
 * [Metric Models](spec_metric_models_grin_vs_gordon.md)
 * [Transport Interfaces](spec_ray_transport_interfaces_1.md)
 * [Metric Transport Next-Gen Roadmap](metric_transport_nextgen_roadmap.md)
+* [Black Hole Optical Texture Reference](black_hole_optical_texture_reference.md)
 
 ---
 

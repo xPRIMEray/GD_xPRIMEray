@@ -182,6 +182,8 @@ Required visualizations:
 * Direction vectors (sampled grid)
 * Compare GRIN vs Gordon outputs for same parameters
 
+For strong-field black-hole imagery, use [Black Hole Optical Texture Reference](black_hole_optical_texture_reference.md) as the image-level guide for which features remain qualitative under optical bending versus which require persistent metric geodesic transport.
+
 ---
 
 ## Success Criteria

@@ -65,8 +65,10 @@ nav:
       - Transport Interfaces: spec_ray_transport_interfaces_1.md
       - Metric Param Map: metric_null_geodesic_param_map.md
       - Metric Transport Next-Gen Roadmap: metric_transport_nextgen_roadmap.md
+      - Black Hole Optical Texture Reference: black_hole_optical_texture_reference.md
       - FieldSource3D Params: spec_fieldsource3d_canonical_params_1.md
   - Verification:
+      - Validation Index: VALIDATION_INDEX.md
       - Validation: validation.md
   - Project:
       - Spec Index: SPEC_INDEX.md

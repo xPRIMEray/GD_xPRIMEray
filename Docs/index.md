@@ -29,6 +29,8 @@ This framework is intended to bridge academic optics, experimental physics, and 
 - [Architecture Overview](architecture_overview.md) - renderer structure and subsystem boundaries
 - [Metric Models](spec_metric_models_grin_vs_gordon.md) - GRIN vs Gordon vs geodesic tier framing
 - [Metric Transport Next-Gen Roadmap](metric_transport_nextgen_roadmap.md) - staged plan from the current metric scaffold toward persistent geodesic transport
+- [Black Hole Optical Texture Reference](black_hole_optical_texture_reference.md) - black-hole visual targets for shadow geometry, photon rings, caustics, and transport validation
+- [Validation Index](VALIDATION_INDEX.md) - compact map of ladders, sweeps, comparisons, overlays, and gating references
 - [Validation](validation.md) - validation modes and verification context
 - [Spec Index](SPEC_INDEX.md) - master spec and documentation tree
 

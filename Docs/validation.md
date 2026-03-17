@@ -2,6 +2,8 @@
 
 The system includes structured validation modes designed to quantify ray stability, curvature accuracy, and intersection integrity.
 
+Related reference: [Black Hole Optical Texture Reference](black_hole_optical_texture_reference.md) for black-hole-specific visual targets such as shadow edge, photon-ring structure, caustics, and transport comparison.
+
 ---
 
 ## Validation Modes

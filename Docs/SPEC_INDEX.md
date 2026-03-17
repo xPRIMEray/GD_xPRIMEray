@@ -47,5 +47,13 @@
 
 ## Roadmaps and Supporting Notes
 
+- [Validation Index](VALIDATION_INDEX.md) - practical entry point for ladder, sweep, screenshot, overlay, and gating-oriented validation workflows.
 - [Metric Transport Next-Gen Roadmap](metric_transport_nextgen_roadmap.md) - implementation roadmap for evolving `Metric_NullGeodesic` from the current heuristic scaffold toward persistent geodesic transport.
 - [Metric Null Geodesic Parameter Map](metric_null_geodesic_param_map.md) - current runtime mapping of authored source parameters onto the existing metric scaffold.
+- [Black Hole Optical Texture Reference](black_hole_optical_texture_reference.md) - visual and conceptual reference for black-hole shadow geometry, photon rings, caustics, and transport-validation targets.
+
+## Optical and Transport References
+
+- [Black Hole Optical Texture Reference](black_hole_optical_texture_reference.md) - expected image-level signatures that distinguish GRIN-style bending from persistent metric geodesic transport.
+- [BlackHole Fast Compare](blackhole_fast_compare.md) - narrow GRIN vs metric comparison workflow for black-hole fixture runs and log inspection.
+- [Render Step Gate Hierarchy](RenderStep_GateHierarchy.md) - pass-2 gating, soft-gate budgets, sweep-relevant retry paths, and common failure signatures.

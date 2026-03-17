@@ -2,6 +2,8 @@
 
 Use this when you want a narrow transport comparison run that avoids long matrix sweeps.
 
+Related reference: [Black Hole Optical Texture Reference](black_hole_optical_texture_reference.md) for the shadow, photon-ring, and lensing features this comparison is intended to distinguish.
+
 ## Exact commands
 
 From `C:\godot\godot_xPRIMEray`:

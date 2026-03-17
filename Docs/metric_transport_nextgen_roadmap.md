@@ -1,5 +1,7 @@
 # Next-Generation Metric Transport Roadmap
 
+Related reference: [Black Hole Optical Texture Reference](black_hole_optical_texture_reference.md) for the image-level phenomena this roadmap is intended to recover, especially shadow geometry, photon rings, caustics, and higher-order images.
+
 This note summarizes the current `Metric_NullGeodesic` path, the gap to a persistent geodesic transport model, and a bounded implementation sequence that preserves the validated GRIN path.
 
 ## 1. Current State
@@ -126,6 +128,7 @@ Exit criteria:
 - Keep the current GRIN ladder as the control path.
 - Add a bounded metric fixture with known expected behavior: weak off-axis deflection, closest-approach trend, and at least some recoverable source/background hits.
 - Promote the current metric ladder, off-axis ladder, and observe harness into acceptance tests for regression detection.
+- Use the [Black Hole Optical Texture Reference](black_hole_optical_texture_reference.md) as the visual validation target for which strong-field features should appear only once transport fidelity is high enough.
 - Add numeric checks for:
   - nonzero source/background hits in the bounded metric fixture
   - monotonic deflection or closest-approach behavior
