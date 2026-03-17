@@ -1,0 +1,1598 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Curved Ray Transport Engine for GRIN Fields (Godot 4.x) — hybrid symbolic–numeric propagation.">
+      
+      
+        <meta name="author" content="AetherTopologist">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>Architecture Review: GD_xPRIMEray Curved-Ray GRIN Renderer - GD_xPRIMEray</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#architecture-review-gd_xprimeray-curved-ray-grin-renderer" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="GD_xPRIMEray" class="md-header__button md-logo" aria-label="GD_xPRIMEray" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            GD_xPRIMEray
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Architecture Review: GD_xPRIMEray Curved-Ray GRIN Renderer
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/AetherTopologist/GD_xPRIMEray" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    AetherTopologist/GD_xPRIMEray
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../architecture/" class="md-tabs__link">
+          
+  
+  
+  Core
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../VALIDATION_INDEX/" class="md-tabs__link">
+          
+  
+  
+  Verification
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../SPEC_INDEX/" class="md-tabs__link">
+          
+  
+  
+  Project
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="GD_xPRIMEray" class="md-nav__button md-logo" aria-label="GD_xPRIMEray" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    GD_xPRIMEray
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/AetherTopologist/GD_xPRIMEray" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    AetherTopologist/GD_xPRIMEray
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Core
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture_overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spec_metric_models_grin_vs_gordon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metric Models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spec_ray_transport_interfaces_1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transport Interfaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metric_null_geodesic_param_map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metric Param Map
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metric_transport_nextgen_roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metric Transport Next-Gen Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../black_hole_optical_texture_reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Black Hole Optical Texture Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spec_fieldsource3d_canonical_params_1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FieldSource3D Params
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verification
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Verification
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../VALIDATION_INDEX/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Project
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SPEC_INDEX/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-full-control-flow-camera-integration-intersection-shading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Full Control Flow — Camera → Integration → Intersection → Shading
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-key-classes-and-responsibilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Key Classes and Responsibilities
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Key Classes and Responsibilities">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ownership-diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ownership Diagram
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-how-curved-ray-logic-is-injected-into-the-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. How Curved-Ray Logic is Injected into the Pipeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. How Curved-Ray Logic is Injected into the Pipeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#3a-integration-replaces-straight-line-raycasting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3a. Integration replaces straight-line raycasting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3b-field-evaluation-hierarchy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3b. Field evaluation hierarchy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3c-interaction-with-godots-physics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3c. Interaction with Godot's physics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3d-analytic-fallback-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3d. Analytic fallback mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-hot-path-narrative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Hot-Path Narrative
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Hot-Path Narrative">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#per-step-innermost-loop-raybeamrenderercs2022" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-step (innermost loop, RayBeamRenderer.cs:2022)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#iteration-cost-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Iteration cost summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-top-5-performance-hotspots" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Top 5 Performance Hotspots
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-top-5-architecture-risks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Top 5 Architecture Risks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-areas-where-intent-is-unclear-or-underspecified" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Areas Where Intent is Unclear or Underspecified
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-three-incremental-refactors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Three Incremental Refactors
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Three Incremental Refactors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#refactor-1-extract-pass-2-collision-into-a-filmcollisionpass-helper" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Refactor 1: Extract Pass-2 collision into a FilmCollisionPass helper
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#refactor-2-fast-path-powr-gamma-for-common-gamma-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Refactor 2: Fast-path Pow(r, gamma) for common gamma values
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#refactor-3-fix-fieldgrid3d-boundary-miss-to-fall-through-to-source-evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Refactor 3: Fix FieldGrid3D boundary miss to fall through to source evaluation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/AetherTopologist/GD_xPRIMEray/edit/main/docs/architecture_review_ray_renderer.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="architecture-review-gd_xprimeray-curved-ray-grin-renderer">Architecture Review: GD_xPRIMEray Curved-Ray GRIN Renderer<a class="headerlink" href="#architecture-review-gd_xprimeray-curved-ray-grin-renderer" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Reviewer focus:</strong> Build a clear mental model before proposing changes.
+Experimental GRIN curved-ray engine — prioritizing correctness and extensibility.</p>
+</blockquote>
+<hr />
+<h2 id="1-full-control-flow-camera-integration-intersection-shading">1. Full Control Flow — Camera → Integration → Intersection → Shading<a class="headerlink" href="#1-full-control-flow-camera-integration-intersection-shading" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>_Process(delta)                                       GrinFilmCamera.cs:1400
+  └─ RenderStep()                                     GrinFilmCamera.cs:1410
+       │
+       ├─ ResolveEffectiveConfig(out cfg)              GrinFilmCamera.cs:5854
+       │    Snapshots all RayBeamRenderer + GrinFilmCamera settings
+       │    into a frozen EffectiveConfig struct for the entire step.
+       │
+       ├─ EnsureFilmImageSize(cfg)                     Allocate/resize Image + ImageTexture
+       │
+       ├─── BAND LOOP (progressive rows) ─────────────────────────────
+       │    _rowCursor advances RowsPerFrame rows per call.
+       │    Budget watchdog (RenderStepMaxMs) can abort mid-band.
+       │
+       │  ┌──────────────────────────────────────────────────────────┐
+       │  │  PASS 1 — Ray Integration (Parallel.For)                │
+       │  │  GrinFilmCamera.cs:2453                                  │
+       │  │                                                          │
+       │  │  For each pixel (pi) in band:                            │
+       │  │    1. Compute NDC (u,v) from pixel coords     :2490      │
+       │  │    2. Build camera ray:                                  │
+       │  │       dirCam = (u*tan*aspect, v*tan, -1).Normalized()    │
+       │  │       dirWorld = basis * dirCam                :2494-2502 │
+       │  │       bendDir = basis.X                                  │
+       │  │    3. Call _rbr.BuildRaySegmentsCamera_Pass1() :2507     │
+       │  │       ┌─ RayBeamRenderer.cs:1938 ───────────────────┐    │
+       │  │       │  for s in 0..StepsPerRay:               :2022│   │
+       │  │       │    a. Field eval (grid→snap→radial)  :2040-57│   │
+       │  │       │    b. Clamp accel (50 cap)           :2060-63│   │
+       │  │       │    c. Adaptive step sizing            :2065-78│   │
+       │  │       │    d. Screen-space cadence            :2084-93│   │
+       │  │       │    e. v = normalize(v + a*step)          :2095│   │
+       │  │       │       next = p + v*step                  :2096│   │
+       │  │       │    f. Emit RaySeg every `ce` steps   :2122-46│   │
+       │  │       │    g. Optional pass-1 probe raycast  :2148-94│   │
+       │  │       └──────────────────────────────────────────────┘    │
+       │  │    4. Store segCountPerPixel, pass1Hit* per pixel        │
+       │  └──────────────────────────────────────────────────────────┘
+       │
+       │  ┌──────────────────────────────────────────────────────────┐
+       │  │  PASS 2 — Collision + Shading (Sequential, main thread) │
+       │  │  GrinFilmCamera.cs:3333                                  │
+       │  │                                                          │
+       │  │  For each pixel in band (stride-aligned):                │
+       │  │    for pass in 0..1:                             :3447   │
+       │  │      for si in segments:                         :3466   │
+       │  │        A. Insight-plane filter                   :3535   │
+       │  │        B. Broadphase quick-ray (cached)          :3602   │
+       │  │        C. Broadphase overlap (IntersectShape)    :3562   │
+       │  │        D. Soft-gate scoring decision             :3494ff │
+       │  │        E. SubdividedRayHit (RBR.cs:1226)                │
+       │  │           Subdivides curved segment into sub-rays        │
+       │  │           and raycasts each                              │
+       │  │        F. Track nearest hit (bestHp, bestHn)             │
+       │  │    Shade:                                        :4383   │
+       │  │      DepthHeatmap | NormalRGB | NdotV | TwoSidedNdotV   │
+       │  │    FillPixelBlock → _img.SetPixel()              :4437   │
+       │  └──────────────────────────────────────────────────────────┘
+       │
+       ├─ _tex.Update(_img)                           Upload to GPU
+       ├─ UpdateDebugOverlayFromFilm(...)             Optional debug overlay
+       └─ Advance _rowCursor; wrap at film height
+</code></pre></div>
+<p>The system is a <strong>two-pass progressive renderer</strong>. Pass 1 is embarrassingly parallel
+(one thread per pixel), while Pass 2 is sequential on the main thread because it calls
+Godot physics APIs (<code>IntersectRay</code>, <code>IntersectShape</code>) which require main-thread access.</p>
+<hr />
+<h2 id="2-key-classes-and-responsibilities">2. Key Classes and Responsibilities<a class="headerlink" href="#2-key-classes-and-responsibilities" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Class</th>
+<th>File</th>
+<th>Lines</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>GrinFilmCamera</strong></td>
+<td><code>GrinFilmCamera.cs</code></td>
+<td>~6780</td>
+<td><strong>Orchestrator.</strong> Owns the film buffer (<code>Image</code>/<code>ImageTexture</code>), drives the two-pass render loop, resolves effective configuration from presets/quality modes, manages budgets/watchdogs, performs Pass-2 collision on the main thread, shades pixels, uploads to GPU.</td>
+</tr>
+<tr>
+<td><strong>RayBeamRenderer</strong></td>
+<td><code>RayBeamRenderer.cs</code></td>
+<td>~2713</td>
+<td><strong>Ray physics engine.</strong> Owns all curved-ray integration logic (field evaluation, adaptive stepping, segment emission), field source snapshotting, collision subdivision (<code>SubdividedRayHit</code>), and the standalone 3D debug visualization (MultiMesh billboards). Also serves as a <strong>config container</strong> — most ray-march and collision parameters are <code>[Export]</code> properties on this node.</td>
+</tr>
+<tr>
+<td><strong>FieldSource3D</strong></td>
+<td><code>FieldSource3D.cs</code></td>
+<td>373</td>
+<td><strong>GRIN field definition.</strong> A <code>Node3D</code> that describes one refractive index source in the scene. Supports 4 profiles (Power, InversePower, Gaussian, Shell) with per-source overrides for gamma/beta. Also handles its own in-game debug visualization via <code>ImmediateMesh</code>.</td>
+</tr>
+<tr>
+<td><strong>FieldGrid3D</strong></td>
+<td><code>FieldGrid3D.cs</code></td>
+<td>115</td>
+<td><strong>Field acceleration cache.</strong> A plain class (not a Node) that pre-computes a dense 3D grid of acceleration vectors from all <code>FieldSourceSnap</code>s, then provides O(1) trilinear-interpolated lookups via <code>TrySample()</code>.</td>
+</tr>
+<tr>
+<td><strong>FilmOverlay2D</strong></td>
+<td><code>FilmOverlay2D.cs</code></td>
+<td>299</td>
+<td><strong>2D debug overlay.</strong> A <code>Control</code> node that draws projected ray polylines, hit normals, and film-gradient normals on screen. Driven by data pushed from <code>GrinFilmCamera</code>.</td>
+</tr>
+<tr>
+<td><strong>PerfScope / FramePerf</strong></td>
+<td><code>PerfScope.cs</code></td>
+<td>~161</td>
+<td><strong>Timing infrastructure.</strong> RAII-style <code>ref struct</code> using <code>Stopwatch.GetTimestamp()</code> for zero-alloc stage timing. <code>FramePerf</code> accumulates 30+ counters per frame.</td>
+</tr>
+<tr>
+<td><strong>PerfStats</strong></td>
+<td><code>PerfStats.cs</code></td>
+<td>~400</td>
+<td><strong>Rolling statistics.</strong> Circular buffer of <code>PerfFrameReport</code> structs for sliding-window averages and diagnostic printing.</td>
+</tr>
+<tr>
+<td><strong>CurvedCamera</strong></td>
+<td><code>CurvedCamera.cs</code></td>
+<td>23</td>
+<td><strong>Minimal camera extension.</strong> Provides <code>GetCurvedRay(ndc)</code> with a simple analytic power-law bend — appears to be an early prototype superseded by the full integration in RayBeamRenderer.</td>
+</tr>
+<tr>
+<td><strong>RayViz</strong></td>
+<td><code>RayViz.cs</code></td>
+<td>167</td>
+<td><strong>Standalone 3D ray debug.</strong> Samples 9 screen points, draws analytic curved-ray polylines in 3D. Change-detected rebuild.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ownership-diagram">Ownership Diagram<a class="headerlink" href="#ownership-diagram" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>GrinFilmCamera (Node)
+  ├── references → RayBeamRenderer (Node3D)  [via RayBeamRendererPath]
+  │                  └── owns MultiMesh billboard visualization
+  │                  └── reads FieldSource3D nodes from scene tree
+  │                  └── optionally uses FieldGrid3D (plain object)
+  ├── references → Camera3D                  [viewport active camera]
+  ├── references → FilmOverlay2D (Control)   [via FilmOverlayPath]
+  ├── owns → Image _img / ImageTexture _tex  [film buffer]
+  └── owns → CanvasLayer + TextureRect       [display overlay]
+</code></pre></div>
+<hr />
+<h2 id="3-how-curved-ray-logic-is-injected-into-the-pipeline">3. How Curved-Ray Logic is Injected into the Pipeline<a class="headerlink" href="#3-how-curved-ray-logic-is-injected-into-the-pipeline" title="Permanent link">&para;</a></h2>
+<p>The curved-ray behavior is <strong>not</strong> a modification of Godot's built-in rendering. Instead,
+it is an entirely <strong>custom software renderer</strong> running alongside Godot's rasterizer.</p>
+<h3 id="3a-integration-replaces-straight-line-raycasting">3a. Integration replaces straight-line raycasting<a class="headerlink" href="#3a-integration-replaces-straight-line-raycasting" title="Permanent link">&para;</a></h3>
+<p>In <code>BuildRaySegmentsCamera_Pass1</code> (<code>RayBeamRenderer.cs:2022-2198</code>), instead of a single
+<code>origin + t*dir</code> parametric ray, the engine performs a <strong>symplectic Euler integration loop</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SafeNormalized</span><span class="p">(</span><span class="n">v</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">step</span><span class="p">,</span><span class="w"> </span><span class="n">v</span><span class="p">);</span><span class="w">   </span><span class="c1">// velocity kick</span>
+<span class="n">next</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">step</span><span class="p">;</span><span class="w">                    </span><span class="c1">// position drift</span>
+</code></pre></div>
+<p>The acceleration <code>a</code> comes from evaluating the GRIN refractive-index field at <code>p</code>. This
+turns each ray into a piecewise-linear <strong>curved polyline</strong> stored as <code>RaySeg[]</code>.</p>
+<h3 id="3b-field-evaluation-hierarchy">3b. Field evaluation hierarchy<a class="headerlink" href="#3b-field-evaluation-hierarchy" title="Permanent link">&para;</a></h3>
+<p>At each integration step (<code>RayBeamRenderer.cs:2039-2057</code>), acceleration is resolved
+through a three-tier fallback:</p>
+<ol>
+<li><strong>FieldGrid3D cache</strong> (trilinear interpolation, O(1)) — if the grid was built
+   and the point is in-bounds</li>
+<li><strong>FieldSourceSnap array</strong> (<code>ComputeAccelerationAtPointSnap</code>, <code>RayBeamRenderer.cs:2246</code>)
+   — iterates all snapped sources, applies per-source profile</li>
+<li><strong>Analytic radial field</strong> — single-source <code>r^gamma</code> fallback centered on <code>FieldCenter</code></li>
+</ol>
+<h3 id="3c-interaction-with-godots-physics">3c. Interaction with Godot's physics<a class="headerlink" href="#3c-interaction-with-godots-physics" title="Permanent link">&para;</a></h3>
+<p>Curved segments are tested against the Godot physics world via direct
+<code>PhysicsDirectSpaceState3D</code> calls:</p>
+<ul>
+<li><strong>Pass-1 probes</strong> (<code>IntersectRay</code> on sampled segments, <code>RayBeamRenderer.cs:2163</code>)</li>
+<li><strong>Pass-2 broadphase</strong> (<code>IntersectRay</code> for quick-ray, <code>IntersectShape</code> for overlap,
+  <code>GrinFilmCamera.cs:3602-3600</code>)</li>
+<li><strong>Pass-2 subdivision</strong> (<code>SubdividedRayHit</code> → N sub-raycasts per segment,
+  <code>RayBeamRenderer.cs:1226</code>)</li>
+</ul>
+<p>The renderer never touches Godot's <code>RenderingServer</code>. It writes directly to a CPU-side
+<code>Image</code>, uploads it to an <code>ImageTexture</code>, and composites it via a <code>TextureRect</code> overlay
+on a <code>CanvasLayer</code>.</p>
+<h3 id="3d-analytic-fallback-mode">3d. Analytic fallback mode<a class="headerlink" href="#3d-analytic-fallback-mode" title="Permanent link">&para;</a></h3>
+<p>When <code>UseIntegratedField = false</code> (<code>RayBeamRenderer.cs:2101-2111</code>), the engine skips
+numerical integration entirely and uses a closed-form curve:</p>
+<div class="highlight"><pre><span></span><code><span class="kt">float</span><span class="w"> </span><span class="n">bend</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">beta</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">Pow</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="w"> </span><span class="n">gamma</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">bendScale</span><span class="p">;</span>
+<span class="n">next</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">origin</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dir</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">bendDir</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">bend</span><span class="p">;</span>
+</code></pre></div>
+<p>This is a power-law displacement in the camera's X-axis direction — a fast approximation
+for previewing.</p>
+<hr />
+<h2 id="4-hot-path-narrative">4. Hot-Path Narrative<a class="headerlink" href="#4-hot-path-narrative" title="Permanent link">&para;</a></h2>
+<p>What happens in the <strong>tightest per-ray loop</strong> — the body of
+<code>BuildRaySegmentsCamera_Pass1</code> called once per sampled pixel, potentially thousands
+of times per <code>RenderStep</code>.</p>
+<h3 id="per-step-innermost-loop-raybeamrenderercs2022">Per-step (innermost loop, <code>RayBeamRenderer.cs:2022</code>)<a class="headerlink" href="#per-step-innermost-loop-raybeamrenderercs2022" title="Permanent link">&para;</a></h3>
+<p><strong>Step 1: Field evaluation</strong> (~2040-2057)
+The engine checks <code>fieldGrid.TrySample(p, out a)</code>. If the grid hits, this is 8 array
+lookups + 7 lerps (trilinear). If it misses (or no grid), it falls through to
+<code>ComputeAccelerationAtPointSnap</code> which loops over <code>FieldSourceSnap[]</code> — for each source:
+one <code>Vector3</code> subtraction, one <code>Length()</code> (sqrt), softening sqrt, radius gating, one
+<code>Pow()</code> call, and profile-dependent math (Gaussian adds <code>Exp()</code>).</p>
+<p><strong>Step 2: Acceleration clamping</strong> (~2060-2063)
+One <code>Length()</code> call, one finite check, conditional scale-down if &gt;50.</p>
+<p><strong>Step 3: Adaptive step sizing</strong> (~2065-2078)
+Division <code>stepLength / (1 + aLen * gain)</code>, clamp. If low-curvature boost is enabled:
+decompose <code>a</code> into perpendicular component (1 dot, 1 subtract, 1 length), conditional
+multiply.</p>
+<p><strong>Step 4: Screen-space cadence</strong> (~2084-2093)
+Only when enabled: <code>PerpAccelLen()</code> (recomputes perpendicular accel), camera distance
+(<code>Length()</code>), then <code>ComputeCeFromScreenError</code> (sqrt, division, floor, clamp). Adjusts
+how often segments are emitted.</p>
+<p><strong>Step 5: Position/velocity update</strong> (~2095-2099)
+<code>v + a * step</code> → normalize (one <code>Length()</code>, one divide) → <code>p + v * step</code>. One traveled
+accumulation.</p>
+<p><strong>Step 6: Segment emission</strong> (~2122-2146)
+Every <code>ce</code> steps: optional insight-plane check (dot product + compare), then write
+<code>RaySeg{A, B, TraveledB}</code> to pre-allocated array. No allocation.</p>
+<p><strong>Step 7: Optional pass-1 probe</strong> (~2148-2194)
+Every N segments or travel distance: <code>space.IntersectRay()</code> — a Godot physics call that
+descends into the physics BVH. On hit: dictionary unboxing for position/normal/collider_id.
+Nearest-hit tracking.</p>
+<h3 id="iteration-cost-summary">Iteration cost summary<a class="headerlink" href="#iteration-cost-summary" title="Permanent link">&para;</a></h3>
+<p>For a typical configuration (<code>StepsPerRay=64</code>, 1 field source, no grid):
+- 64x <code>ComputeAccelerationAtPointSnap</code> (each: 1 sqrt, 1 Pow, scalar math)
+- 64x normalize + position update
+- ~64/ce segment emissions (ce = 1-4)
+- ~1-4 <code>IntersectRay</code> calls (pass-1 probing)</p>
+<p>The dominant cost per step is the field evaluation (<code>Pow</code> + <code>sqrt</code>), followed by
+normalization.</p>
+<hr />
+<h2 id="5-top-5-performance-hotspots">5. Top 5 Performance Hotspots<a class="headerlink" href="#5-top-5-performance-hotspots" title="Permanent link">&para;</a></h2>
+<p><strong>H1. <code>ComputeAccelerationAtPointSnap</code> — per-step per-ray field evaluation</strong>
+(<code>RayBeamRenderer.cs:2246-2322</code>)</p>
+<p>This is the innermost computation. Each call does <code>Pow(r, gamma)</code> per source —
+<code>Mathf.Pow</code> is typically 50-100ns. With N sources x 64 steps x thousands of pixels,
+this dominates. The <code>FieldGrid3D</code> cache mitigates this, but grid misses fall through
+to the full evaluation. <strong>The <code>Pow</code> call is the single most expensive math operation
+in the system.</strong></p>
+<p><strong>H2. Pass-2 <code>SubdividedRayHit</code> — Godot physics calls on main thread</strong>
+(<code>RayBeamRenderer.cs:1226-1286</code>)</p>
+<p>Each subdivided segment generates up to <code>MaxCollisionSubsteps</code> (default 16) individual
+<code>IntersectRay</code> calls. These go through Godot's physics BVH and are not parallelizable
+(main-thread only). The soft-gate mechanism exists precisely to budget these calls, but
+they remain the dominant wall-clock cost of Pass-2.</p>
+<p><strong>H3. <code>Godot.Collections.Dictionary</code> unboxing in physics results</strong>
+(scattered across both passes)</p>
+<p>Every <code>IntersectRay</code> returns a <code>Godot.Collections.Dictionary</code>. Extracting <code>"position"</code>,
+<code>"normal"</code>, <code>"collider_id"</code> involves string key lookups and <code>(Vector3)</code> unboxing from
+<code>Variant</code>. This is not cache-friendly and generates GC pressure. See
+<code>RayBeamRenderer.cs:2168-2181</code>.</p>
+<p><strong>H4. Pass-1 <code>Parallel.For</code> physics contention</strong>
+(<code>GrinFilmCamera.cs:2457-2469</code>)</p>
+<p>The <code>pass1DoHitTest</code> path calls <code>space.IntersectRay</code> from worker threads. While
+<code>PhysicsDirectSpaceState3D</code> read operations are thread-safe in Godot 4, they contend on
+the physics server lock.</p>
+<p><strong>H5. <code>FillPixelBlock</code> per-pixel <code>SetPixel</code> calls</strong>
+(<code>GrinFilmCamera.cs:4437</code>)</p>
+<p>For stride &gt; 1, each sampled pixel fills a stride x stride block by calling
+<code>_img.SetPixel(px, py, col)</code> in a loop. <code>Image.SetPixel</code> validates bounds on every call.
+At stride=4, that is 16 calls per sampled pixel. Direct <code>byte[]</code> writes would be faster.</p>
+<hr />
+<h2 id="6-top-5-architecture-risks">6. Top 5 Architecture Risks<a class="headerlink" href="#6-top-5-architecture-risks" title="Permanent link">&para;</a></h2>
+<p><strong>R1. GrinFilmCamera is a ~6800-line god class</strong></p>
+<p><code>GrinFilmCamera.cs</code> owns configuration resolution, band scheduling, Pass-1 dispatch,
+Pass-2 collision, shading, film management, debug overlay coordination, depth
+auto-ranging, broadphase policy, soft-gate scoring, performance logging, and preset
+management. The <code>RenderStep()</code> method alone spans lines 1410-4533 (~3100 lines).</p>
+<p><strong>R2. Cross-class configuration coupling</strong></p>
+<p>Configuration lives on <code>RayBeamRenderer</code> as <code>[Export]</code> properties, is read via
+<code>GetSharedSnapshot()</code>, then merged into <code>EffectiveConfig</code> by <code>ResolveEffectiveConfig</code>.
+Some settings are mirrored back to GrinFilmCamera exports for inspector display. This
+creates a bidirectional dependency where changing a parameter requires understanding both
+classes and the snapshot/mirror machinery.</p>
+<p><strong>R3. Pass-2 blocks Godot's main thread</strong></p>
+<p>All subdivision raycasts and overlap queries happen sequentially on the main thread
+during <code>_Process</code>. The budget system provides a soft ceiling, but if the budget is
+exceeded mid-band, the entire band's collision work is lost and must be re-done.</p>
+<p><strong>R4. No separation between integration and collision concerns</strong></p>
+<p><code>BuildRaySegmentsCamera_Pass1</code> mixes ray integration (position/velocity update, field
+evaluation) with pass-1 hit probing (physics raycasts). The method has 20+ <code>out</code>
+parameters. This makes it difficult to test integration independently from collision,
+or to substitute a different integration method (e.g., RK4).</p>
+<p><strong>R5. Implicit contracts on thread safety</strong></p>
+<p>Pass-1 writes to shared arrays (<code>_segBuf</code>, <code>_segCountPerPixel</code>, etc.) using
+<code>pi</code>-indexed non-overlapping regions — but this is enforced only by pixel index
+partitioning, not by any type-system or runtime guard. A future change to the pixel
+indexing scheme could silently introduce data races.</p>
+<hr />
+<h2 id="7-areas-where-intent-is-unclear-or-underspecified">7. Areas Where Intent is Unclear or Underspecified<a class="headerlink" href="#7-areas-where-intent-is-unclear-or-underspecified" title="Permanent link">&para;</a></h2>
+<p><strong>U1. Two-pass collision loop</strong> (<code>GrinFilmCamera.cs:3447</code>)</p>
+<div class="highlight"><pre><span></span><code><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">pass</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">pass</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span><span class="w"> </span><span class="n">pass</span><span class="o">++</span><span class="p">)</span>
+</code></pre></div>
+<p>Pass 0 uses configured stride; pass 1 forces stride=1. Entry conditions involve
+<code>pass1StoppedEarly</code>, <code>forceInstabilityThisPixel</code>, <code>skippedAnyByStrideThisPixel</code>, and
+<code>testedAnyInPass0ThisPixel</code>. Intent appears to be "retry with finer stride if the first
+pass may have missed a hit," but this is undocumented and the conditions are complex.</p>
+<p><strong>U2. <code>bendDir = basisLocal.X</code></strong> (<code>GrinFilmCamera.cs:2502</code>)</p>
+<p>Every ray uses the camera's X-axis as bend direction regardless of ray direction. This is
+physically meaningful only for a specific radial distortion model. In integrated mode, the
+field acceleration handles bending correctly — but <code>bendDir</code> is still passed and used in
+the analytic fallback. The relationship between <code>bendDir</code> (analytic) and
+<code>ComputeAccelerationAtPointSnap</code> (integrated) is not explained.</p>
+<p><strong>U3. Acceleration clamp at 50</strong> (<code>RayBeamRenderer.cs:2063</code>)</p>
+<div class="highlight"><pre><span></span><code><span class="k">else</span><span class="w"> </span><span class="nf">if</span><span class="w"> </span><span class="p">(</span><span class="n">aLen</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">50f</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">*=</span><span class="w"> </span><span class="p">(</span><span class="mf">50f</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">aLen</span><span class="p">);</span><span class="w"> </span><span class="n">aLen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">50f</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<p>The magic number 50 is unexplained. Not clear whether this is a physical bound, numerical
+stability guard, or empirical tuning value.</p>
+<p><strong>U4. <code>fieldEvals++</code> counting</strong> (<code>RayBeamRenderer.cs:2058</code>)</p>
+<p>Counter incremented unconditionally even when the grid cache was used. Makes <code>fieldEvals</code>
+misleading — it counts integration steps, not actual field evaluations.</p>
+<p><strong>U5. Grid boundary miss drops acceleration to zero</strong> (<code>RayBeamRenderer.cs:2044-2048</code>)</p>
+<p>When a grid exists but the point is outside it, the code increments <code>fieldGridMisses</code> but
+does <strong>not</strong> fall through to <code>ComputeAccelerationAtPointSnap</code>. Acceleration stays at
+<code>Vector3.Zero</code>. Rays leaving the grid bounds silently lose all field influence.</p>
+<p><strong>U6. Relationship between <code>SimulateRayCamera</code> and <code>BuildRaySegmentsCamera_Pass1</code></strong></p>
+<p>Both contain very similar integration loops. <code>SimulateRayCamera</code> uses the old
+<code>Godot.Collections.Array&lt;Node&gt;</code> API; <code>BuildRaySegmentsCamera_Pass1</code> uses
+<code>FieldSourceSnap[]</code>. The film pipeline only calls the latter. Unclear whether
+<code>SimulateRayCamera</code> is still used or is dead code.</p>
+<hr />
+<h2 id="8-three-incremental-refactors">8. Three Incremental Refactors<a class="headerlink" href="#8-three-incremental-refactors" title="Permanent link">&para;</a></h2>
+<h3 id="refactor-1-extract-pass-2-collision-into-a-filmcollisionpass-helper">Refactor 1: Extract Pass-2 collision into a <code>FilmCollisionPass</code> helper<a class="headerlink" href="#refactor-1-extract-pass-2-collision-into-a-filmcollisionpass-helper" title="Permanent link">&para;</a></h3>
+<p><strong>Problem:</strong> Pass-2 per-pixel collision (<code>GrinFilmCamera.cs:3333-4462</code>) is ~1100 lines
+of deeply nested code with inline local functions, soft-gate scoring, broadphase
+dispatch, and multiple early-out paths — all inside <code>RenderStep()</code>.</p>
+<p><strong>Proposal:</strong> Extract a <code>FilmCollisionPass</code> class with:
+<div class="highlight"><pre><span></span><code><span class="n">HitResult</span><span class="w"> </span><span class="nf">TestPixelCollisions</span><span class="p">(</span>
+<span class="w">    </span><span class="k">in</span><span class="w"> </span><span class="n">EffectiveConfig</span><span class="w"> </span><span class="n">cfg</span><span class="p">,</span>
+<span class="w">    </span><span class="n">ReadOnlySpan</span><span class="o">&lt;</span><span class="n">RaySeg</span><span class="o">&gt;</span><span class="w"> </span><span class="n">segments</span><span class="p">,</span>
+<span class="w">    </span><span class="n">PhysicsDirectSpaceState3D</span><span class="w"> </span><span class="n">space</span><span class="p">,</span>
+<span class="w">    </span><span class="k">in</span><span class="w"> </span><span class="n">PixelContext</span><span class="w"> </span><span class="n">ctx</span><span class="p">);</span>
+</code></pre></div></p>
+<p><strong>Benefit:</strong> Reduces <code>RenderStep</code> by ~1000 lines. Makes collision strategy testable
+in isolation and pluggable.</p>
+<h3 id="refactor-2-fast-path-powr-gamma-for-common-gamma-values">Refactor 2: Fast-path <code>Pow(r, gamma)</code> for common gamma values<a class="headerlink" href="#refactor-2-fast-path-powr-gamma-for-common-gamma-values" title="Permanent link">&para;</a></h3>
+<p><strong>Problem:</strong> <code>Mathf.Pow</code> is the most expensive single operation in the per-step hot path
+(<code>ComputeAccelerationAtPointSnap</code>, <code>RayBeamRenderer.cs:2288</code>).</p>
+<p><strong>Proposal:</strong> Add a switch on common values before falling through:
+<div class="highlight"><pre><span></span><code><span class="kt">float</span><span class="w"> </span><span class="n">rPow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">gamma</span><span class="w"> </span><span class="k">switch</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="o">-</span><span class="mf">2f</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="mf">1f</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="p">(</span><span class="n">r</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">r</span><span class="p">),</span>
+<span class="w">    </span><span class="o">-</span><span class="mf">1f</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="mf">1f</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">r</span><span class="p">,</span>
+<span class="w">     </span><span class="mf">0f</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="mf">1f</span><span class="p">,</span>
+<span class="w">     </span><span class="mf">1f</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">r</span><span class="p">,</span>
+<span class="w">     </span><span class="mf">2f</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">r</span><span class="p">,</span>
+<span class="w">     </span><span class="n">_</span><span class="w">  </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">Mathf</span><span class="p">.</span><span class="n">Pow</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="w"> </span><span class="n">gamma</span><span class="p">)</span>
+<span class="p">};</span>
+</code></pre></div></p>
+<p><strong>Benefit:</strong> For gamma=-2 (inverse-square), eliminates the <code>Pow</code> call entirely.
+Numerically identical for exact matches, zero-risk fallthrough otherwise.</p>
+<h3 id="refactor-3-fix-fieldgrid3d-boundary-miss-to-fall-through-to-source-evaluation">Refactor 3: Fix <code>FieldGrid3D</code> boundary miss to fall through to source evaluation<a class="headerlink" href="#refactor-3-fix-fieldgrid3d-boundary-miss-to-fall-through-to-source-evaluation" title="Permanent link">&para;</a></h3>
+<p><strong>Problem:</strong> When a ray leaves the grid bounds, acceleration silently becomes
+<code>Vector3.Zero</code> rather than falling through to per-source evaluation
+(<code>RayBeamRenderer.cs:2044-2048</code>). Almost certainly a bug.</p>
+<p><strong>Proposal:</strong> Change:
+<div class="highlight"><pre><span></span><code><span class="k">else</span><span class="w"> </span><span class="nf">if</span><span class="w"> </span><span class="p">(</span><span class="n">fieldGrid</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="k">null</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">fieldGridMisses</span><span class="o">++</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+to:
+<div class="highlight"><pre><span></span><code><span class="k">else</span><span class="w"> </span><span class="nf">if</span><span class="w"> </span><span class="p">(</span><span class="n">fieldGrid</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="k">null</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">fieldGridMisses</span><span class="o">++</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">hasSources</span><span class="p">)</span>
+<span class="w">        </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ComputeAccelerationAtPointSnap</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="n">fieldSnaps</span><span class="p">,</span><span class="w"> </span><span class="n">beta</span><span class="p">,</span><span class="w"> </span><span class="n">gamma</span><span class="p">,</span><span class="w"> </span><span class="n">bendScale</span><span class="p">,</span><span class="w"> </span><span class="n">fieldStrength</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<p><strong>Benefit:</strong> Eliminates rays abruptly straightening at grid edges. One-line fix with
+minimal performance impact (grid misses should be rare with proper sizing).</p>
+
+
+
+
+
+
+
+  
+    
+  
+  
+    
+  
+
+
+  <aside class="md-source-file">
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Last update">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 5, 2026 17:18:48 UTC">February 5, 2026</span>
+  </span>
+
+    
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Created">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 5, 2026 17:18:48 UTC">February 5, 2026</span>
+  </span>
+
+    
+    
+    
+  </aside>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.top", "navigation.footer", "toc.follow", "content.code.copy", "content.action.edit", "search.suggest", "search.highlight"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://unpkg.com/mermaid@10/dist/mermaid.min.js"></script>
+      
+    
+  </body>
+</html>
