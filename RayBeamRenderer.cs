@@ -2704,6 +2704,10 @@ public partial class RayBeamRenderer : Node3D
 					TraveledB = traveled,
 					RadiusBound = radiusBound
 				};
+				// TODO(metric-pass1): When Metric_NullGeodesic emits persistent MetricRayState
+				// steps, mirror this RaySeg emission through RendererCore.Transport.
+				// MetricSegmentCompatibility.BuildEmission(...) for pass-1 quick probes and
+				// pass-2 narrowphase sidecar metadata without changing RaySeg[] consumers.
 				outSegs[outOffset + written] = seg;
 				written++;
 
