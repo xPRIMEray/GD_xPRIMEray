@@ -5,6 +5,9 @@ Positioned as both a **scientific research toolkit** and an **open-source GPU/CP
 
 ---
 
+![Screenshot](icon.webp)
+
+
 ## Overview
 
 GD_xPRIMEray is a hybrid symbolic-numeric ray transport system built on Godot Engine. It augments Godot’s renderer with **curved ray physics** — enabling simulation of graded refractive media, advanced optical phenomena, and non-Euclidean propagation domains.
@@ -85,3 +88,21 @@ These are still useful for historical context and design evolution comparison.
 - The MkDocs configuration should set `docs_dir: Docs` so GitHub Actions builds from the correct capitalized folder.
 - The current navigation treats `_1` spec files as the active revised versions, while the non-`_1` files are retained as legacy baselines.
 - The current `index.md` intentionally avoids linking to non-existent assets like `icon.webp` or missing screenshot paths.
+
+
+
+---
+
+## 📄 License & Citation
+
+Licensed under MIT — recommended for both academic and creative use.
+
+If used in academic work, please cite accordingly.
+
+![Screenshot](screenshots/2026-03-01_CurvedMinimalFixture.png)
+
+![Screenshot](screenshots/2026-02-26_GenericScene-4fields-5obj.png)
+
+![Screenshot](screenshots/2026-02-26_GenericScene-4fields-5obj_camera-highmove.png)
+
+![Screenshot](screenshots/2026-02-26_GenericScene-4fields-5obj_negCurvature.png)
