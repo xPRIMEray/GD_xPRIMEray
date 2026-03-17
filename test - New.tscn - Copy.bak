@@ -1,0 +1,16 @@
+[gd_scene load_steps=3 format=3 uid="uid://ddiskekpa3p1e"]
+
+[ext_resource type="Script" uid="uid://b3y1shfx51f53" path="res://GrinFilmCamera.cs" id="1_grin"]
+[ext_resource type="Script" uid="uid://dg263rv7q0mtq" path="res://RendererCore/Testing/RenderTestRunner.cs" id="2_runner"]
+
+[node name="TestHarness" type="Node3D"]
+
+[node name="GrinFilmCamera" type="Node" parent="."]
+script = ExtResource("1_grin")
+UpdateEveryFrame = false
+
+[node name="Camera3D" type="Camera3D" parent="."]
+current = true
+
+[node name="RenderTestRunner" type="Node" parent="."]
+script = ExtResource("2_runner")

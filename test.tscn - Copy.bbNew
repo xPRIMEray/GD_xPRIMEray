@@ -1,0 +1,121 @@
+[gd_scene load_steps=7 format=3 uid="uid://t2xyvpcd8ste"]
+
+[ext_resource type="Script" uid="uid://b3y1shfx51f53" path="res://GrinFilmCamera.cs" id="1_grin"]
+[ext_resource type="Script" uid="uid://dg263rv7q0mtq" path="res://RendererCore/Testing/RenderTestRunner.cs" id="2_runner"]
+[ext_resource type="Script" uid="uid://dg2asfleehqsw" path="res://RayBeamRenderer.cs" id="3_6uqi0"]
+[ext_resource type="Script" uid="uid://c0nlk0rn3oilh" path="res://FilmOverlay2D.cs" id="4_ppyta"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_lri3f"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hbixh"]
+
+[node name="TestHarness" type="Node3D"]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+current = true
+
+[node name="GrinFilmCamera" type="Node" parent="."]
+script = ExtResource("1_grin")
+Preset = 0
+ApplyPresetOnReady = true
+QualityMode = 4
+Width = 320
+Height = 180
+FilmResolutionScale = 0.25
+SkyColor = Color(0.15517181, 0.13225737, 0.33741817, 1)
+FilmOpacity = 0.8
+ShadingMode = 1
+FlipNormalToCamera = false
+UpdateEveryFrame = false
+UpdateEveryFrameBudgetMs = 1000.0
+UpdateEveryFrameMaxRowsPerStep = 256
+RenderStepMaxMs = 10000
+RenderStepMaxSegmentsPerFrame = 50000000
+TargetMsPerFrame = 500
+EnableProfiling = false
+EnableFramePerf = false
+RenderStepPhaseLog = false
+RenderStepBandLog = false
+DebugSnapshotLog = false
+DebugProbeLog = false
+DebugGeomPruneAuditOnlyWhenCandidateZero = false
+AutoRangeMin = 0.01
+Pass1DoHitTest = false
+BroadphasePolicy = 2
+UseBroadphasePolicy = true
+BroadphaseMargin = 0.1
+BroadphaseMaxResults = 16
+UsePass2CollisionStride = true
+MinSegLenForStrideSkip = 0.25
+Pass2GeomEnvelopeRadiusScale = 1.02
+Pass2GeomEnvelopeAabbExpand = 0.01
+Pass2HitBackFaces = true
+Pass2ForceIfPrevHitLost = true
+Pass2SoftGateEnableQuickRayMiss = true
+DisableSoftGateOnOverload = false
+Pass2SoftGateWatchdogMs = 5000.0
+Pass2SoftGateScoringEnabled = false
+Pass2SoftGateDebugEnabled = false
+RayBeamRendererPath = NodePath("../RayBeamRenderer")
+FilmViewPath = NodePath("../CanvasLayer/FilmView")
+FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
+
+[node name="RayBeamRenderer" type="Node3D" parent="."]
+visible = false
+script = ExtResource("3_6uqi0")
+CameraPath = NodePath("../Camera3D")
+StepsPerRay = 400
+StepLength = 0.05
+MinStepLength = 0.001
+MaxStepLength = 0.3
+LowCurvaturePerpAccel = 0.3
+BendScale = 1.0
+FieldCenter = Vector3(0, 1.5, 0)
+FieldCenterIsCamera = false
+DebugMode = 0
+DebugNormalLen = 0.295
+Alpha = 1.0
+UpdateEveryFrame = false
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+layer = -2
+
+[node name="FilmView" type="TextureRect" parent="CanvasLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_behavior_recursive = 1
+metadata/_edit_use_anchors_ = true
+
+[node name="FilmOverlay2D" type="TextureRect" parent="CanvasLayer"]
+modulate = Color(1, 1, 1, 0.60784316)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_behavior_recursive = 1
+script = ExtResource("4_ppyta")
+CameraPath = NodePath("../../Camera3D")
+DrawFilmGradientNormals = true
+RayWidth = 2.0
+FilmGradientScale = 30.0
+metadata/_edit_use_anchors_ = true
+
+[node name="RenderTestRunner" type="Node" parent="."]
+script = ExtResource("2_runner")
+AutoStart = true
+AutoQuitOnComplete = true
+FramesPerRun = 30
+WarmupFrames = 3
+
+[node name="TestTarget" type="StaticBody3D" parent="."]
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, -5)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TestTarget"]
+mesh = SubResource("BoxMesh_lri3f")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TestTarget"]
+shape = SubResource("BoxShape3D_hbixh")

@@ -1,0 +1,1747 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Curved Ray Transport Engine for GRIN Fields (Godot 4.x) — hybrid symbolic–numeric propagation.">
+      
+      
+        <meta name="author" content="AetherTopologist">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>xPRIMEray Architecture Charter - GD_xPRIMEray</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#xprimeray-architecture-charter" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="GD_xPRIMEray" class="md-header__button md-logo" aria-label="GD_xPRIMEray" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            GD_xPRIMEray
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              xPRIMEray Architecture Charter
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/AetherTopologist/GD_xPRIMEray" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    AetherTopologist/GD_xPRIMEray
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/" class="md-tabs__link">
+          
+  
+  
+  Core
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../VALIDATION_INDEX/" class="md-tabs__link">
+          
+  
+  
+  Verification
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../SPEC_INDEX/" class="md-tabs__link">
+          
+  
+  
+  Project
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="GD_xPRIMEray" class="md-nav__button md-logo" aria-label="GD_xPRIMEray" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    GD_xPRIMEray
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/AetherTopologist/GD_xPRIMEray" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    AetherTopologist/GD_xPRIMEray
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Core
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture_overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../spec_metric_models_grin_vs_gordon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metric Models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../spec_ray_transport_interfaces_1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transport Interfaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../metric_null_geodesic_param_map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metric Param Map
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../metric_transport_nextgen_roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metric Transport Next-Gen Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../black_hole_optical_texture_reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Black Hole Optical Texture Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../spec_fieldsource3d_canonical_params_1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FieldSource3D Params
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verification
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Verification
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../VALIDATION_INDEX/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Project
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../SPEC_INDEX/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#v3-chatclaudecoherencepass1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v3-ChatClaudeCoherencePass1
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0-document-status-and-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0. Document Status and Conventions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-executive-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Executive Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-high-level-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. High-Level Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-core-design-principles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Core Design Principles
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Core Design Principles">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-euclidean-geometry-curved-transport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Euclidean Geometry, Curved Transport
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-effectiveconfig-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 EffectiveConfig Contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-host-agnostic-core" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Host-Agnostic Core
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-module-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Module Map
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Module Map">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#renderercore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RendererCore
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adapters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adapters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-scenesnapshot-data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. SceneSnapshot Data Model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-transport-fidelity-tiers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Transport Fidelity Tiers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Transport Fidelity Tiers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tier-0-grin-optical-transport-implemented" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tier 0 — GRIN Optical Transport (Implemented)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tier-1-effective-metric-transport-partial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tier 1 — Effective Metric Transport (Partial)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tier-2-full-null-geodesics-planned" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tier 2 — Full Null Geodesics (Planned)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tier-3-exotic-metrics-planned" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tier 3 — Exotic Metrics (Planned)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-ray-representation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Ray Representation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-rendering-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Rendering Pipeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Rendering Pipeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pass-1-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pass 1 — Integration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pass-2-intersection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pass 2 — Intersection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shading
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-scheduling-and-concurrency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Scheduling and Concurrency
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-telemetry-and-debugging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Telemetry and Debugging
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-research-mode-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Research Mode System
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="11. Research Mode System">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#current-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current Implementation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#planned-extensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Planned Extensions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-wormholes-and-multi-chart-transport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Wormholes and Multi-Chart Transport
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-roadmap-truth-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Roadmap Truth Table
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-spec-document-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. Spec Document Integration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-stability-declaration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. Stability Declaration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16-closing-statement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16. Closing Statement
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/AetherTopologist/GD_xPRIMEray/edit/main/docs/_Archive/_xPRIMEray_arch_charter_MASTER_v3-ChatClaudeCoherencePass1.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="xprimeray-architecture-charter">xPRIMEray Architecture Charter<a class="headerlink" href="#xprimeray-architecture-charter" title="Permanent link">&para;</a></h1>
+<h2 id="v3-chatclaudecoherencepass1">v3-ChatClaudeCoherencePass1<a class="headerlink" href="#v3-chatclaudecoherencepass1" title="Permanent link">&para;</a></h2>
+<p>A unified master architecture charter merging implementation reality and forward academic architecture for the xPRIMEray curved-ray renderer.</p>
+<hr />
+<h2 id="0-document-status-and-conventions">0. Document Status and Conventions<a class="headerlink" href="#0-document-status-and-conventions" title="Permanent link">&para;</a></h2>
+<p>This document is the coherence merge of prior architecture drafts:</p>
+<ul>
+<li>v0–v2 Chat lineage (implementation-anchored)</li>
+<li>v2 Claude lineage (architecture-clean, research-forward)</li>
+</ul>
+<p>Status markers:</p>
+<ul>
+<li><strong>Implemented</strong> — present in current codebase</li>
+<li><strong>Partial</strong> — scaffold exists, incomplete behavior</li>
+<li><strong>Planned</strong> — architectural intent only</li>
+</ul>
+<p>Detailed mechanics live in <code>/Docs/spec_*.md</code>. This charter defines system shape, not low-level algorithms.</p>
+<hr />
+<h2 id="1-executive-summary">1. Executive Summary<a class="headerlink" href="#1-executive-summary" title="Permanent link">&para;</a></h2>
+<p>xPRIMEray is a curved-ray film renderer embedded in Godot 4 that separates:</p>
+<p>Euclidean scene geometry<br />
+from<br />
+non-Euclidean ray transport</p>
+<p>Rays are integrated as piecewise segment chains and intersected against standard scene geometry through a host-agnostic architecture.</p>
+<p>The system is designed to scale from:</p>
+<ul>
+<li>GRIN optical curvature</li>
+<li>effective metric optics</li>
+<li>full relativistic geodesics</li>
+<li>exotic spacetime mappings (wormholes)</li>
+</ul>
+<p>without rewriting downstream collision or shading pipelines.</p>
+<hr />
+<h2 id="2-high-level-architecture">2. High-Level Architecture<a class="headerlink" href="#2-high-level-architecture" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>Godot Scene
+(FieldSource3D, Geometry, Camera)
+    ↓
+SnapshotBuilder.BuildFromGodotScene()
+    ↓
+SceneSnapshot
+(FieldSOA, GeometrySOA, TLAS, CurvatureGrid)
+    ↓
+FrameSnapshotBus.Publish
+    ↓
+GrinFilmCamera.RenderStep()
+
+Pass 1: Curved ray integration
+Pass 2: Broadphase prune → narrowphase hit
+Shading &amp; film output
+</code></pre></div>
+<p>Key property:</p>
+<p>Transport is engine-agnostic. Geometry queries are adapter-based.</p>
+<hr />
+<h2 id="3-core-design-principles">3. Core Design Principles<a class="headerlink" href="#3-core-design-principles" title="Permanent link">&para;</a></h2>
+<h3 id="31-euclidean-geometry-curved-transport">3.1 Euclidean Geometry, Curved Transport<a class="headerlink" href="#31-euclidean-geometry-curved-transport" title="Permanent link">&para;</a></h3>
+<p>Scene meshes remain standard R^3 geometry.</p>
+<p>Curvature exists only in the ray integrator.</p>
+<p>This guarantees:</p>
+<ul>
+<li>compatibility with existing physics engines</li>
+<li>portable geometry backends</li>
+<li>clean separation of concerns</li>
+</ul>
+<hr />
+<h3 id="32-effectiveconfig-contract">3.2 EffectiveConfig Contract<a class="headerlink" href="#32-effectiveconfig-contract" title="Permanent link">&para;</a></h3>
+<p><code>ResolveEffectiveConfig()</code> produces a frozen configuration snapshot consumed by <code>RenderStep()</code>.</p>
+<p>This is the primary control surface for:</p>
+<ul>
+<li>runtime tuning</li>
+<li>research overrides</li>
+<li>deterministic replay</li>
+<li>academic validation</li>
+</ul>
+<p>No dynamic mutation outside this contract.</p>
+<hr />
+<h3 id="33-host-agnostic-core">3.3 Host-Agnostic Core<a class="headerlink" href="#33-host-agnostic-core" title="Permanent link">&para;</a></h3>
+<p>RendererCore is designed to run without Godot dependencies.</p>
+<p>Godot acts as an adapter layer:</p>
+<ul>
+<li>scene extraction</li>
+<li>geometry queries</li>
+<li>final display</li>
+</ul>
+<p>Future backends may replace Godot physics.</p>
+<hr />
+<h2 id="4-module-map">4. Module Map<a class="headerlink" href="#4-module-map" title="Permanent link">&para;</a></h2>
+<h3 id="renderercore">RendererCore<a class="headerlink" href="#renderercore" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Status</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SceneSnapshot</td>
+<td>Implemented</td>
+<td>Immutable per-frame data</td>
+</tr>
+<tr>
+<td>Fields</td>
+<td>Implemented</td>
+<td>Field evaluation and TLAS</td>
+</tr>
+<tr>
+<td>Geometry</td>
+<td>Implemented</td>
+<td>Geometry TLAS</td>
+</tr>
+<tr>
+<td>Integrators</td>
+<td>Partial</td>
+<td>Ray stepping logic</td>
+</tr>
+<tr>
+<td>Config</td>
+<td>Partial</td>
+<td>ResearchMode system</td>
+</tr>
+<tr>
+<td>Transport</td>
+<td>Planned</td>
+<td>Transport abstraction layer</td>
+</tr>
+<tr>
+<td>Acceleration</td>
+<td>Partial</td>
+<td>Broadphase structures</td>
+</tr>
+<tr>
+<td>Scheduler</td>
+<td>Partial</td>
+<td>Frame execution model</td>
+</tr>
+</tbody>
+</table>
+<h3 id="adapters">Adapters<a class="headerlink" href="#adapters" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Status</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GodotAdapter</td>
+<td>Implemented</td>
+<td>Scene extraction and collision</td>
+</tr>
+<tr>
+<td>RenderBackends</td>
+<td>Partial</td>
+<td>Film output pipeline</td>
+</tr>
+</tbody>
+</table>
+<p>See also:</p>
+<ul>
+<li><code>spec_scene_snapshot_data_layout.md</code></li>
+<li><code>spec_bvh_acceleration.md</code></li>
+</ul>
+<hr />
+<h2 id="5-scenesnapshot-data-model">5. SceneSnapshot Data Model<a class="headerlink" href="#5-scenesnapshot-data-model" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="k">public</span><span class="w"> </span><span class="k">sealed</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">SceneSnapshot</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="n">InstanceSOA</span><span class="w"> </span><span class="n">Instances</span><span class="p">;</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="n">FieldEntitySOA</span><span class="w"> </span><span class="n">Fields</span><span class="p">;</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="n">PackedParamBuffer</span><span class="w"> </span><span class="n">FieldParams</span><span class="p">;</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="n">FieldTLAS</span><span class="w"> </span><span class="n">FieldTLAS</span><span class="p">;</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="n">GeometryEntitySOA</span><span class="w"> </span><span class="n">Geometry</span><span class="p">;</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="n">GeometryTLAS</span><span class="w"> </span><span class="n">GeometryTLAS</span><span class="p">;</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="n">CurvatureBoundGrid</span><span class="w"> </span><span class="n">CurvatureGrid</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Properties:</p>
+<ul>
+<li>immutable per frame</li>
+<li>cache-friendly structure-of-arrays</li>
+<li>portable across engines</li>
+</ul>
+<hr />
+<h2 id="6-transport-fidelity-tiers">6. Transport Fidelity Tiers<a class="headerlink" href="#6-transport-fidelity-tiers" title="Permanent link">&para;</a></h2>
+<h3 id="tier-0-grin-optical-transport-implemented">Tier 0 — GRIN Optical Transport (Implemented)<a class="headerlink" href="#tier-0-grin-optical-transport-implemented" title="Permanent link">&para;</a></h3>
+<p>Vector curvature fields bend rays through local acceleration.</p>
+<h3 id="tier-1-effective-metric-transport-partial">Tier 1 — Effective Metric Transport (Partial)<a class="headerlink" href="#tier-1-effective-metric-transport-partial" title="Permanent link">&para;</a></h3>
+<p>Gordon metric style optical analogs.</p>
+<h3 id="tier-2-full-null-geodesics-planned">Tier 2 — Full Null Geodesics (Planned)<a class="headerlink" href="#tier-2-full-null-geodesics-planned" title="Permanent link">&para;</a></h3>
+<p>Metric plus Christoffel integration.</p>
+<h3 id="tier-3-exotic-metrics-planned">Tier 3 — Exotic Metrics (Planned)<a class="headerlink" href="#tier-3-exotic-metrics-planned" title="Permanent link">&para;</a></h3>
+<p>Wormholes and spacetime atlases.</p>
+<p>Transport interface design:</p>
+<div class="highlight"><pre><span></span><code>IRayTransport
+IIntegrator
+IMetricField
+</code></pre></div>
+<p>See: <code>spec_metric_models_grin_vs_gordon.md</code></p>
+<hr />
+<h2 id="7-ray-representation">7. Ray Representation<a class="headerlink" href="#7-ray-representation" title="Permanent link">&para;</a></h2>
+<p>Core primitive:</p>
+<div class="highlight"><pre><span></span><code><span class="k">struct</span><span class="w"> </span><span class="nc">RaySeg</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">Vector3</span><span class="w"> </span><span class="n">A</span><span class="p">;</span>
+<span class="w">    </span><span class="n">Vector3</span><span class="w"> </span><span class="n">B</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">TraveledB</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">RadiusBound</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Segment envelopes drive broadphase pruning.</p>
+<p>Adaptive integration is curvature-aware.</p>
+<hr />
+<h2 id="8-rendering-pipeline">8. Rendering Pipeline<a class="headerlink" href="#8-rendering-pipeline" title="Permanent link">&para;</a></h2>
+<h3 id="pass-1-integration">Pass 1 — Integration<a class="headerlink" href="#pass-1-integration" title="Permanent link">&para;</a></h3>
+<ul>
+<li>parallel segment generation</li>
+<li>curvature-adaptive stepping</li>
+</ul>
+<h3 id="pass-2-intersection">Pass 2 — Intersection<a class="headerlink" href="#pass-2-intersection" title="Permanent link">&para;</a></h3>
+<ul>
+<li>TLAS pruning</li>
+<li>host narrowphase</li>
+<li>hit filtering</li>
+</ul>
+<h3 id="shading">Shading<a class="headerlink" href="#shading" title="Permanent link">&para;</a></h3>
+<ul>
+<li>film accumulation</li>
+<li>debug overlays</li>
+</ul>
+<p>See: <code>spec_curved_ray_chunks.md</code></p>
+<hr />
+<h2 id="9-scheduling-and-concurrency">9. Scheduling and Concurrency<a class="headerlink" href="#9-scheduling-and-concurrency" title="Permanent link">&para;</a></h2>
+<p>Current model:</p>
+<ul>
+<li>Pass 1: parallel CPU integration</li>
+<li>Pass 2: main-thread geometry queries</li>
+</ul>
+<p>Guard rails:</p>
+<ul>
+<li>frame budgets</li>
+<li>watchdog timers</li>
+<li>re-entry protection</li>
+</ul>
+<p>Future direction:</p>
+<ul>
+<li>task graph scheduler</li>
+<li>decoupled execution model</li>
+</ul>
+<p>See: <code>spec_scheduler_task_graph.md</code></p>
+<hr />
+<h2 id="10-telemetry-and-debugging">10. Telemetry and Debugging<a class="headerlink" href="#10-telemetry-and-debugging" title="Permanent link">&para;</a></h2>
+<p>Instrumentation includes:</p>
+<ul>
+<li><code>PerfScope</code> timing</li>
+<li>segment statistics</li>
+<li>field visualization</li>
+<li>pruning analytics</li>
+</ul>
+<p>Designed for:</p>
+<ul>
+<li>tuning performance</li>
+<li>validating physics</li>
+<li>research reproducibility</li>
+</ul>
+<hr />
+<h2 id="11-research-mode-system">11. Research Mode System<a class="headerlink" href="#11-research-mode-system" title="Permanent link">&para;</a></h2>
+<h3 id="current-implementation">Current Implementation<a class="headerlink" href="#current-implementation" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>ResearchModeConfig</code></li>
+<li><code>ResearchModeOverrides</code></li>
+<li>merge into EffectiveConfig</li>
+<li>deterministic seed enforcement</li>
+<li>raymarch clamp guards</li>
+</ul>
+<h3 id="planned-extensions">Planned Extensions<a class="headerlink" href="#planned-extensions" title="Permanent link">&para;</a></h3>
+<ul>
+<li>error-bounded integrators</li>
+<li>invariant preservation</li>
+<li>validation harness</li>
+<li>benchmark scenes</li>
+</ul>
+<p>See: <code>spec_research_mode.md</code> (planned)</p>
+<hr />
+<h2 id="12-wormholes-and-multi-chart-transport">12. Wormholes and Multi-Chart Transport<a class="headerlink" href="#12-wormholes-and-multi-chart-transport" title="Permanent link">&para;</a></h2>
+<p>Wormholes are treated as spacetime atlas mapping problems, not non-Euclidean meshes.</p>
+<p>Required abstractions:</p>
+<ul>
+<li>chart mapping</li>
+<li>region dispatch</li>
+<li>throat recursion</li>
+</ul>
+<p>Interfaces:</p>
+<div class="highlight"><pre><span></span><code>IChartMap
+IRaySampler
+</code></pre></div>
+<p>See: <code>spec_wormhole_scene_graph.md</code> (planned)</p>
+<hr />
+<h2 id="13-roadmap-truth-table">13. Roadmap Truth Table<a class="headerlink" href="#13-roadmap-truth-table" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Current State</th>
+<th>Next Step</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Internal BLAS</td>
+<td>Uses Godot physics</td>
+<td>Implement core BLAS</td>
+</tr>
+<tr>
+<td>Scheduler graph</td>
+<td>Partial</td>
+<td>Extract scheduler</td>
+</tr>
+<tr>
+<td>Tiered integrators</td>
+<td>Partial</td>
+<td>RK45 and symplectic</td>
+</tr>
+<tr>
+<td>Research harness</td>
+<td>Planned</td>
+<td>Add validation suite</td>
+</tr>
+<tr>
+<td>Wormhole support</td>
+<td>Planned</td>
+<td>Chart mapping layer</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="14-spec-document-integration">14. Spec Document Integration<a class="headerlink" href="#14-spec-document-integration" title="Permanent link">&para;</a></h2>
+<p>This charter delegates deep mechanics to:</p>
+<ul>
+<li><code>spec_scene_snapshot_data_layout.md</code></li>
+<li><code>spec_bvh_acceleration.md</code></li>
+<li><code>spec_metric_models_grin_vs_gordon.md</code></li>
+<li><code>spec_scheduler_task_graph.md</code></li>
+<li><code>spec_curved_ray_chunks.md</code></li>
+<li><code>spec_research_mode.md</code> (future)</li>
+<li><code>spec_wormhole_scene_graph.md</code> (future)</li>
+</ul>
+<p>These specs are authoritative implementation references.</p>
+<hr />
+<h2 id="15-stability-declaration">15. Stability Declaration<a class="headerlink" href="#15-stability-declaration" title="Permanent link">&para;</a></h2>
+<p>v3-ChatClaudeCoherencePass1 represents:</p>
+<ul>
+<li>removal of duplicated architecture sections</li>
+<li>alignment of implementation and research goals</li>
+<li>stable naming and module boundaries</li>
+<li>forward-compatible expansion path</li>
+</ul>
+<p>Future revisions should extend specs rather than restructure this charter.</p>
+<hr />
+<h2 id="16-closing-statement">16. Closing Statement<a class="headerlink" href="#16-closing-statement" title="Permanent link">&para;</a></h2>
+<p>xPRIMEray is positioned as:</p>
+<p>a bridge between real-time rendering and academic gravitational optics.</p>
+<p>The architecture supports incremental advancement from practical GRIN rendering toward full spacetime simulation without breaking the engine core.</p>
+
+
+
+
+
+
+
+  
+    
+  
+  
+    
+  
+
+
+  <aside class="md-source-file">
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Last update">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 13, 2026 23:52:04 UTC">February 13, 2026</span>
+  </span>
+
+    
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Created">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 13, 2026 23:52:04 UTC">February 13, 2026</span>
+  </span>
+
+    
+    
+    
+  </aside>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.top", "navigation.footer", "toc.follow", "content.code.copy", "content.action.edit", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://unpkg.com/mermaid@10/dist/mermaid.min.js"></script>
+      
+    
+  </body>
+</html>

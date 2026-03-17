@@ -1,0 +1,18 @@
+/* arXiv-ish typography */
+.md-typeset {
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+/* Make images look like figures */
+.md-typeset img {
+  border: 1px solid rgba(0,0,0,0.25);
+  padding: 8px;
+  background: white;
+}
+
+/* Optional: caption style if you use <figcaption> */
+.md-typeset figcaption {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}

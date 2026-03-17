@@ -1,0 +1,2730 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Curved Ray Transport Engine for GRIN Fields (Godot 4.x) — hybrid symbolic–numeric propagation.">
+      
+      
+        <meta name="author" content="AetherTopologist">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>xPRIMEray — Curved-Ray Renderer Architecture Charter - GD_xPRIMEray</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#xprimeray-curved-ray-renderer-architecture-charter" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="GD_xPRIMEray" class="md-header__button md-logo" aria-label="GD_xPRIMEray" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            GD_xPRIMEray
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              xPRIMEray — Curved-Ray Renderer Architecture Charter
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/AetherTopologist/GD_xPRIMEray" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    AetherTopologist/GD_xPRIMEray
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/" class="md-tabs__link">
+          
+  
+  
+  Core
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../VALIDATION_INDEX/" class="md-tabs__link">
+          
+  
+  
+  Verification
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../SPEC_INDEX/" class="md-tabs__link">
+          
+  
+  
+  Project
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="GD_xPRIMEray" class="md-nav__button md-logo" aria-label="GD_xPRIMEray" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    GD_xPRIMEray
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/AetherTopologist/GD_xPRIMEray" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    AetherTopologist/GD_xPRIMEray
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Core
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture_overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../spec_metric_models_grin_vs_gordon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metric Models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../spec_ray_transport_interfaces_1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transport Interfaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../metric_null_geodesic_param_map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metric Param Map
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../metric_transport_nextgen_roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metric Transport Next-Gen Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../black_hole_optical_texture_reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Black Hole Optical Texture Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../spec_fieldsource3d_canonical_params_1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FieldSource3D Params
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verification
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Verification
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../VALIDATION_INDEX/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Project
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../SPEC_INDEX/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#0-document-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0) Document Conventions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-executive-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1) Executive Summary
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1) Executive Summary">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-is-real-today" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Is Real Today
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-this-engine-is-not-today" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What This Engine Is Not (Today)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#governing-physical-principle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Governing Physical Principle
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-architecture-at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2) Architecture at a Glance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-core-design-principles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3) Core Design Principles
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3) Core Design Principles">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-snapshot-immutability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Snapshot Immutability
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-data-oriented-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Data-Oriented Layout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-determinism-and-threading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Determinism and Threading
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-euclidean-geometry-non-euclidean-light-separation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 Euclidean-Geometry / Non-Euclidean-Light Separation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-module-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4) Module Map
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4) Module Map">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#renderercore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RendererCore/
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#renderbackends" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RenderBackends/
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#godotadapter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GodotAdapter/
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#root-level-runtime-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Root-Level Runtime Nodes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5) Data Model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5) Data Model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-scenesnapshot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 SceneSnapshot
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-per-frame-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Per-Frame Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-coordinate-spaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6) Coordinate Spaces
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-field-and-metric-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7) Field and Metric System
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7) Field and Metric System">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-current-implementation-tier-0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 Current Implementation (Tier 0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-transport-tier-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 Transport Tier Roadmap
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-gordon-metric-as-adapter-clarification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3 Gordon Metric as Adapter (Clarification)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-curved-ray-representation-and-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8) Curved Ray Representation and Integration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8) Curved Ray Representation and Integration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81-segment-struct" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1 Segment Struct
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82-current-integration-tier-0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2 Current Integration (Tier 0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#83-segment-cadence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.3 Segment Cadence
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-acceleration-structures-and-intersection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9) Acceleration Structures and Intersection
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9) Acceleration Structures and Intersection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91-tlas-implemented" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 TLAS (Implemented)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#92-narrowphase-current-godot-physics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.2 Narrowphase (Current: Godot Physics)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#93-blas-planned" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.3 BLAS (Planned)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-scheduling-and-concurrency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10) Scheduling and Concurrency
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10) Scheduling and Concurrency">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#current-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current Model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#budget-and-watchdog-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Budget and Watchdog System
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#planned-task-graph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Planned: Task Graph
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-rendering-backends-and-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11) Rendering Backends and Output
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-telemetry-and-debugging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12) Telemetry and Debugging
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-portability-and-academic-upgrade-interfaces-planned" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13) Portability and Academic Upgrade Interfaces (Planned)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="13) Portability and Academic Upgrade Interfaces (Planned)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#131-iraytransport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.1 IRayTransport
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#132-imetricfield" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.2 IMetricField
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#133-iintegrator-tiered" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.3 IIntegrator (Tiered)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#134-igeometryqueryprovider" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.4 IGeometryQueryProvider
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#135-icameramodelprovider" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.5 ICameraModelProvider
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#136-adoption-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.6 Adoption Strategy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-research-mode-planned" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14) Research Mode (Planned)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="14) Research Mode (Planned)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#141-purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.1 Purpose
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#142-config-surface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.2 Config Surface
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#143-tiers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.3 Tiers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#144-determinism-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.4 Determinism Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#145-validation-harness-planned" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.5 Validation Harness (Planned)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-wormhole-and-multi-chart-system-planned" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15) Wormhole and Multi-Chart System (Planned)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="15) Wormhole and Multi-Chart System (Planned)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#151-physics-basis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15.1 Physics Basis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#152-planned-interfaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15.2 Planned Interfaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#153-scene-hierarchy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15.3 Scene Hierarchy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#154-throat-rendering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15.4 Throat Rendering
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16) Roadmap
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="16) Roadmap">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#161-reality-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16.1 Reality Check
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#162-phase-1-foundation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16.2 Phase 1 — Foundation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#163-phase-2-academic-metrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16.3 Phase 2 — Academic Metrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#164-phase-3-exotic-transport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16.4 Phase 3 — Exotic Transport
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#17-glossary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17) Glossary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#18-reference-specs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18) Reference Specs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#19-bibliography" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        19) Bibliography
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#appendix-a-critique-of-prior-versions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Appendix A) Critique of Prior Versions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Appendix A) Critique of Prior Versions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#v2-chatgpt-merge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2 (ChatGPT Merge)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v3-claude-45-sonnet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v3 (Claude 4.5 / Sonnet)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/AetherTopologist/GD_xPRIMEray/edit/main/docs/_Archive/_xPRIMEray_arch_charter_v2-Claude46.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="xprimeray-curved-ray-renderer-architecture-charter">xPRIMEray — Curved-Ray Renderer Architecture Charter<a class="headerlink" href="#xprimeray-curved-ray-renderer-architecture-charter" title="Permanent link">&para;</a></h1>
+<p><strong>Version:</strong> v2-Claude4.6 · <strong>Date:</strong> 2026-02-13
+<strong>Lineage:</strong> Consolidation of v0 (code-grounded baseline), v1 (gravity/academic extensions), v2 (ChatGPT merge)
+<strong>Review of:</strong> v3-Claude4.5 (Sonnet consolidation attempt — see §A for critique)</p>
+<hr />
+<h2 id="0-document-conventions">0) Document Conventions<a class="headerlink" href="#0-document-conventions" title="Permanent link">&para;</a></h2>
+<p>This charter distinguishes three epistemic states for every claim:</p>
+<ul>
+<li><strong>Implemented</strong> — the code path exists and executes in the current build.</li>
+<li><strong>Stubbed</strong> — types or folders exist but contain no substantive logic.</li>
+<li><strong>Planned</strong> — described in this charter or subordinate specs; no code yet.</li>
+</ul>
+<p>Source anchors cite the file where a reader can verify the claim. Where a section
+covers planned work, it is labelled explicitly. The charter never claims planned
+interfaces as implemented.</p>
+<hr />
+<h2 id="1-executive-summary">1) Executive Summary<a class="headerlink" href="#1-executive-summary" title="Permanent link">&para;</a></h2>
+<p>xPRIMEray is a curved-ray film renderer embedded in Godot 4 / C#. It produces
+images by integrating rays through spatially varying fields and testing the
+resulting piecewise-linear segment chains against scene geometry.</p>
+<h3 id="what-is-real-today">What Is Real Today<a class="headerlink" href="#what-is-real-today" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Subsystem</th>
+<th>Status</th>
+<th>Key entry point</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Curved-ray segment integration (GRIN + analytic bend)</td>
+<td>Implemented</td>
+<td><code>RayBeamRenderer.BuildRaySegmentsCamera_Pass1</code></td>
+</tr>
+<tr>
+<td>Two-pass film pipeline (parallel Pass-1, main-thread Pass-2)</td>
+<td>Implemented</td>
+<td><code>GrinFilmCamera.RenderStep()</code></td>
+</tr>
+<tr>
+<td>Scene snapshot with SOA field/geometry + packed params</td>
+<td>Implemented</td>
+<td><code>SnapshotBuilder.BuildFromGodotScene</code></td>
+</tr>
+<tr>
+<td>Field TLAS + Geometry TLAS (BVH broadphase)</td>
+<td>Implemented</td>
+<td><code>FieldTLAS</code>, <code>GeometryTLAS</code></td>
+</tr>
+<tr>
+<td>Curvature bound grid for envelope radius</td>
+<td>Implemented</td>
+<td><code>CurvatureBoundGrid.BuildAroundCamera</code></td>
+</tr>
+<tr>
+<td>Pass-2 narrowphase via Godot physics</td>
+<td>Implemented</td>
+<td><code>IntersectRay</code>, <code>IntersectShape</code>, <code>CastMotion</code></td>
+</tr>
+<tr>
+<td>Budget/watchdog/telemetry framework</td>
+<td>Implemented</td>
+<td><code>GrinFilmCamera</code> + <code>PerfScope</code> + <code>PerfStats</code></td>
+</tr>
+<tr>
+<td>Backend dispatch (Legacy/Core/Compare)</td>
+<td>Implemented (Legacy only produces output)</td>
+<td><code>RenderFrameBackend</code></td>
+</tr>
+<tr>
+<td>GRIN + GordonMetric field models</td>
+<td>Implemented (direction-sign flip)</td>
+<td><code>FieldSystem.AccelAt</code></td>
+</tr>
+<tr>
+<td>Internal BLAS / triangle intersection</td>
+<td>Stubbed (<code>RendererCore/Accel/</code> empty)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Task-graph scheduler</td>
+<td>Stubbed (<code>RendererCore/Scheduler/</code> empty)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>CoreBackend rendering</td>
+<td>Stubbed (prints summary only)</td>
+<td><code>CoreBackend.RenderFrame</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="what-this-engine-is-not-today">What This Engine Is Not (Today)<a class="headerlink" href="#what-this-engine-is-not-today" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Not a fully internal intersection stack — Pass-2 narrowphase is Godot physics.</li>
+<li>Not a general-relativity geodesic integrator — transport is 3-vector field acceleration, not 4-vector geodesic ODE.</li>
+<li>Not a multi-scene wormhole renderer — no chart atlas, no portal compositing.</li>
+</ul>
+<h3 id="governing-physical-principle">Governing Physical Principle<a class="headerlink" href="#governing-physical-principle" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p><strong>Euclidean scene geometry, non-Euclidean light transport.</strong></p>
+<p>All meshes, colliders, and AABBs live in standard ℝ³. Curvature is encoded
+entirely in the ray transport law. The broadphase and narrowphase pipelines
+are metric-agnostic: they receive segment chains and test them against
+Euclidean geometry regardless of what stepping law produced those segments.</p>
+</blockquote>
+<p>This matches the standard pattern in gravitational-optics rendering (James et al. 2015;
+Müller &amp; Grave 2009): integrate rays in a curved manifold, intersect against
+embedded Euclidean surfaces.</p>
+<hr />
+<h2 id="2-architecture-at-a-glance">2) Architecture at a Glance<a class="headerlink" href="#2-architecture-at-a-glance" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>Godot scene tree
+  → SnapshotBuilder.BuildFromGodotScene(...)
+      → SceneSnapshot { Fields, FieldParams, FieldTLAS, Geometry, GeometryTLAS }
+      → CurvatureBoundGrid (camera-centred, added by RenderFrameBackend)
+      → FrameSnapshotBus.Set(snapshot, frameId)
+
+GrinFilmCamera._Process → RenderFrameBackend(delta)
+  ├─ BackendMode.Legacy:
+  │    LegacyBackend.RenderFrame(snapshot)
+  │      → GrinFilmCamera.RenderStep()
+  │          Pass-1 (Parallel.For per pixel): segment integration
+  │          Pass-2 (main thread): broadphase + Godot narrowphase + shading
+  │          → Image → ImageTexture → TextureRect / FilmOverlay2D
+  │
+  ├─ BackendMode.Core:
+  │    CoreBackend.RenderFrame(snapshot)   // summary print only
+  │    LegacyBackend.RenderFrame(snapshot) // still produces output
+  │
+  └─ BackendMode.Compare:
+       LegacyBackend.RenderFrame(snapshot) // TODO: real compare mode
+</code></pre></div>
+<p><code>GrinFilmCamera.RenderStep()</code> is the <strong>primary frame render trigger</strong>. All
+future refactoring must preserve it as the clean boundary between:</p>
+<ul>
+<li><strong>engine-agnostic transport</strong> (RendererCore-owned), and</li>
+<li><strong>engine-specific geometry queries</strong> (Godot today, replaceable).</li>
+</ul>
+<p>Source anchors: <code>GrinFilmCamera.cs</code>, <code>GodotAdapter/SnapshotBuilder.cs</code>,
+<code>RenderBackends/LegacyBackend.cs</code>, <code>RenderBackends/CoreBackend.cs</code>.</p>
+<hr />
+<h2 id="3-core-design-principles">3) Core Design Principles<a class="headerlink" href="#3-core-design-principles" title="Permanent link">&para;</a></h2>
+<h3 id="31-snapshot-immutability">3.1 Snapshot Immutability<a class="headerlink" href="#31-snapshot-immutability" title="Permanent link">&para;</a></h3>
+<p><code>SceneSnapshot</code> is rebuilt every frame via <code>SnapshotBuilder.BuildFromGodotScene</code>.
+Properties are <code>init</code>-set. Consumers treat all arrays as read-only for the frame
+lifetime. Immutability is enforced by convention, not deep wrappers.</p>
+<h3 id="32-data-oriented-layout">3.2 Data-Oriented Layout<a class="headerlink" href="#32-data-oriented-layout" title="Permanent link">&para;</a></h3>
+<p>Field and geometry data are stored as struct-of-arrays (<code>FieldEntitySOA</code>,
+<code>GeometryEntitySOA</code>) with a contiguous <code>PackedParamBuffer</code> for field parameters.
+TLAS node arrays are flat for stack-based traversal.</p>
+<h3 id="33-determinism-and-threading">3.3 Determinism and Threading<a class="headerlink" href="#33-determinism-and-threading" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Snapshot extraction order is stabilised by <code>string.CompareOrdinal</code> on node paths.</li>
+<li>Pass-1 is <code>Parallel.For</code> per pixel (disjoint output indices, <code>Interlocked</code> counter merges).</li>
+<li>Pass-2 is main-thread (Godot <code>DirectSpaceState</code> is not thread-safe).</li>
+<li><code>RenderStep</code> has an <code>Interlocked</code> re-entry guard.</li>
+<li>SoftGate random probing uses <code>_rng.Randf()</code> — full determinism requires suppressing this.</li>
+</ul>
+<h3 id="34-euclidean-geometry-non-euclidean-light-separation">3.4 Euclidean-Geometry / Non-Euclidean-Light Separation<a class="headerlink" href="#34-euclidean-geometry-non-euclidean-light-separation" title="Permanent link">&para;</a></h3>
+<p>See §1 governing principle. This is not merely a design goal — it is an
+architectural invariant. The geometry TLAS, the narrowphase queries, and the
+film shading pipeline must never need to know which transport model produced
+the segment chain they are consuming.</p>
+<hr />
+<h2 id="4-module-map">4) Module Map<a class="headerlink" href="#4-module-map" title="Permanent link">&para;</a></h2>
+<h3 id="renderercore"><code>RendererCore/</code><a class="headerlink" href="#renderercore" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Folder</th>
+<th>Status</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SceneSnapshot/</code></td>
+<td>Implemented</td>
+<td><code>SceneSnapshot</code>, SOA containers, <code>PackedParamBuffer</code>, <code>Aabb3</code></td>
+</tr>
+<tr>
+<td><code>Fields/</code></td>
+<td>Implemented</td>
+<td><code>FieldSystem.AccelAt</code>, <code>FieldModels</code> enums, <code>FieldCurves.Eval</code>, <code>FieldTLAS</code>, <code>CurvatureBoundGrid</code></td>
+</tr>
+<tr>
+<td><code>Geometry/</code></td>
+<td>Implemented</td>
+<td><code>GeometryTLAS</code> over world AABBs</td>
+</tr>
+<tr>
+<td><code>Integrators/</code></td>
+<td>Implemented (minimal)</td>
+<td><code>StepPolicy.ComputeDt</code></td>
+</tr>
+<tr>
+<td><code>Common/</code></td>
+<td>Implemented</td>
+<td><code>FrameSnapshotBus</code>, <code>DebugOverlayBus</code>, <code>DebugLogConfig</code></td>
+</tr>
+<tr>
+<td><code>Accel/</code></td>
+<td>Stubbed (empty)</td>
+<td>Planned: BLAS triangle BVH</td>
+</tr>
+<tr>
+<td><code>Scheduler/</code></td>
+<td>Stubbed (empty)</td>
+<td>Planned: task-graph scheduling</td>
+</tr>
+<tr>
+<td><code>Config/</code></td>
+<td>Planned</td>
+<td><code>ResearchModeConfig</code>, <code>ResearchModeOverrides</code></td>
+</tr>
+<tr>
+<td><code>Transport/</code></td>
+<td>Planned</td>
+<td><code>IRayTransport</code>, <code>ITransportModel</code></td>
+</tr>
+<tr>
+<td><code>Relativity/</code></td>
+<td>Planned</td>
+<td><code>IMetricField</code>, metric implementations</td>
+</tr>
+<tr>
+<td><code>CameraModel/</code></td>
+<td>Planned</td>
+<td>Tetrad-based relativistic camera frame</td>
+</tr>
+</tbody>
+</table>
+<h3 id="renderbackends"><code>RenderBackends/</code><a class="headerlink" href="#renderbackends" title="Permanent link">&para;</a></h3>
+<p><code>IRenderBackend</code> interface, <code>BackendMode</code> enum, <code>LegacyBackend</code> (drives
+<code>RenderStep</code>), <code>CoreBackend</code> (summary-only), <code>BackendSelector</code> (exists, unused).</p>
+<h3 id="godotadapter"><code>GodotAdapter/</code><a class="headerlink" href="#godotadapter" title="Permanent link">&para;</a></h3>
+<p><code>SnapshotBuilder</code> — extracts scene tree into <code>SceneSnapshot</code>. Handles field
+collection, parameter packing, TLAS builds, geometry AABBs + Godot instance IDs.</p>
+<h3 id="root-level-runtime-nodes">Root-Level Runtime Nodes<a class="headerlink" href="#root-level-runtime-nodes" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Node</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GrinFilmCamera</code></td>
+<td>Orchestrator: backend dispatch, snapshot publish, Pass-1/Pass-2 pipeline, budgets, telemetry</td>
+</tr>
+<tr>
+<td><code>RayBeamRenderer</code></td>
+<td>Segment integration, collision helpers, debug ray bundles</td>
+</tr>
+<tr>
+<td><code>FieldSource3D</code></td>
+<td>Inspector-authored field definition (MetricModel, shape, curve, radii, amplitude)</td>
+</tr>
+<tr>
+<td><code>FieldGrid3D</code></td>
+<td>Optional cached vector-field grid for Pass-1 acceleration lookup</td>
+</tr>
+<tr>
+<td><code>FieldProbe3D</code></td>
+<td>Runtime probe of <code>FieldSystem.AccelAt</code> with overlay diagnostics</td>
+</tr>
+<tr>
+<td><code>FilmOverlay2D</code></td>
+<td>Debug overlay: rays, hit normals, bus items</td>
+</tr>
+<tr>
+<td><code>PerfScope</code> / <code>PerfStats</code></td>
+<td>Timing, counters, rolling-window diagnostics</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-data-model">5) Data Model<a class="headerlink" href="#5-data-model" title="Permanent link">&para;</a></h2>
+<h3 id="51-scenesnapshot">5.1 SceneSnapshot<a class="headerlink" href="#51-scenesnapshot" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="k">public</span><span class="w"> </span><span class="k">sealed</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">SceneSnapshot</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="n">InstanceSOA</span><span class="w"> </span><span class="n">Instances</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">get</span><span class="p">;</span><span class="w"> </span><span class="k">init</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w">       </span><span class="c1">// mesh/material IDs, transforms (currently unpopulated)</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="n">FieldEntitySOA</span><span class="w"> </span><span class="n">Fields</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">get</span><span class="p">;</span><span class="w"> </span><span class="k">init</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w">       </span><span class="c1">// metric/shape/curve enums, transforms, bounds, param offsets</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="n">PackedParamBuffer</span><span class="w"> </span><span class="n">FieldParams</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">get</span><span class="p">;</span><span class="w"> </span><span class="k">init</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="c1">// contiguous float blocks: rInner, rOuter, amp, a, b, c, r0, r1</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="n">FieldTLAS</span><span class="w"> </span><span class="n">FieldTLAS</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">get</span><span class="p">;</span><span class="w"> </span><span class="k">init</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w">         </span><span class="c1">// BVH over field AABBs</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="n">GeometryEntitySOA</span><span class="w"> </span><span class="n">Geometry</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">get</span><span class="p">;</span><span class="w"> </span><span class="k">init</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w">  </span><span class="c1">// world AABBs + Godot instance IDs</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="n">GeometryTLAS</span><span class="w"> </span><span class="n">GeometryTLAS</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">get</span><span class="p">;</span><span class="w"> </span><span class="k">init</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w">   </span><span class="c1">// BVH over geometry AABBs</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="n">CurvatureBoundGrid</span><span class="w"> </span><span class="n">CurvatureGrid</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">get</span><span class="p">;</span><span class="w"> </span><span class="k">init</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="c1">// camera-centred Kmax grid</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><strong>Known limitation:</strong> <code>SnapshotBuilder</code> sets <code>Instances = InstanceSOA.Empty()</code> —
+the instance transform SOA is defined but not populated.</p>
+<h3 id="52-per-frame-lifecycle">5.2 Per-Frame Lifecycle<a class="headerlink" href="#52-per-frame-lifecycle" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Rebuilt every frame:</strong> snapshot, both TLASes, curvature grid.</li>
+<li><strong>Reused across frames:</strong> camera-owned pass buffers (<code>_segBuf</code>, hit arrays,
+  quick-ray caches, perf windows, optional field-grid cache with cadence control).</li>
+</ul>
+<hr />
+<h2 id="6-coordinate-spaces">6) Coordinate Spaces<a class="headerlink" href="#6-coordinate-spaces" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Field evaluation is world-space: <code>FieldSystem.AccelAt(Vector3 pWorld, ...)</code>.</li>
+<li>Per-field transforms <code>WorldFromLocal[]</code> / <code>LocalFromWorld[]</code> convert the query
+  point to field-local space for radius/shape evaluation, then transform the
+  contribution back to world.</li>
+<li>Geometry is world AABBs.</li>
+<li>Camera forward is <code>-Basis.Z</code> (Godot convention).</li>
+</ul>
+<hr />
+<h2 id="7-field-and-metric-system">7) Field and Metric System<a class="headerlink" href="#7-field-and-metric-system" title="Permanent link">&para;</a></h2>
+<h3 id="71-current-implementation-tier-0">7.1 Current Implementation (Tier 0)<a class="headerlink" href="#71-current-implementation-tier-0" title="Permanent link">&para;</a></h3>
+<p>Fields are authored via <code>FieldSource3D</code> nodes with inspector exports:
+<code>MetricModel</code>, <code>FieldShapeType</code>, <code>FieldCurveType</code>, radii, amplitude, flags,
+curve coefficients (a, b, c). <code>SnapshotBuilder</code> packs these into SOA arrays
+and <code>PackedParamBuffer</code> (8-float blocks).</p>
+<p><code>FieldSystem.AccelAt</code> evaluates all contributing fields at a world point:</p>
+<ol>
+<li>Query <code>FieldTLAS</code> for candidate field indices (or brute-force if no TLAS).</li>
+<li>For each candidate: bounds check → transform to local → compute radial distance
+   → evaluate curve law → apply amplitude → transform contribution to world.</li>
+<li><code>GordonMetric</code> differs from <code>GRIN</code> only by negating the local direction vector.</li>
+</ol>
+<p>Shapes: <code>SphereRadial</code>, <code>BoxVolume</code> (BoxVolume currently falls back to radial).
+Curves: <code>Linear</code>, <code>Power</code>, <code>Polynomial</code>, <code>Exponential</code> via <code>FieldCurves.Eval</code>.</p>
+<h3 id="72-transport-tier-roadmap">7.2 Transport Tier Roadmap<a class="headerlink" href="#72-transport-tier-roadmap" title="Permanent link">&para;</a></h3>
+<p>The engine's field/metric system is designed to scale through four physically
+distinct tiers without changing the downstream segment-consumption pipeline:</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Transport Model</th>
+<th>Physics</th>
+<th>Ray State</th>
+<th>Current Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>0</strong></td>
+<td>GRIN Field</td>
+<td>3-vector acceleration from scalar field n(x) → ẍ = ∇n/n</td>
+<td><code>RaySeg</code> (A, B, TraveledB, RadiusBound)</td>
+<td><strong>Implemented</strong></td>
+</tr>
+<tr>
+<td><strong>1</strong></td>
+<td>Gordon Metric</td>
+<td>Effective spacetime metric of moving dielectric g_eff(x) maps to equivalent GRIN</td>
+<td>Same as Tier 0 (adapter)</td>
+<td><strong>Partially implemented</strong> (direction flip only)</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>Full GR Null Geodesic</td>
+<td>d²xᵘ/dλ² + Γᵘ_αβ dxᵅ/dλ dxᵝ/dλ = 0</td>
+<td><code>RayState4</code>: xᵘ, kᵘ, λ, constraint drift</td>
+<td><strong>Planned</strong></td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>Exotic / Wormhole</td>
+<td>Tier 2 + coordinate atlas + throat crossing</td>
+<td><code>RayState4</code> + chart ID</td>
+<td><strong>Planned</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key insight for the tier system:</strong> The segment chain (<code>RaySeg[]</code>) is the
+<strong>universal output format</strong> of all tiers. Tiers 0–3 differ in how they
+<em>produce</em> segments; the broadphase, narrowphase, and shading pipeline
+consumes segments identically regardless of origin. This is the "PRIME spine"
+of the architecture.</p>
+<h3 id="73-gordon-metric-as-adapter-clarification">7.3 Gordon Metric as Adapter (Clarification)<a class="headerlink" href="#73-gordon-metric-as-adapter-clarification" title="Permanent link">&para;</a></h3>
+<p>The Gordon metric (Gordon 1923) shows that light propagation in a moving
+dielectric medium is equivalent to null propagation in an effective spacetime
+metric g_eff. The architecture uses this as a <strong>bidirectional bridge</strong>:</p>
+<ul>
+<li><strong>Upward (Tier 0 → Tier 2):</strong> A GRIN field can be reinterpreted as a
+  Gordon effective metric, giving an on-ramp to geodesic integration for
+  scenes authored with simple GRIN parameters.</li>
+<li><strong>Downward (Tier 2 → Tier 0):</strong> In weak-field / slow-motion limits, a
+  full GR metric can be approximated as an effective GRIN for interactive
+  preview at reduced fidelity.</li>
+</ul>
+<p>The existing <code>MetricModel.GordonMetric</code> code (direction-sign flip in
+<code>FieldSystem</code>) is a first approximation of this bridge. Full tensor
+mapping is planned.</p>
+<hr />
+<h2 id="8-curved-ray-representation-and-integration">8) Curved Ray Representation and Integration<a class="headerlink" href="#8-curved-ray-representation-and-integration" title="Permanent link">&para;</a></h2>
+<h3 id="81-segment-struct">8.1 Segment Struct<a class="headerlink" href="#81-segment-struct" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="k">public</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">RaySeg</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="n">Vector3</span><span class="w"> </span><span class="n">A</span><span class="p">;</span><span class="w">           </span><span class="c1">// segment start (world)</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="n">Vector3</span><span class="w"> </span><span class="n">B</span><span class="p">;</span><span class="w">           </span><span class="c1">// segment end (world)</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">TraveledB</span><span class="p">;</span><span class="w">     </span><span class="c1">// cumulative path length at B</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">RadiusBound</span><span class="p">;</span><span class="w">   </span><span class="c1">// conservative curvature envelope radius</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="82-current-integration-tier-0">8.2 Current Integration (Tier 0)<a class="headerlink" href="#82-current-integration-tier-0" title="Permanent link">&para;</a></h3>
+<p><code>RayBeamRenderer.BuildRaySegmentsCamera_Pass1</code> steps rays through
+<code>StepsPerRay</code> iterations with two code paths:</p>
+<ul>
+<li><strong>Integrated field</strong> (<code>UseIntegratedField = true</code>): velocity updated by
+  <code>FieldSystem.AccelAt</code> each step; step size adapted by curvature.</li>
+<li><strong>Analytic bend:</strong> parametric deflection <code>β · t^γ · bendScale</code>.</li>
+</ul>
+<p>Adaptive step controls: <code>StepLength</code>, <code>MinStepLength</code>, <code>MaxStepLength</code>,
+<code>StepAdaptGain</code>, low-curvature boost. <code>CurvatureBoundGrid</code> provides per-cell
+Kmax for envelope radius computation.</p>
+<h3 id="83-segment-cadence">8.3 Segment Cadence<a class="headerlink" href="#83-segment-cadence" title="Permanent link">&para;</a></h3>
+<p>Segments are emitted every <code>CollisionEveryNSteps</code> integration steps (with
+optional screen-space cadence adaptation). Each segment carries <code>RadiusBound</code>
+for broadphase envelope expansion.</p>
+<hr />
+<h2 id="9-acceleration-structures-and-intersection">9) Acceleration Structures and Intersection<a class="headerlink" href="#9-acceleration-structures-and-intersection" title="Permanent link">&para;</a></h2>
+<h3 id="91-tlas-implemented">9.1 TLAS (Implemented)<a class="headerlink" href="#91-tlas-implemented" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>FieldTLAS</code>: BVH over field entity AABBs; used by <code>FieldSystem.AccelAt</code>
+  for candidate pruning.</li>
+<li><code>GeometryTLAS</code>: BVH over geometry AABBs; used by Pass-2 for candidate
+  pruning before Godot narrowphase.</li>
+</ul>
+<h3 id="92-narrowphase-current-godot-physics">9.2 Narrowphase (Current: Godot Physics)<a class="headerlink" href="#92-narrowphase-current-godot-physics" title="Permanent link">&para;</a></h3>
+<p>Pass-2 tests segments against geometry via <code>DirectSpaceState</code>:
+<code>IntersectRay</code>, <code>IntersectShape</code>, <code>CastMotion</code>, plus helper wrappers
+(<code>SubdividedRayHit</code>, <code>SweepSegmentHit</code>). TLAS-gated: narrowphase hits are
+accepted only if the collider ID is in the TLAS candidate set.</p>
+<h3 id="93-blas-planned">9.3 BLAS (Planned)<a class="headerlink" href="#93-blas-planned" title="Permanent link">&para;</a></h3>
+<p><code>RendererCore/Accel/</code> is reserved for an internal triangle BVH. This is the
+prerequisite for moving Pass-2 off the main thread and removing the Godot
+physics dependency.</p>
+<hr />
+<h2 id="10-scheduling-and-concurrency">10) Scheduling and Concurrency<a class="headerlink" href="#10-scheduling-and-concurrency" title="Permanent link">&para;</a></h2>
+<h3 id="current-model">Current Model<a class="headerlink" href="#current-model" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Frame work is partitioned into row bands (<code>RowsPerFrame</code>, adaptive sizing).</li>
+<li>Pass-1: <code>Parallel.For</code> across pixels in the current band.</li>
+<li>Pass-2: sequential on main thread (Godot API constraint).</li>
+<li>Snapshot is read-only during <code>RenderStep</code>.</li>
+</ul>
+<h3 id="budget-and-watchdog-system">Budget and Watchdog System<a class="headerlink" href="#budget-and-watchdog-system" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>UpdateEveryFrameBudgetMs</code>, <code>UpdateEveryFrameMaxRowsPerStep</code></li>
+<li><code>RenderStepMaxMs</code>, <code>RenderStepMaxPixelsPerFrame</code>, <code>RenderStepMaxSegmentsPerFrame</code></li>
+<li>Multiple guard exits for stuck/no-progress/no-hit/no-candidate bands</li>
+<li>SoftGate budgets with per-pixel and per-frame caps, scoring model, watchdog timeout</li>
+</ul>
+<h3 id="planned-task-graph">Planned: Task Graph<a class="headerlink" href="#planned-task-graph" title="Permanent link">&para;</a></h3>
+<p><code>RendererCore/Scheduler/</code> is currently empty. The planned task-graph system
+(see <code>Docs/spec_scheduler_task_graph.md</code>) would replace the embedded
+scheduling logic in <code>GrinFilmCamera</code>.</p>
+<hr />
+<h2 id="11-rendering-backends-and-output">11) Rendering Backends and Output<a class="headerlink" href="#11-rendering-backends-and-output" title="Permanent link">&para;</a></h2>
+<p><strong>Output chain (Legacy path):</strong>
+Film buffer (<code>Image</code>) → <code>ImageTexture</code> → <code>TextureRect</code> (via <code>FilmViewPath</code>)
+or auto-created overlay. <code>FilmOverlay2D</code> optionally draws world ray/hit
+overlays and film gradient normals. Shader files exist in the repo but no
+C# postprocess stage wires them at runtime.</p>
+<hr />
+<h2 id="12-telemetry-and-debugging">12) Telemetry and Debugging<a class="headerlink" href="#12-telemetry-and-debugging" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>PerfScope</code> / <code>FramePerf</code>: per-stage timing and counters.</li>
+<li><code>PerfStats</code>: rolling-window frame summaries and invariant checks.</li>
+<li><code>FieldProbe3D</code>: live <code>AccelAt</code> evaluation + overlay diagnostics.</li>
+<li>Geometry prune audit and reject-sampling instrumentation in Pass-2.</li>
+<li><code>RayBeamRenderer</code> debug overlay + <code>GetDebugRayBundle</code>.</li>
+<li><code>RayViz</code>, <code>CurvedCamera</code>: auxiliary debug/visual tools.</li>
+</ul>
+<hr />
+<h2 id="13-portability-and-academic-upgrade-interfaces-planned">13) Portability and Academic Upgrade Interfaces (Planned)<a class="headerlink" href="#13-portability-and-academic-upgrade-interfaces-planned" title="Permanent link">&para;</a></h2>
+<p>The goal is to keep the current Godot integration unchanged while formalising
+clean seams for host-independence and academic metric modes.</p>
+<h3 id="131-iraytransport">13.1 IRayTransport<a class="headerlink" href="#131-iraytransport" title="Permanent link">&para;</a></h3>
+<p>Planned interface that advances a ray state (3D or 4D) through a transport
+model and emits a <code>RaySeg[]</code> chain. Responsible for step-size control,
+invariant tracking (GR mode), and error estimation.</p>
+<div class="highlight"><pre><span></span><code>IRayTransport
+  Advance(state, snapshot, maxSteps) → RaySeg[] + diagnostics
+</code></pre></div>
+<p><strong>Ray state types:</strong>
+- <code>RayState3</code> — position, direction, parameterisation (Tier 0–1).
+- <code>RayState4</code> — xᵘ, kᵘ, λ, constraintDrift (Tier 2–3).</p>
+<p><code>ITransportModel</code> is the pluggable physics backend:
+- GRIN / optical medium (scalar or tensor IOR)
+- Metric / geodesic (Christoffel Γ or Hamiltonian RHS)
+- Gordon adapter (bridge mode)</p>
+<h3 id="132-imetricfield">13.2 IMetricField<a class="headerlink" href="#132-imetricfield" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>IMetricField
+  Metric(x)        → g_μν(x)   (4×4 symmetric)
+  Christoffel(x)   → Γᵘ_αβ(x)  (optional analytic fast path)
+  GeodesicRhs(state) → (dx/dλ, dk/dλ)
+</code></pre></div>
+<p>Planned implementations: Minkowski, Schwarzschild, Kerr, Morris–Thorne.
+Designed so external contributors can add metrics without touching the
+renderer frontend or collision backend.</p>
+<h3 id="133-iintegrator-tiered">13.3 IIntegrator (Tiered)<a class="headerlink" href="#133-iintegrator-tiered" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Method</th>
+<th>Error Control</th>
+<th>Constraint Handling</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Heuristic adaptive (current <code>StepPolicy</code>)</td>
+<td>Curvature-based dt heuristic</td>
+<td>None</td>
+</tr>
+<tr>
+<td>1</td>
+<td>RK45 / Dormand–Prince</td>
+<td>Embedded local truncation error estimate</td>
+<td>None (error-bounded only)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Hamiltonian / symplectic</td>
+<td>Error estimate + step-halving</td>
+<td>Null projection: g_μν kᵘ kᵛ = 0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Full integrator inventory</strong> the engine should eventually expose:
+- Fixed-step explicit: Euler (debug), Midpoint, RK4
+- Adaptive embedded: RKF45, Dormand–Prince DOPRI5
+- Symplectic/geometric: Störmer–Verlet, implicit midpoint
+- Geodesic-specific: Hamiltonian form with canonical momenta p_μ; first
+  integrals (Carter constant, E, L_z for Kerr) to bound drift</p>
+<h3 id="134-igeometryqueryprovider">13.4 IGeometryQueryProvider<a class="headerlink" href="#134-igeometryqueryprovider" title="Permanent link">&para;</a></h3>
+<p>Host-independent wrapper for broadphase and narrowphase queries.</p>
+<ul>
+<li><code>GodotGeometryQueryProvider</code> — wraps <code>DirectSpaceState</code> (current).</li>
+<li><code>BVHGeometryQueryProvider</code> — internal triangle BLAS (planned).</li>
+<li><code>OfflineMeshQueryProvider</code> — headless batch / regression tests (planned).</li>
+</ul>
+<h3 id="135-icameramodelprovider">13.5 ICameraModelProvider<a class="headerlink" href="#135-icameramodelprovider" title="Permanent link">&para;</a></h3>
+<p>Returns initial ray states in the camera's local frame. Godot provides
+pose + projection; RendererCore provides the math for mapping to initial
+<code>RayState3</code> or <code>RayState4</code>. In GR mode, optionally provides tetrad-based
+emission and frequency bookkeeping for redshift/Doppler.</p>
+<h3 id="136-adoption-strategy">13.6 Adoption Strategy<a class="headerlink" href="#136-adoption-strategy" title="Permanent link">&para;</a></h3>
+<p>Non-disruptive. <code>GrinFilmCamera.RenderStep()</code> remains the orchestrator.
+A thin <code>RendererCore.RenderBand(...)</code> wrapper accepts snapshot, transport,
+geometry provider, camera provider, and film buffer — wrapping existing
+Pass-1/Pass-2 logic. This lifts concerns into RendererCore incrementally.</p>
+<hr />
+<h2 id="14-research-mode-planned">14) Research Mode (Planned)<a class="headerlink" href="#14-research-mode-planned" title="Permanent link">&para;</a></h2>
+<h3 id="141-purpose">14.1 Purpose<a class="headerlink" href="#141-purpose" title="Permanent link">&para;</a></h3>
+<p>A configuration and validation contract making xPRIMEray suitable for
+academic gravitational-optics workflows: explicit tolerances, invariant
+tracking, reproducibility controls, comparison against published results.</p>
+<h3 id="142-config-surface">14.2 Config Surface<a class="headerlink" href="#142-config-surface" title="Permanent link">&para;</a></h3>
+<p>Portable types in <code>RendererCore/Config/</code>:</p>
+<ul>
+<li><code>ResearchModeConfig</code> — master toggle, preset (Off/Validate/PaperMatch/StressTest),
+  logging verbosity, determinism mode.</li>
+<li><code>ResearchModeOverrides</code> — strongly typed overrides for Film, Broadphase,
+  RayMarch, SoftGate, Budget, Debug groups.</li>
+</ul>
+<p>Integration: <code>GrinFilmCamera.ResolveEffectiveConfig(out EffectiveConfig cfg)</code>
+merges research overrides into the effective config and logs a one-line
+banner with a stable hash of the active override set.</p>
+<h3 id="143-tiers">14.3 Tiers<a class="headerlink" href="#143-tiers" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Preset</th>
+<th>Constraints</th>
+<th>Integrator Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tier0_Preview</td>
+<td>Current defaults; heuristic stepping; performance-first</td>
+<td>StepPolicy (existing)</td>
+</tr>
+<tr>
+<td>Tier1_ErrorBounded</td>
+<td>DtMin/DtMax enforced; MaxStepsPerRay capped; per-ray tolerance goal</td>
+<td>RK45 (planned)</td>
+</tr>
+<tr>
+<td>Tier2_InvariantPreserving</td>
+<td>Null constraint drift tracked and bounded; optional projection; deterministic scheduling</td>
+<td>Hamiltonian + symplectic (planned)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="144-determinism-rules">14.4 Determinism Rules<a class="headerlink" href="#144-determinism-rules" title="Permanent link">&para;</a></h3>
+<p>When <code>DeterministicMode = true</code>:
+- <code>SoftGate.RandomProbeChance = 0</code>
+- Work processed in fixed band/row order
+- No non-deterministic reductions</p>
+<h3 id="145-validation-harness-planned">14.5 Validation Harness (Planned)<a class="headerlink" href="#145-validation-harness-planned" title="Permanent link">&para;</a></h3>
+<p>Reproducible benchmarks runnable in-engine and headless:</p>
+<ul>
+<li><strong>Flat-space:</strong> straight-line rays match analytic; envelopes conservative.</li>
+<li><strong>GRIN:</strong> known radial profiles reproduce expected lensing; convergence tests.</li>
+<li><strong>Schwarzschild:</strong> weak-field deflection matches analytic; photon sphere at r = 3M.</li>
+<li><strong>Kerr:</strong> selected rays vs. published geodesic datasets (James et al. 2015).</li>
+<li><strong>Wormhole:</strong> Morris–Thorne throat lensing; chart-transition continuity.</li>
+<li><strong>Numerical:</strong> step-halving convergence; bounded null-constraint drift;
+  constraint projection tests.</li>
+</ul>
+<hr />
+<h2 id="15-wormhole-and-multi-chart-system-planned">15) Wormhole and Multi-Chart System (Planned)<a class="headerlink" href="#15-wormhole-and-multi-chart-system-planned" title="Permanent link">&para;</a></h2>
+<h3 id="151-physics-basis">15.1 Physics Basis<a class="headerlink" href="#151-physics-basis" title="Permanent link">&para;</a></h3>
+<p>Wormhole rendering requires a <strong>non-trivial coordinate atlas</strong> and a <strong>metric
+definition</strong>, not non-Euclidean geometry. The simplest academically grounded
+choice is the Morris–Thorne static spherically symmetric traversable wormhole
+(Morris &amp; Thorne 1988).</p>
+<p>Requirements:
+1. Wormhole line element (metric definition)
+2. Coordinate atlas: chart A (mouth A) / chart B (mouth B)
+3. Geodesic integration through the metric; throat crossing maps coordinates
+4. Scene content sampling from the appropriate region's snapshot</p>
+<h3 id="152-planned-interfaces">15.2 Planned Interfaces<a class="headerlink" href="#152-planned-interfaces" title="Permanent link">&para;</a></h3>
+<p><strong>IChartMap</strong> — coordinate atlas for throat crossings:
+<div class="highlight"><pre><span></span><code>WorldToChart(worldPos) → chart-local coordinates
+ChartToWorld(chartPos) → world coordinates
+IsThroatCrossing(state) → bool + side
+MapThroughThroat(state) → RayState4 in destination chart
+</code></pre></div></p>
+<p><strong>IRaySampler</strong> — dispatches field/geometry queries to the correct scene
+region based on which chart the ray is currently in.</p>
+<h3 id="153-scene-hierarchy">15.3 Scene Hierarchy<a class="headerlink" href="#153-scene-hierarchy" title="Permanent link">&para;</a></h3>
+<p>Wormhole scenes form a <strong>tree</strong> (not a flat list):</p>
+<div class="highlight"><pre><span></span><code>MasterScene (root) — owns primary camera and film output
+  ├─ WormholeMouth_W1 (spherical zone, Morris–Thorne metric)
+  │    └─ ChildScene_B (independent SceneSnapshot)
+  │         └─ WormholeMouth_W2 (nested)
+  │              └─ ChildScene_C (grandchild)
+  └─ WormholeMouth_W3
+       └─ ChildScene_D
+</code></pre></div>
+<p>Rules: each mouth owned by exactly one parent; child scenes are independent
+snapshots; ray traversal is depth-first; cycles prohibited (DAG by
+construction, validated on load); child film contributions composited into
+master buffer at projected mouth screen area.</p>
+<h3 id="154-throat-rendering">15.4 Throat Rendering<a class="headerlink" href="#154-throat-rendering" title="Permanent link">&para;</a></h3>
+<p>When a ray reaches the throat zone:
+1. <code>IChartMap.IsThroatCrossing</code> detects crossing
+2. <code>IChartMap.MapThroughThroat</code> transforms ray state parent → child chart
+3. <code>IRaySampler</code> switches to child <code>SceneSnapshot</code>
+4. Integration continues until hit, escape, or further throat crossing
+5. Result composited into parent film buffer</p>
+<p>The mouth sphere is not a flat texture portal — it is a full recursive
+rendering of the destination scene through the throat's metric transform.</p>
+<hr />
+<h2 id="16-roadmap">16) Roadmap<a class="headerlink" href="#16-roadmap" title="Permanent link">&para;</a></h2>
+<h3 id="161-reality-check">16.1 Reality Check<a class="headerlink" href="#161-reality-check" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Previous Claim</th>
+<th>Code Reality</th>
+<th>Required Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Renderer owns all production intersection</td>
+<td>Pass-2 uses Godot physics; TLAS is pruning only</td>
+<td>Implement BLAS in <code>Accel/</code></td>
+</tr>
+<tr>
+<td>Full end-to-end multithreading</td>
+<td>Pass-1 parallel; Pass-2 main-thread</td>
+<td>Requires BLAS (removes Godot physics dependency)</td>
+</tr>
+<tr>
+<td>Scheduler/task-graph subsystem</td>
+<td><code>Scheduler/</code> is empty</td>
+<td>Migrate scheduling from <code>GrinFilmCamera</code></td>
+</tr>
+<tr>
+<td>Research Mode fully operational</td>
+<td>Config types planned, not implemented</td>
+<td>Implement <code>RendererCore/Config/</code></td>
+</tr>
+<tr>
+<td>Metric/geodesic ray transport</td>
+<td>Only 3-vector field acceleration exists</td>
+<td>Implement <code>IRayTransport</code>, <code>IMetricField</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="162-phase-1-foundation">16.2 Phase 1 — Foundation<a class="headerlink" href="#162-phase-1-foundation" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[ ] Internal BLAS triangle intersection → remove Godot as production narrowphase</li>
+<li>[ ] <code>IRayTransport</code> / <code>ITransportModel</code> interface stubs in RendererCore</li>
+<li>[ ] <code>RendererCore/Scheduler</code> task-graph implementation</li>
+<li>[ ] <code>ResearchModeConfig</code> / <code>ResearchModeOverrides</code> with effective-config merge</li>
+<li>[ ] Real compare mode in backend dispatch</li>
+</ul>
+<h3 id="163-phase-2-academic-metrics">16.3 Phase 2 — Academic Metrics<a class="headerlink" href="#163-phase-2-academic-metrics" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[ ] RK45 / Dormand–Prince integrator (Tier 1)</li>
+<li>[ ] <code>IMetricField</code> interface + Schwarzschild and Kerr implementations</li>
+<li>[ ] Null-constraint projection (<code>IConstraintProjector</code>)</li>
+<li>[ ] Tetrad-based camera model for GR emission</li>
+<li>[ ] Validation harness with flat-space + GRIN + Schwarzschild benchmarks</li>
+</ul>
+<h3 id="164-phase-3-exotic-transport">16.4 Phase 3 — Exotic Transport<a class="headerlink" href="#164-phase-3-exotic-transport" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[ ] Morris–Thorne metric + <code>IChartMap</code> implementation</li>
+<li>[ ] <code>WormholeSceneGraph</code> tree and <code>SnapshotBuilder</code> integration</li>
+<li>[ ] <code>WormholeMouth3D</code> Godot node with child-scene loading</li>
+<li>[ ] Ray throat-crossing and chart remap in Pass-1</li>
+<li>[ ] Child-scene film compositing</li>
+<li>[ ] Kerr validation against published datasets (James et al. 2015)</li>
+</ul>
+<hr />
+<h2 id="17-glossary">17) Glossary<a class="headerlink" href="#17-glossary" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>xPRIMEray</strong></td>
+<td>Engine name. <code>x</code> = any curved-field transport; PRIME = baseline integration spine producing <code>RaySeg[]</code> chains</td>
+</tr>
+<tr>
+<td><strong>SceneSnapshot</strong></td>
+<td>Immutable-for-frame container of all scene data passed into rendering stages</td>
+</tr>
+<tr>
+<td><strong>SOA</strong></td>
+<td>Struct-of-arrays layout (<code>FieldEntitySOA</code>, <code>GeometryEntitySOA</code>)</td>
+</tr>
+<tr>
+<td><strong>PackedParamBuffer</strong></td>
+<td>Contiguous float buffer storing field parameters in 8-float blocks</td>
+</tr>
+<tr>
+<td><strong>TLAS</strong></td>
+<td>Top-level AABB BVH over entities (<code>FieldTLAS</code>, <code>GeometryTLAS</code>)</td>
+</tr>
+<tr>
+<td><strong>BLAS</strong></td>
+<td>Bottom-level triangle BVH (planned, <code>RendererCore/Accel/</code>)</td>
+</tr>
+<tr>
+<td><strong>RaySeg</strong></td>
+<td>Bounded curved-ray segment: A, B, TraveledB, RadiusBound</td>
+</tr>
+<tr>
+<td><strong>RadiusBound</strong></td>
+<td>Conservative envelope radius for a segment, used in broadphase expansion</td>
+</tr>
+<tr>
+<td><strong>Pass-1</strong></td>
+<td>Parallel per-pixel segment integration stage</td>
+</tr>
+<tr>
+<td><strong>Pass-2</strong></td>
+<td>Main-thread collision + shading stage</td>
+</tr>
+<tr>
+<td><strong>SoftGate</strong></td>
+<td>Gated policy for extra subdivided narrowphase checks on uncertain misses</td>
+</tr>
+<tr>
+<td><strong>GRIN</strong></td>
+<td>Gradient-index optical medium model (Tier 0). Rays bend through scalar n(x)</td>
+</tr>
+<tr>
+<td><strong>GordonMetric</strong></td>
+<td>Effective spacetime metric of a moving dielectric (Gordon 1923). Bridge between GRIN and full GR</td>
+</tr>
+<tr>
+<td><strong>IMetricField</strong></td>
+<td>Planned interface: g_μν(x), Γᵘ_αβ(x), geodesic ODE RHS</td>
+</tr>
+<tr>
+<td><strong>IRayTransport</strong></td>
+<td>Planned interface: advances ray state under any transport model, emits RaySeg[]</td>
+</tr>
+<tr>
+<td><strong>RayState3</strong></td>
+<td>3D ray state: position + direction + parameter (Tiers 0–1)</td>
+</tr>
+<tr>
+<td><strong>RayState4</strong></td>
+<td>4D ray state: xᵘ, kᵘ, λ, constraint drift (Tiers 2–3)</td>
+</tr>
+<tr>
+<td><strong>IChartMap</strong></td>
+<td>Planned interface: coordinate atlas for wormhole throat crossings</td>
+</tr>
+<tr>
+<td><strong>Null geodesic</strong></td>
+<td>Photon path in GR satisfying g_μν kᵘ kᵛ = 0</td>
+</tr>
+<tr>
+<td><strong>Christoffel symbols</strong></td>
+<td>Γᵘ_αβ — connection coefficients encoding how the metric varies in space</td>
+</tr>
+<tr>
+<td><strong>CurvatureBoundGrid</strong></td>
+<td>Camera-centred 3D grid of Kmax upper bounds for envelope computation</td>
+</tr>
+<tr>
+<td><strong>FieldGrid3D</strong></td>
+<td>Optional cached vector-field grid for Pass-1 acceleration lookup</td>
+</tr>
+<tr>
+<td><strong>ResearchModeConfig</strong></td>
+<td>Planned portable config for academic/validation constraints</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="18-reference-specs">18) Reference Specs<a class="headerlink" href="#18-reference-specs" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>Docs/architecture_overview.md</code></li>
+<li><code>Docs/spec_scene_snapshot_data_layout.md</code></li>
+<li><code>Docs/spec_bvh_acceleration.md</code></li>
+<li><code>Docs/spec_metric_models_grin_vs_gordon.md</code></li>
+<li><code>Docs/spec_curved_ray_chunks.md</code></li>
+<li><code>Docs/spec_scheduler_task_graph.md</code></li>
+<li><code>Docs/spec_wormhole_scene_graph.md</code> <em>(to be authored)</em></li>
+<li><code>Docs/spec_research_mode.md</code> <em>(to be authored)</em></li>
+</ul>
+<hr />
+<h2 id="19-bibliography">19) Bibliography<a class="headerlink" href="#19-bibliography" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Gordon, W. (1923). "Zur Lichtfortpflanzung nach der Relativitätstheorie."
+  <em>Ann. Phys.</em> 377(22), 421–456. — Original Gordon effective-medium metric.</li>
+<li>James, O., von Tunzelmann, E., Franklin, P., Thorne, K.S. (2015).
+  "Gravitational lensing by spinning black holes in astrophysics, and in the
+  movie Interstellar." <em>Class. Quantum Grav.</em> 32, 065001. — Primary Kerr
+  geodesic visual validation reference.</li>
+<li>Misner, C.W., Thorne, K.S., Wheeler, J.A. (1973). <em>Gravitation.</em> —
+  Christoffel symbols, geodesic equation, Kerr metric standard form.</li>
+<li>Morris, M.S. &amp; Thorne, K.S. (1988). "Wormholes in spacetime and their use
+  for interstellar travel." <em>Am. J. Phys.</em> 56(5), 395–412. — Primary
+  wormhole metric source.</li>
+<li>Müller, T. &amp; Grave, F. (2009). "Catalogue of spacetimes." — GR renderer
+  taxonomy and metric catalogue.</li>
+<li>Dormand, J.R. &amp; Prince, P.J. (1980). "A family of embedded Runge-Kutta
+  formulae." <em>J. Comp. Appl. Math.</em> 6, 19–26. — DOPRI5 adaptive integrator.</li>
+</ul>
+<hr />
+<h2 id="appendix-a-critique-of-prior-versions">Appendix A) Critique of Prior Versions<a class="headerlink" href="#appendix-a-critique-of-prior-versions" title="Permanent link">&para;</a></h2>
+<h3 id="v2-chatgpt-merge">v2 (ChatGPT Merge)<a class="headerlink" href="#v2-chatgpt-merge" title="Permanent link">&para;</a></h3>
+<p>The v2 document is the direct merge of v0 and v1 and it shows. It contains
+<strong>duplicated sections</strong> — §4 Module Map appears twice (lines 136–310 and
+815–882), §7 Fields appears twice (lines 397–488 and 887–947), §8 Integration
+appears twice (lines 490–563 and 952–993), §10 Scheduling appears twice
+(lines 606–649 and 998–1031), §12 Telemetry appears twice (lines 682–698
+and 1036–1062). These are verbatim repeats separated by <code>&lt;!-- Merged from v0 --&gt;</code>
+HTML comments. The document also has two separate §15 "Research Mode" sections
+(lines 1130 and 1156) with overlapping but non-identical content. This makes
+v2 unreliable as a single source of truth.</p>
+<p>v2 also appends §14 "Relativistic Optics" and §15 "Research Mode" as
+entirely new top-level sections rather than integrating their content into
+the existing §7 (Fields/Metrics) and §12 (Validation) where it belongs
+conceptually. The result is a document where related information is scattered
+across non-adjacent sections.</p>
+<h3 id="v3-claude-45-sonnet">v3 (Claude 4.5 / Sonnet)<a class="headerlink" href="#v3-claude-45-sonnet" title="Permanent link">&para;</a></h3>
+<p>The Sonnet consolidation (v3_1-CLAUDE) successfully eliminates the duplication
+and produces a coherent single document with clean section numbering. Its
+structural choices are generally sound. Points of concern:</p>
+<ol>
+<li>
+<p><strong>Wormhole overemphasis relative to implementation distance.</strong> §9 (Wormhole
+   System) is the longest section in the document despite being entirely
+   planned work with zero code. This skews the document's centre of gravity
+   away from the working system. A charter should give proportional weight
+   to what exists.</p>
+</li>
+<li>
+<p><strong>Engine naming section (§2) is premature.</strong> A half-page table defining
+   the "x" and "PRIME" semantics reads as branding rather than architecture.
+   This information belongs in a sentence or two, not a dedicated section.</p>
+</li>
+<li>
+<p><strong>Tier numbering inconsistency.</strong> §7.2 assigns Gordon Metric to Tier 1
+   and Full GR to Tier 2. §14.2 assigns Tier0_Preview, Tier1_ErrorBounded,
+   Tier2_InvariantPreserving. These are two different tier axes (physics
+   model vs integrator quality) using the same numbering, which will confuse
+   implementers. This document (v2-Claude4.6) disambiguates by keeping
+   physics tiers in §7.2 and integrator tiers in §13.3.</p>
+</li>
+<li>
+<p><strong>"Higher-order transform" language in §9.5</strong> is non-standard terminology
+   in GR optics literature. The concept (recursive rendering through a metric
+   transform) is valid but the phrasing invites confusion with higher-order
+   ODE methods.</p>
+</li>
+<li>
+<p><strong>Insufficient marking of implemented vs planned.</strong> While better than v2,
+   the Sonnet version sometimes blurs the boundary — for example, describing
+   <code>ResearchModeConfig</code> files as existing at specific paths when they are
+   planned, not implemented.</p>
+</li>
+</ol>
+<p>This v2-Claude4.6 document addresses these issues by: giving proportional
+weight to implemented systems, cleanly separating physics tiers from
+integrator tiers, using the §0 conventions to mark epistemic status, and
+deferring wormhole detail to a planned spec document while retaining the
+architectural intent in §15.</p>
+
+
+
+
+
+
+
+  
+    
+  
+  
+    
+  
+
+
+  <aside class="md-source-file">
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Last update">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 13, 2026 20:12:37 UTC">February 13, 2026</span>
+  </span>
+
+    
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Created">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 13, 2026 20:12:37 UTC">February 13, 2026</span>
+  </span>
+
+    
+    
+    
+  </aside>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.top", "navigation.footer", "toc.follow", "content.code.copy", "content.action.edit", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://unpkg.com/mermaid@10/dist/mermaid.min.js"></script>
+      
+    
+  </body>
+</html>
