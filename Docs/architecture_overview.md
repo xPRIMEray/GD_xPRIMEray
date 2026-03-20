@@ -431,3 +431,5 @@ All development should reinforce, not erode, this structure.
 The GRIN Fixture Auto-Calibration Framework introduces a structured
 test harness and measurement system for characterizing curved-ray behavior
 and enabling automated calibration of optical transport models.
+
+For a concise baseline reference, see [Fixture 001: Radial GRIN Baseline](Research/fixture_001_radial_grin_baseline.md), which captures the current A2 scheduler-clean baseline for the radial GRIN fixture harness.

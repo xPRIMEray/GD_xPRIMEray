@@ -70,6 +70,7 @@ These are still useful for historical context and design evolution comparison.
 ## 🔬 Research & Experimental Frameworks
 
 - [GRIN Fixture Auto-Calibration Framework](Research/grin_fixture_auto_calibration_phase_plan.md)
+- [Fixture 001: Radial GRIN Baseline](Research/fixture_001_radial_grin_baseline.md) — short baseline note for the Fixture 001 A2 scheduler-clean run
 
 ### Archive
 
