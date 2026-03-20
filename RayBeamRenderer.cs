@@ -70,6 +70,18 @@ public partial class RayBeamRenderer : Node3D
 	/// <summary>Selects the experimental metric steering surrogate used by Metric_NullGeodesic.</summary>
 	// CONTROL FACTOR: Keeps the current envelope law as baseline and allows impact-parameter-focused steering for comparisons.
 	[Export] public MetricSteeringLaw MetricSteeringLawMode = MetricSteeringLaw.MetricLaw_CurrentEnvelope;
+	/// <summary>Turn-angle threshold in degrees before metric steps are subdivided.</summary>
+	// CONTROL FACTOR: Smaller values increase metric segment density in tighter bends.
+	[Export] public float MetricAdaptiveTurnThresholdDegrees = 4.0f;
+	/// <summary>Local geometric error tolerance for metric step acceptance.</summary>
+	// CONTROL FACTOR: Smaller values force finer metric segment emission.
+	[Export] public float MetricAdaptiveErrorTolerance = 0.01f;
+	/// <summary>Extra curvature gain used by metric step-size reduction.</summary>
+	// CONTROL FACTOR: Higher values shrink metric steps more aggressively in high curvature.
+	[Export] public float MetricAdaptiveCurvatureGain = 2.0f;
+	/// <summary>Maximum metric step-halving retries applied before accepting a minimum step.</summary>
+	// CONTROL FACTOR: Higher values allow denser metric segment chains at increased cost.
+	[Export] public int MetricAdaptiveMaxSubdivisions = 2;
 	/// <summary>World center for field when not using camera.</summary>
 	// CONTROL FACTOR: Field center (world space) when not camera-driven.
 	[Export] public Vector3 FieldCenter = Vector3.Zero;
@@ -341,6 +353,18 @@ public partial class RayBeamRenderer : Node3D
 			DebugMode,
 			DebugNormalLen,
 			DebugOverlayOwnedByFilm);
+	}
+
+	public int EstimateMaxSegmentsPerRay()
+	{
+		int cadenceSegments = Mathf.Max(1, StepsPerRay / Mathf.Max(1, CollisionEveryNSteps)) + 2;
+		if (!UseIntegratedField)
+		{
+			return cadenceSegments;
+		}
+
+		int metricSegments = Mathf.Max(1, StepsPerRay * GetMetricAdaptiveStepMultiplier()) + 2;
+		return Mathf.Max(cadenceSegments, metricSegments);
 	}
 
 	// ===== Cached State =====
@@ -2332,12 +2356,20 @@ public partial class RayBeamRenderer : Node3D
 		// Precompute for non-integrated mode
 		float bendScale = BendScale;
 		float stepLength = StepLength;
+		TransportModel activeTransport = hasSources ? ResolveActiveTransportModel(fieldSnaps) : TransportModel.GRIN_Optical;
+		bool emitEveryMetricStep = UseIntegratedField && activeTransport == TransportModel.Metric_NullGeodesic;
+		int maxIntegrationSteps = emitEveryMetricStep
+			? Mathf.Max(1, StepsPerRay * GetMetricAdaptiveStepMultiplier())
+			: StepsPerRay;
+		float metricTurnThreshold = GetMetricAdaptiveTurnThresholdRadians();
+		float metricErrorTolerance = Mathf.Max(1e-5f, MetricAdaptiveErrorTolerance);
+		int metricMaxSubdivisions = Mathf.Max(0, MetricAdaptiveMaxSubdivisions);
 		/////////////////////////
 		/// 
 
 
 		// DECISION: integrate along the ray for up to StepsPerRay steps.
-		for (int s = 0; s <= StepsPerRay; s++)
+		for (int s = 0; s <= maxIntegrationSteps; s++)
 		{
 			if (UseIntegratedField && hasSources && TryGetAbsorbingSourceAtPoint(p, fieldSnaps, out _))
 			{
@@ -2349,46 +2381,125 @@ public partial class RayBeamRenderer : Node3D
 			// DECISION: integrated vs analytic field path.
 			if (UseIntegratedField)
 			{
-				if (!TryStepIntegratedTransport(
-					p,
-					v,
-					center,
-					beta,
-					gamma,
-					fieldSnaps,
-					hasSources,
-					maxDistance,
-					traveled,
-					minStep,
-					maxStep,
-					fieldGrid: null,
-					applyLowCurvatureBoost: true,
-					out next,
-					out v,
-					out Vector3 a,
-					out float step))
+				float remaining = maxDistance - traveled;
+				if (remaining <= 0f)
 				{
 					break;
 				}
 
-				//////////////////////////////
-				/// ////////////
-				/// /////////
-				// DECISION: update segment cadence using screen-space error when enabled.
-				if (UseScreenSpaceCollisionCadence && cam != null)
+				Vector3 a = ComputeTransportAccelerationForActiveModel(activeTransport, p, v, bendDir, center, beta, gamma, fieldSnaps, hasSources);
+				float aLen = a.Length();
+				if (!float.IsFinite(aLen))
 				{
-					float aPerp = PerpAccelLen(a, v);   // v from previous iteration; ok
+					a = Vector3.Zero;
+					aLen = 0f;
+				}
+				else if (aLen > 50f)
+				{
+					a *= 50f / aLen;
+					aLen = 50f;
+				}
+
+				float step = stepLength / (1.0f + aLen * StepAdaptGain);
+				step = Mathf.Clamp(step, minStep, maxStep);
+				if (LowCurvatureStepBoost > 1.0f)
+				{
+					Vector3 aPerp = a - v * a.Dot(v);
+					float aPerpLen = aPerp.Length();
+					if (aPerpLen < LowCurvaturePerpAccel)
+					{
+						step = Mathf.Min(step * LowCurvatureStepBoost, maxStep);
+					}
+				}
+
+				if (emitEveryMetricStep)
+				{
+					float metricCurvatureGain = Mathf.Max(0f, MetricAdaptiveCurvatureGain);
+					if (metricCurvatureGain > 0f)
+					{
+						float aPerpLen = PerpAccelLen(a, v);
+						step /= 1.0f + (aPerpLen * StepAdaptGain * metricCurvatureGain);
+						step = Mathf.Clamp(step, minStep, maxStep);
+					}
+				}
+
+				if (step > remaining)
+				{
+					step = remaining;
+				}
+
+				if (emitEveryMetricStep)
+				{
+					ce = 1;
+				}
+				else if (UseScreenSpaceCollisionCadence && cam != null)
+				{
+					float aPerp = PerpAccelLen(a, v);
 					float depth = (p - camPos).Length();
 					ce = ComputeCeFromScreenError(ceBase, step, aPerp, depth, pxPerRad, CollisionMaxErrorPixels);
 				}
-				////////
-				/// ///////////////
-				/// //////////////////////////
 				else
 				{
 					ce = ceBase;
 				}
 
+				Vector3 vBeforeStep = v;
+				if (emitEveryMetricStep)
+				{
+					float acceptedStep = step;
+					Vector3 acceptedNext = p;
+					Vector3 acceptedDir = v;
+					Vector3 acceptedAccel = a;
+
+					for (int subdiv = 0; subdiv <= metricMaxSubdivisions; subdiv++)
+					{
+						float trialStep = acceptedStep;
+						Vector3 coarseDir = SafeNormalized(v + (acceptedAccel * trialStep), v);
+						Vector3 coarseNext = p + (coarseDir * trialStep);
+
+						float halfStep = 0.5f * trialStep;
+						Vector3 halfDir = SafeNormalized(v + (acceptedAccel * halfStep), v);
+						Vector3 halfPos = p + (halfDir * halfStep);
+						Vector3 halfAccel = ComputeTransportAccelerationForActiveModel(activeTransport, halfPos, halfDir, bendDir, center, beta, gamma, fieldSnaps, hasSources);
+						float halfAccelLen = halfAccel.Length();
+						if (!float.IsFinite(halfAccelLen))
+						{
+							halfAccel = Vector3.Zero;
+						}
+						else if (halfAccelLen > 50f)
+						{
+							halfAccel *= 50f / halfAccelLen;
+						}
+
+						Vector3 refinedDir = SafeNormalized(halfDir + (halfAccel * halfStep), halfDir);
+						Vector3 refinedNext = halfPos + (refinedDir * halfStep);
+						float turnAngle = ComputeDirectionTurnAngle(vBeforeStep, refinedDir);
+						float errorEstimate = EstimateMetricStepError(coarseNext, refinedNext, coarseDir, refinedDir, trialStep);
+						bool acceptStep = (turnAngle <= metricTurnThreshold && errorEstimate <= metricErrorTolerance) || (trialStep <= (minStep + 1e-6f)) || subdiv >= metricMaxSubdivisions;
+						if (acceptStep)
+						{
+							step = trialStep;
+							next = refinedNext;
+							v = refinedDir;
+							a = (acceptedAccel + halfAccel) * 0.5f;
+							break;
+						}
+
+						acceptedStep = Mathf.Max(minStep, trialStep * 0.5f);
+					}
+				}
+				else
+				{
+					v = SafeNormalized(v + a * step, v);
+					next = p + v * step;
+				}
+
+				RecordTransportSteeringStep(p, vBeforeStep, v, center, fieldSnaps, hasSources);
+
+				//////////////////////////////
+				/// ////////////
+				/// /////////
+				// DECISION: update segment cadence using screen-space error when enabled.
 				// traveled increment is ~step (v is normalized)
 				traveled += step;
 				///////////////////////////////////
@@ -2408,11 +2519,25 @@ public partial class RayBeamRenderer : Node3D
 			}
 
 			// DECISION: emit segments only at adaptive cadence.
-			stepsSinceEmit++;
-			// DECISION: emit when cadence threshold reached (skip s=0).
-			if (s > 0 && stepsSinceEmit >= ce)
+			bool shouldEmit;
+			if (emitEveryMetricStep)
 			{
-				stepsSinceEmit = 0;
+				shouldEmit = (next - p).LengthSquared() > 1e-12f;
+			}
+			else
+			{
+				stepsSinceEmit++;
+				shouldEmit = s > 0 && stepsSinceEmit >= ce;
+			}
+
+			// DECISION: emit when cadence threshold reached (skip s=0) or on each accepted metric step.
+			if (shouldEmit)
+			{
+				if (!emitEveryMetricStep)
+				{
+					stepsSinceEmit = 0;
+				}
+
 				// DECISION: optionally filter segments by insight plane slab.
 				if (useInsightPlane && !SegmentCrossesPlane(p, next, insightPlane, insightEps))
 				{
@@ -2541,9 +2666,17 @@ public partial class RayBeamRenderer : Node3D
 		// DECISION: when cadence probing is off, set countdown to max to avoid triggering.
 		int probeCountdown = useProbeEvery ? probeEvery : int.MaxValue;
 		float traveledSinceProbe = 0f;
+		TransportModel activeTransport = hasSources ? ResolveActiveTransportModel(fieldSnaps) : TransportModel.GRIN_Optical;
+		bool emitEveryMetricStep = UseIntegratedField && activeTransport == TransportModel.Metric_NullGeodesic;
+		int maxIntegrationSteps = emitEveryMetricStep
+			? Mathf.Max(1, StepsPerRay * GetMetricAdaptiveStepMultiplier())
+			: StepsPerRay;
+		float metricTurnThreshold = GetMetricAdaptiveTurnThresholdRadians();
+		float metricErrorTolerance = Mathf.Max(1e-5f, MetricAdaptiveErrorTolerance);
+		int metricMaxSubdivisions = Mathf.Max(0, MetricAdaptiveMaxSubdivisions);
 
 		// DECISION: integrate along the ray for up to StepsPerRay steps.
-		for (int s = 0; s <= StepsPerRay; s++)
+		for (int s = 0; s <= maxIntegrationSteps; s++)
 		{
 			stepsIntegrated++;
 			float prevTraveled = traveled;
@@ -2566,7 +2699,6 @@ public partial class RayBeamRenderer : Node3D
 
 				Vector3 a;
 				a = Vector3.Zero;
-				TransportModel activeTransport = hasSources ? ResolveActiveTransportModel(fieldSnaps) : TransportModel.GRIN_Optical;
 
 				// DECISION: prefer field grid sampling when available.
 				// NOTE: Metric_NullGeodesic still borrows GRIN here because FieldGrid3D caches GRIN acceleration;
@@ -2623,11 +2755,26 @@ public partial class RayBeamRenderer : Node3D
 						step = Mathf.Min(step * LowCurvatureStepBoost, maxStep);
 				}
 
+				if (emitEveryMetricStep)
+				{
+					float metricCurvatureGain = Mathf.Max(0f, MetricAdaptiveCurvatureGain);
+					if (metricCurvatureGain > 0f)
+					{
+						float aPerpLen = PerpAccelLen(a, v);
+						step /= 1.0f + (aPerpLen * stepAdaptGain * metricCurvatureGain);
+						step = Mathf.Clamp(step, minStep, maxStep);
+					}
+				}
+
 				// DECISION: clamp to remaining distance so we don't overshoot maxDistance.
 				if (step > remaining) step = remaining; // DECISION: clamp step to remaining distance.
 
 				// DECISION: update segment cadence using screen-space error when enabled.
-				if (UseScreenSpaceCollisionCadence && cam != null)
+				if (emitEveryMetricStep)
+				{
+					ce = 1;
+				}
+				else if (UseScreenSpaceCollisionCadence && cam != null)
 				{
 					float aPerp = PerpAccelLen(a, v);   // v from previous iteration; ok
 					float depth = (p - camPos).Length();
@@ -2639,9 +2786,79 @@ public partial class RayBeamRenderer : Node3D
 				}
 
 				Vector3 vBeforeStep = v;
-				v = SafeNormalized(v + a * step, v);
+				if (emitEveryMetricStep)
+				{
+					float acceptedStep = step;
+					Vector3 acceptedNext = p;
+					Vector3 acceptedDir = v;
+					Vector3 acceptedAccel = a;
+					int extraMetricFieldEvals = 0;
+
+					for (int subdiv = 0; subdiv <= metricMaxSubdivisions; subdiv++)
+					{
+						float trialStep = acceptedStep;
+						Vector3 coarseDir = SafeNormalized(v + (acceptedAccel * trialStep), v);
+						Vector3 coarseNext = p + (coarseDir * trialStep);
+
+						float halfStep = 0.5f * trialStep;
+						Vector3 halfDir = SafeNormalized(v + (acceptedAccel * halfStep), v);
+						Vector3 halfPos = p + (halfDir * halfStep);
+
+						Vector3 halfAccel = Vector3.Zero;
+						if (fieldGrid != null && fieldGrid.TrySample(halfPos, out halfAccel))
+						{
+						}
+						else if (hasSources)
+						{
+							halfAccel = ComputeTransportAccelerationForActiveModel(activeTransport, halfPos, halfDir, bendDir, center, beta, gamma, fieldSnaps, hasSources);
+						}
+						else
+						{
+							halfAccel = StepTransport_GRIN(halfPos, center, beta, gamma, fieldSnaps, hasSources);
+						}
+
+						float halfAccelLen = halfAccel.Length();
+						if (!float.IsFinite(halfAccelLen))
+						{
+							halfAccel = Vector3.Zero;
+						}
+						else if (halfAccelLen > 50f)
+						{
+							halfAccel *= 50f / halfAccelLen;
+						}
+
+						extraMetricFieldEvals++;
+
+						Vector3 refinedDir = SafeNormalized(halfDir + (halfAccel * halfStep), halfDir);
+						Vector3 refinedNext = halfPos + (refinedDir * halfStep);
+						float turnAngle = ComputeDirectionTurnAngle(vBeforeStep, refinedDir);
+						float errorEstimate = EstimateMetricStepError(coarseNext, refinedNext, coarseDir, refinedDir, trialStep);
+						bool acceptStep = (turnAngle <= metricTurnThreshold && errorEstimate <= metricErrorTolerance) || (trialStep <= (minStep + 1e-6f)) || subdiv >= metricMaxSubdivisions;
+						if (acceptStep)
+						{
+							acceptedStep = trialStep;
+							acceptedNext = refinedNext;
+							acceptedDir = refinedDir;
+							acceptedAccel = (acceptedAccel + halfAccel) * 0.5f;
+							break;
+						}
+
+						acceptedStep = Mathf.Max(minStep, trialStep * 0.5f);
+					}
+
+					fieldEvals += extraMetricFieldEvals;
+					step = acceptedStep;
+					next = acceptedNext;
+					v = acceptedDir;
+					a = acceptedAccel;
+				}
+				else
+				{
+					v = SafeNormalized(v + a * step, v);
+					next = p + v * step;
+				}
+
 				RecordTransportSteeringStep(p, vBeforeStep, v, center, fieldSnaps, hasSources);
-				next = p + v * step;
 
 				// traveled increment is ~step (v is normalized)
 				traveled += step;
@@ -2668,11 +2885,25 @@ public partial class RayBeamRenderer : Node3D
 				probeCountdown--;
 
 			// DECISION: emit segments only at adaptive cadence.
-			stepsSinceEmit++;
-			// DECISION: emit when cadence threshold reached (skip s=0).
-			if (s > 0 && stepsSinceEmit >= ce)
+			bool shouldEmit;
+			if (emitEveryMetricStep)
 			{
-				stepsSinceEmit = 0;
+				shouldEmit = (next - p).LengthSquared() > 1e-12f;
+			}
+			else
+			{
+				stepsSinceEmit++;
+				shouldEmit = s > 0 && stepsSinceEmit >= ce;
+			}
+
+			// DECISION: emit when cadence threshold reached (skip s=0) or on each accepted metric step.
+			if (shouldEmit)
+			{
+				if (!emitEveryMetricStep)
+				{
+					stepsSinceEmit = 0;
+				}
+
 				// DECISION: optionally filter segments by insight plane slab.
 				if (useInsightPlane && !SegmentCrossesPlane(p, next, insightPlane, insightEps))
 				{
@@ -3619,6 +3850,45 @@ public partial class RayBeamRenderer : Node3D
 		}
 
 		return ordered.ToArray();
+	}
+
+	private int GetMetricAdaptiveStepMultiplier()
+	{
+		int subdivisions = Mathf.Clamp(MetricAdaptiveMaxSubdivisions, 0, 5);
+		return 1 << subdivisions;
+	}
+
+	private float GetMetricAdaptiveTurnThresholdRadians()
+	{
+		return Mathf.DegToRad(Mathf.Clamp(MetricAdaptiveTurnThresholdDegrees, 0.1f, 45.0f));
+	}
+
+	private static float ComputeDirectionTurnAngle(Vector3 from, Vector3 to)
+	{
+		Vector3 dirBefore = SafeNormalized(from, Vector3.Forward);
+		Vector3 dirAfter = SafeNormalized(to, dirBefore);
+		if (!IsFinite(dirBefore) || !IsFinite(dirAfter))
+		{
+			return 0f;
+		}
+
+		float dot = Mathf.Clamp(dirBefore.Dot(dirAfter), -1f, 1f);
+		float crossLen = dirBefore.Cross(dirAfter).Length();
+		float turn = Mathf.Atan2(crossLen, dot);
+		return float.IsFinite(turn) ? turn : 0f;
+	}
+
+	private static float EstimateMetricStepError(
+		Vector3 coarsePos,
+		Vector3 refinedPos,
+		Vector3 coarseDir,
+		Vector3 refinedDir,
+		float step)
+	{
+		float positionalError = (refinedPos - coarsePos).Length();
+		float directionalError = step * ComputeDirectionTurnAngle(coarseDir, refinedDir);
+		float estimate = positionalError + directionalError;
+		return float.IsFinite(estimate) && estimate > 0f ? estimate : 0f;
 	}
 
 	private bool TryStepIntegratedTransport(

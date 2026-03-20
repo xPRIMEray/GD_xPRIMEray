@@ -926,9 +926,9 @@ public partial class GrinFilmCamera : Node
 	private RayBeamRenderer.FieldSourceSnap[] _fieldSourceSnaps = Array.Empty<RayBeamRenderer.FieldSourceSnap>();
 	private FieldGrid3D _fieldGrid;
 
-	// conservative: max segments per ray = StepsPerRay / CollisionEveryNSteps + 2
+	// conservative: renderer reports the current worst-case segment budget per ray.
 	private int MaxSegPerRay => (_rbr != null)
-		? (Mathf.Max(1, _rbr.StepsPerRay / Mathf.Max(1, _rbr.CollisionEveryNSteps)) + 2)
+		? _rbr.EstimateMaxSegmentsPerRay()
 		: 64;
 
 	// Debug overlay buffers (reused, no GC)
@@ -3839,7 +3839,9 @@ public partial class GrinFilmCamera : Node
 					cfg.RayMarch.MinStepLength = minStepLength;
 					cfg.RayMarch.MaxStepLength = maxStepLength;
 					cfg.RayMarch.StepLength = Mathf.Clamp(cfg.RayMarch.StepLength, minStepLength, maxStepLength);
-					cfg.RayMarch.MaxSegPerRay = Mathf.Max(1, cfg.RayMarch.StepsPerRay / Mathf.Max(1, cfg.RayMarch.CollisionEveryNSteps)) + 2;
+					cfg.RayMarch.MaxSegPerRay = _rbr != null
+						? _rbr.EstimateMaxSegmentsPerRay()
+						: (Mathf.Max(1, cfg.RayMarch.StepsPerRay / Mathf.Max(1, cfg.RayMarch.CollisionEveryNSteps)) + 2);
 
 					if (_rbr != null && cfg.SharedRaySnapshot.HasRenderer)
 					{
@@ -9718,7 +9720,9 @@ public partial class GrinFilmCamera : Node
 				DebugMode = sharedSnap.DebugMode,
 				DebugNormalLen = sharedSnap.DebugNormalLen,
 				DebugOverlayOwnedByFilm = sharedSnap.DebugOverlayOwnedByFilm,
-				MaxSegPerRay = Mathf.Max(1, sharedSnap.StepsPerRay / Mathf.Max(1, sharedSnap.CollisionEveryNSteps)) + 2
+				MaxSegPerRay = _rbr != null
+					? _rbr.EstimateMaxSegmentsPerRay()
+					: (Mathf.Max(1, sharedSnap.StepsPerRay / Mathf.Max(1, sharedSnap.CollisionEveryNSteps)) + 2)
 			};
 		}
 		else

@@ -1,0 +1,8 @@
+.godot/
+*.dll
+*.pdb
+*.log
+__pycache__/
+*.pyc
+logs/
+screenshots/

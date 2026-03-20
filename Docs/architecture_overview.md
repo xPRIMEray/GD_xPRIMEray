@@ -425,3 +425,9 @@ The goal is a stable foundation for experimentation and growth.
 This is the renderer’s backbone.
 
 All development should reinforce, not erode, this structure.
+
+### Experimental Validation Layer
+
+The GRIN Fixture Auto-Calibration Framework introduces a structured
+test harness and measurement system for characterizing curved-ray behavior
+and enabling automated calibration of optical transport models.

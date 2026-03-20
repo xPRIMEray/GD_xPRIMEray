@@ -66,6 +66,11 @@ These are still useful for historical context and design evolution comparison.
 - [C1.0 g.1 — Parse/export canonical signature fields](CalibRoadmap/PatchLogs/C1_0_g_1.md)
 - [C1.7 g.X — AutoCal weak-signal FieldHeavy delta-aware stopgap](CalibRoadmap/PatchLogs/C1_7_g_X.md)
 
+
+## 🔬 Research & Experimental Frameworks
+
+- [GRIN Fixture Auto-Calibration Framework](Research/grin_fixture_auto_calibration_phase_plan.md)
+
 ### Archive
 
 - [_arch_charter_MASTER_v0-Chat52](./_Archive/_arch_charter_MASTER_v0-Chat52.md)
