@@ -26,9 +26,11 @@ FIELDNAMES = [
     "transport_model",
     "requested_stepLength",
     "requested_min_stepLength",
+    "requested_turnThreshold",
     "steps_per_ray",
     "effective_stepLength",
     "effective_min_stepLength",
+    "effective_turnThreshold",
     "status",
     "capture_succeeded",
     "launch_audit_status",
@@ -196,6 +198,7 @@ def build_row(args: argparse.Namespace) -> dict:
         ),
         "requested_stepLength": first_non_empty(summary_params.get("requested_step_length"), params.get("requested_step_length")),
         "requested_min_stepLength": first_non_empty(summary_params.get("requested_min_step_length"), params.get("requested_min_step_length")),
+        "requested_turnThreshold": first_non_empty(summary_params.get("requested_turn_threshold"), params.get("requested_turn_threshold")),
         "steps_per_ray": first_non_empty(
             summary_params.get("requested_steps_per_ray"),
             summary_metrics.get("effective_steps_per_ray"),
@@ -203,6 +206,7 @@ def build_row(args: argparse.Namespace) -> dict:
         ),
         "effective_stepLength": first_non_empty(summary_metrics.get("effective_step_length"), summary_renderer.get("stepLength")),
         "effective_min_stepLength": first_non_empty(summary_metrics.get("effective_min_step_length"), summary_renderer.get("minStepLength")),
+        "effective_turnThreshold": first_non_empty(summary_metrics.get("effective_turn_threshold"), summary_renderer.get("turnThreshold")),
         "status": first_non_empty(summary_metrics.get("status"), metrics.get("status")),
         "capture_succeeded": first_non_empty(summary_metrics.get("capture_succeeded"), metrics.get("capture_succeeded")),
         "launch_audit_status": first_non_empty(
@@ -234,6 +238,20 @@ def ensure_header(path: Path) -> None:
         with path.open("w", newline="", encoding="utf-8") as handle:
             writer = csv.DictWriter(handle, fieldnames=FIELDNAMES)
             writer.writeheader()
+        return
+
+    with path.open("r", newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        existing_fieldnames = reader.fieldnames or []
+        if existing_fieldnames == FIELDNAMES:
+            return
+        existing_rows = list(reader)
+
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=FIELDNAMES)
+        writer.writeheader()
+        for row in existing_rows:
+            writer.writerow({field: row.get(field, "") for field in FIELDNAMES})
 
 
 def append_row(path: Path, row: dict) -> int:

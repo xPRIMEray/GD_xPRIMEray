@@ -253,6 +253,19 @@ def fastest_run(rows: list[dict]) -> dict | None:
     return best_row
 
 
+def best_by_derived_rate(rows: list[dict], field: str) -> dict | None:
+    best_row = None
+    best_value = None
+    for row in rows:
+        value = derive_rate_from_row(row, field)
+        if value is None:
+            continue
+        if best_value is None or value > best_value:
+            best_row = row
+            best_value = value
+    return best_row
+
+
 def print_headline(label: str, row: dict | None, baseline_step_length: float | None) -> None:
     if row is None:
         print(f"{label}: -")
@@ -293,15 +306,21 @@ def print_step_summary(rows: list[dict], clean_rows: list[dict]) -> None:
     for step in sorted(grouped_all.keys(), key=step_sort_key):
         all_rows = grouped_all[step]
         clean_group = grouped_clean.get(step, [])
+        best_hit_rate = best_by_derived_rate(clean_group, "source_hits")
+        best_traced_rate = best_by_derived_rate(clean_group, "traced_pixels")
         best_useful = best_by_metric(clean_group, "useful_hit_ratio")
         best_traced = best_by_metric(clean_group, "traced_pixels")
         fastest = fastest_run(clean_group)
+        hit_rate_value = derive_rate_from_row(best_hit_rate, "source_hits") if best_hit_rate else None
+        traced_rate_value = derive_rate_from_row(best_traced_rate, "traced_pixels") if best_traced_rate else None
         useful_value = parse_number(best_useful.get("useful_hit_ratio")) if best_useful else None
         traced_value = parse_number(best_traced.get("traced_pixels")) if best_traced else None
         runtime_value = parse_number(fastest.get("runtime")) if fastest else None
         print(
             "  "
             f"{step}: total={len(all_rows)} clean={len(clean_group)} "
+            f"best_hit_rate={format_rate(hit_rate_value)} "
+            f"best_traced_rate={format_rate(traced_rate_value)} "
             f"best_useful_hit_ratio={format_number(useful_value)} "
             f"best_traced_pixels={format_number(traced_value, decimals=0)} "
             f"fastest={format_runtime(runtime_value)}"

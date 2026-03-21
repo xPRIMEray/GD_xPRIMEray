@@ -95,6 +95,7 @@ def build_params(args: argparse.Namespace, parsed: dict) -> dict:
         "requested_step_length": args.requested_step_length,
         "requested_min_step_length": args.requested_min_step_length,
         "requested_steps_per_ray": args.requested_steps_per_ray,
+        "requested_turn_threshold": args.requested_turn_threshold,
         "thresholds": {
             "settle_frames": args.settle_frames,
             "min_render_health_step": args.min_rh_step,
@@ -111,6 +112,9 @@ def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
     launch = parsed.get("launchAudit") or {}
     renderer = parsed.get("renderer") or {}
     image = detect_image_size(args.capture_path)
+    effective_turn_threshold = renderer.get("turnThreshold")
+    if effective_turn_threshold is None:
+        effective_turn_threshold = args.requested_turn_threshold
     traced_pixels = capture.get("tracedPixels")
     source_hits = capture.get("sourceHits")
     miss_hits = capture.get("missHits")
@@ -170,6 +174,7 @@ def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
         "effective_steps_per_ray": renderer.get("stepsPerRay"),
         "effective_step_length": renderer.get("stepLength"),
         "effective_min_step_length": renderer.get("minStepLength"),
+        "effective_turn_threshold": effective_turn_threshold,
         "image_width": image.get("width"),
         "image_height": image.get("height"),
         "hit_success_rate": hit_success_rate,
@@ -203,6 +208,7 @@ def build_summary(metrics: dict, args: argparse.Namespace) -> str:
         f"Forced Advance Events: {metrics['forced_advance']}",
         f"Render Health Step: {metrics['render_health_step']}",
         f"Processed Rows: {metrics['processed_rows']}",
+        f"Turn Threshold: {metrics['effective_turn_threshold']}",
         f"Output Path: {args.run_dir}",
     ]
     if metrics.get("failure_reason"):
@@ -231,6 +237,7 @@ def main() -> int:
     parser.add_argument("--requested-step-length", type=float, default=None)
     parser.add_argument("--requested-min-step-length", type=float, default=None)
     parser.add_argument("--requested-steps-per-ray", type=int, default=None)
+    parser.add_argument("--requested-turn-threshold", type=float, default=None)
     args = parser.parse_args()
 
     args.run_dir.mkdir(parents=True, exist_ok=True)
