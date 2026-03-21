@@ -40,6 +40,7 @@ def parse_kv(line: str, prefix: str):
 def parse_log(text: str) -> dict:
     parsed = {
         "capture": None,
+        "rows": None,
         "launchAudit": None,
         "renderer": None,
         "captureFailure": None,
@@ -58,6 +59,10 @@ def parse_log(text: str) -> dict:
         renderer = parse_kv(line, "[GrinBasicVisual][Renderer]")
         if renderer:
             parsed["renderer"] = renderer
+
+        rows = parse_kv(line, "[GrinBasicVisual][Rows]")
+        if rows:
+            parsed["rows"] = rows
 
         fail = FAIL_RE.search(line)
         if fail:
@@ -110,6 +115,7 @@ def build_params(args: argparse.Namespace, parsed: dict) -> dict:
 
 def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
     capture = parsed.get("capture") or {}
+    rows = parsed.get("rows") or {}
     launch = parsed.get("launchAudit") or {}
     renderer = parsed.get("renderer") or {}
     image = detect_image_size(args.capture_path)
@@ -173,6 +179,16 @@ def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
         "ready_frames": ready_frames,
         "render_health_step": render_health_step,
         "processed_rows": processed_rows,
+        "total_rows_considered": rows.get("totalRowsConsidered"),
+        "total_rows_processed": rows.get("totalRowsProcessed"),
+        "total_rows_skipped": rows.get("totalRowsSkipped"),
+        "processed_row_start": rows.get("processedRowStart"),
+        "processed_row_end": rows.get("processedRowEnd"),
+        "zero_hit_rows": rows.get("zeroHitRows"),
+        "row_participation_summary": rows.get("summary"),
+        "processed_row_ranges": rows.get("processedRowRanges"),
+        "skipped_row_ranges": rows.get("skippedRowRanges"),
+        "zero_hit_row_ranges": rows.get("zeroHitRowRanges"),
         "guard_progress": parsed.get("guardProgress"),
         "forced_advance": parsed.get("forcedAdvance"),
         "effective_steps_per_ray": renderer.get("stepsPerRay"),
@@ -213,6 +229,12 @@ def build_summary(metrics: dict, args: argparse.Namespace) -> str:
         f"Forced Advance Events: {metrics['forced_advance']}",
         f"Render Health Step: {metrics['render_health_step']}",
         f"Processed Rows: {metrics['processed_rows']}",
+        f"Total Rows Considered: {metrics['total_rows_considered']}",
+        f"Total Rows Processed: {metrics['total_rows_processed']}",
+        f"Total Rows Skipped: {metrics['total_rows_skipped']}",
+        f"Processed Row Window: {metrics['processed_row_start']}..{metrics['processed_row_end']}",
+        f"Zero-Hit Rows: {metrics['zero_hit_rows']}",
+        f"Row Participation Summary: {metrics['row_participation_summary']}",
         f"Turn Threshold: {metrics['effective_turn_threshold']}",
         f"Output Path: {args.run_dir}",
     ]
@@ -265,6 +287,7 @@ def main() -> int:
         "params": params,
         "metrics": metrics,
         "capture": parsed.get("capture") or {},
+        "rowParticipation": parsed.get("rows") or {},
         "launchAudit": parsed.get("launchAudit") or {},
         "renderer": parsed.get("renderer") or {},
         "scheduler": {

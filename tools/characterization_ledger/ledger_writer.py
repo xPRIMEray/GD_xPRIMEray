@@ -39,6 +39,13 @@ FIELDNAMES = [
     "guard_progress",
     "forcedAdvance",
     "processed_rows",
+    "total_rows_considered",
+    "total_rows_processed",
+    "total_rows_skipped",
+    "processed_row_start",
+    "processed_row_end",
+    "zero_hit_rows",
+    "row_participation_summary",
     "traced_pixels",
     "runtime",
     "source_hits",
@@ -164,6 +171,7 @@ def build_row(args: argparse.Namespace) -> dict:
     summary_params = summary.get("params") or {}
     summary_metrics = summary.get("metrics") or {}
     summary_capture = summary.get("capture") or {}
+    summary_rows = summary.get("rowParticipation") or {}
     summary_renderer = summary.get("renderer") or {}
     summary_scheduler = summary.get("scheduler") or {}
     summary_image = summary.get("image") or {}
@@ -221,6 +229,13 @@ def build_row(args: argparse.Namespace) -> dict:
         "guard_progress": first_non_empty(summary_scheduler.get("guard_progress"), summary_metrics.get("guard_progress")),
         "forcedAdvance": first_non_empty(summary_scheduler.get("forcedAdvance"), summary_metrics.get("forced_advance")),
         "processed_rows": first_non_empty(summary_metrics.get("processed_rows"), metrics.get("processed_rows"), summary_capture.get("processedRows")),
+        "total_rows_considered": first_non_empty(summary_metrics.get("total_rows_considered"), metrics.get("total_rows_considered"), summary_rows.get("totalRowsConsidered")),
+        "total_rows_processed": first_non_empty(summary_metrics.get("total_rows_processed"), metrics.get("total_rows_processed"), summary_rows.get("totalRowsProcessed")),
+        "total_rows_skipped": first_non_empty(summary_metrics.get("total_rows_skipped"), metrics.get("total_rows_skipped"), summary_rows.get("totalRowsSkipped")),
+        "processed_row_start": first_non_empty(summary_metrics.get("processed_row_start"), metrics.get("processed_row_start"), summary_rows.get("processedRowStart")),
+        "processed_row_end": first_non_empty(summary_metrics.get("processed_row_end"), metrics.get("processed_row_end"), summary_rows.get("processedRowEnd")),
+        "zero_hit_rows": first_non_empty(summary_metrics.get("zero_hit_rows"), metrics.get("zero_hit_rows"), summary_rows.get("zeroHitRows")),
+        "row_participation_summary": first_non_empty(summary_metrics.get("row_participation_summary"), metrics.get("row_participation_summary"), summary_rows.get("summary")),
         "traced_pixels": traced_pixels,
         "runtime": first_non_empty(summary_metrics.get("runtime_seconds"), metrics.get("runtime_seconds"), summary.get("runtime_seconds")),
         "source_hits": source_hits,

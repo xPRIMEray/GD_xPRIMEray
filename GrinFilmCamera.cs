@@ -136,6 +136,44 @@ public partial class GrinFilmCamera : Node
 		}
 	}
 
+	public readonly struct FixtureRowParticipationSnapshot
+	{
+		public readonly int TotalRowsConsidered;
+		public readonly int TotalRowsProcessed;
+		public readonly int TotalRowsSkipped;
+		public readonly int ProcessedRowStart;
+		public readonly int ProcessedRowEnd;
+		public readonly int ZeroHitRows;
+		public readonly string ProcessedRowRanges;
+		public readonly string SkippedRowRanges;
+		public readonly string ZeroHitRowRanges;
+		public readonly string Summary;
+
+		public FixtureRowParticipationSnapshot(
+			int totalRowsConsidered,
+			int totalRowsProcessed,
+			int totalRowsSkipped,
+			int processedRowStart,
+			int processedRowEnd,
+			int zeroHitRows,
+			string processedRowRanges,
+			string skippedRowRanges,
+			string zeroHitRowRanges,
+			string summary)
+		{
+			TotalRowsConsidered = totalRowsConsidered;
+			TotalRowsProcessed = totalRowsProcessed;
+			TotalRowsSkipped = totalRowsSkipped;
+			ProcessedRowStart = processedRowStart;
+			ProcessedRowEnd = processedRowEnd;
+			ZeroHitRows = zeroHitRows;
+			ProcessedRowRanges = processedRowRanges ?? "";
+			SkippedRowRanges = skippedRowRanges ?? "";
+			ZeroHitRowRanges = zeroHitRowRanges ?? "";
+			Summary = summary ?? "";
+		}
+	}
+
 	[ExportGroup("Presets")]
 
 	[ExportSubgroup("Scene Preset")]
@@ -1100,6 +1138,10 @@ public partial class GrinFilmCamera : Node
 	private long _fixtureDebugBackgroundHitsThisRun = 0;
 	private long _fixtureDebugAbsorbedHitsThisRun = 0;
 	private long _fixtureDebugMissHitsThisRun = 0;
+	private byte[] _fixtureRowsConsidered = Array.Empty<byte>();
+	private byte[] _fixtureRowsProcessed = Array.Empty<byte>();
+	private byte[] _fixtureRowsSkipped = Array.Empty<byte>();
+	private byte[] _fixtureRowsZeroHit = Array.Empty<byte>();
 
 	// band hit ROI history
 	private float[] _bandHitRate = Array.Empty<float>();
@@ -3016,6 +3058,7 @@ public partial class GrinFilmCamera : Node
 		_fixtureDebugBackgroundHitsThisRun = 0;
 		_fixtureDebugAbsorbedHitsThisRun = 0;
 		_fixtureDebugMissHitsThisRun = 0;
+		ResetFixtureRowParticipationForRunStart();
 	}
 
 	public bool TryGetFixtureDebugStatsForTesting(out FixtureDebugStatsSnapshot snapshot)
@@ -3031,6 +3074,190 @@ public partial class GrinFilmCamera : Node
 			_fixtureDebugMissHitsThisRun,
 			tracedPixels);
 		return tracedPixels > 0;
+	}
+
+	public bool TryGetFixtureRowParticipationForTesting(out FixtureRowParticipationSnapshot snapshot)
+	{
+		int totalRowsConsidered = CountMarkedRows(_fixtureRowsConsidered);
+		int totalRowsProcessed = CountMarkedRows(_fixtureRowsProcessed);
+		int totalRowsSkipped = CountMarkedRows(_fixtureRowsSkipped);
+		int zeroHitRows = CountMarkedRows(_fixtureRowsZeroHit);
+		int processedRowStart = FindFirstMarkedRow(_fixtureRowsProcessed);
+		int processedRowEnd = FindLastMarkedRow(_fixtureRowsProcessed);
+		string processedRanges = BuildMarkedRowRanges(_fixtureRowsProcessed);
+		string skippedRanges = BuildMarkedRowRanges(_fixtureRowsSkipped);
+		string zeroHitRanges = BuildMarkedRowRanges(_fixtureRowsZeroHit);
+		string summary =
+			$"proc={FormatCompactRowRanges(processedRanges)}|" +
+			$"skip={FormatCompactRowRanges(skippedRanges)}|" +
+			$"zero={FormatCompactRowRanges(zeroHitRanges)}";
+		snapshot = new FixtureRowParticipationSnapshot(
+			totalRowsConsidered,
+			totalRowsProcessed,
+			totalRowsSkipped,
+			processedRowStart,
+			processedRowEnd,
+			zeroHitRows,
+			processedRanges,
+			skippedRanges,
+			zeroHitRanges,
+			summary);
+		return totalRowsConsidered > 0 || totalRowsProcessed > 0 || totalRowsSkipped > 0 || zeroHitRows > 0;
+	}
+
+	private void ResetFixtureRowParticipationForRunStart()
+	{
+		if (_fixtureRowsConsidered.Length > 0) Array.Clear(_fixtureRowsConsidered, 0, _fixtureRowsConsidered.Length);
+		if (_fixtureRowsProcessed.Length > 0) Array.Clear(_fixtureRowsProcessed, 0, _fixtureRowsProcessed.Length);
+		if (_fixtureRowsSkipped.Length > 0) Array.Clear(_fixtureRowsSkipped, 0, _fixtureRowsSkipped.Length);
+		if (_fixtureRowsZeroHit.Length > 0) Array.Clear(_fixtureRowsZeroHit, 0, _fixtureRowsZeroHit.Length);
+	}
+
+	private void EnsureFixtureRowParticipationCapacity(int filmHeight)
+	{
+		int resolvedHeight = Math.Max(0, filmHeight);
+		if (_fixtureRowsConsidered.Length != resolvedHeight)
+		{
+			_fixtureRowsConsidered = new byte[resolvedHeight];
+			_fixtureRowsProcessed = new byte[resolvedHeight];
+			_fixtureRowsSkipped = new byte[resolvedHeight];
+			_fixtureRowsZeroHit = new byte[resolvedHeight];
+		}
+	}
+
+	private void RecordFixtureRowParticipationBand(
+		int bandStart,
+		int bandEnd,
+		bool markProcessed,
+		bool markSkipped,
+		bool markZeroHit)
+	{
+		int filmHeight = Math.Max(0, _filmHeight);
+		EnsureFixtureRowParticipationCapacity(filmHeight);
+		if (filmHeight <= 0)
+		{
+			return;
+		}
+
+		int start = Mathf.Clamp(bandStart, 0, filmHeight);
+		int end = Mathf.Clamp(bandEnd, 0, filmHeight);
+		if (end <= start)
+		{
+			return;
+		}
+
+		MarkFixtureRowRange(_fixtureRowsConsidered, start, end);
+		if (markProcessed)
+		{
+			MarkFixtureRowRange(_fixtureRowsProcessed, start, end);
+		}
+		if (markSkipped)
+		{
+			MarkFixtureRowRange(_fixtureRowsSkipped, start, end);
+		}
+		if (markZeroHit)
+		{
+			MarkFixtureRowRange(_fixtureRowsZeroHit, start, end);
+		}
+	}
+
+	private static void MarkFixtureRowRange(byte[] rows, int start, int end)
+	{
+		if (rows.Length == 0)
+		{
+			return;
+		}
+
+		int clampedStart = Math.Max(0, Math.Min(start, rows.Length));
+		int clampedEnd = Math.Max(clampedStart, Math.Min(end, rows.Length));
+		for (int index = clampedStart; index < clampedEnd; index++)
+		{
+			rows[index] = 1;
+		}
+	}
+
+	private static int CountMarkedRows(byte[] rows)
+	{
+		int count = 0;
+		for (int index = 0; index < rows.Length; index++)
+		{
+			if (rows[index] != 0)
+			{
+				count++;
+			}
+		}
+		return count;
+	}
+
+	private static int FindFirstMarkedRow(byte[] rows)
+	{
+		for (int index = 0; index < rows.Length; index++)
+		{
+			if (rows[index] != 0)
+			{
+				return index;
+			}
+		}
+		return -1;
+	}
+
+	private static int FindLastMarkedRow(byte[] rows)
+	{
+		for (int index = rows.Length - 1; index >= 0; index--)
+		{
+			if (rows[index] != 0)
+			{
+				return index;
+			}
+		}
+		return -1;
+	}
+
+	private static string BuildMarkedRowRanges(byte[] rows)
+	{
+		if (rows.Length == 0)
+		{
+			return "";
+		}
+
+		System.Text.StringBuilder builder = new System.Text.StringBuilder();
+		int rangeStart = -1;
+		for (int index = 0; index <= rows.Length; index++)
+		{
+			bool marked = index < rows.Length && rows[index] != 0;
+			if (marked)
+			{
+				if (rangeStart < 0)
+				{
+					rangeStart = index;
+				}
+				continue;
+			}
+
+			if (rangeStart < 0)
+			{
+				continue;
+			}
+
+			int rangeEnd = index - 1;
+			if (builder.Length > 0)
+			{
+				builder.Append(",");
+			}
+			builder.Append(rangeStart.ToString(CultureInfo.InvariantCulture));
+			if (rangeEnd > rangeStart)
+			{
+				builder.Append("-").Append(rangeEnd.ToString(CultureInfo.InvariantCulture));
+			}
+			rangeStart = -1;
+		}
+
+		return builder.ToString();
+	}
+
+	private static string FormatCompactRowRanges(string ranges)
+	{
+		return string.IsNullOrWhiteSpace(ranges) ? "-" : ranges;
 	}
 
 	public void SetFilmOpacityForTesting(float opacity)
@@ -8270,6 +8497,13 @@ public partial class GrinFilmCamera : Node
 		finally
 		{
 			if (framePerfEnabled) frameScope.Dispose();
+			if (bandAttemptedThisStep && bandH > 0)
+			{
+				bool bandWasSkipped = skipBandPhysics && processedPixelsThisBand > 0;
+				bool bandWasProcessed = processedPixelsThisBand > 0 && !bandWasSkipped;
+				bool bandWasZeroHit = bandWasProcessed && bandHits == 0;
+				RecordFixtureRowParticipationBand(yStart, yEnd, bandWasProcessed, bandWasSkipped, bandWasZeroHit);
+			}
 			rowCursorEnd = _rowCursor;
 			if (processedPixelsThisStep > 0 && rowCursorEnd == rowCursorStart)
 			{

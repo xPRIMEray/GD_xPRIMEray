@@ -230,12 +230,18 @@ def describe_run(row: dict, baseline_step_length: float | None = None) -> str:
     runtime = format_runtime(parse_number(row.get("runtime")))
     traced_rate = format_rate(derive_rate_from_row(row, "traced_pixels"))
     hit_rate = format_rate(derive_rate_from_row(row, "source_hits"))
-    step_delta = format_step_delta(step_length_value, baseline_step_length)
+    total_rows_processed = format_number(parse_number(row.get("total_rows_processed")), decimals=0)
+    total_rows_skipped = format_number(parse_number(row.get("total_rows_skipped")), decimals=0)
+    total_rows_considered = format_number(parse_number(row.get("total_rows_considered")), decimals=0)
+    processed_row_start = format_number(parse_number(row.get("processed_row_start")), decimals=0)
+    processed_row_end = format_number(parse_number(row.get("processed_row_end")), decimals=0)
     return (
         f"{fixture_id} | {clean_badge} | "
         f"step={step_length}"
         f"{f' vs {format_number(baseline_step_length)} ({format_percent((step_length_value - baseline_step_length)/baseline_step_length*100)})' if baseline_step_length and step_length_value is not None else ''} | "
         f"traced={traced_pixels} | "
+        f"rows={total_rows_processed}/{total_rows_skipped}/{total_rows_considered} "
+        f"span={processed_row_start}-{processed_row_end} | "
         f"hit={useful_hit_ratio} | "
         f"time={runtime} | "
         f"traced_rate={traced_rate} | "

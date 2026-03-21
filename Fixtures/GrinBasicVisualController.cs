@@ -483,6 +483,11 @@ public partial class GrinBasicVisualController : Node3D
 				$"zeroReasons={metricDiag.ZeroReasonSummary} radialSummary={metricDiag.RadialTurnSummary}");
 		}
 
+		GrinFilmCamera.FixtureRowParticipationSnapshot rowParticipationSnapshot = default;
+		bool hasRowParticipation = _filmCamera != null
+			&& GodotObject.IsInstanceValid(_filmCamera)
+			&& _filmCamera.TryGetFixtureRowParticipationForTesting(out rowParticipationSnapshot);
+
 		_captureComplete = true;
 		SetProcess(false);
 		GD.Print(
@@ -491,6 +496,21 @@ public partial class GrinBasicVisualController : Node3D
 			$"absorbedHits={snapshot.AbsorbedHits} missHits={snapshot.MissHits} readyFrames={_captureReadyFrames} " +
 			$"rhStep={(renderHealthStep >= 0 ? renderHealthStep.ToString(CultureInfo.InvariantCulture) : "na")} " +
 			$"processedRows={processedRows.ToString(CultureInfo.InvariantCulture)}");
+		if (hasRowParticipation)
+		{
+			GD.Print(
+				$"[GrinBasicVisual][Rows] fixture={FixtureHudName} " +
+				$"totalRowsConsidered={rowParticipationSnapshot.TotalRowsConsidered.ToString(CultureInfo.InvariantCulture)} " +
+				$"totalRowsProcessed={rowParticipationSnapshot.TotalRowsProcessed.ToString(CultureInfo.InvariantCulture)} " +
+				$"totalRowsSkipped={rowParticipationSnapshot.TotalRowsSkipped.ToString(CultureInfo.InvariantCulture)} " +
+				$"processedRowStart={rowParticipationSnapshot.ProcessedRowStart.ToString(CultureInfo.InvariantCulture)} " +
+				$"processedRowEnd={rowParticipationSnapshot.ProcessedRowEnd.ToString(CultureInfo.InvariantCulture)} " +
+				$"zeroHitRows={rowParticipationSnapshot.ZeroHitRows.ToString(CultureInfo.InvariantCulture)} " +
+				$"processedRowRanges={(string.IsNullOrWhiteSpace(rowParticipationSnapshot.ProcessedRowRanges) ? "-" : rowParticipationSnapshot.ProcessedRowRanges)} " +
+				$"skippedRowRanges={(string.IsNullOrWhiteSpace(rowParticipationSnapshot.SkippedRowRanges) ? "-" : rowParticipationSnapshot.SkippedRowRanges)} " +
+				$"zeroHitRowRanges={(string.IsNullOrWhiteSpace(rowParticipationSnapshot.ZeroHitRowRanges) ? "-" : rowParticipationSnapshot.ZeroHitRowRanges)} " +
+				$"summary={rowParticipationSnapshot.Summary}");
+		}
 		if (_exitAfterCapture)
 		{
 			RequestQuit(0);
