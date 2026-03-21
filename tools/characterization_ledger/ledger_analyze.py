@@ -5,6 +5,7 @@ import math
 import sys
 from collections import defaultdict
 from pathlib import Path
+from statistics import median
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -47,6 +48,11 @@ def parse_args() -> argparse.Namespace:
         "--compact",
         action="store_true",
         help="Print a compact dashboard view with only key summary lines.",
+    )
+    parser.add_argument(
+        "--rank-step-summary-by-robust-score",
+        action="store_true",
+        help="Sort repeatability summary groups by robust_score instead of effective_stepLength.",
     )
     return parser.parse_args()
 
@@ -128,6 +134,32 @@ def format_rate(value: float | None) -> str:
     if value is None:
         return "-"
     return f"{format_number(value, decimals=0)}/s"
+
+
+def population_std_dev(values: list[float]) -> float | None:
+    if not values:
+        return None
+    if len(values) == 1:
+        return 0.0
+    mean = sum(values) / len(values)
+    variance = sum((value - mean) ** 2 for value in values) / len(values)
+    return math.sqrt(variance)
+
+
+def hit_rates_for_rows(rows: list[dict]) -> list[float]:
+    rates: list[float] = []
+    for row in rows:
+        rate = derive_rate_from_row(row, "source_hits")
+        if rate is not None:
+            rates.append(rate)
+    return rates
+
+
+def robust_score_for_rows(rows: list[dict]) -> float | None:
+    hit_rates = hit_rates_for_rows(rows)
+    if not hit_rates:
+        return None
+    return median(hit_rates) - 0.5 * (population_std_dev(hit_rates) or 0.0)
 
 
 def load_rows(path: Path) -> list[dict]:
@@ -282,7 +314,11 @@ def print_top_runs(rows: list[dict], baseline_step_length: float | None) -> None
         print(f"  {index}. {describe_run(row, baseline_step_length)}")
 
 
-def print_step_summary(rows: list[dict], clean_rows: list[dict]) -> None:
+def print_step_summary(
+    rows: list[dict],
+    clean_rows: list[dict],
+    rank_by_robust_score: bool = False,
+) -> None:
     present_values = [get_field(row, "effective_stepLength") for row in rows if get_field(row, "effective_stepLength")]
     if not present_values:
         return
@@ -303,7 +339,21 @@ def print_step_summary(rows: list[dict], clean_rows: list[dict]) -> None:
         return (0, parsed) if parsed is not None else (1, value)
 
     print("by effective_stepLength:")
-    for step in sorted(grouped_all.keys(), key=step_sort_key):
+    robust_scores = {
+        step: robust_score_for_rows(grouped_clean.get(step, []))
+        for step in grouped_all.keys()
+    }
+    ordered_steps = sorted(grouped_all.keys(), key=step_sort_key)
+    if rank_by_robust_score:
+        ordered_steps = sorted(
+            grouped_all.keys(),
+            key=lambda step: (
+                -(robust_scores[step] if robust_scores[step] is not None else float("-inf")),
+                step_sort_key(step),
+            ),
+        )
+
+    for step in ordered_steps:
         all_rows = grouped_all[step]
         clean_group = grouped_clean.get(step, [])
         best_hit_rate = best_by_derived_rate(clean_group, "source_hits")
@@ -311,6 +361,7 @@ def print_step_summary(rows: list[dict], clean_rows: list[dict]) -> None:
         best_useful = best_by_metric(clean_group, "useful_hit_ratio")
         best_traced = best_by_metric(clean_group, "traced_pixels")
         fastest = fastest_run(clean_group)
+        robust_score = robust_scores[step]
         hit_rate_value = derive_rate_from_row(best_hit_rate, "source_hits") if best_hit_rate else None
         traced_rate_value = derive_rate_from_row(best_traced_rate, "traced_pixels") if best_traced_rate else None
         useful_value = parse_number(best_useful.get("useful_hit_ratio")) if best_useful else None
@@ -319,6 +370,7 @@ def print_step_summary(rows: list[dict], clean_rows: list[dict]) -> None:
         print(
             "  "
             f"{step}: total={len(all_rows)} clean={len(clean_group)} "
+            f"robust_score={format_rate(robust_score)} "
             f"best_hit_rate={format_rate(hit_rate_value)} "
             f"best_traced_rate={format_rate(traced_rate_value)} "
             f"best_useful_hit_ratio={format_number(useful_value)} "
@@ -371,7 +423,11 @@ def main() -> int:
         )
     if not args.compact:
         print_top_runs(clean_rows, args.baseline_step_length)
-    print_step_summary(filtered_rows, clean_rows)
+    print_step_summary(
+        filtered_rows,
+        clean_rows,
+        rank_by_robust_score=args.rank_step_summary_by_robust_score,
+    )
     return 0
 
 

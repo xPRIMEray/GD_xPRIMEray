@@ -96,6 +96,7 @@ def build_params(args: argparse.Namespace, parsed: dict) -> dict:
         "requested_min_step_length": args.requested_min_step_length,
         "requested_steps_per_ray": args.requested_steps_per_ray,
         "requested_turn_threshold": args.requested_turn_threshold,
+        "requested_error_tolerance": args.requested_error_tolerance,
         "thresholds": {
             "settle_frames": args.settle_frames,
             "min_render_health_step": args.min_rh_step,
@@ -115,6 +116,9 @@ def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
     effective_turn_threshold = renderer.get("turnThreshold")
     if effective_turn_threshold is None:
         effective_turn_threshold = args.requested_turn_threshold
+    effective_error_tolerance = renderer.get("errorTolerance")
+    if effective_error_tolerance is None:
+        effective_error_tolerance = args.requested_error_tolerance
     traced_pixels = capture.get("tracedPixels")
     source_hits = capture.get("sourceHits")
     miss_hits = capture.get("missHits")
@@ -175,6 +179,7 @@ def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
         "effective_step_length": renderer.get("stepLength"),
         "effective_min_step_length": renderer.get("minStepLength"),
         "effective_turn_threshold": effective_turn_threshold,
+        "effective_error_tolerance": effective_error_tolerance,
         "image_width": image.get("width"),
         "image_height": image.get("height"),
         "hit_success_rate": hit_success_rate,
@@ -238,6 +243,7 @@ def main() -> int:
     parser.add_argument("--requested-min-step-length", type=float, default=None)
     parser.add_argument("--requested-steps-per-ray", type=int, default=None)
     parser.add_argument("--requested-turn-threshold", type=float, default=None)
+    parser.add_argument("--requested-error-tolerance", type=float, default=None)
     args = parser.parse_args()
 
     args.run_dir.mkdir(parents=True, exist_ok=True)

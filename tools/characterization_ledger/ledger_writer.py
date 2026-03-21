@@ -27,10 +27,12 @@ FIELDNAMES = [
     "requested_stepLength",
     "requested_min_stepLength",
     "requested_turnThreshold",
+    "requested_errorTolerance",
     "steps_per_ray",
     "effective_stepLength",
     "effective_min_stepLength",
     "effective_turnThreshold",
+    "effective_errorTolerance",
     "status",
     "capture_succeeded",
     "launch_audit_status",
@@ -199,6 +201,7 @@ def build_row(args: argparse.Namespace) -> dict:
         "requested_stepLength": first_non_empty(summary_params.get("requested_step_length"), params.get("requested_step_length")),
         "requested_min_stepLength": first_non_empty(summary_params.get("requested_min_step_length"), params.get("requested_min_step_length")),
         "requested_turnThreshold": first_non_empty(summary_params.get("requested_turn_threshold"), params.get("requested_turn_threshold")),
+        "requested_errorTolerance": first_non_empty(summary_params.get("requested_error_tolerance"), params.get("requested_error_tolerance")),
         "steps_per_ray": first_non_empty(
             summary_params.get("requested_steps_per_ray"),
             summary_metrics.get("effective_steps_per_ray"),
@@ -207,6 +210,7 @@ def build_row(args: argparse.Namespace) -> dict:
         "effective_stepLength": first_non_empty(summary_metrics.get("effective_step_length"), summary_renderer.get("stepLength")),
         "effective_min_stepLength": first_non_empty(summary_metrics.get("effective_min_step_length"), summary_renderer.get("minStepLength")),
         "effective_turnThreshold": first_non_empty(summary_metrics.get("effective_turn_threshold"), summary_renderer.get("turnThreshold")),
+        "effective_errorTolerance": first_non_empty(summary_metrics.get("effective_error_tolerance"), summary_renderer.get("errorTolerance")),
         "status": first_non_empty(summary_metrics.get("status"), metrics.get("status")),
         "capture_succeeded": first_non_empty(summary_metrics.get("capture_succeeded"), metrics.get("capture_succeeded")),
         "launch_audit_status": first_non_empty(

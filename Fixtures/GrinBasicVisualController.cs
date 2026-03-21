@@ -15,6 +15,7 @@ public partial class GrinBasicVisualController : Node3D
 	private const string MaxStepLengthArgPrefix = "--grin-basic-max-step-length=";
 	private const string StepsPerRayArgPrefix = "--grin-basic-steps-per-ray=";
 	private const string TurnThresholdArgPrefix = "--grin-basic-turn-threshold=";
+	private const string ErrorToleranceArgPrefix = "--grin-basic-error-tolerance=";
 	private const string MetricGainArgPrefix = "--grin-basic-metric-gain=";
 	private const string BendScaleArgPrefix = "--grin-basic-bend-scale=";
 	private const string FieldStrengthArgPrefix = "--grin-basic-field-strength=";
@@ -150,6 +151,7 @@ public partial class GrinBasicVisualController : Node3D
 				$"stepsPerRay={_rendererConfig.StepsPerRay} stepLength={_rendererConfig.StepLength:0.######} " +
 				$"minStepLength={_rendererConfig.MinStepLength:0.######} maxStepLength={_rendererConfig.MaxStepLength:0.######} " +
 				$"turnThreshold={_rendererConfig.TurnThresholdDegrees:0.######} " +
+				$"errorTolerance={_rendererConfig.ErrorTolerance:0.######} " +
 				$"bendScale={_rendererConfig.BendScale:0.######} fieldStrength={_rendererConfig.FieldStrength:0.######} " +
 				$"metricGain={_rendererConfig.MetricGainMultiplier:0.######} metricGainActive={(_rendererConfig.MetricGainActive ? 1 : 0)}");
 		}
@@ -355,6 +357,7 @@ public partial class GrinBasicVisualController : Node3D
 		float baselineMaxStepLength = Mathf.Max(baselineMinStepLength, rayBeamRenderer.MaxStepLength > 0f ? rayBeamRenderer.MaxStepLength : baselineStepLength);
 		int baselineStepsPerRay = Mathf.Max(1, rayBeamRenderer.StepsPerRay);
 		float baselineTurnThreshold = Mathf.Clamp(rayBeamRenderer.MetricAdaptiveTurnThresholdDegrees, 0.1f, 45.0f);
+		float baselineErrorTolerance = Mathf.Max(1e-5f, rayBeamRenderer.MetricAdaptiveErrorTolerance);
 		float baselineBendScale = float.IsFinite(rayBeamRenderer.BendScale) ? rayBeamRenderer.BendScale : 1.0f;
 		float baselineFieldStrength = float.IsFinite(rayBeamRenderer.FieldStrength) ? rayBeamRenderer.FieldStrength : 1.0f;
 		float stepScale = options.StepScale.HasValue && float.IsFinite(options.StepScale.Value) && options.StepScale.Value > 0.0f
@@ -379,6 +382,9 @@ public partial class GrinBasicVisualController : Node3D
 		float turnThresholdDegrees = options.TurnThresholdDegrees.HasValue
 			? Mathf.Clamp(options.TurnThresholdDegrees.Value, 0.1f, 45.0f)
 			: baselineTurnThreshold;
+		float errorTolerance = options.ErrorTolerance.HasValue
+			? Mathf.Max(1e-5f, options.ErrorTolerance.Value)
+			: baselineErrorTolerance;
 		float bendScale = options.BendScale.HasValue
 			? options.BendScale.Value
 			: baselineBendScale * metricGain;
@@ -393,6 +399,7 @@ public partial class GrinBasicVisualController : Node3D
 		rayBeamRenderer.StepLength = Mathf.Clamp(stepLength, resolvedMinStepLength, resolvedMaxStepLength);
 		rayBeamRenderer.StepsPerRay = stepsPerRay;
 		rayBeamRenderer.MetricAdaptiveTurnThresholdDegrees = turnThresholdDegrees;
+		rayBeamRenderer.MetricAdaptiveErrorTolerance = errorTolerance;
 		rayBeamRenderer.BendScale = bendScale;
 		rayBeamRenderer.FieldStrength = fieldStrength;
 
@@ -416,6 +423,7 @@ public partial class GrinBasicVisualController : Node3D
 			MinStepLength = rayBeamRenderer.MinStepLength,
 			MaxStepLength = rayBeamRenderer.MaxStepLength,
 			TurnThresholdDegrees = rayBeamRenderer.MetricAdaptiveTurnThresholdDegrees,
+			ErrorTolerance = rayBeamRenderer.MetricAdaptiveErrorTolerance,
 			BendScale = rayBeamRenderer.BendScale,
 			FieldStrength = rayBeamRenderer.FieldStrength,
 			MetricGainMultiplier = metricGainMultiplier,
@@ -649,6 +657,11 @@ public partial class GrinBasicVisualController : Node3D
 				options.TurnThresholdDegrees = turnThresholdDegrees;
 				continue;
 			}
+			if (TryParseFloatArgValue(arg, ErrorToleranceArgPrefix, out float errorTolerance))
+			{
+				options.ErrorTolerance = errorTolerance;
+				continue;
+			}
 			if (TryParseFloatArgValue(arg, MetricGainArgPrefix, out float metricGain))
 			{
 				options.MetricGain = metricGain;
@@ -825,6 +838,7 @@ public partial class GrinBasicVisualController : Node3D
 		public float? MaxStepLength;
 		public int? StepsPerRay;
 		public float? TurnThresholdDegrees;
+		public float? ErrorTolerance;
 		public float? MetricGain;
 		public float? BendScale;
 		public float? FieldStrength;
@@ -845,6 +859,7 @@ public partial class GrinBasicVisualController : Node3D
 		public float MinStepLength;
 		public float MaxStepLength;
 		public float TurnThresholdDegrees;
+		public float ErrorTolerance;
 		public float BendScale;
 		public float FieldStrength;
 		public float MetricGainMultiplier;
