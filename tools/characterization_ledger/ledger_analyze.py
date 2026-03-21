@@ -206,12 +206,12 @@ def describe_run(row: dict, baseline_step_length: float | None = None) -> str:
         f"traced={traced_pixels} | "
         f"hit={useful_hit_ratio} | "
         f"time={runtime} | "
-        f"traced_rate={traced_rate} "
+        f"traced_rate={traced_rate} | "
         f"hit_rate={hit_rate} | "
         f"{short_commit}"
     )
 
-def sort_key_for_top_runs(row: dict) -> tuple[float, float, float, str]:
+def sort_key_for_top_runs(row: dict) -> tuple[float, float, float, float, float, str]:
     useful_hit_ratio = parse_number(row.get("useful_hit_ratio"))
     traced_pixels = parse_number(row.get("traced_pixels"))
     runtime = parse_number(row.get("runtime"))
@@ -219,14 +219,13 @@ def sort_key_for_top_runs(row: dict) -> tuple[float, float, float, str]:
     hit_rate = derive_rate_from_row(row, "source_hits")
     timestamp = get_field(row, "timestamp")
     return (
-        -(useful_hit_ratio if useful_hit_ratio is not None else float("-inf")),
-        -(traced_rate if traced_rate is not None else float("-inf")),
         -(hit_rate if hit_rate is not None else float("-inf")),
+        -(traced_rate if traced_rate is not None else float("-inf")),
+        -(useful_hit_ratio if useful_hit_ratio is not None else float("-inf")),
         -(traced_pixels if traced_pixels is not None else float("-inf")),
         runtime if runtime is not None else float("inf"),
         timestamp,
     )
-
 
 def best_by_metric(rows: list[dict], field: str) -> dict | None:
     best_row = None
