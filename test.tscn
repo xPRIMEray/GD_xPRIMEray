@@ -75,8 +75,7 @@ metadata/_edit_use_anchors_ = true
 
 [node name="RenderTestRunner" type="Node" parent="."]
 script = ExtResource("2_runner")
-AutoStart = true
-AutoQuitOnComplete = true
+StartWhenCmdArgPresent = false
 EnableSceneAutoCalibration = true
 ApplyAutoCalibratedPreset = true
 AutoCalVerboseLogs = true

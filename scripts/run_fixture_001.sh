@@ -36,7 +36,32 @@ resolve_godot_exe() {
   return 1
 }
 
+resolve_ledger_python() {
+  if [[ -n "${FIXTURE_001_LEDGER_PYTHON:-}" && -x "${FIXTURE_001_LEDGER_PYTHON}" ]]; then
+    printf '%s\n' "${FIXTURE_001_LEDGER_PYTHON}"
+    return 0
+  fi
+
+  local candidates=(
+    "$ROOT/.venv_image_compare/bin/python"
+    "$ROOT/.venv/bin/python"
+    "$(command -v python3)"
+  )
+  local candidate
+  for candidate in "${candidates[@]}"; do
+    if [[ -n "$candidate" && -x "$candidate" ]]; then
+      if "$candidate" -c 'import PIL, numpy, skimage' >/dev/null 2>&1; then
+        printf '%s\n' "$candidate"
+        return 0
+      fi
+    fi
+  done
+
+  printf '%s\n' "$(command -v python3)"
+}
+
 GODOT_BIN="$(resolve_godot_exe)"
+LEDGER_PYTHON_BIN="$(resolve_ledger_python)"
 export GODOT_EXE="$GODOT_BIN"
 
 FIXTURE_ID="fixture_001"
@@ -48,6 +73,11 @@ MIN_PROCESSED_ROWS="${FIXTURE_001_MIN_PROCESSED_ROWS:-64}"
 CAPTURE_FILM_OPACITY="${FIXTURE_001_CAPTURE_FILM_OPACITY:-1.0}"
 COMPARE_GRID="${FIXTURE_001_COMPARE_GRID:-1}"
 COMPARE_CROSSHAIR="${FIXTURE_001_COMPARE_CROSSHAIR:-1}"
+REQUESTED_TRANSPORT_MODEL="${FIXTURE_001_TRANSPORT_MODEL:-}"
+REQUESTED_STEP_LENGTH="${FIXTURE_001_STEP_LENGTH:-}"
+REQUESTED_MIN_STEP_LENGTH="${FIXTURE_001_MIN_STEP_LENGTH:-}"
+REQUESTED_STEPS_PER_RAY="${FIXTURE_001_STEPS_PER_RAY:-}"
+BASELINE_CAPTURE="${FIXTURE_001_BASELINE_CAPTURE:-}"
 
 TIMESTAMP="$(date +"%Y-%m-%dT%H-%M-%S")"
 RUN_DIR="$ROOT/output/fixture_runs/$FIXTURE_ID/$TIMESTAMP"
@@ -55,6 +85,34 @@ mkdir -p "$RUN_DIR"
 
 CAPTURE_PATH="$RUN_DIR/capture.png"
 LOG_PATH="$RUN_DIR/run.log"
+
+EXTRA_RENDER_ARGS=()
+REPORT_ARGS=()
+LEDGER_ARGS=()
+
+if [[ -n "$REQUESTED_TRANSPORT_MODEL" ]]; then
+  EXTRA_RENDER_ARGS+=("--transport-model=$REQUESTED_TRANSPORT_MODEL")
+  REPORT_ARGS+=(--requested-transport-model "$REQUESTED_TRANSPORT_MODEL")
+fi
+
+if [[ -n "$REQUESTED_STEP_LENGTH" ]]; then
+  EXTRA_RENDER_ARGS+=("--grin-basic-step-length=$REQUESTED_STEP_LENGTH")
+  REPORT_ARGS+=(--requested-step-length "$REQUESTED_STEP_LENGTH")
+fi
+
+if [[ -n "$REQUESTED_MIN_STEP_LENGTH" ]]; then
+  EXTRA_RENDER_ARGS+=("--grin-basic-min-step-length=$REQUESTED_MIN_STEP_LENGTH")
+  REPORT_ARGS+=(--requested-min-step-length "$REQUESTED_MIN_STEP_LENGTH")
+fi
+
+if [[ -n "$REQUESTED_STEPS_PER_RAY" ]]; then
+  EXTRA_RENDER_ARGS+=("--grin-basic-steps-per-ray=$REQUESTED_STEPS_PER_RAY")
+  REPORT_ARGS+=(--requested-steps-per-ray "$REQUESTED_STEPS_PER_RAY")
+fi
+
+if [[ -n "$BASELINE_CAPTURE" ]]; then
+  LEDGER_ARGS+=(--baseline-path "$BASELINE_CAPTURE")
+fi
 
 CMD=(
   "$GODOT_BIN"
@@ -69,6 +127,7 @@ CMD=(
   "--grin-basic-compare-grid=$COMPARE_GRID"
   "--grin-basic-compare-crosshair=$COMPARE_CROSSHAIR"
   "--grin-basic-exit-after-capture=1"
+  "${EXTRA_RENDER_ARGS[@]}"
 )
 
 printf 'Command:\n'
@@ -87,6 +146,7 @@ RUNTIME_SECONDS="$(python3 -c "start=float('$START_TS'); end=float('$END_TS'); p
 
 python3 "$ROOT/tools/fixture_001_report.py" \
   --fixture-id "$FIXTURE_ID" \
+  --timestamp "$TIMESTAMP" \
   --scene "$SCENE_PATH" \
   --launcher "$LAUNCHER_TOKEN" \
   --run-dir "$RUN_DIR" \
@@ -99,7 +159,17 @@ python3 "$ROOT/tools/fixture_001_report.py" \
   --min-processed-rows "$MIN_PROCESSED_ROWS" \
   --capture-film-opacity "$CAPTURE_FILM_OPACITY" \
   --compare-grid "$COMPARE_GRID" \
-  --compare-crosshair "$COMPARE_CROSSHAIR"
+  --compare-crosshair "$COMPARE_CROSSHAIR" \
+  "${REPORT_ARGS[@]}"
+
+"$LEDGER_PYTHON_BIN" "$ROOT/tools/characterization_ledger/ledger_writer.py" \
+  --summary-json "$RUN_DIR/summary.json" \
+  --metrics-json "$RUN_DIR/metrics.json" \
+  --params-json "$RUN_DIR/params.json" \
+  --capture-path "$CAPTURE_PATH" \
+  --fixture-id "$FIXTURE_ID" \
+  --timestamp "$TIMESTAMP" \
+  "${LEDGER_ARGS[@]}"
 
 SUMMARY_PATH="$RUN_DIR/summary.txt"
 printf 'Summary:\n'
@@ -108,4 +178,3 @@ cat "$SUMMARY_PATH"
 if [[ "$GODOT_EXIT_CODE" -ne 0 ]]; then
   exit "$GODOT_EXIT_CODE"
 fi
-
