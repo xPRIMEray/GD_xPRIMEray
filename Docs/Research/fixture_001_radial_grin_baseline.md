@@ -105,6 +105,13 @@ This is best described as a stable basin with a mild ridge toward
 - This gives Fixture 001 a usable state-of-the-art reference for future
   fixture-note writeups: record the winner, the fallback, and the basin shape.
 
+### Radial profile interpretation
+
+Fixture 001 optimization improves the same outer-mid annular hit band rather
+than shifting or broadening it. The best verified config, `0.040 / 0.012 / 2.0`,
+increases localized hit conversion in bins 5 and 6 without changing rendered
+coverage.
+
 ## Historical run history
 
 The current local Fixture 001 history under `output/fixture_runs/fixture_001`

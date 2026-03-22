@@ -6,6 +6,8 @@ import re
 import struct
 from pathlib import Path
 
+from PIL import Image
+
 
 FAIL_RE = re.compile(r"\[GrinBasicVisual\]\[Capture\]\[FAIL\].*")
 GUARD_PROGRESS_RE = re.compile(r"reason=guard_progress\b")
@@ -157,6 +159,7 @@ def build_params(args: argparse.Namespace, parsed: dict) -> dict:
             "capture_film_opacity": args.capture_film_opacity,
             "compare_grid": args.compare_grid,
             "compare_crosshair": args.compare_crosshair,
+            "radial_bin_count": args.radial_bin_count,
         },
     }
 
@@ -504,9 +507,199 @@ def build_row_coverage_artifact(metrics: dict) -> dict:
     }
 
 
+def clamp_byte(value: float) -> int:
+    return max(0, min(255, int(round(value * 255.0))))
+
+
+FINAL_HIT_RGBA = (
+    clamp_byte(1.0),
+    clamp_byte(0.82),
+    clamp_byte(0.18),
+    clamp_byte(1.0),
+)
+RENDERED_NO_HIT_RGBA = (
+    clamp_byte(0.07),
+    clamp_byte(0.09),
+    clamp_byte(0.18),
+    clamp_byte(1.0),
+)
+UNRENDERED_RGBA = (0, 0, 0, 255)
+
+
+def rgba_matches(pixel: tuple[int, int, int, int], expected: tuple[int, int, int, int], tolerance: int = 2) -> bool:
+    return all(abs(int(actual) - int(target)) <= tolerance for actual, target in zip(pixel, expected))
+
+
+def classify_categorical_pixel(pixel: tuple[int, int, int, int]) -> str:
+    if rgba_matches(pixel, FINAL_HIT_RGBA):
+        return "final_hit"
+    if rgba_matches(pixel, RENDERED_NO_HIT_RGBA):
+        return "rendered_no_hit"
+    if rgba_matches(pixel, UNRENDERED_RGBA):
+        return "unrendered"
+    return "other"
+
+
+def build_radial_profile(args: argparse.Namespace, metrics: dict) -> dict:
+    capture_mode = metrics.get("analysis_capture_mode")
+    if capture_mode != "categorical_final":
+        return {
+            "enabled": False,
+            "reason": f"analysis_capture_mode_not_supported:{capture_mode}",
+            "analysis_capture_mode": capture_mode,
+        }
+
+    if args.radial_bin_count <= 0:
+        return {
+            "enabled": False,
+            "reason": f"invalid_radial_bin_count:{args.radial_bin_count}",
+            "analysis_capture_mode": capture_mode,
+        }
+
+    with Image.open(args.capture_path) as image:
+        rgba = image.convert("RGBA")
+        width, height = rgba.size
+        pixels = rgba.load()
+
+        center_x = (width - 1) / 2.0
+        center_y = (height - 1) / 2.0
+        max_radius = math.hypot(max(center_x, width - 1 - center_x), max(center_y, height - 1 - center_y))
+        if max_radius <= 0.0:
+            max_radius = 1.0
+
+        bins: list[dict] = []
+        for index in range(args.radial_bin_count):
+            radius_start = (index / args.radial_bin_count) * max_radius
+            radius_end = ((index + 1) / args.radial_bin_count) * max_radius
+            bins.append(
+                {
+                    "bin_index": index,
+                    "radius_start_px": round(radius_start, 4),
+                    "radius_end_px": round(radius_end, 4),
+                    "pixel_count": 0,
+                    "final_hit_pixel_count": 0,
+                    "rendered_no_hit_pixel_count": 0,
+                    "unrendered_pixel_count": 0,
+                    "other_pixel_count": 0,
+                }
+            )
+
+        for y in range(height):
+            for x in range(width):
+                radius = math.hypot(x - center_x, y - center_y)
+                normalized = min(radius / max_radius, 0.999999999)
+                bin_index = min(int(normalized * args.radial_bin_count), args.radial_bin_count - 1)
+                bucket = bins[bin_index]
+                bucket["pixel_count"] += 1
+                category = classify_categorical_pixel(tuple(int(channel) for channel in pixels[x, y]))
+                if category == "final_hit":
+                    bucket["final_hit_pixel_count"] += 1
+                elif category == "rendered_no_hit":
+                    bucket["rendered_no_hit_pixel_count"] += 1
+                elif category == "unrendered":
+                    bucket["unrendered_pixel_count"] += 1
+                else:
+                    bucket["other_pixel_count"] += 1
+
+        totals = {
+            "pixel_count": 0,
+            "final_hit_pixel_count": 0,
+            "rendered_no_hit_pixel_count": 0,
+            "unrendered_pixel_count": 0,
+            "other_pixel_count": 0,
+        }
+        for bucket in bins:
+            rendered_pixels = bucket["final_hit_pixel_count"] + bucket["rendered_no_hit_pixel_count"]
+            bucket["rendered_pixel_count"] = rendered_pixels
+            bucket["hit_fraction_within_rendered_area"] = (
+                round(bucket["final_hit_pixel_count"] / rendered_pixels, 6) if rendered_pixels > 0 else None
+            )
+            bucket["rendered_coverage_fraction"] = (
+                round(rendered_pixels / bucket["pixel_count"], 6) if bucket["pixel_count"] > 0 else None
+            )
+            for key in totals:
+                totals[key] += bucket[key]
+
+        rendered_total = totals["final_hit_pixel_count"] + totals["rendered_no_hit_pixel_count"]
+        totals["rendered_pixel_count"] = rendered_total
+        totals["hit_fraction_within_rendered_area"] = (
+            round(totals["final_hit_pixel_count"] / rendered_total, 6) if rendered_total > 0 else None
+        )
+        totals["rendered_coverage_fraction"] = (
+            round(rendered_total / totals["pixel_count"], 6) if totals["pixel_count"] > 0 else None
+        )
+
+        return {
+            "enabled": True,
+            "analysis_capture_mode": capture_mode,
+            "capture_path": str(args.capture_path),
+            "bin_count": args.radial_bin_count,
+            "center_pixel": {
+                "x": round(center_x, 4),
+                "y": round(center_y, 4),
+            },
+            "max_radius_px": round(max_radius, 4),
+            "categorical_palette": {
+                "final_hit_rgba": list(FINAL_HIT_RGBA),
+                "rendered_no_hit_rgba": list(RENDERED_NO_HIT_RGBA),
+                "unrendered_rgba": list(UNRENDERED_RGBA),
+            },
+            "bins": bins,
+            "totals": totals,
+        }
+
+
+def build_radial_profile_text(profile: dict) -> str:
+    if not profile.get("enabled"):
+        reason = profile.get("reason") or "disabled"
+        return f"Radial Profile: unavailable ({reason})\n"
+
+    lines = [
+        "Radial Profile",
+        f"Capture Path: {profile.get('capture_path')}",
+        f"Analysis Capture Mode: {profile.get('analysis_capture_mode')}",
+        f"Bin Count: {profile.get('bin_count')}",
+        f"Center Pixel: ({profile['center_pixel']['x']}, {profile['center_pixel']['y']})",
+        f"Max Radius Px: {profile.get('max_radius_px')}",
+        "Legend: bin radius_px pixels final_hit rendered_no_hit unrendered hit_frac_rendered rendered_coverage other",
+    ]
+    for bucket in profile.get("bins", []):
+        hit_fraction = bucket.get("hit_fraction_within_rendered_area")
+        coverage_fraction = bucket.get("rendered_coverage_fraction")
+        lines.append(
+            "bin{idx} {start:7.3f}-{end:7.3f} px={pixels:5d} hit={hit:5d} nohit={nohit:5d} "
+            "unrendered={unrendered:5d} hitFrac={hitfrac} renderedCov={coverage} other={other:5d}".format(
+                idx=bucket["bin_index"],
+                start=bucket["radius_start_px"],
+                end=bucket["radius_end_px"],
+                pixels=bucket["pixel_count"],
+                hit=bucket["final_hit_pixel_count"],
+                nohit=bucket["rendered_no_hit_pixel_count"],
+                unrendered=bucket["unrendered_pixel_count"],
+                hitfrac="na" if hit_fraction is None else f"{hit_fraction:.4f}",
+                coverage="na" if coverage_fraction is None else f"{coverage_fraction:.4f}",
+                other=bucket["other_pixel_count"],
+            )
+        )
+    totals = profile.get("totals") or {}
+    lines.extend(
+        [
+            "Totals",
+            f"Pixels: {totals.get('pixel_count')}",
+            f"Final Hit Pixels: {totals.get('final_hit_pixel_count')}",
+            f"Rendered No-Hit Pixels: {totals.get('rendered_no_hit_pixel_count')}",
+            f"Unrendered Pixels: {totals.get('unrendered_pixel_count')}",
+            f"Overall Hit Fraction Within Rendered Area: {totals.get('hit_fraction_within_rendered_area')}",
+            f"Overall Rendered Coverage Fraction: {totals.get('rendered_coverage_fraction')}",
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
+
 def build_summary(metrics: dict, args: argparse.Namespace) -> str:
     verification = metrics.get("verification") or {}
     row_coverage = metrics.get("row_coverage") or {}
+    radial_profile = metrics.get("radial_profile") or {}
     lines = [
         f"Fixture: {metrics['fixture_id']}",
         f"Timestamp: {args.timestamp}",
@@ -549,6 +742,10 @@ def build_summary(metrics: dict, args: argparse.Namespace) -> str:
         f"Bottom Region Likely Cause: {metrics.get('bottom_region_likely_cause')}",
         f"Analysis Unrendered Rows: {metrics.get('analysis_unrendered_rows')}",
         f"Analysis Band Matches Unrendered Rows: {metrics.get('analysis_band_matches_unrendered_rows')}",
+        f"Radial Bin Count: {radial_profile.get('bin_count')}",
+        f"Radial Overall Hit Fraction: {(radial_profile.get('totals') or {}).get('hit_fraction_within_rendered_area')}",
+        f"Radial Overall Rendered Coverage: {(radial_profile.get('totals') or {}).get('rendered_coverage_fraction')}",
+        f"Radial Profile Path: {metrics.get('radial_profile_path')}",
         f"Runtime Fingerprint: {metrics['runtime_fingerprint']}",
         f"Assembly Timestamp Present: {str(verification.get('assembly_timestamp_present', False)).lower()}",
         f"Requested Step Match: {str(verification.get('effective_step_matches_requested', False)).lower()}",
@@ -580,6 +777,7 @@ def main() -> int:
     parser.add_argument("--capture-film-opacity", required=True)
     parser.add_argument("--compare-grid", required=True)
     parser.add_argument("--compare-crosshair", required=True)
+    parser.add_argument("--radial-bin-count", type=int, default=8)
     parser.add_argument("--requested-transport-model", default=None)
     parser.add_argument("--requested-step-length", type=float, default=None)
     parser.add_argument("--requested-min-step-length", type=float, default=None)
@@ -596,6 +794,14 @@ def main() -> int:
     metrics = build_metrics(args, parsed)
     metrics["verification"] = build_verification(metrics, params)
     metrics["row_coverage"] = build_row_coverage_artifact(metrics)
+    radial_profile = build_radial_profile(args, metrics)
+    radial_profile_path = args.run_dir / "radial_profile.json"
+    radial_profile_text_path = args.run_dir / "radial_profile.txt"
+    radial_profile_path.write_text(json.dumps(radial_profile, indent=2) + "\n", encoding="utf-8")
+    radial_profile_text_path.write_text(build_radial_profile_text(radial_profile), encoding="utf-8")
+    metrics["radial_profile"] = radial_profile
+    metrics["radial_profile_path"] = str(radial_profile_path)
+    metrics["radial_profile_text_path"] = str(radial_profile_text_path)
     summary = build_summary(metrics, args)
     summary_json = {
         "timestamp": args.timestamp,

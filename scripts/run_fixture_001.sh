@@ -281,7 +281,7 @@ set -e
 END_TS="$(python3 -c 'import time; print(time.perf_counter())')"
 RUNTIME_SECONDS="$(python3 -c "start=float('$START_TS'); end=float('$END_TS'); print(f'{end-start:.3f}')")"
 
-python3 "$ROOT/tools/fixture_001_report.py" \
+"$LEDGER_PYTHON_BIN" "$ROOT/tools/fixture_001_report.py" \
   --fixture-id "$FIXTURE_ID" \
   --timestamp "$TIMESTAMP" \
   --scene "$SCENE_PATH" \
@@ -297,6 +297,7 @@ python3 "$ROOT/tools/fixture_001_report.py" \
   --capture-film-opacity "$CAPTURE_FILM_OPACITY" \
   --compare-grid "$COMPARE_GRID" \
   --compare-crosshair "$COMPARE_CROSSHAIR" \
+  --radial-bin-count "${FIXTURE_001_RADIAL_BIN_COUNT:-8}" \
   "${REPORT_ARGS[@]}"
 
 "$LEDGER_PYTHON_BIN" "$ROOT/tools/characterization_ledger/ledger_writer.py" \
