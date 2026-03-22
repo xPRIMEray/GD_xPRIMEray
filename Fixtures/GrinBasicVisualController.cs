@@ -24,6 +24,8 @@ public partial class GrinBasicVisualController : Node3D
 	private const string BendScaleArgPrefix = "--grin-basic-bend-scale=";
 	private const string FieldStrengthArgPrefix = "--grin-basic-field-strength=";
 	private const string CaptureArgPrefix = "--grin-basic-capture=";
+	private const string DebugCaptureArgPrefix = "--grin-basic-debug-capture=";
+	private const string AnalysisCaptureModeArgPrefix = "--grin-basic-analysis-capture-mode=";
 	private const string SettleFramesArgPrefix = "--grin-basic-settle-frames=";
 	private const string MinRenderHealthStepArgPrefix = "--grin-basic-min-rh-step=";
 	private const string MinProcessedRowsArgPrefix = "--grin-basic-min-processed-rows=";
@@ -75,6 +77,8 @@ public partial class GrinBasicVisualController : Node3D
 	private int _pendingQuitCode;
 	private float _captureFilmOpacityOverride = -1.0f;
 	private string _capturePath = string.Empty;
+	private string _debugCapturePath = string.Empty;
+	private string _analysisCaptureMode = "resolved_film";
 	private RendererConfigSnapshot _rendererConfig;
 
 	public override void _Ready()
@@ -91,6 +95,8 @@ public partial class GrinBasicVisualController : Node3D
 		_captureRequested = !string.IsNullOrWhiteSpace(options.CapturePath);
 		_exitAfterCapture = options.ExitAfterCapture;
 		_capturePath = options.CapturePath ?? string.Empty;
+		_debugCapturePath = ResolveDebugCapturePath(_capturePath, options.DebugCapturePath);
+		_analysisCaptureMode = NormalizeAnalysisCaptureModeToken(options.AnalysisCaptureMode);
 		_captureSettleFrames = Math.Max(1, options.SettleFrames ?? DefaultCaptureSettleFrames);
 		_captureTimeoutFrames = Math.Max(_captureSettleFrames, DefaultCaptureTimeoutFrames);
 		_captureMinRenderHealthStep = Math.Max(0, options.MinRenderHealthStep ?? DefaultCaptureMinRenderHealthStep);
@@ -172,7 +178,9 @@ public partial class GrinBasicVisualController : Node3D
 				_filmCamera.SetFilmOpacityForTesting(_captureFilmOpacityOverride);
 			}
 			GD.Print(
-				$"[GrinBasicVisual][CaptureConfig] fixture={FixtureHudName} path={ResolveCapturePath(_capturePath)} " +
+				$"[GrinBasicVisual][CaptureConfig] fixture={FixtureHudName} analysisPath={ResolveCapturePath(_capturePath)} " +
+				$"debugPath={ResolveCapturePath(_debugCapturePath)} " +
+				$"analysisCaptureMode={_analysisCaptureMode} " +
 				$"settleFrames={_captureSettleFrames} timeoutFrames={_captureTimeoutFrames} " +
 				$"minRhStep={_captureMinRenderHealthStep} minRows={_captureMinProcessedRows} " +
 				$"filmOpacity={(HasCaptureOpacityOverride(_captureFilmOpacityOverride) ? _captureFilmOpacityOverride.ToString("0.##", CultureInfo.InvariantCulture) : "unchanged")} " +
@@ -510,36 +518,73 @@ public partial class GrinBasicVisualController : Node3D
 	private void CaptureViewportAndQuit(GrinFilmCamera.FixtureDebugStatsSnapshot snapshot, int renderHealthStep, int processedRows)
 	{
 		Viewport viewport = GetViewport();
-		Image image = viewport?.GetTexture()?.GetImage();
-		if (image == null)
+		Image debugImage = viewport?.GetTexture()?.GetImage();
+		if (debugImage == null)
 		{
 			FailCaptureAndQuit($"[GrinBasicVisual][Capture][FAIL] fixture={FixtureHudName} reason=missing_viewport_image");
 			return;
 		}
 
-		string capturePath = ResolveCapturePath(_capturePath);
+		string analysisCapturePath = ResolveCapturePath(_capturePath);
+		string debugCapturePath = ResolveCapturePath(_debugCapturePath);
 		try
 		{
-			string directory = Path.GetDirectoryName(capturePath);
-			if (!string.IsNullOrWhiteSpace(directory))
+			string[] directories =
 			{
-				Directory.CreateDirectory(directory);
+				Path.GetDirectoryName(analysisCapturePath),
+				Path.GetDirectoryName(debugCapturePath)
+			};
+			foreach (string directory in directories)
+			{
+				if (!string.IsNullOrWhiteSpace(directory))
+				{
+					Directory.CreateDirectory(directory);
+				}
 			}
 		}
 		catch (Exception ex)
 		{
 			FailCaptureAndQuit(
 				$"[GrinBasicVisual][Capture][FAIL] fixture={FixtureHudName} reason=create_directory " +
-				$"path={capturePath} exception={ex.GetType().Name}");
+				$"path={analysisCapturePath} exception={ex.GetType().Name}");
 			return;
 		}
 
-		Error saveError = image.SavePng(capturePath);
-		if (saveError != Error.Ok)
+		if (_filmCamera == null || !GodotObject.IsInstanceValid(_filmCamera))
+		{
+			FailCaptureAndQuit($"[GrinBasicVisual][Capture][FAIL] fixture={FixtureHudName} reason=missing_film_camera_for_analysis");
+			return;
+		}
+
+		bool finalHitOnlyAnalysis = string.Equals(_analysisCaptureMode, "final_hit_only", StringComparison.Ordinal);
+		bool categoricalFinalAnalysis = string.Equals(_analysisCaptureMode, "categorical_final", StringComparison.Ordinal);
+		Image analysisImage = null;
+		bool copiedAnalysisImage = categoricalFinalAnalysis
+			? _filmCamera.TryCopyCategoricalFinalFilmImageForTesting(out analysisImage)
+			: finalHitOnlyAnalysis
+				? _filmCamera.TryCopyFinalHitOnlyFilmImageForTesting(out analysisImage)
+				: _filmCamera.TryCopyFilmImageForTesting(out analysisImage);
+		if (!copiedAnalysisImage || analysisImage == null)
+		{
+			FailCaptureAndQuit($"[GrinBasicVisual][Capture][FAIL] fixture={FixtureHudName} reason=missing_film_image");
+			return;
+		}
+
+		Error analysisSaveError = analysisImage.SavePng(analysisCapturePath);
+		if (analysisSaveError != Error.Ok)
 		{
 			FailCaptureAndQuit(
-				$"[GrinBasicVisual][Capture][FAIL] fixture={FixtureHudName} reason=save_png " +
-				$"path={capturePath} error={saveError}");
+				$"[GrinBasicVisual][Capture][FAIL] fixture={FixtureHudName} reason=save_analysis_png " +
+				$"path={analysisCapturePath} error={analysisSaveError}");
+			return;
+		}
+
+		Error debugSaveError = debugImage.SavePng(debugCapturePath);
+		if (debugSaveError != Error.Ok)
+		{
+			FailCaptureAndQuit(
+				$"[GrinBasicVisual][Capture][FAIL] fixture={FixtureHudName} reason=save_debug_png " +
+				$"path={debugCapturePath} error={debugSaveError}");
 			return;
 		}
 
@@ -563,15 +608,156 @@ public partial class GrinBasicVisualController : Node3D
 		bool hasRowParticipation = _filmCamera != null
 			&& GodotObject.IsInstanceValid(_filmCamera)
 			&& _filmCamera.TryGetFixtureRowParticipationForTesting(out rowParticipationSnapshot);
+		GrinFilmCamera.FilmCaptureDiagnosticsSnapshot filmDiagnostics = default;
+		bool hasFilmDiagnostics = _filmCamera.TryGetFilmCaptureDiagnosticsForTesting(out filmDiagnostics);
+		GrinFilmCamera.RenderHealthDiagnosticsSnapshot renderHealthDiagnostics = default;
+		bool hasRenderHealthDiagnostics = _filmCamera.TryGetLatestRenderHealthDiagnosticsForTesting(out renderHealthDiagnostics);
+		GrinFilmCamera.FixtureWriteDiagnosticsSnapshot writeDiagnostics = default;
+		bool hasWriteDiagnostics = _filmCamera.TryGetFixtureWriteDiagnosticsForTesting(out writeDiagnostics);
+		FilmOverlay2D.OverlayRenderSnapshot overlaySnapshot = default;
+		bool hasOverlaySnapshot = _filmOverlay != null && GodotObject.IsInstanceValid(_filmOverlay);
+		if (hasOverlaySnapshot)
+		{
+			overlaySnapshot = _filmOverlay.GetOverlayRenderSnapshot();
+		}
+
+		Vector2I viewportSize = debugImage.GetSize();
+		Rect2 filmViewRect = _filmViewRect();
+		int analysisRenderedRows = analysisImage.GetHeight();
+		if (hasFilmDiagnostics)
+		{
+			analysisRenderedRows = Mathf.Clamp(filmDiagnostics.RowCursor, 0, analysisImage.GetHeight());
+		}
+		int analysisUnrenderedRows = Math.Max(0, analysisImage.GetHeight() - analysisRenderedRows);
+		int debugExpectedBandStart = -1;
+		int debugExpectedBandHeight = 0;
+		if (hasFilmDiagnostics && filmDiagnostics.FilmHeight > 0)
+		{
+			float renderedRatio = (float)analysisRenderedRows / filmDiagnostics.FilmHeight;
+			float unrenderedRatio = (float)analysisUnrenderedRows / filmDiagnostics.FilmHeight;
+			debugExpectedBandStart = Mathf.Clamp(Mathf.RoundToInt(renderedRatio * debugImage.GetHeight()), 0, debugImage.GetHeight());
+			debugExpectedBandHeight = Mathf.Clamp(Mathf.RoundToInt(unrenderedRatio * debugImage.GetHeight()), 0, debugImage.GetHeight());
+		}
+
+		HorizontalBrightRunStats debugBrightRuns = AnalyzeHorizontalBrightRuns(debugImage);
+		HorizontalBrightRunStats analysisBrightRuns = AnalyzeHorizontalBrightRuns(analysisImage);
+		HorizontalBrightRunStats analysisRenderedBrightRuns = AnalyzeHorizontalBrightRuns(analysisImage, 0, analysisRenderedRows);
+		HorizontalBrightRunStats analysisUnrenderedBrightRuns = AnalyzeHorizontalBrightRuns(analysisImage, analysisRenderedRows, analysisImage.GetHeight());
+		BottomBandStats debugBottomBand = AnalyzeBottomUniformBottomBand(debugImage);
+		BottomBandStats analysisBottomBand = AnalyzeBottomUniformBottomBand(analysisImage);
+		bool analysisBottomBandMatchesUnrenderedRows = analysisBottomBand.Present &&
+			analysisBottomBand.StartRow == analysisRenderedRows &&
+			analysisBottomBand.Height == analysisUnrenderedRows;
+		bool analysisBottomBandMatchesSkyColor = hasFilmDiagnostics &&
+			analysisBottomBand.Present &&
+			AreColorsClose(analysisBottomBand.AverageColor, filmDiagnostics.SkyColor, 0.045f);
+		int debugBandStartDelta = debugExpectedBandStart >= 0 && debugBottomBand.Present
+			? debugBottomBand.StartRow - debugExpectedBandStart
+			: int.MinValue;
+		int debugBandHeightDelta = debugExpectedBandHeight > 0 && debugBottomBand.Present
+			? debugBottomBand.Height - debugExpectedBandHeight
+			: int.MinValue;
+		string whiteStreakLikelySource = ResolveWhiteStreakLikelySource(
+			analysisBrightRuns,
+			analysisRenderedBrightRuns,
+			analysisUnrenderedBrightRuns,
+			debugBrightRuns,
+			hasOverlaySnapshot,
+			overlaySnapshot,
+			hasFilmDiagnostics,
+			filmDiagnostics);
+		string bottomRegionLikelyCause = ResolveBottomRegionLikelyCause(
+			hasFilmDiagnostics,
+			filmDiagnostics,
+			debugBottomBand,
+			analysisBottomBand,
+			analysisBottomBandMatchesUnrenderedRows,
+			analysisBottomBandMatchesSkyColor);
 
 		_captureComplete = true;
 		SetProcess(false);
 		GD.Print(
-			$"[GrinBasicVisual][Capture] fixture={FixtureHudName} path={capturePath} " +
+			$"[GrinBasicVisual][Capture] fixture={FixtureHudName} path={analysisCapturePath} " +
 			$"tracedPixels={snapshot.TracedPixels} sourceHits={snapshot.SourceHits} backgroundHits={snapshot.BackgroundHits} " +
 			$"absorbedHits={snapshot.AbsorbedHits} missHits={snapshot.MissHits} readyFrames={_captureReadyFrames} " +
 			$"rhStep={(renderHealthStep >= 0 ? renderHealthStep.ToString(CultureInfo.InvariantCulture) : "na")} " +
 			$"processedRows={processedRows.ToString(CultureInfo.InvariantCulture)}");
+			GD.Print(
+				$"[GrinBasicVisual][CaptureArtifacts] fixture={FixtureHudName} " +
+				$"analysisPath={analysisCapturePath} debugPath={debugCapturePath} " +
+				$"analysisCaptureMode={_analysisCaptureMode} " +
+				$"analysisCaptureWritten=1 debugCaptureWritten=1 categoricalFinalWritten={(categoricalFinalAnalysis ? 1 : 0)} overlayEnabledForAnalysisCapture=0 " +
+				$"analysisWidth={analysisImage.GetWidth()} analysisHeight={analysisImage.GetHeight()} " +
+			$"debugWidth={debugImage.GetWidth()} debugHeight={debugImage.GetHeight()} " +
+			$"viewportWidth={viewportSize.X} viewportHeight={viewportSize.Y} " +
+			$"filmWidth={(hasFilmDiagnostics ? filmDiagnostics.FilmWidth.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"filmHeight={(hasFilmDiagnostics ? filmDiagnostics.FilmHeight.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"filmRowsRendered={(hasFilmDiagnostics ? filmDiagnostics.RowCursor.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"filmViewRect={FormatRectToken(filmViewRect)} captureCrop=full_image " +
+			$"captureCropBounds={FormatBoundsToken(0, 0, analysisImage.GetWidth(), analysisImage.GetHeight())} " +
+			$"renderedImageBounds={FormatBoundsToken(0, 0, analysisImage.GetWidth(), analysisRenderedRows)} " +
+			$"unrenderedImageBounds={FormatBoundsToken(0, analysisRenderedRows, analysisImage.GetWidth(), analysisUnrenderedRows)}");
+		GD.Print(
+			$"[GrinBasicVisual][OverlayDiag] fixture={FixtureHudName} " +
+			$"rayRendererDebugMode={(_rayBeamRenderer != null ? _rayBeamRenderer.DebugMode.ToString() : "na")} " +
+			$"rayRendererDebugOverlayOwnedByFilm={(_rayBeamRenderer != null && _rayBeamRenderer.DebugOverlayOwnedByFilm ? 1 : 0)} " +
+			$"rayRendererDebugMaxRays={(_rayBeamRenderer != null ? _rayBeamRenderer.DebugMaxRays.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"filmOverlayDrawRays={(hasOverlaySnapshot && overlaySnapshot.DrawRaysEnabled ? 1 : 0)} " +
+			$"filmOverlayDrawHitNormals={(hasOverlaySnapshot && overlaySnapshot.DrawHitNormalsEnabled ? 1 : 0)} " +
+			$"filmOverlayDrawFilmGradientNormals={(hasOverlaySnapshot && overlaySnapshot.DrawFilmGradientNormalsEnabled ? 1 : 0)} " +
+			$"comparisonGrid={(hasOverlaySnapshot && overlaySnapshot.ComparisonGridEnabled ? 1 : 0)} " +
+			$"comparisonCrosshair={(hasOverlaySnapshot && overlaySnapshot.ComparisonCrosshairEnabled ? 1 : 0)} " +
+			$"overlayRayCount={(hasOverlaySnapshot ? overlaySnapshot.RayCount.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"overlayPointCount={(hasOverlaySnapshot ? overlaySnapshot.PointCount.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"overlayBusItems={(hasOverlaySnapshot ? overlaySnapshot.DebugOverlayItemCount.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"overlayBusLines={(hasOverlaySnapshot ? overlaySnapshot.DebugOverlayLineCount.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"overlayBusTexts={(hasOverlaySnapshot ? overlaySnapshot.DebugOverlayTextCount.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"filmDebugRayCount={(hasFilmDiagnostics ? filmDiagnostics.DebugRayCount.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"filmDebugPointCount={(hasFilmDiagnostics ? filmDiagnostics.DebugPointCount.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"filmDebugRayCap={(hasFilmDiagnostics ? filmDiagnostics.DebugMaxFilmRays.ToString(CultureInfo.InvariantCulture) : "na")}");
+		GD.Print(
+			$"[GrinBasicVisual][WhiteStreakDiag] fixture={FixtureHudName} " +
+			$"analysisBrightRowCount={analysisBrightRuns.BrightRowCount} analysisLongestRun={analysisBrightRuns.LongestRunLength} " +
+			$"analysisRenderedBrightRowCount={analysisRenderedBrightRuns.BrightRowCount} " +
+			$"analysisRenderedBrightGroupCount={analysisRenderedBrightRuns.BrightGroupCount} " +
+			$"analysisRenderedBrightFirstRow={analysisRenderedBrightRuns.FirstBrightRow} " +
+			$"analysisRenderedBrightLastRow={analysisRenderedBrightRuns.LastBrightRow} " +
+			$"analysisRenderedLongestRun={analysisRenderedBrightRuns.LongestRunLength} " +
+			$"analysisUnrenderedBrightRowCount={analysisUnrenderedBrightRuns.BrightRowCount} " +
+			$"analysisUnrenderedBrightGroupCount={analysisUnrenderedBrightRuns.BrightGroupCount} " +
+			$"debugBrightRowCount={debugBrightRuns.BrightRowCount} debugLongestRun={debugBrightRuns.LongestRunLength} " +
+			$"renderHealthStep={(hasRenderHealthDiagnostics ? renderHealthDiagnostics.StepIndex.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"renderHealthTracedPixels={(hasRenderHealthDiagnostics ? renderHealthDiagnostics.TracedPixels.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"renderHealthGeomSegmentsQueried={(hasRenderHealthDiagnostics ? renderHealthDiagnostics.GeomSegmentsQueried.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"renderHealthGeomRayTestsTotal={(hasRenderHealthDiagnostics ? renderHealthDiagnostics.GeomRayTestsTotal.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"renderHealthPass2SampledSegments={(hasRenderHealthDiagnostics ? renderHealthDiagnostics.Pass2SampledSegments.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"renderHealthAvgStepsPerTracedPixel={(hasRenderHealthDiagnostics ? renderHealthDiagnostics.AvgStepsPerTracedPixel.ToString("0.######", CultureInfo.InvariantCulture) : "na")} " +
+			$"renderHealthExitReason={(hasRenderHealthDiagnostics ? renderHealthDiagnostics.BudgetExitReason : "na")} " +
+			$"likelySource={whiteStreakLikelySource}");
+		GD.Print(
+			$"[GrinBasicVisual][WriteDiag] fixture={FixtureHudName} " +
+			$"analysisCaptureMode={_analysisCaptureMode} " +
+			$"finalHitOnlyAnalysis={(finalHitOnlyAnalysis ? 1 : 0)} " +
+			$"rowsStarted={(hasWriteDiagnostics ? writeDiagnostics.RowsStarted.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"rowsCompleted={(hasWriteDiagnostics ? writeDiagnostics.RowsCompleted.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"rowsPartiallyWritten={(hasWriteDiagnostics ? writeDiagnostics.RowsPartiallyWritten.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"rowsEarlyTerminated={(hasWriteDiagnostics ? writeDiagnostics.RowsEarlyTerminated.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"finalHitPixelCount={(hasWriteDiagnostics ? writeDiagnostics.FinalHitPixelCount.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"traversalWritePixelCount={(hasWriteDiagnostics ? writeDiagnostics.TraversalWritePixelCount.ToString(CultureInfo.InvariantCulture) : "na")}");
+		GD.Print(
+			$"[GrinBasicVisual][BottomRegionDiag] fixture={FixtureHudName} " +
+			$"analysisBottomBandPresent={(analysisBottomBand.Present ? 1 : 0)} analysisBandStart={analysisBottomBand.StartRow} " +
+			$"analysisBandHeight={analysisBottomBand.Height} analysisBandColor={FormatColorToken(analysisBottomBand.AverageColor)} " +
+			$"analysisRenderedRows={analysisRenderedRows} analysisUnrenderedRows={analysisUnrenderedRows} " +
+			$"analysisBandMatchesUnrenderedRows={(analysisBottomBandMatchesUnrenderedRows ? 1 : 0)} " +
+			$"analysisBandMatchesSkyColor={(analysisBottomBandMatchesSkyColor ? 1 : 0)} " +
+			$"debugBottomBandPresent={(debugBottomBand.Present ? 1 : 0)} debugBandStart={debugBottomBand.StartRow} " +
+			$"debugBandHeight={debugBottomBand.Height} debugBandColor={FormatColorToken(debugBottomBand.AverageColor)} " +
+			$"debugExpectedBandStart={(debugExpectedBandStart >= 0 ? debugExpectedBandStart.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"debugExpectedBandHeight={(debugExpectedBandHeight > 0 ? debugExpectedBandHeight.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"debugBandStartDelta={(debugBandStartDelta != int.MinValue ? debugBandStartDelta.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"debugBandHeightDelta={(debugBandHeightDelta != int.MinValue ? debugBandHeightDelta.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"likelyCause={bottomRegionLikelyCause}");
 		if (hasRowParticipation)
 		{
 			GD.Print(
@@ -612,6 +798,307 @@ public partial class GrinBasicVisualController : Node3D
 	private static bool HasCaptureOpacityOverride(float value)
 	{
 		return float.IsFinite(value) && value >= 0.0f;
+	}
+
+	private string ResolveDebugCapturePath(string analysisPath, string requestedDebugPath)
+	{
+		if (!string.IsNullOrWhiteSpace(requestedDebugPath))
+		{
+			return requestedDebugPath.Trim();
+		}
+		if (string.IsNullOrWhiteSpace(analysisPath))
+		{
+			return string.Empty;
+		}
+
+		string trimmed = analysisPath.Trim();
+		string directory = Path.GetDirectoryName(trimmed) ?? string.Empty;
+		return Path.Combine(directory, "debug_capture.png");
+	}
+
+	private Rect2 _filmViewRect()
+	{
+		if (_filmCamera == null || !GodotObject.IsInstanceValid(_filmCamera))
+		{
+			return new Rect2();
+		}
+
+		TextureRect filmView = _filmCamera.GetNodeOrNull<TextureRect>(_filmCamera.FilmViewPath);
+		if (filmView == null || !GodotObject.IsInstanceValid(filmView))
+		{
+			return new Rect2();
+		}
+
+		return filmView.GetGlobalRect();
+	}
+
+	private readonly struct HorizontalBrightRunStats
+	{
+		public readonly int BrightRowCount;
+		public readonly int LongestRunLength;
+		public readonly int BrightGroupCount;
+		public readonly int FirstBrightRow;
+		public readonly int LastBrightRow;
+
+		public HorizontalBrightRunStats(
+			int brightRowCount,
+			int longestRunLength,
+			int brightGroupCount,
+			int firstBrightRow,
+			int lastBrightRow)
+		{
+			BrightRowCount = brightRowCount;
+			LongestRunLength = longestRunLength;
+			BrightGroupCount = brightGroupCount;
+			FirstBrightRow = firstBrightRow;
+			LastBrightRow = lastBrightRow;
+		}
+	}
+
+	private readonly struct BottomBandStats
+	{
+		public readonly bool Present;
+		public readonly int StartRow;
+		public readonly int Height;
+		public readonly Color AverageColor;
+
+		public BottomBandStats(bool present, int startRow, int height, Color averageColor)
+		{
+			Present = present;
+			StartRow = startRow;
+			Height = height;
+			AverageColor = averageColor;
+		}
+	}
+
+	private static HorizontalBrightRunStats AnalyzeHorizontalBrightRuns(Image image, int startRowInclusive = 0, int endRowExclusive = int.MaxValue)
+	{
+		if (image == null)
+		{
+			return new HorizontalBrightRunStats(0, 0, 0, -1, -1);
+		}
+
+		int width = image.GetWidth();
+		int height = image.GetHeight();
+		if (width <= 0 || height <= 0)
+		{
+			return new HorizontalBrightRunStats(0, 0, 0, -1, -1);
+		}
+
+		int startRow = Mathf.Clamp(startRowInclusive, 0, height);
+		int endRow = Mathf.Clamp(endRowExclusive, startRow, height);
+		if (startRow >= endRow)
+		{
+			return new HorizontalBrightRunStats(0, 0, 0, -1, -1);
+		}
+
+		int brightRows = 0;
+		int longestRun = 0;
+		int brightGroups = 0;
+		int firstBrightRow = -1;
+		int lastBrightRow = -1;
+		bool previousRowBright = false;
+		int minRun = Math.Max(24, width / 10);
+		for (int y = startRow; y < endRow; y++)
+		{
+			int currentRun = 0;
+			int rowLongest = 0;
+			for (int x = 0; x < width; x++)
+			{
+				Color pixel = image.GetPixel(x, y);
+				float luma = (pixel.R * 0.2126f) + (pixel.G * 0.7152f) + (pixel.B * 0.0722f);
+				if (luma >= 0.92f)
+				{
+					currentRun++;
+					rowLongest = Math.Max(rowLongest, currentRun);
+				}
+				else
+				{
+					currentRun = 0;
+				}
+			}
+
+			if (rowLongest >= minRun)
+			{
+				brightRows++;
+				longestRun = Math.Max(longestRun, rowLongest);
+				if (!previousRowBright)
+				{
+					brightGroups++;
+				}
+				if (firstBrightRow < 0)
+				{
+					firstBrightRow = y;
+				}
+				lastBrightRow = y;
+				previousRowBright = true;
+			}
+			else
+			{
+				previousRowBright = false;
+			}
+		}
+
+		return new HorizontalBrightRunStats(brightRows, longestRun, brightGroups, firstBrightRow, lastBrightRow);
+	}
+
+	private static BottomBandStats AnalyzeBottomUniformBottomBand(Image image)
+	{
+		if (image == null)
+		{
+			return new BottomBandStats(false, -1, 0, Colors.Black);
+		}
+
+		int width = image.GetWidth();
+		int height = image.GetHeight();
+		if (width <= 0 || height <= 0)
+		{
+			return new BottomBandStats(false, -1, 0, Colors.Black);
+		}
+
+		Color reference = AverageRowColor(image, height - 1);
+		int bandHeight = 0;
+		for (int y = height - 1; y >= 0; y--)
+		{
+			Color rowColor = AverageRowColor(image, y);
+			if (!AreColorsClose(reference, rowColor, 0.045f))
+			{
+				break;
+			}
+			bandHeight++;
+		}
+
+		if (bandHeight < Math.Max(12, height / 12))
+		{
+			return new BottomBandStats(false, -1, bandHeight, reference);
+		}
+
+		int startRow = height - bandHeight;
+		return new BottomBandStats(true, startRow, bandHeight, reference);
+	}
+
+	private static Color AverageRowColor(Image image, int y)
+	{
+		int width = image.GetWidth();
+		float r = 0f;
+		float g = 0f;
+		float b = 0f;
+		float a = 0f;
+		for (int x = 0; x < width; x++)
+		{
+			Color pixel = image.GetPixel(x, y);
+			r += pixel.R;
+			g += pixel.G;
+			b += pixel.B;
+			a += pixel.A;
+		}
+
+		float inv = width > 0 ? 1.0f / width : 0f;
+		return new Color(r * inv, g * inv, b * inv, a * inv);
+	}
+
+	private static bool AreColorsClose(Color a, Color b, float tolerance)
+	{
+		return Mathf.Abs(a.R - b.R) <= tolerance &&
+			Mathf.Abs(a.G - b.G) <= tolerance &&
+			Mathf.Abs(a.B - b.B) <= tolerance &&
+			Mathf.Abs(a.A - b.A) <= tolerance;
+	}
+
+	private static string ResolveWhiteStreakLikelySource(
+		HorizontalBrightRunStats analysisBrightRuns,
+		HorizontalBrightRunStats analysisRenderedBrightRuns,
+		HorizontalBrightRunStats analysisUnrenderedBrightRuns,
+		HorizontalBrightRunStats debugBrightRuns,
+		bool hasOverlaySnapshot,
+		FilmOverlay2D.OverlayRenderSnapshot overlaySnapshot,
+		bool hasFilmDiagnostics,
+		GrinFilmCamera.FilmCaptureDiagnosticsSnapshot filmDiagnostics)
+	{
+		bool overlayActive = hasOverlaySnapshot &&
+			(overlaySnapshot.DebugOverlayItemCount > 0 ||
+			 (overlaySnapshot.DrawRaysEnabled && overlaySnapshot.RayCount > 0));
+		if (debugBrightRuns.BrightRowCount > 0 && analysisBrightRuns.BrightRowCount == 0 && overlayActive)
+		{
+			if (overlaySnapshot.DebugOverlayTextCount > 0 || overlaySnapshot.DebugOverlayLineCount > 0)
+				return "debug_overlay";
+			if (overlaySnapshot.DrawRaysEnabled && overlaySnapshot.RayCount > 0)
+				return "film_overlay_rays";
+		}
+		if (analysisRenderedBrightRuns.BrightRowCount == 0 && analysisUnrenderedBrightRuns.BrightRowCount > 0)
+		{
+			return "unrendered_rows";
+		}
+		if (analysisRenderedBrightRuns.BrightRowCount > 0)
+		{
+			if (overlayActive)
+				return "rendered_film_with_overlay_inputs";
+
+			if (analysisRenderedBrightRuns.BrightGroupCount >= 8)
+				return "per_row_traversal_or_partial_row_writes";
+
+			if (hasFilmDiagnostics &&
+				filmDiagnostics.FrameRaysTraced > 0 &&
+				filmDiagnostics.FrameSegmentsIntegrated > filmDiagnostics.FrameRaysTraced)
+			{
+				return "adaptive_segment_emission";
+			}
+
+			return overlayActive
+				? "rendered_film_with_overlay_inputs"
+				: "rendered_film_segments_or_row_traversal";
+		}
+		return "none_detected";
+	}
+
+	private static string ResolveBottomRegionLikelyCause(
+		bool hasFilmDiagnostics,
+		GrinFilmCamera.FilmCaptureDiagnosticsSnapshot filmDiagnostics,
+		BottomBandStats debugBottomBand,
+		BottomBandStats analysisBottomBand,
+		bool analysisBottomBandMatchesUnrenderedRows,
+		bool analysisBottomBandMatchesSkyColor)
+	{
+		if (analysisBottomBand.Present && analysisBottomBandMatchesUnrenderedRows)
+		{
+			return analysisBottomBandMatchesSkyColor
+				? "background_fill_in_unrendered_image_area"
+				: "row_coverage_termination_or_unrendered_area";
+		}
+		if (analysisBottomBand.Present && hasFilmDiagnostics && filmDiagnostics.RowCursor < filmDiagnostics.FilmHeight)
+		{
+			return "background_fill_or_capture_region_inside_analysis_image";
+		}
+		if (debugBottomBand.Present && !analysisBottomBand.Present)
+		{
+			return "viewport_or_2d_composite_layer";
+		}
+		if (analysisBottomBand.Present && debugBottomBand.Present)
+		{
+			return "background_fill_or_unrendered_area";
+		}
+		return "not_detected";
+	}
+
+	private static string FormatRectToken(Rect2 rect)
+	{
+		return $"{rect.Position.X:0.###},{rect.Position.Y:0.###},{rect.Size.X:0.###},{rect.Size.Y:0.###}";
+	}
+
+	private static string FormatBoundsToken(int x, int y, int width, int height)
+	{
+		return $"{x},{y},{Math.Max(0, width)},{Math.Max(0, height)}";
+	}
+
+	private static string FormatRatioToken(long numerator, long denominator)
+	{
+		if (denominator <= 0)
+		{
+			return "na";
+		}
+
+		double ratio = (double)numerator / denominator;
+		return ratio.ToString("0.######", CultureInfo.InvariantCulture);
 	}
 
 	private RayBeamRenderer ResolveRayBeamRenderer()
@@ -779,6 +1266,28 @@ public partial class GrinBasicVisualController : Node3D
 		};
 	}
 
+	private static string NormalizeAnalysisCaptureModeToken(string value)
+	{
+		if (string.IsNullOrWhiteSpace(value))
+		{
+			return "resolved_film";
+		}
+
+		string token = value.Trim().ToLowerInvariant().Replace("-", "_", StringComparison.Ordinal);
+		return token switch
+		{
+			"resolved" => "resolved_film",
+			"resolved_film" => "resolved_film",
+			"default" => "resolved_film",
+			"categorical" => "categorical_final",
+			"categorical_final" => "categorical_final",
+			"final" => "final_hit_only",
+			"final_hit_only" => "final_hit_only",
+			"hit_only" => "final_hit_only",
+			_ => "resolved_film"
+		};
+	}
+
 	private static string FormatColorToken(Color color)
 	{
 		return $"({color.R:0.###},{color.G:0.###},{color.B:0.###},{color.A:0.###})";
@@ -912,6 +1421,16 @@ public partial class GrinBasicVisualController : Node3D
 			if (TryParseBoolArgValue(arg, CompareCrosshairArgPrefix, out bool compareCrosshair))
 			{
 				options.CompareCrosshairEnabled = compareCrosshair;
+				continue;
+			}
+			if (TryParseStringArgValue(arg, DebugCaptureArgPrefix, out string debugCapturePath))
+			{
+				options.DebugCapturePath = debugCapturePath;
+				continue;
+			}
+			if (TryParseStringArgValue(arg, AnalysisCaptureModeArgPrefix, out string analysisCaptureMode))
+			{
+				options.AnalysisCaptureMode = analysisCaptureMode;
 				continue;
 			}
 			if (TryParseStringArgValue(arg, VisualModeArgPrefix, out string visualMode))
@@ -1062,6 +1581,8 @@ public partial class GrinBasicVisualController : Node3D
 		public float? CaptureFilmOpacity;
 		public bool? CompareGridEnabled;
 		public bool? CompareCrosshairEnabled;
+		public string DebugCapturePath;
+		public string AnalysisCaptureMode;
 		public string VisualMode;
 		public bool? SourceHighlightEnabled;
 		public string CapturePath;

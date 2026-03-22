@@ -24,6 +24,18 @@ def scalar(token: str):
         return token
 
 
+def first_non_empty(*values):
+    for value in values:
+        if value is None:
+            continue
+        if isinstance(value, str) and value == "":
+            continue
+        if isinstance(value, (list, tuple, dict, set)) and len(value) == 0:
+            continue
+        return value
+    return None
+
+
 def parse_kv(line: str, prefix: str):
     idx = line.find(prefix)
     if idx < 0:
@@ -41,6 +53,11 @@ def parse_kv(line: str, prefix: str):
 def parse_log(text: str) -> dict:
     parsed = {
         "capture": None,
+        "captureArtifacts": None,
+        "overlayDiag": None,
+        "whiteStreakDiag": None,
+        "writeDiag": None,
+        "bottomRegionDiag": None,
         "rows": None,
         "visual": None,
         "runtimeBuild": None,
@@ -54,6 +71,26 @@ def parse_log(text: str) -> dict:
         capture = parse_kv(line, "[GrinBasicVisual][Capture]")
         if capture:
             parsed["capture"] = capture
+
+        capture_artifacts = parse_kv(line, "[GrinBasicVisual][CaptureArtifacts]")
+        if capture_artifacts:
+            parsed["captureArtifacts"] = capture_artifacts
+
+        overlay_diag = parse_kv(line, "[GrinBasicVisual][OverlayDiag]")
+        if overlay_diag:
+            parsed["overlayDiag"] = overlay_diag
+
+        white_streak_diag = parse_kv(line, "[GrinBasicVisual][WhiteStreakDiag]")
+        if white_streak_diag:
+            parsed["whiteStreakDiag"] = white_streak_diag
+
+        write_diag = parse_kv(line, "[GrinBasicVisual][WriteDiag]")
+        if write_diag:
+            parsed["writeDiag"] = write_diag
+
+        bottom_region_diag = parse_kv(line, "[GrinBasicVisual][BottomRegionDiag]")
+        if bottom_region_diag:
+            parsed["bottomRegionDiag"] = bottom_region_diag
 
         launch = parse_kv(line, "[LaunchAudit]")
         if launch:
@@ -127,6 +164,11 @@ def build_params(args: argparse.Namespace, parsed: dict) -> dict:
 def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
     capture = parsed.get("capture") or {}
     rows = parsed.get("rows") or {}
+    capture_artifacts = parsed.get("captureArtifacts") or {}
+    overlay_diag = parsed.get("overlayDiag") or {}
+    white_streak_diag = parsed.get("whiteStreakDiag") or {}
+    write_diag = parsed.get("writeDiag") or {}
+    bottom_region_diag = parsed.get("bottomRegionDiag") or {}
     visual = parsed.get("visual") or {}
     runtime_build = parsed.get("runtimeBuild") or {}
     launch = parsed.get("launchAudit") or {}
@@ -225,6 +267,87 @@ def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
         "visual_source_highlight": visual.get("sourceHighlight"),
         "visual_diagnostic_flat": visual.get("authority"),
         "baseline_used_normal_shading": visual.get("normalShadingInBaseline"),
+        "analysis_capture_path": capture_artifacts.get("analysisPath"),
+        "debug_capture_path": capture_artifacts.get("debugPath"),
+        "analysis_capture_mode": first_non_empty(
+            write_diag.get("analysisCaptureMode"),
+            capture_artifacts.get("analysisCaptureMode"),
+        ),
+        "analysis_capture_written": capture_artifacts.get("analysisCaptureWritten"),
+        "debug_capture_written": capture_artifacts.get("debugCaptureWritten"),
+        "categorical_final_written": capture_artifacts.get("categoricalFinalWritten"),
+        "overlay_enabled_for_analysis_capture": capture_artifacts.get("overlayEnabledForAnalysisCapture"),
+        "analysis_capture_width": capture_artifacts.get("analysisWidth"),
+        "analysis_capture_height": capture_artifacts.get("analysisHeight"),
+        "debug_capture_width": capture_artifacts.get("debugWidth"),
+        "debug_capture_height": capture_artifacts.get("debugHeight"),
+        "viewport_width": capture_artifacts.get("viewportWidth"),
+        "viewport_height": capture_artifacts.get("viewportHeight"),
+        "film_width": capture_artifacts.get("filmWidth"),
+        "film_height": capture_artifacts.get("filmHeight"),
+        "film_rows_rendered": capture_artifacts.get("filmRowsRendered"),
+        "film_view_rect": capture_artifacts.get("filmViewRect"),
+        "capture_crop": capture_artifacts.get("captureCrop"),
+        "capture_crop_bounds": capture_artifacts.get("captureCropBounds"),
+        "rendered_image_bounds": capture_artifacts.get("renderedImageBounds"),
+        "unrendered_image_bounds": capture_artifacts.get("unrenderedImageBounds"),
+        "ray_renderer_debug_mode": overlay_diag.get("rayRendererDebugMode"),
+        "ray_renderer_debug_overlay_owned_by_film": overlay_diag.get("rayRendererDebugOverlayOwnedByFilm"),
+        "ray_renderer_debug_max_rays": overlay_diag.get("rayRendererDebugMaxRays"),
+        "film_overlay_draw_rays": overlay_diag.get("filmOverlayDrawRays"),
+        "film_overlay_draw_hit_normals": overlay_diag.get("filmOverlayDrawHitNormals"),
+        "film_overlay_draw_film_gradient_normals": overlay_diag.get("filmOverlayDrawFilmGradientNormals"),
+        "comparison_grid_enabled": overlay_diag.get("comparisonGrid"),
+        "comparison_crosshair_enabled": overlay_diag.get("comparisonCrosshair"),
+        "overlay_ray_count": overlay_diag.get("overlayRayCount"),
+        "overlay_point_count": overlay_diag.get("overlayPointCount"),
+        "overlay_bus_items": overlay_diag.get("overlayBusItems"),
+        "overlay_bus_lines": overlay_diag.get("overlayBusLines"),
+        "overlay_bus_texts": overlay_diag.get("overlayBusTexts"),
+        "film_debug_ray_count": overlay_diag.get("filmDebugRayCount"),
+        "film_debug_point_count": overlay_diag.get("filmDebugPointCount"),
+        "film_debug_ray_cap": overlay_diag.get("filmDebugRayCap"),
+        "analysis_bright_row_count": white_streak_diag.get("analysisBrightRowCount"),
+        "analysis_longest_bright_run": white_streak_diag.get("analysisLongestRun"),
+        "analysis_rendered_bright_row_count": white_streak_diag.get("analysisRenderedBrightRowCount"),
+        "analysis_rendered_bright_group_count": white_streak_diag.get("analysisRenderedBrightGroupCount"),
+        "analysis_rendered_bright_first_row": white_streak_diag.get("analysisRenderedBrightFirstRow"),
+        "analysis_rendered_bright_last_row": white_streak_diag.get("analysisRenderedBrightLastRow"),
+        "analysis_rendered_longest_bright_run": white_streak_diag.get("analysisRenderedLongestRun"),
+        "analysis_unrendered_bright_row_count": white_streak_diag.get("analysisUnrenderedBrightRowCount"),
+        "analysis_unrendered_bright_group_count": white_streak_diag.get("analysisUnrenderedBrightGroupCount"),
+        "debug_bright_row_count": white_streak_diag.get("debugBrightRowCount"),
+        "debug_longest_bright_run": white_streak_diag.get("debugLongestRun"),
+        "render_health_step_for_streaks": white_streak_diag.get("renderHealthStep"),
+        "render_health_traced_pixels": white_streak_diag.get("renderHealthTracedPixels"),
+        "render_health_geom_segments_queried": white_streak_diag.get("renderHealthGeomSegmentsQueried"),
+        "render_health_geom_ray_tests_total": white_streak_diag.get("renderHealthGeomRayTestsTotal"),
+        "render_health_pass2_sampled_segments": white_streak_diag.get("renderHealthPass2SampledSegments"),
+        "render_health_avg_steps_per_traced_pixel": white_streak_diag.get("renderHealthAvgStepsPerTracedPixel"),
+        "render_health_exit_reason": white_streak_diag.get("renderHealthExitReason"),
+        "final_hit_only_analysis": write_diag.get("finalHitOnlyAnalysis"),
+        "rows_started": write_diag.get("rowsStarted"),
+        "rows_completed": write_diag.get("rowsCompleted"),
+        "rows_partially_written": write_diag.get("rowsPartiallyWritten"),
+        "rows_early_terminated": write_diag.get("rowsEarlyTerminated"),
+        "final_hit_pixel_count": write_diag.get("finalHitPixelCount"),
+        "traversal_write_pixel_count": write_diag.get("traversalWritePixelCount"),
+        "white_streak_likely_source": white_streak_diag.get("likelySource"),
+        "analysis_bottom_band_present": bottom_region_diag.get("analysisBottomBandPresent"),
+        "analysis_bottom_band_start": bottom_region_diag.get("analysisBandStart"),
+        "analysis_bottom_band_height": bottom_region_diag.get("analysisBandHeight"),
+        "analysis_rendered_rows": bottom_region_diag.get("analysisRenderedRows"),
+        "analysis_unrendered_rows": bottom_region_diag.get("analysisUnrenderedRows"),
+        "analysis_band_matches_unrendered_rows": bottom_region_diag.get("analysisBandMatchesUnrenderedRows"),
+        "analysis_band_matches_sky_color": bottom_region_diag.get("analysisBandMatchesSkyColor"),
+        "debug_bottom_band_present": bottom_region_diag.get("debugBottomBandPresent"),
+        "debug_bottom_band_start": bottom_region_diag.get("debugBandStart"),
+        "debug_bottom_band_height": bottom_region_diag.get("debugBandHeight"),
+        "debug_expected_bottom_band_start": bottom_region_diag.get("debugExpectedBandStart"),
+        "debug_expected_bottom_band_height": bottom_region_diag.get("debugExpectedBandHeight"),
+        "debug_bottom_band_start_delta": bottom_region_diag.get("debugBandStartDelta"),
+        "debug_bottom_band_height_delta": bottom_region_diag.get("debugBandHeightDelta"),
+        "bottom_region_likely_cause": bottom_region_diag.get("likelyCause"),
         "launch_audit": {
             "requested_launcher": launch.get("requested_launcher"),
             "actual_scene": launch.get("actual_scene"),
@@ -409,6 +532,23 @@ def build_summary(metrics: dict, args: argparse.Namespace) -> str:
         f"Visual Mode: {metrics.get('visual_mode')}",
         f"Visual Shading Mode: {metrics.get('visual_shading_mode')}",
         f"Baseline Shading Mode: {metrics.get('visual_baseline_shading_mode')}",
+        f"Analysis Capture Mode: {metrics.get('analysis_capture_mode')}",
+        f"Analysis Capture Written: {metrics.get('analysis_capture_written')}",
+        f"Debug Capture Written: {metrics.get('debug_capture_written')}",
+        f"Categorical Final Written: {metrics.get('categorical_final_written')}",
+        f"Overlay Enabled For Analysis Capture: {metrics.get('overlay_enabled_for_analysis_capture')}",
+        f"White Streak Likely Source: {metrics.get('white_streak_likely_source')}",
+        f"Rows Started: {metrics.get('rows_started')}",
+        f"Rows Completed: {metrics.get('rows_completed')}",
+        f"Rows Partially Written: {metrics.get('rows_partially_written')}",
+        f"Rows Early Terminated: {metrics.get('rows_early_terminated')}",
+        f"Final Hit Pixel Count: {metrics.get('final_hit_pixel_count')}",
+        f"Traversal Write Pixel Count: {metrics.get('traversal_write_pixel_count')}",
+        f"Rendered Bright Rows: {metrics.get('analysis_rendered_bright_row_count')}",
+        f"RenderHealth Geom Segments Queried: {metrics.get('render_health_geom_segments_queried')}",
+        f"Bottom Region Likely Cause: {metrics.get('bottom_region_likely_cause')}",
+        f"Analysis Unrendered Rows: {metrics.get('analysis_unrendered_rows')}",
+        f"Analysis Band Matches Unrendered Rows: {metrics.get('analysis_band_matches_unrendered_rows')}",
         f"Runtime Fingerprint: {metrics['runtime_fingerprint']}",
         f"Assembly Timestamp Present: {str(verification.get('assembly_timestamp_present', False)).lower()}",
         f"Requested Step Match: {str(verification.get('effective_step_matches_requested', False)).lower()}",
@@ -469,6 +609,11 @@ def main() -> int:
         "params": params,
         "metrics": metrics,
         "capture": parsed.get("capture") or {},
+        "captureArtifacts": parsed.get("captureArtifacts") or {},
+        "overlayDiag": parsed.get("overlayDiag") or {},
+        "whiteStreakDiag": parsed.get("whiteStreakDiag") or {},
+        "writeDiag": parsed.get("writeDiag") or {},
+        "bottomRegionDiag": parsed.get("bottomRegionDiag") or {},
         "rowParticipation": parsed.get("rows") or {},
         "runtimeBuild": parsed.get("runtimeBuild") or {},
         "launchAudit": parsed.get("launchAudit") or {},

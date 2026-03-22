@@ -4,6 +4,50 @@ using RendererCore.Common;
 
 public partial class FilmOverlay2D : TextureRect
 {
+	public readonly struct OverlayRenderSnapshot
+	{
+		public readonly bool DrawRaysEnabled;
+		public readonly bool DrawHitNormalsEnabled;
+		public readonly bool DrawFilmGradientNormalsEnabled;
+		public readonly bool ComparisonGridEnabled;
+		public readonly bool ComparisonCrosshairEnabled;
+		public readonly int RayCount;
+		public readonly int PointCount;
+		public readonly int DebugOverlayItemCount;
+		public readonly int DebugOverlayLineCount;
+		public readonly int DebugOverlayTextCount;
+		public readonly int FilmWidth;
+		public readonly int FilmHeight;
+
+		public OverlayRenderSnapshot(
+			bool drawRaysEnabled,
+			bool drawHitNormalsEnabled,
+			bool drawFilmGradientNormalsEnabled,
+			bool comparisonGridEnabled,
+			bool comparisonCrosshairEnabled,
+			int rayCount,
+			int pointCount,
+			int debugOverlayItemCount,
+			int debugOverlayLineCount,
+			int debugOverlayTextCount,
+			int filmWidth,
+			int filmHeight)
+		{
+			DrawRaysEnabled = drawRaysEnabled;
+			DrawHitNormalsEnabled = drawHitNormalsEnabled;
+			DrawFilmGradientNormalsEnabled = drawFilmGradientNormalsEnabled;
+			ComparisonGridEnabled = comparisonGridEnabled;
+			ComparisonCrosshairEnabled = comparisonCrosshairEnabled;
+			RayCount = rayCount;
+			PointCount = pointCount;
+			DebugOverlayItemCount = debugOverlayItemCount;
+			DebugOverlayLineCount = debugOverlayLineCount;
+			DebugOverlayTextCount = debugOverlayTextCount;
+			FilmWidth = filmWidth;
+			FilmHeight = filmHeight;
+		}
+	}
+
 	[ExportCategory("Film Overlay")]
 	[ExportGroup("References")]
 	/// <summary>Optional camera override for projection.</summary>
@@ -146,6 +190,33 @@ public partial class FilmOverlay2D : TextureRect
 		_filmHeight = filmHeight;
 		_filmSampleStride = Math.Max(1, filmSampleStride);
 		QueueRedraw();
+	}
+
+	public OverlayRenderSnapshot GetOverlayRenderSnapshot()
+	{
+		int lineCount = 0;
+		int textCount = 0;
+		foreach (var item in DebugOverlayBus.Items)
+		{
+			if (item.Type == DebugOverlayBus.DebugOverlayItemType.Line)
+				lineCount++;
+			else if (item.Type == DebugOverlayBus.DebugOverlayItemType.Text)
+				textCount++;
+		}
+
+		return new OverlayRenderSnapshot(
+			DrawRays,
+			DrawHitNormals,
+			DrawFilmGradientNormals,
+			ShowComparisonGrid,
+			ShowComparisonCrosshair,
+			_rayCount,
+			_ptCount,
+			DebugOverlayBus.Count,
+			lineCount,
+			textCount,
+			_filmWidth,
+			_filmHeight);
 	}
 
 	private Transform2D GetCanvasToLocalTransform()

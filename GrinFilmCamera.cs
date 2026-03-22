@@ -174,6 +174,120 @@ public partial class GrinFilmCamera : Node
 		}
 	}
 
+	public readonly struct FilmCaptureDiagnosticsSnapshot
+	{
+		public readonly int FilmWidth;
+		public readonly int FilmHeight;
+		public readonly int RowCursor;
+		public readonly int DebugRayCount;
+		public readonly int DebugPointCount;
+		public readonly int DebugMaxFilmRays;
+		public readonly long FrameRaysTraced;
+		public readonly long FrameSegmentsIntegrated;
+		public readonly long FrameSegmentsTested;
+		public readonly long FramePhysicsQueries;
+		public readonly Color SkyColor;
+
+		public FilmCaptureDiagnosticsSnapshot(
+			int filmWidth,
+			int filmHeight,
+			int rowCursor,
+			int debugRayCount,
+			int debugPointCount,
+			int debugMaxFilmRays,
+			long frameRaysTraced,
+			long frameSegmentsIntegrated,
+			long frameSegmentsTested,
+			long framePhysicsQueries,
+			Color skyColor)
+		{
+			FilmWidth = filmWidth;
+			FilmHeight = filmHeight;
+			RowCursor = rowCursor;
+			DebugRayCount = debugRayCount;
+			DebugPointCount = debugPointCount;
+			DebugMaxFilmRays = debugMaxFilmRays;
+			FrameRaysTraced = frameRaysTraced;
+			FrameSegmentsIntegrated = frameSegmentsIntegrated;
+			FrameSegmentsTested = frameSegmentsTested;
+			FramePhysicsQueries = framePhysicsQueries;
+			SkyColor = skyColor;
+		}
+	}
+
+	public readonly struct RenderHealthDiagnosticsSnapshot
+	{
+		public readonly int StepIndex;
+		public readonly int RowCursorAfter;
+		public readonly int RowsAdvanced;
+		public readonly int BandsProcessed;
+		public readonly long TracedPixels;
+		public readonly long GeomSegmentsQueried;
+		public readonly long GeomRayTestsTotal;
+		public readonly long Pass2SampledSegments;
+		public readonly double AvgStepsPerTracedPixel;
+		public readonly string BudgetExitReason;
+		public readonly bool GeomPruneRequested;
+		public readonly bool UseGeometryTLASPruning;
+
+		public RenderHealthDiagnosticsSnapshot(
+			int stepIndex,
+			int rowCursorAfter,
+			int rowsAdvanced,
+			int bandsProcessed,
+			long tracedPixels,
+			long geomSegmentsQueried,
+			long geomRayTestsTotal,
+			long pass2SampledSegments,
+			double avgStepsPerTracedPixel,
+			string budgetExitReason,
+			bool geomPruneRequested,
+			bool useGeometryTLASPruning)
+		{
+			StepIndex = stepIndex;
+			RowCursorAfter = rowCursorAfter;
+			RowsAdvanced = rowsAdvanced;
+			BandsProcessed = bandsProcessed;
+			TracedPixels = tracedPixels;
+			GeomSegmentsQueried = geomSegmentsQueried;
+			GeomRayTestsTotal = geomRayTestsTotal;
+			Pass2SampledSegments = pass2SampledSegments;
+			AvgStepsPerTracedPixel = avgStepsPerTracedPixel;
+			BudgetExitReason = budgetExitReason ?? string.Empty;
+			GeomPruneRequested = geomPruneRequested;
+			UseGeometryTLASPruning = useGeometryTLASPruning;
+		}
+	}
+
+	public readonly struct FixtureWriteDiagnosticsSnapshot
+	{
+		public readonly int RowsStarted;
+		public readonly int RowsCompleted;
+		public readonly int RowsPartiallyWritten;
+		public readonly int RowsEarlyTerminated;
+		public readonly long FinalHitPixelCount;
+		public readonly long TraversalWritePixelCount;
+
+		public FixtureWriteDiagnosticsSnapshot(
+			int rowsStarted,
+			int rowsCompleted,
+			int rowsPartiallyWritten,
+			int rowsEarlyTerminated,
+			long finalHitPixelCount,
+			long traversalWritePixelCount)
+		{
+			RowsStarted = rowsStarted;
+			RowsCompleted = rowsCompleted;
+			RowsPartiallyWritten = rowsPartiallyWritten;
+			RowsEarlyTerminated = rowsEarlyTerminated;
+			FinalHitPixelCount = finalHitPixelCount;
+			TraversalWritePixelCount = traversalWritePixelCount;
+		}
+	}
+
+	private static readonly Color FixtureCategoricalFinalHitColor = new(1.0f, 0.82f, 0.18f, 1.0f);
+	private static readonly Color FixtureCategoricalRenderedNoHitColor = new(0.07f, 0.09f, 0.18f, 1.0f);
+
 	[ExportGroup("Presets")]
 
 	[ExportSubgroup("Scene Preset")]
@@ -1142,10 +1256,18 @@ public partial class GrinFilmCamera : Node
 	private long _fixtureDebugBackgroundHitsThisRun = 0;
 	private long _fixtureDebugAbsorbedHitsThisRun = 0;
 	private long _fixtureDebugMissHitsThisRun = 0;
+	private long _fixtureFinalHitPixelCountThisRun = 0;
+	private long _fixtureTraversalWritePixelCountThisRun = 0;
 	private byte[] _fixtureRowsConsidered = Array.Empty<byte>();
 	private byte[] _fixtureRowsProcessed = Array.Empty<byte>();
 	private byte[] _fixtureRowsSkipped = Array.Empty<byte>();
 	private byte[] _fixtureRowsZeroHit = Array.Empty<byte>();
+	private byte[] _fixtureRowsStarted = Array.Empty<byte>();
+	private byte[] _fixtureRowsCompleted = Array.Empty<byte>();
+	private byte[] _fixtureRowsPartiallyWritten = Array.Empty<byte>();
+	private byte[] _fixtureRowsEarlyTerminated = Array.Empty<byte>();
+	private Image _fixtureFinalHitOnlyImg;
+	private Image _fixtureCategoricalFinalImg;
 
 	// band hit ROI history
 	private float[] _bandHitRate = Array.Empty<float>();
@@ -3058,6 +3180,31 @@ public partial class GrinFilmCamera : Node
 		return _testHasRenderHealthSnapshot;
 	}
 
+	public bool TryGetLatestRenderHealthDiagnosticsForTesting(out RenderHealthDiagnosticsSnapshot snapshot)
+	{
+		snapshot = default;
+		if (_renderHealthCount <= 0)
+		{
+			return false;
+		}
+
+		RenderHealthSample latest = GetRenderHealthSampleFromEnd(0);
+		snapshot = new RenderHealthDiagnosticsSnapshot(
+			latest.StepIndex,
+			latest.RowCursorAfter,
+			latest.RowsAdvanced,
+			latest.BandsProcessed,
+			latest.TracedPixels,
+			latest.GeomSegmentsQueried,
+			latest.GeomRayTestsTotal,
+			latest.Pass2SampledSegments,
+			latest.AvgStepsPerTracedPixel,
+			string.IsNullOrWhiteSpace(latest.BudgetExitReason) ? "none" : latest.BudgetExitReason,
+			latest.GeomPruneRequested,
+			latest.UseGeometryTLASPruning);
+		return true;
+	}
+
 	public void ResetFixtureDebugStatsForRunStart()
 	{
 		_fixtureDebugSourceHitsThisRun = 0;
@@ -3065,6 +3212,7 @@ public partial class GrinFilmCamera : Node
 		_fixtureDebugAbsorbedHitsThisRun = 0;
 		_fixtureDebugMissHitsThisRun = 0;
 		ResetFixtureRowParticipationForRunStart();
+		ResetFixtureWriteDiagnosticsForRunStart();
 	}
 
 	public bool TryGetFixtureDebugStatsForTesting(out FixtureDebugStatsSnapshot snapshot)
@@ -3111,12 +3259,133 @@ public partial class GrinFilmCamera : Node
 		return totalRowsConsidered > 0 || totalRowsProcessed > 0 || totalRowsSkipped > 0 || zeroHitRows > 0;
 	}
 
+	public bool TryGetFixtureWriteDiagnosticsForTesting(out FixtureWriteDiagnosticsSnapshot snapshot)
+	{
+		snapshot = new FixtureWriteDiagnosticsSnapshot(
+			CountMarkedRows(_fixtureRowsStarted),
+			CountMarkedRows(_fixtureRowsCompleted),
+			CountMarkedRows(_fixtureRowsPartiallyWritten),
+			CountMarkedRows(_fixtureRowsEarlyTerminated),
+			_fixtureFinalHitPixelCountThisRun,
+			_fixtureTraversalWritePixelCountThisRun);
+		return snapshot.RowsStarted > 0 ||
+			snapshot.RowsCompleted > 0 ||
+			snapshot.RowsPartiallyWritten > 0 ||
+			snapshot.RowsEarlyTerminated > 0 ||
+			snapshot.FinalHitPixelCount > 0 ||
+			snapshot.TraversalWritePixelCount > 0;
+	}
+
+	public bool TryCopyFilmImageForTesting(out Image image)
+	{
+		image = null;
+		if (_img == null || _filmWidth <= 0 || _filmHeight <= 0)
+		{
+			return false;
+		}
+
+		Image copy = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
+		for (int y = 0; y < _filmHeight; y++)
+		{
+			for (int x = 0; x < _filmWidth; x++)
+			{
+				copy.SetPixel(x, y, _img.GetPixel(x, y));
+			}
+		}
+
+		image = copy;
+		return true;
+	}
+
+	public bool TryCopyFinalHitOnlyFilmImageForTesting(out Image image)
+	{
+		image = null;
+		if (_fixtureFinalHitOnlyImg == null || _filmWidth <= 0 || _filmHeight <= 0)
+		{
+			return false;
+		}
+
+		Image copy = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
+		for (int y = 0; y < _filmHeight; y++)
+		{
+			for (int x = 0; x < _filmWidth; x++)
+			{
+				copy.SetPixel(x, y, _fixtureFinalHitOnlyImg.GetPixel(x, y));
+			}
+		}
+
+		image = copy;
+		return true;
+	}
+
+	public bool TryCopyCategoricalFinalFilmImageForTesting(out Image image)
+	{
+		image = null;
+		if (_fixtureCategoricalFinalImg == null || _filmWidth <= 0 || _filmHeight <= 0)
+		{
+			return false;
+		}
+
+		Image copy = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
+		for (int y = 0; y < _filmHeight; y++)
+		{
+			for (int x = 0; x < _filmWidth; x++)
+			{
+				Color pixel = _fixtureCategoricalFinalImg.GetPixel(x, y);
+				// Reserve black for truly unrendered rows; normalize any in-range gaps to the rendered no-hit state.
+				if (y < Math.Min(_rowCursor, _filmHeight) && IsCategoricalVoidPixel(pixel))
+				{
+					pixel = FixtureCategoricalRenderedNoHitColor;
+				}
+				copy.SetPixel(x, y, pixel);
+			}
+		}
+
+		image = copy;
+		return true;
+	}
+
+	public bool TryGetFilmCaptureDiagnosticsForTesting(out FilmCaptureDiagnosticsSnapshot snapshot)
+	{
+		snapshot = new FilmCaptureDiagnosticsSnapshot(
+			_filmWidth,
+			_filmHeight,
+			_rowCursor,
+			_dbgRayCount,
+			_dbgPtWrite,
+			DebugMaxFilmRays,
+			_framePerf.RaysTraced,
+			_framePerf.SegmentsIntegrated,
+			_framePerf.SegmentsTested,
+			_framePerf.PhysicsQueries,
+			SkyColor);
+		return _filmWidth > 0 && _filmHeight > 0;
+	}
+
 	private void ResetFixtureRowParticipationForRunStart()
 	{
 		if (_fixtureRowsConsidered.Length > 0) Array.Clear(_fixtureRowsConsidered, 0, _fixtureRowsConsidered.Length);
 		if (_fixtureRowsProcessed.Length > 0) Array.Clear(_fixtureRowsProcessed, 0, _fixtureRowsProcessed.Length);
 		if (_fixtureRowsSkipped.Length > 0) Array.Clear(_fixtureRowsSkipped, 0, _fixtureRowsSkipped.Length);
 		if (_fixtureRowsZeroHit.Length > 0) Array.Clear(_fixtureRowsZeroHit, 0, _fixtureRowsZeroHit.Length);
+	}
+
+	private void ResetFixtureWriteDiagnosticsForRunStart()
+	{
+		_fixtureFinalHitPixelCountThisRun = 0;
+		_fixtureTraversalWritePixelCountThisRun = 0;
+		if (_fixtureRowsStarted.Length > 0) Array.Clear(_fixtureRowsStarted, 0, _fixtureRowsStarted.Length);
+		if (_fixtureRowsCompleted.Length > 0) Array.Clear(_fixtureRowsCompleted, 0, _fixtureRowsCompleted.Length);
+		if (_fixtureRowsPartiallyWritten.Length > 0) Array.Clear(_fixtureRowsPartiallyWritten, 0, _fixtureRowsPartiallyWritten.Length);
+		if (_fixtureRowsEarlyTerminated.Length > 0) Array.Clear(_fixtureRowsEarlyTerminated, 0, _fixtureRowsEarlyTerminated.Length);
+		if (_fixtureFinalHitOnlyImg != null && _filmWidth > 0 && _filmHeight > 0)
+		{
+			_fixtureFinalHitOnlyImg.Fill(Colors.Black);
+		}
+		if (_fixtureCategoricalFinalImg != null && _filmWidth > 0 && _filmHeight > 0)
+		{
+			_fixtureCategoricalFinalImg.Fill(Colors.Black);
+		}
 	}
 
 	private void EnsureFixtureRowParticipationCapacity(int filmHeight)
@@ -3128,6 +3397,10 @@ public partial class GrinFilmCamera : Node
 			_fixtureRowsProcessed = new byte[resolvedHeight];
 			_fixtureRowsSkipped = new byte[resolvedHeight];
 			_fixtureRowsZeroHit = new byte[resolvedHeight];
+			_fixtureRowsStarted = new byte[resolvedHeight];
+			_fixtureRowsCompleted = new byte[resolvedHeight];
+			_fixtureRowsPartiallyWritten = new byte[resolvedHeight];
+			_fixtureRowsEarlyTerminated = new byte[resolvedHeight];
 		}
 	}
 
@@ -3182,6 +3455,38 @@ public partial class GrinFilmCamera : Node
 		}
 	}
 
+	private void RecordFixtureRowWriteStart(int row)
+	{
+		int filmHeight = Math.Max(0, _filmHeight);
+		EnsureFixtureRowParticipationCapacity(filmHeight);
+		if (row < 0 || row >= _fixtureRowsStarted.Length)
+		{
+			return;
+		}
+
+		_fixtureRowsStarted[row] = 1;
+	}
+
+	private void RecordFixtureRowWriteOutcome(int row, bool rowHadWrites, bool rowCompleted)
+	{
+		if (row < 0 || row >= _fixtureRowsStarted.Length)
+		{
+			return;
+		}
+
+		if (rowCompleted)
+		{
+			_fixtureRowsCompleted[row] = 1;
+			return;
+		}
+
+		_fixtureRowsEarlyTerminated[row] = 1;
+		if (rowHadWrites)
+		{
+			_fixtureRowsPartiallyWritten[row] = 1;
+		}
+	}
+
 	private static int CountMarkedRows(byte[] rows)
 	{
 		int count = 0;
@@ -3193,6 +3498,14 @@ public partial class GrinFilmCamera : Node
 			}
 		}
 		return count;
+	}
+
+	private static bool IsCategoricalVoidPixel(Color color)
+	{
+		return color.R <= 0.001f &&
+			color.G <= 0.001f &&
+			color.B <= 0.001f &&
+			color.A >= 0.999f;
 	}
 
 	private static int FindFirstMarkedRow(byte[] rows)
@@ -6159,6 +6472,9 @@ public partial class GrinFilmCamera : Node
 				for (int y = yAlignedStart; y < yEnd; y += stride)
 				{
 					budgetStopRowCursor = y;
+					RecordFixtureRowWriteStart(y);
+					bool rowHadWritesThisPass = false;
+					bool rowCompletedThisPass = false;
 					// DECISION: watchdog may trigger budget stop or abort.
 					if (CheckRenderStepWatchdog())
 					{
@@ -6205,11 +6521,14 @@ public partial class GrinFilmCamera : Node
 						processedPixelsThisBand++;
 						processedPixelsThisStep++;
 						int filled = FillPixelBlock(x, y, stride, cfg.SkyColor, filmW, filmH);
+						rowHadWritesThisPass |= filled > 0;
 						// DECISION: count filled pixels when stats enabled.
 						if (statsEnabled) _perfFrame.FilledPixels += filled;
 						// DECISION: count filled pixels for band when frame perf enabled.
 						if (framePerfEnabled) bandFilledPixels += filled;
 					}
+					rowCompletedThisPass = !renderStepAbort && !budgetStop;
+					RecordFixtureRowWriteOutcome(y, rowHadWritesThisPass, rowCompletedThisPass);
 					// DECISION: stop when abort or budget stop is active.
 					if (renderStepAbort || budgetStop) break;
 				}
@@ -6228,6 +6547,9 @@ public partial class GrinFilmCamera : Node
 				for (int y = yAlignedStart; y < yEnd; y += stride)
 				{
 					budgetStopRowCursor = y;
+					RecordFixtureRowWriteStart(y);
+					bool rowHadWritesThisPass = false;
+					bool rowCompletedThisPass = false;
 					// DECISION: watchdog may trigger budget stop or abort.
 					if (CheckRenderStepWatchdog())
 					{
@@ -7962,6 +8284,16 @@ public partial class GrinFilmCamera : Node
 						}
 
 						int filled = FillPixelBlock(x, y, stride, col, filmW, filmH);
+						rowHadWritesThisPass |= filled > 0;
+						if (hadHit)
+						{
+							_fixtureFinalHitPixelCountThisRun += filled;
+							FillPixelBlock(_fixtureFinalHitOnlyImg, x, y, stride, col, filmW, filmH);
+						}
+						Color categoricalColor = hadHit
+							? FixtureCategoricalFinalHitColor
+							: FixtureCategoricalRenderedNoHitColor;
+						FillPixelBlock(_fixtureCategoricalFinalImg, x, y, stride, categoricalColor, filmW, filmH);
 						bool fixtureTraceByKind = false;
 						if (cfg.FixtureDebugTraceEnabled)
 						{
@@ -8106,6 +8438,8 @@ public partial class GrinFilmCamera : Node
 						////////////////////////
 
 					}
+					rowCompletedThisPass = !renderStepAbort && !budgetStop;
+					RecordFixtureRowWriteOutcome(y, rowHadWritesThisPass, rowCompletedThisPass);
 				}
 				}
 			}
@@ -9205,11 +9539,21 @@ public partial class GrinFilmCamera : Node
 
 	private int FillPixelBlock(int x, int y, int stride, Color col, int filmW, int filmH)
 	{
+		return FillPixelBlock(_img, x, y, stride, col, filmW, filmH);
+	}
+
+	private static int FillPixelBlock(Image image, int x, int y, int stride, Color col, int filmW, int filmH)
+	{
+		if (image == null)
+		{
+			return 0;
+		}
+
 		if (stride <= 1)
 		{
 			if (x >= 0 && x < filmW && y >= 0 && y < filmH)
 			{
-				_img.SetPixel(x, y, col);
+				image.SetPixel(x, y, col);
 				return 1;
 			}
 			return 0;
@@ -9222,7 +9566,7 @@ public partial class GrinFilmCamera : Node
 		{
 			for (int xx = x; xx < xMax; xx++)
 			{
-				_img.SetPixel(xx, yy, col);
+				image.SetPixel(xx, yy, col);
 				filled++;
 			}
 		}
@@ -9252,16 +9596,30 @@ public partial class GrinFilmCamera : Node
 		{
 			if (_pass2PrevHadHit.Length != targetPixels)
 				_pass2PrevHadHit = new byte[targetPixels];
-			if (_pass2HadHitLostThisFrame.Length != targetPixels)
-				_pass2HadHitLostThisFrame = new byte[targetPixels];
-			return false;
-		}
+				if (_pass2HadHitLostThisFrame.Length != targetPixels)
+					_pass2HadHitLostThisFrame = new byte[targetPixels];
+				if (_fixtureFinalHitOnlyImg == null)
+				{
+					_fixtureFinalHitOnlyImg = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
+					_fixtureFinalHitOnlyImg.Fill(Colors.Black);
+				}
+				if (_fixtureCategoricalFinalImg == null)
+				{
+					_fixtureCategoricalFinalImg = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
+					_fixtureCategoricalFinalImg.Fill(Colors.Black);
+				}
+				return false;
+			}
 
 		_filmWidth = targetW;
 		_filmHeight = targetH;
 		ResetRenderHealthOverlayWindowState();
 		_img = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
 		_img.Fill(cfg.SkyColor);
+		_fixtureFinalHitOnlyImg = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
+		_fixtureFinalHitOnlyImg.Fill(Colors.Black);
+		_fixtureCategoricalFinalImg = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
+		_fixtureCategoricalFinalImg.Fill(Colors.Black);
 		_tex = ImageTexture.CreateFromImage(_img);
 		_pass2PrevHadHit = new byte[_filmWidth * _filmHeight];
 		_pass2HadHitLostThisFrame = new byte[_filmWidth * _filmHeight];

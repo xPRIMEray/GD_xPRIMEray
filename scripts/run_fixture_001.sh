@@ -182,6 +182,7 @@ CAPTURE_FILM_OPACITY="${FIXTURE_001_CAPTURE_FILM_OPACITY:-1.0}"
 COMPARE_GRID="${FIXTURE_001_COMPARE_GRID:-1}"
 COMPARE_CROSSHAIR="${FIXTURE_001_COMPARE_CROSSHAIR:-1}"
 VISUAL_MODE="${FIXTURE_001_VISUAL_MODE:-diagnostic_flat}"
+ANALYSIS_CAPTURE_MODE="${FIXTURE_001_ANALYSIS_CAPTURE_MODE:-resolved_film}"
 SOURCE_HIGHLIGHT="${FIXTURE_001_SOURCE_HIGHLIGHT:-1}"
 REQUESTED_TRANSPORT_MODEL="${FIXTURE_001_TRANSPORT_MODEL:-}"
 REQUESTED_STEP_LENGTH="${FIXTURE_001_STEP_LENGTH:-}"
@@ -200,8 +201,10 @@ cleanup_stale_fixture_processes "$RUNTIME_ROOT_WIN"
 build_runtime_assembly "$RUNTIME_ROOT" "$DOTNET_EXE"
 emit_runtime_build_fingerprint "$RUNTIME_ROOT"
 
-CAPTURE_PATH="$RUN_DIR/capture.png"
-CAPTURE_PATH_WIN="$(wslpath -w "$CAPTURE_PATH")"
+ANALYSIS_CAPTURE_PATH="$RUN_DIR/analysis_capture.png"
+ANALYSIS_CAPTURE_PATH_WIN="$(wslpath -w "$ANALYSIS_CAPTURE_PATH")"
+DEBUG_CAPTURE_PATH="$RUN_DIR/debug_capture.png"
+DEBUG_CAPTURE_PATH_WIN="$(wslpath -w "$DEBUG_CAPTURE_PATH")"
 LOG_PATH="$RUN_DIR/run.log"
 
 EXTRA_RENDER_ARGS=()
@@ -247,7 +250,8 @@ CMD=(
   "--path" "$RUNTIME_ROOT_WIN"
   "--scene" "$SCENE_PATH"
   "--"
-  "--grin-basic-capture=$CAPTURE_PATH_WIN"
+  "--grin-basic-capture=$ANALYSIS_CAPTURE_PATH_WIN"
+  "--grin-basic-debug-capture=$DEBUG_CAPTURE_PATH_WIN"
   "--grin-basic-settle-frames=$SETTLE_FRAMES"
   "--grin-basic-min-rh-step=$MIN_RH_STEP"
   "--grin-basic-min-processed-rows=$MIN_PROCESSED_ROWS"
@@ -255,6 +259,7 @@ CMD=(
   "--grin-basic-compare-grid=$COMPARE_GRID"
   "--grin-basic-compare-crosshair=$COMPARE_CROSSHAIR"
   "--grin-basic-visual-mode=$VISUAL_MODE"
+  "--grin-basic-analysis-capture-mode=$ANALYSIS_CAPTURE_MODE"
   "--grin-basic-source-highlight=$SOURCE_HIGHLIGHT"
   "--grin-basic-exit-after-capture=1"
   "--grin-basic-build-fingerprint=$XPRIMERAY_BUILD_FINGERPRINT"
@@ -283,7 +288,7 @@ python3 "$ROOT/tools/fixture_001_report.py" \
   --launcher "$LAUNCHER_TOKEN" \
   --run-dir "$RUN_DIR" \
   --log-path "$LOG_PATH" \
-  --capture-path "$CAPTURE_PATH" \
+  --capture-path "$ANALYSIS_CAPTURE_PATH" \
   --runtime-seconds "$RUNTIME_SECONDS" \
   --godot-exit-code "$GODOT_EXIT_CODE" \
   --settle-frames "$SETTLE_FRAMES" \
@@ -298,7 +303,7 @@ python3 "$ROOT/tools/fixture_001_report.py" \
   --summary-json "$RUN_DIR/summary.json" \
   --metrics-json "$RUN_DIR/metrics.json" \
   --params-json "$RUN_DIR/params.json" \
-  --capture-path "$CAPTURE_PATH" \
+  --capture-path "$ANALYSIS_CAPTURE_PATH" \
   --fixture-id "$FIXTURE_ID" \
   --timestamp "$TIMESTAMP" \
   "${LEDGER_ARGS[@]}"
