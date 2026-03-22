@@ -9,6 +9,10 @@ stable result through the dedicated harness.
 This note records the current harness contract and the local run history that
 supports promoting A2 as the official Fixture 001 baseline.
 
+It also records the first verified repeat-sweep result for Fixture 001 so the
+project has a concrete example of how to characterize a fixture control surface
+using only hardened, fully verified runs.
+
 ## Current harness
 
 - Harness script: `scripts/run_fixture_001.sh`
@@ -39,7 +43,69 @@ the Godot log and capture artifact. The primary baseline signals are:
 - capture success
 - scheduler guard exits and forced advances, as seen in `run.log`
 
-## Observed run history
+### Verified-control contract
+
+Treat a Fixture 001 run as usable for control-surface interpretation only when
+all of these verification checks are true:
+
+- `runtime_fingerprint_present = true`
+- `assembly_timestamp_present = true`
+- `effective_step_matches_requested = true`
+- `row_diagnostics_present = true`
+- `scheduler_clean = true`
+
+This is the current baseline procedure for validating Fixture 001 controls:
+
+1. Launch only through `scripts/run_fixture_001.sh`.
+2. Rebuild against the hardened Windows runtime mirror before each run.
+3. Generate `params.json`, `metrics.json`, `summary.json`, and ledger append
+   through the existing report flow.
+4. Interpret only runs that remain fully verified after report generation.
+
+## Verified characterization update (2026-03-22)
+
+A verified top-config repeat sweep was run on March 22, 2026 through the
+hardened Windows runtime mirror at `/mnt/c/godot/godot_xPRIMEray`.
+
+The repeat set used three verified runs each for:
+
+- `stepLength=0.040`, `errorTolerance=0.012`, `turnThreshold=2.0`
+- `stepLength=0.040`, `errorTolerance=0.010`, `turnThreshold=2.4`
+- `stepLength=0.040`, `errorTolerance=0.010`, `turnThreshold=3.2`
+
+For the `turnThreshold=3.2` branch, `errorTolerance=0.010` was used explicitly
+as the nearest baseline-compatible path already established in prior Fixture
+001 work.
+
+### Repeatability summary
+
+| Config | mean hit_rate | median hit_rate | std dev hit_rate | mean traced_rate | std dev traced_rate | robust_score | verified runs |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `0.040 / 0.012 / 2.0` | `109.654/s` | `110.781/s` | `1.814/s` | `2361.923/s` | `22.902/s` | `109.874/s` | 3 |
+| `0.040 / 0.010 / 2.4` | `109.540/s` | `108.830/s` | `1.159/s` | `2373.456/s` | `4.672/s` | `108.251/s` | 3 |
+| `0.040 / 0.010 / 3.2` | `112.289/s` | `112.484/s` | `3.249/s` | `2404.632/s` | `50.686/s` | `110.860/s` | 3 |
+
+### Topology call
+
+Fixture 001 verified characterization indicates a stable local basin centered
+near `stepLength=0.040`, `errorTolerance=0.010`, `turnThreshold≈3.2`.
+
+The best verified operating point in current testing is `0.040 / 0.010 / 3.2`,
+with `0.040 / 0.010 / 2.4` as a lower-variance fallback.
+
+This is best described as a stable basin with a mild ridge toward
+`turnThreshold=3.2`, not a fragile single-run spike.
+
+### Why this matters
+
+- The top verified point was not isolated; neighboring verified settings stayed
+  in the same performance band.
+- All nine repeat runs stayed fully verified, so the result is not tied to a
+  build/runtime mismatch or scheduler regression.
+- This gives Fixture 001 a usable state-of-the-art reference for future
+  fixture-note writeups: record the winner, the fallback, and the basin shape.
+
+## Historical run history
 
 The current local Fixture 001 history under `output/fixture_runs/fixture_001`
 contains six recorded runs from March 19-20, 2026.

@@ -2,6 +2,7 @@
 import argparse
 import csv
 import json
+import math
 import os
 import struct
 import subprocess
@@ -46,6 +47,7 @@ FIELDNAMES = [
     "processed_row_end",
     "zero_hit_rows",
     "row_participation_summary",
+    "runtime_fingerprint",
     "traced_pixels",
     "runtime",
     "source_hits",
@@ -58,6 +60,12 @@ FIELDNAMES = [
     "image_height",
     "visual_tag",
     "decision_tag",
+    "runtime_fingerprint_present",
+    "assembly_timestamp_present",
+    "effective_step_matches_requested",
+    "row_diagnostics_present",
+    "scheduler_clean",
+    "run_verified",
 ]
 
 
@@ -119,6 +127,152 @@ def safe_divide(numerator, denominator):
     return numerator / denominator
 
 
+def normalize_bool(value) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in {"1", "true", "yes", "y", "on"}:
+            return True
+        if lowered in {"0", "false", "no", "n", "off"}:
+            return False
+    return None
+
+
+def normalize_number(value) -> float | None:
+    if not isinstance(value, (int, float)):
+        return None
+    if not math.isfinite(value):
+        return None
+    return float(value)
+
+
+def values_match_with_tolerance(requested_value, effective_value) -> bool:
+    requested = normalize_number(requested_value)
+    effective = normalize_number(effective_value)
+    if requested is None or effective is None:
+        return False
+    tolerance = max(1e-6, abs(requested) * 1e-4)
+    return math.isclose(requested, effective, rel_tol=1e-4, abs_tol=tolerance)
+
+
+def derive_verification(summary: dict, metrics: dict, summary_params: dict) -> dict:
+    summary_verification = summary.get("verification") or {}
+    metric_verification = metrics.get("verification") or {}
+
+    runtime_fingerprint_present = summary_verification.get("runtime_fingerprint_present")
+    if runtime_fingerprint_present is None:
+        runtime_fingerprint_present = metric_verification.get("runtime_fingerprint_present")
+    if runtime_fingerprint_present is None:
+        runtime_fingerprint_present = bool(
+            first_non_empty(
+                metrics.get("runtime_fingerprint"),
+                (summary.get("runtimeBuild") or {}).get("buildFingerprint"),
+            )
+        )
+
+    assembly_timestamp_present = summary_verification.get("assembly_timestamp_present")
+    if assembly_timestamp_present is None:
+        assembly_timestamp_present = metric_verification.get("assembly_timestamp_present")
+    if assembly_timestamp_present is None:
+        assembly_timestamp_present = bool(
+            first_non_empty(
+                metrics.get("runtime_assembly_write_utc"),
+                (summary.get("runtimeBuild") or {}).get("assemblyWriteUtc"),
+            )
+        )
+
+    effective_step_matches_requested = summary_verification.get("effective_step_matches_requested")
+    if effective_step_matches_requested is None:
+        effective_step_matches_requested = metric_verification.get("effective_step_matches_requested")
+    if effective_step_matches_requested is None:
+        effective_step_matches_requested = values_match_with_tolerance(
+            summary_params.get("requested_step_length"),
+            first_non_empty(
+                metrics.get("effective_step_length"),
+                (summary.get("renderer") or {}).get("stepLength"),
+            ),
+        )
+
+    row_diagnostics_present = summary_verification.get("row_diagnostics_present")
+    if row_diagnostics_present is None:
+        row_diagnostics_present = metric_verification.get("row_diagnostics_present")
+    if row_diagnostics_present is None:
+        rows = summary.get("rowParticipation") or {}
+        row_diagnostics_present = (
+            first_non_empty(
+                metrics.get("total_rows_considered"),
+                metrics.get("total_rows_processed"),
+                metrics.get("total_rows_skipped"),
+                metrics.get("processed_row_start"),
+                metrics.get("processed_row_end"),
+                metrics.get("zero_hit_rows"),
+                metrics.get("row_participation_summary"),
+                rows.get("totalRowsConsidered"),
+                rows.get("totalRowsProcessed"),
+                rows.get("totalRowsSkipped"),
+                rows.get("processedRowStart"),
+                rows.get("processedRowEnd"),
+                rows.get("zeroHitRows"),
+                rows.get("summary"),
+            )
+            is not None
+        )
+
+    scheduler_clean = summary_verification.get("scheduler_clean")
+    if scheduler_clean is None:
+        scheduler_clean = metric_verification.get("scheduler_clean")
+    if scheduler_clean is None:
+        processed_rows = first_non_empty(
+            metrics.get("processed_rows"),
+            metrics.get("total_rows_processed"),
+            (summary.get("capture") or {}).get("processedRows"),
+            (summary.get("rowParticipation") or {}).get("totalRowsProcessed"),
+        )
+        traced_pixels = first_non_empty(
+            metrics.get("traced_pixels"),
+            (summary.get("capture") or {}).get("tracedPixels"),
+        )
+        scheduler_clean = (
+            first_non_empty(metrics.get("status"), "") == "ok"
+            and normalize_bool(metrics.get("capture_succeeded")) is True
+            and first_non_empty(
+                metrics.get("launch_audit_status"),
+                ((metrics.get("launch_audit") or {}).get("status")),
+                ((summary.get("launchAudit") or {}).get("status")),
+            ) == "ok"
+            and first_non_empty(metrics.get("guard_progress"), (summary.get("scheduler") or {}).get("guard_progress")) == 0
+            and first_non_empty(metrics.get("forced_advance"), (summary.get("scheduler") or {}).get("forcedAdvance")) == 0
+            and isinstance(processed_rows, (int, float))
+            and processed_rows >= 164
+            and isinstance(traced_pixels, (int, float))
+            and traced_pixels > 0
+        )
+
+    run_verified = summary_verification.get("run_verified")
+    if run_verified is None:
+        run_verified = metric_verification.get("run_verified")
+    if run_verified is None:
+        run_verified = all(
+            (
+                bool(runtime_fingerprint_present),
+                bool(assembly_timestamp_present),
+                bool(effective_step_matches_requested),
+                bool(row_diagnostics_present),
+                bool(scheduler_clean),
+            )
+        )
+
+    return {
+        "runtime_fingerprint_present": bool(runtime_fingerprint_present),
+        "assembly_timestamp_present": bool(assembly_timestamp_present),
+        "effective_step_matches_requested": bool(effective_step_matches_requested),
+        "row_diagnostics_present": bool(row_diagnostics_present),
+        "scheduler_clean": bool(scheduler_clean),
+        "run_verified": bool(run_verified),
+    }
+
+
 def detect_image_size(capture_path: Path | None) -> tuple[int | None, int | None]:
     if capture_path is None or not capture_path.exists():
         return None, None
@@ -176,6 +330,7 @@ def build_row(args: argparse.Namespace) -> dict:
     summary_scheduler = summary.get("scheduler") or {}
     summary_image = summary.get("image") or {}
     summary_launch = summary.get("launchAudit") or {}
+    verification = derive_verification(summary, metrics, summary_params)
 
     fixture_id = first_non_empty(
         args.fixture_id,
@@ -236,6 +391,7 @@ def build_row(args: argparse.Namespace) -> dict:
         "processed_row_end": first_non_empty(summary_metrics.get("processed_row_end"), metrics.get("processed_row_end"), summary_rows.get("processedRowEnd")),
         "zero_hit_rows": first_non_empty(summary_metrics.get("zero_hit_rows"), metrics.get("zero_hit_rows"), summary_rows.get("zeroHitRows")),
         "row_participation_summary": first_non_empty(summary_metrics.get("row_participation_summary"), metrics.get("row_participation_summary"), summary_rows.get("summary")),
+        "runtime_fingerprint": first_non_empty(summary_metrics.get("runtime_fingerprint"), metrics.get("runtime_fingerprint"), (summary.get("runtimeBuild") or {}).get("buildFingerprint")),
         "traced_pixels": traced_pixels,
         "runtime": first_non_empty(summary_metrics.get("runtime_seconds"), metrics.get("runtime_seconds"), summary.get("runtime_seconds")),
         "source_hits": source_hits,
@@ -248,6 +404,12 @@ def build_row(args: argparse.Namespace) -> dict:
         "image_height": first_non_empty(summary_image.get("height"), image_height),
         "visual_tag": first_non_empty(summary.get("visual_tag"), ""),
         "decision_tag": first_non_empty(summary.get("decision_tag"), ""),
+        "runtime_fingerprint_present": verification.get("runtime_fingerprint_present"),
+        "assembly_timestamp_present": verification.get("assembly_timestamp_present"),
+        "effective_step_matches_requested": verification.get("effective_step_matches_requested"),
+        "row_diagnostics_present": verification.get("row_diagnostics_present"),
+        "scheduler_clean": verification.get("scheduler_clean"),
+        "run_verified": verification.get("run_verified"),
     }
 
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import math
 import re
 import struct
 from pathlib import Path
@@ -41,6 +42,7 @@ def parse_log(text: str) -> dict:
     parsed = {
         "capture": None,
         "rows": None,
+        "runtimeBuild": None,
         "launchAudit": None,
         "renderer": None,
         "captureFailure": None,
@@ -63,6 +65,10 @@ def parse_log(text: str) -> dict:
         rows = parse_kv(line, "[GrinBasicVisual][Rows]")
         if rows:
             parsed["rows"] = rows
+
+        runtime_build = parse_kv(line, "[RuntimeBuild]")
+        if runtime_build:
+            parsed["runtimeBuild"] = runtime_build
 
         fail = FAIL_RE.search(line)
         if fail:
@@ -116,6 +122,7 @@ def build_params(args: argparse.Namespace, parsed: dict) -> dict:
 def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
     capture = parsed.get("capture") or {}
     rows = parsed.get("rows") or {}
+    runtime_build = parsed.get("runtimeBuild") or {}
     launch = parsed.get("launchAudit") or {}
     renderer = parsed.get("renderer") or {}
     image = detect_image_size(args.capture_path)
@@ -189,6 +196,12 @@ def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
         "processed_row_ranges": rows.get("processedRowRanges"),
         "skipped_row_ranges": rows.get("skippedRowRanges"),
         "zero_hit_row_ranges": rows.get("zeroHitRowRanges"),
+        "runtime_fingerprint": runtime_build.get("buildFingerprint"),
+        "runtime_source_fingerprint": runtime_build.get("sourceFingerprint"),
+        "runtime_git_short": runtime_build.get("gitShort"),
+        "runtime_assembly_path": runtime_build.get("assemblyPath"),
+        "runtime_assembly_write_utc": runtime_build.get("assemblyWriteUtc"),
+        "runtime_module_version_id": runtime_build.get("moduleVersionId"),
         "guard_progress": parsed.get("guardProgress"),
         "forced_advance": parsed.get("forcedAdvance"),
         "effective_steps_per_ray": renderer.get("stepsPerRay"),
@@ -213,7 +226,68 @@ def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
     }
 
 
+def values_match_with_tolerance(requested_value, effective_value) -> bool:
+    if not isinstance(requested_value, (int, float)) or not isinstance(effective_value, (int, float)):
+        return False
+    if not math.isfinite(requested_value) or not math.isfinite(effective_value):
+        return False
+    tolerance = max(1e-6, abs(float(requested_value)) * 1e-4)
+    return math.isclose(float(requested_value), float(effective_value), rel_tol=1e-4, abs_tol=tolerance)
+
+
+def build_verification(metrics: dict, params: dict) -> dict:
+    runtime_fingerprint_present = bool(metrics.get("runtime_fingerprint"))
+    assembly_timestamp_present = bool(metrics.get("runtime_assembly_write_utc"))
+    effective_step_matches_requested = values_match_with_tolerance(
+        params.get("requested_step_length"),
+        metrics.get("effective_step_length"),
+    )
+    row_diagnostics_present = any(
+        metrics.get(field) is not None
+        for field in (
+            "total_rows_considered",
+            "total_rows_processed",
+            "total_rows_skipped",
+            "processed_row_start",
+            "processed_row_end",
+            "zero_hit_rows",
+            "row_participation_summary",
+        )
+    )
+    processed_rows = metrics.get("processed_rows")
+    traced_pixels = metrics.get("traced_pixels")
+    scheduler_clean = (
+        metrics.get("status") == "ok"
+        and metrics.get("capture_succeeded") is True
+        and metrics.get("launch_audit_status") == "ok"
+        and metrics.get("guard_progress") == 0
+        and metrics.get("forced_advance") == 0
+        and isinstance(processed_rows, (int, float))
+        and processed_rows >= 164
+        and isinstance(traced_pixels, (int, float))
+        and traced_pixels > 0
+    )
+    run_verified = all(
+        (
+            runtime_fingerprint_present,
+            assembly_timestamp_present,
+            effective_step_matches_requested,
+            row_diagnostics_present,
+            scheduler_clean,
+        )
+    )
+    return {
+        "runtime_fingerprint_present": runtime_fingerprint_present,
+        "assembly_timestamp_present": assembly_timestamp_present,
+        "effective_step_matches_requested": effective_step_matches_requested,
+        "row_diagnostics_present": row_diagnostics_present,
+        "scheduler_clean": scheduler_clean,
+        "run_verified": run_verified,
+    }
+
+
 def build_summary(metrics: dict, args: argparse.Namespace) -> str:
+    verification = metrics.get("verification") or {}
     lines = [
         f"Fixture: {metrics['fixture_id']}",
         f"Timestamp: {args.timestamp}",
@@ -235,6 +309,12 @@ def build_summary(metrics: dict, args: argparse.Namespace) -> str:
         f"Processed Row Window: {metrics['processed_row_start']}..{metrics['processed_row_end']}",
         f"Zero-Hit Rows: {metrics['zero_hit_rows']}",
         f"Row Participation Summary: {metrics['row_participation_summary']}",
+        f"Runtime Fingerprint: {metrics['runtime_fingerprint']}",
+        f"Assembly Timestamp Present: {str(verification.get('assembly_timestamp_present', False)).lower()}",
+        f"Requested Step Match: {str(verification.get('effective_step_matches_requested', False)).lower()}",
+        f"Row Diagnostics Present: {str(verification.get('row_diagnostics_present', False)).lower()}",
+        f"Scheduler Clean: {str(verification.get('scheduler_clean', False)).lower()}",
+        f"Run Verified: {str(verification.get('run_verified', False)).lower()}",
         f"Turn Threshold: {metrics['effective_turn_threshold']}",
         f"Output Path: {args.run_dir}",
     ]
@@ -274,6 +354,7 @@ def main() -> int:
 
     params = build_params(args, parsed)
     metrics = build_metrics(args, parsed)
+    metrics["verification"] = build_verification(metrics, params)
     summary = build_summary(metrics, args)
     summary_json = {
         "timestamp": args.timestamp,
@@ -288,12 +369,14 @@ def main() -> int:
         "metrics": metrics,
         "capture": parsed.get("capture") or {},
         "rowParticipation": parsed.get("rows") or {},
+        "runtimeBuild": parsed.get("runtimeBuild") or {},
         "launchAudit": parsed.get("launchAudit") or {},
         "renderer": parsed.get("renderer") or {},
         "scheduler": {
             "guard_progress": parsed.get("guardProgress"),
             "forcedAdvance": parsed.get("forcedAdvance"),
         },
+        "verification": metrics.get("verification") or {},
         "image": {
             "width": metrics.get("image_width"),
             "height": metrics.get("image_height"),

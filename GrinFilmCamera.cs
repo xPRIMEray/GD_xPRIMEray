@@ -4046,6 +4046,7 @@ public partial class GrinFilmCamera : Node
 		long renderStepStartTimestamp = Stopwatch.GetTimestamp();
 		bool researchAppliedRayMarchClamp = false;
 		RayBeamRenderer.SharedSnapshot researchRestoreSnapshot = cfg.SharedRaySnapshot;
+		bool skipBandPhysicsForDiagnostics = false;
 		try
 		{
 			if (cfg.Research.ResearchEnabled)
@@ -5125,6 +5126,7 @@ public partial class GrinFilmCamera : Node
 			}
 			if (skipBandPhysics && cfg.FixtureDebugHitColoringEnabled && cfg.FixtureDebugColorAuthorityEnabled)
 				skipBandPhysics = false;
+			skipBandPhysicsForDiagnostics = skipBandPhysics;
 
 			// allocate / reuse buffers
 			int segTotal = pixelCount * maxSeg;
@@ -8499,7 +8501,7 @@ public partial class GrinFilmCamera : Node
 			if (framePerfEnabled) frameScope.Dispose();
 			if (bandAttemptedThisStep && bandH > 0)
 			{
-				bool bandWasSkipped = skipBandPhysics && processedPixelsThisBand > 0;
+				bool bandWasSkipped = skipBandPhysicsForDiagnostics && processedPixelsThisBand > 0;
 				bool bandWasProcessed = processedPixelsThisBand > 0 && !bandWasSkipped;
 				bool bandWasZeroHit = bandWasProcessed && bandHits == 0;
 				RecordFixtureRowParticipationBand(yStart, yEnd, bandWasProcessed, bandWasSkipped, bandWasZeroHit);

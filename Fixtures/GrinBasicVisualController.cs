@@ -3,9 +3,11 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Reflection;
 
 public partial class GrinBasicVisualController : Node3D
 {
+	private const string RuntimeSourceFingerprint = "fixture001_runtime_fingerprint_v1";
 	private const string ROuterArgPrefix = "--grin-basic-r-outer=";
 	private const string AmpArgPrefix = "--grin-basic-amp=";
 	private const string GammaArgPrefix = "--grin-basic-gamma=";
@@ -13,6 +15,8 @@ public partial class GrinBasicVisualController : Node3D
 	private const string StepLengthArgPrefix = "--grin-basic-step-length=";
 	private const string MinStepLengthArgPrefix = "--grin-basic-min-step-length=";
 	private const string MaxStepLengthArgPrefix = "--grin-basic-max-step-length=";
+	private const string BuildFingerprintArgPrefix = "--grin-basic-build-fingerprint=";
+	private const string GitShortArgPrefix = "--grin-basic-build-git-short=";
 	private const string StepsPerRayArgPrefix = "--grin-basic-steps-per-ray=";
 	private const string TurnThresholdArgPrefix = "--grin-basic-turn-threshold=";
 	private const string ErrorToleranceArgPrefix = "--grin-basic-error-tolerance=";
@@ -78,8 +82,8 @@ public partial class GrinBasicVisualController : Node3D
 		_intendedFullRender = _filmCamera != null && _filmCamera.UpdateEveryFrame;
 		ConfigureCalibrationViewport();
 		TagDotNodesAsFixtureSource();
-
 		CmdlineOptions options = ParseCmdlineOptions(GetCmdArgsForParsing());
+		LogRuntimeBuildFingerprint(options);
 		_captureRequested = !string.IsNullOrWhiteSpace(options.CapturePath);
 		_exitAfterCapture = options.ExitAfterCapture;
 		_capturePath = options.CapturePath ?? string.Empty;
@@ -321,6 +325,62 @@ public partial class GrinBasicVisualController : Node3D
 			$"[GrinBasicVisual][SourceGroup] fixture={FixtureHudName} group=fixture_source taggedDots={taggedDots}");
 	}
 
+	private void LogRuntimeBuildFingerprint(CmdlineOptions options)
+	{
+		Assembly assembly = GetType().Assembly;
+		string assemblyPath = assembly.Location ?? string.Empty;
+		if (string.IsNullOrWhiteSpace(assemblyPath))
+		{
+			string candidateAssemblyPath = Path.Combine(
+				ProjectSettings.GlobalizePath("res://"),
+				".godot",
+				"mono",
+				"temp",
+				"bin",
+				"Debug",
+				$"{assembly.GetName().Name}.dll");
+			if (File.Exists(candidateAssemblyPath))
+			{
+				assemblyPath = candidateAssemblyPath;
+			}
+		}
+		string assemblyWriteUtc = "na";
+		if (!string.IsNullOrWhiteSpace(assemblyPath) && File.Exists(assemblyPath))
+		{
+			assemblyWriteUtc = File.GetLastWriteTimeUtc(assemblyPath).ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
+		}
+
+		string buildFingerprint = NormalizeRuntimeFingerprintToken(
+			!string.IsNullOrWhiteSpace(options.BuildFingerprint)
+				? options.BuildFingerprint
+				: System.Environment.GetEnvironmentVariable("XPRIMERAY_BUILD_FINGERPRINT"));
+		string gitShort = NormalizeRuntimeFingerprintToken(
+			!string.IsNullOrWhiteSpace(options.GitShort)
+				? options.GitShort
+				: System.Environment.GetEnvironmentVariable("XPRIMERAY_BUILD_GIT_SHORT"));
+		string moduleVersionId = NormalizeRuntimeFingerprintToken(assembly.ManifestModule.ModuleVersionId.ToString("D"));
+		string assemblyPathToken = NormalizeRuntimeFingerprintToken(assemblyPath.Replace(" ", "%20", StringComparison.Ordinal));
+
+		GD.Print(
+			$"[RuntimeBuild] fixture={FixtureHudName} " +
+			$"sourceFingerprint={RuntimeSourceFingerprint} " +
+			$"buildFingerprint={buildFingerprint} " +
+			$"gitShort={gitShort} " +
+			$"assemblyPath={assemblyPathToken} " +
+			$"assemblyWriteUtc={assemblyWriteUtc} " +
+			$"moduleVersionId={moduleVersionId}");
+	}
+
+	private static string NormalizeRuntimeFingerprintToken(string value)
+	{
+		if (string.IsNullOrWhiteSpace(value))
+		{
+			return "na";
+		}
+
+		return value.Trim().Replace(" ", "_", StringComparison.Ordinal);
+	}
+
 	private void ApplyFieldOverrides(FieldSource3D field, CmdlineOptions options)
 	{
 		if (HasOverrideValue(DefaultROuterOverride))
@@ -376,6 +436,17 @@ public partial class GrinBasicVisualController : Node3D
 		float stepLength = options.StepLength.HasValue
 			? Mathf.Max(0.0001f, options.StepLength.Value)
 			: baselineStepLength * stepScale;
+		if (options.StepLength.HasValue)
+		{
+			if (!options.MinStepLength.HasValue)
+			{
+				minStepLength = Mathf.Min(minStepLength, stepLength);
+			}
+			if (!options.MaxStepLength.HasValue)
+			{
+				maxStepLength = Mathf.Max(maxStepLength, stepLength);
+			}
+		}
 		int stepsPerRay = options.StepsPerRay.HasValue
 			? Mathf.Max(1, options.StepsPerRay.Value)
 			: baselineStepsPerRay;
@@ -612,6 +683,18 @@ public partial class GrinBasicVisualController : Node3D
 		return false;
 	}
 
+	private static bool TryParseStringArgValue(string arg, string prefix, out string value)
+	{
+		value = null;
+		if (string.IsNullOrWhiteSpace(arg) || !arg.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+		{
+			return false;
+		}
+
+		value = arg.Substring(prefix.Length).Trim();
+		return !string.IsNullOrWhiteSpace(value);
+	}
+
 	private void ApplyComparisonOverlayOptions(CmdlineOptions options)
 	{
 		if (_filmOverlay == null || !GodotObject.IsInstanceValid(_filmOverlay))
@@ -665,6 +748,16 @@ public partial class GrinBasicVisualController : Node3D
 			if (TryParseFloatArgValue(arg, MaxStepLengthArgPrefix, out float maxStepLength))
 			{
 				options.MaxStepLength = maxStepLength;
+				continue;
+			}
+			if (TryParseStringArgValue(arg, BuildFingerprintArgPrefix, out string buildFingerprint))
+			{
+				options.BuildFingerprint = buildFingerprint;
+				continue;
+			}
+			if (TryParseStringArgValue(arg, GitShortArgPrefix, out string gitShort))
+			{
+				options.GitShort = gitShort;
 				continue;
 			}
 			if (TryParseIntArgValue(arg, StepsPerRayArgPrefix, out int stepsPerRay))
@@ -856,6 +949,8 @@ public partial class GrinBasicVisualController : Node3D
 		public float? StepLength;
 		public float? MinStepLength;
 		public float? MaxStepLength;
+		public string BuildFingerprint;
+		public string GitShort;
 		public int? StepsPerRay;
 		public float? TurnThresholdDegrees;
 		public float? ErrorTolerance;

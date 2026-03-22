@@ -60,8 +60,116 @@ resolve_ledger_python() {
   printf '%s\n' "$(command -v python3)"
 }
 
+resolve_runtime_root() {
+  if [[ -n "${FIXTURE_001_RUNTIME_ROOT:-}" ]]; then
+    printf '%s\n' "${FIXTURE_001_RUNTIME_ROOT}"
+    return 0
+  fi
+
+  local win_mirror="/mnt/c/godot/$(basename "$ROOT")"
+  if [[ -d "$win_mirror" ]]; then
+    printf '%s\n' "$win_mirror"
+    return 0
+  fi
+
+  printf '%s\n' "$ROOT"
+}
+
+resolve_dotnet_exe() {
+  if [[ -n "${FIXTURE_001_DOTNET_EXE:-}" ]]; then
+    printf '%s\n' "${FIXTURE_001_DOTNET_EXE}"
+    return 0
+  fi
+
+  local dotnet_path
+  dotnet_path="$(cmd.exe /c where dotnet 2>/dev/null | tr -d '\r' | head -n 1)"
+  if [[ -n "$dotnet_path" ]]; then
+    printf '%s\n' "$dotnet_path"
+    return 0
+  fi
+
+  echo "No Windows dotnet executable found for Fixture 001 runtime rebuild." >&2
+  return 1
+}
+
+sync_runtime_root() {
+  local runtime_root="$1"
+  if [[ "$runtime_root" == "$ROOT" ]]; then
+    return 0
+  fi
+
+  rsync -a --prune-empty-dirs \
+    --include='*/' \
+    --include='*.cs' \
+    --include='*.csproj' \
+    --include='*.sln' \
+    --include='*.godot' \
+    --include='*.tscn' \
+    --include='*.gd' \
+    --include='*.gdshader' \
+    --include='*.json' \
+    --include='*.cfg' \
+    --include='*.uid' \
+    --exclude='*' \
+    "$ROOT/" "$runtime_root/"
+}
+
+cleanup_stale_fixture_processes() {
+  local runtime_root_win="$1"
+  local scene_token="res://test-grin-basic-visual-minimal.tscn"
+  powershell.exe -NoProfile -Command "
+    \$runtimeRoot = '$runtime_root_win';
+    \$sceneToken = '$scene_token';
+    \$procs = Get-CimInstance Win32_Process | Where-Object {
+      \$_.Name -like 'Godot*' -and
+      \$_.CommandLine -and
+      \$_.CommandLine.Contains(\$sceneToken) -and
+      \$_.CommandLine.Contains(\$runtimeRoot)
+    };
+    foreach (\$proc in \$procs) {
+      try { Stop-Process -Id \$proc.ProcessId -Force -ErrorAction Stop } catch {}
+    }
+    Write-Output ('fixture_process_cleanup count=' + @(\$procs).Count);
+  " | tr -d '\r'
+}
+
+build_runtime_assembly() {
+  local runtime_root="$1"
+  local dotnet_exe="$2"
+  local csproj_win
+  csproj_win="$(wslpath -w "$runtime_root/Physical Light and Camera Units.csproj")"
+  echo "Runtime project root: $runtime_root"
+  echo "Runtime assembly target: $runtime_root/.godot/mono/temp/bin/Debug/Physical Light and Camera Units.dll"
+  powershell.exe -NoProfile -Command "\$output = & '$dotnet_exe' build '$csproj_win' -c Debug --no-incremental --nologo --verbosity minimal | Out-String -Width 240; Write-Output \$output; exit \$LASTEXITCODE" | tr -d '\r'
+}
+
+emit_runtime_build_fingerprint() {
+  local runtime_root="$1"
+  local dll_path="$runtime_root/.godot/mono/temp/bin/Debug/Physical Light and Camera Units.dll"
+  if [[ ! -f "$dll_path" ]]; then
+    echo "runtime assembly missing after build: $dll_path" >&2
+    return 1
+  fi
+
+  local git_short="nogit"
+  if git -C "$ROOT" rev-parse --short=12 HEAD >/dev/null 2>&1; then
+    git_short="$(git -C "$ROOT" rev-parse --short=12 HEAD)"
+  fi
+
+  local dll_write_utc
+  dll_write_utc="$(powershell.exe -NoProfile -Command "(Get-Item '$(wslpath -w "$dll_path")').LastWriteTimeUtc.ToString('yyyyMMddTHHmmssZ')" | tr -d '\r')"
+  local dll_sha
+  dll_sha="$(sha256sum "$dll_path" | awk '{print substr($1,1,16)}')"
+  export XPRIMERAY_BUILD_GIT_SHORT="$git_short"
+  export XPRIMERAY_BUILD_FINGERPRINT="fixture001_runtime_fingerprint_v1_git_${git_short}_utc_${dll_write_utc}_sha_${dll_sha}"
+  echo "Runtime fingerprint: $XPRIMERAY_BUILD_FINGERPRINT"
+}
+
 GODOT_BIN="$(resolve_godot_exe)"
 LEDGER_PYTHON_BIN="$(resolve_ledger_python)"
+RUNTIME_ROOT="$(resolve_runtime_root)"
+RUNTIME_ROOT_WIN="$(wslpath -w "$RUNTIME_ROOT")"
+DOTNET_EXE="$(resolve_dotnet_exe)"
 export GODOT_EXE="$GODOT_BIN"
 
 FIXTURE_ID="fixture_001"
@@ -85,7 +193,13 @@ TIMESTAMP="$(date +"%Y-%m-%dT%H-%M-%S")"
 RUN_DIR="$ROOT/output/fixture_runs/$FIXTURE_ID/$TIMESTAMP"
 mkdir -p "$RUN_DIR"
 
+sync_runtime_root "$RUNTIME_ROOT"
+cleanup_stale_fixture_processes "$RUNTIME_ROOT_WIN"
+build_runtime_assembly "$RUNTIME_ROOT" "$DOTNET_EXE"
+emit_runtime_build_fingerprint "$RUNTIME_ROOT"
+
 CAPTURE_PATH="$RUN_DIR/capture.png"
+CAPTURE_PATH_WIN="$(wslpath -w "$CAPTURE_PATH")"
 LOG_PATH="$RUN_DIR/run.log"
 
 EXTRA_RENDER_ARGS=()
@@ -128,10 +242,10 @@ fi
 
 CMD=(
   "$GODOT_BIN"
-  "--path" "."
+  "--path" "$RUNTIME_ROOT_WIN"
   "--scene" "$SCENE_PATH"
   "--"
-  "--grin-basic-capture=$CAPTURE_PATH"
+  "--grin-basic-capture=$CAPTURE_PATH_WIN"
   "--grin-basic-settle-frames=$SETTLE_FRAMES"
   "--grin-basic-min-rh-step=$MIN_RH_STEP"
   "--grin-basic-min-processed-rows=$MIN_PROCESSED_ROWS"
@@ -139,6 +253,8 @@ CMD=(
   "--grin-basic-compare-grid=$COMPARE_GRID"
   "--grin-basic-compare-crosshair=$COMPARE_CROSSHAIR"
   "--grin-basic-exit-after-capture=1"
+  "--grin-basic-build-fingerprint=$XPRIMERAY_BUILD_FINGERPRINT"
+  "--grin-basic-build-git-short=$XPRIMERAY_BUILD_GIT_SHORT"
   "${EXTRA_RENDER_ARGS[@]}"
 )
 
