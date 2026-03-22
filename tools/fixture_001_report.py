@@ -42,6 +42,7 @@ def parse_log(text: str) -> dict:
     parsed = {
         "capture": None,
         "rows": None,
+        "visual": None,
         "runtimeBuild": None,
         "launchAudit": None,
         "renderer": None,
@@ -65,6 +66,10 @@ def parse_log(text: str) -> dict:
         rows = parse_kv(line, "[GrinBasicVisual][Rows]")
         if rows:
             parsed["rows"] = rows
+
+        visual = parse_kv(line, "[GrinBasicVisual][Visual]")
+        if visual:
+            parsed["visual"] = visual
 
         runtime_build = parse_kv(line, "[RuntimeBuild]")
         if runtime_build:
@@ -122,6 +127,7 @@ def build_params(args: argparse.Namespace, parsed: dict) -> dict:
 def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
     capture = parsed.get("capture") or {}
     rows = parsed.get("rows") or {}
+    visual = parsed.get("visual") or {}
     runtime_build = parsed.get("runtimeBuild") or {}
     launch = parsed.get("launchAudit") or {}
     renderer = parsed.get("renderer") or {}
@@ -213,6 +219,12 @@ def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
         "image_height": image.get("height"),
         "hit_success_rate": hit_success_rate,
         "miss_rate": miss_rate,
+        "visual_mode": visual.get("mode"),
+        "visual_shading_mode": visual.get("shadingMode"),
+        "visual_baseline_shading_mode": visual.get("baselineShadingMode"),
+        "visual_source_highlight": visual.get("sourceHighlight"),
+        "visual_diagnostic_flat": visual.get("authority"),
+        "baseline_used_normal_shading": visual.get("normalShadingInBaseline"),
         "launch_audit": {
             "requested_launcher": launch.get("requested_launcher"),
             "actual_scene": launch.get("actual_scene"),
@@ -286,8 +298,92 @@ def build_verification(metrics: dict, params: dict) -> dict:
     }
 
 
+def parse_row_ranges(raw_value) -> list[tuple[int, int]]:
+    text = normalize_token(raw_value)
+    if text == "" or text == "-":
+        return []
+    ranges: list[tuple[int, int]] = []
+    for chunk in text.split(","):
+        token = chunk.strip()
+        if token == "":
+            continue
+        if "-" in token:
+            start_text, end_text = token.split("-", 1)
+            start = parse_int_token(start_text)
+            end = parse_int_token(end_text)
+            if start is None or end is None:
+                continue
+            if end < start:
+                start, end = end, start
+            ranges.append((start, end))
+            continue
+        value = parse_int_token(token)
+        if value is not None:
+            ranges.append((value, value))
+    return ranges
+
+
+def normalize_token(value) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def parse_int_token(value) -> int | None:
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def build_row_coverage_artifact(metrics: dict) -> dict:
+    total_rows = parse_int_token(metrics.get("total_rows_considered"))
+    if total_rows is None or total_rows <= 0:
+        return {
+            "total_rows_considered": metrics.get("total_rows_considered"),
+            "total_rows_processed": metrics.get("total_rows_processed"),
+            "zero_hit_rows": metrics.get("zero_hit_rows"),
+            "coverage_visual": "",
+            "coverage_legend": "P=processed_with_hits Z=processed_zero_hits S=skipped .=unseen",
+        }
+
+    processed = [False] * total_rows
+    skipped = [False] * total_rows
+    zero_hit = [False] * total_rows
+
+    for start, end in parse_row_ranges(metrics.get("processed_row_ranges")):
+        for index in range(max(0, start), min(total_rows - 1, end) + 1):
+            processed[index] = True
+    for start, end in parse_row_ranges(metrics.get("skipped_row_ranges")):
+        for index in range(max(0, start), min(total_rows - 1, end) + 1):
+            skipped[index] = True
+    for start, end in parse_row_ranges(metrics.get("zero_hit_row_ranges")):
+        for index in range(max(0, start), min(total_rows - 1, end) + 1):
+            zero_hit[index] = True
+
+    chars: list[str] = []
+    for index in range(total_rows):
+        if zero_hit[index]:
+            chars.append("Z")
+        elif processed[index]:
+            chars.append("P")
+        elif skipped[index]:
+            chars.append("S")
+        else:
+            chars.append(".")
+
+    return {
+        "total_rows_considered": metrics.get("total_rows_considered"),
+        "total_rows_processed": metrics.get("total_rows_processed"),
+        "zero_hit_rows": metrics.get("zero_hit_rows"),
+        "coverage_visual": "".join(chars),
+        "coverage_legend": "P=processed_with_hits Z=processed_zero_hits S=skipped .=unseen",
+    }
+
+
 def build_summary(metrics: dict, args: argparse.Namespace) -> str:
     verification = metrics.get("verification") or {}
+    row_coverage = metrics.get("row_coverage") or {}
     lines = [
         f"Fixture: {metrics['fixture_id']}",
         f"Timestamp: {args.timestamp}",
@@ -309,6 +405,10 @@ def build_summary(metrics: dict, args: argparse.Namespace) -> str:
         f"Processed Row Window: {metrics['processed_row_start']}..{metrics['processed_row_end']}",
         f"Zero-Hit Rows: {metrics['zero_hit_rows']}",
         f"Row Participation Summary: {metrics['row_participation_summary']}",
+        f"Row Coverage: {row_coverage.get('coverage_visual', '')}",
+        f"Visual Mode: {metrics.get('visual_mode')}",
+        f"Visual Shading Mode: {metrics.get('visual_shading_mode')}",
+        f"Baseline Shading Mode: {metrics.get('visual_baseline_shading_mode')}",
         f"Runtime Fingerprint: {metrics['runtime_fingerprint']}",
         f"Assembly Timestamp Present: {str(verification.get('assembly_timestamp_present', False)).lower()}",
         f"Requested Step Match: {str(verification.get('effective_step_matches_requested', False)).lower()}",
@@ -355,6 +455,7 @@ def main() -> int:
     params = build_params(args, parsed)
     metrics = build_metrics(args, parsed)
     metrics["verification"] = build_verification(metrics, params)
+    metrics["row_coverage"] = build_row_coverage_artifact(metrics)
     summary = build_summary(metrics, args)
     summary_json = {
         "timestamp": args.timestamp,
@@ -372,6 +473,7 @@ def main() -> int:
         "runtimeBuild": parsed.get("runtimeBuild") or {},
         "launchAudit": parsed.get("launchAudit") or {},
         "renderer": parsed.get("renderer") or {},
+        "visual": parsed.get("visual") or {},
         "scheduler": {
             "guard_progress": parsed.get("guardProgress"),
             "forcedAdvance": parsed.get("forcedAdvance"),
@@ -381,7 +483,7 @@ def main() -> int:
             "width": metrics.get("image_width"),
             "height": metrics.get("image_height"),
         },
-        "visual_tag": "",
+        "visual_tag": metrics.get("visual_mode") or "",
         "decision_tag": "",
     }
 
@@ -389,6 +491,19 @@ def main() -> int:
     (args.run_dir / "metrics.json").write_text(json.dumps(metrics, indent=2) + "\n", encoding="utf-8")
     (args.run_dir / "summary.json").write_text(json.dumps(summary_json, indent=2) + "\n", encoding="utf-8")
     (args.run_dir / "summary.txt").write_text(summary, encoding="utf-8")
+    row_coverage = metrics.get("row_coverage") or {}
+    row_coverage_text = "\n".join(
+        [
+            f"Total Rows Considered: {row_coverage.get('total_rows_considered')}",
+            f"Total Rows Processed: {row_coverage.get('total_rows_processed')}",
+            f"Zero-Hit Rows: {row_coverage.get('zero_hit_rows')}",
+            f"Coverage: {row_coverage.get('coverage_visual', '')}",
+            f"Legend: {row_coverage.get('coverage_legend', '')}",
+            "",
+        ]
+    )
+    (args.run_dir / "row_coverage.json").write_text(json.dumps(row_coverage, indent=2) + "\n", encoding="utf-8")
+    (args.run_dir / "row_coverage.txt").write_text(row_coverage_text, encoding="utf-8")
     return 0
 
 

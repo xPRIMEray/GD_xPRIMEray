@@ -31,6 +31,8 @@ public partial class GrinBasicVisualController : Node3D
 	private const string ExitAfterCaptureArgPrefix = "--grin-basic-exit-after-capture=";
 	private const string CompareGridArgPrefix = "--grin-basic-compare-grid=";
 	private const string CompareCrosshairArgPrefix = "--grin-basic-compare-crosshair=";
+	private const string VisualModeArgPrefix = "--grin-basic-visual-mode=";
+	private const string SourceHighlightArgPrefix = "--grin-basic-source-highlight=";
 
 	[Export] public NodePath FilmCameraPath = new("GrinFilmCamera");
 	[Export] public NodePath FieldPath = new("FixtureGrinBasicVisual/FieldSource3D");
@@ -48,6 +50,8 @@ public partial class GrinBasicVisualController : Node3D
 	[Export(PropertyHint.Range, "0,240,1")] public int DefaultCaptureMinRenderHealthStep = 0;
 	[Export(PropertyHint.Range, "0,4096,1")] public int DefaultCaptureMinProcessedRows = 0;
 	[Export(PropertyHint.Range, "-1,1,0.01")] public float DefaultCaptureFilmOpacityOverride = 1.0f;
+	[Export] public string DefaultFixtureVisualMode = "diagnostic_flat";
+	[Export] public bool DefaultSourceHighlightEnabled = true;
 
 	private GrinFilmCamera _filmCamera;
 	private FieldSource3D _field;
@@ -93,6 +97,7 @@ public partial class GrinBasicVisualController : Node3D
 		_captureMinProcessedRows = Math.Max(0, options.MinProcessedRows ?? DefaultCaptureMinProcessedRows);
 		_captureFilmOpacityOverride = options.CaptureFilmOpacity ?? DefaultCaptureFilmOpacityOverride;
 		ApplyComparisonOverlayOptions(options);
+		ApplyFixtureVisualOptions(options);
 
 		if (_field != null)
 		{
@@ -695,6 +700,90 @@ public partial class GrinBasicVisualController : Node3D
 		return !string.IsNullOrWhiteSpace(value);
 	}
 
+	private void ApplyFixtureVisualOptions(CmdlineOptions options)
+	{
+		if (_filmCamera == null || !GodotObject.IsInstanceValid(_filmCamera))
+		{
+			return;
+		}
+
+		GrinFilmCamera.FilmShadingMode baselineShadingMode = _filmCamera.ShadingMode;
+		string baselineShadingToken = baselineShadingMode.ToString();
+		string requestedVisualMode = NormalizeVisualModeToken(options.VisualMode);
+		if (string.IsNullOrWhiteSpace(requestedVisualMode))
+		{
+			requestedVisualMode = NormalizeVisualModeToken(DefaultFixtureVisualMode);
+		}
+		if (string.IsNullOrWhiteSpace(requestedVisualMode))
+		{
+			requestedVisualMode = "diagnostic_flat";
+		}
+
+		bool sourceHighlightEnabled = options.SourceHighlightEnabled ?? DefaultSourceHighlightEnabled;
+		bool diagnosticFlat = string.Equals(requestedVisualMode, "diagnostic_flat", StringComparison.Ordinal);
+		bool geometryContext = string.Equals(requestedVisualMode, "geometry_context", StringComparison.Ordinal);
+		if (!diagnosticFlat && !geometryContext)
+		{
+			requestedVisualMode = "diagnostic_flat";
+			diagnosticFlat = true;
+		}
+
+		_filmCamera.FixtureDebugHitColoringEnabled = true;
+		_filmCamera.FixtureDebugSourceGroup = "fixture_source";
+		_filmCamera.FixtureDebugSourceHitColor = new Color(1.0f, 0.82f, 0.18f, 1.0f);
+		_filmCamera.FixtureDebugBackgroundHitColor = new Color(0.13f, 0.92f, 0.95f, 1.0f);
+		_filmCamera.FixtureDebugAbsorbedColor = new Color(0.35f, 0.08f, 0.08f, 1.0f);
+		_filmCamera.FixtureDebugMissColor = new Color(0.16f, 0.14f, 0.24f, 1.0f);
+		_filmCamera.FixtureDebugColorAuthorityEnabled = diagnosticFlat;
+		_filmCamera.FixtureDebugSourceHighlightEnabled = sourceHighlightEnabled;
+		_filmCamera.SkyColor = new Color(0.02f, 0.025f, 0.035f, 1.0f);
+		if (diagnosticFlat)
+		{
+			_filmCamera.ShadingMode = GrinFilmCamera.FilmShadingMode.DepthHeatmap;
+		}
+		else
+		{
+			_filmCamera.ShadingMode = baselineShadingMode;
+		}
+
+		GD.Print(
+			$"[GrinBasicVisual][Visual] fixture={FixtureHudName} mode={requestedVisualMode} " +
+			$"baselineShadingMode={baselineShadingToken} shadingMode={_filmCamera.ShadingMode} " +
+			$"normalShadingInBaseline={(baselineShadingMode == GrinFilmCamera.FilmShadingMode.NormalRGB ? 1 : 0)} " +
+			$"authority={(_filmCamera.FixtureDebugColorAuthorityEnabled ? 1 : 0)} " +
+			$"sourceHighlight={(sourceHighlightEnabled ? 1 : 0)} " +
+			$"sourceColor={FormatColorToken(_filmCamera.FixtureDebugSourceHitColor)} " +
+			$"backgroundHitColor={FormatColorToken(_filmCamera.FixtureDebugBackgroundHitColor)} " +
+			$"missColor={FormatColorToken(_filmCamera.FixtureDebugMissColor)} " +
+			$"absorbedColor={FormatColorToken(_filmCamera.FixtureDebugAbsorbedColor)} " +
+			$"skyColor={FormatColorToken(_filmCamera.SkyColor)}");
+	}
+
+	private static string NormalizeVisualModeToken(string value)
+	{
+		if (string.IsNullOrWhiteSpace(value))
+		{
+			return string.Empty;
+		}
+
+		string token = value.Trim().ToLowerInvariant().Replace("-", "_", StringComparison.Ordinal);
+		return token switch
+		{
+			"diagnostic" => "diagnostic_flat",
+			"diagnostic_flat" => "diagnostic_flat",
+			"flat" => "diagnostic_flat",
+			"geometry" => "geometry_context",
+			"geometry_context" => "geometry_context",
+			"context" => "geometry_context",
+			_ => token
+		};
+	}
+
+	private static string FormatColorToken(Color color)
+	{
+		return $"({color.R:0.###},{color.G:0.###},{color.B:0.###},{color.A:0.###})";
+	}
+
 	private void ApplyComparisonOverlayOptions(CmdlineOptions options)
 	{
 		if (_filmOverlay == null || !GodotObject.IsInstanceValid(_filmOverlay))
@@ -823,6 +912,16 @@ public partial class GrinBasicVisualController : Node3D
 			if (TryParseBoolArgValue(arg, CompareCrosshairArgPrefix, out bool compareCrosshair))
 			{
 				options.CompareCrosshairEnabled = compareCrosshair;
+				continue;
+			}
+			if (TryParseStringArgValue(arg, VisualModeArgPrefix, out string visualMode))
+			{
+				options.VisualMode = visualMode;
+				continue;
+			}
+			if (TryParseBoolArgValue(arg, SourceHighlightArgPrefix, out bool sourceHighlight))
+			{
+				options.SourceHighlightEnabled = sourceHighlight;
 				continue;
 			}
 			if (arg.StartsWith(CaptureArgPrefix, StringComparison.OrdinalIgnoreCase))
@@ -963,6 +1062,8 @@ public partial class GrinBasicVisualController : Node3D
 		public float? CaptureFilmOpacity;
 		public bool? CompareGridEnabled;
 		public bool? CompareCrosshairEnabled;
+		public string VisualMode;
+		public bool? SourceHighlightEnabled;
 		public string CapturePath;
 		public bool ExitAfterCapture;
 	}

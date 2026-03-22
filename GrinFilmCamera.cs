@@ -376,8 +376,12 @@ public partial class GrinFilmCamera : Node
 	[Export] public Color FixtureDebugBackgroundHitColor = new Color(0.16f, 0.24f, 0.40f, 1f);
 	/// <summary>Color for absorbed rays when fixture debug coloring is enabled.</summary>
 	[Export] public Color FixtureDebugAbsorbedColor = new Color(0f, 0f, 0f, 1f);
+	/// <summary>Color for miss pixels when fixture debug coloring is enabled.</summary>
+	[Export] public Color FixtureDebugMissColor = new Color(0.06f, 0.07f, 0.10f, 1f);
 	/// <summary>When enabled, fixture debug hit colors remain the final authority for this render mode.</summary>
 	[Export] public bool FixtureDebugColorAuthorityEnabled = false;
+	/// <summary>When enabled, source hits use the explicit source highlight color.</summary>
+	[Export] public bool FixtureDebugSourceHighlightEnabled = true;
 	/// <summary>Logs sampled fixture hit classifications and final film colors.</summary>
 	[Export] public bool FixtureDebugTraceEnabled = false;
 	/// <summary>Modulo used for deterministic fixture debug trace sampling.</summary>
@@ -1597,7 +1601,9 @@ public partial class GrinFilmCamera : Node
 		public Color FixtureDebugSourceHitColor;
 		public Color FixtureDebugBackgroundHitColor;
 		public Color FixtureDebugAbsorbedColor;
+		public Color FixtureDebugMissColor;
 		public bool FixtureDebugColorAuthorityEnabled;
+		public bool FixtureDebugSourceHighlightEnabled;
 		public bool FixtureDebugTraceEnabled;
 		public int FixtureDebugTraceSampleModulo;
 		public int FixtureDebugTraceMaxLogsPerStep;
@@ -7903,17 +7909,27 @@ public partial class GrinFilmCamera : Node
 						{
 							if (fixtureHitKind == "source")
 							{
-								col = fixtureSourceHit
-									? cfg.FixtureDebugSourceHitColor
-									: cfg.FixtureDebugBackgroundHitColor;
-								fixtureChosenDebugColor = col;
-								fixtureDebugColorChosen = true;
+								if (cfg.FixtureDebugSourceHighlightEnabled)
+								{
+									col = cfg.FixtureDebugSourceHitColor;
+									fixtureChosenDebugColor = col;
+									fixtureDebugColorChosen = true;
+								}
+								else if (cfg.FixtureDebugColorAuthorityEnabled)
+								{
+									col = cfg.FixtureDebugBackgroundHitColor;
+									fixtureChosenDebugColor = col;
+									fixtureDebugColorChosen = true;
+								}
 							}
 							else if (fixtureHitKind == "background")
 							{
-								col = cfg.FixtureDebugBackgroundHitColor;
-								fixtureChosenDebugColor = col;
-								fixtureDebugColorChosen = true;
+								if (cfg.FixtureDebugColorAuthorityEnabled)
+								{
+									col = cfg.FixtureDebugBackgroundHitColor;
+									fixtureChosenDebugColor = col;
+									fixtureDebugColorChosen = true;
+								}
 							}
 							else if (fixtureHitKind == "absorbed")
 							{
@@ -7923,7 +7939,9 @@ public partial class GrinFilmCamera : Node
 							}
 							else
 							{
-								fixtureChosenDebugColor = cfg.SkyColor;
+								col = cfg.FixtureDebugMissColor;
+								fixtureChosenDebugColor = col;
+								fixtureDebugColorChosen = true;
 							}
 						}
 
@@ -9879,7 +9897,9 @@ public partial class GrinFilmCamera : Node
 			FixtureDebugSourceHitColor = FixtureDebugSourceHitColor,
 			FixtureDebugBackgroundHitColor = FixtureDebugBackgroundHitColor,
 			FixtureDebugAbsorbedColor = FixtureDebugAbsorbedColor,
+			FixtureDebugMissColor = FixtureDebugMissColor,
 			FixtureDebugColorAuthorityEnabled = FixtureDebugColorAuthorityEnabled,
+			FixtureDebugSourceHighlightEnabled = FixtureDebugSourceHighlightEnabled,
 			FixtureDebugTraceEnabled = FixtureDebugTraceEnabled,
 			FixtureDebugTraceSampleModulo = Math.Max(1, FixtureDebugTraceSampleModulo),
 			FixtureDebugTraceMaxLogsPerStep = Math.Max(0, FixtureDebugTraceMaxLogsPerStep),
@@ -10166,7 +10186,12 @@ public partial class GrinFilmCamera : Node
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugAbsorbedColor.G));
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugAbsorbedColor.B));
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugAbsorbedColor.A));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugMissColor.R));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugMissColor.G));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugMissColor.B));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugMissColor.A));
 		hash.Add(cfg.FixtureDebugColorAuthorityEnabled);
+		hash.Add(cfg.FixtureDebugSourceHighlightEnabled);
 		hash.Add(cfg.FixtureDebugTraceEnabled);
 		hash.Add(cfg.FixtureDebugTraceSampleModulo);
 		hash.Add(cfg.FixtureDebugTraceMaxLogsPerStep);
