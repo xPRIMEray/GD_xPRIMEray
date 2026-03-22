@@ -10,3 +10,20 @@ __pycache__/
 *.pyc
 .env.local
 output/
+
+# Local machine junk
+.dotnet_cli/
+.localappdata/
+%PROJECT_PATH%/
+
+# NuGet / .NET
+**/.nuget/
+**/NuGet/
+**/.dotnet/
+*.sentinel
+
+# Godot cache
+.localappdata/Godot/
+
+.venv/
+.venv_*/
