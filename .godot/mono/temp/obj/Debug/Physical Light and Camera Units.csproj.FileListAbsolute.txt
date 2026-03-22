@@ -16,3 +16,21 @@ C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\refint\Physical Light and Ca
 C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.pdb
 C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.genruntimeconfig.cache
 C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\ref\Physical Light and Camera Units.dll
+\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\bin\Debug\Physical Light and Camera Units.deps.json
+\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\bin\Debug\Physical Light and Camera Units.runtimeconfig.json
+\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\bin\Debug\Physical Light and Camera Units.dll
+\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\bin\Debug\Physical Light and Camera Units.pdb
+\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\bin\Debug\GodotSharp.dll
+\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\bin\Debug\GodotSharpEditor.dll
+\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.csproj.AssemblyReference.cache
+\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.GeneratedMSBuildEditorConfig.editorconfig
+\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.AssemblyInfoInputs.cache
+\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.AssemblyInfo.cs
+\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.csproj.CoreCompileInputs.cache
+\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.sourcelink.json
+\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical.0EC07CE9.Up2Date
+\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.dll
+\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\refint\Physical Light and Camera Units.dll
+\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.pdb
+\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.genruntimeconfig.cache
+\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\ref\Physical Light and Camera Units.dll
