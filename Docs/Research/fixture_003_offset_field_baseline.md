@@ -63,6 +63,18 @@ source-topology expansion or broader scene restructuring.
 - Use `categorical_final` when row coverage and radial-profile artifacts are
   required.
 
+## Canonical Analysis Basis
+
+- Primary analysis basis: `field-relative`
+- Companion analysis basis: `image-center`
+- Reason: Fixture 003 intentionally breaks image-center symmetry by moving the
+  field center off-axis in `+X`. The field-relative basis is therefore the
+  canonical way to interpret radial structure and lateral asymmetry relative to
+  the transport field itself.
+- Image-center artifacts remain useful companion diagnostics because they show
+  the screen-space consequence of the offset field, but they should not be
+  treated as the primary canonical basis for Fixture 003.
+
 ## Control-Validation Contract
 
 Treat a Fixture 003 run as usable for control-surface interpretation only when
@@ -86,6 +98,12 @@ The output contract matches Fixtures 001 and 002:
 - `row_coverage.json`
 - `radial_profile.txt`
 - `radial_profile.json`
+- `radial_sector_profile.txt`
+- `radial_sector_profile.json`
+- `field_radial_profile.txt`
+- `field_radial_profile.json`
+- `field_radial_sector_profile.txt`
+- `field_radial_sector_profile.json`
 - ledger append through `tools/characterization_ledger/ledger_writer.py`
 
 ## Expected Capture Modes
@@ -105,6 +123,12 @@ The output contract matches Fixtures 001 and 002:
 - `row_coverage.json`
 - `radial_profile.txt`
 - `radial_profile.json`
+- `radial_sector_profile.txt`
+- `radial_sector_profile.json`
+- `field_radial_profile.txt`
+- `field_radial_profile.json`
+- `field_radial_sector_profile.txt`
+- `field_radial_sector_profile.json`
 
 For Fixture 003, radial-profile artifacts are still produced under
 `categorical_final`, but they should be treated as a comparative diagnostic

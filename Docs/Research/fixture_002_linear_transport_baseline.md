@@ -45,6 +45,18 @@ no-hit area, and unrendered area.
 - Prefer `diagnostic_flat` for visual interpretation and `categorical_final`
   when explicit final-hit / rendered-no-hit / unrendered separation is needed.
 
+## Canonical Analysis Basis
+
+- Primary analysis basis: `image-center`
+- Companion analysis basis: `field-relative`
+- Reason: Fixture 002 keeps the transport field centered, so image center and
+  effective field center coincide for interpretation purposes. The original
+  radial and left/right image-center artifacts therefore remain the primary
+  canonical basis.
+- Field-relative artifacts may still be emitted for consistency across the
+  shared fixture reporting flow and to keep direct comparison structure aligned
+  with later asymmetric fixtures.
+
 ## Control-Validation Contract
 
 Treat a Fixture 002 run as usable for control-surface interpretation only when
@@ -65,6 +77,9 @@ The output contract is the same as Fixture 001:
 - verification fields in run artifacts
 - row coverage artifacts
 - radial profile artifacts when `categorical_final` is used
+- radial sector profile artifacts when `categorical_final` is used
+- field-relative radial artifacts when `categorical_final` is used
+- field-relative radial sector artifacts when `categorical_final` is used
 
 ## Planned Operating-Point Characterization Workflow
 
@@ -94,6 +109,12 @@ The output contract is the same as Fixture 001:
 - `row_coverage.json`
 - `radial_profile.txt` when applicable
 - `radial_profile.json` when applicable
+- `radial_sector_profile.txt` when applicable
+- `radial_sector_profile.json` when applicable
+- `field_radial_profile.txt` when applicable
+- `field_radial_profile.json` when applicable
+- `field_radial_sector_profile.txt` when applicable
+- `field_radial_sector_profile.json` when applicable
 
 For Fixture 002, radial analysis is still meaningful when we use
 `categorical_final`, because the underlying transport field remains centered and

@@ -508,6 +508,389 @@ def build_row_coverage_artifact(metrics: dict) -> dict:
     }
 
 
+def repo_root_path() -> Path:
+    return Path(__file__).resolve().parent.parent
+
+
+IDENTITY_BASIS = (
+    (1.0, 0.0, 0.0),
+    (0.0, 1.0, 0.0),
+    (0.0, 0.0, 1.0),
+)
+IDENTITY_TRANSFORM = {
+    "basis": IDENTITY_BASIS,
+    "origin": (0.0, 0.0, 0.0),
+}
+SCENE_PARSE_CACHE: dict[Path, dict] = {}
+SCENE_PROP_KEYS = {
+    "transform",
+    "current",
+    "fov",
+    "FieldPath",
+}
+FLOAT_TOKEN_RE = re.compile(r"[-+]?(?:\d+\.\d+|\d+\.?|\.\d+)(?:[eE][-+]?\d+)?")
+
+
+def resolve_res_path(path_token: str, base_path: Path | None = None) -> Path | None:
+    if not path_token:
+        return None
+    if path_token.startswith("res://"):
+        return repo_root_path() / path_token[len("res://"):]
+    if base_path is None:
+        return None
+    return (base_path.parent / path_token).resolve()
+
+
+def parse_scene_value(key: str, raw_value: str):
+    value = raw_value.strip()
+    if key == "transform" and value.startswith("Transform3D("):
+        payload = value[len("Transform3D("):-1] if value.endswith(")") else value[len("Transform3D("):]
+        numbers = []
+        for token in payload.split(","):
+            text = token.strip()
+            if text == "":
+                continue
+            try:
+                numbers.append(float(text))
+            except ValueError:
+                numbers = []
+                break
+        if len(numbers) == 12:
+            return {
+                "basis": (
+                    (numbers[0], numbers[1], numbers[2]),
+                    (numbers[3], numbers[4], numbers[5]),
+                    (numbers[6], numbers[7], numbers[8]),
+                ),
+                "origin": (numbers[9], numbers[10], numbers[11]),
+            }
+    if value.startswith('NodePath("') and value.endswith('")'):
+        return value[len('NodePath("'):-2]
+    if value in {"true", "false"}:
+        return value == "true"
+    number = scalar(value)
+    if isinstance(number, (int, float)):
+        return number
+    if value.startswith('"') and value.endswith('"'):
+        return value[1:-1]
+    return value
+
+
+def parse_node_header(line: str) -> dict | None:
+    if not line.startswith("[node "):
+        return None
+    name_match = re.search(r'name="([^"]+)"', line)
+    if not name_match:
+        return None
+    type_match = re.search(r'type="([^"]+)"', line)
+    parent_match = re.search(r'parent="([^"]*)"', line)
+    instance_match = re.search(r'instance=ExtResource\("([^"]+)"\)', line)
+    name = name_match.group(1)
+    parent_token = parent_match.group(1) if parent_match else None
+    if parent_token is None:
+        rel_path = ""
+        parent_rel_path = None
+    elif parent_token == ".":
+        rel_path = name
+        parent_rel_path = ""
+    else:
+        rel_path = f"{parent_token}/{name}"
+        parent_rel_path = parent_token
+    return {
+        "name": name,
+        "type": type_match.group(1) if type_match else None,
+        "parent_rel_path": parent_rel_path,
+        "rel_path": rel_path,
+        "instance_ref": instance_match.group(1) if instance_match else None,
+    }
+
+
+def parse_scene_definition(scene_path: Path) -> dict:
+    scene_path = scene_path.resolve()
+    cached = SCENE_PARSE_CACHE.get(scene_path)
+    if cached is not None:
+        return cached
+
+    text = scene_path.read_text(encoding="utf-8", errors="replace")
+    ext_resources: dict[str, str] = {}
+    nodes: dict[str, dict] = {}
+    current_node: dict | None = None
+
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("[ext_resource "):
+            path_match = re.search(r'path="([^"]+)"', stripped)
+            id_match = re.search(r'id="([^"]+)"', stripped)
+            if path_match and id_match:
+                ext_resources[id_match.group(1)] = path_match.group(1)
+            continue
+
+        node_header = parse_node_header(stripped)
+        if node_header is not None:
+            current_node = {
+                "name": node_header["name"],
+                "type": node_header["type"],
+                "parent_rel_path": node_header["parent_rel_path"],
+                "instance_ref": node_header["instance_ref"],
+                "properties": {},
+            }
+            nodes[node_header["rel_path"]] = current_node
+            continue
+
+        if current_node is None or " = " not in stripped:
+            continue
+
+        key, raw_value = stripped.split(" = ", 1)
+        key = key.strip()
+        if key not in SCENE_PROP_KEYS:
+            continue
+        current_node["properties"][key] = parse_scene_value(key, raw_value)
+
+    children: dict[str | None, list[str]] = {}
+    for rel_path, node in nodes.items():
+        children.setdefault(node["parent_rel_path"], []).append(rel_path)
+
+    parsed = {
+        "scene_path": scene_path,
+        "ext_resources": ext_resources,
+        "nodes": nodes,
+        "children": children,
+    }
+    SCENE_PARSE_CACHE[scene_path] = parsed
+    return parsed
+
+
+def join_rel_path(prefix: str, suffix: str) -> str:
+    if prefix == "":
+        return suffix
+    if suffix == "":
+        return prefix
+    return f"{prefix}/{suffix}"
+
+
+def mat3_mul(a: tuple[tuple[float, float, float], ...], b: tuple[tuple[float, float, float], ...]) -> tuple[tuple[float, float, float], ...]:
+    rows = []
+    for row in range(3):
+        rows.append(
+            tuple(
+                sum(a[row][k] * b[k][col] for k in range(3))
+                for col in range(3)
+            )
+        )
+    return tuple(rows)
+
+
+def mat3_vec_mul(matrix: tuple[tuple[float, float, float], ...], vector: tuple[float, float, float]) -> tuple[float, float, float]:
+    return tuple(sum(matrix[row][col] * vector[col] for col in range(3)) for row in range(3))
+
+
+def vec3_add(a: tuple[float, float, float], b: tuple[float, float, float]) -> tuple[float, float, float]:
+    return (a[0] + b[0], a[1] + b[1], a[2] + b[2])
+
+
+def vec3_sub(a: tuple[float, float, float], b: tuple[float, float, float]) -> tuple[float, float, float]:
+    return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
+
+
+def compose_transforms(parent_transform: dict, local_transform: dict) -> dict:
+    parent_basis = parent_transform["basis"]
+    local_basis = local_transform["basis"]
+    parent_origin = parent_transform["origin"]
+    local_origin = local_transform["origin"]
+    return {
+        "basis": mat3_mul(parent_basis, local_basis),
+        "origin": vec3_add(mat3_vec_mul(parent_basis, local_origin), parent_origin),
+    }
+
+
+def invert_mat3(matrix: tuple[tuple[float, float, float], ...]) -> tuple[tuple[float, float, float], ...] | None:
+    a, b, c = matrix[0]
+    d, e, f = matrix[1]
+    g, h, i = matrix[2]
+    det = a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g)
+    if math.isclose(det, 0.0, abs_tol=1e-9):
+        return None
+    inv_det = 1.0 / det
+    return (
+        ((e * i - f * h) * inv_det, (c * h - b * i) * inv_det, (b * f - c * e) * inv_det),
+        ((f * g - d * i) * inv_det, (a * i - c * g) * inv_det, (c * d - a * f) * inv_det),
+        ((d * h - e * g) * inv_det, (b * g - a * h) * inv_det, (a * e - b * d) * inv_det),
+    )
+
+
+def transform_point_to_local(transform: dict, world_point: tuple[float, float, float]) -> tuple[float, float, float] | None:
+    inverse_basis = invert_mat3(transform["basis"])
+    if inverse_basis is None:
+        return None
+    return mat3_vec_mul(inverse_basis, vec3_sub(world_point, transform["origin"]))
+
+
+def flatten_scene_tree(scene_path: Path) -> dict[str, dict]:
+    flat_nodes: dict[str, dict] = {}
+
+    def mount_scene(parsed_scene: dict, mount_prefix: str, parent_transform: dict) -> None:
+        root_node = parsed_scene["nodes"].get("")
+        if root_node is None:
+            return
+        root_transform = root_node["properties"].get("transform") or IDENTITY_TRANSFORM
+        root_global = compose_transforms(parent_transform, root_transform)
+        flat_nodes[mount_prefix] = {
+            "type": root_node.get("type"),
+            "properties": dict(root_node.get("properties") or {}),
+            "global_transform": root_global,
+            "scene_path": str(parsed_scene["scene_path"]),
+        }
+        for child_rel_path in parsed_scene["children"].get("", []):
+            mount_node(parsed_scene, child_rel_path, mount_prefix, root_global)
+
+    def mount_node(parsed_scene: dict, rel_path: str, mount_prefix: str, parent_transform: dict) -> None:
+        node = parsed_scene["nodes"][rel_path]
+        local_transform = node["properties"].get("transform") or IDENTITY_TRANSFORM
+        node_global = compose_transforms(parent_transform, local_transform)
+        mounted_rel_path = join_rel_path(mount_prefix, rel_path)
+        instance_ref = node.get("instance_ref")
+        if instance_ref:
+            resource_token = parsed_scene["ext_resources"].get(instance_ref)
+            instance_path = resolve_res_path(resource_token or "", parsed_scene["scene_path"])
+            if instance_path is not None and instance_path.exists():
+                mount_scene(parse_scene_definition(instance_path), mounted_rel_path, node_global)
+            return
+
+        flat_nodes[mounted_rel_path] = {
+            "type": node.get("type"),
+            "properties": dict(node.get("properties") or {}),
+            "global_transform": node_global,
+            "scene_path": str(parsed_scene["scene_path"]),
+        }
+        for child_rel_path in parsed_scene["children"].get(rel_path, []):
+            mount_node(parsed_scene, child_rel_path, mount_prefix, node_global)
+
+    mount_scene(parse_scene_definition(scene_path), "", IDENTITY_TRANSFORM)
+    return flat_nodes
+
+
+def project_world_point_to_image(
+    world_point: tuple[float, float, float],
+    camera_transform: dict,
+    fov_degrees: float,
+    image_width: int,
+    image_height: int,
+) -> dict | None:
+    if image_width <= 0 or image_height <= 0:
+        return None
+    if not isinstance(fov_degrees, (int, float)) or not math.isfinite(float(fov_degrees)) or float(fov_degrees) <= 0.0:
+        return None
+    camera_point = transform_point_to_local(camera_transform, world_point)
+    if camera_point is None:
+        return None
+    x_cam, y_cam, z_cam = camera_point
+    if z_cam >= -1e-6:
+        return None
+    cx = (image_width - 1) / 2.0
+    cy = (image_height - 1) / 2.0
+    focal_length = cy / math.tan(math.radians(float(fov_degrees)) / 2.0)
+    if not math.isfinite(focal_length):
+        return None
+    return {
+        "x": cx + focal_length * (x_cam / -z_cam),
+        "y": cy - focal_length * (y_cam / -z_cam),
+        "camera_space_point": {
+            "x": round(x_cam, 6),
+            "y": round(y_cam, 6),
+            "z": round(z_cam, 6),
+        },
+    }
+
+
+def resolve_field_analysis_origin(args: argparse.Namespace, metrics: dict) -> dict:
+    scene_path = resolve_res_path(args.scene)
+    if scene_path is None or not scene_path.exists():
+        return {
+            "resolved": False,
+            "reason": f"scene_not_found:{args.scene}",
+        }
+
+    flat_nodes = flatten_scene_tree(scene_path)
+    root_node = flat_nodes.get("") or {}
+    root_properties = root_node.get("properties") or {}
+    field_path = normalize_token(root_properties.get("FieldPath"))
+    if field_path == "":
+        return {
+            "resolved": False,
+            "reason": "field_path_missing",
+            "scene_path": str(scene_path),
+        }
+
+    field_node = flat_nodes.get(field_path)
+    if field_node is None:
+        return {
+            "resolved": False,
+            "reason": f"field_node_not_found:{field_path}",
+            "scene_path": str(scene_path),
+        }
+
+    camera_path = None
+    camera_node = None
+    for rel_path, node in flat_nodes.items():
+        if node.get("type") == "Camera3D" and (node.get("properties") or {}).get("current") is True:
+            camera_path = rel_path
+            camera_node = node
+            break
+    if camera_node is None:
+        for rel_path, node in flat_nodes.items():
+            if node.get("type") == "Camera3D":
+                camera_path = rel_path
+                camera_node = node
+                break
+    if camera_node is None:
+        return {
+            "resolved": False,
+            "reason": "camera_not_found",
+            "scene_path": str(scene_path),
+            "field_path": field_path,
+        }
+
+    image_width = parse_int_token(metrics.get("image_width"))
+    image_height = parse_int_token(metrics.get("image_height"))
+    fov = (camera_node.get("properties") or {}).get("fov")
+    field_transform = field_node.get("global_transform") or IDENTITY_TRANSFORM
+    world_origin = field_transform["origin"]
+    camera_transform = (flat_nodes.get(camera_path) or {}).get("global_transform") or IDENTITY_TRANSFORM
+    projection = project_world_point_to_image(world_origin, camera_transform, fov or 75.0, image_width or 0, image_height or 0)
+    if projection is None:
+        return {
+            "resolved": False,
+            "reason": "field_projection_failed",
+            "scene_path": str(scene_path),
+            "field_path": field_path,
+            "camera_path": camera_path,
+            "field_world_origin": {
+                "x": round(world_origin[0], 6),
+                "y": round(world_origin[1], 6),
+                "z": round(world_origin[2], 6),
+            },
+        }
+
+    return {
+        "resolved": True,
+        "scene_path": str(scene_path),
+        "field_path": field_path,
+        "camera_path": camera_path,
+        "field_world_origin": {
+            "x": round(world_origin[0], 6),
+            "y": round(world_origin[1], 6),
+            "z": round(world_origin[2], 6),
+        },
+        "field_center_pixel": {
+            "x": round(projection["x"], 4),
+            "y": round(projection["y"], 4),
+        },
+        "camera_fov_degrees": fov,
+        "camera_space_point": projection.get("camera_space_point") or {},
+        "projection_basis": "scene_camera_perspective",
+    }
+
+
 def clamp_byte(value: float) -> int:
     return max(0, min(255, int(round(value * 255.0))))
 
@@ -541,34 +924,109 @@ def classify_categorical_pixel(pixel: tuple[int, int, int, int]) -> str:
     return "other"
 
 
-def build_radial_profile(args: argparse.Namespace, metrics: dict) -> dict:
+COUNT_KEYS = (
+    "pixel_count",
+    "final_hit_pixel_count",
+    "rendered_no_hit_pixel_count",
+    "unrendered_pixel_count",
+    "other_pixel_count",
+)
+
+
+def build_disabled_spatial_artifact(capture_mode, reason: str) -> dict:
+    return {
+        "enabled": False,
+        "reason": reason,
+        "analysis_capture_mode": capture_mode,
+    }
+
+
+def build_count_bucket() -> dict:
+    return {
+        "pixel_count": 0,
+        "final_hit_pixel_count": 0,
+        "rendered_no_hit_pixel_count": 0,
+        "unrendered_pixel_count": 0,
+        "other_pixel_count": 0,
+    }
+
+
+def accumulate_bucket_counts(target: dict, source: dict) -> None:
+    for key in COUNT_KEYS:
+        target[key] += source.get(key, 0)
+
+
+def add_category_to_bucket(bucket: dict, category: str) -> None:
+    bucket["pixel_count"] += 1
+    if category == "final_hit":
+        bucket["final_hit_pixel_count"] += 1
+    elif category == "rendered_no_hit":
+        bucket["rendered_no_hit_pixel_count"] += 1
+    elif category == "unrendered":
+        bucket["unrendered_pixel_count"] += 1
+    else:
+        bucket["other_pixel_count"] += 1
+
+
+def finalize_radial_bucket(bucket: dict) -> None:
+    rendered_pixels = bucket["final_hit_pixel_count"] + bucket["rendered_no_hit_pixel_count"]
+    bucket["rendered_pixel_count"] = rendered_pixels
+    bucket["hit_fraction_within_rendered_area"] = (
+        round(bucket["final_hit_pixel_count"] / rendered_pixels, 6) if rendered_pixels > 0 else None
+    )
+    bucket["rendered_coverage_fraction"] = (
+        round(rendered_pixels / bucket["pixel_count"], 6) if bucket["pixel_count"] > 0 else None
+    )
+
+
+def finalize_sector_bucket(bucket: dict) -> None:
+    rendered_pixels = bucket["final_hit_pixel_count"] + bucket["rendered_no_hit_pixel_count"]
+    bucket["rendered_pixel_count"] = rendered_pixels
+    bucket["hit_frac_rendered"] = round(bucket["final_hit_pixel_count"] / rendered_pixels, 6) if rendered_pixels > 0 else None
+    bucket["rendered_coverage"] = round(rendered_pixels / bucket["pixel_count"], 6) if bucket["pixel_count"] > 0 else None
+    bucket["hit_fraction_within_rendered_area"] = bucket["hit_frac_rendered"]
+    bucket["rendered_coverage_fraction"] = bucket["rendered_coverage"]
+
+
+def build_profile_artifacts(
+    args: argparse.Namespace,
+    metrics: dict,
+    origin_x: float,
+    origin_y: float,
+    profile_label: str,
+    origin_key: str,
+    origin_label: str,
+    sector_axis_label: str,
+    sector_left_rule: str,
+    sector_right_rule: str,
+    extra_metadata: dict | None = None,
+) -> tuple[dict, dict]:
     capture_mode = metrics.get("analysis_capture_mode")
     if capture_mode != "categorical_final":
-        return {
-            "enabled": False,
-            "reason": f"analysis_capture_mode_not_supported:{capture_mode}",
-            "analysis_capture_mode": capture_mode,
-        }
+        disabled = build_disabled_spatial_artifact(capture_mode, f"analysis_capture_mode_not_supported:{capture_mode}")
+        return disabled, disabled.copy()
 
     if args.radial_bin_count <= 0:
-        return {
-            "enabled": False,
-            "reason": f"invalid_radial_bin_count:{args.radial_bin_count}",
-            "analysis_capture_mode": capture_mode,
-        }
+        disabled = build_disabled_spatial_artifact(capture_mode, f"invalid_radial_bin_count:{args.radial_bin_count}")
+        return disabled, disabled.copy()
 
     with Image.open(args.capture_path) as image:
         rgba = image.convert("RGBA")
         width, height = rgba.size
         pixels = rgba.load()
 
-        center_x = (width - 1) / 2.0
-        center_y = (height - 1) / 2.0
-        max_radius = math.hypot(max(center_x, width - 1 - center_x), max(center_y, height - 1 - center_y))
+        corner_points = (
+            (0.0, 0.0),
+            (0.0, height - 1.0),
+            (width - 1.0, 0.0),
+            (width - 1.0, height - 1.0),
+        )
+        max_radius = max(math.hypot(corner_x - origin_x, corner_y - origin_y) for corner_x, corner_y in corner_points)
         if max_radius <= 0.0:
             max_radius = 1.0
 
         bins: list[dict] = []
+        sector_bins: list[dict] = []
         for index in range(args.radial_bin_count):
             radius_start = (index / args.radial_bin_count) * max_radius
             radius_end = ((index + 1) / args.radial_bin_count) * max_radius
@@ -577,93 +1035,204 @@ def build_radial_profile(args: argparse.Namespace, metrics: dict) -> dict:
                     "bin_index": index,
                     "radius_start_px": round(radius_start, 4),
                     "radius_end_px": round(radius_end, 4),
-                    "pixel_count": 0,
-                    "final_hit_pixel_count": 0,
-                    "rendered_no_hit_pixel_count": 0,
-                    "unrendered_pixel_count": 0,
-                    "other_pixel_count": 0,
+                    **build_count_bucket(),
+                }
+            )
+            sector_bins.append(
+                {
+                    "bin_index": index,
+                    "radius_start_px": round(radius_start, 4),
+                    "radius_end_px": round(radius_end, 4),
+                    "sectors": {
+                        "left": build_count_bucket(),
+                        "right": build_count_bucket(),
+                    },
                 }
             )
 
         for y in range(height):
             for x in range(width):
-                radius = math.hypot(x - center_x, y - center_y)
+                radius = math.hypot(x - origin_x, y - origin_y)
                 normalized = min(radius / max_radius, 0.999999999)
                 bin_index = min(int(normalized * args.radial_bin_count), args.radial_bin_count - 1)
-                bucket = bins[bin_index]
-                bucket["pixel_count"] += 1
                 category = classify_categorical_pixel(tuple(int(channel) for channel in pixels[x, y]))
-                if category == "final_hit":
-                    bucket["final_hit_pixel_count"] += 1
-                elif category == "rendered_no_hit":
-                    bucket["rendered_no_hit_pixel_count"] += 1
-                elif category == "unrendered":
-                    bucket["unrendered_pixel_count"] += 1
-                else:
-                    bucket["other_pixel_count"] += 1
+                add_category_to_bucket(bins[bin_index], category)
+                sector_name = "left" if x <= origin_x else "right"
+                add_category_to_bucket(sector_bins[bin_index]["sectors"][sector_name], category)
 
-        totals = {
-            "pixel_count": 0,
-            "final_hit_pixel_count": 0,
-            "rendered_no_hit_pixel_count": 0,
-            "unrendered_pixel_count": 0,
-            "other_pixel_count": 0,
-        }
+        totals = build_count_bucket()
         for bucket in bins:
-            rendered_pixels = bucket["final_hit_pixel_count"] + bucket["rendered_no_hit_pixel_count"]
-            bucket["rendered_pixel_count"] = rendered_pixels
-            bucket["hit_fraction_within_rendered_area"] = (
-                round(bucket["final_hit_pixel_count"] / rendered_pixels, 6) if rendered_pixels > 0 else None
-            )
-            bucket["rendered_coverage_fraction"] = (
-                round(rendered_pixels / bucket["pixel_count"], 6) if bucket["pixel_count"] > 0 else None
-            )
-            for key in totals:
-                totals[key] += bucket[key]
+            finalize_radial_bucket(bucket)
+            accumulate_bucket_counts(totals, bucket)
+        finalize_radial_bucket(totals)
 
-        rendered_total = totals["final_hit_pixel_count"] + totals["rendered_no_hit_pixel_count"]
-        totals["rendered_pixel_count"] = rendered_total
-        totals["hit_fraction_within_rendered_area"] = (
-            round(totals["final_hit_pixel_count"] / rendered_total, 6) if rendered_total > 0 else None
-        )
-        totals["rendered_coverage_fraction"] = (
-            round(rendered_total / totals["pixel_count"], 6) if totals["pixel_count"] > 0 else None
-        )
+        sector_totals = {
+            "left": build_count_bucket(),
+            "right": build_count_bucket(),
+        }
+        sector_combined_totals = build_count_bucket()
+        for bucket in sector_bins:
+            combined = build_count_bucket()
+            for sector_name in ("left", "right"):
+                sector_bucket = bucket["sectors"][sector_name]
+                finalize_sector_bucket(sector_bucket)
+                accumulate_bucket_counts(combined, sector_bucket)
+                accumulate_bucket_counts(sector_totals[sector_name], sector_bucket)
+            finalize_sector_bucket(combined)
+            bucket["combined"] = combined
+            left_bucket = bucket["sectors"]["left"]
+            right_bucket = bucket["sectors"]["right"]
+            bucket["left_minus_right"] = {
+                "final_hit_pixel_count": left_bucket["final_hit_pixel_count"] - right_bucket["final_hit_pixel_count"],
+                "rendered_pixel_count": left_bucket["rendered_pixel_count"] - right_bucket["rendered_pixel_count"],
+                "hit_frac_rendered": (
+                    round(left_bucket["hit_frac_rendered"] - right_bucket["hit_frac_rendered"], 6)
+                    if left_bucket["hit_frac_rendered"] is not None and right_bucket["hit_frac_rendered"] is not None
+                    else None
+                ),
+                "rendered_coverage": (
+                    round(left_bucket["rendered_coverage"] - right_bucket["rendered_coverage"], 6)
+                    if left_bucket["rendered_coverage"] is not None and right_bucket["rendered_coverage"] is not None
+                    else None
+                ),
+            }
+            accumulate_bucket_counts(sector_combined_totals, combined)
 
-        return {
+        for sector_name in ("left", "right"):
+            finalize_sector_bucket(sector_totals[sector_name])
+        finalize_sector_bucket(sector_combined_totals)
+
+        base_metadata = {
             "enabled": True,
             "analysis_capture_mode": capture_mode,
             "capture_path": str(args.capture_path),
             "bin_count": args.radial_bin_count,
-            "center_pixel": {
-                "x": round(center_x, 4),
-                "y": round(center_y, 4),
+            "profile_label": profile_label,
+            origin_key: {
+                "x": round(origin_x, 4),
+                "y": round(origin_y, 4),
             },
+            "origin_label": origin_label,
             "max_radius_px": round(max_radius, 4),
             "categorical_palette": {
                 "final_hit_rgba": list(FINAL_HIT_RGBA),
                 "rendered_no_hit_rgba": list(RENDERED_NO_HIT_RGBA),
                 "unrendered_rgba": list(UNRENDERED_RGBA),
             },
-            "bins": bins,
-            "totals": totals,
         }
+        if extra_metadata:
+            base_metadata.update(extra_metadata)
+
+        radial_profile = dict(base_metadata)
+        radial_profile["bins"] = bins
+        radial_profile["totals"] = totals
+
+        radial_sector_profile = dict(base_metadata)
+        radial_sector_profile["sector_definition"] = {
+            "axis": sector_axis_label,
+            "left_rule": sector_left_rule,
+            "right_rule": sector_right_rule,
+        }
+        radial_sector_profile["bins"] = sector_bins
+        radial_sector_profile["totals"] = {
+            "sectors": sector_totals,
+            "combined": sector_combined_totals,
+        }
+        return radial_profile, radial_sector_profile
 
 
-def build_radial_profile_text(profile: dict) -> str:
+def build_spatial_profiles(args: argparse.Namespace, metrics: dict) -> tuple[dict, dict]:
+    with Image.open(args.capture_path) as image:
+        width, height = image.size
+    center_x = (width - 1) / 2.0
+    center_y = (height - 1) / 2.0
+    return build_profile_artifacts(
+        args,
+        metrics,
+        center_x,
+        center_y,
+        profile_label="image_center",
+        origin_key="center_pixel",
+        origin_label="Center Pixel",
+        sector_axis_label="image_center_x",
+        sector_left_rule="x <= center_x",
+        sector_right_rule="x > center_x",
+    )
+
+
+def build_field_spatial_profiles(args: argparse.Namespace, metrics: dict) -> tuple[dict, dict]:
+    capture_mode = metrics.get("analysis_capture_mode")
+    field_origin = resolve_field_analysis_origin(args, metrics)
+    if not field_origin.get("resolved"):
+        disabled = build_disabled_spatial_artifact(
+            capture_mode,
+            field_origin.get("reason") or "field_origin_unresolved",
+        )
+        disabled["field_analysis_origin"] = field_origin
+        return disabled, disabled.copy()
+
+    field_center = field_origin["field_center_pixel"]
+    extra_metadata = {
+        "field_analysis_origin": field_origin,
+        "field_world_origin": field_origin.get("field_world_origin"),
+    }
+    return build_profile_artifacts(
+        args,
+        metrics,
+        float(field_center["x"]),
+        float(field_center["y"]),
+        profile_label="field_relative",
+        origin_key="field_center_pixel",
+        origin_label="Field Center Pixel",
+        sector_axis_label="field_center_x",
+        sector_left_rule="x <= field_center_x",
+        sector_right_rule="x > field_center_x",
+        extra_metadata=extra_metadata,
+    )
+
+
+def build_radial_profile(args: argparse.Namespace, metrics: dict) -> dict:
+    radial_profile, _ = build_spatial_profiles(args, metrics)
+    return radial_profile
+
+
+def build_radial_sector_profile(args: argparse.Namespace, metrics: dict) -> dict:
+    _, radial_sector_profile = build_spatial_profiles(args, metrics)
+    return radial_sector_profile
+
+
+def get_profile_origin(profile: dict) -> tuple[str, dict]:
+    if "field_center_pixel" in profile:
+        return profile.get("origin_label") or "Field Center Pixel", profile.get("field_center_pixel") or {}
+    return profile.get("origin_label") or "Center Pixel", profile.get("center_pixel") or {}
+
+
+def build_profile_text(profile: dict, title: str) -> str:
     if not profile.get("enabled"):
         reason = profile.get("reason") or "disabled"
-        return f"Radial Profile: unavailable ({reason})\n"
+        return f"{title}: unavailable ({reason})\n"
+
+    origin_label, origin = get_profile_origin(profile)
 
     lines = [
-        "Radial Profile",
+        title,
         f"Capture Path: {profile.get('capture_path')}",
         f"Analysis Capture Mode: {profile.get('analysis_capture_mode')}",
         f"Bin Count: {profile.get('bin_count')}",
-        f"Center Pixel: ({profile['center_pixel']['x']}, {profile['center_pixel']['y']})",
+        f"{origin_label}: ({origin.get('x')}, {origin.get('y')})",
         f"Max Radius Px: {profile.get('max_radius_px')}",
         "Legend: bin radius_px pixels final_hit rendered_no_hit unrendered hit_frac_rendered rendered_coverage other",
     ]
+    field_analysis_origin = profile.get("field_analysis_origin") or {}
+    if field_analysis_origin.get("resolved"):
+        field_world_origin = field_analysis_origin.get("field_world_origin") or {}
+        lines.append(
+            "Field World Origin: ({x}, {y}, {z})".format(
+                x=field_world_origin.get("x"),
+                y=field_world_origin.get("y"),
+                z=field_world_origin.get("z"),
+            )
+        )
     for bucket in profile.get("bins", []):
         hit_fraction = bucket.get("hit_fraction_within_rendered_area")
         coverage_fraction = bucket.get("rendered_coverage_fraction")
@@ -697,10 +1266,131 @@ def build_radial_profile_text(profile: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def build_radial_profile_text(profile: dict) -> str:
+    return build_profile_text(profile, "Radial Profile")
+
+
+def build_field_radial_profile_text(profile: dict) -> str:
+    return build_profile_text(profile, "Field Radial Profile")
+
+
+def format_sector_text_value(value) -> str:
+    return "na" if value is None else f"{value:.4f}"
+
+
+def build_sector_profile_text(profile: dict, title: str) -> str:
+    if not profile.get("enabled"):
+        reason = profile.get("reason") or "disabled"
+        return f"{title}: unavailable ({reason})\n"
+
+    origin_label, origin = get_profile_origin(profile)
+    sector_definition = profile.get("sector_definition") or {}
+
+    lines = [
+        title,
+        f"Capture Path: {profile.get('capture_path')}",
+        f"Analysis Capture Mode: {profile.get('analysis_capture_mode')}",
+        f"Bin Count: {profile.get('bin_count')}",
+        f"{origin_label}: ({origin.get('x')}, {origin.get('y')})",
+        f"Max Radius Px: {profile.get('max_radius_px')}",
+        "Sector Definition: left=({left_rule}) right=({right_rule})".format(
+            left_rule=sector_definition.get("left_rule"),
+            right_rule=sector_definition.get("right_rule"),
+        ),
+        "Legend: bin radius_px | left/right px hit nohit unrendered hit_frac_rendered rendered_coverage other",
+    ]
+    field_analysis_origin = profile.get("field_analysis_origin") or {}
+    if field_analysis_origin.get("resolved"):
+        field_world_origin = field_analysis_origin.get("field_world_origin") or {}
+        lines.append(
+            "Field World Origin: ({x}, {y}, {z})".format(
+                x=field_world_origin.get("x"),
+                y=field_world_origin.get("y"),
+                z=field_world_origin.get("z"),
+            )
+        )
+    for bucket in profile.get("bins", []):
+        left_bucket = (bucket.get("sectors") or {}).get("left") or {}
+        right_bucket = (bucket.get("sectors") or {}).get("right") or {}
+        lines.append(
+            "bin{idx} {start:7.3f}-{end:7.3f} "
+            "L(px={lpx:5d} hit={lhit:5d} nohit={lnohit:5d} unrendered={lunrendered:5d} "
+            "hitFrac={lhitfrac} renderedCov={lcoverage} other={lother:5d}) "
+            "R(px={rpx:5d} hit={rhit:5d} nohit={rnohit:5d} unrendered={runrendered:5d} "
+            "hitFrac={rhitfrac} renderedCov={rcoverage} other={rother:5d})".format(
+                idx=bucket["bin_index"],
+                start=bucket["radius_start_px"],
+                end=bucket["radius_end_px"],
+                lpx=left_bucket.get("pixel_count", 0),
+                lhit=left_bucket.get("final_hit_pixel_count", 0),
+                lnohit=left_bucket.get("rendered_no_hit_pixel_count", 0),
+                lunrendered=left_bucket.get("unrendered_pixel_count", 0),
+                lhitfrac=format_sector_text_value(left_bucket.get("hit_frac_rendered")),
+                lcoverage=format_sector_text_value(left_bucket.get("rendered_coverage")),
+                lother=left_bucket.get("other_pixel_count", 0),
+                rpx=right_bucket.get("pixel_count", 0),
+                rhit=right_bucket.get("final_hit_pixel_count", 0),
+                rnohit=right_bucket.get("rendered_no_hit_pixel_count", 0),
+                runrendered=right_bucket.get("unrendered_pixel_count", 0),
+                rhitfrac=format_sector_text_value(right_bucket.get("hit_frac_rendered")),
+                rcoverage=format_sector_text_value(right_bucket.get("rendered_coverage")),
+                rother=right_bucket.get("other_pixel_count", 0),
+            )
+        )
+    totals = profile.get("totals") or {}
+    total_sectors = totals.get("sectors") or {}
+    combined = totals.get("combined") or {}
+    for sector_name in ("left", "right"):
+        sector_totals = total_sectors.get(sector_name) or {}
+        lines.append(
+            (
+                f"Totals {sector_name}: px={sector_totals.get('pixel_count')} "
+                f"hit={sector_totals.get('final_hit_pixel_count')} "
+                f"nohit={sector_totals.get('rendered_no_hit_pixel_count')} "
+                f"unrendered={sector_totals.get('unrendered_pixel_count')} "
+                f"hitFrac={format_sector_text_value(sector_totals.get('hit_frac_rendered'))} "
+                f"renderedCov={format_sector_text_value(sector_totals.get('rendered_coverage'))} "
+                f"other={sector_totals.get('other_pixel_count')}"
+            )
+        )
+    lines.append(
+        (
+            f"Totals combined: px={combined.get('pixel_count')} "
+            f"hit={combined.get('final_hit_pixel_count')} "
+            f"nohit={combined.get('rendered_no_hit_pixel_count')} "
+            f"unrendered={combined.get('unrendered_pixel_count')} "
+            f"hitFrac={format_sector_text_value(combined.get('hit_frac_rendered'))} "
+            f"renderedCov={format_sector_text_value(combined.get('rendered_coverage'))} "
+            f"other={combined.get('other_pixel_count')}"
+        )
+    )
+    return "\n".join(lines) + "\n"
+
+
+def build_radial_sector_profile_text(profile: dict) -> str:
+    return build_sector_profile_text(profile, "Radial Sector Profile")
+
+
+def build_field_radial_sector_profile_text(profile: dict) -> str:
+    return build_sector_profile_text(profile, "Field Radial Sector Profile")
+
+
 def build_summary(metrics: dict, args: argparse.Namespace) -> str:
     verification = metrics.get("verification") or {}
     row_coverage = metrics.get("row_coverage") or {}
     radial_profile = metrics.get("radial_profile") or {}
+    radial_sector_profile = metrics.get("radial_sector_profile") or {}
+    field_radial_profile = metrics.get("field_radial_profile") or {}
+    field_radial_sector_profile = metrics.get("field_radial_sector_profile") or {}
+    radial_sector_totals = (radial_sector_profile.get("totals") or {}).get("sectors") or {}
+    radial_sector_left = radial_sector_totals.get("left") or {}
+    radial_sector_right = radial_sector_totals.get("right") or {}
+    field_sector_totals = (field_radial_sector_profile.get("totals") or {}).get("sectors") or {}
+    field_sector_left = field_sector_totals.get("left") or {}
+    field_sector_right = field_sector_totals.get("right") or {}
+    field_origin = field_radial_profile.get("field_analysis_origin") or {}
+    field_center_pixel = field_origin.get("field_center_pixel") or {}
+    field_world_origin = field_origin.get("field_world_origin") or {}
     lines = [
         f"Fixture: {metrics['fixture_id']}",
         f"Timestamp: {args.timestamp}",
@@ -747,6 +1437,21 @@ def build_summary(metrics: dict, args: argparse.Namespace) -> str:
         f"Radial Overall Hit Fraction: {(radial_profile.get('totals') or {}).get('hit_fraction_within_rendered_area')}",
         f"Radial Overall Rendered Coverage: {(radial_profile.get('totals') or {}).get('rendered_coverage_fraction')}",
         f"Radial Profile Path: {metrics.get('radial_profile_path')}",
+        f"Radial Sector Left Hit Fraction: {radial_sector_left.get('hit_frac_rendered')}",
+        f"Radial Sector Right Hit Fraction: {radial_sector_right.get('hit_frac_rendered')}",
+        f"Radial Sector Left Rendered Coverage: {radial_sector_left.get('rendered_coverage')}",
+        f"Radial Sector Right Rendered Coverage: {radial_sector_right.get('rendered_coverage')}",
+        f"Radial Sector Profile Path: {metrics.get('radial_sector_profile_path')}",
+        f"Field Center Pixel: ({field_center_pixel.get('x')}, {field_center_pixel.get('y')})",
+        f"Field World Origin: ({field_world_origin.get('x')}, {field_world_origin.get('y')}, {field_world_origin.get('z')})",
+        f"Field Radial Overall Hit Fraction: {(field_radial_profile.get('totals') or {}).get('hit_fraction_within_rendered_area')}",
+        f"Field Radial Overall Rendered Coverage: {(field_radial_profile.get('totals') or {}).get('rendered_coverage_fraction')}",
+        f"Field Radial Profile Path: {metrics.get('field_radial_profile_path')}",
+        f"Field Sector Left Hit Fraction: {field_sector_left.get('hit_frac_rendered')}",
+        f"Field Sector Right Hit Fraction: {field_sector_right.get('hit_frac_rendered')}",
+        f"Field Sector Left Rendered Coverage: {field_sector_left.get('rendered_coverage')}",
+        f"Field Sector Right Rendered Coverage: {field_sector_right.get('rendered_coverage')}",
+        f"Field Radial Sector Profile Path: {metrics.get('field_radial_sector_profile_path')}",
         f"Runtime Fingerprint: {metrics['runtime_fingerprint']}",
         f"Assembly Timestamp Present: {str(verification.get('assembly_timestamp_present', False)).lower()}",
         f"Requested Step Match: {str(verification.get('effective_step_matches_requested', False)).lower()}",
@@ -797,7 +1502,8 @@ def run_report(args: argparse.Namespace) -> int:
     metrics = build_metrics(args, parsed)
     metrics["verification"] = build_verification(metrics, params)
     metrics["row_coverage"] = build_row_coverage_artifact(metrics)
-    radial_profile = build_radial_profile(args, metrics)
+    radial_profile, radial_sector_profile = build_spatial_profiles(args, metrics)
+    field_radial_profile, field_radial_sector_profile = build_field_spatial_profiles(args, metrics)
     radial_profile_path = args.run_dir / "radial_profile.json"
     radial_profile_text_path = args.run_dir / "radial_profile.txt"
     radial_profile_path.write_text(json.dumps(radial_profile, indent=2) + "\n", encoding="utf-8")
@@ -805,6 +1511,36 @@ def run_report(args: argparse.Namespace) -> int:
     metrics["radial_profile"] = radial_profile
     metrics["radial_profile_path"] = str(radial_profile_path)
     metrics["radial_profile_text_path"] = str(radial_profile_text_path)
+    radial_sector_profile_path = args.run_dir / "radial_sector_profile.json"
+    radial_sector_profile_text_path = args.run_dir / "radial_sector_profile.txt"
+    radial_sector_profile_path.write_text(json.dumps(radial_sector_profile, indent=2) + "\n", encoding="utf-8")
+    radial_sector_profile_text_path.write_text(
+        build_radial_sector_profile_text(radial_sector_profile),
+        encoding="utf-8",
+    )
+    metrics["radial_sector_profile"] = radial_sector_profile
+    metrics["radial_sector_profile_path"] = str(radial_sector_profile_path)
+    metrics["radial_sector_profile_text_path"] = str(radial_sector_profile_text_path)
+    field_radial_profile_path = args.run_dir / "field_radial_profile.json"
+    field_radial_profile_text_path = args.run_dir / "field_radial_profile.txt"
+    field_radial_profile_path.write_text(json.dumps(field_radial_profile, indent=2) + "\n", encoding="utf-8")
+    field_radial_profile_text_path.write_text(build_field_radial_profile_text(field_radial_profile), encoding="utf-8")
+    metrics["field_radial_profile"] = field_radial_profile
+    metrics["field_radial_profile_path"] = str(field_radial_profile_path)
+    metrics["field_radial_profile_text_path"] = str(field_radial_profile_text_path)
+    field_radial_sector_profile_path = args.run_dir / "field_radial_sector_profile.json"
+    field_radial_sector_profile_text_path = args.run_dir / "field_radial_sector_profile.txt"
+    field_radial_sector_profile_path.write_text(
+        json.dumps(field_radial_sector_profile, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    field_radial_sector_profile_text_path.write_text(
+        build_field_radial_sector_profile_text(field_radial_sector_profile),
+        encoding="utf-8",
+    )
+    metrics["field_radial_sector_profile"] = field_radial_sector_profile
+    metrics["field_radial_sector_profile_path"] = str(field_radial_sector_profile_path)
+    metrics["field_radial_sector_profile_text_path"] = str(field_radial_sector_profile_text_path)
     summary = build_summary(metrics, args)
     summary_json = {
         "timestamp": args.timestamp,

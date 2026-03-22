@@ -70,9 +70,16 @@ These are still useful for historical context and design evolution comparison.
 ## 🔬 Research & Experimental Frameworks
 
 - [GRIN Fixture Auto-Calibration Framework](Research/grin_fixture_auto_calibration_phase_plan.md)
+- [Fixture Research Note Pattern](Research/fixture_note_pattern.md) — shared note/template guidance, including canonical analysis basis declarations for future fixtures
 - [Fixture 001: Radial GRIN Baseline](Research/fixture_001_radial_grin_baseline.md) — baseline note for the A2 scheduler-clean run plus the first fully verified control-surface characterization pass
 - [Fixture 002: Linear Transport Baseline](Research/fixture_002_linear_transport_baseline.md) — next sub-canonical / xZeno-canonical characterization fixture using the same hardened pipeline with a simpler single-row control surface
 - [Fixture 003: Offset Field Baseline](Research/fixture_003_offset_field_baseline.md) — first spatial-regime shift after Fixture 002, keeping the single-row topology while moving the field center off-axis to create a clean asymmetry baseline
+
+Symmetric fixtures usually map cleanly to image-center analysis because the
+effective field center and image center remain aligned. Asymmetric fixtures
+should prefer field-relative analysis as the primary basis, while keeping
+image-center artifacts as companion diagnostics for screen-space interpretation.
+
 
 ### Archive
 
