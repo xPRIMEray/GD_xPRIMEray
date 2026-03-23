@@ -74,6 +74,7 @@ These are still useful for historical context and design evolution comparison.
 - [Fixture 001: Radial GRIN Baseline](Research/fixture_001_radial_grin_baseline.md) — baseline note for the A2 scheduler-clean run plus the first fully verified control-surface characterization pass
 - [Fixture 002: Linear Transport Baseline](Research/fixture_002_linear_transport_baseline.md) — next sub-canonical / xZeno-canonical characterization fixture using the same hardened pipeline with a simpler single-row control surface
 - [Fixture 003: Offset Field Baseline](Research/fixture_003_offset_field_baseline.md) — first spatial-regime shift after Fixture 002, keeping the single-row topology while moving the field center off-axis to create a clean asymmetry baseline
+- [Fixture 004: Dual Attractor Baseline](Research/fixture_004_dual_attractor_baseline.md) — first multi-attractor characterization fixture, keeping the Fixture 003 operating style while replacing the single field center with two controlled horizontal attractors
 
 Symmetric fixtures usually map cleanly to image-center analysis because the
 effective field center and image center remain aligned. Asymmetric fixtures

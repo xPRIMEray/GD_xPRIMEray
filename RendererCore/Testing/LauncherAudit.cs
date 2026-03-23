@@ -52,6 +52,10 @@ public static class LauncherAudit
 		{
 			return "metric_basic_visual_minimal";
 		}
+		if (normalized.Contains("test-grin-basic-visual-linear-dual-attractor-minimal", StringComparison.OrdinalIgnoreCase))
+		{
+			return "grin_basic_visual_linear_dual_attractor_minimal";
+		}
 		if (normalized.Contains("test-grin-basic-visual-linear-offset-minimal", StringComparison.OrdinalIgnoreCase))
 		{
 			return "grin_basic_visual_linear_offset_minimal";
@@ -110,6 +114,7 @@ public static class LauncherAudit
 			"curved_minimal" => "res://test-curved-minimal.tscn",
 			"grin_basic_visual" => "res://test-grin-basic-visual.tscn",
 			"grin_basic_visual_minimal" => "res://test-grin-basic-visual-minimal.tscn",
+			"grin_basic_visual_linear_dual_attractor_minimal" => "res://test-grin-basic-visual-linear-dual-attractor-minimal.tscn",
 			"grin_basic_visual_linear_offset_minimal" => "res://test-grin-basic-visual-linear-offset-minimal.tscn",
 			"grin_basic_visual_linear_minimal" => "res://test-grin-basic-visual-linear-minimal.tscn",
 			"grin_basic_visual_straight" => "res://test-grin-basic-visual-straight.tscn",

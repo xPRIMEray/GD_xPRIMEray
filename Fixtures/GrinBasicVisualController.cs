@@ -396,31 +396,64 @@ public partial class GrinBasicVisualController : Node3D
 
 	private void ApplyFieldOverrides(FieldSource3D field, CmdlineOptions options)
 	{
-		if (HasOverrideValue(DefaultROuterOverride))
+		foreach (FieldSource3D targetField in ResolveFixtureFields(field))
 		{
-			field.ROuter = Mathf.Max(0f, DefaultROuterOverride);
+			if (HasOverrideValue(DefaultROuterOverride))
+			{
+				targetField.ROuter = Mathf.Max(0f, DefaultROuterOverride);
+			}
+			if (HasOverrideValue(DefaultAmpOverride))
+			{
+				targetField.Amp = DefaultAmpOverride;
+			}
+			if (HasOverrideValue(DefaultGammaOverride))
+			{
+				targetField.CanonicalGamma = DefaultGammaOverride;
+			}
+
+			if (options.ROuter.HasValue)
+			{
+				targetField.ROuter = Mathf.Max(0f, options.ROuter.Value);
+			}
+			if (options.Amp.HasValue)
+			{
+				targetField.Amp = options.Amp.Value;
+			}
+			if (options.Gamma.HasValue)
+			{
+				targetField.CanonicalGamma = options.Gamma.Value;
+			}
 		}
-		if (HasOverrideValue(DefaultAmpOverride))
+	}
+
+	private static List<FieldSource3D> ResolveFixtureFields(FieldSource3D primaryField)
+	{
+		List<FieldSource3D> fields = new();
+		if (primaryField == null || !GodotObject.IsInstanceValid(primaryField))
 		{
-			field.Amp = DefaultAmpOverride;
-		}
-		if (HasOverrideValue(DefaultGammaOverride))
-		{
-			field.CanonicalGamma = DefaultGammaOverride;
+			return fields;
 		}
 
-		if (options.ROuter.HasValue)
+		Node fixtureRoot = primaryField.GetParent();
+		if (fixtureRoot == null || !GodotObject.IsInstanceValid(fixtureRoot))
 		{
-			field.ROuter = Mathf.Max(0f, options.ROuter.Value);
+			fields.Add(primaryField);
+			return fields;
 		}
-		if (options.Amp.HasValue)
+
+		foreach (Node child in fixtureRoot.GetChildren())
 		{
-			field.Amp = options.Amp.Value;
+			if (child is FieldSource3D siblingField && GodotObject.IsInstanceValid(siblingField))
+			{
+				fields.Add(siblingField);
+			}
 		}
-		if (options.Gamma.HasValue)
+
+		if (fields.Count == 0)
 		{
-			field.CanonicalGamma = options.Gamma.Value;
+			fields.Add(primaryField);
 		}
+		return fields;
 	}
 
 	private RendererConfigSnapshot ApplyRendererOverrides(RayBeamRenderer rayBeamRenderer, CmdlineOptions options)
