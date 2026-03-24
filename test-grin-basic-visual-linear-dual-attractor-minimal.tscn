@@ -22,6 +22,7 @@ script = ExtResource("2_grin")
 Width = 640
 Height = 360
 FilmResolutionScale = 0.75
+RowsPerFrame = 4
 SkyColor = Color(0.93, 0.95, 0.985, 1)
 FilmOpacity = 1.0
 ShadingMode = 1
