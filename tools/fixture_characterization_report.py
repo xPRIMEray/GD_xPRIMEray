@@ -527,6 +527,7 @@ SCENE_PROP_KEYS = {
     "current",
     "fov",
     "FieldPath",
+    "script",
 }
 FLOAT_TOKEN_RE = re.compile(r"[-+]?(?:\d+\.\d+|\d+\.?|\.\d+)(?:[eE][-+]?\d+)?")
 
@@ -566,6 +567,10 @@ def parse_scene_value(key: str, raw_value: str):
             }
     if value.startswith('NodePath("') and value.endswith('")'):
         return value[len('NodePath("'):-2]
+    if key == "script" and value.startswith('ExtResource("') and value.endswith('")'):
+        return {
+            "ext_resource_id": value[len('ExtResource("'):-2],
+        }
     if value in {"true", "false"}:
         return value == "true"
     number = scalar(value)
@@ -728,6 +733,14 @@ def transform_point_to_local(transform: dict, world_point: tuple[float, float, f
 def flatten_scene_tree(scene_path: Path) -> dict[str, dict]:
     flat_nodes: dict[str, dict] = {}
 
+    def resolve_script_path(parsed_scene: dict, node: dict) -> str:
+        script_value = (node.get("properties") or {}).get("script")
+        if isinstance(script_value, dict):
+            ext_resource_id = normalize_token(script_value.get("ext_resource_id"))
+            if ext_resource_id != "":
+                return normalize_token(parsed_scene["ext_resources"].get(ext_resource_id))
+        return normalize_token(script_value)
+
     def mount_scene(parsed_scene: dict, mount_prefix: str, parent_transform: dict) -> None:
         root_node = parsed_scene["nodes"].get("")
         if root_node is None:
@@ -737,6 +750,7 @@ def flatten_scene_tree(scene_path: Path) -> dict[str, dict]:
         flat_nodes[mount_prefix] = {
             "type": root_node.get("type"),
             "properties": dict(root_node.get("properties") or {}),
+            "script_path": resolve_script_path(parsed_scene, root_node),
             "global_transform": root_global,
             "scene_path": str(parsed_scene["scene_path"]),
         }
@@ -759,6 +773,7 @@ def flatten_scene_tree(scene_path: Path) -> dict[str, dict]:
         flat_nodes[mounted_rel_path] = {
             "type": node.get("type"),
             "properties": dict(node.get("properties") or {}),
+            "script_path": resolve_script_path(parsed_scene, node),
             "global_transform": node_global,
             "scene_path": str(parsed_scene["scene_path"]),
         }
@@ -802,33 +817,7 @@ def project_world_point_to_image(
     }
 
 
-def resolve_field_analysis_origin(args: argparse.Namespace, metrics: dict) -> dict:
-    scene_path = resolve_res_path(args.scene)
-    if scene_path is None or not scene_path.exists():
-        return {
-            "resolved": False,
-            "reason": f"scene_not_found:{args.scene}",
-        }
-
-    flat_nodes = flatten_scene_tree(scene_path)
-    root_node = flat_nodes.get("") or {}
-    root_properties = root_node.get("properties") or {}
-    field_path = normalize_token(root_properties.get("FieldPath"))
-    if field_path == "":
-        return {
-            "resolved": False,
-            "reason": "field_path_missing",
-            "scene_path": str(scene_path),
-        }
-
-    field_node = flat_nodes.get(field_path)
-    if field_node is None:
-        return {
-            "resolved": False,
-            "reason": f"field_node_not_found:{field_path}",
-            "scene_path": str(scene_path),
-        }
-
+def resolve_scene_camera(flat_nodes: dict[str, dict]) -> tuple[str | None, dict | None]:
     camera_path = None
     camera_node = None
     for rel_path, node in flat_nodes.items():
@@ -842,52 +831,148 @@ def resolve_field_analysis_origin(args: argparse.Namespace, metrics: dict) -> di
                 camera_path = rel_path
                 camera_node = node
                 break
+    return camera_path, camera_node
+
+
+def path_is_within(root_path: str, candidate_path: str) -> bool:
+    normalized_root = normalize_token(root_path)
+    normalized_candidate = normalize_token(candidate_path)
+    if normalized_root == "":
+        return normalized_candidate != ""
+    return normalized_candidate == normalized_root or normalized_candidate.startswith(normalized_root + "/")
+
+
+def is_field_source_node(node: dict) -> bool:
+    script_path = normalize_token(node.get("script_path"))
+    return script_path.endswith("FieldSource3D.cs")
+
+
+def resolve_fixture_field_analysis(args: argparse.Namespace, metrics: dict) -> dict:
+    scene_path = resolve_res_path(args.scene)
+    if scene_path is None or not scene_path.exists():
+        return {
+            "resolved": False,
+            "reason": f"scene_not_found:{args.scene}",
+        }
+
+    flat_nodes = flatten_scene_tree(scene_path)
+    root_node = flat_nodes.get("") or {}
+    root_properties = root_node.get("properties") or {}
+    primary_field_path = normalize_token(root_properties.get("FieldPath"))
+    if primary_field_path == "":
+        return {
+            "resolved": False,
+            "reason": "field_path_missing",
+            "scene_path": str(scene_path),
+        }
+
+    primary_field_node = flat_nodes.get(primary_field_path)
+    if primary_field_node is None:
+        return {
+            "resolved": False,
+            "reason": f"field_node_not_found:{primary_field_path}",
+            "scene_path": str(scene_path),
+        }
+
+    fixture_root_path = primary_field_path.rsplit("/", 1)[0] if "/" in primary_field_path else ""
+    camera_path, camera_node = resolve_scene_camera(flat_nodes)
     if camera_node is None:
         return {
             "resolved": False,
             "reason": "camera_not_found",
             "scene_path": str(scene_path),
-            "field_path": field_path,
+            "field_path": primary_field_path,
         }
 
     image_width = parse_int_token(metrics.get("image_width"))
     image_height = parse_int_token(metrics.get("image_height"))
     fov = (camera_node.get("properties") or {}).get("fov")
-    field_transform = field_node.get("global_transform") or IDENTITY_TRANSFORM
-    world_origin = field_transform["origin"]
     camera_transform = (flat_nodes.get(camera_path) or {}).get("global_transform") or IDENTITY_TRANSFORM
-    projection = project_world_point_to_image(world_origin, camera_transform, fov or 75.0, image_width or 0, image_height or 0)
-    if projection is None:
+    attractors: list[dict] = []
+    projection_failures: list[dict] = []
+
+    for rel_path, node in flat_nodes.items():
+        if not path_is_within(fixture_root_path, rel_path):
+            continue
+        if not is_field_source_node(node):
+            continue
+
+        field_transform = node.get("global_transform") or IDENTITY_TRANSFORM
+        world_origin = field_transform["origin"]
+        projection = project_world_point_to_image(world_origin, camera_transform, fov or 75.0, image_width or 0, image_height or 0)
+        if projection is None:
+            projection_failures.append(
+                {
+                    "field_path": rel_path,
+                    "field_world_origin": {
+                        "x": round(world_origin[0], 6),
+                        "y": round(world_origin[1], 6),
+                        "z": round(world_origin[2], 6),
+                    },
+                }
+            )
+            continue
+
+        attractors.append(
+            {
+                "field_path": rel_path,
+                "field_world_origin": {
+                    "x": round(world_origin[0], 6),
+                    "y": round(world_origin[1], 6),
+                    "z": round(world_origin[2], 6),
+                },
+                "field_center_pixel": {
+                    "x": round(projection["x"], 4),
+                    "y": round(projection["y"], 4),
+                },
+                "camera_space_point": projection.get("camera_space_point") or {},
+                "is_primary_field": rel_path == primary_field_path,
+            }
+        )
+
+    if not attractors:
         return {
             "resolved": False,
             "reason": "field_projection_failed",
             "scene_path": str(scene_path),
-            "field_path": field_path,
+            "field_path": primary_field_path,
+            "fixture_root_path": fixture_root_path,
             "camera_path": camera_path,
-            "field_world_origin": {
-                "x": round(world_origin[0], 6),
-                "y": round(world_origin[1], 6),
-                "z": round(world_origin[2], 6),
-            },
+            "projection_failures": projection_failures,
         }
 
+    attractors.sort(key=lambda entry: (not entry.get("is_primary_field", False), entry.get("field_path") or ""))
     return {
         "resolved": True,
         "scene_path": str(scene_path),
-        "field_path": field_path,
+        "field_path": primary_field_path,
+        "fixture_root_path": fixture_root_path,
         "camera_path": camera_path,
-        "field_world_origin": {
-            "x": round(world_origin[0], 6),
-            "y": round(world_origin[1], 6),
-            "z": round(world_origin[2], 6),
-        },
-        "field_center_pixel": {
-            "x": round(projection["x"], 4),
-            "y": round(projection["y"], 4),
-        },
+        "field_world_origin": attractors[0].get("field_world_origin") or {},
+        "field_center_pixel": attractors[0].get("field_center_pixel") or {},
         "camera_fov_degrees": fov,
-        "camera_space_point": projection.get("camera_space_point") or {},
+        "camera_space_point": attractors[0].get("camera_space_point") or {},
         "projection_basis": "scene_camera_perspective",
+        "attractor_count": len(attractors),
+        "attractors": attractors,
+        "projection_failures": projection_failures,
+    }
+
+
+def resolve_field_analysis_origin(args: argparse.Namespace, metrics: dict) -> dict:
+    fixture_analysis = resolve_fixture_field_analysis(args, metrics)
+    if not fixture_analysis.get("resolved"):
+        return fixture_analysis
+    return {
+        "resolved": True,
+        "scene_path": fixture_analysis.get("scene_path"),
+        "field_path": fixture_analysis.get("field_path"),
+        "camera_path": fixture_analysis.get("camera_path"),
+        "field_world_origin": fixture_analysis.get("field_world_origin") or {},
+        "field_center_pixel": fixture_analysis.get("field_center_pixel") or {},
+        "camera_fov_degrees": fixture_analysis.get("camera_fov_degrees"),
+        "camera_space_point": fixture_analysis.get("camera_space_point") or {},
+        "projection_basis": fixture_analysis.get("projection_basis"),
     }
 
 
@@ -986,6 +1071,12 @@ def finalize_sector_bucket(bucket: dict) -> None:
     bucket["rendered_coverage"] = round(rendered_pixels / bucket["pixel_count"], 6) if bucket["pixel_count"] > 0 else None
     bucket["hit_fraction_within_rendered_area"] = bucket["hit_frac_rendered"]
     bucket["rendered_coverage_fraction"] = bucket["rendered_coverage"]
+
+
+NEAREST_ATTRACTOR_AMBIGUOUS_MARGIN_FRACTION = 0.15
+NEAREST_ATTRACTOR_DOMINANT_SHARE_THRESHOLD = 0.65
+NEAREST_ATTRACTOR_SPLIT_SHARE_THRESHOLD = 0.35
+NEAREST_ATTRACTOR_CLEAN_PARTITION_THRESHOLD = 0.70
 
 
 def build_profile_artifacts(
@@ -1191,6 +1282,254 @@ def build_field_spatial_profiles(args: argparse.Namespace, metrics: dict) -> tup
     )
 
 
+def classify_nearest_attractor_behavior(partition_summary: dict) -> str:
+    dominant_share = partition_summary.get("dominant_final_hit_share")
+    second_share = partition_summary.get("second_final_hit_share")
+    clean_fraction = partition_summary.get("clean_partition_fraction")
+    if dominant_share is None:
+        return "blended"
+    if dominant_share >= NEAREST_ATTRACTOR_DOMINANT_SHARE_THRESHOLD:
+        return "dominant"
+    if (
+        second_share is not None
+        and second_share >= NEAREST_ATTRACTOR_SPLIT_SHARE_THRESHOLD
+        and clean_fraction is not None
+        and clean_fraction >= NEAREST_ATTRACTOR_CLEAN_PARTITION_THRESHOLD
+    ):
+        return "split"
+    return "blended"
+
+
+def build_nearest_attractor_profile(args: argparse.Namespace, metrics: dict) -> dict:
+    capture_mode = metrics.get("analysis_capture_mode")
+    if capture_mode != "categorical_final":
+        return build_disabled_spatial_artifact(capture_mode, f"analysis_capture_mode_not_supported:{capture_mode}")
+    if args.radial_bin_count <= 0:
+        return build_disabled_spatial_artifact(capture_mode, f"invalid_radial_bin_count:{args.radial_bin_count}")
+
+    fixture_analysis = resolve_fixture_field_analysis(args, metrics)
+    if not fixture_analysis.get("resolved"):
+        disabled = build_disabled_spatial_artifact(
+            capture_mode,
+            fixture_analysis.get("reason") or "fixture_field_analysis_unresolved",
+        )
+        disabled["fixture_field_analysis"] = fixture_analysis
+        return disabled
+
+    attractor_origins = fixture_analysis.get("attractors") or []
+    if len(attractor_origins) == 0:
+        disabled = build_disabled_spatial_artifact(capture_mode, "attractor_count_zero")
+        disabled["fixture_field_analysis"] = fixture_analysis
+        return disabled
+
+    with Image.open(args.capture_path) as image:
+        rgba = image.convert("RGBA")
+        width, height = rgba.size
+        pixels = rgba.load()
+
+        attractors: list[dict] = []
+        for index, origin in enumerate(attractor_origins):
+            center = origin.get("field_center_pixel") or {}
+            center_x = float(center.get("x", 0.0))
+            center_y = float(center.get("y", 0.0))
+            corner_points = (
+                (0.0, 0.0),
+                (0.0, height - 1.0),
+                (width - 1.0, 0.0),
+                (width - 1.0, height - 1.0),
+            )
+            max_radius = max(math.hypot(corner_x - center_x, corner_y - center_y) for corner_x, corner_y in corner_points)
+            if max_radius <= 0.0:
+                max_radius = 1.0
+
+            bins: list[dict] = []
+            sector_bins: list[dict] = []
+            for bin_index in range(args.radial_bin_count):
+                radius_start = (bin_index / args.radial_bin_count) * max_radius
+                radius_end = ((bin_index + 1) / args.radial_bin_count) * max_radius
+                bins.append(
+                    {
+                        "bin_index": bin_index,
+                        "radius_start_px": round(radius_start, 4),
+                        "radius_end_px": round(radius_end, 4),
+                        **build_count_bucket(),
+                    }
+                )
+                sector_bins.append(
+                    {
+                        "bin_index": bin_index,
+                        "radius_start_px": round(radius_start, 4),
+                        "radius_end_px": round(radius_end, 4),
+                        "sectors": {
+                            "left": build_count_bucket(),
+                            "right": build_count_bucket(),
+                        },
+                    }
+                )
+
+            attractors.append(
+                {
+                    "attractor_index": index,
+                    "field_path": origin.get("field_path"),
+                    "field_world_origin": origin.get("field_world_origin") or {},
+                    "field_center_pixel": {
+                        "x": round(center_x, 4),
+                        "y": round(center_y, 4),
+                    },
+                    "camera_space_point": origin.get("camera_space_point") or {},
+                    "is_primary_field": bool(origin.get("is_primary_field")),
+                    "max_radius_px": round(max_radius, 4),
+                    "bins": bins,
+                    "sector_bins": sector_bins,
+                }
+            )
+
+        total_final_hit_pixels = 0
+        ambiguous_final_hit_pixels = 0
+        cleanly_partitioned_final_hit_pixels = 0
+
+        for y in range(height):
+            for x in range(width):
+                distances: list[tuple[float, int]] = []
+                for attractor in attractors:
+                    center = attractor["field_center_pixel"]
+                    distance = math.hypot(x - float(center["x"]), y - float(center["y"]))
+                    distances.append((distance, int(attractor["attractor_index"])))
+                distances.sort(key=lambda item: item[0])
+                nearest_distance, nearest_index = distances[0]
+                second_distance = distances[1][0] if len(distances) > 1 else nearest_distance
+                attractor = attractors[nearest_index]
+                normalized = min(nearest_distance / max(float(attractor["max_radius_px"]), 1e-9), 0.999999999)
+                bin_index = min(int(normalized * args.radial_bin_count), args.radial_bin_count - 1)
+                category = classify_categorical_pixel(tuple(int(channel) for channel in pixels[x, y]))
+                add_category_to_bucket(attractor["bins"][bin_index], category)
+                sector_name = "left" if x <= float(attractor["field_center_pixel"]["x"]) else "right"
+                add_category_to_bucket(attractor["sector_bins"][bin_index]["sectors"][sector_name], category)
+
+                if category == "final_hit":
+                    total_final_hit_pixels += 1
+                    normalized_margin = 1.0 if second_distance <= 1e-9 else max(0.0, second_distance - nearest_distance) / second_distance
+                    if normalized_margin < NEAREST_ATTRACTOR_AMBIGUOUS_MARGIN_FRACTION:
+                        ambiguous_final_hit_pixels += 1
+                    else:
+                        cleanly_partitioned_final_hit_pixels += 1
+
+        for attractor in attractors:
+            totals = build_count_bucket()
+            for bucket in attractor["bins"]:
+                finalize_radial_bucket(bucket)
+                accumulate_bucket_counts(totals, bucket)
+            finalize_radial_bucket(totals)
+            attractor["totals"] = totals
+
+            sector_totals = {
+                "left": build_count_bucket(),
+                "right": build_count_bucket(),
+            }
+            sector_combined_totals = build_count_bucket()
+            for bucket in attractor["sector_bins"]:
+                combined = build_count_bucket()
+                for sector_name in ("left", "right"):
+                    sector_bucket = bucket["sectors"][sector_name]
+                    finalize_sector_bucket(sector_bucket)
+                    accumulate_bucket_counts(combined, sector_bucket)
+                    accumulate_bucket_counts(sector_totals[sector_name], sector_bucket)
+                finalize_sector_bucket(combined)
+                bucket["combined"] = combined
+                left_bucket = bucket["sectors"]["left"]
+                right_bucket = bucket["sectors"]["right"]
+                bucket["left_minus_right"] = {
+                    "final_hit_pixel_count": left_bucket["final_hit_pixel_count"] - right_bucket["final_hit_pixel_count"],
+                    "rendered_pixel_count": left_bucket["rendered_pixel_count"] - right_bucket["rendered_pixel_count"],
+                    "hit_frac_rendered": (
+                        round(left_bucket["hit_frac_rendered"] - right_bucket["hit_frac_rendered"], 6)
+                        if left_bucket["hit_frac_rendered"] is not None and right_bucket["hit_frac_rendered"] is not None
+                        else None
+                    ),
+                    "rendered_coverage": (
+                        round(left_bucket["rendered_coverage"] - right_bucket["rendered_coverage"], 6)
+                        if left_bucket["rendered_coverage"] is not None and right_bucket["rendered_coverage"] is not None
+                        else None
+                    ),
+                }
+                accumulate_bucket_counts(sector_combined_totals, combined)
+
+            for sector_name in ("left", "right"):
+                finalize_sector_bucket(sector_totals[sector_name])
+            finalize_sector_bucket(sector_combined_totals)
+            attractor["sector_definition"] = {
+                "axis": "nearest_attractor_center_x",
+                "left_rule": "x <= attractor_center_x",
+                "right_rule": "x > attractor_center_x",
+            }
+            attractor["sector_totals"] = {
+                "sectors": sector_totals,
+                "combined": sector_combined_totals,
+            }
+            attractor["assigned_pixel_count"] = totals.get("pixel_count")
+            attractor["final_hit_share"] = (
+                round(totals.get("final_hit_pixel_count", 0) / total_final_hit_pixels, 6)
+                if total_final_hit_pixels > 0
+                else None
+            )
+            attractor["rendered_share"] = (
+                round(totals.get("rendered_pixel_count", 0) / width / height, 6)
+                if width > 0 and height > 0
+                else None
+            )
+            attractor["sector_bins"] = attractor["sector_bins"]
+
+        sorted_attractors = sorted(
+            attractors,
+            key=lambda item: (
+                -(item.get("totals") or {}).get("final_hit_pixel_count", 0),
+                item.get("field_path") or "",
+            ),
+        )
+        dominant = sorted_attractors[0] if sorted_attractors else {}
+        second = sorted_attractors[1] if len(sorted_attractors) > 1 else {}
+        clean_partition_fraction = (
+            round(cleanly_partitioned_final_hit_pixels / total_final_hit_pixels, 6)
+            if total_final_hit_pixels > 0
+            else None
+        )
+        partition_summary = {
+            "total_final_hit_pixels": total_final_hit_pixels,
+            "ambiguous_final_hit_pixels": ambiguous_final_hit_pixels,
+            "cleanly_partitioned_final_hit_pixels": cleanly_partitioned_final_hit_pixels,
+            "clean_partition_fraction": clean_partition_fraction,
+            "dominant_attractor_index": dominant.get("attractor_index"),
+            "dominant_attractor_path": dominant.get("field_path"),
+            "dominant_final_hit_count": (dominant.get("totals") or {}).get("final_hit_pixel_count"),
+            "dominant_final_hit_share": dominant.get("final_hit_share"),
+            "second_final_hit_share": second.get("final_hit_share"),
+            "partition_clean": (
+                clean_partition_fraction is not None
+                and clean_partition_fraction >= NEAREST_ATTRACTOR_CLEAN_PARTITION_THRESHOLD
+            ),
+        }
+        partition_summary["behavior"] = classify_nearest_attractor_behavior(partition_summary)
+
+        return {
+            "enabled": True,
+            "analysis_capture_mode": capture_mode,
+            "capture_path": str(args.capture_path),
+            "bin_count": args.radial_bin_count,
+            "profile_label": "nearest_attractor_relative",
+            "assignment_basis": "nearest_projected_field_center",
+            "origin_label": "Nearest Attractor Center Pixel",
+            "fixture_field_analysis": fixture_analysis,
+            "attractor_count": len(attractors),
+            "attractors": attractors,
+            "partition_summary": partition_summary,
+            "categorical_palette": {
+                "final_hit_rgba": list(FINAL_HIT_RGBA),
+                "rendered_no_hit_rgba": list(RENDERED_NO_HIT_RGBA),
+                "unrendered_rgba": list(UNRENDERED_RGBA),
+            },
+        }
+
+
 def build_radial_profile(args: argparse.Namespace, metrics: dict) -> dict:
     radial_profile, _ = build_spatial_profiles(args, metrics)
     return radial_profile
@@ -1375,6 +1714,72 @@ def build_field_radial_sector_profile_text(profile: dict) -> str:
     return build_sector_profile_text(profile, "Field Radial Sector Profile")
 
 
+def build_nearest_attractor_profile_text(profile: dict) -> str:
+    if not profile.get("enabled"):
+        reason = profile.get("reason") or "disabled"
+        return f"Nearest Attractor Profile: unavailable ({reason})\n"
+
+    partition_summary = profile.get("partition_summary") or {}
+    lines = [
+        "Nearest Attractor Profile",
+        f"Capture Path: {profile.get('capture_path')}",
+        f"Analysis Capture Mode: {profile.get('analysis_capture_mode')}",
+        f"Assignment Basis: {profile.get('assignment_basis')}",
+        f"Attractor Count: {profile.get('attractor_count')}",
+        f"Behavior: {partition_summary.get('behavior')}",
+        f"Partition Clean: {partition_summary.get('partition_clean')}",
+        f"Clean Partition Fraction: {partition_summary.get('clean_partition_fraction')}",
+        f"Dominant Attractor: {partition_summary.get('dominant_attractor_path')}",
+        f"Dominant Final Hit Share: {partition_summary.get('dominant_final_hit_share')}",
+        f"Second Final Hit Share: {partition_summary.get('second_final_hit_share')}",
+        f"Ambiguous Final Hit Pixels: {partition_summary.get('ambiguous_final_hit_pixels')}",
+        f"Total Final Hit Pixels: {partition_summary.get('total_final_hit_pixels')}",
+    ]
+
+    for attractor in profile.get("attractors", []):
+        totals = attractor.get("totals") or {}
+        sector_totals = (attractor.get("sector_totals") or {}).get("sectors") or {}
+        left_sector = sector_totals.get("left") or {}
+        right_sector = sector_totals.get("right") or {}
+        center = attractor.get("field_center_pixel") or {}
+        world = attractor.get("field_world_origin") or {}
+        lines.extend(
+            [
+                "",
+                "Attractor {index}".format(index=attractor.get("attractor_index")),
+                f"Field Path: {attractor.get('field_path')}",
+                f"Primary Field: {attractor.get('is_primary_field')}",
+                f"Field Center Pixel: ({center.get('x')}, {center.get('y')})",
+                f"Field World Origin: ({world.get('x')}, {world.get('y')}, {world.get('z')})",
+                f"Assigned Pixels: {attractor.get('assigned_pixel_count')}",
+                f"Final Hit Share: {attractor.get('final_hit_share')}",
+                f"Totals: px={totals.get('pixel_count')} hit={totals.get('final_hit_pixel_count')} nohit={totals.get('rendered_no_hit_pixel_count')} unrendered={totals.get('unrendered_pixel_count')} hitFrac={totals.get('hit_fraction_within_rendered_area')} renderedCov={totals.get('rendered_coverage_fraction')} other={totals.get('other_pixel_count')}",
+                f"Sector Left: px={left_sector.get('pixel_count')} hit={left_sector.get('final_hit_pixel_count')} nohit={left_sector.get('rendered_no_hit_pixel_count')} unrendered={left_sector.get('unrendered_pixel_count')} hitFrac={left_sector.get('hit_frac_rendered')} renderedCov={left_sector.get('rendered_coverage')} other={left_sector.get('other_pixel_count')}",
+                f"Sector Right: px={right_sector.get('pixel_count')} hit={right_sector.get('final_hit_pixel_count')} nohit={right_sector.get('rendered_no_hit_pixel_count')} unrendered={right_sector.get('unrendered_pixel_count')} hitFrac={right_sector.get('hit_frac_rendered')} renderedCov={right_sector.get('rendered_coverage')} other={right_sector.get('other_pixel_count')}",
+                "Legend: bin radius_px pixels final_hit rendered_no_hit unrendered hit_frac_rendered rendered_coverage other",
+            ]
+        )
+        for bucket in attractor.get("bins", []):
+            hit_fraction = bucket.get("hit_fraction_within_rendered_area")
+            coverage_fraction = bucket.get("rendered_coverage_fraction")
+            lines.append(
+                "bin{idx} {start:7.3f}-{end:7.3f} px={pixels:5d} hit={hit:5d} nohit={nohit:5d} "
+                "unrendered={unrendered:5d} hitFrac={hitfrac} renderedCov={coverage} other={other:5d}".format(
+                    idx=bucket["bin_index"],
+                    start=bucket["radius_start_px"],
+                    end=bucket["radius_end_px"],
+                    pixels=bucket["pixel_count"],
+                    hit=bucket["final_hit_pixel_count"],
+                    nohit=bucket["rendered_no_hit_pixel_count"],
+                    unrendered=bucket["unrendered_pixel_count"],
+                    hitfrac="na" if hit_fraction is None else f"{hit_fraction:.4f}",
+                    coverage="na" if coverage_fraction is None else f"{coverage_fraction:.4f}",
+                    other=bucket["other_pixel_count"],
+                )
+            )
+    return "\n".join(lines) + "\n"
+
+
 def build_summary(metrics: dict, args: argparse.Namespace) -> str:
     verification = metrics.get("verification") or {}
     row_coverage = metrics.get("row_coverage") or {}
@@ -1382,12 +1787,14 @@ def build_summary(metrics: dict, args: argparse.Namespace) -> str:
     radial_sector_profile = metrics.get("radial_sector_profile") or {}
     field_radial_profile = metrics.get("field_radial_profile") or {}
     field_radial_sector_profile = metrics.get("field_radial_sector_profile") or {}
+    nearest_attractor_profile = metrics.get("nearest_attractor_profile") or {}
     radial_sector_totals = (radial_sector_profile.get("totals") or {}).get("sectors") or {}
     radial_sector_left = radial_sector_totals.get("left") or {}
     radial_sector_right = radial_sector_totals.get("right") or {}
     field_sector_totals = (field_radial_sector_profile.get("totals") or {}).get("sectors") or {}
     field_sector_left = field_sector_totals.get("left") or {}
     field_sector_right = field_sector_totals.get("right") or {}
+    nearest_partition = nearest_attractor_profile.get("partition_summary") or {}
     field_origin = field_radial_profile.get("field_analysis_origin") or {}
     field_center_pixel = field_origin.get("field_center_pixel") or {}
     field_world_origin = field_origin.get("field_world_origin") or {}
@@ -1452,6 +1859,14 @@ def build_summary(metrics: dict, args: argparse.Namespace) -> str:
         f"Field Sector Left Rendered Coverage: {field_sector_left.get('rendered_coverage')}",
         f"Field Sector Right Rendered Coverage: {field_sector_right.get('rendered_coverage')}",
         f"Field Radial Sector Profile Path: {metrics.get('field_radial_sector_profile_path')}",
+        f"Nearest Attractor Count: {nearest_attractor_profile.get('attractor_count')}",
+        f"Nearest Attractor Partition Clean: {nearest_partition.get('partition_clean')}",
+        f"Nearest Attractor Clean Fraction: {nearest_partition.get('clean_partition_fraction')}",
+        f"Nearest Attractor Dominant Path: {nearest_partition.get('dominant_attractor_path')}",
+        f"Nearest Attractor Dominant Share: {nearest_partition.get('dominant_final_hit_share')}",
+        f"Nearest Attractor Second Share: {nearest_partition.get('second_final_hit_share')}",
+        f"Nearest Attractor Behavior: {nearest_partition.get('behavior')}",
+        f"Nearest Attractor Profile Path: {metrics.get('nearest_attractor_profile_path')}",
         f"Runtime Fingerprint: {metrics['runtime_fingerprint']}",
         f"Assembly Timestamp Present: {str(verification.get('assembly_timestamp_present', False)).lower()}",
         f"Requested Step Match: {str(verification.get('effective_step_matches_requested', False)).lower()}",
@@ -1541,6 +1956,20 @@ def run_report(args: argparse.Namespace) -> int:
     metrics["field_radial_sector_profile"] = field_radial_sector_profile
     metrics["field_radial_sector_profile_path"] = str(field_radial_sector_profile_path)
     metrics["field_radial_sector_profile_text_path"] = str(field_radial_sector_profile_text_path)
+    nearest_attractor_profile = build_nearest_attractor_profile(args, metrics)
+    nearest_attractor_profile_path = args.run_dir / "nearest_attractor_profile.json"
+    nearest_attractor_profile_text_path = args.run_dir / "nearest_attractor_profile.txt"
+    nearest_attractor_profile_path.write_text(
+        json.dumps(nearest_attractor_profile, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    nearest_attractor_profile_text_path.write_text(
+        build_nearest_attractor_profile_text(nearest_attractor_profile),
+        encoding="utf-8",
+    )
+    metrics["nearest_attractor_profile"] = nearest_attractor_profile
+    metrics["nearest_attractor_profile_path"] = str(nearest_attractor_profile_path)
+    metrics["nearest_attractor_profile_text_path"] = str(nearest_attractor_profile_text_path)
     summary = build_summary(metrics, args)
     summary_json = {
         "timestamp": args.timestamp,

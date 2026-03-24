@@ -97,6 +97,8 @@ non-destructive and independent of Fixtures 001–003 histories.
 - `field_radial_profile.json`
 - `field_radial_sector_profile.txt`
 - `field_radial_sector_profile.json`
+- `nearest_attractor_profile.txt`
+- `nearest_attractor_profile.json`
 - ledger append through `tools/characterization_ledger/ledger_writer.py`
 
 ## Canonical Analysis Basis
@@ -104,6 +106,9 @@ non-destructive and independent of Fixtures 001–003 histories.
 - Initial scaffold basis:
   - image-center artifacts may still be emitted for continuity
   - single-field-relative artifacts may still be emitted for continuity
+- Multi-attractor basis:
+  - `nearest_attractor_profile.*` is the proper Fixture 004 interpretation
+    surface for per-basin transport partitioning
 - Current continuity anchor:
   - the harness `FieldPath` resolves to the left / primary attractor so the
     shared field-relative artifact path remains intact
