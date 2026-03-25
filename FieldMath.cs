@@ -74,6 +74,16 @@ public static class FieldMath
 	{
 		Vector3 delta = samplePosition - center;
 		float r = delta.Length();
+
+		// Support guard: field has compact support on [0, rOuter].
+		// Outside that radius → zero acceleration, regardless of curve shape.
+		// Guard is skipped when rOuter <= Epsilon (legacy global-field sentinel).
+		float outerBound = Mathf.Max(0f, rOuter);
+		if (outerBound > Epsilon && r >= outerBound)
+		{
+			return new EvalResult(r, 1f, 0f, 0f, 0f, 0f, gamma, Mathf.Max(Epsilon, sigma), 0f, Vector3.Zero, Vector3.Zero);
+		}
+
 		float u = ComputeU(r, rInner, rOuter);
 		float safeSigma = Mathf.Max(Epsilon, sigma);
 		float profile = EvaluateProfileAtU(curveType, u, gamma, safeSigma, polyA, polyB, polyC, customCurve);

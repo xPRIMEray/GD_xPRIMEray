@@ -1,13 +1,12 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=5 format=3 uid="uid://j1osn6x5vr87"]
 
 [ext_resource type="PackedScene" path="res://Fixtures/fixture_grin_basic_visual_linear.tscn" id="1_fixture"]
-[ext_resource type="Script" path="res://GrinFilmCamera.cs" id="2_grin"]
-[ext_resource type="Script" path="res://FilmOverlay2D.cs" id="3_overlay"]
-[ext_resource type="Script" path="res://Fixtures/GrinBasicVisualController.cs" id="4_controller"]
+[ext_resource type="Script" uid="uid://b3y1shfx51f53" path="res://GrinFilmCamera.cs" id="2_grin"]
+[ext_resource type="Script" uid="uid://c0nlk0rn3oilh" path="res://FilmOverlay2D.cs" id="3_overlay"]
+[ext_resource type="Script" uid="uid://br1i5qv5tl1v6" path="res://Fixtures/GrinBasicVisualController.cs" id="4_controller"]
 
 [node name="TestGrinBasicVisualLinearMinimalHarness" type="Node3D"]
 script = ExtResource("4_controller")
-FilmCameraPath = NodePath("GrinFilmCamera")
 FieldPath = NodePath("FixtureGrinBasicVisualLinear/FieldSource3D")
 FixtureHudName = "grin_basic_visual_linear_minimal"
 SourcePatternMode = "dot_row"
@@ -25,13 +24,6 @@ FilmResolutionScale = 0.75
 SkyColor = Color(0.93, 0.95, 0.985, 1)
 FilmOpacity = 1.0
 ShadingMode = 1
-FlipNormalToCamera = true
-FixtureDebugHitColoringEnabled = true
-FixtureDebugSourceHitColor = Color(1, 0.72, 0.16, 1)
-FixtureDebugBackgroundHitColor = Color(0.14, 0.35, 0.78, 1)
-FixtureDebugAbsorbedColor = Color(0.03, 0.04, 0.08, 1)
-FixtureDebugColorAuthorityEnabled = true
-UpdateEveryFrame = true
 UpdateEveryFrameBudgetMs = 625.0
 UpdateEveryFrameMaxRowsPerStep = 1024
 RenderStepMaxMs = 1000
@@ -39,6 +31,11 @@ RenderStepMaxSegmentsPerFrame = 200000000
 TargetMsPerFrame = 50
 MaxRowsPerFrameCap = 1024
 EnableFramePerf = false
+FixtureDebugHitColoringEnabled = true
+FixtureDebugSourceHitColor = Color(1, 0.72, 0.16, 1)
+FixtureDebugBackgroundHitColor = Color(0.14, 0.35, 0.78, 1)
+FixtureDebugAbsorbedColor = Color(0.03, 0.04, 0.08, 1)
+FixtureDebugColorAuthorityEnabled = true
 RenderStepPhaseLog = false
 RenderStepBandLog = false
 DebugSnapshotLog = false
@@ -72,7 +69,6 @@ grow_vertical = 2
 mouse_behavior_recursive = 1
 script = ExtResource("3_overlay")
 CameraPath = NodePath("../../FixtureGrinBasicVisualLinear/Camera3D")
-DrawFilmGradientNormals = false
 RayWidth = 2.0
 FilmGradientScale = 30.0
 metadata/_edit_use_anchors_ = true

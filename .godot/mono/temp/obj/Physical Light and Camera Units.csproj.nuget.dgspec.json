@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "\\\\wsl.localhost\\Ubuntu\\home\\bb\\code\\godot_xPRIMEray\\Physical Light and Camera Units.csproj": {}
+    "C:\\godot\\godot_xPRIMEray\\.claude\\worktrees\\vigilant-bouman\\Physical Light and Camera Units.csproj": {}
   },
   "projects": {
-    "\\\\wsl.localhost\\Ubuntu\\home\\bb\\code\\godot_xPRIMEray\\Physical Light and Camera Units.csproj": {
+    "C:\\godot\\godot_xPRIMEray\\.claude\\worktrees\\vigilant-bouman\\Physical Light and Camera Units.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "\\\\wsl.localhost\\Ubuntu\\home\\bb\\code\\godot_xPRIMEray\\Physical Light and Camera Units.csproj",
+        "projectUniqueName": "C:\\godot\\godot_xPRIMEray\\.claude\\worktrees\\vigilant-bouman\\Physical Light and Camera Units.csproj",
         "projectName": "Physical Light and Camera Units",
-        "projectPath": "\\\\wsl.localhost\\Ubuntu\\home\\bb\\code\\godot_xPRIMEray\\Physical Light and Camera Units.csproj",
+        "projectPath": "C:\\godot\\godot_xPRIMEray\\.claude\\worktrees\\vigilant-bouman\\Physical Light and Camera Units.csproj",
         "packagesPath": "C:\\Users\\wmbro\\.nuget\\packages\\",
-        "outputPath": "\\\\wsl.localhost\\Ubuntu\\home\\bb\\code\\godot_xPRIMEray\\.godot\\mono\\temp\\obj\\",
+        "outputPath": "C:\\godot\\godot_xPRIMEray\\.claude\\worktrees\\vigilant-bouman\\.godot\\mono\\temp\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

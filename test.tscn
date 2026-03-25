@@ -1,9 +1,10 @@
-[gd_scene load_steps=7 format=3 uid="uid://t2xyvpcd8ste"]
+[gd_scene load_steps=8 format=3 uid="uid://t2xyvpcd8ste"]
 
 [ext_resource type="Script" uid="uid://b3y1shfx51f53" path="res://GrinFilmCamera.cs" id="1_grin"]
 [ext_resource type="Script" uid="uid://dg263rv7q0mtq" path="res://RendererCore/Testing/RenderTestRunner.cs" id="2_runner"]
 [ext_resource type="Script" uid="uid://dg2asfleehqsw" path="res://RayBeamRenderer.cs" id="3_6uqi0"]
 [ext_resource type="Script" uid="uid://c0nlk0rn3oilh" path="res://FilmOverlay2D.cs" id="4_ppyta"]
+[ext_resource type="Script" uid="uid://vmh5vusla1nv" path="res://FieldSource3D.cs" id="5_ykrsh"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_lri3f"]
 size = Vector3(12, 12, 2)
@@ -14,6 +15,7 @@ size = Vector3(12, 12, 2)
 [node name="TestHarness" type="Node3D"]
 
 [node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 4.07391)
 current = true
 
 [node name="GrinFilmCamera" type="Node" parent="."]
@@ -93,3 +95,17 @@ mesh = SubResource("BoxMesh_lri3f")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="fixture_hit"]
 shape = SubResource("BoxShape3D_hbixh")
+
+[node name="FieldSource3D" type="Node3D" parent="."]
+script = ExtResource("5_ykrsh")
+EffectiveEquationCore = "source=canonical
+r=|p-c|
+u=clamp((r-rInner)/max(eps,rOuter-rInner),0,1)
+f(u)=(1-u)^1
+edge_ramp=1 (disabled)"
+EffectiveEquationIntegrated = "dir=-normalize(p-c) (ModeFlagInvertSign=0)
+absorb_if_r_lt_rInner=0
+beta_eff=(|beta_g|>eps ? beta_g*1 : 1)
+mag=beta_eff*amp*f(u)*edge_ramp
+gamma=1
+a=dir*mag"

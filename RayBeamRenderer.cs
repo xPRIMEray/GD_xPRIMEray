@@ -530,6 +530,10 @@ public partial class RayBeamRenderer : Node3D
 		public float BetaScale;
 		public float EdgeSoftness;
 		public Curve CustomCurve;
+		// BoxVolume support: half-extents in local space + inverse world orientation.
+		// Zero/identity for SphereRadial; populated from FieldSource3D.BoxExtents at snap time.
+		public Vector3 HalfExtents;
+		public Basis BoxInvBasis;
 	}
 
 	public readonly struct DebugRayBundle
@@ -3059,6 +3063,7 @@ public partial class RayBeamRenderer : Node3D
 			outer = inner;
 		}
 
+		bool isBox = resolved.shapeType == FieldShapeType.BoxVolume;
 		return new FieldSourceSnap
 		{
 			Enabled = resolved.enabled,
@@ -3077,7 +3082,11 @@ public partial class RayBeamRenderer : Node3D
 			OverrideBetaScale = resolved.overrideBetaScale,
 			BetaScale = resolved.betaScale,
 			EdgeSoftness = Mathf.Clamp(resolved.edgeSoftness, 0f, 1f),
-			CustomCurve = resolved.customCurve
+			CustomCurve = resolved.customCurve,
+			// BoxVolume support region: capture extents and inverse world orientation so
+			// ContainsPointInBox() can transform the sample point into the node's local frame.
+			HalfExtents = isBox ? fs.BoxExtents : Vector3.Zero,
+			BoxInvBasis = isBox ? fs.GlobalTransform.Basis.Inverse() : default
 		};
 	}
 
@@ -3154,6 +3163,17 @@ public partial class RayBeamRenderer : Node3D
 		return false;
 	}
 
+	// Returns true when world-space point p is inside the oriented box defined by
+	// (center, halfExtents in local space, invBasis = inverse of node world orientation).
+	// Used to enforce BoxVolume support regions before evaluating field profiles.
+	private static bool ContainsPointInBox(Vector3 p, Vector3 center, Vector3 halfExtents, Basis invBasis)
+	{
+		Vector3 local = invBasis * (p - center);
+		return Mathf.Abs(local.X) <= halfExtents.X
+			&& Mathf.Abs(local.Y) <= halfExtents.Y
+			&& Mathf.Abs(local.Z) <= halfExtents.Z;
+	}
+
 	// FieldMath remains the canonical field baseline evaluator.
 	// Transport interpretation is selected in integrator step helpers.
 	public static Vector3 ComputeAccelerationAtPointSnap(
@@ -3171,6 +3191,11 @@ public partial class RayBeamRenderer : Node3D
 			ref readonly var fs = ref sources[i];
 			// DECISION: skip disabled field sources.
 			if (!fs.Enabled) continue;
+
+			// Support region enforcement: BoxVolume fields only contribute inside their box.
+			// SphereRadial outer-radius enforcement is handled inside EvalFieldAccel.
+			if (fs.ShapeType == FieldShapeType.BoxVolume && !ContainsPointInBox(p, fs.Center, fs.HalfExtents, fs.BoxInvBasis))
+				continue;
 
 			FieldMath.EvalResult eval = FieldMath.EvalFieldAccel(
 				p,
