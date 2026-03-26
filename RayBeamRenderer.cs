@@ -436,6 +436,11 @@ public partial class RayBeamRenderer : Node3D
 	private Plane _insightPlane;
 	private bool _hasInsightPlane = false;
 
+	// Boundary layer volume snapshots; rebuilt each frame on the main thread.
+	// Read-only during parallel ray integration.
+	private BoundaryLayerSnap[] _boundaryLayerSnaps = Array.Empty<BoundaryLayerSnap>();
+	private bool _hasBoundaryLayers = false;
+
 	private int _dbgRejectPrints = 0;
 
 	// Shared sample buffers (no per-ray allocation)
@@ -534,6 +539,27 @@ public partial class RayBeamRenderer : Node3D
 		// Zero/identity for SphereRadial; populated from FieldSource3D.BoxExtents at snap time.
 		public Vector3 HalfExtents;
 		public Basis BoxInvBasis;
+	}
+
+	// ===== Boundary Layer Volume Snapshot =====
+	// Lightweight runtime mirror of BoundaryLayerVolume; used in the hot loop without
+	// touching the scene tree. Parallel to FieldSourceSnap but a separate domain.
+	public struct BoundaryLayerSnap
+	{
+		public bool Enabled;
+		public Vector3 Center;
+		public BoundaryLayerVolume.BoundaryShapeType ShapeType;
+		public float Radius;
+		public Vector3 HalfExtents;   // Box only: local-space half-extents
+		public Basis InvBasis;        // Box only: inverse of world orientation
+		public BoundaryLayerVolume.BoundaryExecutionMode ExecutionMode;
+		public BoundaryLayerVolume.BoundaryBehavior Behavior;
+		// DirectionBias params (already in world space at snapshot time):
+		public Vector3 BiasDirection;
+		public float BiasStrength;
+		// Debug fields (captured at snapshot time; not used in hot path unless DebugLogCrossings is set):
+		public string NodeName;
+		public bool DebugLogCrossings;
 	}
 
 	public readonly struct DebugRayBundle
@@ -1162,6 +1188,11 @@ public partial class RayBeamRenderer : Node3D
 			FieldSourceSnap[] fieldSourceSnaps = SnapshotFieldSources(fieldSources);
 			bool hasSources = fieldSourceSnaps.Length > 0;
 			TransportModel rebuildTransportModel = hasSources ? ResolveActiveTransportModel(fieldSourceSnaps) : TransportModel.GRIN_Optical;
+
+			// Snapshot boundary layer volumes for this frame (read-only during integration).
+			var blvNodes = GetTree().GetNodesInGroup("boundary_layer_volumes");
+			_boundaryLayerSnaps = SnapshotBoundaryLayers(blvNodes);
+			_hasBoundaryLayers = _boundaryLayerSnaps.Length > 0;
 
 			var emitters = GetTree().GetNodesInGroup("ray_emitters");
 			int emitterCount = emitters.Count;
@@ -1915,6 +1946,12 @@ public partial class RayBeamRenderer : Node3D
 
 		float hitDist = 0.0f;
 
+		// Per-ray inside state for CrossingEvent boundary layer detection (≤32 layers via bitmask).
+		// Initialized from the ray origin so that rays starting inside a volume do NOT fire an entry event.
+		uint blvInsideMask = (_hasBoundaryLayers && UseIntegratedField)
+			? ComputeInsideMask(p, _boundaryLayerSnaps)
+			: 0u;
+
 		// DECISION: integrate along the ray for up to StepsPerRay steps.
 		for (int s = 0; s <= StepsPerRay; s++)
 		{
@@ -1923,6 +1960,17 @@ public partial class RayBeamRenderer : Node3D
 				absorbedByInnerRadius = true;
 				terminationReason = RayTerminationReason.AbsorbedInsideInnerRadius;
 				break;
+			}
+
+			// Boundary layer: continuous effects and crossing-event detection.
+			if (_hasBoundaryLayers && UseIntegratedField)
+			{
+				uint blvNewMask = ComputeInsideMask(p, _boundaryLayerSnaps);
+				uint blvCrossings = blvNewMask ^ blvInsideMask;
+				v = ApplyBoundaryLayerBias(p, v, _boundaryLayerSnaps);
+				if (blvCrossings != 0u)
+					v = ApplyBoundaryLayerCrossings(p, v, _boundaryLayerSnaps, blvCrossings & blvNewMask, blvCrossings & blvInsideMask);
+				blvInsideMask = blvNewMask;
 			}
 
 			Vector3 a = Vector3.Zero;
@@ -2166,6 +2214,12 @@ public partial class RayBeamRenderer : Node3D
 		float maxStep = Mathf.Max(MinStepLength, MaxStepLength);
 		minStep = Mathf.Max(0.0001f, minStep);
 
+		// Per-ray inside state for CrossingEvent boundary layer detection (≤32 layers via bitmask).
+		// Initialized from the ray origin so that rays starting inside a volume do NOT fire an entry event.
+		uint blvInsideMask = (_hasBoundaryLayers && UseIntegratedField)
+			? ComputeInsideMask(p, _boundaryLayerSnaps)
+			: 0u;
+
 		// DECISION: integrate along the ray for up to StepsPerRay steps.
 		for (int s = 0; s <= StepsPerRay; s++)
 		{
@@ -2174,6 +2228,17 @@ public partial class RayBeamRenderer : Node3D
 				absorbedByInnerRadius = true;
 				terminationReason = RayTerminationReason.AbsorbedInsideInnerRadius;
 				break;
+			}
+
+			// Boundary layer: continuous effects and crossing-event detection.
+			if (_hasBoundaryLayers && UseIntegratedField)
+			{
+				uint blvNewMask = ComputeInsideMask(p, _boundaryLayerSnaps);
+				uint blvCrossings = blvNewMask ^ blvInsideMask;
+				v = ApplyBoundaryLayerBias(p, v, _boundaryLayerSnaps);
+				if (blvCrossings != 0u)
+					v = ApplyBoundaryLayerCrossings(p, v, _boundaryLayerSnaps, blvCrossings & blvNewMask, blvCrossings & blvInsideMask);
+				blvInsideMask = blvNewMask;
 			}
 
 			Vector3 next = p;
@@ -2661,6 +2726,9 @@ public partial class RayBeamRenderer : Node3D
 		float radiusSafety = RadiusSafety;
 		float radiusMin = RadiusMin;
 		bool useCurvatureGrid = curvatureGrid != null;
+		// Cache boundary layer state for this ray (read-only; written on main thread before Parallel.For).
+		BoundaryLayerSnap[] boundaryLayers = _boundaryLayerSnaps;
+		bool hasBoundaryLayers = _hasBoundaryLayers;
 		// CONTROL FACTOR: pass1ProbeEveryNSegments controls cadence-based probing.
 		int probeEvery = pass1ProbeEveryNSegments;
 		bool useProbeEvery = probeEvery > 0;
@@ -2679,6 +2747,12 @@ public partial class RayBeamRenderer : Node3D
 		float metricErrorTolerance = Mathf.Max(1e-5f, MetricAdaptiveErrorTolerance);
 		int metricMaxSubdivisions = Mathf.Max(0, MetricAdaptiveMaxSubdivisions);
 
+		// Per-ray inside state for CrossingEvent boundary layer detection (≤32 layers via bitmask).
+		// Initialized from the ray origin so that rays starting inside a volume do NOT fire an entry event.
+		uint blvInsideMask = (hasBoundaryLayers && UseIntegratedField)
+			? ComputeInsideMask(p, boundaryLayers)
+			: 0u;
+
 		// DECISION: integrate along the ray for up to StepsPerRay steps.
 		for (int s = 0; s <= maxIntegrationSteps; s++)
 		{
@@ -2689,6 +2763,17 @@ public partial class RayBeamRenderer : Node3D
 			{
 				stoppedEarly = true;
 				break;
+			}
+
+			// Boundary layer: continuous effects and crossing-event detection.
+			if (hasBoundaryLayers && UseIntegratedField)
+			{
+				uint blvNewMask = ComputeInsideMask(p, boundaryLayers);
+				uint blvCrossings = blvNewMask ^ blvInsideMask;
+				v = ApplyBoundaryLayerBias(p, v, boundaryLayers);
+				if (blvCrossings != 0u)
+					v = ApplyBoundaryLayerCrossings(p, v, boundaryLayers, blvCrossings & blvNewMask, blvCrossings & blvInsideMask);
+				blvInsideMask = blvNewMask;
 			}
 
 			Vector3 next = p;
@@ -3088,6 +3173,159 @@ public partial class RayBeamRenderer : Node3D
 			HalfExtents = isBox ? fs.BoxExtents : Vector3.Zero,
 			BoxInvBasis = isBox ? fs.GlobalTransform.Basis.Inverse() : default
 		};
+	}
+
+	// ===== Boundary Layer Volume Snapshot + Evaluation =====
+
+	private BoundaryLayerSnap[] SnapshotBoundaryLayers(Godot.Collections.Array<Node> nodes)
+	{
+		if (nodes == null || nodes.Count == 0) return Array.Empty<BoundaryLayerSnap>();
+		var list = new List<BoundaryLayerSnap>(nodes.Count);
+		foreach (Node node in nodes)
+		{
+			if (node is BoundaryLayerVolume blv && blv.Enabled)
+				list.Add(BuildBoundaryLayerSnap(blv));
+		}
+		// Guard: crossing detection uses a uint bitmask; only the first 32 layers can be tracked.
+		// Continuous mode is unaffected (ApplyBoundaryLayerBias iterates all layers).
+		// Warn once if any CrossingEvent layer falls beyond the bitmask window.
+		if (list.Count > 32)
+		{
+			for (int i = 32; i < list.Count; i++)
+			{
+				if (list[i].ExecutionMode == BoundaryLayerVolume.BoundaryExecutionMode.CrossingEvent)
+				{
+					GD.PushWarning(
+						$"[BoundaryLayerVolume] {list.Count} enabled layers registered. " +
+						$"CrossingEvent detection uses a uint bitmask capped at 32. " +
+						$"Layer '{list[i].NodeName}' (index {i}) and any CrossingEvent layers beyond " +
+						$"index 31 will not fire crossing events. Continuous mode is unaffected. " +
+						$"Reduce layer count or switch excess layers to Continuous.");
+					break; // one warning per snapshot is enough
+				}
+			}
+		}
+		return list.ToArray();
+	}
+
+	private static BoundaryLayerSnap BuildBoundaryLayerSnap(BoundaryLayerVolume blv)
+	{
+		bool isBox = blv.ShapeType == BoundaryLayerVolume.BoundaryShapeType.Box;
+		// Transform bias direction from local to world space and re-normalize.
+		Vector3 biasWorld = blv.GlobalTransform.Basis * blv.BiasDirection;
+		float bLen = biasWorld.Length();
+		if (bLen > FieldMath.Epsilon) biasWorld /= bLen;
+		return new BoundaryLayerSnap
+		{
+			Enabled           = blv.Enabled,
+			Center            = blv.GlobalPosition,
+			ShapeType         = blv.ShapeType,
+			Radius            = Mathf.Max(0f, blv.Radius),
+			HalfExtents       = isBox ? blv.BoxExtents : Vector3.Zero,
+			InvBasis          = isBox ? blv.GlobalTransform.Basis.Inverse() : default,
+			ExecutionMode     = blv.ExecutionMode,
+			Behavior          = blv.Behavior,
+			BiasDirection     = biasWorld,
+			BiasStrength      = Mathf.Clamp(blv.BiasStrength, 0f, 1f),
+			NodeName          = blv.Name,
+			DebugLogCrossings = blv.DebugLogCrossings
+		};
+	}
+
+	// Returns true when world-space point p is inside the boundary layer's support region.
+	private static bool IsInsideBoundaryLayer(Vector3 p, in BoundaryLayerSnap layer)
+	{
+		switch (layer.ShapeType)
+		{
+			case BoundaryLayerVolume.BoundaryShapeType.Sphere:
+				return p.DistanceSquaredTo(layer.Center) < (layer.Radius * layer.Radius);
+			case BoundaryLayerVolume.BoundaryShapeType.Box:
+			{
+				Vector3 local = layer.InvBasis * (p - layer.Center);
+				return Mathf.Abs(local.X) <= layer.HalfExtents.X
+					&& Mathf.Abs(local.Y) <= layer.HalfExtents.Y
+					&& Mathf.Abs(local.Z) <= layer.HalfExtents.Z;
+			}
+			default:
+				return false;
+		}
+	}
+
+	// Applies all Continuous-mode boundary layer behaviors at position p and returns the
+	// (possibly re-normalized) ray direction. Returns v unchanged when no Continuous layer
+	// contains p. Each qualifying layer is evaluated independently; effects accumulate.
+	// CrossingEvent-mode layers are skipped here — they are dispatched by ApplyBoundaryLayerCrossings.
+	// TODO: add additional Continuous cases here as new BoundaryBehavior values are introduced.
+	private static Vector3 ApplyBoundaryLayerBias(Vector3 p, Vector3 v, BoundaryLayerSnap[] layers)
+	{
+		for (int i = 0; i < layers.Length; i++)
+		{
+			ref readonly BoundaryLayerSnap layer = ref layers[i];
+			if (!layer.Enabled) continue;
+			// Skip CrossingEvent layers — dispatched via ApplyBoundaryLayerCrossings.
+			if (layer.ExecutionMode != BoundaryLayerVolume.BoundaryExecutionMode.Continuous) continue;
+			if (!IsInsideBoundaryLayer(p, layer)) continue;
+			switch (layer.Behavior)
+			{
+				case BoundaryLayerVolume.BoundaryBehavior.DirectionBias:
+					v = SafeNormalized(v + layer.BiasDirection * layer.BiasStrength, v);
+					break;
+			}
+		}
+		return v;
+	}
+
+	// Returns a bitmask where bit i is set iff p is inside layers[i].
+	// Hard cap at 32: layers at index >= 32 are excluded from crossing detection.
+	// Continuous mode (ApplyBoundaryLayerBias) iterates all layers and is unaffected by this cap.
+	// SnapshotBoundaryLayers emits a warning when any CrossingEvent layer falls beyond index 31.
+	private static uint ComputeInsideMask(Vector3 p, BoundaryLayerSnap[] layers)
+	{
+		uint mask = 0u;
+		int count = Mathf.Min(layers.Length, 32);
+		for (int i = 0; i < count; i++)
+		{
+			if (layers[i].Enabled && IsInsideBoundaryLayer(p, layers[i]))
+				mask |= (1u << i);
+		}
+		return mask;
+	}
+
+	// Dispatches CrossingEvent behaviors for layers that were crossed in this step.
+	//
+	// Semantics:
+	//   - Entry (entryBits): bit set when layer transitions 0→1 (outside→inside).
+	//   - Exit  (exitBits):  bit set when layer transitions 1→0 (inside→outside). Not dispatched yet.
+	//   - Start-inside: rays starting inside a volume do NOT synthesize an entry event.
+	//     The initial mask at loop start suppresses false entries on the first step.
+	//   - Ordering: layers are processed in ascending snap-array order. When multiple
+	//     layers trigger in the same step, effects accumulate in that order.
+	//   - Only layers with ExecutionMode == CrossingEvent are processed here.
+	//     Continuous layers are handled exclusively by ApplyBoundaryLayerBias.
+	private static Vector3 ApplyBoundaryLayerCrossings(
+		Vector3 p, Vector3 v,
+		BoundaryLayerSnap[] layers,
+		uint entryBits,
+		uint exitBits)
+	{
+		for (int i = 0; i < layers.Length && i < 32; i++)
+		{
+			if ((entryBits & (1u << i)) == 0u) continue;
+			ref readonly BoundaryLayerSnap layer = ref layers[i];
+			if (!layer.Enabled) continue;
+			if (layer.ExecutionMode != BoundaryLayerVolume.BoundaryExecutionMode.CrossingEvent) continue;
+			switch (layer.Behavior)
+			{
+				case BoundaryLayerVolume.BoundaryBehavior.DirectionBias:
+					v = SafeNormalized(v + layer.BiasDirection * layer.BiasStrength, v);
+					break;
+			}
+			if (layer.DebugLogCrossings)
+				GD.Print($"[BLV] entry event: layer={i} name='{layer.NodeName}' behavior={layer.Behavior} pos=({p.X:0.##},{p.Y:0.##},{p.Z:0.##})");
+		}
+		// TODO(CrossingEvent/Exit): exit-event dispatch goes here when exit semantics are defined.
+		// exitBits is already computed at call sites; wire it through here and mirror the entry block.
+		return v;
 	}
 
 	public static TransportModel ResolveActiveTransportModel(FieldSourceSnap[] sources)
