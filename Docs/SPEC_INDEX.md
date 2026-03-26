@@ -55,6 +55,9 @@ These are not spec files, but they are tightly coupled to the spec set and shoul
 - [Architecture Review](architecture_review_ray_renderer.md)
 - [Code Map (Big 12)](code_map_big12.md)
 - [Validation Framework](validation.md)
+- **BoundaryLayerVolume Fixture Specification**
+  Minimal deterministic fixtures for validating boundary crossing behavior, policies, and nested shell ordering
+  → [BoundaryLayerFixtures.md](BoundaryLayerFixtures.md)
 - [Metric Null Geodesic Parameter Map](metric_null_geodesic_param_map.md)
 - [Next-Generation Metric Transport Roadmap](metric_transport_nextgen_roadmap.md)
 - [BlackHole Fast Compare (GRIN vs Metric)](blackhole_fast_compare.md)

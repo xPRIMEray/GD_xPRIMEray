@@ -1,5 +1,6 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1774408477
+::res://::1774412961
+BoundaryLayerVolume.cs::CSharpScript::2208614223022605473::1774410486::0::1::::<>Node3D<><>0<>1<><>::
 camera_3d.gd::GDScript::3454241889599487331::1774406913::0::1::::<>Camera3D<><>0<>0<><>::
 CurvedCamera.cs::CSharpScript::5306762016452856891::1774406913::0::1::::CurvedCamera<>Camera3D<><>0<>0<><>::
 curved_ray_postprocess.gdshader::Shader::3282317646427007636::1774406913::0::1::::<><><>0<>0<><>::
@@ -20,7 +21,7 @@ mkdocs.yml::TextFile::-1::1774406914::0::1::::<><><>0<>0<><>::
 options.gd::GDScript::1131381816150715636::1774406914::0::1::::<>Control<><>0<>0<><>::
 PerfScope.cs::CSharpScript::6400520966558421931::1774406913::0::1::::<><><>0<>0<><>::
 PerfStats.cs::CSharpScript::347626637194884174::1774406913::0::1::::<><><>0<>0<><>::
-RayBeamRenderer.cs::CSharpScript::7636165736354380146::1774407448::0::1::::<>Node3D<><>0<>0<><>::
+RayBeamRenderer.cs::CSharpScript::7636165736354380146::1774410470::0::1::::<>Node3D<><>0<>0<><>::
 RayEmitter3D.cs::CSharpScript::2301457052814117006::1774406913::0::1::::<>Node3D<><>0<>0<><>::
 RayViz.cs::CSharpScript::1960394775717387093::1774406913::0::1::::<>MeshInstance3D<><>0<>0<><>::
 README.md::TextFile::-1::1774406913::0::1::::<><><>0<>0<><>::
@@ -69,7 +70,7 @@ test-metric-basic-visual-offaxis.tscn::PackedScene::-1::1774406914::0::1::::<><>
 test-metric-basic-visual.tscn::PackedScene::-1::1774406914::0::1::::<><><>0<>0<><>::res://Fixtures/fixture_metric_basic_visual.tscn<>res://GrinFilmCamera.cs<>res://FilmOverlay2D.cs<>res://Fixtures/GrinBasicVisualController.cs
 test-straight-basic-visual-offaxis-observe.tscn::PackedScene::-1::1774406914::0::1::::<><><>0<>0<><>::res://Fixtures/fixture_grin_basic_visual_straight_offaxis_observe.tscn<>res://GrinFilmCamera.cs<>res://FilmOverlay2D.cs<>res://Fixtures/GrinBasicVisualController.cs
 test-straight.tscn::PackedScene::6529166919739306382::1774406914::0::1::::<><><>0<>0<><>::uid://b3y1shfx51f53::::res://GrinFilmCamera.cs<>uid://dg263rv7q0mtq::::res://RendererCore/Testing/RenderTestRunner.cs<>uid://dg2asfleehqsw::::res://RayBeamRenderer.cs<>uid://c0nlk0rn3oilh::::res://FilmOverlay2D.cs
-test.tscn::PackedScene::1390766704628193034::1774408445::0::1::::<><><>0<>0<><>::uid://b3y1shfx51f53::::res://GrinFilmCamera.cs<>uid://dg263rv7q0mtq::::res://RendererCore/Testing/RenderTestRunner.cs<>uid://dg2asfleehqsw::::res://RayBeamRenderer.cs<>uid://c0nlk0rn3oilh::::res://FilmOverlay2D.cs<>uid://vmh5vusla1nv::::res://FieldSource3D.cs
+test.tscn::PackedScene::1390766704628193034::1774409852::0::1::::<><><>0<>0<><>::uid://b3y1shfx51f53::::res://GrinFilmCamera.cs<>uid://dg263rv7q0mtq::::res://RendererCore/Testing/RenderTestRunner.cs<>uid://dg2asfleehqsw::::res://RayBeamRenderer.cs<>uid://c0nlk0rn3oilh::::res://FilmOverlay2D.cs<>uid://vmh5vusla1nv::::res://FieldSource3D.cs
 test_bbNew.tscn::PackedScene::8802620299661285372::1774406914::0::1::::<><><>0<>0<><>::uid://b3y1shfx51f53::::res://GrinFilmCamera.cs<>uid://dg263rv7q0mtq::::res://RendererCore/Testing/RenderTestRunner.cs<>uid://dg2asfleehqsw::::res://RayBeamRenderer.cs<>uid://c0nlk0rn3oilh::::res://FilmOverlay2D.cs
 test_curved_minimal_fingerprint.gd::GDScript::4837281180118236252::1774406914::0::1::::<>Node3D<><>0<>0<><>::
 test_physics_room-sphere.tscn::PackedScene::2956879155936580137::1774406914::0::1::::<><><>0<>0<><>::

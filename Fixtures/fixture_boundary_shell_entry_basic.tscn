@@ -1,0 +1,106 @@
+[gd_scene load_steps=7 format=3 uid="uid://c4bnd1sh3l1ry"]
+
+; Fixture: boundary shell entry-basic
+; Purpose: minimal CrossingEvent/EntryOnly baseline.
+;   One sphere shell (radius 3.5) centred at origin. Camera outside at Z=7.
+;   BiasDirection=Up, BiasStrength=0.15 → ≈8.5° upward kink at entry surface.
+;   No FieldSource3D; BendScale=0. Rays are straight lines; effect is isolated to crossing.
+;   DebugLogCrossings=true → one "[BLV] entry event" per ray that enters the shell.
+;
+; Expected visual:
+;   Backdrop and dots behind the shell appear shifted downward by ≈2.7 units at backdrop Z=-15.
+;   (Ray aimed at centre-pixel enters shell, gets nudged up; hits backdrop above centre.)
+;   Rays that miss the shell (outside the projected disc) are undistorted.
+;   Sharp discontinuity at the projected shell rim.
+;
+; Start-inside check: camera is at Z=7 which is outside the radius-3.5 shell. No false entry.
+; CrossingPolicy: EntryOnly (default=0). Exit crossing is detected but not dispatched.
+
+[ext_resource type="Script" uid="uid://6p4s26slgv8l" path="res://BoundaryLayerVolume.cs" id="1_blv"]
+[ext_resource type="Script" uid="uid://dg2asfleehqsw" path="res://RayBeamRenderer.cs" id="2_rbr"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_backdrop"]
+size = Vector3(28, 18, 0.25)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_backdrop"]
+size = Vector3(28, 18, 0.25)
+
+[sub_resource type="SphereMesh" id="SphereMesh_dot"]
+radius = 0.55
+height = 1.1
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_dot"]
+radius = 0.55
+
+[node name="FixtureBoundaryShellEntryBasic" type="Node3D"]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 7)
+current = true
+fov = 55.0
+near = 0.01
+
+; Backdrop: flat receiver at Z=-15. Distortion pattern from displaced rays is visible here.
+[node name="background_screen" type="StaticBody3D" parent="." groups=["raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -15)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="background_screen"]
+mesh = SubResource("BoxMesh_backdrop")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="background_screen"]
+shape = SubResource("BoxShape3D_backdrop")
+
+; Reference dots on backdrop at Z=-14, just in front of backdrop.
+; With EntryOnly+BiasDirection=Up: these dots appear shifted ~2.7 units downward in the film.
+[node name="dot_c0" type="StaticBody3D" parent="." groups=["raytrace_geometry"]]
+transform = Transform3D(1.4, 0, 0, 0, 1.4, 0, 0, 0, 1.4, -3, 0, -14)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="dot_c0"]
+mesh = SubResource("SphereMesh_dot")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="dot_c0"]
+shape = SubResource("SphereShape3D_dot")
+
+[node name="dot_c1" type="StaticBody3D" parent="." groups=["raytrace_geometry"]]
+transform = Transform3D(1.4, 0, 0, 0, 1.4, 0, 0, 0, 1.4, 0, 0, -14)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="dot_c1"]
+mesh = SubResource("SphereMesh_dot")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="dot_c1"]
+shape = SubResource("SphereShape3D_dot")
+
+[node name="dot_c2" type="StaticBody3D" parent="." groups=["raytrace_geometry"]]
+transform = Transform3D(1.4, 0, 0, 0, 1.4, 0, 0, 0, 1.4, 3, 0, -14)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="dot_c2"]
+mesh = SubResource("SphereMesh_dot")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="dot_c2"]
+shape = SubResource("SphereShape3D_dot")
+
+; BoundaryShell: CrossingEvent + EntryOnly. No transform = centred at origin.
+; CrossingPolicy omitted (default 0 = EntryOnly).
+; BiasDirection omitted (default Vector3.Up = (0,1,0)).
+[node name="BoundaryShell" type="Node3D" parent="."]
+script = ExtResource("1_blv")
+ExecutionMode = 1
+Radius = 3.5
+BiasStrength = 0.15
+DebugLogCrossings = true
+
+[node name="RayBeamRenderer" type="Node3D" parent="."]
+visible = false
+script = ExtResource("2_rbr")
+CameraPath = NodePath("../Camera3D")
+StepsPerRay = 250
+StepLength = 0.1
+MaxStepLength = 0.5
+StepAdaptGain = 0.1
+LowCurvaturePerpAccel = 0.3
+BendScale = 0.0
+FieldCenterIsCamera = false
+DebugMode = 0
+DebugNormalLen = 0.295
+Alpha = 1.0
+UpdateEveryFrame = false

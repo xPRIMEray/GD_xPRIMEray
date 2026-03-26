@@ -553,6 +553,7 @@ public partial class RayBeamRenderer : Node3D
 		public Vector3 HalfExtents;   // Box only: local-space half-extents
 		public Basis InvBasis;        // Box only: inverse of world orientation
 		public BoundaryLayerVolume.BoundaryExecutionMode ExecutionMode;
+		public BoundaryLayerVolume.BoundaryCrossingPolicy CrossingPolicy;
 		public BoundaryLayerVolume.BoundaryBehavior Behavior;
 		// DirectionBias params (already in world space at snapshot time):
 		public Vector3 BiasDirection;
@@ -3224,6 +3225,7 @@ public partial class RayBeamRenderer : Node3D
 			HalfExtents       = isBox ? blv.BoxExtents : Vector3.Zero,
 			InvBasis          = isBox ? blv.GlobalTransform.Basis.Inverse() : default,
 			ExecutionMode     = blv.ExecutionMode,
+			CrossingPolicy    = blv.CrossingPolicy,
 			Behavior          = blv.Behavior,
 			BiasDirection     = biasWorld,
 			BiasStrength      = Mathf.Clamp(blv.BiasStrength, 0f, 1f),
@@ -3295,13 +3297,18 @@ public partial class RayBeamRenderer : Node3D
 	//
 	// Semantics:
 	//   - Entry (entryBits): bit set when layer transitions 0→1 (outside→inside).
-	//   - Exit  (exitBits):  bit set when layer transitions 1→0 (inside→outside). Not dispatched yet.
-	//   - Start-inside: rays starting inside a volume do NOT synthesize an entry event.
-	//     The initial mask at loop start suppresses false entries on the first step.
-	//   - Ordering: layers are processed in ascending snap-array order. When multiple
+	//   - Exit  (exitBits):  bit set when layer transitions 1→0 (inside→outside).
+	//   - CrossingPolicy selects which directions dispatch: EntryOnly (default), ExitOnly, EntryAndExit.
+	//     EntryOnly preserves legacy entry-only behavior exactly.
+	//   - Start-inside: the initial blvInsideMask is seeded from the ray origin, so rays that begin
+	//     inside a volume do NOT synthesize a false entry event on the first step.
+	//   - Ordering: layers are processed in ascending snap-array index order. When multiple
 	//     layers trigger in the same step, effects accumulate in that order.
 	//   - Only layers with ExecutionMode == CrossingEvent are processed here.
 	//     Continuous layers are handled exclusively by ApplyBoundaryLayerBias.
+	//   - DirectionBias uses identical logic for entry and exit (stateless nudge; no inverse needed).
+	//     If a step produces both entry and exit bits for the same layer (sub-step-width volume),
+	//     EntryAndExit will apply the bias twice. This is a degenerate scene-setup case.
 	private static Vector3 ApplyBoundaryLayerCrossings(
 		Vector3 p, Vector3 v,
 		BoundaryLayerSnap[] layers,
@@ -3310,21 +3317,40 @@ public partial class RayBeamRenderer : Node3D
 	{
 		for (int i = 0; i < layers.Length && i < 32; i++)
 		{
-			if ((entryBits & (1u << i)) == 0u) continue;
+			uint bit = 1u << i;
 			ref readonly BoundaryLayerSnap layer = ref layers[i];
 			if (!layer.Enabled) continue;
 			if (layer.ExecutionMode != BoundaryLayerVolume.BoundaryExecutionMode.CrossingEvent) continue;
-			switch (layer.Behavior)
+
+			bool isEntry = (entryBits & bit) != 0u;
+			bool isExit  = (exitBits  & bit) != 0u;
+			bool doEntry = isEntry && layer.CrossingPolicy != BoundaryLayerVolume.BoundaryCrossingPolicy.ExitOnly;
+			bool doExit  = isExit  && layer.CrossingPolicy != BoundaryLayerVolume.BoundaryCrossingPolicy.EntryOnly;
+			if (!doEntry && !doExit) continue;
+
+			if (doEntry)
 			{
-				case BoundaryLayerVolume.BoundaryBehavior.DirectionBias:
-					v = SafeNormalized(v + layer.BiasDirection * layer.BiasStrength, v);
-					break;
+				switch (layer.Behavior)
+				{
+					case BoundaryLayerVolume.BoundaryBehavior.DirectionBias:
+						v = SafeNormalized(v + layer.BiasDirection * layer.BiasStrength, v);
+						break;
+				}
+				if (layer.DebugLogCrossings)
+					GD.Print($"[BLV] entry event: layer={i} name='{layer.NodeName}' behavior={layer.Behavior} pos=({p.X:0.##},{p.Y:0.##},{p.Z:0.##})");
 			}
-			if (layer.DebugLogCrossings)
-				GD.Print($"[BLV] entry event: layer={i} name='{layer.NodeName}' behavior={layer.Behavior} pos=({p.X:0.##},{p.Y:0.##},{p.Z:0.##})");
+			if (doExit)
+			{
+				switch (layer.Behavior)
+				{
+					case BoundaryLayerVolume.BoundaryBehavior.DirectionBias:
+						v = SafeNormalized(v + layer.BiasDirection * layer.BiasStrength, v);
+						break;
+				}
+				if (layer.DebugLogCrossings)
+					GD.Print($"[BLV] exit event: layer={i} name='{layer.NodeName}' behavior={layer.Behavior} pos=({p.X:0.##},{p.Y:0.##},{p.Z:0.##})");
+			}
 		}
-		// TODO(CrossingEvent/Exit): exit-event dispatch goes here when exit semantics are defined.
-		// exitBits is already computed at call sites; wire it through here and mirror the entry block.
 		return v;
 	}
 

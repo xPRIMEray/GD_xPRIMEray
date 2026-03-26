@@ -1,10 +1,11 @@
-[gd_scene load_steps=8 format=3 uid="uid://t2xyvpcd8ste"]
+[gd_scene load_steps=9 format=3 uid="uid://t2xyvpcd8ste"]
 
 [ext_resource type="Script" uid="uid://b3y1shfx51f53" path="res://GrinFilmCamera.cs" id="1_grin"]
 [ext_resource type="Script" uid="uid://dg263rv7q0mtq" path="res://RendererCore/Testing/RenderTestRunner.cs" id="2_runner"]
 [ext_resource type="Script" uid="uid://dg2asfleehqsw" path="res://RayBeamRenderer.cs" id="3_6uqi0"]
 [ext_resource type="Script" uid="uid://c0nlk0rn3oilh" path="res://FilmOverlay2D.cs" id="4_ppyta"]
 [ext_resource type="Script" uid="uid://vmh5vusla1nv" path="res://FieldSource3D.cs" id="5_ykrsh"]
+[ext_resource type="Script" uid="uid://6p4s26slgv8l" path="res://BoundaryLayerVolume.cs" id="6_g14j6"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_lri3f"]
 size = Vector3(12, 12, 2)
@@ -109,3 +110,6 @@ beta_eff=(|beta_g|>eps ? beta_g*1 : 1)
 mag=beta_eff*amp*f(u)*edge_ramp
 gamma=1
 a=dir*mag"
+
+[node name="BoundaryLayerVolume" type="Node3D" parent="."]
+script = ExtResource("6_g14j6")

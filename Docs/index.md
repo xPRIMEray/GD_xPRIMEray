@@ -22,6 +22,7 @@ Rather than tracing straight rays through space, GD_xPRIMEray integrates rays th
 - [Architecture Review](architecture_review_ray_renderer.md) — deeper review of renderer behavior and architecture constraints
 - [Code Map (Big 12)](code_map_big12.md) — contributor-facing code map
 - [Validation Framework](validation.md) — validation modes and verification context
+- [Boundary Layer Fixtures](BoundaryLayerFixtures.md) — validation fixtures for BoundaryLayerVolume crossing behavior, policies, and nested shell ordering
 - [Specification Index](SPEC_INDEX.md) — full spec map, current vs legacy, and support docs
 - [Architecture Charter (Current)](_xPRIMEray_arch_charter_v3-ChatClaudeGrokCoherencePass2.md) — current working charter
 

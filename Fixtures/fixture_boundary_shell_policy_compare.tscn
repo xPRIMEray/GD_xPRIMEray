@@ -1,0 +1,131 @@
+[gd_scene load_steps=7 format=3 uid="uid://d7ply2cmpb3n5"]
+
+; Fixture: boundary shell policy-compare
+; Purpose: side-by-side visual comparison of all three BoundaryCrossingPolicy values.
+;   Three identical spheres (radius 2.5) at X=-4 / X=0 / X=+4.
+;   All use CrossingEvent, BiasDirection=Up, BiasStrength=0.15.
+;   Only CrossingPolicy differs:
+;     Left  (X=-4): EntryOnly (=0)  — one upward kink at sphere entry
+;     Centre (X=0): EntryAndExit (=2) — upward kink at entry AND exit → ~double displacement
+;     Right  (X=+4): ExitOnly (=1)  — ray enters straight, kinks upward at exit only
+;
+; Expected visual (DebugLogCrossings=true on all three):
+;   Left column: dots behind left shell appear shifted down ≈2.7 units (one entry event).
+;   Centre column: dots shifted down ≈5.4 units (two events, entry+exit compound).
+;   Right column: dots shifted down ≈2.7 units (one exit event); shift position differs from Left
+;     because the kink occurs at the far side of the sphere rather than the near side.
+;     The right-column dot may appear slightly blurrier at the shell rim vs. the left column.
+;
+; Debug log (per ray through each shell):
+;   Left:   1× entry event, layer=0 name='BoundaryShell_EntryOnly'
+;   Centre: 1× entry + 1× exit, layer=1 name='BoundaryShell_EntryAndExit'
+;   Right:  1× exit event, layer=2 name='BoundaryShell_ExitOnly'
+;
+; Start-inside check: camera at Z=8, all shells radius=2.5 centred at Z=0. Camera outside all. ✓
+; Ordering: snap indices follow scene tree order → Left=0, Centre=1, Right=2.
+
+[ext_resource type="Script" uid="uid://6p4s26slgv8l" path="res://BoundaryLayerVolume.cs" id="1_blv"]
+[ext_resource type="Script" uid="uid://dg2asfleehqsw" path="res://RayBeamRenderer.cs" id="2_rbr"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_backdrop"]
+size = Vector3(28, 18, 0.25)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_backdrop"]
+size = Vector3(28, 18, 0.25)
+
+[sub_resource type="SphereMesh" id="SphereMesh_dot"]
+radius = 0.55
+height = 1.1
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_dot"]
+radius = 0.55
+
+[node name="FixtureBoundaryShellPolicyCompare" type="Node3D"]
+
+; Camera wider FOV to frame all three shells. At Z=8, shells at X=±4 span ±26.6°, FOV/2=34°.
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)
+current = true
+fov = 68.0
+near = 0.01
+
+[node name="background_screen" type="StaticBody3D" parent="." groups=["raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -15)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="background_screen"]
+mesh = SubResource("BoxMesh_backdrop")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="background_screen"]
+shape = SubResource("BoxShape3D_backdrop")
+
+; Reference dots: one directly behind each shell at Z=-14.
+[node name="dot_left" type="StaticBody3D" parent="." groups=["raytrace_geometry"]]
+transform = Transform3D(1.4, 0, 0, 0, 1.4, 0, 0, 0, 1.4, -4, 0, -14)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="dot_left"]
+mesh = SubResource("SphereMesh_dot")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="dot_left"]
+shape = SubResource("SphereShape3D_dot")
+
+[node name="dot_centre" type="StaticBody3D" parent="." groups=["raytrace_geometry"]]
+transform = Transform3D(1.4, 0, 0, 0, 1.4, 0, 0, 0, 1.4, 0, 0, -14)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="dot_centre"]
+mesh = SubResource("SphereMesh_dot")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="dot_centre"]
+shape = SubResource("SphereShape3D_dot")
+
+[node name="dot_right" type="StaticBody3D" parent="." groups=["raytrace_geometry"]]
+transform = Transform3D(1.4, 0, 0, 0, 1.4, 0, 0, 0, 1.4, 4, 0, -14)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="dot_right"]
+mesh = SubResource("SphereMesh_dot")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="dot_right"]
+shape = SubResource("SphereShape3D_dot")
+
+; Left shell: EntryOnly (CrossingPolicy default=0, omitted). Snap index 0.
+[node name="BoundaryShell_EntryOnly" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 0)
+script = ExtResource("1_blv")
+ExecutionMode = 1
+Radius = 2.5
+BiasStrength = 0.15
+DebugLogCrossings = true
+
+; Centre shell: EntryAndExit. Snap index 1.
+[node name="BoundaryShell_EntryAndExit" type="Node3D" parent="."]
+script = ExtResource("1_blv")
+ExecutionMode = 1
+CrossingPolicy = 2
+Radius = 2.5
+BiasStrength = 0.15
+DebugLogCrossings = true
+
+; Right shell: ExitOnly. Snap index 2.
+[node name="BoundaryShell_ExitOnly" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 0)
+script = ExtResource("1_blv")
+ExecutionMode = 1
+CrossingPolicy = 1
+Radius = 2.5
+BiasStrength = 0.15
+DebugLogCrossings = true
+
+[node name="RayBeamRenderer" type="Node3D" parent="."]
+visible = false
+script = ExtResource("2_rbr")
+CameraPath = NodePath("../Camera3D")
+StepsPerRay = 250
+StepLength = 0.1
+MaxStepLength = 0.5
+StepAdaptGain = 0.1
+LowCurvaturePerpAccel = 0.3
+BendScale = 0.0
+FieldCenterIsCamera = false
+DebugMode = 0
+DebugNormalLen = 0.295
+Alpha = 1.0
+UpdateEveryFrame = false

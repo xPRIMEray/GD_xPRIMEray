@@ -22,6 +22,7 @@ This page is the compact entry point for renderer validation workflows. Use it t
 ## Key Pages
 
 - [Validation](validation.md) - top-level validation modes and verification context.
+- [Boundary Layer Fixtures](BoundaryLayerFixtures.md) - deterministic crossing-event fixture family for BoundaryLayerVolume validation.
 - [BlackHole Fast Compare](blackhole_fast_compare.md) - quickest GRIN vs Metric comparison path for the black-hole fixture.
 - [Black Hole Optical Texture Reference](black_hole_optical_texture_reference.md) - expected black-hole image signatures used as visual validation targets.
 - [Metric Transport Next-Gen Roadmap](metric_transport_nextgen_roadmap.md) - current ladder status, sweep observations, and staged metric-validation plan.

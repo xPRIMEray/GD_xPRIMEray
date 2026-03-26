@@ -7,9 +7,9 @@ using Godot;
 ///
 /// Two execution modes are supported:
 ///   Continuous   — behavior applied every integration step the ray is inside the volume.
-///   CrossingEvent — behavior applied once when the ray enters or exits the volume boundary.
+///   CrossingEvent — behavior applied once when the ray crosses the volume boundary.
 ///                   Entry/exit detection uses a per-ray uint bitmask (ComputeInsideMask) in
-///                   each integration loop. Entry events dispatch; exit is a future TODO.
+///                   each integration loop. Which events dispatch is controlled by CrossingPolicy.
 ///
 /// Add nodes to the Godot group "boundary_layer_volumes" to register them with the renderer.
 /// The renderer snapshots this group each frame; no direct scene-tree access occurs in the hot loop.
@@ -36,11 +36,26 @@ public partial class BoundaryLayerVolume : Node3D
 		Continuous    = 0,
 
 		/// <summary>
-		/// Applied once when the ray crosses the volume boundary (entry or exit).
+		/// Applied once when the ray crosses the volume boundary.
 		/// Suitable for interface effects: refraction, reflection, spectral split.
-		/// Entry events are dispatched; exit events are a future TODO.
+		/// Which crossing direction(s) dispatch is controlled by CrossingPolicy.
 		/// </summary>
 		CrossingEvent = 1
+	}
+
+	/// <summary>
+	/// Controls which crossing directions dispatch a CrossingEvent.
+	/// Ignored when ExecutionMode is Continuous.
+	/// Default is EntryOnly, which preserves legacy entry-only behavior.
+	/// </summary>
+	public enum BoundaryCrossingPolicy
+	{
+		/// <summary>Dispatch on ray entry (outside→inside). Default; preserves legacy behavior.</summary>
+		EntryOnly    = 0,
+		/// <summary>Dispatch on ray exit (inside→outside) only.</summary>
+		ExitOnly     = 1,
+		/// <summary>Dispatch on both entry and exit. If both occur in the same step, behavior applies twice.</summary>
+		EntryAndExit = 2
 	}
 
 	/// <summary>
@@ -53,7 +68,7 @@ public partial class BoundaryLayerVolume : Node3D
 		/// Adds a constant directional bias to the ray direction and re-normalizes.
 		/// Suitable for simple steering, draft caustic tests, and anisotropic regions.
 		/// Effect magnitude is proportional to BiasStrength; keep small for stability.
-		/// Works with both Continuous (per-step accumulation) and CrossingEvent (once on entry).
+		/// Works with Continuous (per-step) and CrossingEvent (entry, exit, or both per CrossingPolicy).
 		/// </summary>
 		DirectionBias = 0
 	}
@@ -71,11 +86,16 @@ public partial class BoundaryLayerVolume : Node3D
 	[ExportSubgroup("Behavior")]
 	/// <summary>
 	/// Whether the behavior fires continuously while inside the volume (every step),
-	/// or once at the entry crossing. Entry events dispatch; exit is a future TODO.
+	/// or once when the ray crosses the boundary. Crossing direction is set by CrossingPolicy.
 	/// </summary>
 	[Export] public BoundaryExecutionMode ExecutionMode = BoundaryExecutionMode.Continuous;
 	/// <summary>Which behavior to apply when the execution condition is met.</summary>
 	[Export] public BoundaryBehavior Behavior = BoundaryBehavior.DirectionBias;
+	/// <summary>
+	/// Which crossing direction(s) trigger dispatch. Only used when ExecutionMode is CrossingEvent.
+	/// Default EntryOnly preserves legacy behavior. Start-inside rays never synthesize entry.
+	/// </summary>
+	[Export] public BoundaryCrossingPolicy CrossingPolicy = BoundaryCrossingPolicy.EntryOnly;
 
 	[ExportSubgroup("DirectionBias")]
 	/// <summary>

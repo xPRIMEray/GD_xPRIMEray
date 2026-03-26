@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/*.uid)",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Read(//c/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/**)",
+      "Bash(done)",
+      "Bash(ls C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/Fixtures/fixture_boundary_*.tscn)"
+    ]
+  }
+}

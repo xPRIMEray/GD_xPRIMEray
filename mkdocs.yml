@@ -74,6 +74,7 @@ nav:
       - Architecture Review: architecture_review_ray_renderer.md
       - Code Map (Big 12): code_map_big12.md
       - Validation Framework: validation.md
+      - Boundary Layer Fixtures: BoundaryLayerFixtures.md
       - Specification Index: SPEC_INDEX.md
       - Architecture Charter (Current): _xPRIMEray_arch_charter_v3-ChatClaudeGrokCoherencePass2.md
 
