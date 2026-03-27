@@ -127,13 +127,50 @@ requested for fixture-note work.
 
 ## Best Verified Operating Point
 
-Placeholder. No canonical verified Fixture 002 operating point has been
-promoted yet.
+The March 26, 2026 rerun is accepted as the refreshed post-field-fix
+comparison baseline for Fixture 002.
+
+- Timestamp: `2026-03-26T21-15-16`
+- Output path: `output/fixture_runs/fixture_002/2026-03-26T21-15-16`
+- Status: `ok`
+- guard_progress exits: `0`
+- forcedAdvance events: `0`
+- processed_rows: `164`
+- traced_pixels: `54880`
+- source_hits: `2149`
+- miss_hits: `52731`
+- radial_overall_hit_fraction: `0.027299`
+- radial_sector_left_hit_fraction: `0.030615`
+- radial_sector_right_hit_fraction: `0.023984`
+- turnThreshold: `4`
+
+This run is accepted even though `run_verified = false` against the older
+pre-fix comparison target, because the mismatch is attributable to the
+corrected `r_outer / r_inner` field cutoff behavior rather than to scheduler
+instability.
 
 ## Lower-Variance Fallback
 
 Placeholder. To be filled once repeatable verified runs establish the first
 stable fallback branch.
+
+## Accepted Post-Fix Comparison Baseline
+
+- Timestamp: `2026-03-26T21-15-16`
+- Scene: `res://test-grin-basic-visual-linear-minimal.tscn`
+- Fixture: `grin_basic_visual_linear_minimal`
+- Transport: `GRIN_Optical`
+- Status: `ok`
+- Capture succeeded: `true`
+- guard_progress exits: `0`
+- forcedAdvance events: `0`
+- processed_rows: `164`
+- traced_pixels: `54880`
+- source_hits: `2149`
+- miss_hits: `52731`
+
+This accepted comparison baseline supersedes the older pre-fix capture for
+future post-`r_outer / r_inner` validation work.
 
 ## Topology Interpretation
 

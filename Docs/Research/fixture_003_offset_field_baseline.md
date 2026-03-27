@@ -137,12 +137,37 @@ fixture is that symmetry is intentionally broken by the off-axis field center.
 
 ## Best Verified Operating Point
 
-Placeholder. To be filled once the first verified Fixture 003 run is promoted.
+Accepted operating point:
+
+- `stepLength = 0.040`
+- `turnThreshold = 2.4`
+- `errorTolerance = 0.010`
+
+Accepted clean reference runs:
+
+- `2026-03-22T17-03-53`
+- `2026-03-26T21-29-05`
+
+Both runs stayed scheduler-clean and verified under the offset-field fixture
+topology.
 
 ## Lower-Variance Fallback
 
-Placeholder. To be filled once repeatable verified runs establish the first
-stable fallback operating point.
+Use the same `0.040 / 2.4 / 0.010` operating point as the fallback until a
+separate verified branch is deliberately characterized.
+
+The `turnThreshold = 3.2` path is not accepted for Fixture 003. In the March
+26, 2026 blocking run (`2026-03-26T21-15-57`), that operating point triggered
+an early scheduler drift:
+
+- first `guard_progress` trigger in band `startRow=8 endRow=16`
+- `forcedAdvance = 1`
+- `scheduler_clean = false`
+- `run_verified = false`
+
+The failing run did not show candidate starvation (`noCandidates = 0`,
+`geomPixNoCand = 0`), so this was classified as fixture-specific harness
+sensitivity rather than a transport or candidate regression.
 
 ## Topology Interpretation
 

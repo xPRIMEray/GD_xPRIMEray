@@ -13,6 +13,35 @@ It also records the first verified repeat-sweep result for Fixture 001 so the
 project has a concrete example of how to characterize a fixture control surface
 using only hardened, fully verified runs.
 
+## Post-Field-Fix Baseline Refresh (2026-03-26)
+
+The `r_outer / r_inner` field-region correction changed the accepted visual
+output for Fixture 001 by enforcing zero field acceleration outside the active
+region. The March 26, 2026 rerun is therefore accepted as the refreshed
+post-fix comparison baseline even though `run_verified = false` against the
+older pre-fix capture.
+
+Accepted post-fix baseline:
+
+- Timestamp: `2026-03-26T21-14-34`
+- Output path: `output/fixture_runs/fixture_001/2026-03-26T21-14-34`
+- Status: `ok`
+- guard_progress exits: `0`
+- forcedAdvance events: `0`
+- processed_rows: `164`
+- traced_pixels: `48864`
+- source_hits: `2364`
+- miss_hits: `46500`
+- turnThreshold: `4`
+
+Promotion rationale:
+
+- scheduler remained clean
+- capture completed with full expected row coverage
+- compare mismatch was against the stale pre-fix baseline, not against the
+  current field-region logic
+- resulting output is consistent with the corrected active-region cutoff
+
 ## Current harness
 
 - Harness script: `scripts/run_fixture_001.sh`
@@ -219,6 +248,25 @@ so A2 remains the stronger baseline in the current local history.
 - traced_pixels: `56288`
 - source_hits: `2717`
 - miss_hits: `53571`
+
+## Accepted Post-Fix Comparison Baseline
+
+- Label: `A2-post-field-fix`
+- Timestamp: `2026-03-26T21-14-34`
+- Scene: `res://test-grin-basic-visual-minimal.tscn`
+- Fixture: `grin_basic_visual_minimal`
+- Transport: `GRIN_Optical`
+- Status: `ok`
+- Capture succeeded: `true`
+- guard_progress exits: `0`
+- forcedAdvance events: `0`
+- processed_rows: `164`
+- traced_pixels: `48864`
+- source_hits: `2364`
+- miss_hits: `46500`
+
+This accepted comparison baseline supersedes the older pre-fix capture for
+future post-`r_outer / r_inner` validation work.
 
 ## Next Study Direction
 
