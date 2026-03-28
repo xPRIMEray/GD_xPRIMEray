@@ -1,0 +1,65 @@
+[gd_scene load_steps=6 format=3 uid="uid://dwgwdw3a26xwl"]
+
+; Fixture: curved minimal with rear detector plane.
+; Purpose: preserve the original minimal curved-field target while adding a farther
+; rectangular intercept surface for downstream hit capture after curved deflection.
+; Expected hit classes:
+; - primary object hits: the original central sphere (`fixture_target`)
+; - backdrop / detector hits: the farther receiver plane (`detector_backdrop`)
+; Compared with `fixture_curved_minimal.tscn`, field, camera, and primary target are
+; unchanged. Only the extra receiver plane is added behind the target along -Z.
+
+[ext_resource type="Script" uid="uid://vmh5vusla1nv" path="res://FieldSource3D.cs" id="1_field"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_target"]
+radius = 1.0
+height = 2.0
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_target"]
+radius = 0.6
+
+[sub_resource type="BoxMesh" id="BoxMesh_detector"]
+size = Vector3(18, 12, 0.25)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_detector"]
+size = Vector3(18, 12, 0.25)
+
+[node name="FixtureCurvedMinimal" type="Node3D"]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.9056799, 0.42396238, 0, -0.42396238, 0.9056799, 0, 5.1510434, 13.535316)
+current = true
+fov = 70.0
+near = 0.01
+
+[node name="fixture_target" type="StaticBody3D" parent="." groups=["fixture_geometry", "fixture_source", "raytrace_geometry"]]
+transform = Transform3D(3.6, 0, 0, 0, 3.6, 0, 0, 0, 3.6, 0, 0, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="fixture_target"]
+mesh = SubResource("SphereMesh_target")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="fixture_target"]
+shape = SubResource("SphereShape3D_target")
+
+[node name="detector_backdrop" type="StaticBody3D" parent="." groups=["fixture_background", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -18)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="detector_backdrop"]
+mesh = SubResource("BoxMesh_detector")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="detector_backdrop"]
+shape = SubResource("BoxShape3D_detector")
+
+[node name="FieldSource3D" type="Node3D" parent="."]
+script = ExtResource("1_field")
+Attract = false
+EffectiveEquationCore = "source=canonical
+r=|p-c|
+u=clamp((r-rInner)/max(eps,rOuter-rInner),0,1)
+f(u)=(1-u)^1
+edge_ramp=1 (disabled)"
+EffectiveEquationIntegrated = "dir=-normalize(p-c) (ModeFlagInvertSign=0)
+beta_eff=(|beta_g|>eps ? beta_g*1 : 1)
+mag=beta_eff*amp*f(u)*edge_ramp
+gamma=1
+a=dir*mag"

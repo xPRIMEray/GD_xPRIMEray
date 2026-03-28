@@ -440,6 +440,11 @@ public partial class RayBeamRenderer : Node3D
 	// Read-only during parallel ray integration.
 	private BoundaryLayerSnap[] _boundaryLayerSnaps = Array.Empty<BoundaryLayerSnap>();
 	private bool _hasBoundaryLayers = false;
+	private int[] _boundaryDebugEntryCounts = Array.Empty<int>();
+	private int[] _boundaryDebugExitCounts = Array.Empty<int>();
+	private int _boundaryDebugImpulseCount = 0;
+	private bool _boundaryDebugRunActive = false;
+	private bool _boundaryDebugHasEvents = false;
 
 	private int _dbgRejectPrints = 0;
 
@@ -561,6 +566,73 @@ public partial class RayBeamRenderer : Node3D
 		// Debug fields (captured at snapshot time; not used in hot path unless DebugLogCrossings is set):
 		public string NodeName;
 		public bool DebugLogCrossings;
+	}
+
+	public void BeginBoundaryValidationRun()
+	{
+		if (_boundaryLayerSnaps == null || _boundaryLayerSnaps.Length == 0)
+		{
+			_boundaryDebugEntryCounts = Array.Empty<int>();
+			_boundaryDebugExitCounts = Array.Empty<int>();
+			_boundaryDebugImpulseCount = 0;
+			_boundaryDebugHasEvents = false;
+			_boundaryDebugRunActive = false;
+			return;
+		}
+
+		if (_boundaryDebugEntryCounts.Length != _boundaryLayerSnaps.Length)
+			_boundaryDebugEntryCounts = new int[_boundaryLayerSnaps.Length];
+		else
+			Array.Clear(_boundaryDebugEntryCounts, 0, _boundaryDebugEntryCounts.Length);
+
+		if (_boundaryDebugExitCounts.Length != _boundaryLayerSnaps.Length)
+			_boundaryDebugExitCounts = new int[_boundaryLayerSnaps.Length];
+		else
+			Array.Clear(_boundaryDebugExitCounts, 0, _boundaryDebugExitCounts.Length);
+
+		_boundaryDebugImpulseCount = 0;
+		_boundaryDebugHasEvents = false;
+		_boundaryDebugRunActive = true;
+	}
+
+	public void EmitBoundaryValidationSummary(string label = "")
+	{
+		if (!_boundaryDebugRunActive) return;
+
+		int totalEntries = 0;
+		int totalExits = 0;
+		for (int i = 0; i < _boundaryDebugEntryCounts.Length; i++)
+			totalEntries += _boundaryDebugEntryCounts[i];
+		for (int i = 0; i < _boundaryDebugExitCounts.Length; i++)
+			totalExits += _boundaryDebugExitCounts[i];
+
+		string suffix = string.IsNullOrWhiteSpace(label) ? "" : $" {label}";
+		GD.Print($"[BLV][Summary]{suffix} entries={totalEntries} exits={totalExits} impulses={_boundaryDebugImpulseCount} layers={_boundaryLayerSnaps.Length}");
+		for (int i = 0; i < _boundaryLayerSnaps.Length; i++)
+		{
+			if (_boundaryDebugEntryCounts[i] == 0 && _boundaryDebugExitCounts[i] == 0)
+				continue;
+			string nodeName = string.IsNullOrEmpty(_boundaryLayerSnaps[i].NodeName) ? $"layer_{i}" : _boundaryLayerSnaps[i].NodeName;
+			GD.Print($"[BLV][Layer] layer={i} name='{nodeName}' entry={_boundaryDebugEntryCounts[i]} exit={_boundaryDebugExitCounts[i]}");
+		}
+
+		if (!_boundaryDebugHasEvents)
+			GD.Print($"[BLV][Summary]{suffix} no crossing events recorded.");
+
+		_boundaryDebugRunActive = false;
+	}
+
+	private void RecordBoundaryValidationEvent(int layerIndex, bool isEntry, bool isExit)
+	{
+		if (!_boundaryDebugRunActive) return;
+		if ((uint)layerIndex >= (uint)_boundaryLayerSnaps.Length) return;
+		if (isEntry) _boundaryDebugEntryCounts[layerIndex]++;
+		if (isExit) _boundaryDebugExitCounts[layerIndex]++;
+		if (isEntry || isExit)
+		{
+			_boundaryDebugImpulseCount++;
+			_boundaryDebugHasEvents = true;
+		}
 	}
 
 	public readonly struct DebugRayBundle
@@ -1194,6 +1266,7 @@ public partial class RayBeamRenderer : Node3D
 			var blvNodes = GetTree().GetNodesInGroup("boundary_layer_volumes");
 			_boundaryLayerSnaps = SnapshotBoundaryLayers(blvNodes);
 			_hasBoundaryLayers = _boundaryLayerSnaps.Length > 0;
+			GD.Print("RayBeamRenderer: boundary layers in group = ", blvNodes.Count, " snapped = ", _boundaryLayerSnaps.Length, " integrated = ", UseIntegratedField);
 
 			var emitters = GetTree().GetNodesInGroup("ray_emitters");
 			int emitterCount = emitters.Count;
@@ -3309,7 +3382,7 @@ public partial class RayBeamRenderer : Node3D
 	//   - DirectionBias uses identical logic for entry and exit (stateless nudge; no inverse needed).
 	//     If a step produces both entry and exit bits for the same layer (sub-step-width volume),
 	//     EntryAndExit will apply the bias twice. This is a degenerate scene-setup case.
-	private static Vector3 ApplyBoundaryLayerCrossings(
+	private Vector3 ApplyBoundaryLayerCrossings(
 		Vector3 p, Vector3 v,
 		BoundaryLayerSnap[] layers,
 		uint entryBits,
@@ -3336,7 +3409,8 @@ public partial class RayBeamRenderer : Node3D
 						v = SafeNormalized(v + layer.BiasDirection * layer.BiasStrength, v);
 						break;
 				}
-				if (layer.DebugLogCrossings)
+				RecordBoundaryValidationEvent(i, isEntry: true, isExit: false);
+				if (layer.DebugLogCrossings && !_boundaryDebugRunActive)
 					GD.Print($"[BLV] entry event: layer={i} name='{layer.NodeName}' behavior={layer.Behavior} pos=({p.X:0.##},{p.Y:0.##},{p.Z:0.##})");
 			}
 			if (doExit)
@@ -3347,7 +3421,8 @@ public partial class RayBeamRenderer : Node3D
 						v = SafeNormalized(v + layer.BiasDirection * layer.BiasStrength, v);
 						break;
 				}
-				if (layer.DebugLogCrossings)
+				RecordBoundaryValidationEvent(i, isEntry: false, isExit: true);
+				if (layer.DebugLogCrossings && !_boundaryDebugRunActive)
 					GD.Print($"[BLV] exit event: layer={i} name='{layer.NodeName}' behavior={layer.Behavior} pos=({p.X:0.##},{p.Y:0.##},{p.Z:0.##})");
 			}
 		}

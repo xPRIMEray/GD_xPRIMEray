@@ -13,7 +13,8 @@ public partial class RenderTestRunner : Node
 		Straight = 1,
 		CurvedMinimal = 2,
 		BlackholeMinimal = 3,
-		EinsteinRingMinimal = 4
+		EinsteinRingMinimal = 4,
+		CurvedMinimalBackdrop = 5
 	}
 
 	public enum SmartScaleMode
@@ -67,6 +68,7 @@ public partial class RenderTestRunner : Node
 	private const string RenderTestDefaultScenePath = "res://test.tscn";
 	private const string RenderTestStraightScenePath = "res://test-straight.tscn";
 	private const string RenderTestCurvedMinimalScenePath = "res://test-curved-minimal.tscn";
+	private const string RenderTestCurvedMinimalBackdropScenePath = "res://test-curved-minimal-backdrop.tscn";
 	private const string RenderTestBlackholeMinimalScenePath = "res://test-blackhole-minimal.tscn";
 	private const string RenderTestBlackholeMinimalMetricScenePath = "res://test-blackhole-minimal-metric.tscn";
 	private const string RenderTestBlackholeMinimalGrinScenePath = "res://test-blackhole-minimal-grin.tscn";
@@ -1990,7 +1992,7 @@ public partial class RenderTestRunner : Node
 			string p95MsStr = sampleCount > 0 ? p95Ms.ToString("0.###") : "na";
 			string meanSegStr = _runSegsPerPxCount > 0 ? (_runSegsPerPxSum / _runSegsPerPxCount).ToString("0.###") : "na";
 			bool hasFixtureStats = _film.TryGetFixtureDebugStatsForTesting(out GrinFilmCamera.FixtureDebugStatsSnapshot fixtureStats);
-			long fixtureVisibleHits = fixtureStats.SourceHits + fixtureStats.BackgroundHits;
+			long fixtureVisibleHits = fixtureStats.SourceHits + fixtureStats.BackgroundHits + fixtureStats.UnclassifiedHits;
 			bool fixtureHitRateKnown = hasFixtureStats && fixtureStats.TracedPixels > 0;
 			double fixtureHitRate = fixtureHitRateKnown
 				? fixtureVisibleHits / (double)Math.Max(1L, fixtureStats.TracedPixels)
@@ -2019,7 +2021,7 @@ public partial class RenderTestRunner : Node
 			GD.Print(
 				$"[RenderTest][RUN DETAIL] matrix={_runSeriesId} idx={_runIndex + 1}/{_runs.Count} name={Sanitize(run.Name)} " +
 				$"fixtureStatsKnown={(hasFixtureStats ? 1 : 0)} sourceHits={fixtureStats.SourceHits} backgroundHits={fixtureStats.BackgroundHits} " +
-				$"absorbedHits={fixtureStats.AbsorbedHits} missHits={fixtureStats.MissHits} traced={fixtureStats.TracedPixels} " +
+				$"unclassifiedHits={fixtureStats.UnclassifiedHits} absorbedHits={fixtureStats.AbsorbedHits} missHits={fixtureStats.MissHits} traced={fixtureStats.TracedPixels} " +
 				$"hitRate={(fixtureHitRateKnown ? fixtureHitRate.ToString("0.######") : "na")} " +
 				$"metricDiagKnown={(hasMetricDiag ? 1 : 0)} metricDeltaZeroCount={(hasMetricDiag ? metricDiag.MetricDeltaZeroCount.ToString() : "na")} " +
 				$"metricDeltaNonzeroCount={(hasMetricDiag ? metricDiag.MetricDeltaNonzeroCount.ToString() : "na")} " +
@@ -3279,6 +3281,12 @@ public partial class RenderTestRunner : Node
 				fixture = RenderTestFixture.CurvedMinimal;
 				return true;
 			}
+			if (string.Equals(value, "curved_minimal_backdrop", StringComparison.OrdinalIgnoreCase) ||
+				string.Equals(value, "curved_minimal_detector_plane", StringComparison.OrdinalIgnoreCase))
+			{
+				fixture = RenderTestFixture.CurvedMinimalBackdrop;
+				return true;
+			}
 			if (string.Equals(value, "blackhole_minimal", StringComparison.OrdinalIgnoreCase))
 			{
 				fixture = RenderTestFixture.BlackholeMinimal;
@@ -3461,6 +3469,7 @@ public partial class RenderTestRunner : Node
 		{
 			RenderTestFixture.Straight => "straight",
 			RenderTestFixture.CurvedMinimal => "curved_minimal",
+			RenderTestFixture.CurvedMinimalBackdrop => "curved_minimal_backdrop",
 			RenderTestFixture.BlackholeMinimal => "blackhole_minimal",
 			RenderTestFixture.EinsteinRingMinimal => "einstein_ring_minimal",
 			_ => string.Empty
@@ -3487,6 +3496,7 @@ public partial class RenderTestRunner : Node
 		{
 			RenderTestFixture.Straight => RenderTestStraightScenePath,
 			RenderTestFixture.CurvedMinimal => RenderTestCurvedMinimalScenePath,
+			RenderTestFixture.CurvedMinimalBackdrop => RenderTestCurvedMinimalBackdropScenePath,
 			RenderTestFixture.BlackholeMinimal => ResolveVariantScenePath(
 				RenderTestBlackholeMinimalScenePath,
 				RenderTestBlackholeMinimalMetricScenePath,
@@ -3814,6 +3824,7 @@ public partial class RenderTestRunner : Node
 		{
 			RenderTestFixture.Straight => "straight",
 			RenderTestFixture.CurvedMinimal => "curved_minimal",
+			RenderTestFixture.CurvedMinimalBackdrop => "curved_minimal_backdrop",
 			RenderTestFixture.BlackholeMinimal => "blackhole_minimal",
 			RenderTestFixture.EinsteinRingMinimal => "einstein_ring_minimal",
 			_ => "default"

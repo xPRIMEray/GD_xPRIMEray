@@ -83,6 +83,11 @@ public static class LauncherAudit
 		}
 		if (normalized.Contains("curved-minimal", StringComparison.OrdinalIgnoreCase))
 		{
+			if (normalized.Contains("backdrop", StringComparison.OrdinalIgnoreCase) ||
+				normalized.Contains("detector-plane", StringComparison.OrdinalIgnoreCase))
+			{
+				return "curved_minimal_backdrop";
+			}
 			return "curved_minimal";
 		}
 		if (normalized.Contains("blackhole", StringComparison.OrdinalIgnoreCase))
@@ -112,6 +117,7 @@ public static class LauncherAudit
 		{
 			"straight" => "res://test-straight.tscn",
 			"curved_minimal" => "res://test-curved-minimal.tscn",
+			"curved_minimal_backdrop" => "res://test-curved-minimal-backdrop.tscn",
 			"grin_basic_visual" => "res://test-grin-basic-visual.tscn",
 			"grin_basic_visual_minimal" => "res://test-grin-basic-visual-minimal.tscn",
 			"grin_basic_visual_linear_dual_attractor_minimal" => "res://test-grin-basic-visual-linear-dual-attractor-minimal.tscn",

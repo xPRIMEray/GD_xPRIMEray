@@ -117,6 +117,7 @@ public partial class GrinFilmCamera : Node
 	{
 		public readonly long SourceHits;
 		public readonly long BackgroundHits;
+		public readonly long UnclassifiedHits;
 		public readonly long AbsorbedHits;
 		public readonly long MissHits;
 		public readonly long TracedPixels;
@@ -124,12 +125,14 @@ public partial class GrinFilmCamera : Node
 		public FixtureDebugStatsSnapshot(
 			long sourceHits,
 			long backgroundHits,
+			long unclassifiedHits,
 			long absorbedHits,
 			long missHits,
 			long tracedPixels)
 		{
 			SourceHits = sourceHits;
 			BackgroundHits = backgroundHits;
+			UnclassifiedHits = unclassifiedHits;
 			AbsorbedHits = absorbedHits;
 			MissHits = missHits;
 			TracedPixels = tracedPixels;
@@ -407,6 +410,8 @@ public partial class GrinFilmCamera : Node
 	/// <summary>When UpdateEveryFrame is true, hard-cap RenderStep band height (rows) per call.</summary>
 	// CONTROL FACTOR: Per-call row cap when updating every frame; lower spreads work across frames.
 	[Export] public int UpdateEveryFrameMaxRowsPerStep = 2;
+	/// <summary>When true, stop the scene after the first fully completed film pass.</summary>
+	[Export] public bool QuitAfterCompletedPass = false;
 
 	[ExportSubgroup("RenderStep Caps")]
 	// This section prevents runaway costs (watchdogs/limits).
@@ -484,6 +489,9 @@ public partial class GrinFilmCamera : Node
 	/// <summary>Group name used to classify source hits for fixture debug coloring.</summary>
 	// CONTROL FACTOR: Nodes in this group are treated as source hits.
 	[Export] public string FixtureDebugSourceGroup = "fixture_source";
+	/// <summary>Optional group name used to classify fixture detector/background hits explicitly.</summary>
+	// CONTROL FACTOR: When populated, non-source hits outside this group are reported as unclassified.
+	[Export] public string FixtureDebugBackgroundGroup = "fixture_background";
 	/// <summary>Color for fixture source hits when fixture debug coloring is enabled.</summary>
 	[Export] public Color FixtureDebugSourceHitColor = new Color(1f, 1f, 0.9f, 1f);
 	/// <summary>Color for fixture detector/background hits when fixture debug coloring is enabled.</summary>
@@ -529,6 +537,16 @@ public partial class GrinFilmCamera : Node
 	[Export(PropertyHint.Range, "1,1024,1")] public int DebugGeomPruneAuditMaxExtraRayTestsPerSample = 128;
 	[Export] public bool DebugGeomPruneAuditOnlyWhenCandidateZero = true;
 	[Export(PropertyHint.Range, "0,64,1")] public int DebugGeomPruneAuditMaxMismatchLogsPerWindow = 3;
+	/// <summary>Experimental instrumentation scaffold for future tile-aware scheduling; logs fixed horizontal subtiles within each band.</summary>
+	[Export] public bool EnableTileMetricsScaffold = false;
+	/// <summary>Fixed horizontal subtile width used by tile metrics when the scaffold is enabled.</summary>
+	[Export(PropertyHint.Range, "1,4096,1")] public int TileMetricsSubtileWidth = 64;
+	/// <summary>Max per-tile metric logs emitted per frame when the tile scaffold is enabled.</summary>
+	[Export(PropertyHint.Range, "0,256,1")] public int TileMetricsMaxLogsPerFrame = 16;
+	/// <summary>Observe-only simulated reorder over subtiles; computes priority order but does not change execution.</summary>
+	[Export] public bool EnableTileMetricsReorderSimulation = false;
+	/// <summary>Official experimental scheduler mode: reorder-only subtile execution within each band, with no work reduction.</summary>
+	[Export] public bool EnableTileMetricsReorderExecution = false;
 
 
 	[ExportGroup("Ray March")]
@@ -1063,7 +1081,9 @@ public partial class GrinFilmCamera : Node
 	private PhysicsShapeQueryParameters3D _overlapQuery;
 	private SphereShape3D _overlapSphere;
 	private readonly System.Collections.Generic.List<Godot.Collections.Dictionary> _pass2OverlapCandidatesScratch = new System.Collections.Generic.List<Godot.Collections.Dictionary>(64);
-	private readonly System.Collections.Generic.HashSet<ulong> _fixtureDebugSourceIds = new System.Collections.Generic.HashSet<ulong>();
+private readonly System.Collections.Generic.HashSet<ulong> _fixtureDebugSourceIds = new System.Collections.Generic.HashSet<ulong>();
+private readonly System.Collections.Generic.HashSet<ulong> _fixtureDebugBackgroundIds = new System.Collections.Generic.HashSet<ulong>();
+private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private readonly PerfStats _perfStats = new PerfStats(60);
 	private PerfFrameReport _perfFrame;
 
@@ -1186,6 +1206,7 @@ public partial class GrinFilmCamera : Node
 	private int _autoBroadphaseLastFlipStep = -1;
 
 	private const int RenderHealthBufferSize = 60;
+	private const int TileMetricsBufferSize = 128;
 	private const int RenderHealthLogEveryNSteps = 30;
 	private const int RenderHealthStallThreshold = 10;
 	private const int RenderHealthPass2SampleEveryNSegments = 4096;
@@ -1197,8 +1218,13 @@ public partial class GrinFilmCamera : Node
 	private const uint PruneAuditDeterministicMask = 31u; // 1/32 deterministic sampling gate.
 
 	private RenderHealthSample[] _renderHealthSamples = new RenderHealthSample[RenderHealthBufferSize];
+	private TileMetricSample[] _tileMetricSamples = new TileMetricSample[TileMetricsBufferSize];
 	private int _renderHealthWrite = 0;
 	private int _renderHealthCount = 0;
+	private int _tileMetricWrite = 0;
+	private int _tileMetricCount = 0;
+	private int _tileMetricsLogFrame = -1;
+	private int _tileMetricsLogsRemainingThisFrame = 0;
 	private int _renderHealthStepIndex = 0;
 	private int _renderHealthLastLogStep = -1;
 	private int _renderHealthStallSteps = 0;
@@ -1206,6 +1232,50 @@ public partial class GrinFilmCamera : Node
 	private string _renderHealthLastExitReason = "";
 	private bool _rowStallActive = false;
 	private int _renderHealthPass2SampleCounter = 0;
+	private TileMetricAccumulator[] _tileMetricCurrentSubtiles = Array.Empty<TileMetricAccumulator>();
+	private int _tileMetricCurrentBandIndex = 0;
+	private int _tileMetricCurrentBandY = 0;
+	private int _tileMetricCurrentBandHeight = 0;
+	private int _tileMetricCurrentSubtileCount = 0;
+	private int _tileMetricCurrentSubtileWidth = 1;
+	private long _tileMetricSimBandsWithHitsThisFrame = 0;
+	private long _tileMetricSimTotalHitsThisFrame = 0;
+	private long _tileMetricSimHitsTop1ThisFrame = 0;
+	private long _tileMetricSimHitsTop2ThisFrame = 0;
+	private long _tileMetricSimHitsTop3ThisFrame = 0;
+	private long _tileMetricActualHitsTop1ThisFrame = 0;
+	private long _tileMetricActualHitsTop2ThisFrame = 0;
+	private long _tileMetricActualHitsTop3ThisFrame = 0;
+	private long _tileMetricSimPrimaryHitsTop1ThisFrame = 0;
+	private long _tileMetricSimBackdropHitsTop1ThisFrame = 0;
+	private long _tileMetricSimCombinedHitsTop1ThisFrame = 0;
+	private long _tileMetricActualPrimaryHitsTop1ThisFrame = 0;
+	private long _tileMetricActualBackdropHitsTop1ThisFrame = 0;
+	private long _tileMetricActualCombinedHitsTop1ThisFrame = 0;
+	private readonly System.Collections.Generic.Dictionary<long, TileMetricAccumulator[]> _tileMetricBandHistory = new System.Collections.Generic.Dictionary<long, TileMetricAccumulator[]>();
+	private int[] _tileMetricCurrentExecutionOrder = Array.Empty<int>();
+	private string _tileMetricCurrentExecutionSource = "baseline";
+	private long _tileMetricExecBandsWithHitsThisFrame = 0;
+	private long _tileMetricExecTotalHitsThisFrame = 0;
+	private long _tileMetricExecLegacyHitsTop1ThisFrame = 0;
+	private long _tileMetricExecLegacyHitsTop2ThisFrame = 0;
+	private long _tileMetricExecLegacyHitsTop3ThisFrame = 0;
+	private long _tileMetricExecOrderedHitsTop1ThisFrame = 0;
+	private long _tileMetricExecOrderedHitsTop2ThisFrame = 0;
+	private long _tileMetricExecOrderedHitsTop3ThisFrame = 0;
+	private long _tileMetricExecLegacyPrimaryHitsTop1ThisFrame = 0;
+	private long _tileMetricExecLegacyBackdropHitsTop1ThisFrame = 0;
+	private long _tileMetricExecLegacyCombinedHitsTop1ThisFrame = 0;
+	private long _tileMetricExecOrderedPrimaryHitsTop1ThisFrame = 0;
+	private long _tileMetricExecOrderedBackdropHitsTop1ThisFrame = 0;
+	private long _tileMetricExecOrderedCombinedHitsTop1ThisFrame = 0;
+	private long _tileMetricExecFirstHitOrdinalSumThisFrame = 0;
+	private long _tileMetricExecHit50OrdinalSumThisFrame = 0;
+	private long _tileMetricExecFirstHitOrdinalCountThisFrame = 0;
+	private long _tileMetricExecHit50OrdinalCountThisFrame = 0;
+	private long _tileMetricExecSeedBandsWithHitsThisFrame = 0;
+	private long _tileMetricExecRankedBandsWithHitsThisFrame = 0;
+	private bool ExperimentalSubtileSchedulerModeEnabled => EnableTileMetricsScaffold && EnableTileMetricsReorderExecution;
 	private int _geomPruneAuditSamplesTakenThisWindow = 0;
 	private double _lastFrameRenderMs = 0.0;
 	private readonly StringBuilder _overlayHudSb = new StringBuilder(256);
@@ -1254,6 +1324,7 @@ public partial class GrinFilmCamera : Node
 	private int _renderHealthTestMinPass2SamplesForTrustOverride = 0;
 	private long _fixtureDebugSourceHitsThisRun = 0;
 	private long _fixtureDebugBackgroundHitsThisRun = 0;
+	private long _fixtureDebugUnclassifiedHitsThisRun = 0;
 	private long _fixtureDebugAbsorbedHitsThisRun = 0;
 	private long _fixtureDebugMissHitsThisRun = 0;
 	private long _fixtureFinalHitPixelCountThisRun = 0;
@@ -1720,6 +1791,7 @@ public partial class GrinFilmCamera : Node
 		public bool NeedColliderNames;
 		public bool FixtureDebugHitColoringEnabled;
 		public string FixtureDebugSourceGroup;
+		public string FixtureDebugBackgroundGroup;
 		public Color FixtureDebugSourceHitColor;
 		public Color FixtureDebugBackgroundHitColor;
 		public Color FixtureDebugAbsorbedColor;
@@ -1787,6 +1859,92 @@ public partial class GrinFilmCamera : Node
 		public double StepWallMs;
 	}
 
+	private readonly struct TileDescriptor
+	{
+		public readonly int StepIndex;
+		public readonly int BandIndex;
+		public readonly int SubtileIndex;
+		public readonly int X;
+		public readonly int Y;
+		public readonly int Width;
+		public readonly int Height;
+		public readonly string StableId;
+
+		public TileDescriptor(int stepIndex, int bandIndex, int subtileIndex, int x, int y, int width, int height, string stableId)
+		{
+			StepIndex = stepIndex;
+			BandIndex = bandIndex;
+			SubtileIndex = subtileIndex;
+			X = x;
+			Y = y;
+			Width = width;
+			Height = height;
+			StableId = stableId ?? string.Empty;
+		}
+	}
+
+	private readonly struct TileMetricSample
+	{
+		public readonly TileDescriptor Descriptor;
+		public readonly long RaysTraced;
+		public readonly long Hits;
+		public readonly long SourceHits;
+		public readonly long BackgroundHits;
+		public readonly long UnclassifiedHits;
+		public readonly long CandidateReferences;
+		public readonly long CandidateSegments;
+		public readonly long NoCandidatePixels;
+		public readonly long CandidatePixels;
+		public readonly long GeomPixelsProcessed;
+		public readonly long GeomRayTests;
+		public readonly string ExitReason;
+
+		public TileMetricSample(
+			in TileDescriptor descriptor,
+			long raysTraced,
+			long hits,
+			long sourceHits,
+			long backgroundHits,
+			long unclassifiedHits,
+			long candidateReferences,
+			long candidateSegments,
+			long noCandidatePixels,
+			long candidatePixels,
+			long geomPixelsProcessed,
+			long geomRayTests,
+			string exitReason)
+		{
+			Descriptor = descriptor;
+			RaysTraced = raysTraced;
+			Hits = hits;
+			SourceHits = sourceHits;
+			BackgroundHits = backgroundHits;
+			UnclassifiedHits = unclassifiedHits;
+			CandidateReferences = candidateReferences;
+			CandidateSegments = candidateSegments;
+			NoCandidatePixels = noCandidatePixels;
+			CandidatePixels = candidatePixels;
+			GeomPixelsProcessed = geomPixelsProcessed;
+			GeomRayTests = geomRayTests;
+			ExitReason = exitReason ?? string.Empty;
+		}
+	}
+
+	private struct TileMetricAccumulator
+	{
+		public long RaysTraced;
+		public long Hits;
+		public long SourceHits;
+		public long BackgroundHits;
+		public long UnclassifiedHits;
+		public long CandidateReferences;
+		public long CandidateSegments;
+		public long NoCandidatePixels;
+		public long CandidatePixels;
+		public long GeomPixelsProcessed;
+		public long GeomRayTests;
+	}
+
 	private struct OverlayRollingSnapshot
 	{
 		public int Steps;
@@ -1798,7 +1956,7 @@ public partial class GrinFilmCamera : Node
 		public double ElapsedSec;
 	}
 
-	private sealed class OverlayRollingWindow
+private sealed class OverlayRollingWindow
 	{
 		private readonly long[] _timestamps;
 		private readonly double[] _stepMs;
@@ -2147,6 +2305,7 @@ public partial class GrinFilmCamera : Node
 		}
 
 		_rng.Randomize();
+		ApplyTileMetricsCmdArgs();
 
 		// DECISION: optionally apply presets at startup via the single orchestration path.
 		if (!ApplyPresetOnReady)
@@ -2242,6 +2401,38 @@ public partial class GrinFilmCamera : Node
 	private static bool IsUsablePhysicsSpaceState(PhysicsDirectSpaceState3D space)
 	{
 		return space != null && GodotObject.IsInstanceValid(space);
+	}
+
+	private readonly struct TilePriorityCandidate
+	{
+		public readonly int SubtileIndex;
+		public readonly int X;
+		public readonly int Width;
+		public readonly long Hits;
+		public readonly long SourceHits;
+		public readonly long BackgroundHits;
+		public readonly long UnclassifiedHits;
+		public readonly long Rays;
+		public readonly long NoCandidatePixels;
+		public readonly long GeomPixelsProcessed;
+		public readonly double HitYield;
+		public readonly double NoCandidateRatio;
+
+		public TilePriorityCandidate(int subtileIndex, int x, int width, in TileMetricAccumulator subtile)
+		{
+			SubtileIndex = subtileIndex;
+			X = x;
+			Width = width;
+			Hits = subtile.Hits;
+			SourceHits = subtile.SourceHits;
+			BackgroundHits = subtile.BackgroundHits;
+			UnclassifiedHits = subtile.UnclassifiedHits;
+			Rays = subtile.RaysTraced;
+			NoCandidatePixels = subtile.NoCandidatePixels;
+			GeomPixelsProcessed = subtile.GeomPixelsProcessed;
+			HitYield = Rays > 0 ? (double)Hits / Rays : 0.0;
+			NoCandidateRatio = GeomPixelsProcessed > 0 ? (double)NoCandidatePixels / GeomPixelsProcessed : 1.0;
+		}
 	}
 
 	private void ClearCachedRenderSpaceState()
@@ -3209,6 +3400,7 @@ public partial class GrinFilmCamera : Node
 	{
 		_fixtureDebugSourceHitsThisRun = 0;
 		_fixtureDebugBackgroundHitsThisRun = 0;
+		_fixtureDebugUnclassifiedHitsThisRun = 0;
 		_fixtureDebugAbsorbedHitsThisRun = 0;
 		_fixtureDebugMissHitsThisRun = 0;
 		ResetFixtureRowParticipationForRunStart();
@@ -3219,11 +3411,13 @@ public partial class GrinFilmCamera : Node
 	{
 		long tracedPixels = _fixtureDebugSourceHitsThisRun +
 			_fixtureDebugBackgroundHitsThisRun +
+			_fixtureDebugUnclassifiedHitsThisRun +
 			_fixtureDebugAbsorbedHitsThisRun +
 			_fixtureDebugMissHitsThisRun;
 		snapshot = new FixtureDebugStatsSnapshot(
 			_fixtureDebugSourceHitsThisRun,
 			_fixtureDebugBackgroundHitsThisRun,
+			_fixtureDebugUnclassifiedHitsThisRun,
 			_fixtureDebugAbsorbedHitsThisRun,
 			_fixtureDebugMissHitsThisRun,
 			tracedPixels);
@@ -4319,6 +4513,51 @@ public partial class GrinFilmCamera : Node
 		return ordered.ToArray();
 	}
 
+	private void ApplyTileMetricsCmdArgs()
+	{
+		foreach (string arg in GetHudCmdArgs())
+		{
+			if (TryGetHudArgValue(arg, "--tile-metrics=", out string enabledValue))
+			{
+				string normalized = enabledValue.Trim().ToLowerInvariant();
+				EnableTileMetricsScaffold = normalized is "1" or "true" or "on" or "yes";
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--tile-metrics-subtile-width=", out string subtileWidthValue)
+				&& int.TryParse(subtileWidthValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedWidth))
+			{
+				TileMetricsSubtileWidth = Math.Max(1, parsedWidth);
+			}
+
+			if (TryGetHudArgValue(arg, "--tile-metrics-max-logs=", out string maxLogsValue)
+				&& int.TryParse(maxLogsValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedMaxLogs))
+			{
+				TileMetricsMaxLogsPerFrame = Math.Max(0, parsedMaxLogs);
+			}
+
+			if (TryGetHudArgValue(arg, "--tile-metrics-simulate-reorder=", out string simulateValue))
+			{
+				string normalized = simulateValue.Trim().ToLowerInvariant();
+				EnableTileMetricsReorderSimulation = normalized is "1" or "true" or "on" or "yes";
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--tile-metrics-reorder-execution=", out string executeValue))
+			{
+				string normalized = executeValue.Trim().ToLowerInvariant();
+				EnableTileMetricsReorderExecution = normalized is "1" or "true" or "on" or "yes";
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--experimental-subtile-scheduler=", out string schedulerValue))
+			{
+				string normalized = schedulerValue.Trim().ToLowerInvariant();
+				EnableTileMetricsReorderExecution = normalized is "1" or "true" or "on" or "yes";
+			}
+		}
+	}
+
 	private void ThrottleBusLog(double delta, SceneSnapshot snapshot)
 	{
 		_busLogTimerSec += Math.Max(0.0, delta);
@@ -4366,6 +4605,7 @@ public partial class GrinFilmCamera : Node
 		bool researchAppliedRayMarchClamp = false;
 		RayBeamRenderer.SharedSnapshot researchRestoreSnapshot = cfg.SharedRaySnapshot;
 		bool skipBandPhysicsForDiagnostics = false;
+		bool beganBoundaryValidationRun = false;
 		try
 		{
 			if (cfg.Research.ResearchEnabled)
@@ -5161,6 +5401,12 @@ public partial class GrinFilmCamera : Node
 			}
 			_renderStepMissingRbrCameraWarned = false;
 
+			if (_rowCursor == 0 && !beganBoundaryValidationRun)
+			{
+				_rbr.BeginBoundaryValidationRun();
+				beganBoundaryValidationRun = true;
+			}
+
 			// DECISION: log toggle snapshots only at frame start.
 			if (frameStart)
 			{
@@ -5839,6 +6085,13 @@ public partial class GrinFilmCamera : Node
 			bandTracedPixels = 0;
 			processedPixelsThisBand = 0;
 			bool bandHadCandidates = false;
+			_tileMetricCurrentBandIndex = bandIndex;
+			_tileMetricCurrentBandY = yStart;
+			_tileMetricCurrentBandHeight = Math.Max(0, yEnd - yStart);
+			_tileMetricCurrentSubtileWidth = Math.Max(1, TileMetricsSubtileWidth);
+			_tileMetricCurrentSubtileCount = Math.Max(1, (filmW + _tileMetricCurrentSubtileWidth - 1) / _tileMetricCurrentSubtileWidth);
+			EnsureTileMetricSubtileCapacity(_tileMetricCurrentSubtileCount);
+			PrepareExperimentalSubtileSchedulerOrderForCurrentBand();
 			long shadeUsecAccum = 0;
 			long bandSegsIntegrated = 0;
 			bandSegsTested = 0;
@@ -6484,8 +6737,16 @@ public partial class GrinFilmCamera : Node
 						break;
 					}
 					int localY = y - yStart;
-					for (int x = 0; x < filmW; x += stride)
+					for (int execIndex = 0; execIndex < _tileMetricCurrentSubtileCount; execIndex++)
 					{
+						int subtileIndex = _tileMetricCurrentExecutionOrder[execIndex];
+						int subtileXStart = subtileIndex * _tileMetricCurrentSubtileWidth;
+						int subtileXEnd = Math.Max(0, Math.Min(filmW, subtileXStart + _tileMetricCurrentSubtileWidth));
+						if (subtileXStart >= subtileXEnd)
+							continue;
+						int xAlignedStart = subtileXStart + ((stride - (subtileXStart % stride)) % stride);
+						for (int x = xAlignedStart; x < subtileXEnd; x += stride)
+						{
 						// DECISION: stop inner loop when budget stop is active.
 						if (budgetStop) break;
 						// DECISION: periodic watchdog check within row.
@@ -6527,6 +6788,9 @@ public partial class GrinFilmCamera : Node
 						// DECISION: count filled pixels for band when frame perf enabled.
 						if (framePerfEnabled) bandFilledPixels += filled;
 					}
+						if (budgetStop || renderStepAbort)
+							break;
+					}
 					rowCompletedThisPass = !renderStepAbort && !budgetStop;
 					RecordFixtureRowWriteOutcome(y, rowHadWritesThisPass, rowCompletedThisPass);
 					// DECISION: stop when abort or budget stop is active.
@@ -6559,8 +6823,16 @@ public partial class GrinFilmCamera : Node
 						break;
 					}
 					int localY = y - yStart;
-					for (int x = 0; x < filmW; x += stride)
+					for (int execIndex = 0; execIndex < _tileMetricCurrentSubtileCount; execIndex++)
 					{
+						int subtileIndex = _tileMetricCurrentExecutionOrder[execIndex];
+						int subtileXStart = subtileIndex * _tileMetricCurrentSubtileWidth;
+						int subtileXEnd = Math.Max(0, Math.Min(filmW, subtileXStart + _tileMetricCurrentSubtileWidth));
+						if (subtileXStart >= subtileXEnd)
+							continue;
+						int xAlignedStart = subtileXStart + ((stride - (subtileXStart % stride)) % stride);
+						for (int x = xAlignedStart; x < subtileXEnd; x += stride)
+						{
 						// DECISION: stop inner loop when budget stop is active.
 						if (budgetStop) break;
 						// DECISION: periodic watchdog check within row.
@@ -6579,9 +6851,11 @@ public partial class GrinFilmCamera : Node
 						}
 						int pi = localY * filmW + x;
 						int globalPi = y * filmW + x;
+						int subtileIndexThisPixel = subtileIndex;
 						// DECISION: update traced pixels when stats enabled.
 						if (statsEnabled) _perfFrame.TracedPixels++;
 						bandTracedPixels++;
+						_tileMetricCurrentSubtiles[subtileIndexThisPixel].RaysTraced++;
 						processedPixelsThisBand++;
 						processedPixelsThisStep++;
 
@@ -6618,6 +6892,7 @@ public partial class GrinFilmCamera : Node
 							if (geomPixelWorkCountedThisPixel)
 								return;
 							_geomPixelProcessedThisFrame++;
+							_tileMetricCurrentSubtiles[subtileIndexThisPixel].GeomPixelsProcessed++;
 							geomPixelWorkCountedThisPixel = true;
 						}
 
@@ -7097,6 +7372,8 @@ public partial class GrinFilmCamera : Node
 									{
 										_geomCandidatesSegmentsThisFrame++;
 										_geomCandidatesTotalThisFrame += geomCandidateInstanceCount;
+										_tileMetricCurrentSubtiles[subtileIndexThisPixel].CandidateSegments++;
+										_tileMetricCurrentSubtiles[subtileIndexThisPixel].CandidateReferences += geomCandidateInstanceCount;
 									}
 									EvaluatePruneAuditCandidateCoverage(geomCandidateInstanceCount);
 									if (renderHealthSampleThisSeg && !renderHealthSampleRecorded && envelopeComputed)
@@ -8121,10 +8398,20 @@ public partial class GrinFilmCamera : Node
 							}
 						}
 						if (geomPixelHadAnyCandidatesThisPixel)
+						{
 							_geomPixelHadAnyCandidatesThisFrame++;
+							_tileMetricCurrentSubtiles[subtileIndexThisPixel].CandidatePixels++;
+						}
 						else
+						{
 							_geomPixelNoCandidatesThisFrame++;
+							_tileMetricCurrentSubtiles[subtileIndexThisPixel].NoCandidatePixels++;
+						}
 					}
+
+					long geomRayTestsDeltaThisPixel = _geomRayTestsTotalThisFrame - geomRayTestsAtPixelStart;
+					if (geomRayTestsDeltaThisPixel > 0)
+						_tileMetricCurrentSubtiles[subtileIndexThisPixel].GeomRayTests += geomRayTestsDeltaThisPixel;
 
 					if (useHybridBroadphase && noCandidatesThisPixel && !hadCandidatesThisPixel)
 					{
@@ -8164,6 +8451,7 @@ public partial class GrinFilmCamera : Node
 						else if (hadHit)
 						{
 							bandHits++;
+							_tileMetricCurrentSubtiles[subtileIndexThisPixel].Hits++;
 
 							// track farthest hit seen
 							if (hitDistance > frameMaxHit) frameMaxHit = hitDistance;
@@ -8222,10 +8510,7 @@ public partial class GrinFilmCamera : Node
 							if (logCenterSample)
 								GD.Print($"Film hit: dist={hitDistance:0.000} name={hitName} mode={cfg.ShadingMode}");
 						}
-						bool fixtureSourceHit = hadHit && _fixtureDebugSourceIds.Contains(bestCid);
-						fixtureHitKind = hadHit
-							? (fixtureSourceHit ? "source" : "background")
-							: (absorbedByInnerRadius ? "absorbed" : "miss");
+						fixtureHitKind = ClassifyFixtureHitKind(hadHit, absorbedByInnerRadius, bestCid);
 
 						if (cfg.FixtureDebugHitColoringEnabled)
 						{
@@ -8275,12 +8560,31 @@ public partial class GrinFilmCamera : Node
 							case "background":
 								_fixtureDebugBackgroundHitsThisRun++;
 								break;
+							case "unclassified":
+								_fixtureDebugUnclassifiedHitsThisRun++;
+								break;
 							case "absorbed":
 								_fixtureDebugAbsorbedHitsThisRun++;
 								break;
 							default:
 								_fixtureDebugMissHitsThisRun++;
 								break;
+						}
+
+						if (hadHit)
+						{
+							switch (fixtureHitKind)
+							{
+								case "source":
+									_tileMetricCurrentSubtiles[subtileIndexThisPixel].SourceHits++;
+									break;
+								case "background":
+									_tileMetricCurrentSubtiles[subtileIndexThisPixel].BackgroundHits++;
+									break;
+								case "unclassified":
+									_tileMetricCurrentSubtiles[subtileIndexThisPixel].UnclassifiedHits++;
+									break;
+							}
 						}
 
 						int filled = FillPixelBlock(x, y, stride, col, filmW, filmH);
@@ -8437,6 +8741,9 @@ public partial class GrinFilmCamera : Node
 						///////////
 						////////////////////////
 
+						}
+						if (budgetStop || renderStepAbort)
+							break;
 					}
 					rowCompletedThisPass = !renderStepAbort && !budgetStop;
 					RecordFixtureRowWriteOutcome(y, rowHadWritesThisPass, rowCompletedThisPass);
@@ -8675,7 +8982,16 @@ public partial class GrinFilmCamera : Node
 				if (_rowCursor < filmH)
 					EnsureForwardProgress("end", false, _rowCursor, bandHits, false);
 				if (_rowCursor >= filmH)
+				{
+					_rbr.EmitBoundaryValidationSummary($"film={filmW}x{filmH}");
 					ResetRowCursor("completed");
+					if (QuitAfterCompletedPass)
+					{
+						UpdateEveryFrame = false;
+						cfg.UpdateEveryFrame = false;
+						CallDeferred(nameof(QuitTreeDeferred));
+					}
+				}
 				bandCommittedThisStep = bandAdvanced;
 				if (bandAdvanced)
 					if (cfg.RenderStepBandLog) LogBandSummaryOnce(bandHits == 0 ? "zero-hit-advance" : "normal");
@@ -8738,6 +9054,10 @@ public partial class GrinFilmCamera : Node
 					_lastPhysQ = physQ;
 				}
 			}
+			if (_rowCursor == 0)
+				LogExperimentalSubtileSchedulerFrameSummaryIfNeeded();
+			if (_rowCursor == 0)
+				LogTilePrioritySimulationFrameSummaryIfNeeded();
 			if (cfg.RenderStepPhaseLog) LogRenderPhase("end");
 			if (softGateDebugEnabled && _rowCursor == 0)
 			{
@@ -8936,6 +9256,47 @@ public partial class GrinFilmCamera : Node
 				useGeomTlasPruningForStep,
 				geomPruneRequestedForStep,
 				cfg.DebugGeomPruneAuditEnabled);
+			LogExperimentalSubtileSchedulerForCurrentBand(_renderHealthStepIndex, healthExitReason);
+			SimulateTilePriorityOrderForCurrentBand(_renderHealthStepIndex, healthExitReason);
+			for (int subtileIndex = 0; subtileIndex < _tileMetricCurrentSubtileCount; subtileIndex++)
+			{
+				int subtileX = subtileIndex * _tileMetricCurrentSubtileWidth;
+				int subtileWidth = Math.Max(0, Math.Min(_tileMetricCurrentSubtileWidth, filmW - subtileX));
+				if (subtileWidth <= 0)
+					continue;
+				string stableId = BuildTileMetricsStableId(
+					_tileMetricCurrentBandIndex,
+					subtileIndex,
+					subtileX,
+					_tileMetricCurrentBandY,
+					subtileWidth,
+					_tileMetricCurrentBandHeight);
+				var tileDescriptor = new TileDescriptor(
+					_renderHealthStepIndex,
+					_tileMetricCurrentBandIndex,
+					subtileIndex,
+					subtileX,
+					_tileMetricCurrentBandY,
+					subtileWidth,
+					_tileMetricCurrentBandHeight,
+					stableId);
+				TileMetricAccumulator subtile = _tileMetricCurrentSubtiles[subtileIndex];
+					RecordTileMetricSample(
+						in tileDescriptor,
+						subtile.RaysTraced,
+						subtile.Hits,
+						subtile.SourceHits,
+						subtile.BackgroundHits,
+						subtile.UnclassifiedHits,
+						subtile.CandidateReferences,
+						subtile.CandidateSegments,
+					subtile.NoCandidatePixels,
+					subtile.CandidatePixels,
+					subtile.GeomPixelsProcessed,
+					subtile.GeomRayTests,
+					healthExitReason);
+			}
+			SaveTileMetricBandHistoryForCurrentBand();
 			bool stalledNow = _renderHealthStallSteps >= RenderHealthStallThreshold;
 			if (stalledNow && !_rowStallActive)
 			{
@@ -9241,6 +9602,8 @@ public partial class GrinFilmCamera : Node
 	private void RefreshFixtureDebugSourceIds(string sourceGroup)
 	{
 		_fixtureDebugSourceIds.Clear();
+		_fixtureDebugBackgroundIds.Clear();
+		_fixtureDebugHasExplicitBackgroundGroup = false;
 		SceneTree tree = GetTree();
 		if (tree == null)
 		{
@@ -9256,6 +9619,52 @@ public partial class GrinFilmCamera : Node
 				_fixtureDebugSourceIds.Add(sourceNode.GetInstanceId());
 			}
 		}
+
+		string backgroundGroup = string.IsNullOrWhiteSpace(FixtureDebugBackgroundGroup)
+			? string.Empty
+			: FixtureDebugBackgroundGroup.Trim();
+		if (backgroundGroup.Length == 0)
+		{
+			return;
+		}
+
+		var backgroundNodes = tree.GetNodesInGroup(backgroundGroup);
+		foreach (var node in backgroundNodes)
+		{
+			if (node is Node backgroundNode)
+			{
+				_fixtureDebugBackgroundIds.Add(backgroundNode.GetInstanceId());
+			}
+		}
+
+		_fixtureDebugHasExplicitBackgroundGroup = _fixtureDebugBackgroundIds.Count > 0;
+	}
+
+	private string ClassifyFixtureHitKind(bool hadHit, bool absorbedByInnerRadius, ulong colliderId)
+	{
+		if (!hadHit)
+		{
+			return absorbedByInnerRadius ? "absorbed" : "miss";
+		}
+
+		if (_fixtureDebugSourceIds.Contains(colliderId))
+		{
+			return "source";
+		}
+
+		if (_fixtureDebugHasExplicitBackgroundGroup)
+		{
+			return _fixtureDebugBackgroundIds.Contains(colliderId) ? "background" : "unclassified";
+		}
+
+		return "background";
+	}
+
+	private static string FormatTileClassShare(long hits, long totalHits)
+	{
+		return totalHits > 0
+			? ((double)hits / totalHits).ToString("0.###", CultureInfo.InvariantCulture)
+			: "na";
 	}
 
 	private static bool ShouldTraceFixtureDebugSample(int x, int y, int modulo)
@@ -9665,6 +10074,11 @@ public partial class GrinFilmCamera : Node
 		int prev = _rowCursor;
 		_rowCursor = 0;
 		GD.Print($"[FrameReset] reason={reason} prevRow={prev} frame={_frameIndex}");
+	}
+
+	private void QuitTreeDeferred()
+	{
+		GetTree()?.Quit();
 	}
 
 	private void EnsureFilmDebugCapacity(int rays, int pts)
@@ -10252,6 +10666,7 @@ public partial class GrinFilmCamera : Node
 			NeedColliderNames = NeedColliderNames,
 			FixtureDebugHitColoringEnabled = FixtureDebugHitColoringEnabled,
 			FixtureDebugSourceGroup = string.IsNullOrWhiteSpace(FixtureDebugSourceGroup) ? "fixture_source" : FixtureDebugSourceGroup.Trim(),
+			FixtureDebugBackgroundGroup = string.IsNullOrWhiteSpace(FixtureDebugBackgroundGroup) ? "fixture_background" : FixtureDebugBackgroundGroup.Trim(),
 			FixtureDebugSourceHitColor = FixtureDebugSourceHitColor,
 			FixtureDebugBackgroundHitColor = FixtureDebugBackgroundHitColor,
 			FixtureDebugAbsorbedColor = FixtureDebugAbsorbedColor,
@@ -10532,6 +10947,7 @@ public partial class GrinFilmCamera : Node
 		hash.Add(cfg.NeedColliderNames);
 		hash.Add(cfg.FixtureDebugHitColoringEnabled);
 		hash.Add(cfg.FixtureDebugSourceGroup ?? string.Empty);
+		hash.Add(cfg.FixtureDebugBackgroundGroup ?? string.Empty);
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugSourceHitColor.R));
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugSourceHitColor.G));
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugSourceHitColor.B));
@@ -11181,6 +11597,444 @@ public partial class GrinFilmCamera : Node
 		if (delta < 0) delta = current;
 		lastSample = current;
 		return delta;
+	}
+
+	private void EnsureTileMetricSubtileCapacity(int subtileCount)
+	{
+		if (_tileMetricCurrentSubtiles.Length < subtileCount)
+			_tileMetricCurrentSubtiles = new TileMetricAccumulator[subtileCount];
+		for (int i = 0; i < subtileCount; i++)
+			_tileMetricCurrentSubtiles[i] = default;
+	}
+
+	private static string BuildTileMetricsStableId(int bandIndex, int subtileIndex, int x, int y, int width, int height)
+	{
+		return $"band_{bandIndex}_sub_{subtileIndex}_x{x}_y{y}_w{width}_h{height}";
+	}
+
+	private static long BuildTileMetricBandHistoryKey(int y, int height)
+	{
+		return ((long)y << 32) ^ (uint)height;
+	}
+
+	private void EnsureTileMetricExecutionOrderCapacity(int subtileCount)
+	{
+		if (_tileMetricCurrentExecutionOrder.Length < subtileCount)
+			_tileMetricCurrentExecutionOrder = new int[subtileCount];
+		for (int i = 0; i < subtileCount; i++)
+			_tileMetricCurrentExecutionOrder[i] = i;
+	}
+
+	private void PrepareExperimentalSubtileSchedulerOrderForCurrentBand()
+	{
+		EnsureTileMetricExecutionOrderCapacity(_tileMetricCurrentSubtileCount);
+		_tileMetricCurrentExecutionSource = "baseline";
+
+		if (!ExperimentalSubtileSchedulerModeEnabled || _tileMetricCurrentSubtileCount <= 1)
+			return;
+		long historyKey = BuildTileMetricBandHistoryKey(_tileMetricCurrentBandY, _tileMetricCurrentBandHeight);
+		if (!_tileMetricBandHistory.TryGetValue(historyKey, out TileMetricAccumulator[] history))
+			return;
+		if (history == null || history.Length < _tileMetricCurrentSubtileCount)
+			return;
+
+		var prioritized = new System.Collections.Generic.List<TilePriorityCandidate>(_tileMetricCurrentSubtileCount);
+		for (int subtileIndex = 0; subtileIndex < _tileMetricCurrentSubtileCount; subtileIndex++)
+		{
+			int subtileX = subtileIndex * _tileMetricCurrentSubtileWidth;
+			int subtileWidth = Math.Max(0, Math.Min(_tileMetricCurrentSubtileWidth, _filmWidth - subtileX));
+			if (subtileWidth <= 0)
+				continue;
+			prioritized.Add(new TilePriorityCandidate(subtileIndex, subtileX, subtileWidth, history[subtileIndex]));
+		}
+
+		if (prioritized.Count == 0)
+			return;
+
+		prioritized.Sort((a, b) =>
+		{
+			int cmp = b.HitYield.CompareTo(a.HitYield);
+			if (cmp != 0) return cmp;
+			cmp = b.Hits.CompareTo(a.Hits);
+			if (cmp != 0) return cmp;
+			cmp = a.NoCandidateRatio.CompareTo(b.NoCandidateRatio);
+			if (cmp != 0) return cmp;
+			return a.SubtileIndex.CompareTo(b.SubtileIndex);
+		});
+
+		for (int i = 0; i < prioritized.Count; i++)
+			_tileMetricCurrentExecutionOrder[i] = prioritized[i].SubtileIndex;
+		_tileMetricCurrentExecutionSource = "history";
+	}
+
+	private void SaveTileMetricBandHistoryForCurrentBand()
+	{
+		if (!EnableTileMetricsScaffold || _tileMetricCurrentSubtileCount <= 0)
+			return;
+
+		var snapshot = new TileMetricAccumulator[_tileMetricCurrentSubtileCount];
+		Array.Copy(_tileMetricCurrentSubtiles, snapshot, _tileMetricCurrentSubtileCount);
+		long historyKey = BuildTileMetricBandHistoryKey(_tileMetricCurrentBandY, _tileMetricCurrentBandHeight);
+		_tileMetricBandHistory[historyKey] = snapshot;
+	}
+
+	private static string BuildTilePriorityOrderText(System.Collections.Generic.IReadOnlyList<TilePriorityCandidate> items)
+	{
+		if (items == null || items.Count == 0)
+			return "none";
+		var sb = new StringBuilder(128);
+		for (int i = 0; i < items.Count; i++)
+		{
+			if (i > 0) sb.Append(',');
+			TilePriorityCandidate item = items[i];
+			sb.Append(item.SubtileIndex)
+				.Append('@')
+				.Append(item.X)
+				.Append(':')
+				.Append(item.HitYield.ToString("0.###", CultureInfo.InvariantCulture))
+				.Append('/')
+				.Append(item.Hits)
+				.Append('/')
+				.Append(item.NoCandidateRatio.ToString("0.###", CultureInfo.InvariantCulture));
+		}
+		return sb.ToString();
+	}
+
+	private static int ComputeTileHitCaptureOrdinal(System.Collections.Generic.IReadOnlyList<TilePriorityCandidate> items, long totalHits, double thresholdShare)
+	{
+		if (items == null || items.Count == 0 || totalHits <= 0)
+			return 0;
+
+		long cumulativeHits = 0;
+		double thresholdHits = totalHits * thresholdShare;
+		for (int i = 0; i < items.Count; i++)
+		{
+			cumulativeHits += items[i].Hits;
+			if (cumulativeHits > 0 && cumulativeHits >= thresholdHits)
+				return i + 1;
+		}
+
+		return items.Count;
+	}
+
+	private void LogExperimentalSubtileSchedulerForCurrentBand(int stepIndex, string exitReason)
+	{
+		if (!ExperimentalSubtileSchedulerModeEnabled || _tileMetricCurrentSubtileCount <= 0)
+			return;
+
+		var legacy = new System.Collections.Generic.List<TilePriorityCandidate>(_tileMetricCurrentSubtileCount);
+		var executed = new System.Collections.Generic.List<TilePriorityCandidate>(_tileMetricCurrentSubtileCount);
+		TilePriorityCandidate[] bySubtileIndex = new TilePriorityCandidate[_tileMetricCurrentSubtileCount];
+		long totalBandHits = 0;
+
+		for (int subtileIndex = 0; subtileIndex < _tileMetricCurrentSubtileCount; subtileIndex++)
+		{
+			int subtileX = subtileIndex * _tileMetricCurrentSubtileWidth;
+			int subtileWidth = Math.Max(0, Math.Min(_tileMetricCurrentSubtileWidth, _filmWidth - subtileX));
+			if (subtileWidth <= 0)
+				continue;
+			TilePriorityCandidate candidate = new TilePriorityCandidate(subtileIndex, subtileX, subtileWidth, _tileMetricCurrentSubtiles[subtileIndex]);
+			legacy.Add(candidate);
+			bySubtileIndex[subtileIndex] = candidate;
+			totalBandHits += candidate.Hits;
+		}
+
+		if (legacy.Count == 0 || totalBandHits <= 0)
+			return;
+
+		for (int execIndex = 0; execIndex < legacy.Count; execIndex++)
+		{
+			int subtileIndex = _tileMetricCurrentExecutionOrder[execIndex];
+			if ((uint)subtileIndex >= (uint)bySubtileIndex.Length)
+				continue;
+			executed.Add(bySubtileIndex[subtileIndex]);
+		}
+
+		long legacyTop1 = legacy.Count > 0 ? legacy[0].Hits : 0;
+		long legacyTop2 = legacyTop1 + (legacy.Count > 1 ? legacy[1].Hits : 0);
+		long legacyTop3 = legacyTop2 + (legacy.Count > 2 ? legacy[2].Hits : 0);
+		long legacyPrimaryTop1 = legacy.Count > 0 ? legacy[0].SourceHits : 0;
+		long legacyBackdropTop1 = legacy.Count > 0 ? legacy[0].BackgroundHits : 0;
+		long legacyCombinedTop1 = legacyPrimaryTop1 + legacyBackdropTop1;
+		long execTop1 = executed.Count > 0 ? executed[0].Hits : 0;
+		long execTop2 = execTop1 + (executed.Count > 1 ? executed[1].Hits : 0);
+		long execTop3 = execTop2 + (executed.Count > 2 ? executed[2].Hits : 0);
+		long execPrimaryTop1 = executed.Count > 0 ? executed[0].SourceHits : 0;
+		long execBackdropTop1 = executed.Count > 0 ? executed[0].BackgroundHits : 0;
+		long execCombinedTop1 = execPrimaryTop1 + execBackdropTop1;
+		int firstHitOrdinal = ComputeTileHitCaptureOrdinal(executed, totalBandHits, 1.0 / Math.Max(1L, totalBandHits));
+		int hit50Ordinal = ComputeTileHitCaptureOrdinal(executed, totalBandHits, 0.5);
+
+		_tileMetricExecBandsWithHitsThisFrame++;
+		_tileMetricExecTotalHitsThisFrame += totalBandHits;
+		_tileMetricExecLegacyHitsTop1ThisFrame += legacyTop1;
+		_tileMetricExecLegacyHitsTop2ThisFrame += legacyTop2;
+		_tileMetricExecLegacyHitsTop3ThisFrame += legacyTop3;
+		_tileMetricExecOrderedHitsTop1ThisFrame += execTop1;
+		_tileMetricExecOrderedHitsTop2ThisFrame += execTop2;
+		_tileMetricExecOrderedHitsTop3ThisFrame += execTop3;
+		_tileMetricExecLegacyPrimaryHitsTop1ThisFrame += legacyPrimaryTop1;
+		_tileMetricExecLegacyBackdropHitsTop1ThisFrame += legacyBackdropTop1;
+		_tileMetricExecLegacyCombinedHitsTop1ThisFrame += legacyCombinedTop1;
+		_tileMetricExecOrderedPrimaryHitsTop1ThisFrame += execPrimaryTop1;
+		_tileMetricExecOrderedBackdropHitsTop1ThisFrame += execBackdropTop1;
+		_tileMetricExecOrderedCombinedHitsTop1ThisFrame += execCombinedTop1;
+		bool rankedBand = string.Equals(_tileMetricCurrentExecutionSource, "history", StringComparison.Ordinal);
+		if (rankedBand)
+			_tileMetricExecRankedBandsWithHitsThisFrame++;
+		else
+			_tileMetricExecSeedBandsWithHitsThisFrame++;
+		if (firstHitOrdinal > 0)
+		{
+			_tileMetricExecFirstHitOrdinalSumThisFrame += firstHitOrdinal;
+			_tileMetricExecFirstHitOrdinalCountThisFrame++;
+		}
+		if (hit50Ordinal > 0)
+		{
+			_tileMetricExecHit50OrdinalSumThisFrame += hit50Ordinal;
+			_tileMetricExecHit50OrdinalCountThisFrame++;
+		}
+
+		string legacyOrder = BuildTilePriorityOrderText(legacy);
+		string executionOrder = BuildTilePriorityOrderText(executed);
+		string legacyTop1Share = ((double)legacyTop1 / totalBandHits).ToString("0.###", CultureInfo.InvariantCulture);
+		string legacyTop2Share = ((double)legacyTop2 / totalBandHits).ToString("0.###", CultureInfo.InvariantCulture);
+		string execTop1Share = ((double)execTop1 / totalBandHits).ToString("0.###", CultureInfo.InvariantCulture);
+		string execTop2Share = ((double)execTop2 / totalBandHits).ToString("0.###", CultureInfo.InvariantCulture);
+		string schedulerPhase = rankedBand ? "warm_start_ranked" : "cold_start_seed";
+		GD.Print(
+			$"[TileMetrics][ExecOrder] step={stepIndex} band={_tileMetricCurrentBandIndex} y={_tileMetricCurrentBandY} h={_tileMetricCurrentBandHeight} " +
+			$"mode=experimental_reorder_only phase={schedulerPhase} rankActive={(rankedBand ? 1 : 0)} " +
+			$"legacy={legacyOrder} executed={executionOrder} totalHits={totalBandHits} " +
+			$"legacyTop1Share={legacyTop1Share} legacyTop2Share={legacyTop2Share} " +
+			$"execTop1Share={execTop1Share} execTop2Share={execTop2Share} " +
+			$"legacyPrimaryTop1Share={FormatTileClassShare(legacyPrimaryTop1, totalBandHits)} legacyBackdropTop1Share={FormatTileClassShare(legacyBackdropTop1, totalBandHits)} legacyCombinedTop1Share={FormatTileClassShare(legacyCombinedTop1, totalBandHits)} " +
+			$"execPrimaryTop1Share={FormatTileClassShare(execPrimaryTop1, totalBandHits)} execBackdropTop1Share={FormatTileClassShare(execBackdropTop1, totalBandHits)} execCombinedTop1Share={FormatTileClassShare(execCombinedTop1, totalBandHits)} " +
+			$"firstHitOrdinal={firstHitOrdinal} hit50Ordinal={hit50Ordinal} source={_tileMetricCurrentExecutionSource} " +
+			$"exit={(string.IsNullOrEmpty(exitReason) ? "none" : exitReason)}");
+	}
+
+	private void LogExperimentalSubtileSchedulerFrameSummaryIfNeeded()
+	{
+		if (!ExperimentalSubtileSchedulerModeEnabled)
+			return;
+		if (_tileMetricExecBandsWithHitsThisFrame <= 0 || _tileMetricExecTotalHitsThisFrame <= 0)
+			return;
+
+		double invHits = 1.0 / _tileMetricExecTotalHitsThisFrame;
+		string avgFirstHitOrdinal = _tileMetricExecFirstHitOrdinalCountThisFrame > 0
+			? ((double)_tileMetricExecFirstHitOrdinalSumThisFrame / _tileMetricExecFirstHitOrdinalCountThisFrame).ToString("0.###", CultureInfo.InvariantCulture)
+			: "na";
+		string avgHit50Ordinal = _tileMetricExecHit50OrdinalCountThisFrame > 0
+			? ((double)_tileMetricExecHit50OrdinalSumThisFrame / _tileMetricExecHit50OrdinalCountThisFrame).ToString("0.###", CultureInfo.InvariantCulture)
+			: "na";
+		bool rankedFrame = _tileMetricExecRankedBandsWithHitsThisFrame > 0;
+		string framePhase = rankedFrame
+			? (_tileMetricExecSeedBandsWithHitsThisFrame > 0 ? "mixed_warm_start" : "warm_start_ranked")
+			: "cold_start_seed_only";
+		GD.Print(
+			$"[TileMetrics][ExecSummary] mode=experimental_reorder_only framePhase={framePhase} rankActive={(rankedFrame ? 1 : 0)} " +
+			$"bandsWithHits={_tileMetricExecBandsWithHitsThisFrame} seedBandsWithHits={_tileMetricExecSeedBandsWithHitsThisFrame} rankedBandsWithHits={_tileMetricExecRankedBandsWithHitsThisFrame} totalHits={_tileMetricExecTotalHitsThisFrame} " +
+			$"legacyTop1Share={_tileMetricExecLegacyHitsTop1ThisFrame * invHits:0.###} legacyTop2Share={_tileMetricExecLegacyHitsTop2ThisFrame * invHits:0.###} legacyTop3Share={_tileMetricExecLegacyHitsTop3ThisFrame * invHits:0.###} " +
+			$"execTop1Share={_tileMetricExecOrderedHitsTop1ThisFrame * invHits:0.###} execTop2Share={_tileMetricExecOrderedHitsTop2ThisFrame * invHits:0.###} execTop3Share={_tileMetricExecOrderedHitsTop3ThisFrame * invHits:0.###} " +
+			$"legacyPrimaryTop1Share={_tileMetricExecLegacyPrimaryHitsTop1ThisFrame * invHits:0.###} legacyBackdropTop1Share={_tileMetricExecLegacyBackdropHitsTop1ThisFrame * invHits:0.###} legacyCombinedTop1Share={_tileMetricExecLegacyCombinedHitsTop1ThisFrame * invHits:0.###} " +
+			$"execPrimaryTop1Share={_tileMetricExecOrderedPrimaryHitsTop1ThisFrame * invHits:0.###} execBackdropTop1Share={_tileMetricExecOrderedBackdropHitsTop1ThisFrame * invHits:0.###} execCombinedTop1Share={_tileMetricExecOrderedCombinedHitsTop1ThisFrame * invHits:0.###} " +
+			$"avgFirstHitOrdinal={avgFirstHitOrdinal} avgHit50Ordinal={avgHit50Ordinal}");
+
+		_tileMetricExecBandsWithHitsThisFrame = 0;
+		_tileMetricExecTotalHitsThisFrame = 0;
+		_tileMetricExecLegacyHitsTop1ThisFrame = 0;
+		_tileMetricExecLegacyHitsTop2ThisFrame = 0;
+		_tileMetricExecLegacyHitsTop3ThisFrame = 0;
+		_tileMetricExecOrderedHitsTop1ThisFrame = 0;
+		_tileMetricExecOrderedHitsTop2ThisFrame = 0;
+		_tileMetricExecOrderedHitsTop3ThisFrame = 0;
+		_tileMetricExecLegacyPrimaryHitsTop1ThisFrame = 0;
+		_tileMetricExecLegacyBackdropHitsTop1ThisFrame = 0;
+		_tileMetricExecLegacyCombinedHitsTop1ThisFrame = 0;
+		_tileMetricExecOrderedPrimaryHitsTop1ThisFrame = 0;
+		_tileMetricExecOrderedBackdropHitsTop1ThisFrame = 0;
+		_tileMetricExecOrderedCombinedHitsTop1ThisFrame = 0;
+		_tileMetricExecFirstHitOrdinalSumThisFrame = 0;
+		_tileMetricExecHit50OrdinalSumThisFrame = 0;
+		_tileMetricExecFirstHitOrdinalCountThisFrame = 0;
+		_tileMetricExecHit50OrdinalCountThisFrame = 0;
+		_tileMetricExecSeedBandsWithHitsThisFrame = 0;
+		_tileMetricExecRankedBandsWithHitsThisFrame = 0;
+	}
+
+	private void SimulateTilePriorityOrderForCurrentBand(int stepIndex, string exitReason)
+	{
+		if (!EnableTileMetricsScaffold || !EnableTileMetricsReorderSimulation || _tileMetricCurrentSubtileCount <= 0)
+			return;
+
+		var actual = new System.Collections.Generic.List<TilePriorityCandidate>(_tileMetricCurrentSubtileCount);
+		var simulated = new System.Collections.Generic.List<TilePriorityCandidate>(_tileMetricCurrentSubtileCount);
+		long totalBandHits = 0;
+		for (int subtileIndex = 0; subtileIndex < _tileMetricCurrentSubtileCount; subtileIndex++)
+		{
+			int subtileX = subtileIndex * _tileMetricCurrentSubtileWidth;
+			int subtileWidth = Math.Max(0, Math.Min(_tileMetricCurrentSubtileWidth, _filmWidth - subtileX));
+			if (subtileWidth <= 0)
+				continue;
+			TilePriorityCandidate candidate = new TilePriorityCandidate(subtileIndex, subtileX, subtileWidth, _tileMetricCurrentSubtiles[subtileIndex]);
+			actual.Add(candidate);
+			simulated.Add(candidate);
+			totalBandHits += candidate.Hits;
+		}
+
+		if (actual.Count == 0)
+			return;
+
+		// Observe-only priority contract for the first scheduler experiment:
+		// prefer higher yield, then more hits, then fewer no-candidate pixels.
+		simulated.Sort((a, b) =>
+		{
+			int cmp = b.HitYield.CompareTo(a.HitYield);
+			if (cmp != 0) return cmp;
+			cmp = b.Hits.CompareTo(a.Hits);
+			if (cmp != 0) return cmp;
+			cmp = a.NoCandidateRatio.CompareTo(b.NoCandidateRatio);
+			if (cmp != 0) return cmp;
+			return a.SubtileIndex.CompareTo(b.SubtileIndex);
+		});
+
+		long actualTop1 = actual.Count > 0 ? actual[0].Hits : 0;
+		long actualTop2 = actualTop1 + (actual.Count > 1 ? actual[1].Hits : 0);
+		long actualTop3 = actualTop2 + (actual.Count > 2 ? actual[2].Hits : 0);
+		long actualPrimaryTop1 = actual.Count > 0 ? actual[0].SourceHits : 0;
+		long actualBackdropTop1 = actual.Count > 0 ? actual[0].BackgroundHits : 0;
+		long actualCombinedTop1 = actualPrimaryTop1 + actualBackdropTop1;
+		long simTop1 = simulated.Count > 0 ? simulated[0].Hits : 0;
+		long simTop2 = simTop1 + (simulated.Count > 1 ? simulated[1].Hits : 0);
+		long simTop3 = simTop2 + (simulated.Count > 2 ? simulated[2].Hits : 0);
+		long simPrimaryTop1 = simulated.Count > 0 ? simulated[0].SourceHits : 0;
+		long simBackdropTop1 = simulated.Count > 0 ? simulated[0].BackgroundHits : 0;
+		long simCombinedTop1 = simPrimaryTop1 + simBackdropTop1;
+
+		if (totalBandHits > 0)
+		{
+			_tileMetricSimBandsWithHitsThisFrame++;
+			_tileMetricSimTotalHitsThisFrame += totalBandHits;
+			_tileMetricActualHitsTop1ThisFrame += actualTop1;
+			_tileMetricActualHitsTop2ThisFrame += actualTop2;
+			_tileMetricActualHitsTop3ThisFrame += actualTop3;
+			_tileMetricSimHitsTop1ThisFrame += simTop1;
+			_tileMetricSimHitsTop2ThisFrame += simTop2;
+			_tileMetricSimHitsTop3ThisFrame += simTop3;
+			_tileMetricActualPrimaryHitsTop1ThisFrame += actualPrimaryTop1;
+			_tileMetricActualBackdropHitsTop1ThisFrame += actualBackdropTop1;
+			_tileMetricActualCombinedHitsTop1ThisFrame += actualCombinedTop1;
+			_tileMetricSimPrimaryHitsTop1ThisFrame += simPrimaryTop1;
+			_tileMetricSimBackdropHitsTop1ThisFrame += simBackdropTop1;
+			_tileMetricSimCombinedHitsTop1ThisFrame += simCombinedTop1;
+		}
+
+		string actualOrder = BuildTilePriorityOrderText(actual);
+		string simulatedOrder = BuildTilePriorityOrderText(simulated);
+		string actualTop1Share = totalBandHits > 0 ? ((double)actualTop1 / totalBandHits).ToString("0.###", CultureInfo.InvariantCulture) : "na";
+		string actualTop2Share = totalBandHits > 0 ? ((double)actualTop2 / totalBandHits).ToString("0.###", CultureInfo.InvariantCulture) : "na";
+		string simulatedTop1Share = totalBandHits > 0 ? ((double)simTop1 / totalBandHits).ToString("0.###", CultureInfo.InvariantCulture) : "na";
+		string simulatedTop2Share = totalBandHits > 0 ? ((double)simTop2 / totalBandHits).ToString("0.###", CultureInfo.InvariantCulture) : "na";
+		GD.Print(
+			$"[TileMetrics][SimOrder] step={stepIndex} band={_tileMetricCurrentBandIndex} y={_tileMetricCurrentBandY} h={_tileMetricCurrentBandHeight} " +
+			$"actual={actualOrder} simulated={simulatedOrder} totalHits={totalBandHits} " +
+			$"actualTop1Share={actualTop1Share} actualTop2Share={actualTop2Share} " +
+			$"simTop1Share={simulatedTop1Share} simTop2Share={simulatedTop2Share} " +
+			$"actualPrimaryTop1Share={FormatTileClassShare(actualPrimaryTop1, totalBandHits)} actualBackdropTop1Share={FormatTileClassShare(actualBackdropTop1, totalBandHits)} actualCombinedTop1Share={FormatTileClassShare(actualCombinedTop1, totalBandHits)} " +
+			$"simPrimaryTop1Share={FormatTileClassShare(simPrimaryTop1, totalBandHits)} simBackdropTop1Share={FormatTileClassShare(simBackdropTop1, totalBandHits)} simCombinedTop1Share={FormatTileClassShare(simCombinedTop1, totalBandHits)} " +
+			$"exit={(string.IsNullOrEmpty(exitReason) ? "none" : exitReason)}");
+	}
+
+	private void LogTilePrioritySimulationFrameSummaryIfNeeded()
+	{
+		if (!EnableTileMetricsScaffold || !EnableTileMetricsReorderSimulation)
+			return;
+		if (_tileMetricSimBandsWithHitsThisFrame <= 0 || _tileMetricSimTotalHitsThisFrame <= 0)
+			return;
+
+		double invHits = 1.0 / _tileMetricSimTotalHitsThisFrame;
+		GD.Print(
+			$"[TileMetrics][SimSummary] bandsWithHits={_tileMetricSimBandsWithHitsThisFrame} totalHits={_tileMetricSimTotalHitsThisFrame} " +
+			$"actualTop1Share={_tileMetricActualHitsTop1ThisFrame * invHits:0.###} actualTop2Share={_tileMetricActualHitsTop2ThisFrame * invHits:0.###} actualTop3Share={_tileMetricActualHitsTop3ThisFrame * invHits:0.###} " +
+			$"simTop1Share={_tileMetricSimHitsTop1ThisFrame * invHits:0.###} simTop2Share={_tileMetricSimHitsTop2ThisFrame * invHits:0.###} simTop3Share={_tileMetricSimHitsTop3ThisFrame * invHits:0.###} " +
+			$"actualPrimaryTop1Share={_tileMetricActualPrimaryHitsTop1ThisFrame * invHits:0.###} actualBackdropTop1Share={_tileMetricActualBackdropHitsTop1ThisFrame * invHits:0.###} actualCombinedTop1Share={_tileMetricActualCombinedHitsTop1ThisFrame * invHits:0.###} " +
+			$"simPrimaryTop1Share={_tileMetricSimPrimaryHitsTop1ThisFrame * invHits:0.###} simBackdropTop1Share={_tileMetricSimBackdropHitsTop1ThisFrame * invHits:0.###} simCombinedTop1Share={_tileMetricSimCombinedHitsTop1ThisFrame * invHits:0.###}");
+
+		_tileMetricSimBandsWithHitsThisFrame = 0;
+		_tileMetricSimTotalHitsThisFrame = 0;
+		_tileMetricSimHitsTop1ThisFrame = 0;
+		_tileMetricSimHitsTop2ThisFrame = 0;
+		_tileMetricSimHitsTop3ThisFrame = 0;
+		_tileMetricActualHitsTop1ThisFrame = 0;
+		_tileMetricActualHitsTop2ThisFrame = 0;
+		_tileMetricActualHitsTop3ThisFrame = 0;
+		_tileMetricSimPrimaryHitsTop1ThisFrame = 0;
+		_tileMetricSimBackdropHitsTop1ThisFrame = 0;
+		_tileMetricSimCombinedHitsTop1ThisFrame = 0;
+		_tileMetricActualPrimaryHitsTop1ThisFrame = 0;
+		_tileMetricActualBackdropHitsTop1ThisFrame = 0;
+		_tileMetricActualCombinedHitsTop1ThisFrame = 0;
+	}
+
+	private void RecordTileMetricSample(
+		in TileDescriptor descriptor,
+		long raysTraced,
+		long hits,
+		long sourceHits,
+		long backgroundHits,
+		long unclassifiedHits,
+		long candidateReferences,
+		long candidateSegments,
+		long noCandidatePixels,
+		long candidatePixels,
+		long geomPixelsProcessed,
+		long geomRayTests,
+		string exitReason)
+	{
+		if (!EnableTileMetricsScaffold)
+			return;
+
+		var sample = new TileMetricSample(
+			in descriptor,
+			raysTraced,
+			hits,
+			sourceHits,
+			backgroundHits,
+			unclassifiedHits,
+			candidateReferences,
+			candidateSegments,
+			noCandidatePixels,
+			candidatePixels,
+			geomPixelsProcessed,
+			geomRayTests,
+			exitReason);
+
+		_tileMetricSamples[_tileMetricWrite] = sample;
+		_tileMetricWrite = (_tileMetricWrite + 1) % TileMetricsBufferSize;
+		if (_tileMetricCount < TileMetricsBufferSize)
+			_tileMetricCount++;
+
+		if (_tileMetricsLogFrame != _frameIndex)
+		{
+			_tileMetricsLogFrame = _frameIndex;
+			_tileMetricsLogsRemainingThisFrame = Math.Max(0, TileMetricsMaxLogsPerFrame);
+		}
+
+		if (_tileMetricsLogsRemainingThisFrame <= 0)
+			return;
+		_tileMetricsLogsRemainingThisFrame--;
+
+		string raysPerHit = hits > 0 ? ((double)raysTraced / hits).ToString("0.###") : "na";
+		string candRefsPerHit = hits > 0 ? ((double)candidateReferences / hits).ToString("0.###") : "na";
+		string noCandidateRatio = geomPixelsProcessed > 0 ? ((double)noCandidatePixels / geomPixelsProcessed).ToString("0.###") : "na";
+		string hitYield = raysTraced > 0 ? ((double)hits / raysTraced).ToString("0.###") : "0";
+		GD.Print(
+			$"[TileMetrics] step={descriptor.StepIndex} band={descriptor.BandIndex} subtile={descriptor.SubtileIndex} id={descriptor.StableId} " +
+			$"x={descriptor.X} y={descriptor.Y} w={descriptor.Width} h={descriptor.Height} rays={raysTraced} hits={hits} sourceHits={sourceHits} backgroundHits={backgroundHits} unclassifiedHits={unclassifiedHits} candRefs={candidateReferences} candSegs={candidateSegments} " +
+			$"candPx={candidatePixels} noCandPx={noCandidatePixels} geomPx={geomPixelsProcessed} geomRayTests={geomRayTests} " +
+			$"raysPerHit={raysPerHit} candChecksPerHit={candRefsPerHit} noCandRatio={noCandidateRatio} hitYield={hitYield} " +
+			$"exit={(string.IsNullOrEmpty(sample.ExitReason) ? "none" : sample.ExitReason)}");
 	}
 
 	private void RecordRenderHealthSample(
