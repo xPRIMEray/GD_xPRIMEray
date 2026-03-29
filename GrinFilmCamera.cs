@@ -547,6 +547,8 @@ public partial class GrinFilmCamera : Node
 	[Export] public bool EnableTileMetricsReorderSimulation = false;
 	/// <summary>Official experimental scheduler mode: reorder-only subtile execution within each band, with no work reduction.</summary>
 	[Export] public bool EnableTileMetricsReorderExecution = false;
+	/// <summary>Cautious additive memory for reorder-only scheduling; blends decayed per-subtile priors into the existing ranking path.</summary>
+	[Export] public bool EnableTileMetricsPersistentPriors = false;
 
 
 	[ExportGroup("Ray March")]
@@ -1216,6 +1218,10 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private const double OverlayRenderThroughputEmaAlpha = 0.20;
 	private const int OverlayRollingCapacity = 256;
 	private const uint PruneAuditDeterministicMask = 31u; // 1/32 deterministic sampling gate.
+	private const double TileMetricsPersistentPriorDecay = 0.92;
+	private const double TileMetricsPersistentPriorBlendWeight = 0.6;
+	private const double TileMetricsPersistentPriorWeakCurrentBoost = 0.2;
+	private const int TileMetricsPersistentPriorNeighborBandRadius = 2;
 
 	private RenderHealthSample[] _renderHealthSamples = new RenderHealthSample[RenderHealthBufferSize];
 	private TileMetricSample[] _tileMetricSamples = new TileMetricSample[TileMetricsBufferSize];
@@ -1240,6 +1246,7 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private int _tileMetricCurrentSubtileWidth = 1;
 	private long _tileMetricSimBandsWithHitsThisFrame = 0;
 	private long _tileMetricSimTotalHitsThisFrame = 0;
+	private long _tileMetricSimSegmentsTracedThisFrame = 0;
 	private long _tileMetricSimHitsTop1ThisFrame = 0;
 	private long _tileMetricSimHitsTop2ThisFrame = 0;
 	private long _tileMetricSimHitsTop3ThisFrame = 0;
@@ -1252,11 +1259,18 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private long _tileMetricActualPrimaryHitsTop1ThisFrame = 0;
 	private long _tileMetricActualBackdropHitsTop1ThisFrame = 0;
 	private long _tileMetricActualCombinedHitsTop1ThisFrame = 0;
+	private long _tileMetricActualFirstHitOrdinalSumThisFrame = 0;
+	private long _tileMetricActualHit50OrdinalSumThisFrame = 0;
+	private long _tileMetricActualFirstHitOrdinalCountThisFrame = 0;
+	private long _tileMetricActualHit50OrdinalCountThisFrame = 0;
 	private readonly System.Collections.Generic.Dictionary<long, TileMetricAccumulator[]> _tileMetricBandHistory = new System.Collections.Generic.Dictionary<long, TileMetricAccumulator[]>();
+	private readonly System.Collections.Generic.Dictionary<string, TileMetricPersistentPrior> _tileMetricPersistentPriors = new System.Collections.Generic.Dictionary<string, TileMetricPersistentPrior>(StringComparer.Ordinal);
 	private int[] _tileMetricCurrentExecutionOrder = Array.Empty<int>();
 	private string _tileMetricCurrentExecutionSource = "baseline";
+	private double _tileMetricCurrentExecutionPriorWeight = 0.0;
 	private long _tileMetricExecBandsWithHitsThisFrame = 0;
 	private long _tileMetricExecTotalHitsThisFrame = 0;
+	private long _tileMetricExecSegmentsTracedThisFrame = 0;
 	private long _tileMetricExecLegacyHitsTop1ThisFrame = 0;
 	private long _tileMetricExecLegacyHitsTop2ThisFrame = 0;
 	private long _tileMetricExecLegacyHitsTop3ThisFrame = 0;
@@ -1275,7 +1289,20 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private long _tileMetricExecHit50OrdinalCountThisFrame = 0;
 	private long _tileMetricExecSeedBandsWithHitsThisFrame = 0;
 	private long _tileMetricExecRankedBandsWithHitsThisFrame = 0;
+	private long _tileMetricExecPriorBandsWithHitsThisFrame = 0;
+	private long _tileMetricExecPriorOnlyBandsWithHitsThisFrame = 0;
+	private long _tileMetricExecCurrentDominantBandsWithHitsThisFrame = 0;
+	private long _tileMetricExecPriorContribBandsWithHitsThisFrame = 0;
+	private long _tileMetricExecSeedHitsThisFrame = 0;
+	private long _tileMetricExecRankedHitsThisFrame = 0;
+	private long _tileMetricExecPriorOnlyHitsThisFrame = 0;
+	private long _tileMetricExecSeedSegmentsTracedThisFrame = 0;
+	private long _tileMetricExecRankedSegmentsTracedThisFrame = 0;
+	private long _tileMetricExecPriorOnlySegmentsTracedThisFrame = 0;
+	private long _tileMetricExecTop1OrderChangedBandsWithHitsThisFrame = 0;
+	private long _tileMetricExecTop1HitImprovedBandsWithHitsThisFrame = 0;
 	private bool ExperimentalSubtileSchedulerModeEnabled => EnableTileMetricsScaffold && EnableTileMetricsReorderExecution;
+	private bool ExperimentalPersistentSubtileSchedulerModeEnabled => ExperimentalSubtileSchedulerModeEnabled && EnableTileMetricsPersistentPriors;
 	private int _geomPruneAuditSamplesTakenThisWindow = 0;
 	private double _lastFrameRenderMs = 0.0;
 	private readonly StringBuilder _overlayHudSb = new StringBuilder(256);
@@ -1943,6 +1970,74 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 		public long CandidatePixels;
 		public long GeomPixelsProcessed;
 		public long GeomRayTests;
+	}
+
+	private struct TileMetricPersistentPrior
+	{
+		public double RaysTraced;
+		public double Hits;
+		public double NoCandidatePixels;
+		public double GeomPixelsProcessed;
+
+		public void DecayInPlace(double decay)
+		{
+			double clamped = Math.Clamp(decay, 0.0, 1.0);
+			RaysTraced *= clamped;
+			Hits *= clamped;
+			NoCandidatePixels *= clamped;
+			GeomPixelsProcessed *= clamped;
+		}
+
+		public void Add(in TileMetricAccumulator subtile)
+		{
+			RaysTraced += Math.Max(0L, subtile.RaysTraced);
+			Hits += Math.Max(0L, subtile.Hits);
+			NoCandidatePixels += Math.Max(0L, subtile.NoCandidatePixels);
+			GeomPixelsProcessed += Math.Max(0L, subtile.GeomPixelsProcessed);
+		}
+
+		public void AddWeighted(in TileMetricPersistentPrior prior, double weight)
+		{
+			double clamped = Math.Max(0.0, weight);
+			if (clamped <= 0.0)
+				return;
+			RaysTraced += Math.Max(0.0, prior.RaysTraced) * clamped;
+			Hits += Math.Max(0.0, prior.Hits) * clamped;
+			NoCandidatePixels += Math.Max(0.0, prior.NoCandidatePixels) * clamped;
+			GeomPixelsProcessed += Math.Max(0.0, prior.GeomPixelsProcessed) * clamped;
+		}
+	}
+
+	private readonly struct TilePriorityRankInputs
+	{
+		public readonly int SubtileIndex;
+		public readonly int X;
+		public readonly int Width;
+		public readonly TilePriorityCandidate Current;
+		public readonly bool HasCurrent;
+		public readonly TilePriorityCandidate Prior;
+		public readonly bool HasPrior;
+		public readonly double PriorBlendWeight;
+
+		public TilePriorityRankInputs(
+			int subtileIndex,
+			int x,
+			int width,
+			in TilePriorityCandidate current,
+			bool hasCurrent,
+			in TilePriorityCandidate prior,
+			bool hasPrior,
+			double priorBlendWeight)
+		{
+			SubtileIndex = subtileIndex;
+			X = x;
+			Width = width;
+			Current = current;
+			HasCurrent = hasCurrent;
+			Prior = prior;
+			HasPrior = hasPrior;
+			PriorBlendWeight = priorBlendWeight;
+		}
 	}
 
 	private struct OverlayRollingSnapshot
@@ -4547,6 +4642,13 @@ private sealed class OverlayRollingWindow
 			{
 				string normalized = executeValue.Trim().ToLowerInvariant();
 				EnableTileMetricsReorderExecution = normalized is "1" or "true" or "on" or "yes";
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--tile-metrics-persistent-priors=", out string priorsValue))
+			{
+				string normalized = priorsValue.Trim().ToLowerInvariant();
+				EnableTileMetricsPersistentPriors = normalized is "1" or "true" or "on" or "yes";
 				continue;
 			}
 
@@ -11609,7 +11711,12 @@ private sealed class OverlayRollingWindow
 
 	private static string BuildTileMetricsStableId(int bandIndex, int subtileIndex, int x, int y, int width, int height)
 	{
-		return $"band_{bandIndex}_sub_{subtileIndex}_x{x}_y{y}_w{width}_h{height}";
+		return BuildTileMetricsSpatialStableId(x, y, width, height);
+	}
+
+	private static string BuildTileMetricsSpatialStableId(int x, int y, int width, int height)
+	{
+		return $"slice_y{y}_h{height}_x{x}_w{width}";
 	}
 
 	private static long BuildTileMetricBandHistoryKey(int y, int height)
@@ -11625,46 +11732,204 @@ private sealed class OverlayRollingWindow
 			_tileMetricCurrentExecutionOrder[i] = i;
 	}
 
+	private static TilePriorityCandidate BuildTilePriorityCandidateFromPrior(int subtileIndex, int x, int width, in TileMetricPersistentPrior prior)
+	{
+		TileMetricAccumulator synthetic = default;
+		synthetic.RaysTraced = (long)Math.Round(Math.Max(0.0, prior.RaysTraced), MidpointRounding.AwayFromZero);
+		synthetic.Hits = (long)Math.Round(Math.Max(0.0, prior.Hits), MidpointRounding.AwayFromZero);
+		synthetic.NoCandidatePixels = (long)Math.Round(Math.Max(0.0, prior.NoCandidatePixels), MidpointRounding.AwayFromZero);
+		synthetic.GeomPixelsProcessed = (long)Math.Round(Math.Max(0.0, prior.GeomPixelsProcessed), MidpointRounding.AwayFromZero);
+		return new TilePriorityCandidate(subtileIndex, x, width, synthetic);
+	}
+
+	private static double ResolveTilePriorityPriorBlendWeight(bool hasCurrent, in TilePriorityCandidate current, in TilePriorityCandidate prior, bool usedNeighborSeed)
+	{
+		if (prior.Rays <= 0 || prior.Hits < 0)
+			return 0.0;
+		double confidence = Math.Clamp(prior.Rays / 48.0, 0.0, 1.0);
+		double cautiousWeight = TileMetricsPersistentPriorBlendWeight * confidence;
+		if (!hasCurrent)
+			return Math.Clamp(Math.Max(cautiousWeight, usedNeighborSeed ? 0.8 : 1.0), 0.0, 1.0);
+
+		bool weakCurrent = current.Rays <= 32 || current.Hits <= 0 || current.NoCandidateRatio >= 0.95;
+		bool strongerPrior = prior.HitYield > current.HitYield || prior.Hits > current.Hits;
+		if (weakCurrent && strongerPrior)
+			cautiousWeight = Math.Min(1.0, cautiousWeight + TileMetricsPersistentPriorWeakCurrentBoost);
+		if (usedNeighborSeed)
+			cautiousWeight = Math.Min(1.0, cautiousWeight + 0.1);
+		return Math.Clamp(cautiousWeight, 0.0, 1.0);
+	}
+
+	private bool TryBuildNearbyPersistentPrior(int subtileIndex, int subtileX, int subtileWidth, out TilePriorityCandidate priorCandidate, out double priorBlendWeight)
+	{
+		priorCandidate = default;
+		priorBlendWeight = 0.0;
+		if (!ExperimentalPersistentSubtileSchedulerModeEnabled || _tileMetricCurrentBandHeight <= 0)
+			return false;
+
+		TileMetricPersistentPrior aggregate = default;
+		bool exactMatch = false;
+		double totalWeight = 0.0;
+		for (int deltaBand = -TileMetricsPersistentPriorNeighborBandRadius; deltaBand <= TileMetricsPersistentPriorNeighborBandRadius; deltaBand++)
+		{
+			int priorY = _tileMetricCurrentBandY + (deltaBand * _tileMetricCurrentBandHeight);
+			if (priorY < 0 || priorY >= _filmHeight)
+				continue;
+			string spatialKey = BuildTileMetricsSpatialStableId(subtileX, priorY, subtileWidth, _tileMetricCurrentBandHeight);
+			if (!_tileMetricPersistentPriors.TryGetValue(spatialKey, out TileMetricPersistentPrior prior) || prior.RaysTraced <= 0.0)
+				continue;
+			double weight = deltaBand == 0 ? 1.0 : (1.0 / (1.0 + Math.Abs(deltaBand)));
+			aggregate.AddWeighted(prior, weight);
+			totalWeight += weight;
+			if (deltaBand == 0)
+				exactMatch = true;
+		}
+
+		if (totalWeight <= 0.0 || aggregate.RaysTraced <= 0.0)
+			return false;
+
+		priorCandidate = BuildTilePriorityCandidateFromPrior(subtileIndex, subtileX, subtileWidth, aggregate);
+		priorBlendWeight = ResolveTilePriorityPriorBlendWeight(
+			hasCurrent: false,
+			current: default,
+			prior: priorCandidate,
+			usedNeighborSeed: !exactMatch);
+		return priorBlendWeight > 0.0 || priorCandidate.Rays > 0;
+	}
+
+	private static int CompareTilePriorityCandidates(in TilePriorityRankInputs a, in TilePriorityRankInputs b)
+	{
+		double aCurrentWeight = a.HasCurrent ? 1.0 : 0.0;
+		double bCurrentWeight = b.HasCurrent ? 1.0 : 0.0;
+		double aPriorWeight = a.HasPrior ? a.PriorBlendWeight : 0.0;
+		double bPriorWeight = b.HasPrior ? b.PriorBlendWeight : 0.0;
+		double aYield = (aCurrentWeight * a.Current.HitYield) + (aPriorWeight * a.Prior.HitYield);
+		double bYield = (bCurrentWeight * b.Current.HitYield) + (bPriorWeight * b.Prior.HitYield);
+		int cmp = bYield.CompareTo(aYield);
+		if (cmp != 0) return cmp;
+
+		double aHits = (aCurrentWeight * a.Current.Hits) + (aPriorWeight * a.Prior.Hits);
+		double bHits = (bCurrentWeight * b.Current.Hits) + (bPriorWeight * b.Prior.Hits);
+		cmp = bHits.CompareTo(aHits);
+		if (cmp != 0) return cmp;
+
+		double aNoCand = a.HasCurrent
+			? ((1.0 - aPriorWeight) * a.Current.NoCandidateRatio) + (aPriorWeight * a.Prior.NoCandidateRatio)
+			: (a.HasPrior ? a.Prior.NoCandidateRatio : 1.0);
+		double bNoCand = b.HasCurrent
+			? ((1.0 - bPriorWeight) * b.Current.NoCandidateRatio) + (bPriorWeight * b.Prior.NoCandidateRatio)
+			: (b.HasPrior ? b.Prior.NoCandidateRatio : 1.0);
+		cmp = aNoCand.CompareTo(bNoCand);
+		if (cmp != 0) return cmp;
+		return a.SubtileIndex.CompareTo(b.SubtileIndex);
+	}
+
+	private bool TryBuildPersistentPriorCandidate(int subtileIndex, int subtileX, int subtileWidth, bool hasCurrent, in TilePriorityCandidate currentCandidate, out TilePriorityCandidate priorCandidate, out double priorBlendWeight)
+	{
+		priorCandidate = default;
+		priorBlendWeight = 0.0;
+		if (!ExperimentalPersistentSubtileSchedulerModeEnabled)
+			return false;
+
+		bool usedNeighborSeed = false;
+		string spatialKey = BuildTileMetricsSpatialStableId(subtileX, _tileMetricCurrentBandY, subtileWidth, _tileMetricCurrentBandHeight);
+		if (_tileMetricPersistentPriors.TryGetValue(spatialKey, out TileMetricPersistentPrior prior) && prior.RaysTraced > 0.0)
+		{
+			priorCandidate = BuildTilePriorityCandidateFromPrior(subtileIndex, subtileX, subtileWidth, prior);
+		}
+		else if (TryBuildNearbyPersistentPrior(subtileIndex, subtileX, subtileWidth, out priorCandidate, out priorBlendWeight))
+		{
+			usedNeighborSeed = true;
+		}
+		else
+		{
+			return false;
+		}
+
+		if (!usedNeighborSeed)
+			priorBlendWeight = ResolveTilePriorityPriorBlendWeight(hasCurrent, currentCandidate, priorCandidate, usedNeighborSeed: false);
+		else if (hasCurrent)
+			priorBlendWeight = ResolveTilePriorityPriorBlendWeight(hasCurrent, currentCandidate, priorCandidate, usedNeighborSeed: true);
+		return priorBlendWeight > 0.0 || priorCandidate.Rays > 0;
+	}
+
 	private void PrepareExperimentalSubtileSchedulerOrderForCurrentBand()
 	{
 		EnsureTileMetricExecutionOrderCapacity(_tileMetricCurrentSubtileCount);
 		_tileMetricCurrentExecutionSource = "baseline";
+		_tileMetricCurrentExecutionPriorWeight = 0.0;
 
 		if (!ExperimentalSubtileSchedulerModeEnabled || _tileMetricCurrentSubtileCount <= 1)
 			return;
 		long historyKey = BuildTileMetricBandHistoryKey(_tileMetricCurrentBandY, _tileMetricCurrentBandHeight);
-		if (!_tileMetricBandHistory.TryGetValue(historyKey, out TileMetricAccumulator[] history))
-			return;
-		if (history == null || history.Length < _tileMetricCurrentSubtileCount)
-			return;
+		bool hasHistory = _tileMetricBandHistory.TryGetValue(historyKey, out TileMetricAccumulator[] history)
+			&& history != null
+			&& history.Length >= _tileMetricCurrentSubtileCount;
 
-		var prioritized = new System.Collections.Generic.List<TilePriorityCandidate>(_tileMetricCurrentSubtileCount);
+		var prioritized = new System.Collections.Generic.List<TilePriorityRankInputs>(_tileMetricCurrentSubtileCount);
 		for (int subtileIndex = 0; subtileIndex < _tileMetricCurrentSubtileCount; subtileIndex++)
 		{
 			int subtileX = subtileIndex * _tileMetricCurrentSubtileWidth;
 			int subtileWidth = Math.Max(0, Math.Min(_tileMetricCurrentSubtileWidth, _filmWidth - subtileX));
 			if (subtileWidth <= 0)
 				continue;
-			prioritized.Add(new TilePriorityCandidate(subtileIndex, subtileX, subtileWidth, history[subtileIndex]));
+
+			TilePriorityCandidate currentCandidate = default;
+			bool hasCurrent = false;
+			if (hasHistory)
+			{
+				currentCandidate = new TilePriorityCandidate(subtileIndex, subtileX, subtileWidth, history[subtileIndex]);
+				hasCurrent = true;
+			}
+
+			TilePriorityCandidate priorCandidate = default;
+			double priorBlendWeight = 0.0;
+			bool hasPrior = TryBuildPersistentPriorCandidate(subtileIndex, subtileX, subtileWidth, hasCurrent, currentCandidate, out priorCandidate, out priorBlendWeight);
+			if (!hasCurrent && !hasPrior)
+				continue;
+
+			prioritized.Add(new TilePriorityRankInputs(
+				subtileIndex,
+				subtileX,
+				subtileWidth,
+				currentCandidate,
+				hasCurrent,
+				priorCandidate,
+				hasPrior,
+				priorBlendWeight));
 		}
 
 		if (prioritized.Count == 0)
 			return;
 
-		prioritized.Sort((a, b) =>
-		{
-			int cmp = b.HitYield.CompareTo(a.HitYield);
-			if (cmp != 0) return cmp;
-			cmp = b.Hits.CompareTo(a.Hits);
-			if (cmp != 0) return cmp;
-			cmp = a.NoCandidateRatio.CompareTo(b.NoCandidateRatio);
-			if (cmp != 0) return cmp;
-			return a.SubtileIndex.CompareTo(b.SubtileIndex);
-		});
+		prioritized.Sort((a, b) => CompareTilePriorityCandidates(a, b));
 
 		for (int i = 0; i < prioritized.Count; i++)
 			_tileMetricCurrentExecutionOrder[i] = prioritized[i].SubtileIndex;
-		_tileMetricCurrentExecutionSource = "history";
+
+		bool hasAnyCurrent = false;
+		bool hasAnyPrior = false;
+		bool priorContributed = false;
+		for (int i = 0; i < prioritized.Count; i++)
+		{
+			if (prioritized[i].HasCurrent)
+				hasAnyCurrent = true;
+			if (prioritized[i].HasPrior)
+			{
+				hasAnyPrior = true;
+				if (prioritized[i].PriorBlendWeight > 0.0)
+					priorContributed = true;
+			}
+		}
+
+		if (hasAnyCurrent && priorContributed)
+			_tileMetricCurrentExecutionSource = "history_plus_prior";
+		else if (hasAnyCurrent)
+			_tileMetricCurrentExecutionSource = "history";
+		else if (hasAnyPrior)
+			_tileMetricCurrentExecutionSource = "persistent_prior";
+		if (prioritized.Count > 0)
+			_tileMetricCurrentExecutionPriorWeight = Math.Clamp(prioritized[0].PriorBlendWeight, 0.0, 1.0);
 	}
 
 	private void SaveTileMetricBandHistoryForCurrentBand()
@@ -11676,6 +11941,23 @@ private sealed class OverlayRollingWindow
 		Array.Copy(_tileMetricCurrentSubtiles, snapshot, _tileMetricCurrentSubtileCount);
 		long historyKey = BuildTileMetricBandHistoryKey(_tileMetricCurrentBandY, _tileMetricCurrentBandHeight);
 		_tileMetricBandHistory[historyKey] = snapshot;
+
+		if (!ExperimentalPersistentSubtileSchedulerModeEnabled)
+			return;
+
+		for (int subtileIndex = 0; subtileIndex < _tileMetricCurrentSubtileCount; subtileIndex++)
+		{
+			int subtileX = subtileIndex * _tileMetricCurrentSubtileWidth;
+			int subtileWidth = Math.Max(0, Math.Min(_tileMetricCurrentSubtileWidth, _filmWidth - subtileX));
+			if (subtileWidth <= 0)
+				continue;
+
+			string spatialKey = BuildTileMetricsSpatialStableId(subtileX, _tileMetricCurrentBandY, subtileWidth, _tileMetricCurrentBandHeight);
+			_tileMetricPersistentPriors.TryGetValue(spatialKey, out TileMetricPersistentPrior prior);
+			prior.DecayInPlace(TileMetricsPersistentPriorDecay);
+			prior.Add(snapshot[subtileIndex]);
+			_tileMetricPersistentPriors[spatialKey] = prior;
+		}
 	}
 
 	private static string BuildTilePriorityOrderText(System.Collections.Generic.IReadOnlyList<TilePriorityCandidate> items)
@@ -11726,6 +12008,7 @@ private sealed class OverlayRollingWindow
 		var executed = new System.Collections.Generic.List<TilePriorityCandidate>(_tileMetricCurrentSubtileCount);
 		TilePriorityCandidate[] bySubtileIndex = new TilePriorityCandidate[_tileMetricCurrentSubtileCount];
 		long totalBandHits = 0;
+		long totalBandSegmentsTraced = 0;
 
 		for (int subtileIndex = 0; subtileIndex < _tileMetricCurrentSubtileCount; subtileIndex++)
 		{
@@ -11737,6 +12020,7 @@ private sealed class OverlayRollingWindow
 			legacy.Add(candidate);
 			bySubtileIndex[subtileIndex] = candidate;
 			totalBandHits += candidate.Hits;
+			totalBandSegmentsTraced += Math.Max(0L, _tileMetricCurrentSubtiles[subtileIndex].CandidateSegments);
 		}
 
 		if (legacy.Count == 0 || totalBandHits <= 0)
@@ -11767,6 +12051,7 @@ private sealed class OverlayRollingWindow
 
 		_tileMetricExecBandsWithHitsThisFrame++;
 		_tileMetricExecTotalHitsThisFrame += totalBandHits;
+		_tileMetricExecSegmentsTracedThisFrame += totalBandSegmentsTraced;
 		_tileMetricExecLegacyHitsTop1ThisFrame += legacyTop1;
 		_tileMetricExecLegacyHitsTop2ThisFrame += legacyTop2;
 		_tileMetricExecLegacyHitsTop3ThisFrame += legacyTop3;
@@ -11779,11 +12064,42 @@ private sealed class OverlayRollingWindow
 		_tileMetricExecOrderedPrimaryHitsTop1ThisFrame += execPrimaryTop1;
 		_tileMetricExecOrderedBackdropHitsTop1ThisFrame += execBackdropTop1;
 		_tileMetricExecOrderedCombinedHitsTop1ThisFrame += execCombinedTop1;
-		bool rankedBand = string.Equals(_tileMetricCurrentExecutionSource, "history", StringComparison.Ordinal);
+		bool rankedBand = !string.Equals(_tileMetricCurrentExecutionSource, "baseline", StringComparison.Ordinal);
+		bool priorOnlyBand = string.Equals(_tileMetricCurrentExecutionSource, "persistent_prior", StringComparison.Ordinal);
+		bool priorContribBand = string.Equals(_tileMetricCurrentExecutionSource, "history_plus_prior", StringComparison.Ordinal)
+			|| priorOnlyBand;
+		bool currentDominantBand = string.Equals(_tileMetricCurrentExecutionSource, "history", StringComparison.Ordinal)
+			|| string.Equals(_tileMetricCurrentExecutionSource, "history_plus_prior", StringComparison.Ordinal);
 		if (rankedBand)
 			_tileMetricExecRankedBandsWithHitsThisFrame++;
 		else
 			_tileMetricExecSeedBandsWithHitsThisFrame++;
+		if (rankedBand)
+		{
+			_tileMetricExecRankedHitsThisFrame += totalBandHits;
+			_tileMetricExecRankedSegmentsTracedThisFrame += totalBandSegmentsTraced;
+		}
+		else
+		{
+			_tileMetricExecSeedHitsThisFrame += totalBandHits;
+			_tileMetricExecSeedSegmentsTracedThisFrame += totalBandSegmentsTraced;
+		}
+		if (priorContribBand)
+			_tileMetricExecPriorBandsWithHitsThisFrame++;
+		if (priorOnlyBand)
+		{
+			_tileMetricExecPriorOnlyBandsWithHitsThisFrame++;
+			_tileMetricExecPriorOnlyHitsThisFrame += totalBandHits;
+			_tileMetricExecPriorOnlySegmentsTracedThisFrame += totalBandSegmentsTraced;
+		}
+		if (currentDominantBand)
+			_tileMetricExecCurrentDominantBandsWithHitsThisFrame++;
+		if (string.Equals(_tileMetricCurrentExecutionSource, "history_plus_prior", StringComparison.Ordinal))
+			_tileMetricExecPriorContribBandsWithHitsThisFrame++;
+		if (legacy.Count > 0 && executed.Count > 0 && legacy[0].SubtileIndex != executed[0].SubtileIndex)
+			_tileMetricExecTop1OrderChangedBandsWithHitsThisFrame++;
+		if (execTop1 > legacyTop1)
+			_tileMetricExecTop1HitImprovedBandsWithHitsThisFrame++;
 		if (firstHitOrdinal > 0)
 		{
 			_tileMetricExecFirstHitOrdinalSumThisFrame += firstHitOrdinal;
@@ -11801,15 +12117,35 @@ private sealed class OverlayRollingWindow
 		string legacyTop2Share = ((double)legacyTop2 / totalBandHits).ToString("0.###", CultureInfo.InvariantCulture);
 		string execTop1Share = ((double)execTop1 / totalBandHits).ToString("0.###", CultureInfo.InvariantCulture);
 		string execTop2Share = ((double)execTop2 / totalBandHits).ToString("0.###", CultureInfo.InvariantCulture);
-		string schedulerPhase = rankedBand ? "warm_start_ranked" : "cold_start_seed";
+		string schedulerPhase = priorOnlyBand
+			? "cold_start_prior_ranked"
+			: (rankedBand ? "warm_start_ranked" : "cold_start_seed");
+		double currentEvidenceWeight = string.Equals(_tileMetricCurrentExecutionSource, "history_plus_prior", StringComparison.Ordinal)
+			? Math.Max(0.0, 1.0 - _tileMetricCurrentExecutionPriorWeight)
+			: (currentDominantBand ? 1.0 : 0.0);
+		double priorEvidenceWeight = string.Equals(_tileMetricCurrentExecutionSource, "history_plus_prior", StringComparison.Ordinal)
+			? Math.Clamp(_tileMetricCurrentExecutionPriorWeight, 0.0, 1.0)
+			: (priorOnlyBand ? 1.0 : 0.0);
+		double totalEvidenceWeight = currentEvidenceWeight + priorEvidenceWeight;
+		string currentEvidenceShare = totalEvidenceWeight > 0.0
+			? (currentEvidenceWeight / totalEvidenceWeight).ToString("0.###", CultureInfo.InvariantCulture)
+			: "0";
+		string priorEvidenceShare = totalEvidenceWeight > 0.0
+			? (priorEvidenceWeight / totalEvidenceWeight).ToString("0.###", CultureInfo.InvariantCulture)
+			: "0";
+		string hitsPerSegmentTraced = totalBandSegmentsTraced > 0
+			? ((double)totalBandHits / totalBandSegmentsTraced).ToString("0.###", CultureInfo.InvariantCulture)
+			: "na";
 		GD.Print(
 			$"[TileMetrics][ExecOrder] step={stepIndex} band={_tileMetricCurrentBandIndex} y={_tileMetricCurrentBandY} h={_tileMetricCurrentBandHeight} " +
-			$"mode=experimental_reorder_only phase={schedulerPhase} rankActive={(rankedBand ? 1 : 0)} " +
+			$"mode={(ExperimentalPersistentSubtileSchedulerModeEnabled ? "experimental_reorder_only_persistent_priors" : "experimental_reorder_only")} phase={schedulerPhase} rankActive={(rankedBand ? 1 : 0)} " +
 			$"legacy={legacyOrder} executed={executionOrder} totalHits={totalBandHits} " +
+			$"segmentsTraced={totalBandSegmentsTraced} hitsPerSegmentTraced={hitsPerSegmentTraced} " +
 			$"legacyTop1Share={legacyTop1Share} legacyTop2Share={legacyTop2Share} " +
 			$"execTop1Share={execTop1Share} execTop2Share={execTop2Share} " +
 			$"legacyPrimaryTop1Share={FormatTileClassShare(legacyPrimaryTop1, totalBandHits)} legacyBackdropTop1Share={FormatTileClassShare(legacyBackdropTop1, totalBandHits)} legacyCombinedTop1Share={FormatTileClassShare(legacyCombinedTop1, totalBandHits)} " +
 			$"execPrimaryTop1Share={FormatTileClassShare(execPrimaryTop1, totalBandHits)} execBackdropTop1Share={FormatTileClassShare(execBackdropTop1, totalBandHits)} execCombinedTop1Share={FormatTileClassShare(execCombinedTop1, totalBandHits)} " +
+			$"currentEvidenceShare={currentEvidenceShare} priorEvidenceShare={priorEvidenceShare} priorContributed={(priorContribBand ? 1 : 0)} coldStartReduced={(priorOnlyBand ? 1 : 0)} " +
 			$"firstHitOrdinal={firstHitOrdinal} hit50Ordinal={hit50Ordinal} source={_tileMetricCurrentExecutionSource} " +
 			$"exit={(string.IsNullOrEmpty(exitReason) ? "none" : exitReason)}");
 	}
@@ -11829,12 +12165,40 @@ private sealed class OverlayRollingWindow
 			? ((double)_tileMetricExecHit50OrdinalSumThisFrame / _tileMetricExecHit50OrdinalCountThisFrame).ToString("0.###", CultureInfo.InvariantCulture)
 			: "na";
 		bool rankedFrame = _tileMetricExecRankedBandsWithHitsThisFrame > 0;
-		string framePhase = rankedFrame
-			? (_tileMetricExecSeedBandsWithHitsThisFrame > 0 ? "mixed_warm_start" : "warm_start_ranked")
-			: "cold_start_seed_only";
+		bool priorOnlyFrame = _tileMetricExecPriorOnlyBandsWithHitsThisFrame > 0 && _tileMetricExecCurrentDominantBandsWithHitsThisFrame == 0;
+		string framePhase = priorOnlyFrame
+			? "cold_start_prior_ranked"
+			: (rankedFrame
+				? (_tileMetricExecSeedBandsWithHitsThisFrame > 0 ? "mixed_warm_start" : "warm_start_ranked")
+				: "cold_start_seed_only");
+		string hitsPerSegmentTraced = _tileMetricExecSegmentsTracedThisFrame > 0
+			? ((double)_tileMetricExecTotalHitsThisFrame / _tileMetricExecSegmentsTracedThisFrame).ToString("0.###", CultureInfo.InvariantCulture)
+			: "na";
+		string seedHitShare = _tileMetricExecTotalHitsThisFrame > 0
+			? ((double)_tileMetricExecSeedHitsThisFrame / _tileMetricExecTotalHitsThisFrame).ToString("0.###", CultureInfo.InvariantCulture)
+			: "0";
+		string rankedHitShare = _tileMetricExecTotalHitsThisFrame > 0
+			? ((double)_tileMetricExecRankedHitsThisFrame / _tileMetricExecTotalHitsThisFrame).ToString("0.###", CultureInfo.InvariantCulture)
+			: "0";
+		string priorOnlyHitShare = _tileMetricExecTotalHitsThisFrame > 0
+			? ((double)_tileMetricExecPriorOnlyHitsThisFrame / _tileMetricExecTotalHitsThisFrame).ToString("0.###", CultureInfo.InvariantCulture)
+			: "0";
+		string seedSegmentShare = _tileMetricExecSegmentsTracedThisFrame > 0
+			? ((double)_tileMetricExecSeedSegmentsTracedThisFrame / _tileMetricExecSegmentsTracedThisFrame).ToString("0.###", CultureInfo.InvariantCulture)
+			: "0";
+		string rankedSegmentShare = _tileMetricExecSegmentsTracedThisFrame > 0
+			? ((double)_tileMetricExecRankedSegmentsTracedThisFrame / _tileMetricExecSegmentsTracedThisFrame).ToString("0.###", CultureInfo.InvariantCulture)
+			: "0";
+		string priorOnlySegmentShare = _tileMetricExecSegmentsTracedThisFrame > 0
+			? ((double)_tileMetricExecPriorOnlySegmentsTracedThisFrame / _tileMetricExecSegmentsTracedThisFrame).ToString("0.###", CultureInfo.InvariantCulture)
+			: "0";
 		GD.Print(
-			$"[TileMetrics][ExecSummary] mode=experimental_reorder_only framePhase={framePhase} rankActive={(rankedFrame ? 1 : 0)} " +
-			$"bandsWithHits={_tileMetricExecBandsWithHitsThisFrame} seedBandsWithHits={_tileMetricExecSeedBandsWithHitsThisFrame} rankedBandsWithHits={_tileMetricExecRankedBandsWithHitsThisFrame} totalHits={_tileMetricExecTotalHitsThisFrame} " +
+			$"[TileMetrics][ExecSummary] mode={(ExperimentalPersistentSubtileSchedulerModeEnabled ? "experimental_reorder_only_persistent_priors" : "experimental_reorder_only")} framePhase={framePhase} rankActive={(rankedFrame ? 1 : 0)} " +
+			$"bandsWithHits={_tileMetricExecBandsWithHitsThisFrame} seedBandsWithHits={_tileMetricExecSeedBandsWithHitsThisFrame} rankedBandsWithHits={_tileMetricExecRankedBandsWithHitsThisFrame} priorBandsWithHits={_tileMetricExecPriorBandsWithHitsThisFrame} priorOnlyBandsWithHits={_tileMetricExecPriorOnlyBandsWithHitsThisFrame} priorContribBandsWithHits={_tileMetricExecPriorContribBandsWithHitsThisFrame} totalHits={_tileMetricExecTotalHitsThisFrame} " +
+			$"segmentsTraced={_tileMetricExecSegmentsTracedThisFrame} hitsPerSegmentTraced={hitsPerSegmentTraced} " +
+			$"seedHitShare={seedHitShare} rankedHitShare={rankedHitShare} priorOnlyHitShare={priorOnlyHitShare} " +
+			$"seedSegmentShare={seedSegmentShare} rankedSegmentShare={rankedSegmentShare} priorOnlySegmentShare={priorOnlySegmentShare} " +
+			$"top1OrderChangedBandsWithHits={_tileMetricExecTop1OrderChangedBandsWithHitsThisFrame} top1HitImprovedBandsWithHits={_tileMetricExecTop1HitImprovedBandsWithHitsThisFrame} " +
 			$"legacyTop1Share={_tileMetricExecLegacyHitsTop1ThisFrame * invHits:0.###} legacyTop2Share={_tileMetricExecLegacyHitsTop2ThisFrame * invHits:0.###} legacyTop3Share={_tileMetricExecLegacyHitsTop3ThisFrame * invHits:0.###} " +
 			$"execTop1Share={_tileMetricExecOrderedHitsTop1ThisFrame * invHits:0.###} execTop2Share={_tileMetricExecOrderedHitsTop2ThisFrame * invHits:0.###} execTop3Share={_tileMetricExecOrderedHitsTop3ThisFrame * invHits:0.###} " +
 			$"legacyPrimaryTop1Share={_tileMetricExecLegacyPrimaryHitsTop1ThisFrame * invHits:0.###} legacyBackdropTop1Share={_tileMetricExecLegacyBackdropHitsTop1ThisFrame * invHits:0.###} legacyCombinedTop1Share={_tileMetricExecLegacyCombinedHitsTop1ThisFrame * invHits:0.###} " +
@@ -11843,6 +12207,7 @@ private sealed class OverlayRollingWindow
 
 		_tileMetricExecBandsWithHitsThisFrame = 0;
 		_tileMetricExecTotalHitsThisFrame = 0;
+		_tileMetricExecSegmentsTracedThisFrame = 0;
 		_tileMetricExecLegacyHitsTop1ThisFrame = 0;
 		_tileMetricExecLegacyHitsTop2ThisFrame = 0;
 		_tileMetricExecLegacyHitsTop3ThisFrame = 0;
@@ -11861,6 +12226,18 @@ private sealed class OverlayRollingWindow
 		_tileMetricExecHit50OrdinalCountThisFrame = 0;
 		_tileMetricExecSeedBandsWithHitsThisFrame = 0;
 		_tileMetricExecRankedBandsWithHitsThisFrame = 0;
+		_tileMetricExecPriorBandsWithHitsThisFrame = 0;
+		_tileMetricExecPriorOnlyBandsWithHitsThisFrame = 0;
+		_tileMetricExecCurrentDominantBandsWithHitsThisFrame = 0;
+		_tileMetricExecPriorContribBandsWithHitsThisFrame = 0;
+		_tileMetricExecSeedHitsThisFrame = 0;
+		_tileMetricExecRankedHitsThisFrame = 0;
+		_tileMetricExecPriorOnlyHitsThisFrame = 0;
+		_tileMetricExecSeedSegmentsTracedThisFrame = 0;
+		_tileMetricExecRankedSegmentsTracedThisFrame = 0;
+		_tileMetricExecPriorOnlySegmentsTracedThisFrame = 0;
+		_tileMetricExecTop1OrderChangedBandsWithHitsThisFrame = 0;
+		_tileMetricExecTop1HitImprovedBandsWithHitsThisFrame = 0;
 	}
 
 	private void SimulateTilePriorityOrderForCurrentBand(int stepIndex, string exitReason)
@@ -11871,6 +12248,7 @@ private sealed class OverlayRollingWindow
 		var actual = new System.Collections.Generic.List<TilePriorityCandidate>(_tileMetricCurrentSubtileCount);
 		var simulated = new System.Collections.Generic.List<TilePriorityCandidate>(_tileMetricCurrentSubtileCount);
 		long totalBandHits = 0;
+		long totalBandSegmentsTraced = 0;
 		for (int subtileIndex = 0; subtileIndex < _tileMetricCurrentSubtileCount; subtileIndex++)
 		{
 			int subtileX = subtileIndex * _tileMetricCurrentSubtileWidth;
@@ -11881,6 +12259,7 @@ private sealed class OverlayRollingWindow
 			actual.Add(candidate);
 			simulated.Add(candidate);
 			totalBandHits += candidate.Hits;
+			totalBandSegmentsTraced += Math.Max(0L, _tileMetricCurrentSubtiles[subtileIndex].CandidateSegments);
 		}
 
 		if (actual.Count == 0)
@@ -11911,11 +12290,14 @@ private sealed class OverlayRollingWindow
 		long simPrimaryTop1 = simulated.Count > 0 ? simulated[0].SourceHits : 0;
 		long simBackdropTop1 = simulated.Count > 0 ? simulated[0].BackgroundHits : 0;
 		long simCombinedTop1 = simPrimaryTop1 + simBackdropTop1;
+		int actualFirstHitOrdinal = ComputeTileHitCaptureOrdinal(actual, totalBandHits, 1.0 / Math.Max(1L, totalBandHits));
+		int actualHit50Ordinal = ComputeTileHitCaptureOrdinal(actual, totalBandHits, 0.5);
 
 		if (totalBandHits > 0)
 		{
 			_tileMetricSimBandsWithHitsThisFrame++;
 			_tileMetricSimTotalHitsThisFrame += totalBandHits;
+			_tileMetricSimSegmentsTracedThisFrame += totalBandSegmentsTraced;
 			_tileMetricActualHitsTop1ThisFrame += actualTop1;
 			_tileMetricActualHitsTop2ThisFrame += actualTop2;
 			_tileMetricActualHitsTop3ThisFrame += actualTop3;
@@ -11928,6 +12310,16 @@ private sealed class OverlayRollingWindow
 			_tileMetricSimPrimaryHitsTop1ThisFrame += simPrimaryTop1;
 			_tileMetricSimBackdropHitsTop1ThisFrame += simBackdropTop1;
 			_tileMetricSimCombinedHitsTop1ThisFrame += simCombinedTop1;
+			if (actualFirstHitOrdinal > 0)
+			{
+				_tileMetricActualFirstHitOrdinalSumThisFrame += actualFirstHitOrdinal;
+				_tileMetricActualFirstHitOrdinalCountThisFrame++;
+			}
+			if (actualHit50Ordinal > 0)
+			{
+				_tileMetricActualHit50OrdinalSumThisFrame += actualHit50Ordinal;
+				_tileMetricActualHit50OrdinalCountThisFrame++;
+			}
 		}
 
 		string actualOrder = BuildTilePriorityOrderText(actual);
@@ -11936,13 +12328,18 @@ private sealed class OverlayRollingWindow
 		string actualTop2Share = totalBandHits > 0 ? ((double)actualTop2 / totalBandHits).ToString("0.###", CultureInfo.InvariantCulture) : "na";
 		string simulatedTop1Share = totalBandHits > 0 ? ((double)simTop1 / totalBandHits).ToString("0.###", CultureInfo.InvariantCulture) : "na";
 		string simulatedTop2Share = totalBandHits > 0 ? ((double)simTop2 / totalBandHits).ToString("0.###", CultureInfo.InvariantCulture) : "na";
+		string hitsPerSegmentTraced = totalBandSegmentsTraced > 0
+			? ((double)totalBandHits / totalBandSegmentsTraced).ToString("0.###", CultureInfo.InvariantCulture)
+			: "na";
 		GD.Print(
 			$"[TileMetrics][SimOrder] step={stepIndex} band={_tileMetricCurrentBandIndex} y={_tileMetricCurrentBandY} h={_tileMetricCurrentBandHeight} " +
 			$"actual={actualOrder} simulated={simulatedOrder} totalHits={totalBandHits} " +
+			$"segmentsTraced={totalBandSegmentsTraced} hitsPerSegmentTraced={hitsPerSegmentTraced} " +
 			$"actualTop1Share={actualTop1Share} actualTop2Share={actualTop2Share} " +
 			$"simTop1Share={simulatedTop1Share} simTop2Share={simulatedTop2Share} " +
 			$"actualPrimaryTop1Share={FormatTileClassShare(actualPrimaryTop1, totalBandHits)} actualBackdropTop1Share={FormatTileClassShare(actualBackdropTop1, totalBandHits)} actualCombinedTop1Share={FormatTileClassShare(actualCombinedTop1, totalBandHits)} " +
 			$"simPrimaryTop1Share={FormatTileClassShare(simPrimaryTop1, totalBandHits)} simBackdropTop1Share={FormatTileClassShare(simBackdropTop1, totalBandHits)} simCombinedTop1Share={FormatTileClassShare(simCombinedTop1, totalBandHits)} " +
+			$"actualFirstHitOrdinal={actualFirstHitOrdinal} actualHit50Ordinal={actualHit50Ordinal} " +
 			$"exit={(string.IsNullOrEmpty(exitReason) ? "none" : exitReason)}");
 	}
 
@@ -11954,15 +12351,26 @@ private sealed class OverlayRollingWindow
 			return;
 
 		double invHits = 1.0 / _tileMetricSimTotalHitsThisFrame;
+		string hitsPerSegmentTraced = _tileMetricSimSegmentsTracedThisFrame > 0
+			? ((double)_tileMetricSimTotalHitsThisFrame / _tileMetricSimSegmentsTracedThisFrame).ToString("0.###", CultureInfo.InvariantCulture)
+			: "na";
+		string avgFirstHitOrdinal = _tileMetricActualFirstHitOrdinalCountThisFrame > 0
+			? ((double)_tileMetricActualFirstHitOrdinalSumThisFrame / _tileMetricActualFirstHitOrdinalCountThisFrame).ToString("0.###", CultureInfo.InvariantCulture)
+			: "na";
+		string avgHit50Ordinal = _tileMetricActualHit50OrdinalCountThisFrame > 0
+			? ((double)_tileMetricActualHit50OrdinalSumThisFrame / _tileMetricActualHit50OrdinalCountThisFrame).ToString("0.###", CultureInfo.InvariantCulture)
+			: "na";
 		GD.Print(
-			$"[TileMetrics][SimSummary] bandsWithHits={_tileMetricSimBandsWithHitsThisFrame} totalHits={_tileMetricSimTotalHitsThisFrame} " +
+			$"[TileMetrics][SimSummary] bandsWithHits={_tileMetricSimBandsWithHitsThisFrame} totalHits={_tileMetricSimTotalHitsThisFrame} segmentsTraced={_tileMetricSimSegmentsTracedThisFrame} hitsPerSegmentTraced={hitsPerSegmentTraced} " +
 			$"actualTop1Share={_tileMetricActualHitsTop1ThisFrame * invHits:0.###} actualTop2Share={_tileMetricActualHitsTop2ThisFrame * invHits:0.###} actualTop3Share={_tileMetricActualHitsTop3ThisFrame * invHits:0.###} " +
 			$"simTop1Share={_tileMetricSimHitsTop1ThisFrame * invHits:0.###} simTop2Share={_tileMetricSimHitsTop2ThisFrame * invHits:0.###} simTop3Share={_tileMetricSimHitsTop3ThisFrame * invHits:0.###} " +
 			$"actualPrimaryTop1Share={_tileMetricActualPrimaryHitsTop1ThisFrame * invHits:0.###} actualBackdropTop1Share={_tileMetricActualBackdropHitsTop1ThisFrame * invHits:0.###} actualCombinedTop1Share={_tileMetricActualCombinedHitsTop1ThisFrame * invHits:0.###} " +
-			$"simPrimaryTop1Share={_tileMetricSimPrimaryHitsTop1ThisFrame * invHits:0.###} simBackdropTop1Share={_tileMetricSimBackdropHitsTop1ThisFrame * invHits:0.###} simCombinedTop1Share={_tileMetricSimCombinedHitsTop1ThisFrame * invHits:0.###}");
+			$"simPrimaryTop1Share={_tileMetricSimPrimaryHitsTop1ThisFrame * invHits:0.###} simBackdropTop1Share={_tileMetricSimBackdropHitsTop1ThisFrame * invHits:0.###} simCombinedTop1Share={_tileMetricSimCombinedHitsTop1ThisFrame * invHits:0.###} " +
+			$"actualAvgFirstHitOrdinal={avgFirstHitOrdinal} actualAvgHit50Ordinal={avgHit50Ordinal}");
 
 		_tileMetricSimBandsWithHitsThisFrame = 0;
 		_tileMetricSimTotalHitsThisFrame = 0;
+		_tileMetricSimSegmentsTracedThisFrame = 0;
 		_tileMetricSimHitsTop1ThisFrame = 0;
 		_tileMetricSimHitsTop2ThisFrame = 0;
 		_tileMetricSimHitsTop3ThisFrame = 0;
@@ -11975,6 +12383,10 @@ private sealed class OverlayRollingWindow
 		_tileMetricActualPrimaryHitsTop1ThisFrame = 0;
 		_tileMetricActualBackdropHitsTop1ThisFrame = 0;
 		_tileMetricActualCombinedHitsTop1ThisFrame = 0;
+		_tileMetricActualFirstHitOrdinalSumThisFrame = 0;
+		_tileMetricActualHit50OrdinalSumThisFrame = 0;
+		_tileMetricActualFirstHitOrdinalCountThisFrame = 0;
+		_tileMetricActualHit50OrdinalCountThisFrame = 0;
 	}
 
 	private void RecordTileMetricSample(

@@ -3,6 +3,7 @@ using RendererCore.Calibration;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Reflection;
 
 public partial class RenderTestRunner : Node
@@ -94,15 +95,21 @@ public partial class RenderTestRunner : Node
 	private const string SmartScaleBudgetCmdArgPrefix = "--smartscale-budget=";
 	private const string SmartScaleBudgetNCmdArgPrefix = "--smartscale-budget-n=";
 	private const string SmartScaleRowsPerRunCmdArgPrefix = "--smartscale-rows-per-run=";
+	private const string RenderTestCaptureCmdArgPrefix = "--render-test-capture=";
+	private const string RenderTestCaptureDirCmdArgPrefix = "--render-test-capture-dir=";
+	private const string RenderTestCaptureModeCmdArgPrefix = "--render-test-capture-mode=";
 	private const int RenderTestMinFramesPerRun = 90;
 	private const string FastBlackholeComparisonProfileToken = "blackhole_compare_fast";
 	private const string FastEinsteinComparisonProfileToken = "einstein_compare_fast";
 	private const string FastBlackholeMetricSearchProfileToken = "blackhole_metric_search_compare_fast";
 	private const string FastEinsteinMetricSearchProfileToken = "einstein_metric_search_compare_fast";
+	private const string CurvedMinimalVisualCheckProfileToken = "curved_minimal_visual_check";
 	private const int FastBlackholeComparisonFramesPerRun = 80;
 	private const int FastBlackholeComparisonWarmupFrames = 10;
 	private const int FastMetricSearchComparisonFramesPerRun = 70;
 	private const int FastMetricSearchComparisonWarmupFrames = 8;
+	private const int CurvedMinimalVisualCheckFramesPerRun = 120;
+	private const int CurvedMinimalVisualCheckWarmupFrames = 20;
 	private const int SmartScaleProbeFramesPerRun = 60;
 	private const int SmartScaleProbeDefaultRowsBudget = 512;
 	private const int SmartScaleProbeWarmupFrames = 3;
@@ -142,6 +149,9 @@ public partial class RenderTestRunner : Node
 	private bool _renderTestStartGuardHasToken = false;
 	private bool _renderTestStartGuardShouldStart = false;
 	private string _renderTestStartGuardParsedArgs = "[]";
+	private bool _renderTestCaptureEnabled = false;
+	private string _renderTestCaptureDir = string.Empty;
+	private string _renderTestCaptureModeLabel = string.Empty;
 	private bool _startupDependencyErrorLogged = false;
 	private bool _baselineApplied = false;
 	private HarnessState _harnessState = HarnessState.Idle;
@@ -201,6 +211,7 @@ public partial class RenderTestRunner : Node
 	private bool _useFastBlackholeComparisonProfile = false;
 	private bool _useFastEinsteinComparisonProfile = false;
 	private bool _useFastMetricSearchComparisonProfile = false;
+	private bool _useCurvedMinimalVisualCheckProfile = false;
 	private bool _shadowEvalPendingForCurrentMatrixRun = false;
 	private bool _shadowEvalActiveRun = false;
 	private bool _shadowEvalDefaultsCaptured = false;
@@ -420,7 +431,10 @@ public partial class RenderTestRunner : Node
 				$"autocal_apply={(ApplyAutoCalibratedPreset ? 1 : 0)} " +
 				$"lifecycle_stress={(IsLifecycleStressActive() ? 1 : 0)} " +
 				$"smartscale={(IsSmartScaleActive() ? 1 : 0)} " +
-				$"smartscale_goal={_smartScaleMode.ToString().ToLowerInvariant()}");
+				$"smartscale_goal={_smartScaleMode.ToString().ToLowerInvariant()} " +
+				$"capture={(_renderTestCaptureEnabled ? 1 : 0)} " +
+				$"capture_dir={Sanitize(string.IsNullOrWhiteSpace(_renderTestCaptureDir) ? "auto" : _renderTestCaptureDir)} " +
+				$"capture_mode={Sanitize(string.IsNullOrWhiteSpace(_renderTestCaptureModeLabel) ? "auto" : _renderTestCaptureModeLabel)}");
 			GD.Print($"[RenderTestRunner] TokenDetected={hasToken} shouldStart={shouldStart}");
 			if (!shouldStart)
 			{
@@ -665,6 +679,7 @@ public partial class RenderTestRunner : Node
 		_useFastBlackholeComparisonProfile = ShouldUseFastBlackholeComparisonProfile();
 		_useFastEinsteinComparisonProfile = ShouldUseFastEinsteinComparisonProfile();
 		_useFastMetricSearchComparisonProfile = ShouldUseFastMetricSearchComparisonProfile();
+		_useCurvedMinimalVisualCheckProfile = ShouldUseCurvedMinimalVisualCheckProfile();
 		ApplyHudRenderTestMetadata();
 		ApplyScopedRenderTestProfileOverrides();
 		if (IsSmartScaleActive())
@@ -679,6 +694,10 @@ public partial class RenderTestRunner : Node
 		else if (_useFastBlackholeComparisonProfile || _useFastEinsteinComparisonProfile)
 		{
 			_runs.AddRange(BuildFastBlackholeComparisonRuns());
+		}
+		else if (_useCurvedMinimalVisualCheckProfile)
+		{
+			_runs.AddRange(BuildDefaultRuns());
 		}
 		else
 		{
@@ -738,6 +757,8 @@ public partial class RenderTestRunner : Node
 		}
 
 		// GrinFilmCamera bbNew baseline.
+		// Keep this as the scheduler-fast default for render-test work; higher-resolution
+		// visual inspection should opt in via a scoped profile instead of changing this baseline.
 		_film.Preset = GrinFilmCamera.PresetMode.Walk;
 		_film.ApplyPresetOnReady = true;
 		_film.QualityMode = GrinFilmCamera.RenderQualityMode.Barebones;
@@ -989,7 +1010,6 @@ public partial class RenderTestRunner : Node
 		EmitAutoCalAppliedRunStartMarkerIfNeeded();
 
 		_activeRunHarnessStopwatch.Restart();
-		_film.ResetRenderHealthWindowForRunStart();
 		_film.ResetFixtureDebugStatsForRunStart();
 		_film.ApplyTestRunConfig(in _activeRunConfig);
 		if (TryGetSharedRayBeamRenderer(out RayBeamRenderer diagRbr) && GodotObject.IsInstanceValid(diagRbr))
@@ -1001,8 +1021,16 @@ public partial class RenderTestRunner : Node
 			ApplyStraightRunOverrides(in _activeRunConfig);
 		}
 		ApplySmartScaleProbeOverridesIfNeeded(in _activeRunConfig);
+		if (_useCurvedMinimalVisualCheckProfile)
+		{
+			ApplyCurvedMinimalVisualCheckProfile();
+			RefreshRenderTestTrustTargetsForCurrentFilm(
+				profileToken: CurvedMinimalVisualCheckProfileToken,
+				runName: _activeRunConfig.Name);
+		}
 		bool runWantsUpdateEveryFrame = _activeRunConfig.UpdateEveryFrame ?? (_defaultsCaptured ? _defaults.UpdateEveryFrame : true);
 		_film.UpdateEveryFrame = runWantsUpdateEveryFrame;
+		_film.ResetRenderHealthWindowForRunStart();
 		_renderTestLiveRunName = Sanitize(_activeRunConfig.Name);
 		_renderTestNextLiveLogTimestamp = 0;
 		_renderTestHasSeenRenderHealthSnapshot = false;
@@ -2032,6 +2060,7 @@ public partial class RenderTestRunner : Node
 				$"steeringMaxTurn={(hasMetricDiag ? metricDiag.MaxTurn.ToString("0.######") : "na")} " +
 				$"steeringRadial={(hasMetricDiag ? Sanitize(metricDiag.RadialTurnSummary) : "na")} " +
 				$"metricZeroReasons={(hasMetricDiag ? Sanitize(metricDiag.ZeroReasonSummary) : "na")}");
+			TryWriteRenderTestCapture(in run, runExecId);
 
 			bool hasRhLiveSnapshot = TryGetLatestRenderHealthLiveSnapshot(out RenderHealthLiveSnapshot finalRhSnap);
 			bool filmValidForMetrics = _film != null && GodotObject.IsInstanceValid(_film);
@@ -2195,6 +2224,138 @@ public partial class RenderTestRunner : Node
 			_activeRunConfigReady = false;
 			_autoCalAcceptedApplyActiveRun = false;
 		}
+	}
+
+	private void TryWriteRenderTestCapture(in GrinFilmCamera.TestRunConfig run, ulong runExecId)
+	{
+		if (!_renderTestCaptureEnabled)
+		{
+			return;
+		}
+		if (_film == null || !GodotObject.IsInstanceValid(_film))
+		{
+			GD.PrintErr($"[RenderTestRunner][Capture][FAIL] run_id={runExecId} reason=missing_film");
+			return;
+		}
+		if (!_film.TryCopyFilmImageForTesting(out Image image) || image == null)
+		{
+			GD.PrintErr($"[RenderTestRunner][Capture][FAIL] run_id={runExecId} reason=missing_film_image");
+			return;
+		}
+
+		string captureDir = ResolveRenderTestCaptureDir();
+		string capturePath = BuildRenderTestCapturePath(in run, runExecId, captureDir);
+		try
+		{
+			string captureDirName = Path.GetDirectoryName(capturePath) ?? captureDir;
+			if (!string.IsNullOrWhiteSpace(captureDirName))
+			{
+				Directory.CreateDirectory(captureDirName);
+			}
+
+			Error saveError = image.SavePng(capturePath);
+			if (saveError != Error.Ok)
+			{
+				GD.PrintErr(
+					$"[RenderTestRunner][Capture][FAIL] run_id={runExecId} fixture={GetHudFixtureToken(_requestedFixture)} " +
+					$"path={capturePath} error={saveError}");
+				return;
+			}
+
+			string modeToken = ResolveRenderTestCaptureModeToken(in run);
+			string schedulerToken = BuildRenderTestCaptureSchedulerToken();
+			string subtileWidthToken = BuildRenderTestCaptureSubtileWidthToken();
+			GD.Print(
+				$"[RenderTestRunner][Capture] run_id={runExecId} fixture={GetHudFixtureToken(_requestedFixture)} " +
+				$"mode={modeToken} scheduler={schedulerToken} subtile_width={subtileWidthToken} path={capturePath}");
+		}
+		catch (Exception ex)
+		{
+			GD.PrintErr(
+				$"[RenderTestRunner][Capture][FAIL] run_id={runExecId} fixture={GetHudFixtureToken(_requestedFixture)} " +
+				$"path={capturePath} exception={ex.GetType().Name}");
+		}
+	}
+
+	private string ResolveRenderTestCaptureDir()
+	{
+		if (!string.IsNullOrWhiteSpace(_renderTestCaptureDir))
+		{
+			return _renderTestCaptureDir;
+		}
+
+		return ResolveCapturePath(Path.Combine("output", "render_test_captures"));
+	}
+
+	private string BuildRenderTestCapturePath(in GrinFilmCamera.TestRunConfig run, ulong runExecId, string captureDir)
+	{
+		string fixtureToken = SanitizeTokenForFilename(GetHudFixtureToken(_requestedFixture));
+		string modeToken = ResolveRenderTestCaptureModeToken(in run);
+		string runToken = SanitizeTokenForFilename(string.IsNullOrWhiteSpace(run.Name) ? $"run_{runExecId}" : run.Name);
+		string schedulerToken = BuildRenderTestCaptureSchedulerToken();
+		string subtileWidthToken = BuildRenderTestCaptureSubtileWidthToken();
+		string targetMsToken = ResolveRunTargetMsPerFrame(in run).ToString();
+		string pixelStrideToken = (_film != null && GodotObject.IsInstanceValid(_film))
+			? Math.Max(1, _film.PixelStride).ToString()
+			: "na";
+
+		List<string> nameParts = new List<string>(8)
+		{
+			fixtureToken,
+			modeToken
+		};
+		if (!string.Equals(modeToken, runToken, StringComparison.Ordinal))
+		{
+			nameParts.Add(runToken);
+		}
+		nameParts.Add($"scheduler-{schedulerToken}");
+		if (!string.Equals(subtileWidthToken, "na", StringComparison.Ordinal))
+		{
+			nameParts.Add($"subtile-{subtileWidthToken}");
+		}
+		nameParts.Add($"targetms-{targetMsToken}");
+		nameParts.Add($"stride-{pixelStrideToken}");
+		nameParts.Add($"runid-{runExecId}");
+
+		string fileName = string.Join("__", nameParts) + ".png";
+		return Path.Combine(captureDir, fileName);
+	}
+
+	private string ResolveRenderTestCaptureModeToken(in GrinFilmCamera.TestRunConfig run)
+	{
+		if (!string.IsNullOrWhiteSpace(_renderTestCaptureModeLabel))
+		{
+			return _renderTestCaptureModeLabel;
+		}
+
+		string fallback = string.IsNullOrWhiteSpace(run.Name) ? "run" : run.Name;
+		return SanitizeTokenForFilename(fallback);
+	}
+
+	private string BuildRenderTestCaptureSchedulerToken()
+	{
+		bool experimentalScheduler = TryGetBoolCmdArgValue("--experimental-subtile-scheduler=", out bool experimentalSubtileScheduler)
+			&& experimentalSubtileScheduler;
+		bool persistentPriors = TryGetBoolCmdArgValue("--tile-metrics-persistent-priors=", out bool tileMetricsPersistentPriors)
+			&& tileMetricsPersistentPriors;
+		bool simulateReorder = TryGetBoolCmdArgValue("--tile-metrics-simulate-reorder=", out bool tileMetricsSimulateReorder)
+			&& tileMetricsSimulateReorder;
+		if (experimentalScheduler)
+		{
+			return persistentPriors ? "reorder-only-persistent-priors" : "reorder-only";
+		}
+		if (simulateReorder)
+		{
+			return "baseline-observe-only";
+		}
+		return "baseline";
+	}
+
+	private string BuildRenderTestCaptureSubtileWidthToken()
+	{
+		return TryGetIntCmdArgValue("--tile-metrics-subtile-width=", out int subtileWidth)
+			? Math.Max(1, subtileWidth).ToString()
+			: "na";
 	}
 
 	private bool ResolveRunPruneEnabled(in GrinFilmCamera.TestRunConfig run)
@@ -2953,9 +3114,77 @@ public partial class RenderTestRunner : Node
 		return $"[{string.Join(", ", args)}]";
 	}
 
+	private static string ResolveCapturePath(string path)
+	{
+		if (string.IsNullOrWhiteSpace(path))
+		{
+			return string.Empty;
+		}
+
+		if (Path.IsPathRooted(path))
+		{
+			return Path.GetFullPath(path);
+		}
+
+		string projectRoot = ProjectSettings.GlobalizePath("res://");
+		return Path.GetFullPath(Path.Combine(projectRoot, path));
+	}
+
+	private static string SanitizeTokenForFilename(string value)
+	{
+		if (string.IsNullOrWhiteSpace(value))
+		{
+			return "na";
+		}
+
+		string trimmed = value.Trim();
+		System.Text.StringBuilder builder = new System.Text.StringBuilder(trimmed.Length);
+		for (int i = 0; i < trimmed.Length; i++)
+		{
+			char c = trimmed[i];
+			if (char.IsLetterOrDigit(c))
+			{
+				builder.Append(char.ToLowerInvariant(c));
+			}
+			else if (c == '-' || c == '_' || c == '.')
+			{
+				builder.Append(c);
+			}
+			else
+			{
+				builder.Append('-');
+			}
+		}
+
+		string normalized = builder.ToString().Trim('-');
+		while (normalized.IndexOf("--", StringComparison.Ordinal) >= 0)
+		{
+			normalized = normalized.Replace("--", "-");
+		}
+
+		return string.IsNullOrWhiteSpace(normalized) ? "na" : normalized;
+	}
+
 	private void ApplyStartupCliFlagOverrides()
 	{
 		ConfigureSmartScaleFromFlags();
+		_renderTestCaptureEnabled = false;
+		_renderTestCaptureDir = string.Empty;
+		_renderTestCaptureModeLabel = string.Empty;
+		if (TryGetBoolCmdArgValue(RenderTestCaptureCmdArgPrefix, out bool renderTestCaptureEnabled))
+		{
+			_renderTestCaptureEnabled = renderTestCaptureEnabled;
+		}
+		if (TryGetStringCmdArgValue(RenderTestCaptureDirCmdArgPrefix, out string renderTestCaptureDir) &&
+			!string.IsNullOrWhiteSpace(renderTestCaptureDir))
+		{
+			_renderTestCaptureDir = ResolveCapturePath(renderTestCaptureDir);
+		}
+		if (TryGetStringCmdArgValue(RenderTestCaptureModeCmdArgPrefix, out string renderTestCaptureMode) &&
+			!string.IsNullOrWhiteSpace(renderTestCaptureMode))
+		{
+			_renderTestCaptureModeLabel = SanitizeTokenForFilename(renderTestCaptureMode);
+		}
 		if (TryGetBoolCmdArgValue(AutoCalCmdArgPrefix, out bool autoCalEnabled))
 		{
 			EnableSceneAutoCalibration = autoCalEnabled;
@@ -3367,12 +3596,44 @@ public partial class RenderTestRunner : Node
 		return IsMetricTransportRequestedForFixture();
 	}
 
+	private bool ShouldUseCurvedMinimalVisualCheckProfile()
+	{
+		if (_requestedFixture != RenderTestFixture.CurvedMinimal &&
+			_requestedFixture != RenderTestFixture.CurvedMinimalBackdrop)
+		{
+			return false;
+		}
+		if (IsSmartScaleActive() || IsLifecycleStressActive())
+		{
+			return false;
+		}
+		if (!TryGetStringCmdArgValue(RenderTestProfileArgPrefix, out string profile))
+		{
+			return false;
+		}
+
+		return string.Equals(profile, CurvedMinimalVisualCheckProfileToken, StringComparison.OrdinalIgnoreCase);
+	}
+
 	private void ApplyScopedRenderTestProfileOverrides()
 	{
 		if (!_useFastBlackholeComparisonProfile &&
 			!_useFastEinsteinComparisonProfile &&
-			!_useFastMetricSearchComparisonProfile)
+			!_useFastMetricSearchComparisonProfile &&
+			!_useCurvedMinimalVisualCheckProfile)
 		{
+			return;
+		}
+
+		if (_useCurvedMinimalVisualCheckProfile)
+		{
+			FramesPerRun = CurvedMinimalVisualCheckFramesPerRun;
+			WarmupFrames = CurvedMinimalVisualCheckWarmupFrames;
+			ApplyCurvedMinimalVisualCheckProfile();
+			GD.Print(
+				$"[RenderTestRunner] Applied scoped render-test profile profile={CurvedMinimalVisualCheckProfileToken} " +
+				$"fixture={_requestedFixture} framesPerRun={FramesPerRun} warmup={WarmupFrames} " +
+				$"resScale={_film.FilmResolutionScale:0.###} stride={Math.Max(1, _film.PixelStride)}");
 			return;
 		}
 
@@ -3389,6 +3650,63 @@ public partial class RenderTestRunner : Node
 		GD.Print(
 			$"[RenderTestRunner] Applied scoped render-test profile profile={profileToken} " +
 			$"fixture={_requestedFixture} runs=2 framesPerRun={FramesPerRun} warmup={WarmupFrames}");
+	}
+
+	private void ApplyCurvedMinimalVisualCheckProfile()
+	{
+		if (_film == null || !GodotObject.IsInstanceValid(_film))
+		{
+			return;
+		}
+
+		_film.FilmResolutionScale = MathF.Max(_renderTestOriginalResolutionScale, 0.5f);
+		int fullRows = Mathf.Max(1, Mathf.CeilToInt(_film.Height * Math.Max(_film.FilmResolutionScale, 0.01f)));
+		_film.PixelStride = 1;
+		_film.UpdateEveryFrame = false;
+		_film.UpdateEveryFrameBudgetMs = 2000f;
+		_film.RenderStepMaxMs = 20000;
+		_film.TargetMsPerFrame = 1000;
+		_film.UpdateEveryFrameMaxRowsPerStep = fullRows;
+		_film.RowsPerFrame = fullRows;
+		_film.MaxRowsPerFrameCap = fullRows;
+		_film.MinRowsPerFrame = Math.Min(_film.MinRowsPerFrame, fullRows);
+	}
+
+	private void RefreshRenderTestTrustTargetsForCurrentFilm(string profileToken, string runName)
+	{
+		if (!_renderTestMode || _film == null || !GodotObject.IsInstanceValid(_film))
+		{
+			return;
+		}
+
+		float effectiveScale = MathF.Max(_film.FilmResolutionScale, 0.01f);
+		int scaledFilmW = Mathf.Max(8, Mathf.CeilToInt(_film.Width * effectiveScale));
+		int scaledFilmH = Mathf.Max(8, Mathf.CeilToInt(_film.Height * effectiveScale));
+		long expectedScaledPixels = Math.Max(1L, (long)scaledFilmW * scaledFilmH);
+		int rowsPerStep = Math.Max(1,
+			_film.UpdateEveryFrameMaxRowsPerStep > 0
+				? _film.UpdateEveryFrameMaxRowsPerStep
+				: (_film.RowsPerFrame > 0 ? _film.RowsPerFrame : ComputeStatsFriendlyRowsPerStep(scaledFilmH)));
+		_renderTestMinGeomPixForTrust = Math.Max(RenderTestMinGeomPixProcessedPerWindow, (int)(expectedScaledPixels / 4L));
+		_renderTestTrustStraightMode = IsStraightFixtureModeForTrust();
+		long minRayTestsDefault = Math.Max(RenderTestMinGeomRayTestsTotalPerWindow, (long)_renderTestMinGeomPixForTrust);
+		long minRayTestsStraight = Math.Max(1024L, (long)_renderTestMinGeomPixForTrust * 2L);
+		_renderTestMinGeomRayTestsForTrust = _renderTestTrustStraightMode ? minRayTestsStraight : minRayTestsDefault;
+		_renderTestStatsScaledFilmW = scaledFilmW;
+		_renderTestStatsScaledFilmH = scaledFilmH;
+		_renderTestStatsRowsPerStep = rowsPerStep;
+		_renderTestTrustPass2Every = RenderTestTrustPass2SampleEveryNSegments;
+		_renderTestTrustMinP2 = RenderTestTrustMinP2Samples;
+		_film.ConfigureRenderHealthTrustEnforcementForTesting(
+			enabled: true,
+			minGeomPixProcessedPerWindow: _renderTestMinGeomPixForTrust,
+			minGeomRayTestsTotalPerWindow: _renderTestMinGeomRayTestsForTrust,
+			pass2SampleEveryNSegmentsOverride: _renderTestTrustPass2Every,
+			minPass2SamplesForTrustOverride: _renderTestTrustMinP2);
+		GD.Print(
+			$"[RenderTestRunner][EffectiveProfile] run={Sanitize(runName)} profile={profileToken} " +
+			$"resScale={_film.FilmResolutionScale:0.###} stride={Math.Max(1, _film.PixelStride)} " +
+			$"scaledFilm={scaledFilmW}x{scaledFilmH} rowsPerStep={rowsPerStep}");
 	}
 
 	private bool IsMetricTransportRequestedForFixture()

@@ -38,6 +38,8 @@ https://aethertopologist.github.io/GD_xPRIMEray/
 - [Property Surface](PropertySurface.md)
 - [RenderStep Gate Hierarchy Snapshot](RenderStep_GateHierarchy.md)
 
+- [Curved_Ray_Transport_Model_Review](Research/curved_ray_transport_model_review.md) derivative-aware stepping +  hamiltonian transport roadmap
+
 ### Current / revised specifications
 
 - [SceneSnapshot Data Layout (Revised)](spec_scene_snapshot_data_layout_1.md)

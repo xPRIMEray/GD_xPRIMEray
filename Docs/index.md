@@ -70,6 +70,8 @@ These are still useful for historical context and design evolution comparison.
 
 ## 🔬 Research & Experimental Frameworks
 
+- [Curved Ray Transport Model Review](Research/curved_ray_transport_model_review.md)
+
 - [GRIN Fixture Auto-Calibration Framework](Research/grin_fixture_auto_calibration_phase_plan.md)
 - [Fixture Research Note Pattern](Research/fixture_note_pattern.md) — shared note/template guidance, including canonical analysis basis declarations for future fixtures
 - [Fixture 001: Radial GRIN Baseline](Research/fixture_001_radial_grin_baseline.md) — baseline note for the A2 scheduler-clean run plus the first fully verified control-surface characterization pass

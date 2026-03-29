@@ -10,6 +10,12 @@ The mode remains:
 - default-off
 - local to subtile ordering within the current scan band
 
+The persistent-priors extension is also:
+
+- feature-flagged
+- default-off
+- additive on top of reorder-only, not a replacement for it
+
 ## What The Mode Does
 
 When enabled, the film pass still processes the same scan bands and the same width-`8` horizontal subtiles, but it changes the order in which those subtiles are visited inside each band.
@@ -59,6 +65,42 @@ This official experimental mode does **not** currently do any of the following:
 - no cross-band scheduler redesign
 
 It is reorder-only execution inside the current band structure.
+
+## Persistent Priors Extension
+
+The cautious persistent-priors extension keeps the same reorder-only ranking contract but adds a lightweight decaying memory keyed by stable spatial slice identity:
+
+- key: `y`, `height`, `x`, `width`
+- not keyed by transient band index
+- stored as a decayed per-subtile prior over recent rays, hits, and no-candidate coverage
+
+Current fixed safeguards:
+
+- decay factor per update: `0.85`
+- max prior blend weight into a current-history rank: `0.25`
+- current-band evidence remains dominant when it exists
+- if priors are disabled, the reorder-only path is unchanged
+
+Effect on ranking:
+
+1. current-band history still ranks first when available
+2. persistent priors can contribute a small blended tie-break/boost
+3. if current-band history is absent but a prior exists, priors can seed a cautious cold-start ranking
+
+How this appears in logs:
+
+- `mode=experimental_reorder_only_persistent_priors`
+- `source=history_plus_prior` when current-band evidence ranked first and priors contributed
+- `source=persistent_prior` when a band had no current-band history and priors reduced cold-start dependence
+- `priorContributed=1` and `coldStartReduced=1` make those cases explicit in per-band logs
+- frame summaries add `priorBandsWithHits`, `priorOnlyBandsWithHits`, and `priorContribBandsWithHits`
+
+The extension still does **not** do:
+
+- no budget reduction
+- no pruning changes
+- no neighbor promotion
+- no broader cross-band scheduler redesign
 
 ## Current Validation Status
 

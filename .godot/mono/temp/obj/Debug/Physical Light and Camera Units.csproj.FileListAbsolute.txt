@@ -1,54 +1,72 @@
-C:\godot\godot_xPRIMEray\.godot\mono\temp\bin\Debug\Physical Light and Camera Units.deps.json
-C:\godot\godot_xPRIMEray\.godot\mono\temp\bin\Debug\Physical Light and Camera Units.runtimeconfig.json
-C:\godot\godot_xPRIMEray\.godot\mono\temp\bin\Debug\Physical Light and Camera Units.dll
-C:\godot\godot_xPRIMEray\.godot\mono\temp\bin\Debug\Physical Light and Camera Units.pdb
-C:\godot\godot_xPRIMEray\.godot\mono\temp\bin\Debug\GodotSharp.dll
-C:\godot\godot_xPRIMEray\.godot\mono\temp\bin\Debug\GodotSharpEditor.dll
-C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.csproj.AssemblyReference.cache
-C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.GeneratedMSBuildEditorConfig.editorconfig
-C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.AssemblyInfoInputs.cache
-C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.AssemblyInfo.cs
-C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.csproj.CoreCompileInputs.cache
-C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.sourcelink.json
-C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical.0EC07CE9.Up2Date
-C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.dll
-C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\refint\Physical Light and Camera Units.dll
-C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.pdb
-C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.genruntimeconfig.cache
-C:\godot\godot_xPRIMEray\.godot\mono\temp\obj\Debug\ref\Physical Light and Camera Units.dll
-\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\bin\Debug\Physical Light and Camera Units.deps.json
-\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\bin\Debug\Physical Light and Camera Units.runtimeconfig.json
-\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\bin\Debug\Physical Light and Camera Units.dll
-\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\bin\Debug\Physical Light and Camera Units.pdb
-\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\bin\Debug\GodotSharp.dll
-\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\bin\Debug\GodotSharpEditor.dll
-\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.csproj.AssemblyReference.cache
-\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.GeneratedMSBuildEditorConfig.editorconfig
-\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.AssemblyInfoInputs.cache
-\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.AssemblyInfo.cs
-\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.csproj.CoreCompileInputs.cache
-\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.sourcelink.json
-\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical.0EC07CE9.Up2Date
-\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.dll
-\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\refint\Physical Light and Camera Units.dll
-\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.pdb
-\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.genruntimeconfig.cache
-\\wsl.localhost\Ubuntu\home\bb\code\godot_xPRIMEray\.godot\mono\temp\obj\Debug\ref\Physical Light and Camera Units.dll
-C:\godot\godot_xPRIMEray\.claude\worktrees\vigilant-bouman\.godot\mono\temp\bin\Debug\Physical Light and Camera Units.deps.json
-C:\godot\godot_xPRIMEray\.claude\worktrees\vigilant-bouman\.godot\mono\temp\bin\Debug\Physical Light and Camera Units.runtimeconfig.json
-C:\godot\godot_xPRIMEray\.claude\worktrees\vigilant-bouman\.godot\mono\temp\bin\Debug\Physical Light and Camera Units.dll
-C:\godot\godot_xPRIMEray\.claude\worktrees\vigilant-bouman\.godot\mono\temp\bin\Debug\Physical Light and Camera Units.pdb
-C:\godot\godot_xPRIMEray\.claude\worktrees\vigilant-bouman\.godot\mono\temp\bin\Debug\GodotSharp.dll
-C:\godot\godot_xPRIMEray\.claude\worktrees\vigilant-bouman\.godot\mono\temp\bin\Debug\GodotSharpEditor.dll
-C:\godot\godot_xPRIMEray\.claude\worktrees\vigilant-bouman\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.csproj.AssemblyReference.cache
-C:\godot\godot_xPRIMEray\.claude\worktrees\vigilant-bouman\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.GeneratedMSBuildEditorConfig.editorconfig
-C:\godot\godot_xPRIMEray\.claude\worktrees\vigilant-bouman\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.AssemblyInfoInputs.cache
-C:\godot\godot_xPRIMEray\.claude\worktrees\vigilant-bouman\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.AssemblyInfo.cs
-C:\godot\godot_xPRIMEray\.claude\worktrees\vigilant-bouman\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.csproj.CoreCompileInputs.cache
-C:\godot\godot_xPRIMEray\.claude\worktrees\vigilant-bouman\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.sourcelink.json
-C:\godot\godot_xPRIMEray\.claude\worktrees\vigilant-bouman\.godot\mono\temp\obj\Debug\Physical.0EC07CE9.Up2Date
-C:\godot\godot_xPRIMEray\.claude\worktrees\vigilant-bouman\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.dll
-C:\godot\godot_xPRIMEray\.claude\worktrees\vigilant-bouman\.godot\mono\temp\obj\Debug\refint\Physical Light and Camera Units.dll
-C:\godot\godot_xPRIMEray\.claude\worktrees\vigilant-bouman\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.pdb
-C:\godot\godot_xPRIMEray\.claude\worktrees\vigilant-bouman\.godot\mono\temp\obj\Debug\Physical Light and Camera Units.genruntimeconfig.cache
-C:\godot\godot_xPRIMEray\.claude\worktrees\vigilant-bouman\.godot\mono\temp\obj\Debug\ref\Physical Light and Camera Units.dll
+C:/godot/godot_xPRIMEray/.godot/mono/temp/bin/Debug/Physical Light and Camera Units.deps.json
+C:/godot/godot_xPRIMEray/.godot/mono/temp/bin/Debug/Physical Light and Camera Units.runtimeconfig.json
+C:/godot/godot_xPRIMEray/.godot/mono/temp/bin/Debug/Physical Light and Camera Units.dll
+C:/godot/godot_xPRIMEray/.godot/mono/temp/bin/Debug/Physical Light and Camera Units.pdb
+C:/godot/godot_xPRIMEray/.godot/mono/temp/bin/Debug/GodotSharp.dll
+C:/godot/godot_xPRIMEray/.godot/mono/temp/bin/Debug/GodotSharpEditor.dll
+C:/godot/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.csproj.AssemblyReference.cache
+C:/godot/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.GeneratedMSBuildEditorConfig.editorconfig
+C:/godot/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.AssemblyInfoInputs.cache
+C:/godot/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.AssemblyInfo.cs
+C:/godot/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.csproj.CoreCompileInputs.cache
+C:/godot/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.sourcelink.json
+C:/godot/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical.0EC07CE9.Up2Date
+C:/godot/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.dll
+C:/godot/godot_xPRIMEray/.godot/mono/temp/obj/Debug/refint/Physical Light and Camera Units.dll
+C:/godot/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.pdb
+C:/godot/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.genruntimeconfig.cache
+C:/godot/godot_xPRIMEray/.godot/mono/temp/obj/Debug/ref/Physical Light and Camera Units.dll
+//wsl.localhost/Ubuntu/home/bb/code/godot_xPRIMEray/.godot/mono/temp/bin/Debug/Physical Light and Camera Units.deps.json
+//wsl.localhost/Ubuntu/home/bb/code/godot_xPRIMEray/.godot/mono/temp/bin/Debug/Physical Light and Camera Units.runtimeconfig.json
+//wsl.localhost/Ubuntu/home/bb/code/godot_xPRIMEray/.godot/mono/temp/bin/Debug/Physical Light and Camera Units.dll
+//wsl.localhost/Ubuntu/home/bb/code/godot_xPRIMEray/.godot/mono/temp/bin/Debug/Physical Light and Camera Units.pdb
+//wsl.localhost/Ubuntu/home/bb/code/godot_xPRIMEray/.godot/mono/temp/bin/Debug/GodotSharp.dll
+//wsl.localhost/Ubuntu/home/bb/code/godot_xPRIMEray/.godot/mono/temp/bin/Debug/GodotSharpEditor.dll
+//wsl.localhost/Ubuntu/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.csproj.AssemblyReference.cache
+//wsl.localhost/Ubuntu/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.GeneratedMSBuildEditorConfig.editorconfig
+//wsl.localhost/Ubuntu/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.AssemblyInfoInputs.cache
+//wsl.localhost/Ubuntu/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.AssemblyInfo.cs
+//wsl.localhost/Ubuntu/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.csproj.CoreCompileInputs.cache
+//wsl.localhost/Ubuntu/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.sourcelink.json
+//wsl.localhost/Ubuntu/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical.0EC07CE9.Up2Date
+//wsl.localhost/Ubuntu/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.dll
+//wsl.localhost/Ubuntu/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/refint/Physical Light and Camera Units.dll
+//wsl.localhost/Ubuntu/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.pdb
+//wsl.localhost/Ubuntu/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.genruntimeconfig.cache
+//wsl.localhost/Ubuntu/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/ref/Physical Light and Camera Units.dll
+C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/.godot/mono/temp/bin/Debug/Physical Light and Camera Units.deps.json
+C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/.godot/mono/temp/bin/Debug/Physical Light and Camera Units.runtimeconfig.json
+C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/.godot/mono/temp/bin/Debug/Physical Light and Camera Units.dll
+C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/.godot/mono/temp/bin/Debug/Physical Light and Camera Units.pdb
+C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/.godot/mono/temp/bin/Debug/GodotSharp.dll
+C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/.godot/mono/temp/bin/Debug/GodotSharpEditor.dll
+C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.csproj.AssemblyReference.cache
+C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.GeneratedMSBuildEditorConfig.editorconfig
+C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.AssemblyInfoInputs.cache
+C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.AssemblyInfo.cs
+C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.csproj.CoreCompileInputs.cache
+C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.sourcelink.json
+C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/.godot/mono/temp/obj/Debug/Physical.0EC07CE9.Up2Date
+C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.dll
+C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/.godot/mono/temp/obj/Debug/refint/Physical Light and Camera Units.dll
+C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.pdb
+C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.genruntimeconfig.cache
+C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/.godot/mono/temp/obj/Debug/ref/Physical Light and Camera Units.dll
+/home/bb/code/godot_xPRIMEray/.godot/mono/temp/bin/Debug/Physical Light and Camera Units.deps.json
+/home/bb/code/godot_xPRIMEray/.godot/mono/temp/bin/Debug/Physical Light and Camera Units.runtimeconfig.json
+/home/bb/code/godot_xPRIMEray/.godot/mono/temp/bin/Debug/Physical Light and Camera Units.dll
+/home/bb/code/godot_xPRIMEray/.godot/mono/temp/bin/Debug/Physical Light and Camera Units.pdb
+/home/bb/code/godot_xPRIMEray/.godot/mono/temp/bin/Debug/GodotSharp.dll
+/home/bb/code/godot_xPRIMEray/.godot/mono/temp/bin/Debug/GodotSharpEditor.dll
+/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.csproj.AssemblyReference.cache
+/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.GeneratedMSBuildEditorConfig.editorconfig
+/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.AssemblyInfoInputs.cache
+/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.AssemblyInfo.cs
+/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.csproj.CoreCompileInputs.cache
+/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.sourcelink.json
+/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.csproj.CopyComplete
+/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.dll
+/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/refint/Physical Light and Camera Units.dll
+/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.pdb
+/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/Physical Light and Camera Units.genruntimeconfig.cache
+/home/bb/code/godot_xPRIMEray/.godot/mono/temp/obj/Debug/ref/Physical Light and Camera Units.dll
