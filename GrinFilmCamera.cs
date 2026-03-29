@@ -97,6 +97,18 @@ public partial class GrinFilmCamera : Node
 	{
 		public bool UpdateEveryFrame;
 		public bool UseGeometryTLASPruning;
+		public bool UseThreadedBands;
+		public int ThreadedBandWorkerCount;
+		public int ThreadedBandRowsPerChunk;
+		public bool UseThreadedPass2CandidateEval;
+		public int ThreadedPass2CandidateWorkers;
+		public int ThreadedPass2CandidateRowsPerChunk;
+		public bool UseThreadedPass2QueryResolve;
+		public int ThreadedPass2QueryWorkers;
+		public int ThreadedPass2QueryRowsPerChunk;
+		public bool UseThreadedPass2LocalAccumulation;
+		public int ThreadedPass2WorkerCount;
+		public int ThreadedPass2RowsPerChunk;
 		public float Pass2GeomEnvelopeRadiusScale;
 		public float Pass2GeomEnvelopeAabbExpand;
 		public bool UsePass2CollisionStride;
@@ -478,6 +490,32 @@ public partial class GrinFilmCamera : Node
 	/// <summary>Frames between FramePerf logs when not verbose.</summary>
 	// CONTROL FACTOR: Log cadence in frames when not verbose.
 	[Export] public int FramePerfLogEveryNFrames = 30;
+
+	[ExportSubgroup("Threading")]
+	/// <summary>Experimental bounded multithreading pass for pass1 transport using scheduler-aligned row chunks.</summary>
+	[Export] public bool UseThreadedBands = false;
+	/// <summary>Worker count for the threaded pass1 row-chunk mode. Set to 1 for deterministic single-worker comparison.</summary>
+	[Export(PropertyHint.Range, "1,16,1")] public int ThreadedBandWorkerCount = 2;
+	/// <summary>Rows per pass1 work chunk when threaded bands are enabled.</summary>
+	[Export(PropertyHint.Range, "1,256,1")] public int ThreadedBandRowsPerChunk = 4;
+	/// <summary>Experimental pass2 candidate-eval prepass: threaded TLAS candidate evaluation, serialized Godot queries and final commit.</summary>
+	[Export] public bool UseThreadedPass2CandidateEval = false;
+	/// <summary>Worker count for the pass2 candidate-eval prepass.</summary>
+	[Export(PropertyHint.Range, "1,16,1")] public int ThreadedPass2CandidateWorkers = 2;
+	/// <summary>Rows per pass2 candidate-eval chunk.</summary>
+	[Export(PropertyHint.Range, "1,256,1")] public int ThreadedPass2CandidateRowsPerChunk = 4;
+	/// <summary>Experimental pass2 query/resolve ownership prototype: worker-owned row chunks run local overlap + hit queries, serialized final commit.</summary>
+	[Export] public bool UseThreadedPass2QueryResolve = false;
+	/// <summary>Worker count for the pass2 query/resolve ownership prototype.</summary>
+	[Export(PropertyHint.Range, "1,16,1")] public int ThreadedPass2QueryWorkers = 2;
+	/// <summary>Rows per pass2 query/resolve worker chunk.</summary>
+	[Export(PropertyHint.Range, "1,256,1")] public int ThreadedPass2QueryRowsPerChunk = 4;
+	/// <summary>Experimental pass2 local-accumulation scaffold: serial physics gather, worker-local shading payloads, serialized commit.</summary>
+	[Export] public bool UseThreadedPass2LocalAccumulation = false;
+	/// <summary>Worker count for the pass2 local-accumulation scaffold.</summary>
+	[Export(PropertyHint.Range, "1,16,1")] public int ThreadedPass2WorkerCount = 2;
+	/// <summary>Rows per pass2 local-accumulation chunk.</summary>
+	[Export(PropertyHint.Range, "1,256,1")] public int ThreadedPass2RowsPerChunk = 4;
 
 	[ExportSubgroup("Logging & Diagnostics")]
 	/// <summary>Fetches collider names for debug output.</summary>
@@ -1325,6 +1363,7 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private bool _hasRenderThroughputEma = false;
 	private bool _renderThroughputWindowTrusted = false;
 	private readonly OverlayRollingWindow _overlayRolling = new OverlayRollingWindow(OverlayRollingCapacity);
+	private readonly OverlayRollingWindow _presentRolling = new OverlayRollingWindow(OverlayRollingCapacity);
 	private bool _testHasRenderHealthSnapshot = false;
 	private bool _testLastGeomTrusted = false;
 	private bool _testLastGeomSavedPctAvailable = false;
@@ -1376,6 +1415,26 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private bool _hasLastRangeFar;
 
 	private FramePerf _framePerf = new FramePerf();
+	private uint[] _presentTouchedEpoch = Array.Empty<uint>();
+	private uint[] _refreshTouchedEpoch = Array.Empty<uint>();
+	private uint _presentTouchedEpochId = 1;
+	private uint _refreshTouchedEpochId = 1;
+	private int _presentTouchedPixels = 0;
+	private int _refreshTouchedPixels = 0;
+	private int _presentsSinceRefreshReset = 0;
+	private long _refreshCycleStartTimestamp = 0;
+	private bool _hasRefreshCycleStartTimestamp = false;
+	private int _lastPresentedPixelsUpdated = 0;
+	private double _lastPresentedCoverageRatio = 0.0;
+	private int _lastFramesToFullRefresh = 0;
+	private double _lastTimeToFullRefreshMs = 0.0;
+	private double _lastEffectiveFullRefreshFps = 0.0;
+	private bool _lastFullRefreshMeasured = false;
+	private bool _threadReadinessAuditLogged = false;
+	private bool _threadedBandsDeterminismWarned = false;
+	private bool _deterministicBenchmarkModeRequested = false;
+	private uint _deterministicBenchmarkSeed = 1;
+	private bool _deterministicBenchmarkModeLogged = false;
 	private double _lastTestedSegsPerPixel = 0.0;
 	private long _lastPhysQ = 0;
 	private bool _hasPerfDeltaBaseline = false;
@@ -1744,8 +1803,8 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 		public float Opacity;
 	}
 
-	private struct EffectiveConfig
-	{
+		private struct EffectiveConfig
+		{
 		public EffectiveBroadphaseSettings Broadphase;
 		public EffectiveSoftGateSettings SoftGate;
 		public EffectiveRayMarchSettings RayMarch;
@@ -1812,10 +1871,22 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 		public int DebugGeomPruneAuditMaxMismatchLogsPerWindow;
 		public bool EnableProfiling;
 		public bool VerbosePerfLogs;
-		public bool EnableFramePerf;
-		public bool FramePerfVerbose;
-		public int FramePerfLogEveryNFrames;
-		public bool NeedColliderNames;
+			public bool EnableFramePerf;
+			public bool FramePerfVerbose;
+			public int FramePerfLogEveryNFrames;
+			public bool UseThreadedBands;
+			public int ThreadedBandWorkerCount;
+			public int ThreadedBandRowsPerChunk;
+			public bool UseThreadedPass2CandidateEval;
+			public int ThreadedPass2CandidateWorkers;
+			public int ThreadedPass2CandidateRowsPerChunk;
+			public bool UseThreadedPass2QueryResolve;
+			public int ThreadedPass2QueryWorkers;
+			public int ThreadedPass2QueryRowsPerChunk;
+			public bool UseThreadedPass2LocalAccumulation;
+			public int ThreadedPass2WorkerCount;
+			public int ThreadedPass2RowsPerChunk;
+			public bool NeedColliderNames;
 		public bool FixtureDebugHitColoringEnabled;
 		public string FixtureDebugSourceGroup;
 		public string FixtureDebugBackgroundGroup;
@@ -1883,6 +1954,12 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 		public bool GeomPruneRequested;
 		public bool UseGeometryTLASPruning;
 		public bool PruneAuditEnabled;
+		public int PresentPixelsUpdated;
+		public double PresentCoverageRatio;
+		public int FramesToFullRefresh;
+		public double TimeToFullRefreshMs;
+		public double EffectiveFullRefreshFps;
+		public bool FullRefreshMeasured;
 		public double StepWallMs;
 	}
 
@@ -2215,6 +2292,117 @@ private sealed class OverlayRollingWindow
 		public long FieldSourceEvals;
 	}
 
+	private struct Pass2ResolvedSample
+	{
+		public int X;
+		public int Y;
+		public int Stride;
+		public int GlobalPi;
+		public int SubtileIndex;
+		public int SegCount;
+		public int SegOffset;
+		public bool HadHit;
+		public bool AbsorbedByInnerRadius;
+		public bool NeedHitName;
+		public bool PrevHadHit;
+		public bool PrevHadHitForSoftGate;
+		public bool TestedAnyInPass0ThisPixel;
+		public bool SoftGateHitThisPixel;
+		public float HitDistance;
+		public Vector3 BestHp;
+		public Vector3 BestHn;
+		public ulong BestCid;
+		public string HitName;
+	}
+
+	private struct Pass2ShadedSample
+	{
+		public Color Color;
+		public string FixtureHitKind;
+		public Color FixtureChosenDebugColor;
+		public bool FixtureDebugColorChosen;
+		public bool SkipShading;
+	}
+
+	private sealed class Pass2ChunkAccumulator
+	{
+		public int Hits;
+		public int SourceHits;
+		public int BackgroundHits;
+		public int UnclassifiedHits;
+		public int AbsorbedHits;
+		public int MissHits;
+		public int ShadingSkippedPixels;
+	}
+
+	private sealed class Pass2QueryResolveChunk
+	{
+		public int StartRow;
+		public int EndRowExclusive;
+		public System.Collections.Generic.List<Pass2ResolvedSample> Samples = new();
+		public long TracedPixels;
+		public long SegsIntegrated;
+		public long SegsTested;
+		public long PhysicsQueries;
+		public long IntersectShapeCalls;
+		public long SubdividedRayCalls;
+		public long SubdividedRayQueries;
+		public long SubdividedRaySubsteps;
+		public long Pass2StrideSum;
+		public long Pass2StrideCount;
+		public long QueryUsec;
+		public long ResolveUsec;
+		public long PhysUsec;
+		public ThreadedPass2GeomAccumulator Geom;
+	}
+
+	private struct ThreadedPass2GeomAccumulator
+	{
+		public long GeomSegmentsQueried;
+		public long GeomSegWithCandidates;
+		public long GeomSegZeroCandidates;
+		public long GeomPixelProcessed;
+		public long GeomPixelHadAnyCandidates;
+		public long GeomPixelNoCandidates;
+		public long GeomHitAccepted;
+		public long GeomHitRejected;
+		public long GeomRayTestsTotal;
+		public long Pass2SampledSegments;
+		public double Pass2RadiusSum;
+		public float Pass2RadiusMax;
+		public double Pass2EnvDiagSum;
+		public float Pass2EnvDiagMax;
+		public double Pass2EnvelopeInflationSum;
+		public float Pass2EnvelopeInflationMax;
+		public long Pass2CandidateCount0;
+		public long Pass2CandidateCount1To2;
+		public long Pass2CandidateCount3To8;
+		public long Pass2CandidateCount9To32;
+		public long Pass2CandidateCount33Plus;
+	}
+
+	private struct Pass2CandidateEvalRecord
+	{
+		public int CandidateStart;
+		public int CandidateCount;
+		public float EnvelopeRadius;
+		public float EnvelopeDiag;
+		public float EnvelopeInflation;
+	}
+
+	private sealed class Pass2CandidateEvalChunk
+	{
+		public int StartRow;
+		public int EndRowExclusive;
+		public int FirstRecordIndex;
+		public int RecordCount;
+		public long[] CandidateIds = Array.Empty<long>();
+		public int CandidateSegments;
+		public int CandidateSegmentsWithHits;
+		public int CandidateSegmentsZero;
+		public long CandidateReferences;
+	}
+
 	private bool _dbgOnce = false;
 	private void EarlyOut(string why, bool enableProfiling)
 	{
@@ -2399,10 +2587,12 @@ private sealed class OverlayRollingWindow
 			GD.PushError("GrinFilmCamera: RayBeamRendererPath missing or invalid.");
 		}
 
-		_rng.Randomize();
-		ApplyTileMetricsCmdArgs();
-
-		// DECISION: optionally apply presets at startup via the single orchestration path.
+			_rng.Randomize();
+			ApplyTileMetricsCmdArgs();
+			ApplyThreadingCmdArgs();
+			ApplyDeterministicBenchmarkCmdArgs();
+	
+			// DECISION: optionally apply presets at startup via the single orchestration path.
 		if (!ApplyPresetOnReady)
 		{
 			_lastPreset = Preset;
@@ -3375,9 +3565,21 @@ private sealed class OverlayRollingWindow
 		ResolveRayBeamRendererReference();
 		return new TestRunDefaults
 		{
-			UpdateEveryFrame = UpdateEveryFrame,
-			UseGeometryTLASPruning = UseGeometryTLASPruning,
-			Pass2GeomEnvelopeRadiusScale = Pass2GeomEnvelopeRadiusScale,
+				UpdateEveryFrame = UpdateEveryFrame,
+				UseGeometryTLASPruning = UseGeometryTLASPruning,
+				UseThreadedBands = UseThreadedBands,
+				ThreadedBandWorkerCount = ThreadedBandWorkerCount,
+				ThreadedBandRowsPerChunk = ThreadedBandRowsPerChunk,
+				UseThreadedPass2CandidateEval = UseThreadedPass2CandidateEval,
+				ThreadedPass2CandidateWorkers = ThreadedPass2CandidateWorkers,
+				ThreadedPass2CandidateRowsPerChunk = ThreadedPass2CandidateRowsPerChunk,
+				UseThreadedPass2QueryResolve = UseThreadedPass2QueryResolve,
+				ThreadedPass2QueryWorkers = ThreadedPass2QueryWorkers,
+				ThreadedPass2QueryRowsPerChunk = ThreadedPass2QueryRowsPerChunk,
+				UseThreadedPass2LocalAccumulation = UseThreadedPass2LocalAccumulation,
+				ThreadedPass2WorkerCount = ThreadedPass2WorkerCount,
+				ThreadedPass2RowsPerChunk = ThreadedPass2RowsPerChunk,
+				Pass2GeomEnvelopeRadiusScale = Pass2GeomEnvelopeRadiusScale,
 			Pass2GeomEnvelopeAabbExpand = Pass2GeomEnvelopeAabbExpand,
 			UsePass2CollisionStride = UsePass2CollisionStride,
 			Pass2CollisionStrideNear = Pass2CollisionStrideNear,
@@ -3421,9 +3623,21 @@ private sealed class OverlayRollingWindow
 	public void RestoreTestRunDefaults(in TestRunDefaults defaults)
 	{
 		ResolveRayBeamRendererReference();
-		UpdateEveryFrame = defaults.UpdateEveryFrame;
-		UseGeometryTLASPruning = defaults.UseGeometryTLASPruning;
-		Pass2GeomEnvelopeRadiusScale = defaults.Pass2GeomEnvelopeRadiusScale;
+			UpdateEveryFrame = defaults.UpdateEveryFrame;
+			UseGeometryTLASPruning = defaults.UseGeometryTLASPruning;
+			UseThreadedBands = defaults.UseThreadedBands;
+			ThreadedBandWorkerCount = defaults.ThreadedBandWorkerCount;
+			ThreadedBandRowsPerChunk = defaults.ThreadedBandRowsPerChunk;
+			UseThreadedPass2CandidateEval = defaults.UseThreadedPass2CandidateEval;
+			ThreadedPass2CandidateWorkers = defaults.ThreadedPass2CandidateWorkers;
+			ThreadedPass2CandidateRowsPerChunk = defaults.ThreadedPass2CandidateRowsPerChunk;
+			UseThreadedPass2QueryResolve = defaults.UseThreadedPass2QueryResolve;
+			ThreadedPass2QueryWorkers = defaults.ThreadedPass2QueryWorkers;
+			ThreadedPass2QueryRowsPerChunk = defaults.ThreadedPass2QueryRowsPerChunk;
+			UseThreadedPass2LocalAccumulation = defaults.UseThreadedPass2LocalAccumulation;
+			ThreadedPass2WorkerCount = defaults.ThreadedPass2WorkerCount;
+			ThreadedPass2RowsPerChunk = defaults.ThreadedPass2RowsPerChunk;
+			Pass2GeomEnvelopeRadiusScale = defaults.Pass2GeomEnvelopeRadiusScale;
 		Pass2GeomEnvelopeAabbExpand = defaults.Pass2GeomEnvelopeAabbExpand;
 		UsePass2CollisionStride = defaults.UsePass2CollisionStride;
 		Pass2CollisionStrideNear = defaults.Pass2CollisionStrideNear;
@@ -4008,8 +4222,10 @@ private sealed class OverlayRollingWindow
 			return;
 
 		_overlayRolling.SetWindowSeconds(RenderHealthRollingWindowSec);
+		_presentRolling.SetWindowSeconds(RenderHealthRollingWindowSec);
 		long now = Stopwatch.GetTimestamp();
 		OverlayRollingSnapshot rolling = _overlayRolling.Snapshot(now);
+		OverlayRollingSnapshot presentRolling = _presentRolling.Snapshot(now);
 		double elapsedSec = rolling.ElapsedSec;
 		if ((!double.IsFinite(elapsedSec) || elapsedSec <= 0.0) && rolling.StepMsTotal > 0.0)
 			elapsedSec = rolling.StepMsTotal / 1000.0;
@@ -4022,6 +4238,9 @@ private sealed class OverlayRollingWindow
 		double rollingStepsPerSec = hasSteps && hasElapsed ? (rolling.Steps / elapsedSec) : 0.0;
 		double rollingHitsPerSec = hasSteps && hasElapsed ? (rolling.Hits / elapsedSec) : 0.0;
 		double rollingRayTestsPerSec = hasElapsed && rolling.RayTestsSamples > 0 ? (rolling.RayTests / elapsedSec) : 0.0;
+		double presentElapsedSec = presentRolling.ElapsedSec;
+		bool hasPresentElapsed = presentElapsedSec > 0.0 && double.IsFinite(presentElapsedSec);
+		double rollingPresentsPerSec = hasPresentElapsed && presentRolling.Steps > 0 ? (presentRolling.Steps / presentElapsedSec) : 0.0;
 
 		_overlayHudSb.Clear();
 		var lines = new System.Collections.Generic.List<string>(6);
@@ -4070,6 +4289,9 @@ private sealed class OverlayRollingWindow
 		string rayTestsPerSecText = (hasElapsed && rolling.RayTestsSamples > 0 && double.IsFinite(rollingRayTestsPerSec) && rollingRayTestsPerSec >= 0.0)
 			? rollingRayTestsPerSec.ToString("0.0")
 			: "na";
+		string presentsPerSecText = (hasPresentElapsed && presentRolling.Steps > 0 && double.IsFinite(rollingPresentsPerSec) && rollingPresentsPerSec >= 0.0)
+			? rollingPresentsPerSec.ToString("0.0")
+			: "na";
 		string etaText = "na";
 		double etaFullFilmSec = 0.0;
 		if (_filmHeight > 0 && hasRows && rollingRowsPerSec > 0.0)
@@ -4087,6 +4309,7 @@ private sealed class OverlayRollingWindow
 			.Append(" bands=").Append(FmtInt(hasLatest, latest.BandsProcessed))
 			.Append(" hitRate=").Append(FmtDouble(latestHasHitRate, latestHitRate, "0.000"))
 			.Append(" fps=").Append(FmtDouble(double.IsFinite(engineFps) && engineFps >= 0.0, engineFps, "0.0"))
+			.Append(" present/s=").Append(presentsPerSecText)
 			.Append(" tickMs=").Append(FmtDouble(double.IsFinite(_lastFrameRenderMs) && _lastFrameRenderMs >= 0.0, _lastFrameRenderMs, "0.0"))
 			.Append(" eta=").Append(etaText);
 		lines.Add(_overlayHudSb.ToString());
@@ -4098,6 +4321,14 @@ private sealed class OverlayRollingWindow
 			.Append(" ms/row=").Append(msPerRowText)
 			.Append(" hits/s=").Append(hitsPerSecText)
 			.Append(" rayTests/s=").Append(rayTestsPerSecText);
+		lines.Add(_overlayHudSb.ToString());
+
+		_overlayHudSb.Clear();
+		_overlayHudSb.Append("refresh px=").Append(_lastPresentedPixelsUpdated)
+			.Append(" cover=").Append(FmtDouble(_filmWidth > 0 && _filmHeight > 0, _lastPresentedCoverageRatio, "0.000"))
+			.Append(" fullFrames=").Append(_lastFullRefreshMeasured && _lastFramesToFullRefresh > 0 ? _lastFramesToFullRefresh.ToString() : "na")
+			.Append(" fullMs=").Append(FmtDouble(_lastFullRefreshMeasured, _lastTimeToFullRefreshMs, "0.0"))
+			.Append(" fullFps=").Append(FmtDouble(_lastFullRefreshMeasured, _lastEffectiveFullRefreshFps, "0.00"));
 		lines.Add(_overlayHudSb.ToString());
 
 		_overlayHudSb.Clear();
@@ -4660,6 +4891,146 @@ private sealed class OverlayRollingWindow
 		}
 	}
 
+	private void ApplyThreadingCmdArgs()
+	{
+		foreach (string arg in GetHudCmdArgs())
+		{
+			if (TryGetHudArgValue(arg, "--threaded-bands=", out string enabledValue))
+			{
+				string normalized = enabledValue.Trim().ToLowerInvariant();
+				UseThreadedBands = normalized is "1" or "true" or "on" or "yes";
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--threaded-band-workers=", out string workersValue)
+				&& int.TryParse(workersValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedWorkers))
+			{
+				ThreadedBandWorkerCount = Math.Clamp(parsedWorkers, 1, 16);
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--threaded-band-rows=", out string rowsValue)
+				&& int.TryParse(rowsValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedRows))
+			{
+				ThreadedBandRowsPerChunk = Math.Max(1, parsedRows);
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--threaded-pass2-local-accumulation=", out string pass2EnabledValue))
+			{
+				string normalized = pass2EnabledValue.Trim().ToLowerInvariant();
+				UseThreadedPass2LocalAccumulation = normalized is "1" or "true" or "on" or "yes";
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--threaded-pass2-candidate-eval=", out string pass2CandidateEvalValue))
+			{
+				string normalized = pass2CandidateEvalValue.Trim().ToLowerInvariant();
+				UseThreadedPass2CandidateEval = normalized is "1" or "true" or "on" or "yes";
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--threaded-pass2-candidate-workers=", out string pass2CandidateWorkersValue)
+				&& int.TryParse(pass2CandidateWorkersValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedPass2CandidateWorkers))
+			{
+				ThreadedPass2CandidateWorkers = Math.Clamp(parsedPass2CandidateWorkers, 1, 16);
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--threaded-pass2-candidate-rows=", out string pass2CandidateRowsValue)
+				&& int.TryParse(pass2CandidateRowsValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedPass2CandidateRows))
+			{
+				ThreadedPass2CandidateRowsPerChunk = Math.Max(1, parsedPass2CandidateRows);
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--threaded-pass2-query-resolve=", out string pass2QueryResolveValue))
+			{
+				string normalized = pass2QueryResolveValue.Trim().ToLowerInvariant();
+				UseThreadedPass2QueryResolve = normalized is "1" or "true" or "on" or "yes";
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--threaded-pass2-query-workers=", out string pass2QueryWorkersValue)
+				&& int.TryParse(pass2QueryWorkersValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedPass2QueryWorkers))
+			{
+				ThreadedPass2QueryWorkers = Math.Clamp(parsedPass2QueryWorkers, 1, 16);
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--threaded-pass2-query-rows=", out string pass2QueryRowsValue)
+				&& int.TryParse(pass2QueryRowsValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedPass2QueryRows))
+			{
+				ThreadedPass2QueryRowsPerChunk = Math.Max(1, parsedPass2QueryRows);
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--threaded-pass2-workers=", out string pass2WorkersValue)
+				&& int.TryParse(pass2WorkersValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedPass2Workers))
+			{
+				ThreadedPass2WorkerCount = Math.Clamp(parsedPass2Workers, 1, 16);
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--threaded-pass2-rows=", out string pass2RowsValue)
+				&& int.TryParse(pass2RowsValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedPass2Rows))
+			{
+				ThreadedPass2RowsPerChunk = Math.Max(1, parsedPass2Rows);
+			}
+		}
+	}
+
+	private void ApplyDeterministicBenchmarkCmdArgs()
+	{
+		bool enableBenchmarkLock = false;
+		uint benchmarkSeed = 1;
+
+		foreach (string arg in GetHudCmdArgs())
+		{
+			if (TryGetHudArgValue(arg, "--benchmark-lock=", out string lockValue)
+				|| TryGetHudArgValue(arg, "--benchmark-deterministic=", out lockValue))
+			{
+				string normalized = lockValue.Trim().ToLowerInvariant();
+				enableBenchmarkLock = normalized is "1" or "true" or "on" or "yes";
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--benchmark-seed=", out string seedValue)
+				|| TryGetHudArgValue(arg, "--benchmark-fixed-seed=", out seedValue))
+			{
+				if (uint.TryParse(seedValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out uint parsedSeed))
+				{
+					benchmarkSeed = Math.Max(1u, parsedSeed);
+				}
+			}
+		}
+
+		if (!enableBenchmarkLock)
+			return;
+
+		_deterministicBenchmarkModeRequested = true;
+		_deterministicBenchmarkSeed = benchmarkSeed;
+		ApplyDeterministicBenchmarkLockIn(benchmarkSeed);
+	}
+
+	private void ApplyDeterministicBenchmarkLockIn(uint seed)
+	{
+		ResearchOverrides.Enabled = true;
+		ResearchOverrides.Override_ResearchEnabled = true;
+		ResearchOverrides.ResearchEnabled = true;
+		ResearchOverrides.Override_DeterministicMode = true;
+		ResearchOverrides.DeterministicMode = true;
+		ResearchOverrides.Override_FixedSeed = true;
+		ResearchOverrides.FixedSeed = Math.Max(1u, seed);
+
+		UseThreadedBands = true;
+		ThreadedBandWorkerCount = 1;
+		ThreadedBandRowsPerChunk = 4;
+		EnableTileMetricsReorderSimulation = false;
+		EnableTileMetricsReorderExecution = false;
+		EnableTileMetricsPersistentPriors = false;
+	}
+
 	private void ThrottleBusLog(double delta, SceneSnapshot snapshot)
 	{
 		_busLogTimerSec += Math.Max(0.0, delta);
@@ -4796,6 +5167,7 @@ private sealed class OverlayRollingWindow
 
 			LogEffectiveConfigIfChanged(in cfg);
 			LogResearchConfigIfChanged(in cfg);
+			EmitDeterministicBenchmarkModeOnce(in cfg);
 			EffectiveBroadphaseSettings broadphaseCfg = cfg.Broadphase;
 			EffectiveSoftGateSettings softGateCfg = cfg.SoftGate;
 			EffectiveRayMarchSettings rayCfg = cfg.RayMarch;
@@ -4846,6 +5218,9 @@ private sealed class OverlayRollingWindow
 		bool framePerfEnabled = false;
 		bool frameStart = false;
 		PerfScope frameScope = default;
+		PerfScope schedulerScope = default;
+		bool schedulerScopeActive = false;
+		ulong schedulerStartUsec = 0;
 		ulong pass1StartUsec = 0;
 		ulong pass1EndUsec = 0;
 		ulong pass2StartUsec = 0;
@@ -5516,6 +5891,13 @@ private sealed class OverlayRollingWindow
 				MaybePrintSoftGateConfigSnapshot(in cfg);
 			}
 
+			if (statsEnabled) schedulerStartUsec = Time.GetTicksUsec();
+			if (framePerfEnabled)
+			{
+				schedulerScope = new PerfScope(_framePerf, PerfStage.SchedulerOrchestration);
+				schedulerScopeActive = true;
+			}
+
 			bool pass1ProbeRequestedForStep = cfg.Pass1DoHitTest;
 			if (!TryResolveRenderSpaceState(out PhysicsDirectSpaceState3D space, out string renderSpaceSource))
 			{
@@ -5901,6 +6283,7 @@ private sealed class OverlayRollingWindow
 			//int jobs = Mathf.Clamp(OS.GetProcessorCount(), 2, 16);
 			// CONTROL FACTOR: worker count for Parallel.For; lower reduces contention.
 			int jobs = Mathf.Clamp(OS.GetProcessorCount() / 2, 2, 8);
+			EmitThreadReadinessAuditOnce(in cfg, rowsPerFrame, bandH, filmW, filmH, jobs);
 
 			var basisLocal = basis; // capture for lambda
 			Camera3D pass1Cam = rbrCam;
@@ -5915,6 +6298,14 @@ private sealed class OverlayRollingWindow
 				float pass1FocalPx = (pass1VpHeight * 0.5f) / Mathf.Max(1e-6f, Mathf.Tan(pass1FovY * 0.5f));
 				pass1PxPerRad = pass1FocalPx;
 			}
+
+			if (framePerfEnabled && schedulerScopeActive)
+			{
+				schedulerScope.Dispose();
+				schedulerScopeActive = false;
+			}
+			if (statsEnabled && schedulerStartUsec > 0)
+				_perfFrame.AddSchedulerUsec(Time.GetTicksUsec() - schedulerStartUsec);
 
 			ulong a0 = Time.GetTicksUsec(); // before Parallel.For
 			ulong a1 = a0;
@@ -5946,169 +6337,229 @@ private sealed class OverlayRollingWindow
 				bool pass1SpaceAvailable = IsUsablePhysicsSpaceState(space);
 				int pass1ProbeGuardLogState = 0;
 
-				// DECISION: parallelize pass1 over all pixels in the band.
-				System.Threading.Tasks.Parallel.For(
-					0,
-					pixelCount,
-					new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = jobs },
-					() =>
+				Pass1ThreadLocal CreatePass1ThreadLocal()
+				{
+					return new Pass1ThreadLocal
 					{
-						return new Pass1ThreadLocal
+						QuickRayParams = new PhysicsRayQueryParameters3D
 						{
-							QuickRayParams = new PhysicsRayQueryParameters3D
-							{
-								CollisionMask = rayCfg.CollisionMask,
-								CollideWithBodies = true,
-								CollideWithAreas = true,
-								HitFromInside = cfg.Pass2HitFromInside,
-								HitBackFaces = cfg.Pass2HitBackFaces
-							}
-						};
-					},
-					(pi, _, local) =>
+							CollisionMask = rayCfg.CollisionMask,
+							CollideWithBodies = true,
+							CollideWithAreas = true,
+							HitFromInside = cfg.Pass2HitFromInside,
+							HitBackFaces = cfg.Pass2HitBackFaces
+						}
+					};
+				}
+
+				Pass1ThreadLocal ProcessPass1Pixel(int pi, Pass1ThreadLocal local)
+				{
+					int localY = pi / filmW;   // 0..bandH-1
+					int x = pi - localY * filmW;
+					int y = yStart + localY;
+					// DECISION: skip pixels not aligned to stride (block fill later).
+					if ((x % stride) != 0 || (y % stride) != 0)
 					{
-						int localY = pi / filmW;   // 0..bandH-1
-						int x = pi - localY * filmW;
-						int y = yStart + localY;
-						// DECISION: skip pixels not aligned to stride (block fill later).
-						if ((x % stride) != 0 || (y % stride) != 0)
-						{
-							_segCountPerPixel[pi] = 0;
-							_pass1HitFound[pi] = false;
-							_pass1StoppedEarly[pi] = false;
-							_pass1HitSegIndex[pi] = -1;
-							_pass1HitDist[pi] = float.PositiveInfinity;
-							_pass1HitPos[pi] = Vector3.Zero;
-							_pass1HitNormal[pi] = Vector3.Up;
-							_pass1HitColliderId[pi] = 0;
-							return local;
-						}
-
-						float v = ((y + 0.5f) / filmH) * 2f - 1f;
-						v = -v;
-						float u = ((x + 0.5f) / filmW) * 2f - 1f;
-
-						Vector3 dirCam = new Vector3(
-							u * tanHalf * aspect,
-							v * tanHalf,
-							-1f
-						).Normalized();
-
-						// EFFECT: transform camera ray to world space.
-						Vector3 dirWorld = (basisLocal * dirCam).Normalized();
-						Vector3 bendDir = basisLocal.X;
-
-						int segOffset = pi * maxSeg;
-						if (local.QuickRayParams == null)
-						{
-							local.QuickRayParams = new PhysicsRayQueryParameters3D
-							{
-								CollisionMask = rayCfg.CollisionMask,
-								CollideWithBodies = true,
-								CollideWithAreas = true,
-								HitFromInside = cfg.Pass2HitFromInside,
-								HitBackFaces = cfg.Pass2HitBackFaces
-							};
-						}
-						bool quickRayParamsValid = local.QuickRayParams != null;
-						bool pass1ProbeEnabledForRay = cfg.Pass1DoHitTest && pass1SpaceAvailable && quickRayParamsValid;
-						if (cfg.Pass1DoHitTest && !pass1ProbeEnabledForRay && Interlocked.Exchange(ref pass1ProbeGuardLogState, 1) == 0)
-						{
-							GD.PushWarning(
-								$"[Pass1Probe][Guard] scene={renderSceneName} fixture={renderFixtureName} mode={renderModeToken} " +
-								$"spaceNull={(pass1SpaceAvailable ? 0 : 1)} quickRayValid={(quickRayParamsValid ? 1 : 0)} " +
-								$"pass1ProbeRequested=1 pass1ProbeEnabled=0 source={renderSpaceSource}");
-						}
-
-						// CROSS-CLASS CONTRACT: RayBeamRenderer builds segments + pass1 hit info.
-						int count = _rbr.BuildRaySegmentsCamera_Pass1(
-							space,
-							ref local.QuickRayParams,
-							pass1Cam, pass1PxPerRad, pass1CamPos,
-							pass1CamPos, dirWorld, bendDir,
-							center, beta, gamma,
-							fieldSnaps, hasSources,
-							farForSim,
-							_segBuf, segOffset, maxSeg,
-							insightPlane, useInsightPlane, insightEps,
-							pass1StopOnHit,
-							pass1ProbeEnabledForRay,
-							cfg.Pass1ProbeEveryNSegments,
-							cfg.Pass1ProbeMinTravelDelta,
-							renderSpaceSource,
-							renderSceneName,
-							renderFixtureName,
-							renderModeToken,
-							out RayBeamRenderer.Pass1HitInfo hitInfo,
-							out bool stoppedEarly,
-							out int hitSegIndex,
-							out int stepsIntegrated,
-							out int fieldEvals,
-							out int pass1RaycastsLocal,
-							out int pass1ProbeHitsLocal,
-							out int fieldGridHitsLocal,
-							out int fieldGridMissesLocal,
-							out int fieldGridFallbacksLocal,
-							out int fieldSourceEvalsLocal,
-							curvatureGridForPass1,
-							fieldGridForPass1
-						);
-
-						// DECISION: accumulate perf counters only when enabled.
-						if (collectPass1Perf)
-						{
-							local.PhysQueries += pass1RaycastsLocal;
-							// DECISION: count early-stop pixels only when stopped early.
-							if (stoppedEarly) local.EarlyStopPixels++;
-						}
-						// DECISION: accumulate steps when enabled.
-						if (collectPass1Steps) local.StepsIntegrated += stepsIntegrated;
-						// DECISION: accumulate field evals when frame perf is enabled.
-						if (framePerfEnabled) local.FieldEvals += fieldEvals;
-						// DECISION: accumulate extra pass1 counters when enabled.
-						if (framePerfEnabled)
-						{
-							local.Pass1Raycasts += pass1RaycastsLocal;
-							local.Pass1ProbeHits += pass1ProbeHitsLocal;
-							local.FieldGridHits += fieldGridHitsLocal;
-							local.FieldGridMisses += fieldGridMissesLocal;
-							local.FieldGridFallbacks += fieldGridFallbacksLocal;
-							local.FieldSourceEvals += fieldSourceEvalsLocal;
-						}
-
-						_segCountPerPixel[pi] = count;
-						_pass1HitFound[pi] = hitInfo.Found;
-						_pass1StoppedEarly[pi] = stoppedEarly;
-						_pass1HitSegIndex[pi] = hitSegIndex;
-						_pass1HitDist[pi] = hitInfo.Distance;
-						_pass1HitPos[pi] = hitInfo.Position;
-						_pass1HitNormal[pi] = hitInfo.Normal;
-						_pass1HitColliderId[pi] = hitInfo.ColliderId;
+						_segCountPerPixel[pi] = 0;
+						_pass1HitFound[pi] = false;
+						_pass1StoppedEarly[pi] = false;
+						_pass1HitSegIndex[pi] = -1;
+						_pass1HitDist[pi] = float.PositiveInfinity;
+						_pass1HitPos[pi] = Vector3.Zero;
+						_pass1HitNormal[pi] = Vector3.Up;
+						_pass1HitColliderId[pi] = 0;
 						return local;
-					},
-					local =>
+					}
+
+					float v = ((y + 0.5f) / filmH) * 2f - 1f;
+					v = -v;
+					float u = ((x + 0.5f) / filmW) * 2f - 1f;
+
+					Vector3 dirCam = new Vector3(
+						u * tanHalf * aspect,
+						v * tanHalf,
+						-1f
+					).Normalized();
+
+					// EFFECT: transform camera ray to world space.
+					Vector3 dirWorld = (basisLocal * dirCam).Normalized();
+					Vector3 bendDir = basisLocal.X;
+
+					int segOffset = pi * maxSeg;
+					if (local.QuickRayParams == null)
 					{
-						// DECISION: merge thread-local counters into shared totals.
-						if (collectPass1Perf)
+						local.QuickRayParams = new PhysicsRayQueryParameters3D
 						{
-							Interlocked.Add(ref pass1PhysQueries, local.PhysQueries);
-							Interlocked.Add(ref pass1EarlyStopPixels, local.EarlyStopPixels);
-						}
-						// DECISION: merge steps when enabled.
-						if (collectPass1Steps) Interlocked.Add(ref pass1StepsIntegrated, local.StepsIntegrated);
-						// DECISION: merge field evals when frame perf is enabled.
-						if (framePerfEnabled) Interlocked.Add(ref pass1FieldEvals, local.FieldEvals);
-						// DECISION: merge extra pass1 counters when enabled.
-						if (framePerfEnabled)
+							CollisionMask = rayCfg.CollisionMask,
+							CollideWithBodies = true,
+							CollideWithAreas = true,
+							HitFromInside = cfg.Pass2HitFromInside,
+							HitBackFaces = cfg.Pass2HitBackFaces
+						};
+					}
+					bool quickRayParamsValid = local.QuickRayParams != null;
+					bool pass1ProbeEnabledForRay = cfg.Pass1DoHitTest && pass1SpaceAvailable && quickRayParamsValid;
+					if (cfg.Pass1DoHitTest && !pass1ProbeEnabledForRay && Interlocked.Exchange(ref pass1ProbeGuardLogState, 1) == 0)
+					{
+						GD.PushWarning(
+							$"[Pass1Probe][Guard] scene={renderSceneName} fixture={renderFixtureName} mode={renderModeToken} " +
+							$"spaceNull={(pass1SpaceAvailable ? 0 : 1)} quickRayValid={(quickRayParamsValid ? 1 : 0)} " +
+							$"pass1ProbeRequested=1 pass1ProbeEnabled=0 source={renderSpaceSource}");
+					}
+
+					// CROSS-CLASS CONTRACT: RayBeamRenderer builds segments + pass1 hit info.
+					int count = _rbr.BuildRaySegmentsCamera_Pass1(
+						space,
+						ref local.QuickRayParams,
+						pass1Cam, pass1PxPerRad, pass1CamPos,
+						pass1CamPos, dirWorld, bendDir,
+						center, beta, gamma,
+						fieldSnaps, hasSources,
+						farForSim,
+						_segBuf, segOffset, maxSeg,
+						insightPlane, useInsightPlane, insightEps,
+						pass1StopOnHit,
+						pass1ProbeEnabledForRay,
+						cfg.Pass1ProbeEveryNSegments,
+						cfg.Pass1ProbeMinTravelDelta,
+						renderSpaceSource,
+						renderSceneName,
+						renderFixtureName,
+						renderModeToken,
+						out RayBeamRenderer.Pass1HitInfo hitInfo,
+						out bool stoppedEarly,
+						out int hitSegIndex,
+						out int stepsIntegrated,
+						out int fieldEvals,
+						out int pass1RaycastsLocal,
+						out int pass1ProbeHitsLocal,
+						out int fieldGridHitsLocal,
+						out int fieldGridMissesLocal,
+						out int fieldGridFallbacksLocal,
+						out int fieldSourceEvalsLocal,
+						curvatureGridForPass1,
+						fieldGridForPass1
+					);
+
+					// DECISION: accumulate perf counters only when enabled.
+					if (collectPass1Perf)
+					{
+						local.PhysQueries += pass1RaycastsLocal;
+						// DECISION: count early-stop pixels only when stopped early.
+						if (stoppedEarly) local.EarlyStopPixels++;
+					}
+					// DECISION: accumulate steps when enabled.
+					if (collectPass1Steps) local.StepsIntegrated += stepsIntegrated;
+					// DECISION: accumulate field evals when frame perf is enabled.
+					if (framePerfEnabled) local.FieldEvals += fieldEvals;
+					// DECISION: accumulate extra pass1 counters when enabled.
+					if (framePerfEnabled)
+					{
+						local.Pass1Raycasts += pass1RaycastsLocal;
+						local.Pass1ProbeHits += pass1ProbeHitsLocal;
+						local.FieldGridHits += fieldGridHitsLocal;
+						local.FieldGridMisses += fieldGridMissesLocal;
+						local.FieldGridFallbacks += fieldGridFallbacksLocal;
+						local.FieldSourceEvals += fieldSourceEvalsLocal;
+					}
+
+					_segCountPerPixel[pi] = count;
+					_pass1HitFound[pi] = hitInfo.Found;
+					_pass1StoppedEarly[pi] = stoppedEarly;
+					_pass1HitSegIndex[pi] = hitSegIndex;
+					_pass1HitDist[pi] = hitInfo.Distance;
+					_pass1HitPos[pi] = hitInfo.Position;
+					_pass1HitNormal[pi] = hitInfo.Normal;
+					_pass1HitColliderId[pi] = hitInfo.ColliderId;
+					return local;
+				}
+
+				void MergePass1ThreadLocal(in Pass1ThreadLocal local)
+				{
+					if (local == null)
+						return;
+					if (collectPass1Perf)
+					{
+						pass1PhysQueries += local.PhysQueries;
+						pass1EarlyStopPixels += local.EarlyStopPixels;
+					}
+					if (collectPass1Steps) pass1StepsIntegrated += local.StepsIntegrated;
+					if (framePerfEnabled) pass1FieldEvals += local.FieldEvals;
+					if (framePerfEnabled)
+					{
+						pass1Raycasts += local.Pass1Raycasts;
+						pass1ProbeHits += local.Pass1ProbeHits;
+						pass1FieldGridHits += local.FieldGridHits;
+						pass1FieldGridMisses += local.FieldGridMisses;
+						pass1FieldGridFallbacks += local.FieldGridFallbacks;
+						pass1FieldSourceEvals += local.FieldSourceEvals;
+					}
+				}
+
+				bool useThreadedPass1Bands = cfg.UseThreadedBands;
+				int threadedBandWorkerCount = Math.Max(1, cfg.ThreadedBandWorkerCount);
+				int threadedBandRowsPerChunk = Math.Max(1, cfg.ThreadedBandRowsPerChunk);
+				if (cfg.Research.DeterministicMode && useThreadedPass1Bands && threadedBandWorkerCount > 1 && !_threadedBandsDeterminismWarned)
+				{
+					_threadedBandsDeterminismWarned = true;
+					GD.PushWarning("[ThreadedBands] Deterministic mode with workerCount>1 preserves stable chunk assignment and merge order, but exact execution interleaving still differs. Use workerCount=1 for the single-thread deterministic anchor.");
+				}
+
+				if (useThreadedPass1Bands)
+				{
+					int chunkCount = Math.Max(1, (bandH + threadedBandRowsPerChunk - 1) / threadedBandRowsPerChunk);
+					Pass1ThreadLocal[] chunkResults = new Pass1ThreadLocal[chunkCount];
+					if (threadedBandWorkerCount <= 1 || chunkCount <= 1)
+					{
+						for (int chunkIndex = 0; chunkIndex < chunkCount; chunkIndex++)
 						{
-							Interlocked.Add(ref pass1Raycasts, local.Pass1Raycasts);
-							Interlocked.Add(ref pass1ProbeHits, local.Pass1ProbeHits);
-							Interlocked.Add(ref pass1FieldGridHits, local.FieldGridHits);
-							Interlocked.Add(ref pass1FieldGridMisses, local.FieldGridMisses);
-							Interlocked.Add(ref pass1FieldGridFallbacks, local.FieldGridFallbacks);
-							Interlocked.Add(ref pass1FieldSourceEvals, local.FieldSourceEvals);
+							int rowStartLocal = chunkIndex * threadedBandRowsPerChunk;
+							int rowEndLocal = Math.Min(bandH, rowStartLocal + threadedBandRowsPerChunk);
+							int piStart = rowStartLocal * filmW;
+							int piEnd = rowEndLocal * filmW;
+							Pass1ThreadLocal local = CreatePass1ThreadLocal();
+							for (int pi = piStart; pi < piEnd; pi++)
+								local = ProcessPass1Pixel(pi, local);
+							chunkResults[chunkIndex] = local;
 						}
-					});
+					}
+					else
+					{
+						var pass1ChunkOptions = new System.Threading.Tasks.ParallelOptions
+						{
+							MaxDegreeOfParallelism = threadedBandWorkerCount
+						};
+						System.Threading.Tasks.Parallel.For(
+							0,
+							chunkCount,
+							pass1ChunkOptions,
+							chunkIndex =>
+							{
+								int rowStartLocal = chunkIndex * threadedBandRowsPerChunk;
+								int rowEndLocal = Math.Min(bandH, rowStartLocal + threadedBandRowsPerChunk);
+								int piStart = rowStartLocal * filmW;
+								int piEnd = rowEndLocal * filmW;
+								Pass1ThreadLocal local = CreatePass1ThreadLocal();
+								for (int pi = piStart; pi < piEnd; pi++)
+									local = ProcessPass1Pixel(pi, local);
+								chunkResults[chunkIndex] = local;
+							});
+					}
+
+					for (int chunkIndex = 0; chunkIndex < chunkCount; chunkIndex++)
+						MergePass1ThreadLocal(in chunkResults[chunkIndex]);
+				}
+				else
+				{
+					// DECISION: preserve the legacy default path unless threaded bands are explicitly enabled.
+					System.Threading.Tasks.Parallel.For(
+						0,
+						pixelCount,
+						new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = jobs },
+						() => CreatePass1ThreadLocal(),
+						(pi, _, local) => ProcessPass1Pixel(pi, local),
+						local => MergePass1ThreadLocal(in local));
+				}
 
 				// DECISION: dispose pass1 perf scope when enabled.
 				if (framePerfEnabled) pass1Scope.Dispose();
@@ -6195,6 +6646,11 @@ private sealed class OverlayRollingWindow
 			EnsureTileMetricSubtileCapacity(_tileMetricCurrentSubtileCount);
 			PrepareExperimentalSubtileSchedulerOrderForCurrentBand();
 			long shadeUsecAccum = 0;
+			long pass2EnvelopeUsecAccum = 0;
+			long pass2CandidateEvalUsecAccum = 0;
+			long pass2QueryUsecAccum = 0;
+			long pass2HitResolveUsecAccum = 0;
+			long pass2SoftGateUsecAccum = 0;
 			long bandSegsIntegrated = 0;
 			bandSegsTested = 0;
 			bandPhysicsQueries = 0;
@@ -6268,10 +6724,47 @@ private sealed class OverlayRollingWindow
 				ResetPass2QuickRayCache();
 			}
 
-			PerfScope pass2Scope = default;
-			// DECISION: enable pass2 perf scope when frame perf is enabled.
-			if (framePerfEnabled) pass2Scope = new PerfScope(_framePerf, PerfStage.Pass2_Subdivide);
-			bool shadeTimingEnabled = statsEnabled || framePerfEnabled;
+				PerfScope pass2Scope = default;
+				// DECISION: enable pass2 perf scope when frame perf is enabled.
+				if (framePerfEnabled) pass2Scope = new PerfScope(_framePerf, PerfStage.Pass2_Subdivide);
+				bool shadeTimingEnabled = statsEnabled || framePerfEnabled;
+				bool requestedThreadedPass2QueryResolve = cfg.UseThreadedPass2QueryResolve;
+				bool useThreadedPass2QueryResolve = requestedThreadedPass2QueryResolve
+					&& !skipBandPhysics
+					&& useGeomTlasPruningForStep
+					&& !softGateCfg.EnableQuickRayMiss
+					&& !cfg.UseSingleProbeThenSubdivide;
+				if (requestedThreadedPass2QueryResolve && !useThreadedPass2QueryResolve)
+				{
+					GD.Print(
+						$"[ThreadedPass2QueryResolve] enabled=0 reason=requires_geom_prune_and_softgate_off_and_singleprobe_off " +
+						$"skipBandPhysics={(skipBandPhysics ? 1 : 0)} geomPrune={(useGeomTlasPruningForStep ? 1 : 0)} " +
+						$"softgate={(softGateCfg.EnableQuickRayMiss ? 1 : 0)} singleProbe={(cfg.UseSingleProbeThenSubdivide ? 1 : 0)}");
+				}
+				int threadedPass2QueryWorkers = Math.Max(1, cfg.ThreadedPass2QueryWorkers);
+				int threadedPass2QueryRowsPerChunk = Math.Max(1, cfg.ThreadedPass2QueryRowsPerChunk);
+				bool useThreadedPass2CandidateEval = (cfg.UseThreadedPass2CandidateEval || useThreadedPass2QueryResolve)
+					&& !skipBandPhysics
+					&& useGeomTlasPruningForStep;
+				int threadedPass2CandidateWorkers = Math.Max(1, cfg.ThreadedPass2CandidateWorkers);
+				int threadedPass2CandidateRowsPerChunk = Math.Max(1, cfg.ThreadedPass2CandidateRowsPerChunk);
+				bool useThreadedPass2LocalAccumulation = cfg.UseThreadedPass2LocalAccumulation
+					&& !skipBandPhysics
+					&& !useThreadedPass2QueryResolve;
+				int threadedPass2WorkerCount = Math.Max(1, cfg.ThreadedPass2WorkerCount);
+				int threadedPass2RowsPerChunk = Math.Max(1, cfg.ThreadedPass2RowsPerChunk);
+				bool useThreadedPass2ResolvedSampleCommit = useThreadedPass2LocalAccumulation || useThreadedPass2QueryResolve;
+				int[] pass2CandidateRecordStarts = Array.Empty<int>();
+				int[] pass2CandidateVisitedSegStarts = Array.Empty<int>();
+				int[] pass2CandidateVisitedSegCounts = Array.Empty<int>();
+				Pass2CandidateEvalRecord[] pass2CandidateEvalRecords = Array.Empty<Pass2CandidateEvalRecord>();
+				long[] pass2CandidateEvalIds = Array.Empty<long>();
+				var pass2ResolvedSamples = useThreadedPass2ResolvedSampleCommit
+					? new System.Collections.Generic.List<Pass2ResolvedSample>(Math.Max(16, bandH * Math.Max(1, filmW / Math.Max(1, stride))))
+					: null;
+				var pass2ChunkSampleStarts = useThreadedPass2ResolvedSampleCommit
+					? new System.Collections.Generic.List<int>(Math.Max(2, (bandH + Math.Max(1, useThreadedPass2QueryResolve ? threadedPass2QueryRowsPerChunk : threadedPass2RowsPerChunk) - 1) / Math.Max(1, useThreadedPass2QueryResolve ? threadedPass2QueryRowsPerChunk : threadedPass2RowsPerChunk) + 1))
+					: null;
 
 			void RecordRenderHealthPass2Sample(float radius, float envDiag, float envelopeInflation, int candidateCount)
 			{
@@ -6415,9 +6908,13 @@ private sealed class OverlayRollingWindow
 				ref long softGateAttemptsTotal,
 				ref long budgetExceeded)
 			{
-				// DECISION: sample this segment only when segment-level debug is enabled.
-				if (softGateSegEnabled)
-					sampleThisSeg = (_softGateSampleCounter++ % SoftGateSampleEveryNSegments) == 0;
+				ulong softGateTimingStart = 0;
+				if (statsEnabled) softGateTimingStart = Time.GetTicksUsec();
+				try
+				{
+					// DECISION: sample this segment only when segment-level debug is enabled.
+					if (softGateSegEnabled)
+						sampleThisSeg = (_softGateSampleCounter++ % SoftGateSampleEveryNSegments) == 0;
 
 				score = 0f;
 				turnAngleDeg = 0f;
@@ -6586,10 +7083,16 @@ private sealed class OverlayRollingWindow
 				attemptsThisPixel++;
 				attemptsUsed++;
 				subdividedCallsUsed++;
-				_softGateAttemptsUsedThisFrame++;
-				_softGateSubdividedCallsUsedThisFrame++;
-				softGateAttemptsTotal++;
-				return true;
+					_softGateAttemptsUsedThisFrame++;
+					_softGateSubdividedCallsUsedThisFrame++;
+					softGateAttemptsTotal++;
+					return true;
+				}
+				finally
+				{
+					if (statsEnabled && softGateTimingStart > 0)
+						pass2SoftGateUsecAccum += (long)(Time.GetTicksUsec() - softGateTimingStart);
+				}
 			}
 
 			bool ShouldSoftGate(
@@ -6804,30 +7307,1063 @@ private sealed class OverlayRollingWindow
 				bandPixelCountGuard = rowsGuard * colsGuard;
 			}
 			bool pixelLoopGuardTripped = false;
-			void CheckPixelLoopGuard(int x, int y)
-			{
-				if (pixelLoopGuardTripped) return;
+				void CheckPixelLoopGuard(int x, int y)
+				{
+					if (pixelLoopGuardTripped) return;
 				pixelsVisitedThisBand++;
 				if (bandPixelCountGuard <= 0) return;
 				if (pixelsVisitedThisBand <= bandPixelCountGuard + pixelLoopGuardSlack) return;
 				pixelLoopGuardTripped = true;
 				GD.Print($"[WATCHDOG] pixelLoopGuard tripped at row={y} band=[{yStart},{yEnd}) policy={broadphaseCfg.Policy} x={x} stride={stride}");
-				TriggerBudgetStop("guard_pixel_loop");
-				ForceAdvanceRowCursorOnStop("guard_pixel_loop", yEnd);
-			}
+					TriggerBudgetStop("guard_pixel_loop");
+					ForceAdvanceRowCursorOnStop("guard_pixel_loop", yEnd);
+				}
 
-			// DECISION: skip physics if band-level skip is active.
-			if (skipBandPhysics)
-			{
+				void PrepareThreadedPass2CandidateEval()
+				{
+					if (!useThreadedPass2CandidateEval)
+						return;
+
+					int pixelCountForBand = bandH * filmW;
+					if (pixelCountForBand <= 0 || geomTlasForStep == null || geomEntitiesForStep == null)
+						return;
+
+					pass2CandidateRecordStarts = new int[pixelCountForBand];
+					pass2CandidateVisitedSegStarts = new int[pixelCountForBand];
+					pass2CandidateVisitedSegCounts = new int[pixelCountForBand];
+
+					var chunkDescriptors = new System.Collections.Generic.List<Pass2CandidateEvalChunk>(Math.Max(1, (bandH + threadedPass2CandidateRowsPerChunk - 1) / threadedPass2CandidateRowsPerChunk));
+					int totalRecordCount = 0;
+					int yAlignedStart = yStart + ((stride - (yStart % stride)) % stride);
+					int sampledRowOrdinal = 0;
+					int chunkStartRow = -1;
+					int chunkFirstRecordIndex = 0;
+
+					void FlushChunkDescriptor(int endRowExclusive)
+					{
+						if (chunkStartRow < 0)
+							return;
+						chunkDescriptors.Add(new Pass2CandidateEvalChunk
+						{
+							StartRow = chunkStartRow,
+							EndRowExclusive = endRowExclusive,
+							FirstRecordIndex = chunkFirstRecordIndex,
+							RecordCount = Math.Max(0, totalRecordCount - chunkFirstRecordIndex)
+						});
+						chunkStartRow = -1;
+					}
+
+					for (int y = yAlignedStart; y < yEnd; y += stride, sampledRowOrdinal++)
+					{
+						if (sampledRowOrdinal % threadedPass2CandidateRowsPerChunk == 0)
+						{
+							FlushChunkDescriptor(y);
+							chunkStartRow = y;
+							chunkFirstRecordIndex = totalRecordCount;
+						}
+
+						int localY = y - yStart;
+						for (int execIndex = 0; execIndex < _tileMetricCurrentSubtileCount; execIndex++)
+						{
+							int subtileIndex = _tileMetricCurrentExecutionOrder[execIndex];
+							int subtileXStart = subtileIndex * _tileMetricCurrentSubtileWidth;
+							int subtileXEnd = Math.Max(0, Math.Min(filmW, subtileXStart + _tileMetricCurrentSubtileWidth));
+							if (subtileXStart >= subtileXEnd)
+								continue;
+							int xAlignedStart = subtileXStart + ((stride - (subtileXStart % stride)) % stride);
+							for (int x = xAlignedStart; x < subtileXEnd; x += stride)
+							{
+								int pi = localY * filmW + x;
+								int segCount = _segCountPerPixel[pi];
+								int visitedSegStart = 0;
+								int visitedSegCount = 0;
+								if (segCount > 0)
+								{
+									visitedSegStart = 0;
+									int visitedSegEnd = segCount - 1;
+									if (_pass1StoppedEarly[pi] && _pass1HitSegIndex[pi] >= 0)
+									{
+										visitedSegStart = Math.Max(0, _pass1HitSegIndex[pi] - 1);
+										visitedSegEnd = Math.Min(segCount - 1, _pass1HitSegIndex[pi] + 1);
+									}
+									visitedSegCount = Math.Max(0, visitedSegEnd - visitedSegStart + 1);
+								}
+
+								pass2CandidateRecordStarts[pi] = totalRecordCount;
+								pass2CandidateVisitedSegStarts[pi] = visitedSegStart;
+								pass2CandidateVisitedSegCounts[pi] = visitedSegCount;
+								totalRecordCount += visitedSegCount;
+							}
+						}
+					}
+					FlushChunkDescriptor(yEnd);
+
+					if (totalRecordCount <= 0 || chunkDescriptors.Count == 0)
+					{
+						useThreadedPass2CandidateEval = false;
+						pass2CandidateRecordStarts = Array.Empty<int>();
+						pass2CandidateVisitedSegStarts = Array.Empty<int>();
+						pass2CandidateVisitedSegCounts = Array.Empty<int>();
+						return;
+					}
+
+					pass2CandidateEvalRecords = new Pass2CandidateEvalRecord[totalRecordCount];
+
+					void EvaluateCandidateChunk(int chunkIndex)
+					{
+						Pass2CandidateEvalChunk chunk = chunkDescriptors[chunkIndex];
+						var localCandidateIds = new System.Collections.Generic.List<long>(Math.Max(8, chunk.RecordCount * 2));
+						int[] localGeomCandidates = new int[Math.Max(1, _geomCandidatesScratch.Length)];
+						long[] localCandidateIdsScratch = new long[Math.Max(1, _geomCandidateInstanceIdsScratch.Length)];
+
+						for (int y = chunk.StartRow; y < chunk.EndRowExclusive; y += stride)
+						{
+							int localY = y - yStart;
+							for (int execIndex = 0; execIndex < _tileMetricCurrentSubtileCount; execIndex++)
+							{
+								int subtileIndex = _tileMetricCurrentExecutionOrder[execIndex];
+								int subtileXStart = subtileIndex * _tileMetricCurrentSubtileWidth;
+								int subtileXEnd = Math.Max(0, Math.Min(filmW, subtileXStart + _tileMetricCurrentSubtileWidth));
+								if (subtileXStart >= subtileXEnd)
+									continue;
+								int xAlignedStart = subtileXStart + ((stride - (subtileXStart % stride)) % stride);
+								for (int x = xAlignedStart; x < subtileXEnd; x += stride)
+								{
+									int pi = localY * filmW + x;
+									int segCount = _segCountPerPixel[pi];
+									int segOffset = pi * maxSeg;
+									int visitedSegStart = pass2CandidateVisitedSegStarts[pi];
+									int visitedSegCount = pass2CandidateVisitedSegCounts[pi];
+									int recordBase = pass2CandidateRecordStarts[pi];
+									for (int localSegIndex = 0; localSegIndex < visitedSegCount; localSegIndex++)
+									{
+										int si = visitedSegStart + localSegIndex;
+										if (si < 0 || si >= segCount)
+											continue;
+										ref readonly var seg = ref _segBuf[segOffset + si];
+										Vector3 segA = seg.A;
+										Vector3 segB = seg.B;
+										ulong envelopeStartUsec = 0;
+										if (statsEnabled) envelopeStartUsec = Time.GetTicksUsec();
+										var segANum = new System.Numerics.Vector3(segA.X, segA.Y, segA.Z);
+										var segBNum = new System.Numerics.Vector3(segB.X, segB.Y, segB.Z);
+										float baseRadiusBound = Mathf.Max(0f, seg.RadiusBound);
+										float geomEnvelopeRadius = baseRadiusBound * Mathf.Max(1.0f, cfg.Pass2GeomEnvelopeRadiusScale);
+										float geomEnvelopeAabbExpand = Mathf.Max(0.0f, cfg.Pass2GeomEnvelopeAabbExpand);
+										Aabb3 envelope = Aabb3.FromSegment(segANum, segBNum).Expand(geomEnvelopeRadius);
+										if (geomEnvelopeAabbExpand > 0f)
+											envelope = envelope.Expand(geomEnvelopeAabbExpand);
+										float envDiag = envelope.Extents.Length();
+										float envInflation = Math.Max(0f, (geomEnvelopeRadius - baseRadiusBound) + geomEnvelopeAabbExpand);
+										if (statsEnabled && envelopeStartUsec > 0)
+											System.Threading.Interlocked.Add(ref pass2EnvelopeUsecAccum, (long)(Time.GetTicksUsec() - envelopeStartUsec));
+
+										ulong candidateStartUsec = 0;
+										if (statsEnabled) candidateStartUsec = Time.GetTicksUsec();
+										int geomCandidateCount = geomTlasForStep.QueryAabb(envelope, localGeomCandidates);
+										if (statsEnabled)
+										{
+											ulong candidateUsec = Time.GetTicksUsec() - candidateStartUsec;
+											System.Threading.Interlocked.Add(ref pass2CandidateEvalUsecAccum, (long)candidateUsec);
+										}
+
+										int geomCandidateInstanceCount = 0;
+										if (geomCandidateCount > 0)
+										{
+											var ids = geomEntitiesForStep.GodotInstanceIds;
+											int idsLen = ids.Length;
+											int maxFill = Math.Min(geomCandidateCount, localCandidateIdsScratch.Length);
+											for (int gi = 0; gi < maxFill; gi++)
+											{
+												int geomIndex = localGeomCandidates[gi];
+												if ((uint)geomIndex < (uint)idsLen)
+													localCandidateIdsScratch[geomCandidateInstanceCount++] = ids[geomIndex];
+											}
+											if (geomCandidateInstanceCount > 1)
+											{
+												SortLongSpan(localCandidateIdsScratch, geomCandidateInstanceCount);
+												geomCandidateInstanceCount = DedupSortedLong(localCandidateIdsScratch, geomCandidateInstanceCount);
+											}
+										}
+
+										int recordIndex = recordBase + localSegIndex;
+										pass2CandidateEvalRecords[recordIndex] = new Pass2CandidateEvalRecord
+										{
+											CandidateStart = localCandidateIds.Count,
+											CandidateCount = geomCandidateInstanceCount,
+											EnvelopeRadius = geomEnvelopeRadius,
+											EnvelopeDiag = envDiag,
+											EnvelopeInflation = envInflation
+										};
+
+										chunk.CandidateSegments++;
+										chunk.CandidateReferences += geomCandidateInstanceCount;
+										if (geomCandidateInstanceCount <= 0)
+											chunk.CandidateSegmentsZero++;
+										else
+											chunk.CandidateSegmentsWithHits++;
+
+										for (int ci = 0; ci < geomCandidateInstanceCount; ci++)
+											localCandidateIds.Add(localCandidateIdsScratch[ci]);
+									}
+								}
+							}
+						}
+
+						chunk.CandidateIds = localCandidateIds.Count > 0 ? localCandidateIds.ToArray() : Array.Empty<long>();
+						chunkDescriptors[chunkIndex] = chunk;
+					}
+
+					if (threadedPass2CandidateWorkers <= 1 || chunkDescriptors.Count <= 1)
+					{
+						for (int chunkIndex = 0; chunkIndex < chunkDescriptors.Count; chunkIndex++)
+							EvaluateCandidateChunk(chunkIndex);
+					}
+					else
+					{
+						var candidateOptions = new System.Threading.Tasks.ParallelOptions
+						{
+							MaxDegreeOfParallelism = threadedPass2CandidateWorkers
+						};
+						System.Threading.Tasks.Parallel.For(0, chunkDescriptors.Count, candidateOptions, EvaluateCandidateChunk);
+					}
+					int totalCandidateIds = 0;
+					for (int chunkIndex = 0; chunkIndex < chunkDescriptors.Count; chunkIndex++)
+						totalCandidateIds += chunkDescriptors[chunkIndex].CandidateIds.Length;
+					pass2CandidateEvalIds = totalCandidateIds > 0 ? new long[totalCandidateIds] : Array.Empty<long>();
+
+					int globalCandidateOffset = 0;
+					for (int chunkIndex = 0; chunkIndex < chunkDescriptors.Count; chunkIndex++)
+					{
+						Pass2CandidateEvalChunk chunk = chunkDescriptors[chunkIndex];
+						long[] chunkIds = chunk.CandidateIds;
+						for (int recordOffset = 0; recordOffset < chunk.RecordCount; recordOffset++)
+						{
+							int recordIndex = chunk.FirstRecordIndex + recordOffset;
+							if ((uint)recordIndex >= (uint)pass2CandidateEvalRecords.Length)
+								continue;
+							if (pass2CandidateEvalRecords[recordIndex].CandidateCount > 0)
+								pass2CandidateEvalRecords[recordIndex].CandidateStart += globalCandidateOffset;
+						}
+						if (chunkIds.Length > 0)
+						{
+							Array.Copy(chunkIds, 0, pass2CandidateEvalIds, globalCandidateOffset, chunkIds.Length);
+							globalCandidateOffset += chunkIds.Length;
+						}
+						}
+					}
+
+					bool RunThreadedPass2QueryResolvePrototype()
+					{
+						if (!useThreadedPass2QueryResolve || pass2ResolvedSamples == null || pass2ChunkSampleStarts == null)
+							return false;
+
+						int yAlignedStart = yStart + ((stride - (yStart % stride)) % stride);
+						var chunkDescriptors = new System.Collections.Generic.List<Pass2QueryResolveChunk>(Math.Max(1, (bandH + threadedPass2QueryRowsPerChunk - 1) / threadedPass2QueryRowsPerChunk));
+						Pass2QueryResolveChunk? activeChunk = null;
+						int sampledRowOrdinal = 0;
+						for (int y = yAlignedStart; y < yEnd; y += stride, sampledRowOrdinal++)
+						{
+							if ((sampledRowOrdinal % threadedPass2QueryRowsPerChunk) == 0)
+							{
+								activeChunk = new Pass2QueryResolveChunk
+								{
+									StartRow = y,
+									EndRowExclusive = Math.Min(yEnd, y + threadedPass2QueryRowsPerChunk * stride)
+								};
+								chunkDescriptors.Add(activeChunk);
+							}
+						}
+
+						if (chunkDescriptors.Count == 0)
+							return false;
+
+						for (int y = yAlignedStart; y < yEnd; y += stride)
+							RecordFixtureRowWriteStart(y);
+
+						void ResolveChunk(int chunkIndex)
+						{
+							Pass2QueryResolveChunk chunk = chunkDescriptors[chunkIndex];
+							var localSamples = new System.Collections.Generic.List<Pass2ResolvedSample>(Math.Max(16, (chunk.EndRowExclusive - chunk.StartRow) * Math.Max(1, filmW / Math.Max(1, stride))));
+							var localOverlapCandidates = new System.Collections.Generic.List<Godot.Collections.Dictionary>(Math.Max(4, broadphaseCfg.MaxResults));
+							var localOverlapQuery = new PhysicsShapeQueryParameters3D
+							{
+								Shape = _overlapQuery.Shape,
+								CollisionMask = _overlapQuery.CollisionMask,
+								CollideWithBodies = _overlapQuery.CollideWithBodies,
+								CollideWithAreas = _overlapQuery.CollideWithAreas,
+								Margin = _overlapQuery.Margin,
+								Transform = _overlapQuery.Transform
+							};
+							void RecordLocalPass2Sample(float radius, float envDiag, float envelopeInflation, int candidateCount)
+							{
+								if (float.IsNaN(radius) || float.IsInfinity(radius))
+									return;
+								if (float.IsNaN(envDiag) || float.IsInfinity(envDiag))
+									return;
+								if (float.IsNaN(envelopeInflation) || float.IsInfinity(envelopeInflation))
+									return;
+
+								chunk.Geom.Pass2SampledSegments++;
+								chunk.Geom.Pass2RadiusSum += radius;
+								if (radius > chunk.Geom.Pass2RadiusMax) chunk.Geom.Pass2RadiusMax = radius;
+								chunk.Geom.Pass2EnvDiagSum += envDiag;
+								if (envDiag > chunk.Geom.Pass2EnvDiagMax) chunk.Geom.Pass2EnvDiagMax = envDiag;
+								chunk.Geom.Pass2EnvelopeInflationSum += envelopeInflation;
+								if (envelopeInflation > chunk.Geom.Pass2EnvelopeInflationMax) chunk.Geom.Pass2EnvelopeInflationMax = envelopeInflation;
+
+								if (candidateCount <= 0) chunk.Geom.Pass2CandidateCount0++;
+								else if (candidateCount <= 2) chunk.Geom.Pass2CandidateCount1To2++;
+								else if (candidateCount <= 8) chunk.Geom.Pass2CandidateCount3To8++;
+								else if (candidateCount <= 32) chunk.Geom.Pass2CandidateCount9To32++;
+								else chunk.Geom.Pass2CandidateCount33Plus++;
+							}
+							ulong chunkPhysStart = statsEnabled ? Time.GetTicksUsec() : 0;
+
+							for (int y = chunk.StartRow; y < chunk.EndRowExclusive; y += stride)
+							{
+								int localY = y - yStart;
+								for (int execIndex = 0; execIndex < _tileMetricCurrentSubtileCount; execIndex++)
+								{
+									int subtileIndex = _tileMetricCurrentExecutionOrder[execIndex];
+									int subtileXStart = subtileIndex * _tileMetricCurrentSubtileWidth;
+									int subtileXEnd = Math.Max(0, Math.Min(filmW, subtileXStart + _tileMetricCurrentSubtileWidth));
+									if (subtileXStart >= subtileXEnd)
+										continue;
+									int xAlignedStart = subtileXStart + ((stride - (subtileXStart % stride)) % stride);
+									for (int x = xAlignedStart; x < subtileXEnd; x += stride)
+									{
+										int pi = localY * filmW + x;
+										int globalPi = y * filmW + x;
+										int segCount = _segCountPerPixel[pi];
+										int segOffset = pi * maxSeg;
+										bool pass1StoppedEarly = _pass1StoppedEarly[pi];
+										int pass1HitSegIndex = _pass1HitSegIndex[pi];
+										int segStart = 0;
+										int segEnd = segCount - 1;
+										if (pass1StoppedEarly && pass1HitSegIndex >= 0)
+										{
+											segStart = Math.Max(0, pass1HitSegIndex - 1);
+											segEnd = Math.Min(segCount - 1, pass1HitSegIndex + 1);
+										}
+
+										bool prevHadHit = cfg.Pass2ForceOnInstability
+											&& _pass2PrevHadHit.Length > globalPi
+											&& _pass2PrevHadHit[globalPi] != 0;
+										bool prevHadHitForSoftGate = _pass2PrevHadHit.Length > globalPi
+											&& _pass2PrevHadHit[globalPi] != 0;
+										bool testedAnyInPass0ThisPixel = false;
+										bool skippedAnyByStrideThisPixel = false;
+										bool geomPixelProcessedThisPixel = false;
+										bool geomPixelHadAnyCandidatesThisPixel = false;
+										bool hadHit = false;
+										float hitDistance = 0f;
+										float bestHit = float.PositiveInfinity;
+										Vector3 bestHp = Vector3.Zero;
+										Vector3 bestHn = Vector3.Up;
+										ulong bestCid = 0;
+										string hitName = "<none>";
+										bool needHitName = cfg.NeedColliderNames;
+										bool absorbedByInnerRadius = false;
+										bool segmentsMonotonic = true;
+										if (segCount > 1)
+										{
+											float prevTraveledB = float.NegativeInfinity;
+											for (int si = 0; si < segCount; si++)
+											{
+												float traveledB = _segBuf[segOffset + si].TraveledB;
+												if (traveledB < prevTraveledB - 1e-6f)
+												{
+													segmentsMonotonic = false;
+													break;
+												}
+												prevTraveledB = traveledB;
+											}
+										}
+										bool allowFarEarlyOut = cfg.NearestHitOnly && segmentsMonotonic;
+										float farEarlyOutEps = Mathf.Max(0f, cfg.EarlyOutDistanceEps);
+										int lastSi = Math.Max(0, segCount - 1);
+										int candidateRecordBaseForPixel = (uint)pi < (uint)pass2CandidateRecordStarts.Length
+											? pass2CandidateRecordStarts[pi]
+											: -1;
+										int candidateVisitedSegStartForPixel = (uint)pi < (uint)pass2CandidateVisitedSegStarts.Length
+											? pass2CandidateVisitedSegStarts[pi]
+											: 0;
+
+										chunk.TracedPixels++;
+										chunk.SegsIntegrated += segCount;
+
+										for (int si = segStart; si <= segEnd; si++)
+										{
+										if (allowFarEarlyOut && hadHit)
+										{
+											ref readonly var farSeg = ref _segBuf[segOffset + si];
+											if (farSeg.TraveledB > bestHit + farEarlyOutEps)
+												break;
+										}
+
+											ref readonly var seg = ref _segBuf[segOffset + si];
+											Vector3 segA = seg.A;
+											Vector3 segB = seg.B;
+											float segLen = (segB - segA).Length();
+											int pass2Stride = pass1StoppedEarly ? 1 : ComputePass2CollisionStride(seg.TraveledB, farForSim, in cfg);
+											if (cfg.MinSegLenForStrideSkip > 0f && segLen < cfg.MinSegLenForStrideSkip)
+											{
+												chunk.Pass2StrideSum += 1;
+												chunk.Pass2StrideCount++;
+											}
+
+											int candidateRecordIndex = candidateRecordBaseForPixel >= 0
+												? candidateRecordBaseForPixel + (si - candidateVisitedSegStartForPixel)
+												: -1;
+											int geomCandidateCount = (uint)candidateRecordIndex < (uint)pass2CandidateEvalRecords.Length
+												? pass2CandidateEvalRecords[candidateRecordIndex].CandidateCount
+												: 0;
+											chunk.Geom.GeomSegmentsQueried++;
+											if (geomCandidateCount <= 0)
+												chunk.Geom.GeomSegZeroCandidates++;
+											else
+												chunk.Geom.GeomSegWithCandidates++;
+											if ((uint)candidateRecordIndex < (uint)pass2CandidateEvalRecords.Length)
+											{
+												Pass2CandidateEvalRecord candidateRecord = pass2CandidateEvalRecords[candidateRecordIndex];
+												RecordLocalPass2Sample(
+													candidateRecord.EnvelopeRadius,
+													candidateRecord.EnvelopeDiag,
+													candidateRecord.EnvelopeInflation,
+													geomCandidateCount);
+											}
+											if (geomCandidateCount <= 0)
+												continue;
+											geomPixelHadAnyCandidatesThisPixel = true;
+
+											if (!pass1StoppedEarly && cfg.UsePass2CollisionStride && segCount > 1)
+											{
+												bool forceTest = si == 0 || si == lastSi
+													|| (cfg.MinSegLenForStrideSkip > 0f && segLen < cfg.MinSegLenForStrideSkip);
+												if (!forceTest && (si % Math.Max(1, pass2Stride)) != 0)
+												{
+													skippedAnyByStrideThisPixel = true;
+													continue;
+												}
+											}
+
+											testedAnyInPass0ThisPixel = true;
+											chunk.Pass2StrideSum += pass2Stride;
+											chunk.Pass2StrideCount++;
+
+											Vector3 mid = (segA + segB) * 0.5f;
+											localOverlapQuery.Transform = new Transform3D(Basis.Identity, mid);
+											ulong overlapStartUsec = statsEnabled ? Time.GetTicksUsec() : 0;
+											var overlaps = space.IntersectShape(localOverlapQuery, broadphaseCfg.MaxResults);
+											if (statsEnabled && overlapStartUsec > 0)
+												chunk.QueryUsec += (long)(Time.GetTicksUsec() - overlapStartUsec);
+											if (!geomPixelProcessedThisPixel)
+											{
+												chunk.Geom.GeomPixelProcessed++;
+												geomPixelProcessedThisPixel = true;
+											}
+											chunk.IntersectShapeCalls++;
+											chunk.PhysicsQueries++;
+											chunk.SegsTested++;
+											localOverlapCandidates.Clear();
+											for (int oi = 0; oi < overlaps.Count; oi++)
+												localOverlapCandidates.Add((Godot.Collections.Dictionary)overlaps[oi]);
+											if (localOverlapCandidates.Count == 0)
+												continue;
+
+											if (rayCfg.UseSphereSweepCollision)
+											{
+												ulong queryStartUsec = statsEnabled ? Time.GetTicksUsec() : 0;
+												bool didHitSweep = RayBeamRenderer.SweepSegmentHit(space, segA, segB, rayCfg.CollisionMask, rayCfg.CollisionRadius, out Vector3 hpSweep);
+												if (statsEnabled && queryStartUsec > 0)
+													chunk.QueryUsec += (long)(Time.GetTicksUsec() - queryStartUsec);
+												chunk.PhysicsQueries++;
+												chunk.Geom.GeomRayTestsTotal++;
+												if (!didHitSweep)
+													continue;
+												float hitDistAlongRay = seg.TraveledB - segLen + (hpSweep - segA).Length();
+												ulong resolveStartUsec = statsEnabled ? Time.GetTicksUsec() : 0;
+												if (hitDistAlongRay < bestHit)
+												{
+													bestHit = hitDistAlongRay;
+													hadHit = true;
+													hitDistance = hitDistAlongRay;
+													bestHp = hpSweep;
+													bestHn = Vector3.Up;
+													bestCid = 0;
+												}
+												if (statsEnabled && resolveStartUsec > 0)
+													chunk.ResolveUsec += (long)(Time.GetTicksUsec() - resolveStartUsec);
+												if (cfg.NearestHitOnly)
+													break;
+												continue;
+											}
+
+											int sub = 1;
+											if (segLen > rayCfg.CollisionRaySubdivideThreshold)
+												sub = Mathf.CeilToInt(segLen / rayCfg.CollisionRaySubdivideThreshold);
+											sub = Mathf.Clamp(sub, 1, rayCfg.MaxCollisionSubsteps);
+											if (cfg.UseAdaptiveSubsteps)
+											{
+												float far = cfg.AutoRangeDepth ? _rangeFar : cfg.Film.MaxDistance;
+												float t = Mathf.Clamp(seg.TraveledB / Mathf.Max(0.001f, far), 0f, 1f);
+												float minSub = Mathf.Max(1f, sub * 0.25f);
+												float scaled = Mathf.Lerp(sub, minSub, t);
+												sub = Mathf.Clamp(Mathf.RoundToInt(scaled), 1, rayCfg.MaxCollisionSubsteps);
+											}
+
+											ulong queryStart = statsEnabled ? Time.GetTicksUsec() : 0;
+											bool didHit = RayBeamRenderer.SubdividedRayHit(
+												space,
+												segA,
+												segB,
+												rayCfg.CollisionMask,
+												sub,
+												out Vector3 hp,
+												out Vector3 hn,
+												out ulong cid,
+												out string cname,
+												out int rayQueries,
+												includeColliderName: needHitName,
+												hitBackFaces: pass2Flags.HitBackFaces,
+												hitFromInside: pass2Flags.HitFromInside,
+												diagnosticSceneName: renderSceneName,
+												diagnosticFixtureName: renderFixtureName,
+												diagnosticModeToken: renderModeToken,
+												diagnosticQueryKind: "pass2_threaded_query_resolve");
+												if (statsEnabled && queryStart > 0)
+													chunk.QueryUsec += (long)(Time.GetTicksUsec() - queryStart);
+												chunk.SubdividedRayCalls++;
+												chunk.SubdividedRayQueries += rayQueries;
+												chunk.SubdividedRaySubsteps += sub;
+												chunk.PhysicsQueries += rayQueries;
+												chunk.Geom.GeomRayTestsTotal += rayQueries;
+												if (!didHit)
+													continue;
+
+											float resolvedHitDistance = seg.TraveledB - segLen + (hp - segA).Length();
+											ulong resolveStart = statsEnabled ? Time.GetTicksUsec() : 0;
+											if (resolvedHitDistance < bestHit)
+											{
+												bestHit = resolvedHitDistance;
+												hadHit = true;
+												hitDistance = resolvedHitDistance;
+												bestHp = hp;
+												bestHn = hn;
+												bestCid = cid;
+												if (needHitName)
+													hitName = cname;
+											}
+											if (statsEnabled && resolveStart > 0)
+												chunk.ResolveUsec += (long)(Time.GetTicksUsec() - resolveStart);
+											if (cfg.NearestHitOnly)
+												break;
+										}
+
+										if (!hadHit && cfg.FixtureDebugHitColoringEnabled && segCount > 0)
+										{
+											Vector3 terminalPoint = _segBuf[segOffset + (segCount - 1)].B;
+											absorbedByInnerRadius = IsInsideAbsorbingSource(terminalPoint, fieldSnaps);
+										}
+										if (geomPixelHadAnyCandidatesThisPixel) chunk.Geom.GeomPixelHadAnyCandidates++;
+										else chunk.Geom.GeomPixelNoCandidates++;
+										if (hadHit) chunk.Geom.GeomHitAccepted++;
+
+										localSamples.Add(new Pass2ResolvedSample
+										{
+											X = x,
+											Y = y,
+											Stride = stride,
+											GlobalPi = globalPi,
+											SubtileIndex = subtileIndex,
+											SegCount = segCount,
+											SegOffset = segOffset,
+											HadHit = hadHit,
+											AbsorbedByInnerRadius = absorbedByInnerRadius,
+											NeedHitName = needHitName,
+											PrevHadHit = prevHadHit,
+											PrevHadHitForSoftGate = prevHadHitForSoftGate,
+											TestedAnyInPass0ThisPixel = testedAnyInPass0ThisPixel,
+											SoftGateHitThisPixel = false,
+											HitDistance = hitDistance,
+											BestHp = bestHp,
+											BestHn = bestHn,
+											BestCid = bestCid,
+											HitName = needHitName ? hitName : string.Empty
+										});
+									}
+								}
+							}
+
+							chunk.Samples = localSamples;
+							if (statsEnabled && chunkPhysStart > 0)
+								chunk.PhysUsec = (long)(Time.GetTicksUsec() - chunkPhysStart);
+							chunkDescriptors[chunkIndex] = chunk;
+						}
+
+						if (threadedPass2QueryWorkers <= 1 || chunkDescriptors.Count <= 1)
+						{
+							for (int chunkIndex = 0; chunkIndex < chunkDescriptors.Count; chunkIndex++)
+								ResolveChunk(chunkIndex);
+						}
+						else
+						{
+							var pass2QueryOptions = new System.Threading.Tasks.ParallelOptions
+							{
+								MaxDegreeOfParallelism = threadedPass2QueryWorkers
+							};
+							System.Threading.Tasks.Parallel.For(0, chunkDescriptors.Count, pass2QueryOptions, ResolveChunk);
+						}
+
+						pass2ChunkSampleStarts.Clear();
+							for (int chunkIndex = 0; chunkIndex < chunkDescriptors.Count; chunkIndex++)
+							{
+								Pass2QueryResolveChunk chunk = chunkDescriptors[chunkIndex];
+								pass2ChunkSampleStarts.Add(pass2ResolvedSamples.Count);
+							if (chunk.Samples.Count > 0)
+								pass2ResolvedSamples.AddRange(chunk.Samples);
+							bandTracedPixels += (int)chunk.TracedPixels;
+							processedPixelsThisBand += (int)chunk.TracedPixels;
+							processedPixelsThisStep += (int)chunk.TracedPixels;
+							bandSegsIntegrated += chunk.SegsIntegrated;
+							bandSegsTested += chunk.SegsTested;
+							bandPhysicsQueries += chunk.PhysicsQueries;
+							pass2QueryUsecAccum += chunk.QueryUsec;
+							pass2HitResolveUsecAccum += chunk.ResolveUsec;
+								if (statsEnabled)
+								{
+									_perfFrame.TracedPixels += (int)chunk.TracedPixels;
+								_perfFrame.Segs += (int)chunk.SegsIntegrated;
+								_perfFrame.SegsTested += (int)chunk.SegsTested;
+								_perfFrame.IntersectShapeCalls += (int)chunk.IntersectShapeCalls;
+								_perfFrame.SubdividedRayCalls += (int)chunk.SubdividedRayCalls;
+								_perfFrame.SubdividedRayQueries += (int)chunk.SubdividedRayQueries;
+								_perfFrame.SubdividedRaySubsteps += (int)chunk.SubdividedRaySubsteps;
+								_perfFrame.Pass2StrideSum += chunk.Pass2StrideSum;
+								_perfFrame.Pass2StrideCount += chunk.Pass2StrideCount;
+									if (chunk.PhysUsec > 0)
+										_perfFrame.AddPass2PhysUsec((ulong)chunk.PhysUsec);
+								}
+								_geomSegmentsQueriedThisFrame += chunk.Geom.GeomSegmentsQueried;
+								_geomSegWithCandidatesThisFrame += chunk.Geom.GeomSegWithCandidates;
+								_geomSegZeroCandidatesThisFrame += chunk.Geom.GeomSegZeroCandidates;
+								_geomPixelProcessedThisFrame += chunk.Geom.GeomPixelProcessed;
+								_geomPixelHadAnyCandidatesThisFrame += chunk.Geom.GeomPixelHadAnyCandidates;
+								_geomPixelNoCandidatesThisFrame += chunk.Geom.GeomPixelNoCandidates;
+								_geomHitAcceptedThisFrame += chunk.Geom.GeomHitAccepted;
+								_geomHitRejectedThisFrame += chunk.Geom.GeomHitRejected;
+								_geomRayTestsTotalThisFrame += chunk.Geom.GeomRayTestsTotal;
+								pass2SampledSegments += chunk.Geom.Pass2SampledSegments;
+								pass2RadiusSum += chunk.Geom.Pass2RadiusSum;
+								if (chunk.Geom.Pass2RadiusMax > pass2RadiusMax) pass2RadiusMax = chunk.Geom.Pass2RadiusMax;
+								pass2EnvDiagSum += chunk.Geom.Pass2EnvDiagSum;
+								if (chunk.Geom.Pass2EnvDiagMax > pass2EnvDiagMax) pass2EnvDiagMax = chunk.Geom.Pass2EnvDiagMax;
+								pass2EnvelopeInflationSum += chunk.Geom.Pass2EnvelopeInflationSum;
+								if (chunk.Geom.Pass2EnvelopeInflationMax > pass2EnvelopeInflationMax) pass2EnvelopeInflationMax = chunk.Geom.Pass2EnvelopeInflationMax;
+								pass2CandidateCount0 += chunk.Geom.Pass2CandidateCount0;
+								pass2CandidateCount1To2 += chunk.Geom.Pass2CandidateCount1To2;
+								pass2CandidateCount3To8 += chunk.Geom.Pass2CandidateCount3To8;
+								pass2CandidateCount9To32 += chunk.Geom.Pass2CandidateCount9To32;
+								pass2CandidateCount33Plus += chunk.Geom.Pass2CandidateCount33Plus;
+								for (int y = chunk.StartRow; y < chunk.EndRowExclusive; y += stride)
+									RecordFixtureRowWriteOutcome(y, rowHadWrites: true, rowCompleted: true);
+							}
+
+						RunThreadedPass2LocalAccumulationCommit();
+						return true;
+					}
+
+					void RunThreadedPass2LocalAccumulationCommit()
+					{
+					if (!useThreadedPass2ResolvedSampleCommit || pass2ResolvedSamples == null || pass2ResolvedSamples.Count == 0)
+						return;
+
+					if (pass2ChunkSampleStarts == null || pass2ChunkSampleStarts.Count == 0)
+						pass2ChunkSampleStarts = new System.Collections.Generic.List<int> { 0 };
+					pass2ChunkSampleStarts.Add(pass2ResolvedSamples.Count);
+
+					int chunkCount = Math.Max(0, pass2ChunkSampleStarts.Count - 1);
+					if (chunkCount <= 0)
+						return;
+
+					Pass2ShadedSample[] shadedSamples = new Pass2ShadedSample[pass2ResolvedSamples.Count];
+					Pass2ChunkAccumulator[] chunkAccums = new Pass2ChunkAccumulator[chunkCount];
+					ulong shadeStartUsec = 0;
+					if (shadeTimingEnabled)
+						shadeStartUsec = Time.GetTicksUsec();
+
+					void ShadeChunk(int chunkIndex)
+					{
+						int startIndex = pass2ChunkSampleStarts[chunkIndex];
+						int endIndex = pass2ChunkSampleStarts[chunkIndex + 1];
+						var accum = new Pass2ChunkAccumulator();
+
+						for (int sampleIndex = startIndex; sampleIndex < endIndex; sampleIndex++)
+						{
+							Pass2ResolvedSample sample = pass2ResolvedSamples[sampleIndex];
+							Color col = cfg.SkyColor;
+							string fixtureHitKind = "miss";
+							Color fixtureChosenDebugColor = cfg.SkyColor;
+							bool fixtureDebugColorChosen = false;
+							bool skipShading = rayCfg.RequireHitToRender && !sample.HadHit;
+
+							if (skipShading)
+							{
+								accum.ShadingSkippedPixels++;
+							}
+							else if (sample.HadHit)
+							{
+								accum.Hits++;
+								switch (cfg.ShadingMode)
+								{
+									default:
+									case FilmShadingMode.DepthHeatmap:
+									{
+										float far = cfg.AutoRangeDepth ? _rangeFar : cfg.Film.MaxDistance;
+										float d = Mathf.Clamp(sample.HitDistance / Mathf.Max(0.001f, far), 0f, 1f);
+										col = Color.FromHsv(0.66f * (1f - d), 1f, 1f);
+										break;
+									}
+									case FilmShadingMode.NormalRGB:
+									{
+										Vector3 n = sample.BestHn;
+										if (cfg.FlipNormalToCamera)
+										{
+											Vector3 v = (camPosPass2 - sample.BestHp).Normalized();
+											if (n.Dot(v) < 0f) n = -n;
+										}
+										col = ShadeNormalRGB(n);
+										break;
+									}
+									case FilmShadingMode.NdotV:
+									{
+										Vector3 v = camPosPass2 - sample.BestHp;
+										Vector3 n = sample.BestHn;
+										col = ShadeNdotV(n, v, out _);
+										if (cfg.FlipNormalToCamera)
+										{
+											Vector3 vn = (camPosPass2 - sample.BestHp).Normalized();
+											if (n.Dot(vn) < 0f)
+											{
+												n = -n;
+												col = ShadeNdotV(n, v, out _);
+											}
+										}
+										break;
+									}
+									case FilmShadingMode.TwoSidedNdotV:
+									{
+										Vector3 v = (camPosPass2 - sample.BestHp).Normalized();
+										Vector3 n = sample.BestHn.Normalized();
+										float ndv = n.Dot(v);
+										col = ShadeNdotVAbs(ndv);
+										break;
+									}
+								}
+							}
+
+							fixtureHitKind = ClassifyFixtureHitKind(sample.HadHit, sample.AbsorbedByInnerRadius, sample.BestCid);
+							if (cfg.FixtureDebugHitColoringEnabled)
+							{
+								if (fixtureHitKind == "source")
+								{
+									if (cfg.FixtureDebugSourceHighlightEnabled)
+									{
+										col = cfg.FixtureDebugSourceHitColor;
+										fixtureChosenDebugColor = col;
+										fixtureDebugColorChosen = true;
+									}
+									else if (cfg.FixtureDebugColorAuthorityEnabled)
+									{
+										col = cfg.FixtureDebugBackgroundHitColor;
+										fixtureChosenDebugColor = col;
+										fixtureDebugColorChosen = true;
+									}
+								}
+								else if (fixtureHitKind == "background")
+								{
+									if (cfg.FixtureDebugColorAuthorityEnabled)
+									{
+										col = cfg.FixtureDebugBackgroundHitColor;
+										fixtureChosenDebugColor = col;
+										fixtureDebugColorChosen = true;
+									}
+								}
+								else if (fixtureHitKind == "absorbed")
+								{
+									col = cfg.FixtureDebugAbsorbedColor;
+									fixtureChosenDebugColor = col;
+									fixtureDebugColorChosen = true;
+								}
+								else
+								{
+									col = cfg.FixtureDebugMissColor;
+									fixtureChosenDebugColor = col;
+									fixtureDebugColorChosen = true;
+								}
+							}
+
+							switch (fixtureHitKind)
+							{
+								case "source":
+									accum.SourceHits++;
+									break;
+								case "background":
+									accum.BackgroundHits++;
+									break;
+								case "unclassified":
+									accum.UnclassifiedHits++;
+									break;
+								case "absorbed":
+									accum.AbsorbedHits++;
+									break;
+								default:
+									accum.MissHits++;
+									break;
+							}
+
+							shadedSamples[sampleIndex] = new Pass2ShadedSample
+							{
+								Color = col,
+								FixtureHitKind = fixtureHitKind,
+								FixtureChosenDebugColor = fixtureChosenDebugColor,
+								FixtureDebugColorChosen = fixtureDebugColorChosen,
+								SkipShading = skipShading
+							};
+						}
+
+						chunkAccums[chunkIndex] = accum;
+					}
+
+						int pass2ShadeWorkers = useThreadedPass2QueryResolve ? threadedPass2QueryWorkers : threadedPass2WorkerCount;
+						if (pass2ShadeWorkers <= 1 || chunkCount <= 1)
+						{
+							for (int chunkIndex = 0; chunkIndex < chunkCount; chunkIndex++)
+								ShadeChunk(chunkIndex);
+					}
+					else
+					{
+							var pass2ChunkOptions = new System.Threading.Tasks.ParallelOptions
+							{
+								MaxDegreeOfParallelism = pass2ShadeWorkers
+							};
+						System.Threading.Tasks.Parallel.For(0, chunkCount, pass2ChunkOptions, ShadeChunk);
+					}
+
+					if (shadeTimingEnabled && shadeStartUsec > 0)
+					{
+						ulong shadeUsec = Time.GetTicksUsec() - shadeStartUsec;
+						if (statsEnabled) _perfFrame.AddPass2ShadeUsec(shadeUsec);
+						shadeUsecAccum += (long)shadeUsec;
+					}
+
+					ulong commitStart = 0;
+					if (statsEnabled) commitStart = Time.GetTicksUsec();
+
+					for (int chunkIndex = 0; chunkIndex < chunkCount; chunkIndex++)
+					{
+						Pass2ChunkAccumulator accum = chunkAccums[chunkIndex] ?? new Pass2ChunkAccumulator();
+						if (statsEnabled)
+							_perfFrame.ShadingSkippedPixels += accum.ShadingSkippedPixels;
+
+						int startIndex = pass2ChunkSampleStarts[chunkIndex];
+						int endIndex = pass2ChunkSampleStarts[chunkIndex + 1];
+						for (int sampleIndex = startIndex; sampleIndex < endIndex; sampleIndex++)
+						{
+							Pass2ResolvedSample sample = pass2ResolvedSamples[sampleIndex];
+							Pass2ShadedSample shaded = shadedSamples[sampleIndex];
+
+							if (sample.HadHit)
+							{
+								bandHits++;
+								_tileMetricCurrentSubtiles[sample.SubtileIndex].Hits++;
+								if (sample.HitDistance > frameMaxHit) frameMaxHit = sample.HitDistance;
+							}
+
+							switch (shaded.FixtureHitKind)
+							{
+								case "source":
+									_fixtureDebugSourceHitsThisRun++;
+									break;
+								case "background":
+									_fixtureDebugBackgroundHitsThisRun++;
+									break;
+								case "unclassified":
+									_fixtureDebugUnclassifiedHitsThisRun++;
+									break;
+								case "absorbed":
+									_fixtureDebugAbsorbedHitsThisRun++;
+									break;
+								default:
+									_fixtureDebugMissHitsThisRun++;
+									break;
+							}
+
+							if (sample.HadHit)
+							{
+								switch (shaded.FixtureHitKind)
+								{
+									case "source":
+										_tileMetricCurrentSubtiles[sample.SubtileIndex].SourceHits++;
+										break;
+									case "background":
+										_tileMetricCurrentSubtiles[sample.SubtileIndex].BackgroundHits++;
+										break;
+									case "unclassified":
+										_tileMetricCurrentSubtiles[sample.SubtileIndex].UnclassifiedHits++;
+										break;
+								}
+							}
+
+							int filled = FillPixelBlock(sample.X, sample.Y, sample.Stride, shaded.Color, filmW, filmH);
+							if (statsEnabled) _perfFrame.FilledPixels += filled;
+							if (framePerfEnabled) bandFilledPixels += filled;
+							if (sample.HadHit)
+							{
+								_fixtureFinalHitPixelCountThisRun += filled;
+								FillPixelBlock(_fixtureFinalHitOnlyImg, sample.X, sample.Y, sample.Stride, shaded.Color, filmW, filmH);
+							}
+							Color categoricalColor = sample.HadHit
+								? FixtureCategoricalFinalHitColor
+								: FixtureCategoricalRenderedNoHitColor;
+							FillPixelBlock(_fixtureCategoricalFinalImg, sample.X, sample.Y, sample.Stride, categoricalColor, filmW, filmH);
+
+							bool fixtureTraceByKind = false;
+							if (cfg.FixtureDebugTraceEnabled)
+							{
+								switch (shaded.FixtureHitKind)
+								{
+									case "source":
+										if (fixtureTraceSourceRemaining > 0)
+										{
+											fixtureTraceSourceRemaining--;
+											fixtureTraceByKind = true;
+										}
+										break;
+									case "background":
+										if (fixtureTraceBackgroundRemaining > 0)
+										{
+											fixtureTraceBackgroundRemaining--;
+											fixtureTraceByKind = true;
+										}
+										break;
+									case "absorbed":
+										if (fixtureTraceAbsorbedRemaining > 0)
+										{
+											fixtureTraceAbsorbedRemaining--;
+											fixtureTraceByKind = true;
+										}
+										break;
+									default:
+										if (fixtureTraceMissRemaining > 0)
+										{
+											fixtureTraceMissRemaining--;
+											fixtureTraceByKind = true;
+										}
+										break;
+								}
+							}
+							bool fixtureTraceByModulo = cfg.FixtureDebugTraceEnabled
+								&& fixtureDebugTraceLogsRemainingThisStep > 0
+								&& ShouldTraceFixtureDebugSample(sample.X, sample.Y, cfg.FixtureDebugTraceSampleModulo);
+							if (cfg.FixtureDebugTraceEnabled && (fixtureTraceByKind || fixtureTraceByModulo))
+							{
+								Color finalWrittenColor = _img.GetPixel(sample.X, sample.Y);
+								GD.Print(
+									$"[FixtureDebugTrace] frame={_frameIndex} row={sample.Y} x={sample.X} kind={shaded.FixtureHitKind} hadHit={(sample.HadHit ? 1 : 0)} " +
+									$"cid={sample.BestCid} debugChosen={FormatColorCompact(shaded.FixtureChosenDebugColor)} " +
+									$"finalWritten={FormatColorCompact(finalWrittenColor)} auth={(cfg.FixtureDebugColorAuthorityEnabled ? 1 : 0)} " +
+									$"chosen={(shaded.FixtureDebugColorChosen ? 1 : 0)}");
+								if (fixtureDebugTraceLogsRemainingThisStep > 0)
+									fixtureDebugTraceLogsRemainingThisStep--;
+							}
+
+							if (_pass2PrevHadHit.Length > sample.GlobalPi)
+							{
+								bool prevHit = sample.PrevHadHit;
+								bool nowHit = sample.HadHit;
+								if (prevHit != nowHit) pixelDeltaChanged++;
+								if (!prevHit && nowHit) pixelDeltaNewFilled++;
+								if (!prevHit && nowHit && sample.SoftGateHitThisPixel) softGateNewPixelFilled++;
+								_pass2PrevHadHit[sample.GlobalPi] = sample.HadHit ? (byte)1 : (byte)0;
+							}
+							if (_pass2HadHitLostThisFrame.Length > sample.GlobalPi)
+								_pass2HadHitLostThisFrame[sample.GlobalPi] = (sample.PrevHadHitForSoftGate && !sample.HadHit && sample.TestedAnyInPass0ThisPixel) ? (byte)1 : (byte)0;
+
+							if (wantDbg)
+							{
+								ulong dbgStart = 0;
+								if (statsEnabled) dbgStart = Time.GetTicksUsec();
+								int pxStride = Math.Max(1, cfg.DebugEveryNPixels);
+								if ((sample.X % pxStride) == 0 && (sample.Y % pxStride) == 0 && _dbgRayCount < cfg.DebugMaxFilmRays)
+								{
+									int rayIndex = _dbgRayCount++;
+									_dbgOff[rayIndex] = _dbgPtWrite;
+									int w0 = _dbgPtWrite;
+									if (sample.SegCount > 0)
+									{
+										_dbgPts[_dbgPtWrite++] = _segBuf[sample.SegOffset + 0].A;
+										int writeSegs = Math.Min(sample.SegCount, maxSeg);
+										for (int si2 = 0; si2 < writeSegs; si2++)
+											_dbgPts[_dbgPtWrite++] = _segBuf[sample.SegOffset + si2].B;
+									}
+									else
+									{
+										_dbgPts[_dbgPtWrite++] = _cam.GlobalPosition;
+										_dbgPts[_dbgPtWrite++] = _cam.GlobalPosition + (-_cam.GlobalTransform.Basis.Z) * 0.25f;
+									}
+									_dbgCnt[rayIndex] = _dbgPtWrite - w0;
+									_dbgHits[rayIndex] = new RayBeamRenderer.HitPayload
+									{
+										Valid = sample.HadHit,
+										Position = sample.BestHp,
+										Normal = sample.BestHn,
+										Distance = sample.HitDistance,
+										ColliderId = sample.BestCid,
+										ColliderName = sample.NeedHitName ? sample.HitName : "<none>",
+										Albedo = Colors.White
+									};
+								}
+								if (statsEnabled)
+								{
+									ulong dbgEnd = Time.GetTicksUsec();
+									_perfFrame.AddOverlayBuildUsec(dbgEnd - dbgStart);
+								}
+							}
+						}
+					}
+
+					if (statsEnabled)
+						_perfFrame.AddPass2CommitUsec(Time.GetTicksUsec() - commitStart);
+				}
+
+					if (useThreadedPass2CandidateEval)
+						PrepareThreadedPass2CandidateEval();
+
+					if (RunThreadedPass2QueryResolvePrototype())
+					{
+						pass2CompletedThisStep = !budgetStop && !renderStepAbort;
+					}
+
+					// DECISION: skip physics if band-level skip is active.
+					else if (skipBandPhysics)
+				{
 				ulong shadeStart = 0;
 				// DECISION: capture shade timing only when enabled.
 				if (shadeTimingEnabled) shadeStart = Time.GetTicksUsec();
 
-				int yAlignedStart = yStart + ((stride - (yStart % stride)) % stride);
-				for (int y = yAlignedStart; y < yEnd; y += stride)
-				{
-					budgetStopRowCursor = y;
-					RecordFixtureRowWriteStart(y);
+					int yAlignedStart = yStart + ((stride - (yStart % stride)) % stride);
+					for (int y = yAlignedStart; y < yEnd; y += stride)
+					{
+						if (useThreadedPass2LocalAccumulation)
+						{
+							int sampledRowIndex = (y - yAlignedStart) / Math.Max(1, stride);
+							if (sampledRowIndex % threadedPass2RowsPerChunk == 0)
+								pass2ChunkSampleStarts!.Add(pass2ResolvedSamples!.Count);
+						}
+						budgetStopRowCursor = y;
+						RecordFixtureRowWriteStart(y);
 					bool rowHadWritesThisPass = false;
 					bool rowCompletedThisPass = false;
 					// DECISION: watchdog may trigger budget stop or abort.
@@ -6912,6 +8448,12 @@ private sealed class OverlayRollingWindow
 				int yAlignedStart = yStart + ((stride - (yStart % stride)) % stride);
 				for (int y = yAlignedStart; y < yEnd; y += stride)
 				{
+					if (useThreadedPass2LocalAccumulation)
+					{
+						int sampledRowIndex = (y - yAlignedStart) / Math.Max(1, stride);
+						if (sampledRowIndex % threadedPass2RowsPerChunk == 0)
+							pass2ChunkSampleStarts!.Add(pass2ResolvedSamples!.Count);
+					}
 					budgetStopRowCursor = y;
 					RecordFixtureRowWriteStart(y);
 					bool rowHadWritesThisPass = false;
@@ -7020,6 +8562,12 @@ private sealed class OverlayRollingWindow
 							segStart = Math.Max(0, pass1HitSegIndex - 1);
 							segEnd = Math.Min(segCount - 1, pass1HitSegIndex + 1);
 						}
+						int candidateRecordBaseForPixel = useThreadedPass2CandidateEval && (uint)pi < (uint)pass2CandidateRecordStarts.Length
+							? pass2CandidateRecordStarts[pi]
+							: -1;
+						int candidateVisitedSegStartForPixel = useThreadedPass2CandidateEval && (uint)pi < (uint)pass2CandidateVisitedSegStarts.Length
+							? pass2CandidateVisitedSegStarts[pi]
+							: 0;
 
 						// DECISION: update segment counts when stats enabled.
 						if (statsEnabled) _perfFrame.Segs += segCount;
@@ -7111,8 +8659,22 @@ private sealed class OverlayRollingWindow
 								float renderHealthSampleEnvelopeInflation = 0f;
 								Aabb3 envelope = default;
 								bool envelopeComputed = false;
-								if (useGeomTlasPruning || renderHealthSampleThisSeg)
+								int candidateRecordIndex = useThreadedPass2CandidateEval && candidateRecordBaseForPixel >= 0
+									? candidateRecordBaseForPixel + (si - candidateVisitedSegStartForPixel)
+									: -1;
+								if (useThreadedPass2CandidateEval
+									&& (uint)candidateRecordIndex < (uint)pass2CandidateEvalRecords.Length)
 								{
+									Pass2CandidateEvalRecord candidateRecord = pass2CandidateEvalRecords[candidateRecordIndex];
+									envelopeComputed = true;
+									renderHealthSampleRadius = candidateRecord.EnvelopeRadius;
+									renderHealthSampleEnvDiag = candidateRecord.EnvelopeDiag;
+									renderHealthSampleEnvelopeInflation = candidateRecord.EnvelopeInflation;
+								}
+								else if (useGeomTlasPruning || renderHealthSampleThisSeg)
+								{
+									ulong envelopeStartUsec = 0;
+									if (statsEnabled) envelopeStartUsec = Time.GetTicksUsec();
 									var segANum = new System.Numerics.Vector3(segA.X, segA.Y, segA.Z);
 									var segBNum = new System.Numerics.Vector3(segB.X, segB.Y, segB.Z);
 									float baseRadiusBound = Mathf.Max(0f, seg.RadiusBound);
@@ -7124,8 +8686,10 @@ private sealed class OverlayRollingWindow
 									envelopeComputed = true;
 									renderHealthSampleRadius = geomEnvelopeRadius;
 									renderHealthSampleEnvelopeInflation = Math.Max(0f, (geomEnvelopeRadius - baseRadiusBound) + geomEnvelopeAabbExpand);
+									if (statsEnabled && envelopeStartUsec > 0)
+										pass2EnvelopeUsecAccum += (long)(Time.GetTicksUsec() - envelopeStartUsec);
 								}
-								if (renderHealthSampleThisSeg && envelopeComputed)
+								if (renderHealthSampleThisSeg && envelopeComputed && !useThreadedPass2CandidateEval)
 								{
 									renderHealthSampleEnvDiag = envelope.Extents.Length();
 								}
@@ -7163,7 +8727,7 @@ private sealed class OverlayRollingWindow
 								long geomRayTestsAtSegStart = _geomRayTestsTotalThisFrame;
 								int geomTlasCandidateCount = -1;
 								long[] geomCandidateInstanceIdsArray = _geomCandidateInstanceIdsScratch;
-								Span<long> geomCandidateInstanceIds = default;
+								ReadOnlySpan<long> geomCandidateInstanceIds = default;
 								int geomCandidateInstanceCount = 0;
 								bool geomCandidatesActive = false;
 								bool pruneAuditSampleThisSeg = false;
@@ -7434,15 +8998,54 @@ private sealed class OverlayRollingWindow
 
 								if (useGeomTlasPruning)
 								{
-									Span<int> geomCandidates = _geomCandidatesScratch;
-									MarkGeomPixelProcessedForWork();
-									int geomCandidateCount = geomTlas.QueryAabb(envelope, geomCandidates);
-									geomTlasCandidateCount = geomCandidateCount;
+									if (useThreadedPass2CandidateEval
+										&& (uint)candidateRecordIndex < (uint)pass2CandidateEvalRecords.Length)
+									{
+										MarkGeomPixelProcessedForWork();
+										Pass2CandidateEvalRecord candidateRecord = pass2CandidateEvalRecords[candidateRecordIndex];
+										geomTlasCandidateCount = candidateRecord.CandidateCount;
+										geomCandidateInstanceCount = candidateRecord.CandidateCount;
+										if (geomCandidateInstanceCount > 0 && (uint)candidateRecord.CandidateStart < (uint)pass2CandidateEvalIds.Length)
+											geomCandidateInstanceIds = pass2CandidateEvalIds.AsSpan(candidateRecord.CandidateStart, Math.Min(geomCandidateInstanceCount, pass2CandidateEvalIds.Length - candidateRecord.CandidateStart));
+									}
+									else
+									{
+										ulong candidateStartUsec = 0;
+										if (statsEnabled) candidateStartUsec = Time.GetTicksUsec();
+										Span<int> geomCandidates = _geomCandidatesScratch;
+										MarkGeomPixelProcessedForWork();
+										int geomCandidateCount = geomTlas.QueryAabb(envelope, geomCandidates);
+										geomTlasCandidateCount = geomCandidateCount;
+										if (geomCandidateCount > 0)
+										{
+											Span<long> geomCandidateScratch = geomCandidateInstanceIdsArray;
+											var ids = geomEntities.GodotInstanceIds;
+											int idsLen = ids.Length;
+											int maxFill = Math.Min(geomCandidateCount, geomCandidateScratch.Length);
+											for (int gi = 0; gi < maxFill; gi++)
+											{
+												int geomIndex = geomCandidates[gi];
+												if ((uint)geomIndex < (uint)idsLen)
+													geomCandidateScratch[geomCandidateInstanceCount++] = ids[geomIndex];
+											}
+											if (geomCandidateInstanceCount > 1)
+											{
+												SortLongSpan(geomCandidateScratch, geomCandidateInstanceCount);
+												geomCandidateInstanceCount = DedupSortedLong(geomCandidateScratch, geomCandidateInstanceCount);
+											}
+											geomCandidateInstanceIds = geomCandidateScratch.Slice(0, geomCandidateInstanceCount);
+										}
+										if (statsEnabled && candidateStartUsec > 0)
+											pass2CandidateEvalUsecAccum += (long)(Time.GetTicksUsec() - candidateStartUsec);
+									}
 									if (pass == 0)
 									{
+										_geomCandidatesSegmentsThisFrame++;
+										_geomCandidatesTotalThisFrame += geomCandidateInstanceCount;
+										_tileMetricCurrentSubtiles[subtileIndexThisPixel].CandidateSegments++;
+										_tileMetricCurrentSubtiles[subtileIndexThisPixel].CandidateReferences += geomCandidateInstanceCount;
 										_geomSegmentsQueriedThisFrame++;
-										// geomSegZero increments exactly once per queried Pass2 segment.
-										if (geomCandidateCount == 0)
+										if (geomCandidateInstanceCount == 0)
 										{
 											_geomSegZeroCandidatesThisFrame++;
 										}
@@ -7451,31 +9054,6 @@ private sealed class OverlayRollingWindow
 											_geomSegWithCandidatesThisFrame++;
 											geomPixelHadAnyCandidatesThisPixel = true;
 										}
-									}
-									if (geomCandidateCount > 0)
-									{
-										geomCandidateInstanceIds = geomCandidateInstanceIdsArray;
-										var ids = geomEntities.GodotInstanceIds;
-										int idsLen = ids.Length;
-										int maxFill = Math.Min(geomCandidateCount, geomCandidateInstanceIds.Length);
-										for (int gi = 0; gi < maxFill; gi++)
-										{
-											int geomIndex = geomCandidates[gi];
-											if ((uint)geomIndex < (uint)idsLen)
-												geomCandidateInstanceIds[geomCandidateInstanceCount++] = ids[geomIndex];
-										}
-										if (geomCandidateInstanceCount > 1)
-										{
-											SortLongSpan(geomCandidateInstanceIds, geomCandidateInstanceCount);
-											geomCandidateInstanceCount = DedupSortedLong(geomCandidateInstanceIds, geomCandidateInstanceCount);
-										}
-									}
-									if (pass == 0)
-									{
-										_geomCandidatesSegmentsThisFrame++;
-										_geomCandidatesTotalThisFrame += geomCandidateInstanceCount;
-										_tileMetricCurrentSubtiles[subtileIndexThisPixel].CandidateSegments++;
-										_tileMetricCurrentSubtiles[subtileIndexThisPixel].CandidateReferences += geomCandidateInstanceCount;
 									}
 									EvaluatePruneAuditCandidateCoverage(geomCandidateInstanceCount);
 									if (renderHealthSampleThisSeg && !renderHealthSampleRecorded && envelopeComputed)
@@ -7499,8 +9077,12 @@ private sealed class OverlayRollingWindow
 										pass2StrideSum += pass2Stride;
 										pass2StrideCount++;
 									}
+									ulong queryStartUsec = 0;
+									if (statsEnabled) queryStartUsec = Time.GetTicksUsec();
 									MarkGeomPixelProcessedForWork();
 									didHit = RayBeamRenderer.SweepSegmentHit(space, segA, segB, rayCfg.CollisionMask, rayCfg.CollisionRadius, out hp);
+									if (statsEnabled && queryStartUsec > 0)
+										pass2QueryUsecAccum += (long)(Time.GetTicksUsec() - queryStartUsec);
 									_geomRayTestsTotalThisFrame++;
 									if ((statsEnabled || framePerfEnabled) && !segCounted)
 									{
@@ -7543,8 +9125,12 @@ private sealed class OverlayRollingWindow
 										Vector3 mid = (p0 + p1) * 0.5f;
 
 										_overlapQuery.Transform = new Transform3D(Basis.Identity, mid);
+										ulong queryStartUsec = 0;
+										if (statsEnabled) queryStartUsec = Time.GetTicksUsec();
 										MarkGeomPixelProcessedForWork();
 										var overlaps = localSpace.IntersectShape(_overlapQuery, broadphaseCfg.MaxResults);
+										if (statsEnabled && queryStartUsec > 0)
+											pass2QueryUsecAccum += (long)(Time.GetTicksUsec() - queryStartUsec);
 										if (statsEnabled) _perfFrame.IntersectShapeCalls++;
 										if (bandCountersEnabled) bandPhysicsQueries++;
 										if ((statsEnabled || framePerfEnabled) && !segCounted)
@@ -8073,6 +9659,8 @@ private sealed class OverlayRollingWindow
 											if (framePerfEnabled) _framePerf.CacheMisses++;
 											_quickRayParams.From = segA;
 											_quickRayParams.To = segB;
+											ulong queryStartUsec = 0;
+											if (statsEnabled) queryStartUsec = Time.GetTicksUsec();
 											MarkGeomPixelProcessedForWork();
 											bool quickRaySucceeded = TryIntersectRenderSpaceRaySafe(
 												space,
@@ -8085,6 +9673,8 @@ private sealed class OverlayRollingWindow
 												renderModeToken,
 												ref _renderSpaceRayQueryWarned,
 												out var hit0);
+											if (statsEnabled && queryStartUsec > 0)
+												pass2QueryUsecAccum += (long)(Time.GetTicksUsec() - queryStartUsec);
 											if (quickRaySucceeded)
 											{
 												_geomRayTestsTotalThisFrame++;
@@ -8243,6 +9833,8 @@ private sealed class OverlayRollingWindow
 												return false;
 											}
 										}
+										ulong queryStartUsec = 0;
+										if (statsEnabled) queryStartUsec = Time.GetTicksUsec();
 										MarkGeomPixelProcessedForWork();
 										didHit = RayBeamRenderer.SubdividedRayHit(
 												space, segA, segB,
@@ -8254,9 +9846,11 @@ private sealed class OverlayRollingWindow
 											hitBackFaces: pass2Flags.HitBackFaces,
 											hitFromInside: pass2Flags.HitFromInside,
 											diagnosticSceneName: renderSceneName,
-											diagnosticFixtureName: renderFixtureName,
-											diagnosticModeToken: renderModeToken,
-											diagnosticQueryKind: "pass2_subdivided_ray");
+												diagnosticFixtureName: renderFixtureName,
+												diagnosticModeToken: renderModeToken,
+												diagnosticQueryKind: "pass2_subdivided_ray");
+									if (statsEnabled && queryStartUsec > 0)
+										pass2QueryUsecAccum += (long)(Time.GetTicksUsec() - queryStartUsec);
 									if (rayQueries > 0)
 										_geomRayTestsTotalThisFrame += rayQueries;
 									if (statsEnabled)
@@ -8366,6 +9960,8 @@ private sealed class OverlayRollingWindow
 									else
 										didHit = TrySubdividedRayNarrowphase(out narrowphaseHitDistAlongRay);
 
+									ulong hitResolveStartUsec = 0;
+									if (statsEnabled) hitResolveStartUsec = Time.GetTicksUsec();
 									if (didHit && useGeomTlasPruning)
 									{
 										long geomId = unchecked((long)cid);
@@ -8413,6 +10009,8 @@ private sealed class OverlayRollingWindow
 										_geomRayTestsAcceptedThisFrame++;
 									}
 									FinalizePruneAuditResult(didHit, geomCandidateInstanceCount);
+									if (statsEnabled && hitResolveStartUsec > 0)
+										pass2HitResolveUsecAccum += (long)(Time.GetTicksUsec() - hitResolveStartUsec);
 
 									FinalizeHybridQuickRayMissCache(didHit, narrowphaseHitDistAlongRay);
 									if (budgetStop) break;
@@ -8531,15 +10129,47 @@ private sealed class OverlayRollingWindow
 						ulong physEnd = Time.GetTicksUsec();
 						_perfFrame.AddPass2PhysUsec(physEnd - physStart);
 					}
-					if (!hadHit && cfg.FixtureDebugHitColoringEnabled && segCount > 0)
-					{
-						Vector3 terminalPoint = _segBuf[segOffset + (segCount - 1)].B;
-						absorbedByInnerRadius = IsInsideAbsorbingSource(terminalPoint, fieldSnaps);
-					}
+							if (!hadHit && cfg.FixtureDebugHitColoringEnabled && segCount > 0)
+							{
+								Vector3 terminalPoint = _segBuf[segOffset + (segCount - 1)].B;
+								absorbedByInnerRadius = IsInsideAbsorbingSource(terminalPoint, fieldSnaps);
+							}
+							if (softGateAttemptsThisPixel > maxAttemptsAnyPixelThisBand)
+								maxAttemptsAnyPixelThisBand = softGateAttemptsThisPixel;
+							if (softGateSubdividesThisPixel > maxSubdividesAnyPixelThisBand)
+								maxSubdividesAnyPixelThisBand = softGateSubdividesThisPixel;
 
-						////
-						////////////////////////
-						ulong shadeStart = 0;
+							if (useThreadedPass2LocalAccumulation)
+							{
+								pass2ResolvedSamples!.Add(new Pass2ResolvedSample
+								{
+									X = x,
+									Y = y,
+									Stride = stride,
+									GlobalPi = globalPi,
+									SubtileIndex = subtileIndexThisPixel,
+									SegCount = segCount,
+									SegOffset = segOffset,
+									HadHit = hadHit,
+									AbsorbedByInnerRadius = absorbedByInnerRadius,
+									NeedHitName = needHitName,
+									PrevHadHit = prevHadHit,
+									PrevHadHitForSoftGate = prevHadHitForSoftGate,
+									TestedAnyInPass0ThisPixel = testedAnyInPass0ThisPixel,
+									SoftGateHitThisPixel = softGateHitThisPixel,
+									HitDistance = hitDistance,
+									BestHp = bestHp,
+									BestHn = bestHn,
+									BestCid = bestCid,
+									HitName = needHitName ? hitName : string.Empty
+								});
+								rowHadWritesThisPass = true;
+								continue;
+							}
+
+							////
+							////////////////////////
+							ulong shadeStart = 0;
 						if (shadeTimingEnabled) shadeStart = Time.GetTicksUsec();
 						Color col = cfg.SkyColor;
 						string fixtureHitKind = "miss";
@@ -8768,13 +10398,9 @@ private sealed class OverlayRollingWindow
 							if (!prevHit && nowHit && softGateHitThisPixel) softGateNewPixelFilled++;
 							_pass2PrevHadHit[globalPi] = hadHit ? (byte)1 : (byte)0;
 						}
-						if (_pass2HadHitLostThisFrame.Length > globalPi)
-							_pass2HadHitLostThisFrame[globalPi] = (prevHadHitForSoftGate && !hadHit && testedAnyInPass0ThisPixel) ? (byte)1 : (byte)0;
-						if (softGateAttemptsThisPixel > maxAttemptsAnyPixelThisBand)
-							maxAttemptsAnyPixelThisBand = softGateAttemptsThisPixel;
-						if (softGateSubdividesThisPixel > maxSubdividesAnyPixelThisBand)
-							maxSubdividesAnyPixelThisBand = softGateSubdividesThisPixel;
-						////////////////////////////
+							if (_pass2HadHitLostThisFrame.Length > globalPi)
+								_pass2HadHitLostThisFrame[globalPi] = (prevHadHitForSoftGate && !hadHit && testedAnyInPass0ThisPixel) ? (byte)1 : (byte)0;
+							////////////////////////////
 						/// 
 
 						////////////////////////
@@ -8852,6 +10478,10 @@ private sealed class OverlayRollingWindow
 				}
 				}
 			}
+			if (useThreadedPass2LocalAccumulation && !skipBandPhysics && !renderStepAbort)
+			{
+				RunThreadedPass2LocalAccumulationCommit();
+			}
 			if (framePerfEnabled) pass2Scope.Dispose();
 			pass2CompletedThisStep = !budgetStop && !renderStepAbort;
 			if (renderStepAbort && !budgetStop)
@@ -8880,6 +10510,14 @@ private sealed class OverlayRollingWindow
 
 			ulong b1 = Time.GetTicksUsec(); // after PASS 2
 			pass2EndUsec = b1;
+			if (statsEnabled)
+			{
+				if (pass2EnvelopeUsecAccum > 0) _perfFrame.AddPass2EnvelopeUsec((ulong)pass2EnvelopeUsecAccum);
+				if (pass2CandidateEvalUsecAccum > 0) _perfFrame.AddPass2CandidateEvalUsec((ulong)pass2CandidateEvalUsecAccum);
+				if (pass2QueryUsecAccum > 0) _perfFrame.AddPass2QueryUsec((ulong)pass2QueryUsecAccum);
+				if (pass2HitResolveUsecAccum > 0) _perfFrame.AddPass2HitResolveUsec((ulong)pass2HitResolveUsecAccum);
+				if (pass2SoftGateUsecAccum > 0) _perfFrame.AddPass2SoftGateUsec((ulong)pass2SoftGateUsecAccum);
+			}
 			if (TargetMsPerFrame > 0)
 			{
 				double elapsedMs = (b1 - a0) / 1000.0;
@@ -9042,6 +10680,16 @@ private sealed class OverlayRollingWindow
 			_tex.Update(_img);
 			if (framePerfEnabled) uploadScope.Dispose();
 			if (statsEnabled) _perfFrame.AddFilmUpdateUsec(Time.GetTicksUsec() - updateStart);
+			FinalizePresentedFrameRefreshMetrics();
+			if (statsEnabled)
+			{
+				_perfFrame.PresentPixelsUpdated = _lastPresentedPixelsUpdated;
+				_perfFrame.PresentCoverageRatio = _lastPresentedCoverageRatio;
+				_perfFrame.FramesToFullRefresh = _lastFramesToFullRefresh;
+				_perfFrame.TimeToFullRefreshMs = _lastTimeToFullRefreshMs;
+				_perfFrame.EffectiveFullRefreshFps = _lastEffectiveFullRefreshFps;
+				_perfFrame.FullRefreshMeasured = _lastFullRefreshMeasured;
+			}
 
 			if (budgetStop) LogBudgetStopOnce();
 			if (budgetStop)
@@ -9459,7 +11107,7 @@ private sealed class OverlayRollingWindow
 		}
 	}
 
-	private static bool ContainsSortedLong(Span<long> data, int count, long value)
+	private static bool ContainsSortedLong(ReadOnlySpan<long> data, int count, long value)
 	{
 		int lo = 0;
 		int hi = count - 1;
@@ -9502,7 +11150,7 @@ private sealed class OverlayRollingWindow
 		ulong cid,
 		string cname,
 		in Aabb3 envelope,
-		Span<long> candidateIds,
+		ReadOnlySpan<long> candidateIds,
 		int candidateCount,
 		GeometryEntitySOA geomEntities)
 	{
@@ -10050,10 +11698,10 @@ private sealed class OverlayRollingWindow
 
 	private int FillPixelBlock(int x, int y, int stride, Color col, int filmW, int filmH)
 	{
-		return FillPixelBlock(_img, x, y, stride, col, filmW, filmH);
+		return FillPixelBlock(_img, x, y, stride, col, filmW, filmH, TrackFilmPixelTouch);
 	}
 
-	private static int FillPixelBlock(Image image, int x, int y, int stride, Color col, int filmW, int filmH)
+	private static int FillPixelBlock(Image image, int x, int y, int stride, Color col, int filmW, int filmH, Action<int> onPixelWritten = null)
 	{
 		if (image == null)
 		{
@@ -10065,6 +11713,7 @@ private sealed class OverlayRollingWindow
 			if (x >= 0 && x < filmW && y >= 0 && y < filmH)
 			{
 				image.SetPixel(x, y, col);
+				onPixelWritten?.Invoke((y * filmW) + x);
 				return 1;
 			}
 			return 0;
@@ -10078,10 +11727,152 @@ private sealed class OverlayRollingWindow
 			for (int xx = x; xx < xMax; xx++)
 			{
 				image.SetPixel(xx, yy, col);
+				onPixelWritten?.Invoke((yy * filmW) + xx);
 				filled++;
 			}
 		}
 		return filled;
+	}
+
+	private void TrackFilmPixelTouch(int pixelIndex)
+	{
+		if (pixelIndex < 0)
+			return;
+		if ((uint)pixelIndex >= (uint)_presentTouchedEpoch.Length || (uint)pixelIndex >= (uint)_refreshTouchedEpoch.Length)
+			return;
+
+		if (_presentTouchedEpoch[pixelIndex] != _presentTouchedEpochId)
+		{
+			_presentTouchedEpoch[pixelIndex] = _presentTouchedEpochId;
+			_presentTouchedPixels++;
+		}
+
+		if (_refreshTouchedEpoch[pixelIndex] != _refreshTouchedEpochId)
+		{
+			_refreshTouchedEpoch[pixelIndex] = _refreshTouchedEpochId;
+			_refreshTouchedPixels++;
+		}
+	}
+
+	private void ResetPresentedFrameTracking()
+	{
+		_presentTouchedPixels = 0;
+		if (_presentTouchedEpochId == uint.MaxValue)
+		{
+			Array.Clear(_presentTouchedEpoch, 0, _presentTouchedEpoch.Length);
+			_presentTouchedEpochId = 1;
+		}
+		else
+		{
+			_presentTouchedEpochId++;
+		}
+	}
+
+	private void ResetFullRefreshCycleTracking(long nowTicks, bool clearLastMeasurement)
+	{
+		_refreshTouchedPixels = 0;
+		_presentsSinceRefreshReset = 0;
+		_refreshCycleStartTimestamp = nowTicks;
+		_hasRefreshCycleStartTimestamp = true;
+		if (_refreshTouchedEpochId == uint.MaxValue)
+		{
+			Array.Clear(_refreshTouchedEpoch, 0, _refreshTouchedEpoch.Length);
+			_refreshTouchedEpochId = 1;
+		}
+		else
+		{
+			_refreshTouchedEpochId++;
+		}
+
+		if (clearLastMeasurement)
+		{
+			_lastFramesToFullRefresh = 0;
+			_lastTimeToFullRefreshMs = 0.0;
+			_lastEffectiveFullRefreshFps = 0.0;
+			_lastFullRefreshMeasured = false;
+		}
+	}
+
+	private void ResetRefreshAuditTracking()
+	{
+		long nowTicks = Stopwatch.GetTimestamp();
+		_lastPresentedPixelsUpdated = 0;
+		_lastPresentedCoverageRatio = 0.0;
+		ResetPresentedFrameTracking();
+		ResetFullRefreshCycleTracking(nowTicks, clearLastMeasurement: true);
+		_presentRolling.Reset();
+	}
+
+	private void FinalizePresentedFrameRefreshMetrics()
+	{
+		int totalPixels = _filmWidth > 0 && _filmHeight > 0 ? _filmWidth * _filmHeight : 0;
+		long nowTicks = Stopwatch.GetTimestamp();
+		_lastPresentedPixelsUpdated = _presentTouchedPixels;
+		_lastPresentedCoverageRatio = totalPixels > 0
+			? Math.Clamp(_presentTouchedPixels / (double)totalPixels, 0.0, 1.0)
+			: 0.0;
+
+		if (!_hasRefreshCycleStartTimestamp)
+		{
+			_refreshCycleStartTimestamp = nowTicks;
+			_hasRefreshCycleStartTimestamp = true;
+		}
+
+		_presentsSinceRefreshReset++;
+
+		if (totalPixels > 0 && _refreshTouchedPixels >= totalPixels)
+		{
+			double fullRefreshMs = (nowTicks - _refreshCycleStartTimestamp) * 1000.0 / Stopwatch.Frequency;
+			_lastFramesToFullRefresh = _presentsSinceRefreshReset;
+			_lastTimeToFullRefreshMs = fullRefreshMs;
+			_lastEffectiveFullRefreshFps = fullRefreshMs > 0.0 ? 1000.0 / fullRefreshMs : 0.0;
+			_lastFullRefreshMeasured = double.IsFinite(fullRefreshMs) && fullRefreshMs > 0.0;
+			ResetFullRefreshCycleTracking(nowTicks, clearLastMeasurement: false);
+		}
+
+		_presentRolling.AddSample(
+			nowTicks,
+			0.0,
+			Math.Max(0, _lastPresentedPixelsUpdated),
+			_lastPresentedCoverageRatio >= 0.999999 ? 1 : 0,
+			false,
+			0L);
+
+		ResetPresentedFrameTracking();
+	}
+
+	private void EmitThreadReadinessAuditOnce(in EffectiveConfig cfg, int rowsPerFrame, int bandHeight, int filmW, int filmH, int jobs)
+	{
+		if (_threadReadinessAuditLogged)
+			return;
+
+		_threadReadinessAuditLogged = true;
+		string workShape = $"band_rows y=[{_rowCursor},{Math.Min(filmH, _rowCursor + Math.Max(1, bandHeight))}) width={filmW} stride={cfg.Film.PixelStride}";
+		string deterministicAnchor = cfg.Research.DeterministicMode
+			? $"on seedBase={cfg.Research.FixedSeed}"
+			: "off hook=Research.DeterministicMode+FixedSeed";
+		GD.Print($"[ThreadAudit] unitOfWork={workShape} rowsPerStep={rowsPerFrame} jobs={jobs} pendingPass2Reuse={( _pendingBandHasPass1 ? 1 : 0)} subtileReorder={(ExperimentalSubtileSchedulerModeEnabled ? 1 : 0)}");
+		GD.Print("[ThreadAudit] sharedWrites=film_image,texture_upload,row_cursor,pending_band,frame_counters,renderhealth_window,overlay_buffers,tile_metric_priors,band_hit_history,fixture_capture_images");
+		GD.Print("[ThreadAudit] localAccumulationReadiness=pass1_segment_build:easy pass2_counters:easy film_writes:medium overlay/debug:medium adaptive/band-history/priors:caution");
+		GD.Print("[ThreadAudit][Pass2] localizable=per_pixel_hit_search,broadphase_candidate_lists,segment_shading_scratch,row_or_region_counters,region_hit_masks,region_color_buffers");
+		GD.Print("[ThreadAudit][Pass2] serialized=film_image_and_fixture_images,pass2_hit_history,quickray_cache,softgate_frame_state,geom_renderhealth_counters,debug_overlay_buffers,row_cursor_budget_stop,texture_upload");
+		GD.Print("[ThreadAudit][Pass2] highRisk=adaptive_rows,tile_reorder_execution,persistent_priors,capture_snapshot_bookkeeping,global_rng_shared_softgate_paths");
+		GD.Print("[ThreadAudit][Pass2] firstSlice=disjoint_row_region_pass2_with_local_color_and_hit_buffers_then_serial_commit_to_film_histories_overlay");
+		GD.Print($"[ThreadAudit] deterministic={deterministicAnchor}");
+	}
+
+	private void EmitDeterministicBenchmarkModeOnce(in EffectiveConfig cfg)
+	{
+		if (_deterministicBenchmarkModeLogged || !_deterministicBenchmarkModeRequested)
+			return;
+
+		_deterministicBenchmarkModeLogged = true;
+		GD.Print(
+			$"[BenchmarkMode] deterministic_lock=1 researchEnabled={(cfg.Research.ResearchEnabled ? 1 : 0)} " +
+			$"deterministic={(cfg.Research.DeterministicMode ? 1 : 0)} fixedSeed={cfg.Research.FixedSeed} " +
+			$"threadedBands={(cfg.UseThreadedBands ? 1 : 0)} bandWorkers={cfg.ThreadedBandWorkerCount} bandChunkRows={cfg.ThreadedBandRowsPerChunk} " +
+			$"tileReorder={(EnableTileMetricsReorderExecution ? 1 : 0)} priors={(EnableTileMetricsPersistentPriors ? 1 : 0)}");
+		GD.Print("[BenchmarkMode] cli=--benchmark-lock=1 --benchmark-seed=<n> contract=stable_chunk_order+stable_merge_order+single_worker_pass1_anchor");
 	}
 
 	private void UpdateFilmViewTexture()
@@ -10109,6 +11900,10 @@ private sealed class OverlayRollingWindow
 				_pass2PrevHadHit = new byte[targetPixels];
 				if (_pass2HadHitLostThisFrame.Length != targetPixels)
 					_pass2HadHitLostThisFrame = new byte[targetPixels];
+				if (_presentTouchedEpoch.Length != targetPixels)
+					_presentTouchedEpoch = new uint[targetPixels];
+				if (_refreshTouchedEpoch.Length != targetPixels)
+					_refreshTouchedEpoch = new uint[targetPixels];
 				if (_fixtureFinalHitOnlyImg == null)
 				{
 					_fixtureFinalHitOnlyImg = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
@@ -10134,6 +11929,9 @@ private sealed class OverlayRollingWindow
 		_tex = ImageTexture.CreateFromImage(_img);
 		_pass2PrevHadHit = new byte[_filmWidth * _filmHeight];
 		_pass2HadHitLostThisFrame = new byte[_filmWidth * _filmHeight];
+		_presentTouchedEpoch = new uint[_filmWidth * _filmHeight];
+		_refreshTouchedEpoch = new uint[_filmWidth * _filmHeight];
+		ResetRefreshAuditTracking();
 
 		UpdateFilmViewTexture();
 
@@ -10175,6 +11973,7 @@ private sealed class OverlayRollingWindow
 		if (_rowCursor == 0) return;
 		int prev = _rowCursor;
 		_rowCursor = 0;
+		ResetRefreshAuditTracking();
 		GD.Print($"[FrameReset] reason={reason} prevRow={prev} frame={_frameIndex}");
 	}
 
@@ -10760,12 +12559,24 @@ private sealed class OverlayRollingWindow
 			DebugGeomPruneAuditMaxExtraRayTestsPerSample = Math.Max(1, DebugGeomPruneAuditMaxExtraRayTestsPerSample),
 			DebugGeomPruneAuditOnlyWhenCandidateZero = DebugGeomPruneAuditOnlyWhenCandidateZero,
 			DebugGeomPruneAuditMaxMismatchLogsPerWindow = DebugGeomPruneAuditMaxMismatchLogsPerWindow,
-			EnableProfiling = EnableProfiling,
-			VerbosePerfLogs = VerbosePerfLogs,
-			EnableFramePerf = EnableFramePerf,
-			FramePerfVerbose = FramePerfVerbose,
-			FramePerfLogEveryNFrames = FramePerfLogEveryNFrames,
-			NeedColliderNames = NeedColliderNames,
+				EnableProfiling = EnableProfiling,
+				VerbosePerfLogs = VerbosePerfLogs,
+				EnableFramePerf = EnableFramePerf,
+				FramePerfVerbose = FramePerfVerbose,
+				FramePerfLogEveryNFrames = FramePerfLogEveryNFrames,
+				UseThreadedBands = UseThreadedBands,
+				ThreadedBandWorkerCount = Math.Clamp(ThreadedBandWorkerCount, 1, 16),
+				ThreadedBandRowsPerChunk = Math.Max(1, ThreadedBandRowsPerChunk),
+				UseThreadedPass2CandidateEval = UseThreadedPass2CandidateEval,
+				ThreadedPass2CandidateWorkers = Math.Clamp(ThreadedPass2CandidateWorkers, 1, 16),
+				ThreadedPass2CandidateRowsPerChunk = Math.Max(1, ThreadedPass2CandidateRowsPerChunk),
+				UseThreadedPass2QueryResolve = UseThreadedPass2QueryResolve,
+				ThreadedPass2QueryWorkers = Math.Clamp(ThreadedPass2QueryWorkers, 1, 16),
+				ThreadedPass2QueryRowsPerChunk = Math.Max(1, ThreadedPass2QueryRowsPerChunk),
+				UseThreadedPass2LocalAccumulation = UseThreadedPass2LocalAccumulation,
+				ThreadedPass2WorkerCount = Math.Clamp(ThreadedPass2WorkerCount, 1, 16),
+				ThreadedPass2RowsPerChunk = Math.Max(1, ThreadedPass2RowsPerChunk),
+				NeedColliderNames = NeedColliderNames,
 			FixtureDebugHitColoringEnabled = FixtureDebugHitColoringEnabled,
 			FixtureDebugSourceGroup = string.IsNullOrWhiteSpace(FixtureDebugSourceGroup) ? "fixture_source" : FixtureDebugSourceGroup.Trim(),
 			FixtureDebugBackgroundGroup = string.IsNullOrWhiteSpace(FixtureDebugBackgroundGroup) ? "fixture_background" : FixtureDebugBackgroundGroup.Trim(),
@@ -11046,6 +12857,18 @@ private sealed class OverlayRollingWindow
 		hash.Add(cfg.EnableFramePerf);
 		hash.Add(cfg.FramePerfVerbose);
 		hash.Add(cfg.FramePerfLogEveryNFrames);
+		hash.Add(cfg.UseThreadedBands);
+		hash.Add(cfg.ThreadedBandWorkerCount);
+		hash.Add(cfg.ThreadedBandRowsPerChunk);
+		hash.Add(cfg.UseThreadedPass2CandidateEval);
+		hash.Add(cfg.ThreadedPass2CandidateWorkers);
+		hash.Add(cfg.ThreadedPass2CandidateRowsPerChunk);
+		hash.Add(cfg.UseThreadedPass2QueryResolve);
+		hash.Add(cfg.ThreadedPass2QueryWorkers);
+		hash.Add(cfg.ThreadedPass2QueryRowsPerChunk);
+		hash.Add(cfg.UseThreadedPass2LocalAccumulation);
+		hash.Add(cfg.ThreadedPass2WorkerCount);
+		hash.Add(cfg.ThreadedPass2RowsPerChunk);
 		hash.Add(cfg.NeedColliderNames);
 		hash.Add(cfg.FixtureDebugHitColoringEnabled);
 		hash.Add(cfg.FixtureDebugSourceGroup ?? string.Empty);
@@ -11109,10 +12932,14 @@ private sealed class OverlayRollingWindow
 		_hasEffectiveConfigHash = true;
 
 		string broadphaseTag = string.IsNullOrEmpty(cfg.Broadphase.Reason) ? "resolved" : cfg.Broadphase.Reason;
-		GD.Print(
-			$"[EffectiveCfg] broadphase={cfg.Broadphase.ModeName}({broadphaseTag}) policy={cfg.Broadphase.Policy} quick={(cfg.Broadphase.UseQuickRay ? 1 : 0)} overlap={(cfg.Broadphase.UseOverlap ? 1 : 0)} " +
-			$"softgate={(cfg.SoftGate.EnableQuickRayMiss ? 1 : 0)} score={(cfg.SoftGate.ScoringEnabled ? 1 : 0)} " +
-			$"minSeg={cfg.SoftGate.MinSegmentLength:0.###} attempts={cfg.SoftGate.MaxAttemptsPerFrame} sub={cfg.SoftGate.MaxSubdividedCallsPerFrame} " +
+			GD.Print(
+				$"[EffectiveCfg] broadphase={cfg.Broadphase.ModeName}({broadphaseTag}) policy={cfg.Broadphase.Policy} quick={(cfg.Broadphase.UseQuickRay ? 1 : 0)} overlap={(cfg.Broadphase.UseOverlap ? 1 : 0)} " +
+				$"softgate={(cfg.SoftGate.EnableQuickRayMiss ? 1 : 0)} score={(cfg.SoftGate.ScoringEnabled ? 1 : 0)} " +
+				$"threadedBands={(cfg.UseThreadedBands ? 1 : 0)} bandWorkers={cfg.ThreadedBandWorkerCount} bandChunkRows={cfg.ThreadedBandRowsPerChunk} " +
+				$"threadedP2Cand={(cfg.UseThreadedPass2CandidateEval ? 1 : 0)} p2CandWorkers={cfg.ThreadedPass2CandidateWorkers} p2CandRows={cfg.ThreadedPass2CandidateRowsPerChunk} " +
+				$"threadedP2QR={(cfg.UseThreadedPass2QueryResolve ? 1 : 0)} p2QRWorkers={cfg.ThreadedPass2QueryWorkers} p2QRRows={cfg.ThreadedPass2QueryRowsPerChunk} " +
+				$"threadedP2={(cfg.UseThreadedPass2LocalAccumulation ? 1 : 0)} p2Workers={cfg.ThreadedPass2WorkerCount} p2ChunkRows={cfg.ThreadedPass2RowsPerChunk} " +
+				$"minSeg={cfg.SoftGate.MinSegmentLength:0.###} attempts={cfg.SoftGate.MaxAttemptsPerFrame} sub={cfg.SoftGate.MaxSubdividedCallsPerFrame} " +
 			$"stride={cfg.Film.PixelStride} resScale={cfg.Film.ResolutionScale:0.###} rows={cfg.Film.RowsPerFrame} " +
 			$"stepLen={cfg.RayMarch.StepLength:0.###} collRad={cfg.RayMarch.CollisionRadius:0.###} mask=0x{cfg.RayMarch.CollisionMask:X8} " +
 			$"envRadScale={cfg.Pass2GeomEnvelopeRadiusScale:0.###} envAabbExpand={cfg.Pass2GeomEnvelopeAabbExpand:0.###} " +
@@ -11656,9 +13483,14 @@ private sealed class OverlayRollingWindow
 		_testLastTrustGeomPixMet = testTrustGeomPixMet;
 		_testLastTrustRayTestsMet = testTrustGeomRayTestsMet;
 		_testLastTrustP2Met = totalPass2SampledSegments >= minP2;
+		string presentCoverageStr = (_filmWidth > 0 && _filmHeight > 0) ? latest.PresentCoverageRatio.ToString("0.000") : "na";
+		string fullRefreshFramesStr = latest.FullRefreshMeasured && latest.FramesToFullRefresh > 0 ? latest.FramesToFullRefresh.ToString() : "na";
+		string fullRefreshMsStr = latest.FullRefreshMeasured && latest.TimeToFullRefreshMs > 0.0 ? latest.TimeToFullRefreshMs.ToString("0.00") : "na";
+		string fullRefreshFpsStr = latest.FullRefreshMeasured && latest.EffectiveFullRefreshFps > 0.0 ? latest.EffectiveFullRefreshFps.ToString("0.00") : "na";
 		GD.Print(
 			$"[RenderHealth] step={latest.StepIndex} lastRow={latest.RowCursorAfter} rowsAdv={latest.RowsAdvanced} bands={latest.BandsProcessed} " +
 			$"stalledSteps={_renderHealthStallSteps} exit={exitTag} topExit={topExit} hitRate={hitRate:0.###} " +
+			$"presentPx={latest.PresentPixelsUpdated} presentCover={presentCoverageStr} fullRefreshFrames={fullRefreshFramesStr} fullRefreshMs={fullRefreshMsStr} fullRefreshFps={fullRefreshFpsStr} " +
 			$"avgSteps={latest.AvgStepsPerTracedPixel:0.###} qray0={totalQuickRayZero} hybridFallback={totalHybridFallback} " +
 			$"hybridFallbackHit={totalHybridFallbackHits} hybridFallbackMiss={totalHybridFallbackMisses} noCandidates={totalHybridNoCandidates} " +
 			$"geomCandAvg={geomCandAvgStr} geomSegQueried={geomSegQueriedStr} geomSegWithCandidates={geomSegWithCandidatesStr} geomSegZero={geomSegZeroStr} geomSegZeroRatePct={geomSegZeroRatePctStr} " +
@@ -12635,8 +14467,13 @@ private sealed class OverlayRollingWindow
 			BudgetExitReason = budgetExitReason ?? string.Empty,
 			GeomPruneRequested = geomPruneRequested,
 			UseGeometryTLASPruning = useGeometryTLASPruning,
-			PruneAuditEnabled = pruneAuditEnabled
-			,
+			PruneAuditEnabled = pruneAuditEnabled,
+			PresentPixelsUpdated = _lastPresentedPixelsUpdated,
+			PresentCoverageRatio = _lastPresentedCoverageRatio,
+			FramesToFullRefresh = _lastFramesToFullRefresh,
+			TimeToFullRefreshMs = _lastTimeToFullRefreshMs,
+			EffectiveFullRefreshFps = _lastEffectiveFullRefreshFps,
+			FullRefreshMeasured = _lastFullRefreshMeasured,
 			StepWallMs = stepWallMs
 		};
 

@@ -19,7 +19,14 @@ public struct PerfFrameReport
 {
 	public double Pass1Ms;
 	public double Pass2PhysMs;
+	public double Pass2EnvelopeMs;
+	public double Pass2CandidateEvalMs;
+	public double Pass2QueryMs;
+	public double Pass2HitResolveMs;
+	public double Pass2SoftGateMs;
 	public double Pass2ShadeMs;
+	public double Pass2CommitMs;
+	public double SchedulerMs;
 	public double FilmUpdateMs;
 	public double OverlayBuildMs;
 	public double OverlayEnqueueMs;
@@ -64,6 +71,12 @@ public struct PerfFrameReport
 	public long BandSegsIntegrated;
 	public long BandSegsTested;
 	public long BandPhysicsQueries;
+	public int PresentPixelsUpdated;
+	public double PresentCoverageRatio;
+	public int FramesToFullRefresh;
+	public double TimeToFullRefreshMs;
+	public double EffectiveFullRefreshFps;
+	public bool FullRefreshMeasured;
 	public bool ShadingSkippedNoHits;
 	public bool RequireHitToRender;
 	public bool ResizedFilm;
@@ -77,7 +90,14 @@ public struct PerfFrameReport
 
 	public void AddPass1Usec(ulong usec) => Pass1Ms += usec * 0.001;
 	public void AddPass2PhysUsec(ulong usec) => Pass2PhysMs += usec * 0.001;
+	public void AddPass2EnvelopeUsec(ulong usec) => Pass2EnvelopeMs += usec * 0.001;
+	public void AddPass2CandidateEvalUsec(ulong usec) => Pass2CandidateEvalMs += usec * 0.001;
+	public void AddPass2QueryUsec(ulong usec) => Pass2QueryMs += usec * 0.001;
+	public void AddPass2HitResolveUsec(ulong usec) => Pass2HitResolveMs += usec * 0.001;
+	public void AddPass2SoftGateUsec(ulong usec) => Pass2SoftGateMs += usec * 0.001;
 	public void AddPass2ShadeUsec(ulong usec) => Pass2ShadeMs += usec * 0.001;
+	public void AddPass2CommitUsec(ulong usec) => Pass2CommitMs += usec * 0.001;
+	public void AddSchedulerUsec(ulong usec) => SchedulerMs += usec * 0.001;
 	public void AddFilmUpdateUsec(ulong usec) => FilmUpdateMs += usec * 0.001;
 	public void AddOverlayBuildUsec(ulong usec) => OverlayBuildMs += usec * 0.001;
 	public void AddOverlayEnqueueUsec(ulong usec) => OverlayEnqueueMs += usec * 0.001;
@@ -114,7 +134,14 @@ public sealed class PerfStats
 	{
 		public double Pass1Ms;
 		public double Pass2PhysMs;
+		public double Pass2EnvelopeMs;
+		public double Pass2CandidateEvalMs;
+		public double Pass2QueryMs;
+		public double Pass2HitResolveMs;
+		public double Pass2SoftGateMs;
 		public double Pass2ShadeMs;
+		public double Pass2CommitMs;
+		public double SchedulerMs;
 		public double FilmUpdateMs;
 		public double OverlayBuildMs;
 		public double OverlayEnqueueMs;
@@ -190,7 +217,14 @@ public sealed class PerfStats
 	{
 		_sum.Pass1Ms += frame.Pass1Ms * sign;
 		_sum.Pass2PhysMs += frame.Pass2PhysMs * sign;
+		_sum.Pass2EnvelopeMs += frame.Pass2EnvelopeMs * sign;
+		_sum.Pass2CandidateEvalMs += frame.Pass2CandidateEvalMs * sign;
+		_sum.Pass2QueryMs += frame.Pass2QueryMs * sign;
+		_sum.Pass2HitResolveMs += frame.Pass2HitResolveMs * sign;
+		_sum.Pass2SoftGateMs += frame.Pass2SoftGateMs * sign;
 		_sum.Pass2ShadeMs += frame.Pass2ShadeMs * sign;
+		_sum.Pass2CommitMs += frame.Pass2CommitMs * sign;
+		_sum.SchedulerMs += frame.SchedulerMs * sign;
 		_sum.FilmUpdateMs += frame.FilmUpdateMs * sign;
 		_sum.OverlayBuildMs += frame.OverlayBuildMs * sign;
 		_sum.OverlayEnqueueMs += frame.OverlayEnqueueMs * sign;
@@ -236,7 +270,14 @@ public sealed class PerfStats
 		double inv = _count > 0 ? 1.0 / _count : 0.0;
 		double avgPass1 = _sum.Pass1Ms * inv;
 		double avgPass2Phys = _sum.Pass2PhysMs * inv;
+		double avgPass2Envelope = _sum.Pass2EnvelopeMs * inv;
+		double avgPass2CandidateEval = _sum.Pass2CandidateEvalMs * inv;
+		double avgPass2Query = _sum.Pass2QueryMs * inv;
+		double avgPass2HitResolve = _sum.Pass2HitResolveMs * inv;
+		double avgPass2SoftGate = _sum.Pass2SoftGateMs * inv;
 		double avgPass2Shade = _sum.Pass2ShadeMs * inv;
+		double avgPass2Commit = _sum.Pass2CommitMs * inv;
+		double avgScheduler = _sum.SchedulerMs * inv;
 		double avgFilmUpdate = _sum.FilmUpdateMs * inv;
 		double avgOverlayBuild = _sum.OverlayBuildMs * inv;
 		double avgOverlayEnqueue = _sum.OverlayEnqueueMs * inv;
@@ -262,14 +303,24 @@ public sealed class PerfStats
 		double avgSubstepsRoll = avgSubRayCalls > 0 ? avgSubRaySubsteps / avgSubRayCalls : 0.0;
 		double hitPctRoll = avgTracedPixels > 0 ? (avgHits * 100.0) / avgTracedPixels : 0.0;
 		double avgP2Stride = frame.Pass2StrideCount > 0 ? (double)frame.Pass2StrideSum / frame.Pass2StrideCount : 1.0;
+		string fullRefreshMsText = frame.FullRefreshMeasured && frame.TimeToFullRefreshMs > 0.0
+			? frame.TimeToFullRefreshMs.ToString("0.00")
+			: "na";
+		string fullRefreshFpsText = frame.FullRefreshMeasured && frame.EffectiveFullRefreshFps > 0.0
+			? frame.EffectiveFullRefreshFps.ToString("0.00")
+			: "na";
+		string fullRefreshFramesText = frame.FullRefreshMeasured && frame.FramesToFullRefresh > 0
+			? frame.FramesToFullRefresh.ToString()
+			: "na";
 
 		if (verbose)
 		{
 			GD.Print($"Film frame stats: pixels={frame.Pixels} traced={frame.TracedPixels} filled={frame.FilledPixels} effPx={frame.EffectiveRenderPixels} segs={frame.Segs} segsTested={frame.SegsTested} hits={frame.Hits} qRay={frame.IntersectRayCalls} overlap={frame.IntersectShapeCalls} subRayCalls={frame.SubdividedRayCalls} subRayQueries={frame.SubdividedRayQueries} subRaySkipped={frame.SubdividedRaySkipped} subRaySkipStride={frame.SubRaySkippedByStride} p2ForcePx={frame.Pass2ForceStride1Pixels} p2ForceInstabilityPx={frame.Pass2ForceInstabilityPixels} p2ForcePrevHitLostPx={frame.Pass2ForcePrevHitLostPixels} p2SoftGate={frame.Pass2SoftGateAttempts}/{frame.Pass2SoftGateHits} sgTrig={frame.SoftGateTriggered} sgAttempt={frame.SoftGateAttempted} sgHitChange={frame.SoftGateHitChangedResult} sgNewPx={frame.SoftGateNewPixelFilled} sgNull={frame.SoftGateCandidateNull} sgGuard={frame.SoftGateLoopGuardTripped} sgBudget={frame.SoftGateBudgetExceeded} pixDelta={frame.PixelDeltaChanged} pixNew={frame.PixelDeltaNewFilled} backfaceNdotV={frame.BackfaceNdotVHits} skipSegs={frame.SegsSkippedByPass2Stride} forceSegs={frame.SegsForcedTestByPass2Stride} avgP2Stride={avgP2Stride:0.00}");
 			string statFlags = FormatReasonFlags(frame.ReasonFlags);
 			GD.Print($"Film physics summary: avgSegPerPixel={avgSegPerPixel:0.00} avgSegsTestedPerPixel={avgSegsTestedPerPixel:0.00} avgSubsteps={avgSubsteps:0.00} hitPct={hitPct:0.00}%{(statFlags.Length > 0 ? " " + statFlags : string.Empty)}");
-			GD.Print($"Film timings(ms): pass1={frame.Pass1Ms:0.00} pass2.physics={frame.Pass2PhysMs:0.00} pass2.shading={frame.Pass2ShadeMs:0.00} film.update={frame.FilmUpdateMs:0.00} overlay.build={frame.OverlayBuildMs:0.00} overlay.enqueue={frame.OverlayEnqueueMs:0.00}");
-			GD.Print($"Film avg(ms): pass1={avgPass1:0.00} pass2.physics={avgPass2Phys:0.00} pass2.shading={avgPass2Shade:0.00} film.update={avgFilmUpdate:0.00} overlay.build={avgOverlayBuild:0.00} overlay.enqueue={avgOverlayEnqueue:0.00}");
+			GD.Print($"Film refresh: presentPx={frame.PresentPixelsUpdated} cover={frame.PresentCoverageRatio:0.000} fullFrames={fullRefreshFramesText} fullMs={fullRefreshMsText} fullFps={fullRefreshFpsText}");
+			GD.Print($"Film timings(ms): sched={frame.SchedulerMs:0.00} pass1={frame.Pass1Ms:0.00} pass2.physics={frame.Pass2PhysMs:0.00} pass2.env={frame.Pass2EnvelopeMs:0.00} pass2.cand={frame.Pass2CandidateEvalMs:0.00} pass2.query={frame.Pass2QueryMs:0.00} pass2.resolve={frame.Pass2HitResolveMs:0.00} pass2.soft={frame.Pass2SoftGateMs:0.00} pass2.shading={frame.Pass2ShadeMs:0.00} pass2.commit={frame.Pass2CommitMs:0.00} film.update={frame.FilmUpdateMs:0.00} overlay.build={frame.OverlayBuildMs:0.00} overlay.enqueue={frame.OverlayEnqueueMs:0.00}");
+			GD.Print($"Film avg(ms): sched={avgScheduler:0.00} pass1={avgPass1:0.00} pass2.physics={avgPass2Phys:0.00} pass2.env={avgPass2Envelope:0.00} pass2.cand={avgPass2CandidateEval:0.00} pass2.query={avgPass2Query:0.00} pass2.resolve={avgPass2HitResolve:0.00} pass2.soft={avgPass2SoftGate:0.00} pass2.shading={avgPass2Shade:0.00} pass2.commit={avgPass2Commit:0.00} film.update={avgFilmUpdate:0.00} overlay.build={avgOverlayBuild:0.00} overlay.enqueue={avgOverlayEnqueue:0.00}");
 			GD.Print($"Film avg summary: avgSegPerPixel={avgSegPerPixelRoll:0.00} avgSegsTestedPerPixel={avgSegsTestedPerPixelRoll:0.00} avgSubsteps={avgSubstepsRoll:0.00} hitPct={hitPctRoll:0.00}% avgTracedPixels={avgTracedPixels:0.00} avgFilledPixels={avgFilledPixels:0.00} avgEffPx={avgEffectiveRenderPixels:0.00}");
 			return;
 		}
@@ -306,14 +357,33 @@ public sealed class PerfStats
 			.Append(" forceSegs=").Append(frame.SegsForcedTestByPass2Stride)
 			.Append(" eff=").Append(frame.EffectiveWidth).Append("x").Append(frame.EffectiveHeight)
 			.Append(" ms p1=").Append(frame.Pass1Ms.ToString("0.00"))
+			.Append(" sched=").Append(frame.SchedulerMs.ToString("0.00"))
 			.Append(" p2p=").Append(frame.Pass2PhysMs.ToString("0.00"))
+			.Append(" p2e=").Append(frame.Pass2EnvelopeMs.ToString("0.00"))
+			.Append(" p2g=").Append(frame.Pass2CandidateEvalMs.ToString("0.00"))
+			.Append(" p2q=").Append(frame.Pass2QueryMs.ToString("0.00"))
+			.Append(" p2r=").Append(frame.Pass2HitResolveMs.ToString("0.00"))
+			.Append(" p2sg=").Append(frame.Pass2SoftGateMs.ToString("0.00"))
 			.Append(" p2s=").Append(frame.Pass2ShadeMs.ToString("0.00"))
+			.Append(" p2c=").Append(frame.Pass2CommitMs.ToString("0.00"))
 			.Append(" upd=").Append(frame.FilmUpdateMs.ToString("0.00"))
 			.Append(" ovB=").Append(frame.OverlayBuildMs.ToString("0.00"))
 			.Append(" ovE=").Append(frame.OverlayEnqueueMs.ToString("0.00"))
-			.Append(" avg(ms) p1=").Append(avgPass1.ToString("0.00"))
+			.Append(" presentPx=").Append(frame.PresentPixelsUpdated)
+			.Append(" cover=").Append(frame.PresentCoverageRatio.ToString("0.000"))
+			.Append(" fullFrames=").Append(fullRefreshFramesText)
+			.Append(" fullMs=").Append(fullRefreshMsText)
+			.Append(" fullFps=").Append(fullRefreshFpsText)
+			.Append(" avg(ms) sched=").Append(avgScheduler.ToString("0.00"))
+			.Append(" p1=").Append(avgPass1.ToString("0.00"))
 			.Append(" p2p=").Append(avgPass2Phys.ToString("0.00"))
+			.Append(" p2e=").Append(avgPass2Envelope.ToString("0.00"))
+			.Append(" p2g=").Append(avgPass2CandidateEval.ToString("0.00"))
+			.Append(" p2q=").Append(avgPass2Query.ToString("0.00"))
+			.Append(" p2r=").Append(avgPass2HitResolve.ToString("0.00"))
+			.Append(" p2sg=").Append(avgPass2SoftGate.ToString("0.00"))
 			.Append(" p2s=").Append(avgPass2Shade.ToString("0.00"))
+			.Append(" p2c=").Append(avgPass2Commit.ToString("0.00"))
 			.Append(" upd=").Append(avgFilmUpdate.ToString("0.00"))
 			.Append(" ovB=").Append(avgOverlayBuild.ToString("0.00"))
 			.Append(" ovE=").Append(avgOverlayEnqueue.ToString("0.00"));

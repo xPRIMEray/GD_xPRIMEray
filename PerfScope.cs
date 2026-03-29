@@ -6,6 +6,7 @@ namespace XPrimeRay.Perf
     public enum PerfStage
     {
         FrameTotal,
+        SchedulerOrchestration,
         TileLoop,
         RayGen,
         Pass0_Broadphase,
@@ -126,7 +127,7 @@ namespace XPrimeRay.Perf
             double gridHitRate = gridSamples > 0 ? (double)FieldGridHits / gridSamples : 0.0;
             return
                 $"Frame#{FrameIndex} " +
-                $"ms(total={Ms(PerfStage.FrameTotal):0.00} tile={Ms(PerfStage.TileLoop):0.00} " +
+                $"ms(total={Ms(PerfStage.FrameTotal):0.00} sched={Ms(PerfStage.SchedulerOrchestration):0.00} tile={Ms(PerfStage.TileLoop):0.00} " +
                 $"gen={Ms(PerfStage.RayGen):0.00} p0={Ms(PerfStage.Pass0_Broadphase):0.00} " +
                 $"p1={Ms(PerfStage.Pass1_Integrate):0.00} field={Ms(PerfStage.Pass1_FieldEval):0.00} " +
                 $"p2={Ms(PerfStage.Pass2_Subdivide):0.00} shade={Ms(PerfStage.Shade):0.00} " +
