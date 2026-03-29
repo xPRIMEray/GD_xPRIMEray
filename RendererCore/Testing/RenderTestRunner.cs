@@ -2065,7 +2065,19 @@ public partial class RenderTestRunner : Node
 				$"metricZeroReasons={(hasMetricDiag ? Sanitize(metricDiag.ZeroReasonSummary) : "na")} " +
 				$"derivativeStepEnabled={(hasMetricDiag && derivativeDiag.Enabled ? 1 : 0)} " +
 				$"derivativeSamples={(hasMetricDiag ? derivativeDiag.SampleCount.ToString() : "na")} " +
+				$"derivativeCandidateAdjust={(hasMetricDiag ? derivativeDiag.CandidateAdjustmentCount.ToString() : "na")} " +
+				$"derivativeHysteresisActive={(hasMetricDiag ? derivativeDiag.HysteresisEngagedSampleCount.ToString() : "na")} " +
+				$"derivativeHysteresisEnter={(hasMetricDiag ? derivativeDiag.HysteresisEnterCount.ToString() : "na")} " +
+				$"derivativeHysteresisExit={(hasMetricDiag ? derivativeDiag.HysteresisExitCount.ToString() : "na")} " +
+				$"derivativeActiveSpans={(hasMetricDiag ? derivativeDiag.ActiveSpanCount.ToString() : "na")} " +
+				$"derivativeMeanActiveSpan={(hasMetricDiag ? derivativeDiag.MeanActiveSpanLength.ToString("0.###") : "na")} " +
+				$"derivativeMaxActiveSpan={(hasMetricDiag ? derivativeDiag.MaxActiveSpanLength.ToString() : "na")} " +
+				$"derivativeSingleSampleSpans={(hasMetricDiag ? derivativeDiag.SingleSampleSpanCount.ToString() : "na")} " +
+				$"derivativeMultiSampleSpans={(hasMetricDiag ? derivativeDiag.MultiSampleSpanCount.ToString() : "na")} " +
 				$"derivativeEngaged={(hasMetricDiag ? derivativeDiag.EngagedStepCount.ToString() : "na")} " +
+				$"derivativeLoggedApplied={(hasMetricDiag ? derivativeDiag.LoggedAppliedAdjustmentCount.ToString() : "na")} " +
+				$"derivativeCandidateScaleUp={(hasMetricDiag ? derivativeDiag.CandidateScaleUpCount.ToString() : "na")} " +
+				$"derivativeCandidateScaleDown={(hasMetricDiag ? derivativeDiag.CandidateScaleDownCount.ToString() : "na")} " +
 				$"derivativeScaleUp={(hasMetricDiag ? derivativeDiag.ScaleUpCount.ToString() : "na")} " +
 				$"derivativeScaleDown={(hasMetricDiag ? derivativeDiag.ScaleDownCount.ToString() : "na")} " +
 				$"derivativeStepBeforeMean={(hasMetricDiag ? derivativeDiag.MeanStepBefore.ToString("0.######") : "na")} " +
@@ -2306,7 +2318,19 @@ public partial class RenderTestRunner : Node
 			"{" +
 			$"\"enabled\":{(derivativeDiag.Enabled ? "true" : "false")}," +
 			$"\"sample_count\":{derivativeDiag.SampleCount}," +
+			$"\"candidate_adjustment_count\":{derivativeDiag.CandidateAdjustmentCount}," +
+			$"\"hysteresis_engaged_sample_count\":{derivativeDiag.HysteresisEngagedSampleCount}," +
+			$"\"hysteresis_enter_count\":{derivativeDiag.HysteresisEnterCount}," +
+			$"\"hysteresis_exit_count\":{derivativeDiag.HysteresisExitCount}," +
+			$"\"active_span_count\":{derivativeDiag.ActiveSpanCount}," +
+			$"\"mean_active_span_length\":{derivativeDiag.MeanActiveSpanLength.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)}," +
+			$"\"max_active_span_length\":{derivativeDiag.MaxActiveSpanLength}," +
+			$"\"single_sample_span_count\":{derivativeDiag.SingleSampleSpanCount}," +
+			$"\"multi_sample_span_count\":{derivativeDiag.MultiSampleSpanCount}," +
 			$"\"engaged_step_count\":{derivativeDiag.EngagedStepCount}," +
+			$"\"logged_applied_adjustment_count\":{derivativeDiag.LoggedAppliedAdjustmentCount}," +
+			$"\"candidate_scale_up_count\":{derivativeDiag.CandidateScaleUpCount}," +
+			$"\"candidate_scale_down_count\":{derivativeDiag.CandidateScaleDownCount}," +
 			$"\"scale_up_count\":{derivativeDiag.ScaleUpCount}," +
 			$"\"scale_down_count\":{derivativeDiag.ScaleDownCount}," +
 			$"\"metric_subdivision_retry_count\":{derivativeDiag.MetricSubdivisionRetryCount}," +

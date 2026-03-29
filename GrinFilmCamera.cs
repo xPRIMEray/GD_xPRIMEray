@@ -11679,12 +11679,17 @@ private sealed class OverlayRollingWindow
 			if (derivativeDiag.Enabled)
 			{
 				GD.Print(
-					$"[RenderHealth][DerivativeStep] step={latest.StepIndex} samples={derivativeDiag.SampleCount} engaged={derivativeDiag.EngagedStepCount} " +
+					$"[RenderHealth][DerivativeStep] step={latest.StepIndex} samples={derivativeDiag.SampleCount} candidateAdjust={derivativeDiag.CandidateAdjustmentCount} " +
+					$"hysteresisActive={derivativeDiag.HysteresisEngagedSampleCount} hysteresisEnter={derivativeDiag.HysteresisEnterCount} hysteresisExit={derivativeDiag.HysteresisExitCount} " +
+					$"activeSpans={derivativeDiag.ActiveSpanCount} meanActiveSpan={derivativeDiag.MeanActiveSpanLength:0.###} maxActiveSpan={derivativeDiag.MaxActiveSpanLength} " +
+					$"singleSampleSpans={derivativeDiag.SingleSampleSpanCount} multiSampleSpans={derivativeDiag.MultiSampleSpanCount} " +
+					$"appliedAdjust={derivativeDiag.EngagedStepCount} loggedApplied={derivativeDiag.LoggedAppliedAdjustmentCount} " +
 					$"kMean={derivativeDiag.MeanK:0.######} kMin={derivativeDiag.MinK:0.######} kMax={derivativeDiag.MaxK:0.######} " +
 					$"absDkMean={derivativeDiag.MeanAbsDk:0.######} absDkMin={derivativeDiag.MinAbsDk:0.######} absDkMax={derivativeDiag.MaxAbsDk:0.######} " +
 					$"absD2kMean={derivativeDiag.MeanAbsD2k:0.######} absD2kMin={derivativeDiag.MinAbsD2k:0.######} absD2kMax={derivativeDiag.MaxAbsD2k:0.######} " +
 					$"difficultyMean={derivativeDiag.MeanDifficulty:0.######} difficultyMin={derivativeDiag.MinDifficulty:0.######} difficultyMax={derivativeDiag.MaxDifficulty:0.######} " +
 					$"stepBeforeMean={derivativeDiag.MeanStepBefore:0.######} stepAfterMean={derivativeDiag.MeanStepAfter:0.######} " +
+					$"candidateScaleUp={derivativeDiag.CandidateScaleUpCount} candidateScaleDown={derivativeDiag.CandidateScaleDownCount} " +
 					$"scaleUp={derivativeDiag.ScaleUpCount} scaleDown={derivativeDiag.ScaleDownCount} metricRetries={derivativeDiag.MetricSubdivisionRetryCount}");
 			}
 		}

@@ -103,6 +103,30 @@ public partial class RayBeamRenderer : Node3D
 	/// <summary>Lower bound on derivative-aware step shrink relative to the baseline adaptive step.</summary>
 	// CONTROL FACTOR: Caps predictive scale-down so the experiment cannot over-tighten transition zones.
 	[Export] public float DerivativeAwareMaxStepScaleDown = 0.85f;
+	/// <summary>Ignore derivative-aware scale changes whose distance from unity is below this threshold.</summary>
+	// CONTROL FACTOR: Small deadband suppresses low-value near-unity adjustments without disabling the predictor.
+	[Export] public float DerivativeAwareStepDeadband = 0.01f;
+	/// <summary>Optional minimum predictive difficulty before derivative-aware scaling is allowed to apply.</summary>
+	// CONTROL FACTOR: Zero disables the gate; positive values suppress low-signal predictive nudges.
+	[Export] public float DerivativeAwareDifficultyThreshold = 0.0f;
+	/// <summary>Optional minimum applied scale delta before the adjustment is included in logs.</summary>
+	// CONTROL FACTOR: Zero logs every applied adjustment; higher values focus diagnostics on larger changes.
+	[Export] public float DerivativeAwareMinLoggedScaleDelta = 0.0f;
+	/// <summary>Uses a small engage/release threshold gap to reduce deadband-edge flapping.</summary>
+	// CONTROL FACTOR: True = keep the controller latched until the smaller release threshold is crossed.
+	[Export] public bool DerivativeAwareUseHysteresis = true;
+	/// <summary>Absolute scale delta required to enter derivative-aware active state.</summary>
+	// CONTROL FACTOR: Higher values make entry more selective.
+	[Export] public float DerivativeAwareHysteresisEngageDelta = 0.012f;
+	/// <summary>Absolute scale delta below which derivative-aware active state is released.</summary>
+	// CONTROL FACTOR: Lower than engage to prevent rapid threshold-edge re-entry.
+	[Export] public float DerivativeAwareHysteresisReleaseDelta = 0.008f;
+	/// <summary>Keeps derivative-aware active state alive for a tiny minimum accepted-step span after entry.</summary>
+	// CONTROL FACTOR: True = convert one-sample threshold hits into short, stable active windows.
+	[Export] public bool DerivativeAwareUseMinimumActiveSpan = true;
+	/// <summary>Minimum accepted active samples before hysteresis release is allowed.</summary>
+	// CONTROL FACTOR: Higher values hold predictive action longer after engagement.
+	[Export] public int DerivativeAwareMinimumActiveAcceptedSteps = 2;
 	/// <summary>Emits derivative-aware stepping diagnostics in transport/render-test logs when enabled.</summary>
 	// CONTROL FACTOR: True = lightweight cumulative metrics for baseline-vs-experiment comparison.
 	[Export] public bool DerivativeAwareLogMetrics = true;
@@ -431,6 +455,8 @@ public partial class RayBeamRenderer : Node3D
 	private static MetricSteeringLaw _metricSteeringLawOverride = MetricSteeringLaw.MetricLaw_CurrentEnvelope;
 	private static bool _derivativeAwareStepOverrideResolved = false;
 	private static bool? _derivativeAwareStepOverride = null;
+	private static bool _derivativeAwareMinimumActiveAcceptedStepsOverrideResolved = false;
+	private static int? _derivativeAwareMinimumActiveAcceptedStepsOverride = null;
 	private const int TransportSteeringBucketCount = 6;
 	private const float DerivativeAwareDkWeight = 0.5f;
 	private const float DerivativeAwareD2kWeight = 0.25f;
@@ -475,9 +501,21 @@ public partial class RayBeamRenderer : Node3D
 	private double _derivativeAwareStepBeforeSum = 0.0;
 	private double _derivativeAwareStepAfterSum = 0.0;
 	private int _derivativeAwareSampleCount = 0;
+	private int _derivativeAwareCandidateAdjustmentCount = 0;
+	private int _derivativeAwareHysteresisEngagedSampleCount = 0;
 	private int _derivativeAwareEngagedStepCount = 0;
+	private int _derivativeAwareLoggedAppliedAdjustmentCount = 0;
+	private int _derivativeAwareCandidateScaleUpCount = 0;
+	private int _derivativeAwareCandidateScaleDownCount = 0;
 	private int _derivativeAwareScaleUpCount = 0;
 	private int _derivativeAwareScaleDownCount = 0;
+	private int _derivativeAwareHysteresisEnterCount = 0;
+	private int _derivativeAwareHysteresisExitCount = 0;
+	private int _derivativeAwareActiveSpanCount = 0;
+	private double _derivativeAwareActiveSpanLengthSum = 0.0;
+	private int _derivativeAwareActiveSpanMaxLength = 0;
+	private int _derivativeAwareSingleSampleSpanCount = 0;
+	private int _derivativeAwareMultiSampleSpanCount = 0;
 	private int _derivativeAwareMetricSubdivisionRetryCount = 0;
 
 	private Plane _insightPlane;
@@ -997,6 +1035,8 @@ public partial class RayBeamRenderer : Node3D
 	{
 		public bool HasSample;
 		public int SampleCount;
+		public bool HysteresisEngaged;
+		public int ActiveAcceptedStepCount;
 		public float SmoothedK;
 		public float PrevDk;
 		public float SmoothedDifficulty;
@@ -1006,9 +1046,21 @@ public partial class RayBeamRenderer : Node3D
 	{
 		public readonly bool Enabled;
 		public readonly int SampleCount;
+		public readonly int CandidateAdjustmentCount;
+		public readonly int HysteresisEngagedSampleCount;
 		public readonly int EngagedStepCount;
+		public readonly int LoggedAppliedAdjustmentCount;
+		public readonly int CandidateScaleUpCount;
+		public readonly int CandidateScaleDownCount;
 		public readonly int ScaleUpCount;
 		public readonly int ScaleDownCount;
+		public readonly int HysteresisEnterCount;
+		public readonly int HysteresisExitCount;
+		public readonly int ActiveSpanCount;
+		public readonly float MeanActiveSpanLength;
+		public readonly int MaxActiveSpanLength;
+		public readonly int SingleSampleSpanCount;
+		public readonly int MultiSampleSpanCount;
 		public readonly int MetricSubdivisionRetryCount;
 		public readonly float MeanK;
 		public readonly float MinK;
@@ -1028,9 +1080,21 @@ public partial class RayBeamRenderer : Node3D
 		public DerivativeAwareSteppingDiagnosticsSnapshot(
 			bool enabled,
 			int sampleCount,
+			int candidateAdjustmentCount,
+			int hysteresisEngagedSampleCount,
 			int engagedStepCount,
+			int loggedAppliedAdjustmentCount,
+			int candidateScaleUpCount,
+			int candidateScaleDownCount,
 			int scaleUpCount,
 			int scaleDownCount,
+			int hysteresisEnterCount,
+			int hysteresisExitCount,
+			int activeSpanCount,
+			float meanActiveSpanLength,
+			int maxActiveSpanLength,
+			int singleSampleSpanCount,
+			int multiSampleSpanCount,
 			int metricSubdivisionRetryCount,
 			float meanK,
 			float minK,
@@ -1049,9 +1113,21 @@ public partial class RayBeamRenderer : Node3D
 		{
 			Enabled = enabled;
 			SampleCount = sampleCount;
+			CandidateAdjustmentCount = candidateAdjustmentCount;
+			HysteresisEngagedSampleCount = hysteresisEngagedSampleCount;
 			EngagedStepCount = engagedStepCount;
+			LoggedAppliedAdjustmentCount = loggedAppliedAdjustmentCount;
+			CandidateScaleUpCount = candidateScaleUpCount;
+			CandidateScaleDownCount = candidateScaleDownCount;
 			ScaleUpCount = scaleUpCount;
 			ScaleDownCount = scaleDownCount;
+			HysteresisEnterCount = hysteresisEnterCount;
+			HysteresisExitCount = hysteresisExitCount;
+			ActiveSpanCount = activeSpanCount;
+			MeanActiveSpanLength = meanActiveSpanLength;
+			MaxActiveSpanLength = maxActiveSpanLength;
+			SingleSampleSpanCount = singleSampleSpanCount;
+			MultiSampleSpanCount = multiSampleSpanCount;
 			MetricSubdivisionRetryCount = metricSubdivisionRetryCount;
 			MeanK = meanK;
 			MinK = minK;
@@ -1105,12 +1181,27 @@ public partial class RayBeamRenderer : Node3D
 		float meanDifficulty = samples > 0 ? (float)(_derivativeAwareDifficultySum / samples) : 0f;
 		float meanStepBefore = samples > 0 ? (float)(_derivativeAwareStepBeforeSum / samples) : 0f;
 		float meanStepAfter = samples > 0 ? (float)(_derivativeAwareStepAfterSum / samples) : 0f;
+		float meanActiveSpanLength = _derivativeAwareActiveSpanCount > 0
+			? (float)(_derivativeAwareActiveSpanLengthSum / _derivativeAwareActiveSpanCount)
+			: 0f;
 		return new DerivativeAwareSteppingDiagnosticsSnapshot(
 			IsDerivativeAwareSteppingEnabled(),
 			samples,
+			_derivativeAwareCandidateAdjustmentCount,
+			_derivativeAwareHysteresisEngagedSampleCount,
 			_derivativeAwareEngagedStepCount,
+			_derivativeAwareLoggedAppliedAdjustmentCount,
+			_derivativeAwareCandidateScaleUpCount,
+			_derivativeAwareCandidateScaleDownCount,
 			_derivativeAwareScaleUpCount,
 			_derivativeAwareScaleDownCount,
+			_derivativeAwareHysteresisEnterCount,
+			_derivativeAwareHysteresisExitCount,
+			_derivativeAwareActiveSpanCount,
+			meanActiveSpanLength,
+			_derivativeAwareActiveSpanMaxLength,
+			_derivativeAwareSingleSampleSpanCount,
+			_derivativeAwareMultiSampleSpanCount,
 			_derivativeAwareMetricSubdivisionRetryCount,
 			meanK,
 			samples > 0 ? _derivativeAwareKMin : 0f,
@@ -1177,10 +1268,53 @@ public partial class RayBeamRenderer : Node3D
 		_derivativeAwareStepBeforeSum = 0.0;
 		_derivativeAwareStepAfterSum = 0.0;
 		_derivativeAwareSampleCount = 0;
+		_derivativeAwareCandidateAdjustmentCount = 0;
+		_derivativeAwareHysteresisEngagedSampleCount = 0;
 		_derivativeAwareEngagedStepCount = 0;
+		_derivativeAwareLoggedAppliedAdjustmentCount = 0;
+		_derivativeAwareCandidateScaleUpCount = 0;
+		_derivativeAwareCandidateScaleDownCount = 0;
 		_derivativeAwareScaleUpCount = 0;
 		_derivativeAwareScaleDownCount = 0;
+		_derivativeAwareHysteresisEnterCount = 0;
+		_derivativeAwareHysteresisExitCount = 0;
+		_derivativeAwareActiveSpanCount = 0;
+		_derivativeAwareActiveSpanLengthSum = 0.0;
+		_derivativeAwareActiveSpanMaxLength = 0;
+		_derivativeAwareSingleSampleSpanCount = 0;
+		_derivativeAwareMultiSampleSpanCount = 0;
 		_derivativeAwareMetricSubdivisionRetryCount = 0;
+	}
+
+	private void RecordDerivativeAwareActiveSpan(int spanLength)
+	{
+		if (spanLength <= 0)
+		{
+			return;
+		}
+
+		_derivativeAwareActiveSpanCount++;
+		_derivativeAwareActiveSpanLengthSum += spanLength;
+		_derivativeAwareActiveSpanMaxLength = Mathf.Max(_derivativeAwareActiveSpanMaxLength, spanLength);
+		if (spanLength <= 1)
+		{
+			_derivativeAwareSingleSampleSpanCount++;
+		}
+		else
+		{
+			_derivativeAwareMultiSampleSpanCount++;
+		}
+	}
+
+	private void FinalizeDerivativeAwareStepState(ref DerivativeAwareStepState state)
+	{
+		if (state.HysteresisEngaged && state.ActiveAcceptedStepCount > 0)
+		{
+			RecordDerivativeAwareActiveSpan(state.ActiveAcceptedStepCount);
+		}
+
+		state.HysteresisEngaged = false;
+		state.ActiveAcceptedStepCount = 0;
 	}
 
 	public Vector3 ComputeActiveTransportAccelerationForDiagnostics(
@@ -1215,7 +1349,7 @@ public partial class RayBeamRenderer : Node3D
 		out float step)
 	{
 		DerivativeAwareStepState derivativeState = default;
-		return TryStepIntegratedTransport(
+		bool stepped = TryStepIntegratedTransport(
 			p,
 			v,
 			center,
@@ -1234,6 +1368,8 @@ public partial class RayBeamRenderer : Node3D
 			out vNext,
 			out _,
 			out step);
+		FinalizeDerivativeAwareStepState(ref derivativeState);
+		return stepped;
 	}
 
 	private string BuildMetricZeroReasonSummary()
@@ -1660,12 +1796,17 @@ public partial class RayBeamRenderer : Node3D
 			{
 				DerivativeAwareSteppingDiagnosticsSnapshot derivativeDiagnostics = GetDerivativeAwareSteppingDiagnosticsSnapshot();
 				GD.Print(
-					$"[Transport][DerivativeStepSummary] samples={derivativeDiagnostics.SampleCount} engaged={derivativeDiagnostics.EngagedStepCount} " +
+					$"[Transport][DerivativeStepSummary] samples={derivativeDiagnostics.SampleCount} candidateAdjust={derivativeDiagnostics.CandidateAdjustmentCount} " +
+					$"hysteresisActive={derivativeDiagnostics.HysteresisEngagedSampleCount} hysteresisEnter={derivativeDiagnostics.HysteresisEnterCount} hysteresisExit={derivativeDiagnostics.HysteresisExitCount} " +
+					$"activeSpans={derivativeDiagnostics.ActiveSpanCount} meanActiveSpan={derivativeDiagnostics.MeanActiveSpanLength:0.###} maxActiveSpan={derivativeDiagnostics.MaxActiveSpanLength} " +
+					$"singleSampleSpans={derivativeDiagnostics.SingleSampleSpanCount} multiSampleSpans={derivativeDiagnostics.MultiSampleSpanCount} " +
+					$"appliedAdjust={derivativeDiagnostics.EngagedStepCount} loggedApplied={derivativeDiagnostics.LoggedAppliedAdjustmentCount} " +
 					$"kMean={derivativeDiagnostics.MeanK:0.######} kMin={derivativeDiagnostics.MinK:0.######} kMax={derivativeDiagnostics.MaxK:0.######} " +
 					$"absDkMean={derivativeDiagnostics.MeanAbsDk:0.######} absDkMax={derivativeDiagnostics.MaxAbsDk:0.######} " +
 					$"absD2kMean={derivativeDiagnostics.MeanAbsD2k:0.######} absD2kMax={derivativeDiagnostics.MaxAbsD2k:0.######} " +
 					$"difficultyMean={derivativeDiagnostics.MeanDifficulty:0.######} difficultyMax={derivativeDiagnostics.MaxDifficulty:0.######} " +
 					$"stepBeforeMean={derivativeDiagnostics.MeanStepBefore:0.######} stepAfterMean={derivativeDiagnostics.MeanStepAfter:0.######} " +
+					$"candidateScaleUp={derivativeDiagnostics.CandidateScaleUpCount} candidateScaleDown={derivativeDiagnostics.CandidateScaleDownCount} " +
 					$"scaleUp={derivativeDiagnostics.ScaleUpCount} scaleDown={derivativeDiagnostics.ScaleDownCount} " +
 					$"metricRetries={derivativeDiagnostics.MetricSubdivisionRetryCount}");
 			}
@@ -2427,12 +2568,14 @@ public partial class RayBeamRenderer : Node3D
 		}
 
 		// Update write head
+		FinalizeDerivativeAwareStepState(ref derivativeStepState);
 		_sampleWriteHead = sampleStart + sampleCount;
 
 		// EFFECT: render count may be truncated by hit trail termination.
 		int renderCount = Mathf.Min(sampleCount, Mathf.Max(0, trailStopCount));
 
 		// EFFECT: emit hit payload (Valid=false when no hit).
+		FinalizeDerivativeAwareStepState(ref derivativeStepState);
 		hitOut = new HitPayload
 		{
 			Valid = hadHit,
@@ -2896,6 +3039,7 @@ public partial class RayBeamRenderer : Node3D
 			p = next;
 		}
 
+		FinalizeDerivativeAwareStepState(ref derivativeStepState);
 		return written;
 	}
 
@@ -3361,6 +3505,7 @@ public partial class RayBeamRenderer : Node3D
 			p = next;
 		}
 
+		FinalizeDerivativeAwareStepState(ref derivativeStepState);
 		return written;
 	}
 
@@ -4377,6 +4522,29 @@ public partial class RayBeamRenderer : Node3D
 		return _derivativeAwareStepOverride ?? UseDerivativeAwareStepping;
 	}
 
+	private int ResolveDerivativeAwareMinimumActiveAcceptedSteps()
+	{
+		if (_derivativeAwareMinimumActiveAcceptedStepsOverrideResolved)
+		{
+			return _derivativeAwareMinimumActiveAcceptedStepsOverride ?? DerivativeAwareMinimumActiveAcceptedSteps;
+		}
+
+		_derivativeAwareMinimumActiveAcceptedStepsOverrideResolved = true;
+		_derivativeAwareMinimumActiveAcceptedStepsOverride = null;
+		string[] args = GetCmdArgsForMetricComparisonOverride();
+		for (int i = 0; i < args.Length; i++)
+		{
+			string arg = args[i] ?? string.Empty;
+			if (TryParsePositiveIntOverrideArg(arg, "--derivative-aware-min-active-steps=", out int steps) ||
+				TryParsePositiveIntOverrideArg(arg, "--exp1-derivative-min-active-steps=", out steps))
+			{
+				_derivativeAwareMinimumActiveAcceptedStepsOverride = steps;
+			}
+		}
+
+		return _derivativeAwareMinimumActiveAcceptedStepsOverride ?? DerivativeAwareMinimumActiveAcceptedSteps;
+	}
+
 	private static bool HasRenderTestFlagForMetricComparisonOverride()
 	{
 		string[] args = GetCmdArgsForMetricComparisonOverride();
@@ -4443,6 +4611,30 @@ public partial class RayBeamRenderer : Node3D
 		}
 
 		return ordered.ToArray();
+	}
+
+	private static bool TryParsePositiveIntOverrideArg(string arg, string prefix, out int value)
+	{
+		value = 0;
+		if (string.IsNullOrWhiteSpace(arg) ||
+			!arg.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+		{
+			return false;
+		}
+
+		string token = arg.Substring(prefix.Length).Trim();
+		if (!int.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed))
+		{
+			return false;
+		}
+
+		if (parsed <= 0)
+		{
+			return false;
+		}
+
+		value = parsed;
+		return true;
 	}
 
 	private int GetMetricAdaptiveStepMultiplier()
@@ -4568,7 +4760,72 @@ public partial class RayBeamRenderer : Node3D
 		float rawScale = 1.0f - (strength * normalizedTrend);
 		float clampedScale = Mathf.Clamp(rawScale, maxScaleDown, maxScaleUp);
 		float warmup = Mathf.Clamp((state.SampleCount + 1) / (float)Mathf.Max(1, historyLength - 1), 0f, 1f);
-		float finalScale = Mathf.Lerp(1.0f, clampedScale, warmup);
+		float candidateScale = Mathf.Lerp(1.0f, clampedScale, warmup);
+		float difficultyThreshold = Mathf.Max(0f, DerivativeAwareDifficultyThreshold);
+		float deadband = Mathf.Max(0f, DerivativeAwareStepDeadband);
+		bool passesDifficultyGate = smoothedDifficulty >= difficultyThreshold;
+		float candidateScaleDelta = candidateScale - 1.0f;
+		bool candidateAdjusted = passesDifficultyGate && !Mathf.IsZeroApprox(candidateScaleDelta);
+		float scaleDeltaAbs = Mathf.Abs(candidateScaleDelta);
+		bool hysteresisEngaged = state.HysteresisEngaged;
+		bool hysteresisEntered = false;
+		bool hysteresisExited = false;
+		int activeSpanCount = state.ActiveAcceptedStepCount;
+		int minimumActiveAcceptedSteps = Mathf.Max(1, ResolveDerivativeAwareMinimumActiveAcceptedSteps());
+		if (DerivativeAwareUseHysteresis)
+		{
+			float engageDelta = Mathf.Max(0f, DerivativeAwareHysteresisEngageDelta);
+			float releaseDelta = Mathf.Clamp(DerivativeAwareHysteresisReleaseDelta, 0f, engageDelta);
+			if (!passesDifficultyGate)
+			{
+				bool holdActive = DerivativeAwareUseMinimumActiveSpan && hysteresisEngaged && activeSpanCount < minimumActiveAcceptedSteps;
+				if (hysteresisEngaged && !holdActive)
+				{
+					hysteresisExited = true;
+				}
+				hysteresisEngaged = holdActive;
+			}
+			else if (!hysteresisEngaged)
+			{
+				if (scaleDeltaAbs >= engageDelta)
+				{
+					hysteresisEngaged = true;
+					hysteresisEntered = true;
+				}
+			}
+			else if (scaleDeltaAbs < releaseDelta)
+			{
+				bool holdActive = DerivativeAwareUseMinimumActiveSpan && activeSpanCount < minimumActiveAcceptedSteps;
+				if (!holdActive)
+				{
+					hysteresisEngaged = false;
+					hysteresisExited = true;
+				}
+			}
+		}
+		else
+		{
+			hysteresisEngaged = passesDifficultyGate && (scaleDeltaAbs >= deadband);
+		}
+
+		if (hysteresisEngaged)
+		{
+			activeSpanCount = hysteresisEntered ? 1 : (activeSpanCount + 1);
+		}
+
+		if (hysteresisExited)
+		{
+			RecordDerivativeAwareActiveSpan(activeSpanCount);
+			activeSpanCount = 0;
+		}
+
+		float finalScale = candidateScale;
+		if (!passesDifficultyGate || !hysteresisEngaged || scaleDeltaAbs < deadband)
+		{
+			finalScale = 1.0f;
+		}
+		float appliedScaleDelta = finalScale - 1.0f;
+		bool appliedAdjusted = !Mathf.IsZeroApprox(appliedScaleDelta);
 		float adjustedStep = Mathf.Clamp(baselineStep * finalScale, minStep, maxStep);
 
 		RecordDerivativeAwareStepSample(
@@ -4578,10 +4835,18 @@ public partial class RayBeamRenderer : Node3D
 			smoothedDifficulty,
 			baselineStep,
 			adjustedStep,
-			finalScale);
+			candidateScale,
+			finalScale,
+			candidateAdjusted,
+			appliedAdjusted,
+			hysteresisEngaged,
+			hysteresisEntered,
+			hysteresisExited);
 
 		state.HasSample = true;
 		state.SampleCount++;
+		state.HysteresisEngaged = hysteresisEngaged;
+		state.ActiveAcceptedStepCount = activeSpanCount;
 		state.SmoothedK = smoothedK;
 		state.PrevDk = dk;
 		state.SmoothedDifficulty = smoothedDifficulty;
@@ -4595,7 +4860,13 @@ public partial class RayBeamRenderer : Node3D
 		float difficulty,
 		float stepBefore,
 		float stepAfter,
-		float finalScale)
+		float candidateScale,
+		float finalScale,
+		bool candidateAdjusted,
+		bool appliedAdjusted,
+		bool hysteresisEngaged,
+		bool hysteresisEntered,
+		bool hysteresisExited)
 	{
 		_derivativeAwareSampleCount++;
 		_derivativeAwareKSum += k;
@@ -4612,15 +4883,43 @@ public partial class RayBeamRenderer : Node3D
 		_derivativeAwareDifficultyMax = Mathf.Max(_derivativeAwareDifficultyMax, difficulty);
 		_derivativeAwareStepBeforeSum += stepBefore;
 		_derivativeAwareStepAfterSum += stepAfter;
-		if (!Mathf.IsEqualApprox(finalScale, 1.0f))
+		if (candidateAdjusted)
+		{
+			_derivativeAwareCandidateAdjustmentCount++;
+			if (candidateScale > 1.0001f)
+			{
+				_derivativeAwareCandidateScaleUpCount++;
+			}
+			else if (candidateScale < 0.9999f)
+			{
+				_derivativeAwareCandidateScaleDownCount++;
+			}
+		}
+		if (hysteresisEngaged)
+		{
+			_derivativeAwareHysteresisEngagedSampleCount++;
+		}
+		if (hysteresisEntered)
+		{
+			_derivativeAwareHysteresisEnterCount++;
+		}
+		if (hysteresisExited)
+		{
+			_derivativeAwareHysteresisExitCount++;
+		}
+		if (appliedAdjusted)
 		{
 			_derivativeAwareEngagedStepCount++;
+			if (Mathf.Abs(finalScale - 1.0f) >= Mathf.Max(0f, DerivativeAwareMinLoggedScaleDelta))
+			{
+				_derivativeAwareLoggedAppliedAdjustmentCount++;
+			}
 		}
-		if (finalScale > 1.0001f)
+		if (appliedAdjusted && finalScale > 1.0001f)
 		{
 			_derivativeAwareScaleUpCount++;
 		}
-		else if (finalScale < 0.9999f)
+		else if (appliedAdjusted && finalScale < 0.9999f)
 		{
 			_derivativeAwareScaleDownCount++;
 		}
