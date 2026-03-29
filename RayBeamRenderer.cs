@@ -82,6 +82,30 @@ public partial class RayBeamRenderer : Node3D
 	/// <summary>Maximum metric step-halving retries applied before accepting a minimum step.</summary>
 	// CONTROL FACTOR: Higher values allow denser metric segment chains at increased cost.
 	[Export] public int MetricAdaptiveMaxSubdivisions = 2;
+	/// <summary>Enables bounded derivative-aware adaptive step scaling on top of the existing controller.</summary>
+	// CONTROL FACTOR: Default off for experiment safety; when enabled, a short curvature-history trend can nudge step length up/down.
+	[Export] public bool UseDerivativeAwareStepping = false;
+	/// <summary>Strength of derivative-aware step scaling around the existing adaptive baseline.</summary>
+	// CONTROL FACTOR: Higher values increase predictive influence but remain bounded by the max up/down clamps.
+	[Export] public float DerivativeAwareStepScaleStrength = 0.15f;
+	/// <summary>History warmup length for derivative-aware stepping.</summary>
+	// CONTROL FACTOR: Larger values delay full predictive influence to reduce startup chatter.
+	[Export] public int DerivativeAwareHistoryLength = 4;
+	/// <summary>Includes second-derivative trend information when computing predictive difficulty.</summary>
+	// CONTROL FACTOR: True = earlier warning of curvature ramps; false = first-derivative only.
+	[Export] public bool DerivativeAwareUseSecondDerivative = true;
+	/// <summary>EMA smoothing factor used for curvature proxy and predictive difficulty.</summary>
+	// CONTROL FACTOR: Lower values smooth more aggressively; higher values react faster.
+	[Export] public float DerivativeAwareSmoothingAlpha = 0.5f;
+	/// <summary>Upper bound on derivative-aware step expansion relative to the baseline adaptive step.</summary>
+	// CONTROL FACTOR: Caps predictive scale-up so the experiment cannot overrun smooth regions.
+	[Export] public float DerivativeAwareMaxStepScaleUp = 1.15f;
+	/// <summary>Lower bound on derivative-aware step shrink relative to the baseline adaptive step.</summary>
+	// CONTROL FACTOR: Caps predictive scale-down so the experiment cannot over-tighten transition zones.
+	[Export] public float DerivativeAwareMaxStepScaleDown = 0.85f;
+	/// <summary>Emits derivative-aware stepping diagnostics in transport/render-test logs when enabled.</summary>
+	// CONTROL FACTOR: True = lightweight cumulative metrics for baseline-vs-experiment comparison.
+	[Export] public bool DerivativeAwareLogMetrics = true;
 	/// <summary>World center for field when not using camera.</summary>
 	// CONTROL FACTOR: Field center (world space) when not camera-driven.
 	[Export] public Vector3 FieldCenter = Vector3.Zero;
@@ -405,7 +429,11 @@ public partial class RayBeamRenderer : Node3D
 	private static float _metricComparisonScalarOverride = 1.0f;
 	private static bool _metricSteeringLawOverrideResolved = false;
 	private static MetricSteeringLaw _metricSteeringLawOverride = MetricSteeringLaw.MetricLaw_CurrentEnvelope;
+	private static bool _derivativeAwareStepOverrideResolved = false;
+	private static bool? _derivativeAwareStepOverride = null;
 	private const int TransportSteeringBucketCount = 6;
+	private const float DerivativeAwareDkWeight = 0.5f;
+	private const float DerivativeAwareD2kWeight = 0.25f;
 	private int _metricDeltaZeroCount = 0;
 	private int _metricDeltaNonzeroCount = 0;
 	private int _metricFallbackCount = 0;
@@ -432,6 +460,25 @@ public partial class RayBeamRenderer : Node3D
 	private int _transportSteeringTurnCount = 0;
 	private readonly double[] _transportSteeringRadialTurnSums = new double[TransportSteeringBucketCount];
 	private readonly int[] _transportSteeringRadialCounts = new int[TransportSteeringBucketCount];
+	private double _derivativeAwareKSum = 0.0;
+	private float _derivativeAwareKMin = float.PositiveInfinity;
+	private float _derivativeAwareKMax = 0f;
+	private double _derivativeAwareAbsDkSum = 0.0;
+	private float _derivativeAwareAbsDkMin = float.PositiveInfinity;
+	private float _derivativeAwareAbsDkMax = 0f;
+	private double _derivativeAwareAbsD2kSum = 0.0;
+	private float _derivativeAwareAbsD2kMin = float.PositiveInfinity;
+	private float _derivativeAwareAbsD2kMax = 0f;
+	private double _derivativeAwareDifficultySum = 0.0;
+	private float _derivativeAwareDifficultyMin = float.PositiveInfinity;
+	private float _derivativeAwareDifficultyMax = 0f;
+	private double _derivativeAwareStepBeforeSum = 0.0;
+	private double _derivativeAwareStepAfterSum = 0.0;
+	private int _derivativeAwareSampleCount = 0;
+	private int _derivativeAwareEngagedStepCount = 0;
+	private int _derivativeAwareScaleUpCount = 0;
+	private int _derivativeAwareScaleDownCount = 0;
+	private int _derivativeAwareMetricSubdivisionRetryCount = 0;
 
 	private Plane _insightPlane;
 	private bool _hasInsightPlane = false;
@@ -946,6 +993,83 @@ public partial class RayBeamRenderer : Node3D
 		}
 	}
 
+	private struct DerivativeAwareStepState
+	{
+		public bool HasSample;
+		public int SampleCount;
+		public float SmoothedK;
+		public float PrevDk;
+		public float SmoothedDifficulty;
+	}
+
+	public readonly struct DerivativeAwareSteppingDiagnosticsSnapshot
+	{
+		public readonly bool Enabled;
+		public readonly int SampleCount;
+		public readonly int EngagedStepCount;
+		public readonly int ScaleUpCount;
+		public readonly int ScaleDownCount;
+		public readonly int MetricSubdivisionRetryCount;
+		public readonly float MeanK;
+		public readonly float MinK;
+		public readonly float MaxK;
+		public readonly float MeanAbsDk;
+		public readonly float MinAbsDk;
+		public readonly float MaxAbsDk;
+		public readonly float MeanAbsD2k;
+		public readonly float MinAbsD2k;
+		public readonly float MaxAbsD2k;
+		public readonly float MeanDifficulty;
+		public readonly float MinDifficulty;
+		public readonly float MaxDifficulty;
+		public readonly float MeanStepBefore;
+		public readonly float MeanStepAfter;
+
+		public DerivativeAwareSteppingDiagnosticsSnapshot(
+			bool enabled,
+			int sampleCount,
+			int engagedStepCount,
+			int scaleUpCount,
+			int scaleDownCount,
+			int metricSubdivisionRetryCount,
+			float meanK,
+			float minK,
+			float maxK,
+			float meanAbsDk,
+			float minAbsDk,
+			float maxAbsDk,
+			float meanAbsD2k,
+			float minAbsD2k,
+			float maxAbsD2k,
+			float meanDifficulty,
+			float minDifficulty,
+			float maxDifficulty,
+			float meanStepBefore,
+			float meanStepAfter)
+		{
+			Enabled = enabled;
+			SampleCount = sampleCount;
+			EngagedStepCount = engagedStepCount;
+			ScaleUpCount = scaleUpCount;
+			ScaleDownCount = scaleDownCount;
+			MetricSubdivisionRetryCount = metricSubdivisionRetryCount;
+			MeanK = meanK;
+			MinK = minK;
+			MaxK = maxK;
+			MeanAbsDk = meanAbsDk;
+			MinAbsDk = minAbsDk;
+			MaxAbsDk = maxAbsDk;
+			MeanAbsD2k = meanAbsD2k;
+			MinAbsD2k = minAbsD2k;
+			MaxAbsD2k = maxAbsD2k;
+			MeanDifficulty = meanDifficulty;
+			MinDifficulty = minDifficulty;
+			MaxDifficulty = maxDifficulty;
+			MeanStepBefore = meanStepBefore;
+			MeanStepAfter = meanStepAfter;
+		}
+	}
+
 	public MetricTransportDiagnosticsSnapshot GetMetricTransportDiagnosticsSnapshot()
 	{
 		int totalResolved = _metricContributionAppliedCount + _metricFallbackCount;
@@ -970,6 +1094,38 @@ public partial class RayBeamRenderer : Node3D
 			_transportSteeringMaxTurn,
 			BuildTransportSteeringRadialSummary(),
 			BuildMetricZeroReasonSummary());
+	}
+
+	public DerivativeAwareSteppingDiagnosticsSnapshot GetDerivativeAwareSteppingDiagnosticsSnapshot()
+	{
+		int samples = _derivativeAwareSampleCount;
+		float meanK = samples > 0 ? (float)(_derivativeAwareKSum / samples) : 0f;
+		float meanAbsDk = samples > 0 ? (float)(_derivativeAwareAbsDkSum / samples) : 0f;
+		float meanAbsD2k = samples > 0 ? (float)(_derivativeAwareAbsD2kSum / samples) : 0f;
+		float meanDifficulty = samples > 0 ? (float)(_derivativeAwareDifficultySum / samples) : 0f;
+		float meanStepBefore = samples > 0 ? (float)(_derivativeAwareStepBeforeSum / samples) : 0f;
+		float meanStepAfter = samples > 0 ? (float)(_derivativeAwareStepAfterSum / samples) : 0f;
+		return new DerivativeAwareSteppingDiagnosticsSnapshot(
+			IsDerivativeAwareSteppingEnabled(),
+			samples,
+			_derivativeAwareEngagedStepCount,
+			_derivativeAwareScaleUpCount,
+			_derivativeAwareScaleDownCount,
+			_derivativeAwareMetricSubdivisionRetryCount,
+			meanK,
+			samples > 0 ? _derivativeAwareKMin : 0f,
+			samples > 0 ? _derivativeAwareKMax : 0f,
+			meanAbsDk,
+			samples > 0 ? _derivativeAwareAbsDkMin : 0f,
+			samples > 0 ? _derivativeAwareAbsDkMax : 0f,
+			meanAbsD2k,
+			samples > 0 ? _derivativeAwareAbsD2kMin : 0f,
+			samples > 0 ? _derivativeAwareAbsD2kMax : 0f,
+			meanDifficulty,
+			samples > 0 ? _derivativeAwareDifficultyMin : 0f,
+			samples > 0 ? _derivativeAwareDifficultyMax : 0f,
+			meanStepBefore,
+			meanStepAfter);
 	}
 
 	public void ResetMetricTransportDiagnostics()
@@ -1001,6 +1157,30 @@ public partial class RayBeamRenderer : Node3D
 		_transportSteeringTurnCount = 0;
 		Array.Clear(_transportSteeringRadialTurnSums, 0, _transportSteeringRadialTurnSums.Length);
 		Array.Clear(_transportSteeringRadialCounts, 0, _transportSteeringRadialCounts.Length);
+		ResetDerivativeAwareSteppingDiagnostics();
+	}
+
+	public void ResetDerivativeAwareSteppingDiagnostics()
+	{
+		_derivativeAwareKSum = 0.0;
+		_derivativeAwareKMin = float.PositiveInfinity;
+		_derivativeAwareKMax = 0f;
+		_derivativeAwareAbsDkSum = 0.0;
+		_derivativeAwareAbsDkMin = float.PositiveInfinity;
+		_derivativeAwareAbsDkMax = 0f;
+		_derivativeAwareAbsD2kSum = 0.0;
+		_derivativeAwareAbsD2kMin = float.PositiveInfinity;
+		_derivativeAwareAbsD2kMax = 0f;
+		_derivativeAwareDifficultySum = 0.0;
+		_derivativeAwareDifficultyMin = float.PositiveInfinity;
+		_derivativeAwareDifficultyMax = 0f;
+		_derivativeAwareStepBeforeSum = 0.0;
+		_derivativeAwareStepAfterSum = 0.0;
+		_derivativeAwareSampleCount = 0;
+		_derivativeAwareEngagedStepCount = 0;
+		_derivativeAwareScaleUpCount = 0;
+		_derivativeAwareScaleDownCount = 0;
+		_derivativeAwareMetricSubdivisionRetryCount = 0;
 	}
 
 	public Vector3 ComputeActiveTransportAccelerationForDiagnostics(
@@ -1034,6 +1214,7 @@ public partial class RayBeamRenderer : Node3D
 		out Vector3 vNext,
 		out float step)
 	{
+		DerivativeAwareStepState derivativeState = default;
 		return TryStepIntegratedTransport(
 			p,
 			v,
@@ -1048,6 +1229,7 @@ public partial class RayBeamRenderer : Node3D
 			maxStep,
 			fieldGrid,
 			applyLowCurvatureBoost: false,
+			ref derivativeState,
 			out next,
 			out vNext,
 			out _,
@@ -1473,6 +1655,19 @@ public partial class RayBeamRenderer : Node3D
 					$"[Transport][MetricDiagSummary] metricLaw={metricDiagnostics.MetricSteeringLawToken} metricDeltaZeroCount={metricDiagnostics.MetricDeltaZeroCount} " +
 					$"metricDeltaNonzeroCount={metricDiagnostics.MetricDeltaNonzeroCount} metricFallbackCount={metricDiagnostics.MetricFallbackCount} " +
 					$"metricContributionRatio={metricDiagnostics.MetricContributionRatio:0.######} zeroReasons={metricDiagnostics.ZeroReasonSummary}");
+			}
+			if (IsDerivativeAwareSteppingEnabled() && DerivativeAwareLogMetrics)
+			{
+				DerivativeAwareSteppingDiagnosticsSnapshot derivativeDiagnostics = GetDerivativeAwareSteppingDiagnosticsSnapshot();
+				GD.Print(
+					$"[Transport][DerivativeStepSummary] samples={derivativeDiagnostics.SampleCount} engaged={derivativeDiagnostics.EngagedStepCount} " +
+					$"kMean={derivativeDiagnostics.MeanK:0.######} kMin={derivativeDiagnostics.MinK:0.######} kMax={derivativeDiagnostics.MaxK:0.######} " +
+					$"absDkMean={derivativeDiagnostics.MeanAbsDk:0.######} absDkMax={derivativeDiagnostics.MaxAbsDk:0.######} " +
+					$"absD2kMean={derivativeDiagnostics.MeanAbsD2k:0.######} absD2kMax={derivativeDiagnostics.MaxAbsD2k:0.######} " +
+					$"difficultyMean={derivativeDiagnostics.MeanDifficulty:0.######} difficultyMax={derivativeDiagnostics.MaxDifficulty:0.######} " +
+					$"stepBeforeMean={derivativeDiagnostics.MeanStepBefore:0.######} stepAfterMean={derivativeDiagnostics.MeanStepAfter:0.######} " +
+					$"scaleUp={derivativeDiagnostics.ScaleUpCount} scaleDown={derivativeDiagnostics.ScaleDownCount} " +
+					$"metricRetries={derivativeDiagnostics.MetricSubdivisionRetryCount}");
 			}
 
 			// =======================
@@ -2019,6 +2214,7 @@ public partial class RayBeamRenderer : Node3D
 		minStep = Mathf.Max(0.0001f, minStep);
 
 		float hitDist = 0.0f;
+		DerivativeAwareStepState derivativeStepState = default;
 
 		// Per-ray inside state for CrossingEvent boundary layer detection (≤32 layers via bitmask).
 		// Initialized from the ray origin so that rays starting inside a volume do NOT fire an entry event.
@@ -2068,6 +2264,7 @@ public partial class RayBeamRenderer : Node3D
 					maxStep,
 					fieldGrid: null,
 					applyLowCurvatureBoost: false,
+					ref derivativeStepState,
 					out next,
 					out v,
 					out a,
@@ -2287,6 +2484,7 @@ public partial class RayBeamRenderer : Node3D
 		float minStep = Mathf.Min(MinStepLength, MaxStepLength);
 		float maxStep = Mathf.Max(MinStepLength, MaxStepLength);
 		minStep = Mathf.Max(0.0001f, minStep);
+		DerivativeAwareStepState derivativeStepState = default;
 
 		// Per-ray inside state for CrossingEvent boundary layer detection (≤32 layers via bitmask).
 		// Initialized from the ray origin so that rays starting inside a volume do NOT fire an entry event.
@@ -2334,6 +2532,7 @@ public partial class RayBeamRenderer : Node3D
 					maxStep,
 					fieldGrid: null,
 					applyLowCurvatureBoost: false,
+					ref derivativeStepState,
 					out next,
 					out v,
 					out _,
@@ -2507,6 +2706,7 @@ public partial class RayBeamRenderer : Node3D
 		float metricTurnThreshold = GetMetricAdaptiveTurnThresholdRadians();
 		float metricErrorTolerance = Mathf.Max(1e-5f, MetricAdaptiveErrorTolerance);
 		int metricMaxSubdivisions = Mathf.Max(0, MetricAdaptiveMaxSubdivisions);
+		DerivativeAwareStepState derivativeStepState = default;
 		/////////////////////////
 		/// 
 
@@ -2543,28 +2743,14 @@ public partial class RayBeamRenderer : Node3D
 					aLen = 50f;
 				}
 
-				float step = stepLength / (1.0f + aLen * StepAdaptGain);
-				step = Mathf.Clamp(step, minStep, maxStep);
-				if (LowCurvatureStepBoost > 1.0f)
-				{
-					Vector3 aPerp = a - v * a.Dot(v);
-					float aPerpLen = aPerp.Length();
-					if (aPerpLen < LowCurvaturePerpAccel)
-					{
-						step = Mathf.Min(step * LowCurvatureStepBoost, maxStep);
-					}
-				}
-
-				if (emitEveryMetricStep)
-				{
-					float metricCurvatureGain = Mathf.Max(0f, MetricAdaptiveCurvatureGain);
-					if (metricCurvatureGain > 0f)
-					{
-						float aPerpLen = PerpAccelLen(a, v);
-						step /= 1.0f + (aPerpLen * StepAdaptGain * metricCurvatureGain);
-						step = Mathf.Clamp(step, minStep, maxStep);
-					}
-				}
+				float step = ComputeAdaptiveIntegratedStepLength(
+					v,
+					a,
+					minStep,
+					maxStep,
+					applyLowCurvatureBoost: true,
+					applyMetricCurvatureGain: emitEveryMetricStep,
+					ref derivativeStepState);
 
 				if (step > remaining)
 				{
@@ -2628,6 +2814,7 @@ public partial class RayBeamRenderer : Node3D
 							break;
 						}
 
+						RecordDerivativeAwareMetricSubdivisionRetry();
 						acceptedStep = Mathf.Max(minStep, trialStep * 0.5f);
 					}
 				}
@@ -2820,6 +3007,7 @@ public partial class RayBeamRenderer : Node3D
 		float metricTurnThreshold = GetMetricAdaptiveTurnThresholdRadians();
 		float metricErrorTolerance = Mathf.Max(1e-5f, MetricAdaptiveErrorTolerance);
 		int metricMaxSubdivisions = Mathf.Max(0, MetricAdaptiveMaxSubdivisions);
+		DerivativeAwareStepState derivativeStepState = default;
 
 		// Per-ray inside state for CrossingEvent boundary layer detection (≤32 layers via bitmask).
 		// Initialized from the ray origin so that rays starting inside a volume do NOT fire an entry event.
@@ -2903,31 +3091,14 @@ public partial class RayBeamRenderer : Node3D
 				if (!float.IsFinite(aLen)) { a = Vector3.Zero; aLen = 0f; }
 				else if (aLen > 50f) { a *= (50f / aLen); aLen = 50f; } // DECISION: clamp extreme acceleration.
 
-				// Compute step FIRST
-				float step = stepLength / (1.0f + aLen * stepAdaptGain);
-				step = Mathf.Clamp(step, minStep, maxStep);
-
-				// CONTROL FACTOR: LowCurvatureStepBoost/LowCurvaturePerpAccel adjust step size.
-				// DECISION: boost step size on low curvature.
-				if (LowCurvatureStepBoost > 1.0f)
-				{
-					Vector3 aPerp = a - v * a.Dot(v);
-					float aPerpLen = aPerp.Length();
-					// DECISION: treat low perpendicular acceleration as low curvature.
-					if (aPerpLen < LowCurvaturePerpAccel)
-						step = Mathf.Min(step * LowCurvatureStepBoost, maxStep);
-				}
-
-				if (emitEveryMetricStep)
-				{
-					float metricCurvatureGain = Mathf.Max(0f, MetricAdaptiveCurvatureGain);
-					if (metricCurvatureGain > 0f)
-					{
-						float aPerpLen = PerpAccelLen(a, v);
-						step /= 1.0f + (aPerpLen * stepAdaptGain * metricCurvatureGain);
-						step = Mathf.Clamp(step, minStep, maxStep);
-					}
-				}
+				float step = ComputeAdaptiveIntegratedStepLength(
+					v,
+					a,
+					minStep,
+					maxStep,
+					applyLowCurvatureBoost: true,
+					applyMetricCurvatureGain: emitEveryMetricStep,
+					ref derivativeStepState);
 
 				// DECISION: clamp to remaining distance so we don't overshoot maxDistance.
 				if (step > remaining) step = remaining; // DECISION: clamp step to remaining distance.
@@ -3006,6 +3177,7 @@ public partial class RayBeamRenderer : Node3D
 							break;
 						}
 
+						RecordDerivativeAwareMetricSubdivisionRetry();
 						acceptedStep = Mathf.Max(minStep, trialStep * 0.5f);
 					}
 
@@ -4148,6 +4320,63 @@ public partial class RayBeamRenderer : Node3D
 		return Enum.TryParse(token, true, out law);
 	}
 
+	private static bool TryParseBoolOverrideArg(string arg, string prefix, out bool value)
+	{
+		value = false;
+		if (string.IsNullOrWhiteSpace(arg) ||
+			!arg.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+		{
+			return false;
+		}
+
+		string token = arg.Substring(prefix.Length).Trim();
+		if (string.IsNullOrWhiteSpace(token))
+		{
+			return false;
+		}
+
+		switch (token.ToLowerInvariant())
+		{
+			case "1":
+			case "true":
+			case "on":
+			case "yes":
+				value = true;
+				return true;
+			case "0":
+			case "false":
+			case "off":
+			case "no":
+				value = false;
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	private bool IsDerivativeAwareSteppingEnabled()
+	{
+		if (_derivativeAwareStepOverrideResolved)
+		{
+			return _derivativeAwareStepOverride ?? UseDerivativeAwareStepping;
+		}
+
+		_derivativeAwareStepOverrideResolved = true;
+		_derivativeAwareStepOverride = null;
+		string[] args = GetCmdArgsForMetricComparisonOverride();
+		for (int i = 0; i < args.Length; i++)
+		{
+			string arg = args[i] ?? string.Empty;
+			if (TryParseBoolOverrideArg(arg, "--derivative-aware-step=", out bool enabled) ||
+				TryParseBoolOverrideArg(arg, "--exp1-derivative-step=", out enabled))
+			{
+				_derivativeAwareStepOverride = enabled;
+			}
+		}
+
+		return _derivativeAwareStepOverride ?? UseDerivativeAwareStepping;
+	}
+
 	private static bool HasRenderTestFlagForMetricComparisonOverride()
 	{
 		string[] args = GetCmdArgsForMetricComparisonOverride();
@@ -4255,6 +4484,156 @@ public partial class RayBeamRenderer : Node3D
 		return float.IsFinite(estimate) && estimate > 0f ? estimate : 0f;
 	}
 
+	private float ComputeAdaptiveIntegratedStepLength(
+		Vector3 v,
+		Vector3 acceleration,
+		float minStep,
+		float maxStep,
+		bool applyLowCurvatureBoost,
+		bool applyMetricCurvatureGain,
+		ref DerivativeAwareStepState derivativeState)
+	{
+		float aLen = acceleration.Length();
+		float step = StepLength / (1.0f + aLen * StepAdaptGain);
+		step = Mathf.Clamp(step, minStep, maxStep);
+		if (applyLowCurvatureBoost && LowCurvatureStepBoost > 1.0f)
+		{
+			Vector3 aPerp = acceleration - v * acceleration.Dot(v);
+			float aPerpLen = aPerp.Length();
+			if (aPerpLen < LowCurvaturePerpAccel)
+			{
+				step = Mathf.Min(step * LowCurvatureStepBoost, maxStep);
+			}
+		}
+
+		if (applyMetricCurvatureGain)
+		{
+			float metricCurvatureGain = Mathf.Max(0f, MetricAdaptiveCurvatureGain);
+			if (metricCurvatureGain > 0f)
+			{
+				float aPerpLen = PerpAccelLen(acceleration, v);
+				step /= 1.0f + (aPerpLen * StepAdaptGain * metricCurvatureGain);
+				step = Mathf.Clamp(step, minStep, maxStep);
+			}
+		}
+
+		return ApplyDerivativeAwareStepModifier(step, minStep, maxStep, acceleration, v, ref derivativeState);
+	}
+
+	private float ApplyDerivativeAwareStepModifier(
+		float baselineStep,
+		float minStep,
+		float maxStep,
+		Vector3 acceleration,
+		Vector3 v,
+		ref DerivativeAwareStepState state)
+	{
+		if (!IsDerivativeAwareSteppingEnabled())
+		{
+			return baselineStep;
+		}
+
+		float alpha = Mathf.Clamp(DerivativeAwareSmoothingAlpha, 0.01f, 1.0f);
+		float maxScaleUp = Mathf.Max(1.0f, DerivativeAwareMaxStepScaleUp);
+		float maxScaleDown = Mathf.Clamp(DerivativeAwareMaxStepScaleDown, 0.01f, 1.0f);
+		float strength = Mathf.Clamp(DerivativeAwareStepScaleStrength, 0f, 1.0f);
+		int historyLength = Mathf.Max(2, DerivativeAwareHistoryLength);
+		float kRaw = PerpAccelLen(acceleration, v);
+		if (!float.IsFinite(kRaw) || kRaw < 0f)
+		{
+			kRaw = 0f;
+		}
+
+		float prevSmoothedK = state.SmoothedK;
+		float prevDk = state.PrevDk;
+		float smoothedK = state.HasSample
+			? (prevSmoothedK + ((kRaw - prevSmoothedK) * alpha))
+			: kRaw;
+		float dk = state.HasSample ? (smoothedK - prevSmoothedK) : 0f;
+		float d2k = (state.HasSample && DerivativeAwareUseSecondDerivative) ? (dk - prevDk) : 0f;
+		float absDk = Mathf.Abs(dk);
+		float absD2k = Mathf.Abs(d2k);
+		float difficultyRaw = smoothedK + (DerivativeAwareDkWeight * absDk);
+		if (DerivativeAwareUseSecondDerivative)
+		{
+			difficultyRaw += DerivativeAwareD2kWeight * absD2k;
+		}
+
+		float smoothedDifficulty = state.HasSample
+			? (state.SmoothedDifficulty + ((difficultyRaw - state.SmoothedDifficulty) * alpha))
+			: difficultyRaw;
+		float signedPredictiveTrend = (DerivativeAwareDkWeight * dk)
+			+ (DerivativeAwareUseSecondDerivative ? (DerivativeAwareD2kWeight * d2k) : 0f);
+		float normalizedTrend = signedPredictiveTrend / Mathf.Max(1e-4f, 1.0f + smoothedDifficulty);
+		float rawScale = 1.0f - (strength * normalizedTrend);
+		float clampedScale = Mathf.Clamp(rawScale, maxScaleDown, maxScaleUp);
+		float warmup = Mathf.Clamp((state.SampleCount + 1) / (float)Mathf.Max(1, historyLength - 1), 0f, 1f);
+		float finalScale = Mathf.Lerp(1.0f, clampedScale, warmup);
+		float adjustedStep = Mathf.Clamp(baselineStep * finalScale, minStep, maxStep);
+
+		RecordDerivativeAwareStepSample(
+			smoothedK,
+			absDk,
+			absD2k,
+			smoothedDifficulty,
+			baselineStep,
+			adjustedStep,
+			finalScale);
+
+		state.HasSample = true;
+		state.SampleCount++;
+		state.SmoothedK = smoothedK;
+		state.PrevDk = dk;
+		state.SmoothedDifficulty = smoothedDifficulty;
+		return adjustedStep;
+	}
+
+	private void RecordDerivativeAwareStepSample(
+		float k,
+		float absDk,
+		float absD2k,
+		float difficulty,
+		float stepBefore,
+		float stepAfter,
+		float finalScale)
+	{
+		_derivativeAwareSampleCount++;
+		_derivativeAwareKSum += k;
+		_derivativeAwareKMin = Mathf.Min(_derivativeAwareKMin, k);
+		_derivativeAwareKMax = Mathf.Max(_derivativeAwareKMax, k);
+		_derivativeAwareAbsDkSum += absDk;
+		_derivativeAwareAbsDkMin = Mathf.Min(_derivativeAwareAbsDkMin, absDk);
+		_derivativeAwareAbsDkMax = Mathf.Max(_derivativeAwareAbsDkMax, absDk);
+		_derivativeAwareAbsD2kSum += absD2k;
+		_derivativeAwareAbsD2kMin = Mathf.Min(_derivativeAwareAbsD2kMin, absD2k);
+		_derivativeAwareAbsD2kMax = Mathf.Max(_derivativeAwareAbsD2kMax, absD2k);
+		_derivativeAwareDifficultySum += difficulty;
+		_derivativeAwareDifficultyMin = Mathf.Min(_derivativeAwareDifficultyMin, difficulty);
+		_derivativeAwareDifficultyMax = Mathf.Max(_derivativeAwareDifficultyMax, difficulty);
+		_derivativeAwareStepBeforeSum += stepBefore;
+		_derivativeAwareStepAfterSum += stepAfter;
+		if (!Mathf.IsEqualApprox(finalScale, 1.0f))
+		{
+			_derivativeAwareEngagedStepCount++;
+		}
+		if (finalScale > 1.0001f)
+		{
+			_derivativeAwareScaleUpCount++;
+		}
+		else if (finalScale < 0.9999f)
+		{
+			_derivativeAwareScaleDownCount++;
+		}
+	}
+
+	private void RecordDerivativeAwareMetricSubdivisionRetry()
+	{
+		if (IsDerivativeAwareSteppingEnabled())
+		{
+			_derivativeAwareMetricSubdivisionRetryCount++;
+		}
+	}
+
 	private bool TryStepIntegratedTransport(
 		Vector3 p,
 		Vector3 v,
@@ -4269,6 +4648,7 @@ public partial class RayBeamRenderer : Node3D
 		float maxStep,
 		FieldGrid3D fieldGrid,
 		bool applyLowCurvatureBoost,
+		ref DerivativeAwareStepState derivativeState,
 		out Vector3 next,
 		out Vector3 vNext,
 		out Vector3 acceleration,
@@ -4307,16 +4687,14 @@ public partial class RayBeamRenderer : Node3D
 			aLen = 50f;
 		}
 
-		step = Mathf.Clamp(StepLength / (1.0f + aLen * StepAdaptGain), minStep, maxStep);
-		if (applyLowCurvatureBoost && LowCurvatureStepBoost > 1.0f)
-		{
-			Vector3 aPerp = acceleration - v * acceleration.Dot(v);
-			float aPerpLen = aPerp.Length();
-			if (aPerpLen < LowCurvaturePerpAccel)
-			{
-				step = Mathf.Min(step * LowCurvatureStepBoost, maxStep);
-			}
-		}
+		step = ComputeAdaptiveIntegratedStepLength(
+			v,
+			acceleration,
+			minStep,
+			maxStep,
+			applyLowCurvatureBoost,
+			applyMetricCurvatureGain: false,
+			ref derivativeState);
 
 		if (step > remaining)
 		{

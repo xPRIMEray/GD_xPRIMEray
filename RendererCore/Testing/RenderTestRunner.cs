@@ -2029,6 +2029,9 @@ public partial class RenderTestRunner : Node
 			RayBeamRenderer.MetricTransportDiagnosticsSnapshot metricDiag = hasMetricDiag
 				? metricDiagRbr.GetMetricTransportDiagnosticsSnapshot()
 				: default;
+			RayBeamRenderer.DerivativeAwareSteppingDiagnosticsSnapshot derivativeDiag = hasMetricDiag
+				? metricDiagRbr.GetDerivativeAwareSteppingDiagnosticsSnapshot()
+				: default;
 
 			bool hasRh = _film.TryGetLatestRenderHealthForTesting(out bool trusted, out bool savedPctAvailable, out double savedPct, out string trustReason);
 			string trustReasonOut = hasRh ? Sanitize(trustReason) : "no_renderhealth";
@@ -2059,7 +2062,16 @@ public partial class RenderTestRunner : Node
 				$"steeringMeanTurn={(hasMetricDiag ? metricDiag.MeanTurn.ToString("0.######") : "na")} " +
 				$"steeringMaxTurn={(hasMetricDiag ? metricDiag.MaxTurn.ToString("0.######") : "na")} " +
 				$"steeringRadial={(hasMetricDiag ? Sanitize(metricDiag.RadialTurnSummary) : "na")} " +
-				$"metricZeroReasons={(hasMetricDiag ? Sanitize(metricDiag.ZeroReasonSummary) : "na")}");
+				$"metricZeroReasons={(hasMetricDiag ? Sanitize(metricDiag.ZeroReasonSummary) : "na")} " +
+				$"derivativeStepEnabled={(hasMetricDiag && derivativeDiag.Enabled ? 1 : 0)} " +
+				$"derivativeSamples={(hasMetricDiag ? derivativeDiag.SampleCount.ToString() : "na")} " +
+				$"derivativeEngaged={(hasMetricDiag ? derivativeDiag.EngagedStepCount.ToString() : "na")} " +
+				$"derivativeScaleUp={(hasMetricDiag ? derivativeDiag.ScaleUpCount.ToString() : "na")} " +
+				$"derivativeScaleDown={(hasMetricDiag ? derivativeDiag.ScaleDownCount.ToString() : "na")} " +
+				$"derivativeStepBeforeMean={(hasMetricDiag ? derivativeDiag.MeanStepBefore.ToString("0.######") : "na")} " +
+				$"derivativeStepAfterMean={(hasMetricDiag ? derivativeDiag.MeanStepAfter.ToString("0.######") : "na")} " +
+				$"derivativeDifficultyMean={(hasMetricDiag ? derivativeDiag.MeanDifficulty.ToString("0.######") : "na")} " +
+				$"derivativeMetricRetries={(hasMetricDiag ? derivativeDiag.MetricSubdivisionRetryCount.ToString() : "na")}");
 			TryWriteRenderTestCapture(in run, runExecId);
 
 			bool hasRhLiveSnapshot = TryGetLatestRenderHealthLiveSnapshot(out RenderHealthLiveSnapshot finalRhSnap);
@@ -2265,6 +2277,7 @@ public partial class RenderTestRunner : Node
 			string modeToken = ResolveRenderTestCaptureModeToken(in run);
 			string schedulerToken = BuildRenderTestCaptureSchedulerToken();
 			string subtileWidthToken = BuildRenderTestCaptureSubtileWidthToken();
+			TryWriteTransportDiagnosticsCapture(capturePath);
 			GD.Print(
 				$"[RenderTestRunner][Capture] run_id={runExecId} fixture={GetHudFixtureToken(_requestedFixture)} " +
 				$"mode={modeToken} scheduler={schedulerToken} subtile_width={subtileWidthToken} path={capturePath}");
@@ -2274,6 +2287,56 @@ public partial class RenderTestRunner : Node
 			GD.PrintErr(
 				$"[RenderTestRunner][Capture][FAIL] run_id={runExecId} fixture={GetHudFixtureToken(_requestedFixture)} " +
 				$"path={capturePath} exception={ex.GetType().Name}");
+		}
+	}
+
+	private void TryWriteTransportDiagnosticsCapture(string capturePath)
+	{
+		if (string.IsNullOrWhiteSpace(capturePath))
+		{
+			return;
+		}
+		if (!TryGetSharedRayBeamRenderer(out RayBeamRenderer diagRbr) || !GodotObject.IsInstanceValid(diagRbr))
+		{
+			return;
+		}
+
+		RayBeamRenderer.DerivativeAwareSteppingDiagnosticsSnapshot derivativeDiag = diagRbr.GetDerivativeAwareSteppingDiagnosticsSnapshot();
+		string json =
+			"{" +
+			$"\"enabled\":{(derivativeDiag.Enabled ? "true" : "false")}," +
+			$"\"sample_count\":{derivativeDiag.SampleCount}," +
+			$"\"engaged_step_count\":{derivativeDiag.EngagedStepCount}," +
+			$"\"scale_up_count\":{derivativeDiag.ScaleUpCount}," +
+			$"\"scale_down_count\":{derivativeDiag.ScaleDownCount}," +
+			$"\"metric_subdivision_retry_count\":{derivativeDiag.MetricSubdivisionRetryCount}," +
+			$"\"mean_k\":{derivativeDiag.MeanK.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)}," +
+			$"\"min_k\":{derivativeDiag.MinK.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)}," +
+			$"\"max_k\":{derivativeDiag.MaxK.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)}," +
+			$"\"mean_abs_dk\":{derivativeDiag.MeanAbsDk.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)}," +
+			$"\"min_abs_dk\":{derivativeDiag.MinAbsDk.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)}," +
+			$"\"max_abs_dk\":{derivativeDiag.MaxAbsDk.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)}," +
+			$"\"mean_abs_d2k\":{derivativeDiag.MeanAbsD2k.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)}," +
+			$"\"min_abs_d2k\":{derivativeDiag.MinAbsD2k.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)}," +
+			$"\"max_abs_d2k\":{derivativeDiag.MaxAbsD2k.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)}," +
+			$"\"mean_difficulty\":{derivativeDiag.MeanDifficulty.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)}," +
+			$"\"min_difficulty\":{derivativeDiag.MinDifficulty.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)}," +
+			$"\"max_difficulty\":{derivativeDiag.MaxDifficulty.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)}," +
+			$"\"mean_step_before\":{derivativeDiag.MeanStepBefore.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)}," +
+			$"\"mean_step_after\":{derivativeDiag.MeanStepAfter.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)}" +
+			"}";
+
+		string diagPath = Path.Combine(
+			Path.GetDirectoryName(capturePath) ?? string.Empty,
+			Path.GetFileNameWithoutExtension(capturePath) + ".derivative_step.json");
+		try
+		{
+			File.WriteAllText(diagPath, json);
+			GD.Print($"[RenderTestRunner][CaptureArtifacts] derivative_step_path={diagPath} derivative_step_enabled={(derivativeDiag.Enabled ? 1 : 0)}");
+		}
+		catch (Exception ex)
+		{
+			GD.PrintErr($"[RenderTestRunner][CaptureArtifacts][FAIL] derivative_step_path={diagPath} exception={ex.GetType().Name}");
 		}
 	}
 

@@ -11673,6 +11673,21 @@ private sealed class OverlayRollingWindow
 			$"cand9to32={cand9to32Str} cand33p={cand33PlusStr} " +
 			$"geomPruneAuditSamp={geomPruneAuditSampStr} geomPruneAuditFalseNeg={geomPruneAuditFalseNegStr} geomPruneAuditFalsePos={geomPruneAuditFalsePosStr} " +
 			$"geomPruneAuditCand0Hit={geomPruneAuditCand0HitStr} geomPruneAuditFalseNegRate={geomPruneAuditFalseNegRateStr}");
+		if (_rbr != null && GodotObject.IsInstanceValid(_rbr) && _rbr.DerivativeAwareLogMetrics)
+		{
+			RayBeamRenderer.DerivativeAwareSteppingDiagnosticsSnapshot derivativeDiag = _rbr.GetDerivativeAwareSteppingDiagnosticsSnapshot();
+			if (derivativeDiag.Enabled)
+			{
+				GD.Print(
+					$"[RenderHealth][DerivativeStep] step={latest.StepIndex} samples={derivativeDiag.SampleCount} engaged={derivativeDiag.EngagedStepCount} " +
+					$"kMean={derivativeDiag.MeanK:0.######} kMin={derivativeDiag.MinK:0.######} kMax={derivativeDiag.MaxK:0.######} " +
+					$"absDkMean={derivativeDiag.MeanAbsDk:0.######} absDkMin={derivativeDiag.MinAbsDk:0.######} absDkMax={derivativeDiag.MaxAbsDk:0.######} " +
+					$"absD2kMean={derivativeDiag.MeanAbsD2k:0.######} absD2kMin={derivativeDiag.MinAbsD2k:0.######} absD2kMax={derivativeDiag.MaxAbsD2k:0.######} " +
+					$"difficultyMean={derivativeDiag.MeanDifficulty:0.######} difficultyMin={derivativeDiag.MinDifficulty:0.######} difficultyMax={derivativeDiag.MaxDifficulty:0.######} " +
+					$"stepBeforeMean={derivativeDiag.MeanStepBefore:0.######} stepAfterMean={derivativeDiag.MeanStepAfter:0.######} " +
+					$"scaleUp={derivativeDiag.ScaleUpCount} scaleDown={derivativeDiag.ScaleDownCount} metricRetries={derivativeDiag.MetricSubdivisionRetryCount}");
+			}
+		}
 		if (_renderHealthTestTrustEnforcementEnabled)
 		{
 			GD.Print(
