@@ -1042,6 +1042,18 @@ public partial class RayBeamRenderer : Node3D
 		public float SmoothedDifficulty;
 	}
 
+	private struct Pass1TelemetryDerivativeState
+	{
+		public bool HasSample;
+		public int SampleCount;
+		public float SmoothedK;
+		public float PrevDk;
+		public float CurvatureSum;
+		public float CurvatureMax;
+		public float DkMax;
+		public float D2kMax;
+	}
+
 	public readonly struct DerivativeAwareSteppingDiagnosticsSnapshot
 	{
 		public readonly bool Enabled;
@@ -3075,6 +3087,10 @@ public partial class RayBeamRenderer : Node3D
 		out int fieldGridMisses,
 		out int fieldGridFallbacks,
 		out int fieldSourceEvals,
+		out float curvatureMax,
+		out float curvatureMean,
+		out float dkMax,
+		out float d2kMax,
 		CurvatureBoundGrid curvatureGrid,
 		FieldGrid3D fieldGrid = null)
 	{
@@ -3112,6 +3128,10 @@ public partial class RayBeamRenderer : Node3D
 		fieldGridMisses = 0;
 		fieldGridFallbacks = 0;
 		fieldSourceEvals = 0;
+		curvatureMax = 0f;
+		curvatureMean = 0f;
+		dkMax = 0f;
+		d2kMax = 0f;
 
 		hitInfo = new Pass1HitInfo
 		{
@@ -3151,7 +3171,8 @@ public partial class RayBeamRenderer : Node3D
 		float metricTurnThreshold = GetMetricAdaptiveTurnThresholdRadians();
 		float metricErrorTolerance = Mathf.Max(1e-5f, MetricAdaptiveErrorTolerance);
 		int metricMaxSubdivisions = Mathf.Max(0, MetricAdaptiveMaxSubdivisions);
-		DerivativeAwareStepState derivativeStepState = default;
+			DerivativeAwareStepState derivativeStepState = default;
+			Pass1TelemetryDerivativeState telemetryDerivativeState = default;
 
 		// Per-ray inside state for CrossingEvent boundary layer detection (≤32 layers via bitmask).
 		// Initialized from the ray origin so that rays starting inside a volume do NOT fire an entry event.
@@ -3228,9 +3249,11 @@ public partial class RayBeamRenderer : Node3D
 					a = StepTransport_GRIN(p, center, beta, gamma, fieldSnaps, hasSources);
 					fieldSourceEvals++;
 				}
-				fieldEvals++;
+					fieldEvals++;
 
-				float aLen = a.Length();
+					RecordPass1TelemetryDerivativeSample(a, v, ref telemetryDerivativeState);
+
+					float aLen = a.Length();
 				// DECISION: sanitize non-finite/overlarge acceleration.
 				if (!float.IsFinite(aLen)) { a = Vector3.Zero; aLen = 0f; }
 				else if (aLen > 50f) { a *= (50f / aLen); aLen = 50f; } // DECISION: clamp extreme acceleration.
@@ -3505,9 +3528,15 @@ public partial class RayBeamRenderer : Node3D
 			p = next;
 		}
 
-		FinalizeDerivativeAwareStepState(ref derivativeStepState);
-		return written;
-	}
+			FinalizeDerivativeAwareStepState(ref derivativeStepState);
+			curvatureMax = telemetryDerivativeState.CurvatureMax;
+			curvatureMean = telemetryDerivativeState.SampleCount > 0
+				? (telemetryDerivativeState.CurvatureSum / telemetryDerivativeState.SampleCount)
+				: 0f;
+			dkMax = telemetryDerivativeState.DkMax;
+			d2kMax = telemetryDerivativeState.D2kMax;
+			return written;
+		}
 
 	public FieldSourceSnap[] SnapshotFieldSources(Godot.Collections.Array<Node> nodes)
 	{
@@ -4923,6 +4952,35 @@ public partial class RayBeamRenderer : Node3D
 		{
 			_derivativeAwareScaleDownCount++;
 		}
+	}
+
+	private void RecordPass1TelemetryDerivativeSample(
+		Vector3 acceleration,
+		Vector3 v,
+		ref Pass1TelemetryDerivativeState state)
+	{
+		float kRaw = PerpAccelLen(acceleration, v);
+		if (!float.IsFinite(kRaw) || kRaw < 0f)
+		{
+			kRaw = 0f;
+		}
+
+		float alpha = Mathf.Clamp(DerivativeAwareSmoothingAlpha, 0.01f, 1.0f);
+		float prevSmoothedK = state.SmoothedK;
+		float smoothedK = state.HasSample
+			? (prevSmoothedK + ((kRaw - prevSmoothedK) * alpha))
+			: kRaw;
+		float dk = state.HasSample ? (smoothedK - prevSmoothedK) : 0f;
+		float d2k = state.HasSample ? (dk - state.PrevDk) : 0f;
+
+		state.HasSample = true;
+		state.SampleCount++;
+		state.SmoothedK = smoothedK;
+		state.PrevDk = dk;
+		state.CurvatureSum += kRaw;
+		state.CurvatureMax = Mathf.Max(state.CurvatureMax, kRaw);
+		state.DkMax = Mathf.Max(state.DkMax, Mathf.Abs(dk));
+		state.D2kMax = Mathf.Max(state.D2kMax, Mathf.Abs(d2k));
 	}
 
 	private void RecordDerivativeAwareMetricSubdivisionRetry()

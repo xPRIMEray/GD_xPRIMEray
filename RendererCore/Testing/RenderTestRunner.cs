@@ -98,6 +98,12 @@ public partial class RenderTestRunner : Node
 	private const string RenderTestCaptureCmdArgPrefix = "--render-test-capture=";
 	private const string RenderTestCaptureDirCmdArgPrefix = "--render-test-capture-dir=";
 	private const string RenderTestCaptureModeCmdArgPrefix = "--render-test-capture-mode=";
+	private const string ExportTelemetryHeatmapsCmdArgPrefix = "--export-telemetry-heatmaps=";
+	private const string TelemetryHeatmapOutputDirCmdArgPrefix = "--telemetry-heatmap-output-dir=";
+	private const string TelemetryHeatmapModeCmdArgPrefix = "--telemetry-heatmap-mode=";
+	private const string TelemetryExperimentEnvelopeScaleCmdArgPrefix = "--telemetry-experiment-envelope-scale=";
+	private const string TelemetryAdaptiveEnvelopeCmdArgPrefix = "--telemetry-adaptive-envelope=";
+	private const string AdaptiveEnvelopeThresholdStatisticCmdArgPrefix = "--adaptive-envelope-threshold-statistic=";
 	private const int RenderTestMinFramesPerRun = 90;
 	private const string FastBlackholeComparisonProfileToken = "blackhole_compare_fast";
 	private const string FastEinsteinComparisonProfileToken = "einstein_compare_fast";
@@ -152,6 +158,18 @@ public partial class RenderTestRunner : Node
 	private bool _renderTestCaptureEnabled = false;
 	private string _renderTestCaptureDir = string.Empty;
 	private string _renderTestCaptureModeLabel = string.Empty;
+	private bool _telemetryHeatmapCliOverrideKnown = false;
+	private bool _exportTelemetryHeatmaps = false;
+	private bool _telemetryHeatmapOutputDirCliOverrideKnown = false;
+	private string _telemetryHeatmapOutputDir = string.Empty;
+	private bool _telemetryHeatmapModeCliOverrideKnown = false;
+	private string _telemetryHeatmapMode = "basic";
+	private bool _telemetryExperimentEnvelopeScaleCliOverrideKnown = false;
+	private float _telemetryExperimentEnvelopeScale = 1.0f;
+	private bool _telemetryAdaptiveEnvelopeCliOverrideKnown = false;
+	private bool _telemetryAdaptiveEnvelopeEnabled = false;
+	private bool _adaptiveEnvelopeThresholdStatisticCliOverrideKnown = false;
+	private string _adaptiveEnvelopeThresholdStatistic = "mean";
 	private bool _startupDependencyErrorLogged = false;
 	private bool _baselineApplied = false;
 	private HarnessState _harnessState = HarnessState.Idle;
@@ -434,7 +452,13 @@ public partial class RenderTestRunner : Node
 				$"smartscale_goal={_smartScaleMode.ToString().ToLowerInvariant()} " +
 				$"capture={(_renderTestCaptureEnabled ? 1 : 0)} " +
 				$"capture_dir={Sanitize(string.IsNullOrWhiteSpace(_renderTestCaptureDir) ? "auto" : _renderTestCaptureDir)} " +
-				$"capture_mode={Sanitize(string.IsNullOrWhiteSpace(_renderTestCaptureModeLabel) ? "auto" : _renderTestCaptureModeLabel)}");
+				$"capture_mode={Sanitize(string.IsNullOrWhiteSpace(_renderTestCaptureModeLabel) ? "auto" : _renderTestCaptureModeLabel)} " +
+				$"telemetry_heatmaps={(ResolveTelemetryHeatmapExportEnabledForLogging() ? 1 : 0)} " +
+				$"telemetry_heatmap_dir={Sanitize(ResolveTelemetryHeatmapDirForLogging())} " +
+				$"telemetry_heatmap_mode={Sanitize(ResolveTelemetryHeatmapModeForLogging())} " +
+				$"telemetry_adaptive_envelope={(_telemetryAdaptiveEnvelopeCliOverrideKnown ? (_telemetryAdaptiveEnvelopeEnabled ? 1 : 0) : 0)} " +
+				$"adaptive_envelope_threshold_statistic={Sanitize(_adaptiveEnvelopeThresholdStatisticCliOverrideKnown ? _adaptiveEnvelopeThresholdStatistic : "mean")} " +
+				$"telemetry_experiment_envelope_scale={(_telemetryExperimentEnvelopeScaleCliOverrideKnown ? _telemetryExperimentEnvelopeScale.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) : "na")}");
 			GD.Print($"[RenderTestRunner] TokenDetected={hasToken} shouldStart={shouldStart}");
 			if (!shouldStart)
 			{
@@ -1005,6 +1029,11 @@ public partial class RenderTestRunner : Node
 		{
 			GD.Print($"[RenderTestRunner][AutoCalShadowEval] prepare phase=baseline name={Sanitize(run.Name)}");
 		}
+		if (_telemetryExperimentEnvelopeScaleCliOverrideKnown)
+		{
+			float runEnvelopeScale = _activeRunConfig.Pass2GeomEnvelopeRadiusScale ?? _film.Pass2GeomEnvelopeRadiusScale;
+			_activeRunConfig.Pass2GeomEnvelopeRadiusScale = Math.Max(0.1f, runEnvelopeScale * _telemetryExperimentEnvelopeScale);
+		}
 
 		MaybeApplyAcceptedAutoCalPresetToNextRun();
 		EmitAutoCalAppliedRunStartMarkerIfNeeded();
@@ -1012,6 +1041,30 @@ public partial class RenderTestRunner : Node
 		_activeRunHarnessStopwatch.Restart();
 		_film.ResetFixtureDebugStatsForRunStart();
 		_film.ApplyTestRunConfig(in _activeRunConfig);
+		if (_telemetryHeatmapCliOverrideKnown)
+		{
+			_film.ExportTelemetryHeatmaps = _exportTelemetryHeatmaps;
+		}
+		if (_telemetryHeatmapOutputDirCliOverrideKnown)
+		{
+			_film.TelemetryHeatmapOutputDir = _telemetryHeatmapOutputDir;
+		}
+		if (_telemetryHeatmapModeCliOverrideKnown)
+		{
+			_film.TelemetryHeatmapMode = _telemetryHeatmapMode;
+		}
+		if (_telemetryAdaptiveEnvelopeCliOverrideKnown)
+		{
+			_film.AdaptiveTelemetryEnvelopeScalingEnabled = _telemetryAdaptiveEnvelopeEnabled;
+		}
+		if (_adaptiveEnvelopeThresholdStatisticCliOverrideKnown)
+		{
+			_film.AdaptiveEnvelopeThresholdStatistic = _adaptiveEnvelopeThresholdStatistic;
+		}
+		if (_telemetryExperimentEnvelopeScaleCliOverrideKnown)
+		{
+			_film.Pass2GeomEnvelopeRadiusScale = Mathf.Max(0.1f, _film.Pass2GeomEnvelopeRadiusScale * _telemetryExperimentEnvelopeScale);
+		}
 		if (TryGetSharedRayBeamRenderer(out RayBeamRenderer diagRbr) && GodotObject.IsInstanceValid(diagRbr))
 		{
 			diagRbr.ResetMetricTransportDiagnostics();
@@ -2252,18 +2305,15 @@ public partial class RenderTestRunner : Node
 
 	private void TryWriteRenderTestCapture(in GrinFilmCamera.TestRunConfig run, ulong runExecId)
 	{
-		if (!_renderTestCaptureEnabled)
+		bool captureRgb = _renderTestCaptureEnabled;
+		bool exportTelemetryHeatmaps = ResolveTelemetryHeatmapExportEnabled();
+		if (!captureRgb && !exportTelemetryHeatmaps)
 		{
 			return;
 		}
 		if (_film == null || !GodotObject.IsInstanceValid(_film))
 		{
-			GD.PrintErr($"[RenderTestRunner][Capture][FAIL] run_id={runExecId} reason=missing_film");
-			return;
-		}
-		if (!_film.TryCopyFilmImageForTesting(out Image image) || image == null)
-		{
-			GD.PrintErr($"[RenderTestRunner][Capture][FAIL] run_id={runExecId} reason=missing_film_image");
+			GD.PrintErr($"[RenderTestRunner][Artifacts][FAIL] run_id={runExecId} reason=missing_film");
 			return;
 		}
 
@@ -2277,28 +2327,288 @@ public partial class RenderTestRunner : Node
 				Directory.CreateDirectory(captureDirName);
 			}
 
-			Error saveError = image.SavePng(capturePath);
-			if (saveError != Error.Ok)
+			if (captureRgb)
 			{
-				GD.PrintErr(
-					$"[RenderTestRunner][Capture][FAIL] run_id={runExecId} fixture={GetHudFixtureToken(_requestedFixture)} " +
-					$"path={capturePath} error={saveError}");
-				return;
+				if (!_film.TryCopyFilmImageForTesting(out Image image) || image == null)
+				{
+					GD.PrintErr($"[RenderTestRunner][Capture][FAIL] run_id={runExecId} reason=missing_film_image");
+					return;
+				}
+
+				Error saveError = image.SavePng(capturePath);
+				if (saveError != Error.Ok)
+				{
+					GD.PrintErr(
+						$"[RenderTestRunner][Capture][FAIL] run_id={runExecId} fixture={GetHudFixtureToken(_requestedFixture)} " +
+						$"path={capturePath} error={saveError}");
+					return;
+				}
+
+				TryWriteTransportDiagnosticsCapture(capturePath);
 			}
 
 			string modeToken = ResolveRenderTestCaptureModeToken(in run);
 			string schedulerToken = BuildRenderTestCaptureSchedulerToken();
 			string subtileWidthToken = BuildRenderTestCaptureSubtileWidthToken();
-			TryWriteTransportDiagnosticsCapture(capturePath);
-			GD.Print(
-				$"[RenderTestRunner][Capture] run_id={runExecId} fixture={GetHudFixtureToken(_requestedFixture)} " +
-				$"mode={modeToken} scheduler={schedulerToken} subtile_width={subtileWidthToken} path={capturePath}");
+			if (captureRgb)
+			{
+				GD.Print(
+					$"[RenderTestRunner][Capture] run_id={runExecId} fixture={GetHudFixtureToken(_requestedFixture)} " +
+					$"mode={modeToken} scheduler={schedulerToken} subtile_width={subtileWidthToken} path={capturePath}");
+			}
+
+			if (exportTelemetryHeatmaps)
+			{
+				string telemetryOutputDir = ResolveTelemetryHeatmapOutputDir(captureDir);
+				Directory.CreateDirectory(telemetryOutputDir);
+				TryWriteTelemetryHeatmapArtifacts(capturePath, telemetryOutputDir, runExecId);
+			}
 		}
 		catch (Exception ex)
 		{
 			GD.PrintErr(
-				$"[RenderTestRunner][Capture][FAIL] run_id={runExecId} fixture={GetHudFixtureToken(_requestedFixture)} " +
+				$"[RenderTestRunner][Artifacts][FAIL] run_id={runExecId} fixture={GetHudFixtureToken(_requestedFixture)} " +
 				$"path={capturePath} exception={ex.GetType().Name}");
+		}
+	}
+
+	private bool ResolveTelemetryHeatmapExportEnabled()
+	{
+		if (_telemetryHeatmapCliOverrideKnown)
+		{
+			return _exportTelemetryHeatmaps;
+		}
+		return _film != null && GodotObject.IsInstanceValid(_film) && _film.ExportTelemetryHeatmaps;
+	}
+
+	private string ResolveTelemetryHeatmapOutputDir(string fallbackDir)
+	{
+		if (_telemetryHeatmapOutputDirCliOverrideKnown && !string.IsNullOrWhiteSpace(_telemetryHeatmapOutputDir))
+		{
+			return _telemetryHeatmapOutputDir;
+		}
+		if (_film != null && GodotObject.IsInstanceValid(_film) && !string.IsNullOrWhiteSpace(_film.TelemetryHeatmapOutputDir))
+		{
+			return ResolveCapturePath(_film.TelemetryHeatmapOutputDir);
+		}
+		return fallbackDir;
+	}
+
+	private string ResolveTelemetryHeatmapMode()
+	{
+		if (_telemetryHeatmapModeCliOverrideKnown && !string.IsNullOrWhiteSpace(_telemetryHeatmapMode))
+		{
+			return _telemetryHeatmapMode;
+		}
+		if (_film != null && GodotObject.IsInstanceValid(_film) && !string.IsNullOrWhiteSpace(_film.TelemetryHeatmapMode))
+		{
+			return _film.TelemetryHeatmapMode.Trim().ToLowerInvariant();
+		}
+		return "basic";
+	}
+
+	private void TryWriteTelemetryHeatmapArtifacts(string capturePath, string outputDir, ulong runExecId)
+	{
+		if (_film == null || !GodotObject.IsInstanceValid(_film))
+		{
+			return;
+		}
+
+		string captureStem = Path.GetFileNameWithoutExtension(capturePath);
+		string mode = ResolveTelemetryHeatmapMode();
+		string scenePath = GetTree().CurrentScene?.SceneFilePath ?? string.Empty;
+		int imageWidth = _film.FilmWidthPixels;
+		int imageHeight = _film.FilmHeightRows;
+		bool benchmarkLockEnabled = TryGetBoolCmdArgValue("--benchmark-lock=", out bool benchmarkLock) && benchmarkLock;
+		if (!benchmarkLockEnabled && TryGetBoolCmdArgValue("--benchmark-deterministic=", out bool benchmarkDeterministic))
+		{
+			benchmarkLockEnabled = benchmarkDeterministic;
+		}
+		bool benchmarkSeedKnown = TryGetIntCmdArgValue("--benchmark-seed=", out int benchmarkSeed);
+		if (!benchmarkSeedKnown && TryGetIntCmdArgValue("--benchmark-fixed-seed=", out int benchmarkFixedSeed))
+		{
+			benchmarkSeedKnown = true;
+			benchmarkSeed = benchmarkFixedSeed;
+		}
+		bool hasFixtureDebugStats = _film.TryGetFixtureDebugStatsForTesting(out GrinFilmCamera.FixtureDebugStatsSnapshot fixtureDebugStats);
+		double fixtureMissRate = hasFixtureDebugStats && fixtureDebugStats.TracedPixels > 0
+			? (double)fixtureDebugStats.MissHits / fixtureDebugStats.TracedPixels
+			: 0.0;
+		GrinFilmCamera.TelemetryHeatmapKind[] kinds =
+		{
+			GrinFilmCamera.TelemetryHeatmapKind.Work,
+			GrinFilmCamera.TelemetryHeatmapKind.Candidates,
+			GrinFilmCamera.TelemetryHeatmapKind.Query,
+			GrinFilmCamera.TelemetryHeatmapKind.Resolve,
+			GrinFilmCamera.TelemetryHeatmapKind.Pass1Steps,
+			GrinFilmCamera.TelemetryHeatmapKind.CurvatureMax,
+			GrinFilmCamera.TelemetryHeatmapKind.CurvatureMean,
+			GrinFilmCamera.TelemetryHeatmapKind.DkMax,
+			GrinFilmCamera.TelemetryHeatmapKind.D2kMax,
+			GrinFilmCamera.TelemetryHeatmapKind.WorkMinusCurvature,
+			GrinFilmCamera.TelemetryHeatmapKind.QueryMinusCurvature,
+			GrinFilmCamera.TelemetryHeatmapKind.Efficiency
+		};
+
+		System.Text.StringBuilder summary = new System.Text.StringBuilder(768);
+		summary.Append("{");
+		summary.Append("\"fixture\":\"").Append(JsonEscape(GetHudFixtureToken(_requestedFixture))).Append("\",");
+		summary.Append("\"scene\":\"").Append(JsonEscape(scenePath)).Append("\",");
+		summary.Append("\"capture_stem\":\"").Append(JsonEscape(captureStem)).Append("\",");
+		summary.Append("\"run_id\":").Append(runExecId).Append(",");
+		summary.Append("\"image_width\":").Append(imageWidth).Append(",");
+		summary.Append("\"image_height\":").Append(imageHeight).Append(",");
+		summary.Append("\"benchmark_lock\":").Append(benchmarkLockEnabled ? "true" : "false").Append(",");
+		summary.Append("\"benchmark_seed\":").Append(benchmarkSeedKnown ? benchmarkSeed.ToString() : "null").Append(",");
+		summary.Append("\"telemetry_adaptive_envelope\":")
+			.Append((_telemetryAdaptiveEnvelopeCliOverrideKnown ? _telemetryAdaptiveEnvelopeEnabled : _film.AdaptiveTelemetryEnvelopeScalingEnabled) ? "true" : "false").Append(",");
+		summary.Append("\"adaptive_envelope_threshold_statistic\":\"")
+			.Append(JsonEscape(_adaptiveEnvelopeThresholdStatisticCliOverrideKnown ? _adaptiveEnvelopeThresholdStatistic : _film.AdaptiveEnvelopeThresholdStatistic)).Append("\",");
+		summary.Append("\"telemetry_experiment_envelope_scale\":")
+			.Append(_telemetryExperimentEnvelopeScaleCliOverrideKnown ? FormatJsonFloat(_telemetryExperimentEnvelopeScale) : "null").Append(",");
+		summary.Append("\"fixture_traced_pixels\":").Append(hasFixtureDebugStats ? fixtureDebugStats.TracedPixels.ToString() : "null").Append(",");
+		summary.Append("\"fixture_miss_hits\":").Append(hasFixtureDebugStats ? fixtureDebugStats.MissHits.ToString() : "null").Append(",");
+		summary.Append("\"fixture_miss_rate\":").Append(hasFixtureDebugStats ? fixtureMissRate.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture) : "null").Append(",");
+		summary.Append("\"rgb_capture_path\":\"").Append(JsonEscape(capturePath)).Append("\",");
+		summary.Append("\"work_score\":\"pass1AcceptedSteps + candidateCount + queryCount + resolveCount\",");
+		summary.Append("\"curvature_reference\":\"curvatureMean\",");
+		if (_film.TryGetTelemetryCorrelationStatsForTesting(out float workVsCurvatureMean, out float queryVsCurvatureMean))
+		{
+			summary.Append("\"correlation_work_vs_curvature\":").Append(FormatJsonFloat(workVsCurvatureMean)).Append(",");
+			summary.Append("\"correlation_query_vs_curvature\":").Append(FormatJsonFloat(queryVsCurvatureMean)).Append(",");
+		}
+		else
+		{
+			summary.Append("\"correlation_work_vs_curvature\":null,");
+			summary.Append("\"correlation_query_vs_curvature\":null,");
+		}
+		if (_film.TryGetAdaptiveEnvelopeScaleStatsForTesting(out GrinFilmCamera.AdaptiveEnvelopeScaleStats adaptiveEnvelopeScaleStats))
+		{
+			summary.Append("\"adaptive_envelope_scale_min\":").Append(FormatJsonFloat(adaptiveEnvelopeScaleStats.Min)).Append(",");
+			summary.Append("\"adaptive_envelope_scale_mean\":").Append(FormatJsonFloat(adaptiveEnvelopeScaleStats.Mean)).Append(",");
+			summary.Append("\"adaptive_envelope_scale_max\":").Append(FormatJsonFloat(adaptiveEnvelopeScaleStats.Max)).Append(",");
+		}
+		else
+		{
+			summary.Append("\"adaptive_envelope_scale_min\":null,");
+			summary.Append("\"adaptive_envelope_scale_mean\":null,");
+			summary.Append("\"adaptive_envelope_scale_max\":null,");
+		}
+		if (_film.TryGetAdaptiveEnvelopeDebugStatsForTesting(out GrinFilmCamera.AdaptiveEnvelopeDebugStats adaptiveEnvelopeDebugStats))
+		{
+			double sampleCount = Math.Max(1, adaptiveEnvelopeDebugStats.SampleCount);
+			summary.Append("\"adaptive_envelope_activation_progress_threshold\":0.25,");
+			summary.Append("\"adaptive_envelope_query_minus_curvature_p50\":").Append(FormatJsonFloat(adaptiveEnvelopeDebugStats.QueryMinusCurvatureP50)).Append(",");
+			summary.Append("\"adaptive_envelope_query_minus_curvature_p90\":").Append(FormatJsonFloat(adaptiveEnvelopeDebugStats.QueryMinusCurvatureP90)).Append(",");
+			summary.Append("\"adaptive_envelope_regime_tight_pct\":")
+				.Append((adaptiveEnvelopeDebugStats.TightCount / sampleCount).ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)).Append(",");
+			summary.Append("\"adaptive_envelope_regime_neutral_pct\":")
+				.Append((adaptiveEnvelopeDebugStats.NeutralCount / sampleCount).ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)).Append(",");
+			summary.Append("\"adaptive_envelope_regime_relaxed_pct\":")
+				.Append((adaptiveEnvelopeDebugStats.RelaxedCount / sampleCount).ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)).Append(",");
+			summary.Append("\"adaptive_envelope_scale_histogram\":[")
+				.Append(adaptiveEnvelopeDebugStats.HistBin0).Append(",")
+				.Append(adaptiveEnvelopeDebugStats.HistBin1).Append(",")
+				.Append(adaptiveEnvelopeDebugStats.HistBin2).Append(",")
+				.Append(adaptiveEnvelopeDebugStats.HistBin3).Append(",")
+				.Append(adaptiveEnvelopeDebugStats.HistBin4).Append("],");
+			summary.Append("\"adaptive_envelope_scale_histogram_labels\":[\"lt_0_75\",\"0_75_to_0_85\",\"0_85_to_0_95\",\"0_95_to_1_025\",\"gte_1_025\"],");
+		}
+		else
+		{
+			summary.Append("\"adaptive_envelope_activation_progress_threshold\":0.25,");
+			summary.Append("\"adaptive_envelope_query_minus_curvature_p50\":null,");
+			summary.Append("\"adaptive_envelope_query_minus_curvature_p90\":null,");
+			summary.Append("\"adaptive_envelope_regime_tight_pct\":null,");
+			summary.Append("\"adaptive_envelope_regime_neutral_pct\":null,");
+			summary.Append("\"adaptive_envelope_regime_relaxed_pct\":null,");
+			summary.Append("\"adaptive_envelope_scale_histogram\":null,");
+			summary.Append("\"adaptive_envelope_scale_histogram_labels\":[\"lt_0_75\",\"0_75_to_0_85\",\"0_85_to_0_95\",\"0_95_to_1_025\",\"gte_1_025\"],");
+		}
+		summary.Append("\"mode\":\"").Append(JsonEscape(mode)).Append("\",");
+		summary.Append("\"normalization_mode\":\"").Append(JsonEscape(mode)).Append("\",");
+		summary.Append("\"maps\":[");
+
+		bool wroteAny = false;
+		List<string> exportedPaths = new List<string>();
+		exportedPaths.Add(capturePath);
+		for (int i = 0; i < kinds.Length; i++)
+		{
+			GrinFilmCamera.TelemetryHeatmapKind kind = kinds[i];
+			if (!_film.TryCopyTelemetryHeatmapImageForTesting(kind, out Image heatmap, out GrinFilmCamera.TelemetryHeatmapStats stats) ||
+				heatmap == null)
+			{
+				continue;
+			}
+
+			string suffix = kind switch
+			{
+				GrinFilmCamera.TelemetryHeatmapKind.Work => "heat_work",
+				GrinFilmCamera.TelemetryHeatmapKind.Candidates => "heat_candidates",
+				GrinFilmCamera.TelemetryHeatmapKind.Query => "heat_query",
+				GrinFilmCamera.TelemetryHeatmapKind.Resolve => "heat_resolve",
+				GrinFilmCamera.TelemetryHeatmapKind.Pass1Steps => "heat_pass1_steps",
+				GrinFilmCamera.TelemetryHeatmapKind.CurvatureMax => "heat_curvature_max",
+				GrinFilmCamera.TelemetryHeatmapKind.CurvatureMean => "heat_curvature_mean",
+				GrinFilmCamera.TelemetryHeatmapKind.DkMax => "heat_dk_max",
+				GrinFilmCamera.TelemetryHeatmapKind.D2kMax => "heat_d2k_max",
+				GrinFilmCamera.TelemetryHeatmapKind.WorkMinusCurvature => "heat_work_minus_curvature",
+				GrinFilmCamera.TelemetryHeatmapKind.QueryMinusCurvature => "heat_query_minus_curvature",
+				GrinFilmCamera.TelemetryHeatmapKind.Efficiency => "heat_efficiency",
+				_ => "heat_unknown"
+			};
+			string outPath = Path.Combine(outputDir, captureStem + "." + suffix + ".png");
+			Error saveError = heatmap.SavePng(outPath);
+			if (saveError != Error.Ok)
+			{
+				GD.PrintErr(
+					$"[RenderTestRunner][TelemetryHeatmap][FAIL] run_id={runExecId} fixture={GetHudFixtureToken(_requestedFixture)} " +
+					$"kind={stats.Key} path={outPath} error={saveError}");
+				continue;
+			}
+			exportedPaths.Add(outPath);
+
+			if (wroteAny)
+			{
+				summary.Append(",");
+			}
+			wroteAny = true;
+			summary.Append("{")
+				.Append("\"key\":\"").Append(JsonEscape(stats.Key)).Append("\",")
+				.Append("\"path\":\"").Append(JsonEscape(outPath)).Append("\",")
+				.Append("\"min\":").Append(FormatJsonFloat(stats.Min)).Append(",")
+				.Append("\"max\":").Append(FormatJsonFloat(stats.Max)).Append(",")
+				.Append("\"mean\":").Append(FormatJsonFloat(stats.Mean)).Append(",")
+				.Append("\"p10\":").Append(FormatJsonFloat(stats.P10)).Append(",")
+				.Append("\"p50\":").Append(FormatJsonFloat(stats.P50)).Append(",")
+				.Append("\"p90\":").Append(FormatJsonFloat(stats.P90)).Append(",")
+				.Append("\"clamp_max\":").Append(FormatJsonFloat(stats.ClampMax)).Append(",")
+				.Append("\"mode\":\"").Append(JsonEscape(stats.Mode)).Append("\"")
+				.Append("}");
+
+			GD.Print(
+				$"[RenderTestRunner][TelemetryHeatmap] run_id={runExecId} fixture={GetHudFixtureToken(_requestedFixture)} " +
+				$"kind={stats.Key} mode={stats.Mode} min={stats.Min:0.###} max={stats.Max:0.###} mean={stats.Mean:0.###} " +
+				$"p10={stats.P10:0.###} p50={stats.P50:0.###} p90={stats.P90:0.###} clamp_max={stats.ClampMax:0.###} path={outPath}");
+		}
+
+		summary.Append("]}");
+		if (!wroteAny)
+		{
+			return;
+		}
+
+		string summaryPath = Path.Combine(outputDir, captureStem + ".telemetry_summary.json");
+		try
+		{
+			File.WriteAllText(summaryPath, summary.ToString());
+			exportedPaths.Add(summaryPath);
+			GD.Print($"[RenderTestRunner][TelemetryHeatmapSummary] run_id={runExecId} path={summaryPath}");
+			GD.Print($"[RenderTestRunner][TelemetryHeatmapPacket] run_id={runExecId} paths={string.Join(" | ", exportedPaths)}");
+		}
+		catch (Exception ex)
+		{
+			GD.PrintErr($"[RenderTestRunner][TelemetryHeatmapSummary][FAIL] run_id={runExecId} path={summaryPath} exception={ex.GetType().Name}");
 		}
 	}
 
@@ -2364,6 +2674,24 @@ public partial class RenderTestRunner : Node
 		}
 	}
 
+	private static string FormatJsonFloat(float value)
+	{
+		float safe = (float.IsNaN(value) || float.IsInfinity(value)) ? 0f : value;
+		return safe.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture);
+	}
+
+	private static string JsonEscape(string value)
+	{
+		if (string.IsNullOrEmpty(value))
+		{
+			return string.Empty;
+		}
+
+		return value
+			.Replace("\\", "\\\\")
+			.Replace("\"", "\\\"");
+	}
+
 	private string ResolveRenderTestCaptureDir()
 	{
 		if (!string.IsNullOrWhiteSpace(_renderTestCaptureDir))
@@ -2372,6 +2700,41 @@ public partial class RenderTestRunner : Node
 		}
 
 		return ResolveCapturePath(Path.Combine("output", "render_test_captures"));
+	}
+
+	private bool ResolveTelemetryHeatmapExportEnabledForLogging()
+	{
+		if (_telemetryHeatmapCliOverrideKnown)
+		{
+			return _exportTelemetryHeatmaps;
+		}
+		return _film != null && GodotObject.IsInstanceValid(_film) && _film.ExportTelemetryHeatmaps;
+	}
+
+	private string ResolveTelemetryHeatmapDirForLogging()
+	{
+		if (_telemetryHeatmapOutputDirCliOverrideKnown && !string.IsNullOrWhiteSpace(_telemetryHeatmapOutputDir))
+		{
+			return _telemetryHeatmapOutputDir;
+		}
+		if (_film != null && GodotObject.IsInstanceValid(_film) && !string.IsNullOrWhiteSpace(_film.TelemetryHeatmapOutputDir))
+		{
+			return _film.TelemetryHeatmapOutputDir;
+		}
+		return "auto";
+	}
+
+	private string ResolveTelemetryHeatmapModeForLogging()
+	{
+		if (_telemetryHeatmapModeCliOverrideKnown && !string.IsNullOrWhiteSpace(_telemetryHeatmapMode))
+		{
+			return _telemetryHeatmapMode;
+		}
+		if (_film != null && GodotObject.IsInstanceValid(_film) && !string.IsNullOrWhiteSpace(_film.TelemetryHeatmapMode))
+		{
+			return _film.TelemetryHeatmapMode;
+		}
+		return "basic";
 	}
 
 	private string BuildRenderTestCapturePath(in GrinFilmCamera.TestRunConfig run, ulong runExecId, string captureDir)
@@ -3258,6 +3621,18 @@ public partial class RenderTestRunner : Node
 		_renderTestCaptureEnabled = false;
 		_renderTestCaptureDir = string.Empty;
 		_renderTestCaptureModeLabel = string.Empty;
+		_telemetryHeatmapCliOverrideKnown = false;
+		_exportTelemetryHeatmaps = false;
+		_telemetryHeatmapOutputDirCliOverrideKnown = false;
+		_telemetryHeatmapOutputDir = string.Empty;
+		_telemetryHeatmapModeCliOverrideKnown = false;
+		_telemetryHeatmapMode = "basic";
+		_telemetryExperimentEnvelopeScaleCliOverrideKnown = false;
+		_telemetryExperimentEnvelopeScale = 1.0f;
+		_telemetryAdaptiveEnvelopeCliOverrideKnown = false;
+		_telemetryAdaptiveEnvelopeEnabled = false;
+		_adaptiveEnvelopeThresholdStatisticCliOverrideKnown = false;
+		_adaptiveEnvelopeThresholdStatistic = "mean";
 		if (TryGetBoolCmdArgValue(RenderTestCaptureCmdArgPrefix, out bool renderTestCaptureEnabled))
 		{
 			_renderTestCaptureEnabled = renderTestCaptureEnabled;
@@ -3271,6 +3646,45 @@ public partial class RenderTestRunner : Node
 			!string.IsNullOrWhiteSpace(renderTestCaptureMode))
 		{
 			_renderTestCaptureModeLabel = SanitizeTokenForFilename(renderTestCaptureMode);
+		}
+		if (TryGetBoolCmdArgValue(ExportTelemetryHeatmapsCmdArgPrefix, out bool exportTelemetryHeatmaps))
+		{
+			_telemetryHeatmapCliOverrideKnown = true;
+			_exportTelemetryHeatmaps = exportTelemetryHeatmaps;
+		}
+		if (TryGetStringCmdArgValue(TelemetryHeatmapOutputDirCmdArgPrefix, out string telemetryHeatmapOutputDir) &&
+			!string.IsNullOrWhiteSpace(telemetryHeatmapOutputDir))
+		{
+			_telemetryHeatmapOutputDirCliOverrideKnown = true;
+			_telemetryHeatmapOutputDir = ResolveCapturePath(telemetryHeatmapOutputDir);
+		}
+		if (TryGetStringCmdArgValue(TelemetryHeatmapModeCmdArgPrefix, out string telemetryHeatmapMode) &&
+			!string.IsNullOrWhiteSpace(telemetryHeatmapMode))
+		{
+			_telemetryHeatmapModeCliOverrideKnown = true;
+			_telemetryHeatmapMode = telemetryHeatmapMode.Trim().ToLowerInvariant();
+		}
+		if (TryGetStringCmdArgValue(TelemetryExperimentEnvelopeScaleCmdArgPrefix, out string telemetryExperimentEnvelopeScaleRaw) &&
+			!string.IsNullOrWhiteSpace(telemetryExperimentEnvelopeScaleRaw) &&
+			float.TryParse(telemetryExperimentEnvelopeScaleRaw.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float telemetryExperimentEnvelopeScale))
+		{
+			_telemetryExperimentEnvelopeScaleCliOverrideKnown = true;
+			_telemetryExperimentEnvelopeScale = Mathf.Clamp(telemetryExperimentEnvelopeScale, 0.1f, 4.0f);
+		}
+		if (TryGetBoolCmdArgValue(TelemetryAdaptiveEnvelopeCmdArgPrefix, out bool telemetryAdaptiveEnvelopeEnabled))
+		{
+			_telemetryAdaptiveEnvelopeCliOverrideKnown = true;
+			_telemetryAdaptiveEnvelopeEnabled = telemetryAdaptiveEnvelopeEnabled;
+		}
+		if (TryGetStringCmdArgValue(AdaptiveEnvelopeThresholdStatisticCmdArgPrefix, out string adaptiveEnvelopeThresholdStatistic) &&
+			!string.IsNullOrWhiteSpace(adaptiveEnvelopeThresholdStatistic))
+		{
+			string token = adaptiveEnvelopeThresholdStatistic.Trim().ToLowerInvariant();
+			if (token == "mean" || token == "p90" || token == "max")
+			{
+				_adaptiveEnvelopeThresholdStatisticCliOverrideKnown = true;
+				_adaptiveEnvelopeThresholdStatistic = token;
+			}
 		}
 		if (TryGetBoolCmdArgValue(AutoCalCmdArgPrefix, out bool autoCalEnabled))
 		{

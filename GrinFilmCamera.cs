@@ -73,6 +73,7 @@ public partial class GrinFilmCamera : Node
 		public bool? UseGeometryTLASPruning;
 		public float? Pass2GeomEnvelopeRadiusScale;
 		public float? Pass2GeomEnvelopeAabbExpand;
+		public bool? AdaptiveTelemetryEnvelopeScalingEnabled;
 		public bool? UsePass2CollisionStride;
 		public int? Pass2CollisionStrideNear;
 		public int? Pass2CollisionStrideFar;
@@ -111,6 +112,8 @@ public partial class GrinFilmCamera : Node
 		public int ThreadedPass2RowsPerChunk;
 		public float Pass2GeomEnvelopeRadiusScale;
 		public float Pass2GeomEnvelopeAabbExpand;
+		public bool AdaptiveTelemetryEnvelopeScalingEnabled;
+		public string AdaptiveEnvelopeThresholdStatistic;
 		public bool UsePass2CollisionStride;
 		public int Pass2CollisionStrideNear;
 		public int Pass2CollisionStrideFar;
@@ -227,6 +230,121 @@ public partial class GrinFilmCamera : Node
 			FrameSegmentsTested = frameSegmentsTested;
 			FramePhysicsQueries = framePhysicsQueries;
 			SkyColor = skyColor;
+		}
+	}
+
+	public enum TelemetryHeatmapKind
+	{
+		Work = 0,
+		Candidates = 1,
+		Query = 2,
+		Resolve = 3,
+		Pass1Steps = 4,
+		CurvatureMax = 5,
+		CurvatureMean = 6,
+		DkMax = 7,
+		D2kMax = 8,
+		WorkMinusCurvature = 9,
+		QueryMinusCurvature = 10,
+		Efficiency = 11
+	}
+
+	public readonly struct AdaptiveEnvelopeScaleStats
+	{
+		public readonly float Min;
+		public readonly float Mean;
+		public readonly float Max;
+
+		public AdaptiveEnvelopeScaleStats(float min, float mean, float max)
+		{
+			Min = min;
+			Mean = mean;
+			Max = max;
+		}
+	}
+
+	public readonly struct AdaptiveEnvelopeDebugStats
+	{
+		public readonly float Min;
+		public readonly float Mean;
+		public readonly float Max;
+		public readonly int SampleCount;
+		public readonly int TightCount;
+		public readonly int NeutralCount;
+		public readonly int RelaxedCount;
+		public readonly int HistBin0;
+		public readonly int HistBin1;
+		public readonly int HistBin2;
+		public readonly int HistBin3;
+		public readonly int HistBin4;
+		public readonly float QueryMinusCurvatureP50;
+		public readonly float QueryMinusCurvatureP90;
+
+		public AdaptiveEnvelopeDebugStats(
+			float min,
+			float mean,
+			float max,
+			int sampleCount,
+			int tightCount,
+			int neutralCount,
+			int relaxedCount,
+			int histBin0,
+			int histBin1,
+			int histBin2,
+			int histBin3,
+			int histBin4,
+			float queryMinusCurvatureP50,
+			float queryMinusCurvatureP90)
+		{
+			Min = min;
+			Mean = mean;
+			Max = max;
+			SampleCount = sampleCount;
+			TightCount = tightCount;
+			NeutralCount = neutralCount;
+			RelaxedCount = relaxedCount;
+			HistBin0 = histBin0;
+			HistBin1 = histBin1;
+			HistBin2 = histBin2;
+			HistBin3 = histBin3;
+			HistBin4 = histBin4;
+			QueryMinusCurvatureP50 = queryMinusCurvatureP50;
+			QueryMinusCurvatureP90 = queryMinusCurvatureP90;
+		}
+	}
+
+	public readonly struct TelemetryHeatmapStats
+	{
+		public readonly string Key;
+		public readonly float Min;
+		public readonly float Max;
+		public readonly float Mean;
+		public readonly float P10;
+		public readonly float P50;
+		public readonly float P90;
+		public readonly float ClampMax;
+		public readonly string Mode;
+
+		public TelemetryHeatmapStats(
+			string key,
+			float min,
+			float max,
+			float mean,
+			float p10,
+			float p50,
+			float p90,
+			float clampMax,
+			string mode)
+		{
+			Key = key ?? string.Empty;
+			Min = min;
+			Max = max;
+			Mean = mean;
+			P10 = p10;
+			P50 = p50;
+			P90 = p90;
+			ClampMax = clampMax;
+			Mode = mode ?? "basic";
 		}
 	}
 
@@ -377,6 +495,22 @@ public partial class GrinFilmCamera : Node
 	/// <summary>Flips hit normals to face the camera for shading.</summary>
 	// CONTROL FACTOR: When true, normals are flipped toward camera; affects NdotV shading.
 	[Export] public bool FlipNormalToCamera = true;
+
+	[ExportSubgroup("Telemetry Artifacts")]
+	/// <summary>Exports optional film-space telemetry heatmaps for fixture/debug runs.</summary>
+	[Export] public bool ExportTelemetryHeatmaps = false;
+	/// <summary>Optional output directory override for telemetry heatmaps. Empty defers to the harness capture path.</summary>
+	[Export] public string TelemetryHeatmapOutputDir = "";
+	/// <summary>Normalization mode for telemetry heatmaps. "basic" uses percentile clamping.</summary>
+	[Export] public string TelemetryHeatmapMode = "basic";
+	/// <summary>Enables telemetry-driven adaptive envelope scaling for pass-2 candidate gathering.</summary>
+	[Export] public bool AdaptiveTelemetryEnvelopeScalingEnabled = false;
+	/// <summary>Statistic used to trigger adaptive envelope thresholds: mean, p90, or max.</summary>
+	[Export] public string AdaptiveEnvelopeThresholdStatistic = "mean";
+	/// <summary>Low threshold on the normalized telemetry mismatch signal.</summary>
+	[Export(PropertyHint.Range, "0.0,1.0,0.01")] public float AdaptiveTelemetryEnvelopeLowThreshold = 0.35f;
+	/// <summary>High threshold on the normalized telemetry mismatch signal.</summary>
+	[Export(PropertyHint.Range, "0.0,1.0,0.01")] public float AdaptiveTelemetryEnvelopeHighThreshold = 0.65f;
 
 	[ExportSubgroup("Research Mode")]
 	// Optional per-camera overrides for research behavior. Inert unless override flags enable fields.
@@ -1082,6 +1216,25 @@ public partial class GrinFilmCamera : Node
 	private ImageTexture _tex;
 	private int _filmWidth;
 	private int _filmHeight;
+	private float[] _telemetryPass1AcceptedSteps = Array.Empty<float>();
+	private float[] _telemetryCandidateCount = Array.Empty<float>();
+	private float[] _telemetryQueryCount = Array.Empty<float>();
+	private float[] _telemetryResolveCount = Array.Empty<float>();
+	private float[] _telemetryCurvatureMax = Array.Empty<float>();
+	private float[] _telemetryCurvatureMean = Array.Empty<float>();
+	private float[] _telemetryDkMax = Array.Empty<float>();
+	private float[] _telemetryD2kMax = Array.Empty<float>();
+	private float[] _adaptiveEnvelopeMismatchPrior = Array.Empty<float>();
+	private float _adaptiveEnvelopeScaleMinThisRun = 1.0f;
+	private float _adaptiveEnvelopeScaleMaxThisRun = 1.0f;
+	private double _adaptiveEnvelopeScaleSumThisRun = 0.0;
+	private long _adaptiveEnvelopeScaleCountThisRun = 0;
+	private int _adaptiveEnvelopeTightCountThisRun = 0;
+	private int _adaptiveEnvelopeNeutralCountThisRun = 0;
+	private int _adaptiveEnvelopeRelaxedCountThisRun = 0;
+	private int[] _adaptiveEnvelopeScaleHistogram = new int[5];
+	private float _adaptiveEnvelopeGlobalQueryMinusCurvatureP50 = 0.0f;
+	private float _adaptiveEnvelopeGlobalQueryMinusCurvatureP90 = 0.0f;
 	private TextureRect _filmView;   // if user supplies FilmViewPath
 	private TextureRect _overlayRect; // auto-created fallback
 	private int _rowCursor = 0;
@@ -1851,6 +2004,10 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 		public float MinSegLenForStrideSkip;
 		public float Pass2GeomEnvelopeRadiusScale;
 		public float Pass2GeomEnvelopeAabbExpand;
+		public bool AdaptiveTelemetryEnvelopeScalingEnabled;
+		public string AdaptiveEnvelopeThresholdStatistic;
+		public float AdaptiveTelemetryEnvelopeLowThreshold;
+		public float AdaptiveTelemetryEnvelopeHighThreshold;
 		public bool UseGeometryTLASPruning;
 		public bool Pass2HitBackFaces;
 		public bool Pass2HitFromInside;
@@ -2308,6 +2465,9 @@ private sealed class OverlayRollingWindow
 		public bool PrevHadHitForSoftGate;
 		public bool TestedAnyInPass0ThisPixel;
 		public bool SoftGateHitThisPixel;
+		public float CandidateCount;
+		public float QueryCount;
+		public float ResolveCount;
 		public float HitDistance;
 		public Vector3 BestHp;
 		public Vector3 BestHn;
@@ -3581,7 +3741,9 @@ private sealed class OverlayRollingWindow
 				ThreadedPass2RowsPerChunk = ThreadedPass2RowsPerChunk,
 				Pass2GeomEnvelopeRadiusScale = Pass2GeomEnvelopeRadiusScale,
 			Pass2GeomEnvelopeAabbExpand = Pass2GeomEnvelopeAabbExpand,
-			UsePass2CollisionStride = UsePass2CollisionStride,
+			AdaptiveTelemetryEnvelopeScalingEnabled = AdaptiveTelemetryEnvelopeScalingEnabled,
+			AdaptiveEnvelopeThresholdStatistic = AdaptiveEnvelopeThresholdStatistic,
+				UsePass2CollisionStride = UsePass2CollisionStride,
 			Pass2CollisionStrideNear = Pass2CollisionStrideNear,
 			Pass2CollisionStrideFar = Pass2CollisionStrideFar,
 			Pass2CollisionStrideFarStartT = Pass2CollisionStrideFarStartT,
@@ -3601,8 +3763,9 @@ private sealed class OverlayRollingWindow
 		ResolveRayBeamRendererReference();
 		UpdateEveryFrame = run.UpdateEveryFrame ?? true;
 		if (run.UseGeometryTLASPruning.HasValue) UseGeometryTLASPruning = run.UseGeometryTLASPruning.Value;
-		if (run.Pass2GeomEnvelopeRadiusScale.HasValue) Pass2GeomEnvelopeRadiusScale = Mathf.Max(1.0f, run.Pass2GeomEnvelopeRadiusScale.Value);
+		if (run.Pass2GeomEnvelopeRadiusScale.HasValue) Pass2GeomEnvelopeRadiusScale = Mathf.Max(0.1f, run.Pass2GeomEnvelopeRadiusScale.Value);
 		if (run.Pass2GeomEnvelopeAabbExpand.HasValue) Pass2GeomEnvelopeAabbExpand = Mathf.Max(0.0f, run.Pass2GeomEnvelopeAabbExpand.Value);
+		if (run.AdaptiveTelemetryEnvelopeScalingEnabled.HasValue) AdaptiveTelemetryEnvelopeScalingEnabled = run.AdaptiveTelemetryEnvelopeScalingEnabled.Value;
 		if (run.UsePass2CollisionStride.HasValue) UsePass2CollisionStride = run.UsePass2CollisionStride.Value;
 		if (run.Pass2CollisionStrideNear.HasValue) Pass2CollisionStrideNear = Math.Max(1, run.Pass2CollisionStrideNear.Value);
 		if (run.Pass2CollisionStrideFar.HasValue) Pass2CollisionStrideFar = Math.Max(1, run.Pass2CollisionStrideFar.Value);
@@ -3639,6 +3802,8 @@ private sealed class OverlayRollingWindow
 			ThreadedPass2RowsPerChunk = defaults.ThreadedPass2RowsPerChunk;
 			Pass2GeomEnvelopeRadiusScale = defaults.Pass2GeomEnvelopeRadiusScale;
 		Pass2GeomEnvelopeAabbExpand = defaults.Pass2GeomEnvelopeAabbExpand;
+		AdaptiveTelemetryEnvelopeScalingEnabled = defaults.AdaptiveTelemetryEnvelopeScalingEnabled;
+		AdaptiveEnvelopeThresholdStatistic = defaults.AdaptiveEnvelopeThresholdStatistic;
 		UsePass2CollisionStride = defaults.UsePass2CollisionStride;
 		Pass2CollisionStrideNear = defaults.Pass2CollisionStrideNear;
 		Pass2CollisionStrideFar = defaults.Pass2CollisionStrideFar;
@@ -3712,6 +3877,7 @@ private sealed class OverlayRollingWindow
 		_fixtureDebugUnclassifiedHitsThisRun = 0;
 		_fixtureDebugAbsorbedHitsThisRun = 0;
 		_fixtureDebugMissHitsThisRun = 0;
+		ResetTelemetryHeatmapsForRunStart();
 		ResetFixtureRowParticipationForRunStart();
 		ResetFixtureWriteDiagnosticsForRunStart();
 	}
@@ -3777,6 +3943,151 @@ private sealed class OverlayRollingWindow
 			snapshot.RowsEarlyTerminated > 0 ||
 			snapshot.FinalHitPixelCount > 0 ||
 			snapshot.TraversalWritePixelCount > 0;
+	}
+
+	public void ResetTelemetryHeatmapsForRunStart()
+	{
+		ClearTelemetryHeatmapArrays();
+		Array.Clear(_adaptiveEnvelopeMismatchPrior, 0, _adaptiveEnvelopeMismatchPrior.Length);
+		_adaptiveEnvelopeScaleMinThisRun = 1.0f;
+		_adaptiveEnvelopeScaleMaxThisRun = 1.0f;
+		_adaptiveEnvelopeScaleSumThisRun = 0.0;
+		_adaptiveEnvelopeScaleCountThisRun = 0;
+		_adaptiveEnvelopeTightCountThisRun = 0;
+		_adaptiveEnvelopeNeutralCountThisRun = 0;
+		_adaptiveEnvelopeRelaxedCountThisRun = 0;
+		Array.Clear(_adaptiveEnvelopeScaleHistogram, 0, _adaptiveEnvelopeScaleHistogram.Length);
+		_adaptiveEnvelopeGlobalQueryMinusCurvatureP50 = 0.0f;
+		_adaptiveEnvelopeGlobalQueryMinusCurvatureP90 = 0.0f;
+	}
+
+	public bool TryCopyTelemetryHeatmapImageForTesting(TelemetryHeatmapKind kind, out Image image, out TelemetryHeatmapStats stats)
+	{
+		image = null;
+		stats = default;
+		if (_filmWidth <= 0 || _filmHeight <= 0)
+		{
+			return false;
+		}
+
+		if (!TryGetTelemetrySource(kind, out float[] source, out string key))
+		{
+			return false;
+		}
+
+		float[] values = ResolveTelemetryValues(kind, source);
+		if (values == null || values.Length != _filmWidth * _filmHeight)
+		{
+			return false;
+		}
+
+		TelemetryHeatmapStats computedStats = ComputeTelemetryHeatmapStats(values, key, ResolveTelemetryHeatmapModeToken());
+		Image heatmap = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
+		bool signedMap = IsSignedTelemetryHeatmapKind(kind);
+		float clampMax = Math.Max(0f, computedStats.ClampMax);
+		float denom = clampMax > 0f
+			? clampMax
+			: (signedMap ? Math.Max(Math.Abs(computedStats.Min), Math.Abs(computedStats.Max)) : Math.Max(0f, computedStats.Max));
+		for (int y = 0; y < _filmHeight; y++)
+		{
+			int rowBase = y * _filmWidth;
+			for (int x = 0; x < _filmWidth; x++)
+			{
+				float raw = values[rowBase + x];
+				float normalized = signedMap
+					? (denom > 0f ? Mathf.Clamp(0.5f + (0.5f * (raw / denom)), 0f, 1f) : 0.5f)
+					: (denom > 0f ? Mathf.Clamp(raw / denom, 0f, 1f) : 0f);
+				heatmap.SetPixel(x, y, EvaluateTelemetryHeatColor(normalized));
+			}
+		}
+
+		image = heatmap;
+		stats = computedStats;
+		return true;
+	}
+
+	public bool TryGetTelemetryHeatmapStatsForTesting(TelemetryHeatmapKind kind, out TelemetryHeatmapStats stats)
+	{
+		stats = default;
+		if (_filmWidth <= 0 || _filmHeight <= 0)
+		{
+			return false;
+		}
+
+		if (!TryGetTelemetrySource(kind, out float[] source, out string key))
+		{
+			return false;
+		}
+
+		float[] values = ResolveTelemetryValues(kind, source);
+		if (values == null || values.Length != _filmWidth * _filmHeight)
+		{
+			return false;
+		}
+
+		stats = ComputeTelemetryHeatmapStats(values, key, ResolveTelemetryHeatmapModeToken());
+		return true;
+	}
+
+	public bool TryGetTelemetryCorrelationStatsForTesting(out float workVsCurvatureMean, out float queryVsCurvatureMean)
+	{
+		workVsCurvatureMean = 0f;
+		queryVsCurvatureMean = 0f;
+		if (!TelemetryHeatmapsEnabledForCurrentRun())
+		{
+			return false;
+		}
+
+		float[] work = BuildDerivedWorkScoreArray();
+		if (work.Length != _telemetryCurvatureMean.Length || _telemetryQueryCount.Length != _telemetryCurvatureMean.Length)
+		{
+			return false;
+		}
+
+		workVsCurvatureMean = ComputePearsonCorrelation(work, _telemetryCurvatureMean);
+		queryVsCurvatureMean = ComputePearsonCorrelation(_telemetryQueryCount, _telemetryCurvatureMean);
+		return true;
+	}
+
+	public bool TryGetAdaptiveEnvelopeScaleStatsForTesting(out AdaptiveEnvelopeScaleStats stats)
+	{
+		stats = default;
+		if (_adaptiveEnvelopeScaleCountThisRun <= 0)
+		{
+			return false;
+		}
+
+		stats = new AdaptiveEnvelopeScaleStats(
+			_adaptiveEnvelopeScaleMinThisRun,
+			(float)(_adaptiveEnvelopeScaleSumThisRun / Math.Max(1L, _adaptiveEnvelopeScaleCountThisRun)),
+			_adaptiveEnvelopeScaleMaxThisRun);
+		return true;
+	}
+
+	public bool TryGetAdaptiveEnvelopeDebugStatsForTesting(out AdaptiveEnvelopeDebugStats stats)
+	{
+		stats = default;
+		if (_adaptiveEnvelopeScaleCountThisRun <= 0)
+		{
+			return false;
+		}
+
+		stats = new AdaptiveEnvelopeDebugStats(
+			_adaptiveEnvelopeScaleMinThisRun,
+			(float)(_adaptiveEnvelopeScaleSumThisRun / Math.Max(1L, _adaptiveEnvelopeScaleCountThisRun)),
+			_adaptiveEnvelopeScaleMaxThisRun,
+			(int)Math.Min(int.MaxValue, _adaptiveEnvelopeScaleCountThisRun),
+			_adaptiveEnvelopeTightCountThisRun,
+			_adaptiveEnvelopeNeutralCountThisRun,
+			_adaptiveEnvelopeRelaxedCountThisRun,
+			_adaptiveEnvelopeScaleHistogram.Length > 0 ? _adaptiveEnvelopeScaleHistogram[0] : 0,
+			_adaptiveEnvelopeScaleHistogram.Length > 1 ? _adaptiveEnvelopeScaleHistogram[1] : 0,
+			_adaptiveEnvelopeScaleHistogram.Length > 2 ? _adaptiveEnvelopeScaleHistogram[2] : 0,
+			_adaptiveEnvelopeScaleHistogram.Length > 3 ? _adaptiveEnvelopeScaleHistogram[3] : 0,
+			_adaptiveEnvelopeScaleHistogram.Length > 4 ? _adaptiveEnvelopeScaleHistogram[4] : 0,
+			_adaptiveEnvelopeGlobalQueryMinusCurvatureP50,
+			_adaptiveEnvelopeGlobalQueryMinusCurvatureP90);
+		return true;
 	}
 
 	public bool TryCopyFilmImageForTesting(out Image image)
@@ -3863,6 +4174,614 @@ private sealed class OverlayRollingWindow
 			_framePerf.PhysicsQueries,
 			SkyColor);
 		return _filmWidth > 0 && _filmHeight > 0;
+	}
+
+	private void EnsureTelemetryHeatmapCapacity(int pixelCount)
+	{
+		int safeCount = Math.Max(0, pixelCount);
+		if (_telemetryPass1AcceptedSteps.Length != safeCount)
+			_telemetryPass1AcceptedSteps = new float[safeCount];
+		if (_telemetryCandidateCount.Length != safeCount)
+			_telemetryCandidateCount = new float[safeCount];
+		if (_telemetryQueryCount.Length != safeCount)
+			_telemetryQueryCount = new float[safeCount];
+		if (_telemetryResolveCount.Length != safeCount)
+			_telemetryResolveCount = new float[safeCount];
+		if (_telemetryCurvatureMax.Length != safeCount)
+			_telemetryCurvatureMax = new float[safeCount];
+		if (_telemetryCurvatureMean.Length != safeCount)
+			_telemetryCurvatureMean = new float[safeCount];
+		if (_telemetryDkMax.Length != safeCount)
+			_telemetryDkMax = new float[safeCount];
+		if (_telemetryD2kMax.Length != safeCount)
+			_telemetryD2kMax = new float[safeCount];
+		if (_adaptiveEnvelopeMismatchPrior.Length != safeCount)
+			_adaptiveEnvelopeMismatchPrior = new float[safeCount];
+	}
+
+	private void ClearTelemetryHeatmapArrays()
+	{
+		Array.Clear(_telemetryPass1AcceptedSteps, 0, _telemetryPass1AcceptedSteps.Length);
+		Array.Clear(_telemetryCandidateCount, 0, _telemetryCandidateCount.Length);
+		Array.Clear(_telemetryQueryCount, 0, _telemetryQueryCount.Length);
+		Array.Clear(_telemetryResolveCount, 0, _telemetryResolveCount.Length);
+		Array.Clear(_telemetryCurvatureMax, 0, _telemetryCurvatureMax.Length);
+		Array.Clear(_telemetryCurvatureMean, 0, _telemetryCurvatureMean.Length);
+		Array.Clear(_telemetryDkMax, 0, _telemetryDkMax.Length);
+		Array.Clear(_telemetryD2kMax, 0, _telemetryD2kMax.Length);
+		Array.Clear(_adaptiveEnvelopeMismatchPrior, 0, _adaptiveEnvelopeMismatchPrior.Length);
+	}
+
+	private bool AdaptiveTelemetryEnvelopeScalingEnabledForCurrentRun()
+	{
+		return AdaptiveTelemetryEnvelopeScalingEnabled
+			&& TelemetryHeatmapsEnabledForCurrentRun()
+			&& _adaptiveEnvelopeMismatchPrior.Length == _filmWidth * _filmHeight;
+	}
+
+	private string ResolveAdaptiveEnvelopeThresholdStatisticToken()
+	{
+		string token = string.IsNullOrWhiteSpace(AdaptiveEnvelopeThresholdStatistic)
+			? "mean"
+			: AdaptiveEnvelopeThresholdStatistic.Trim().ToLowerInvariant();
+		return token switch
+		{
+			"mean" => "mean",
+			"p90" => "p90",
+			"max" => "max",
+			_ => "mean"
+		};
+	}
+
+	private void RefreshAdaptiveEnvelopeTelemetryPriors()
+	{
+		if (!AdaptiveTelemetryEnvelopeScalingEnabledForCurrentRun())
+		{
+			return;
+		}
+
+		float[] queryMinusCurvature = BuildDerivedNormalizedDifferenceArray(_telemetryQueryCount, _telemetryCurvatureMean);
+		if (queryMinusCurvature.Length != _filmWidth * _filmHeight)
+		{
+			return;
+		}
+
+		float[] active = new float[queryMinusCurvature.Length];
+		int activeCount = 0;
+		for (int i = 0; i < queryMinusCurvature.Length; i++)
+		{
+			float mismatch = queryMinusCurvature[i];
+			_adaptiveEnvelopeMismatchPrior[i] = mismatch;
+			if (_telemetryPass1AcceptedSteps[i] > 0f || _telemetryCurvatureMean[i] > 0f || _telemetryQueryCount[i] > 0f)
+			{
+				active[activeCount++] = mismatch;
+			}
+		}
+
+		if (activeCount <= 0)
+		{
+			_adaptiveEnvelopeGlobalQueryMinusCurvatureP50 = 0.0f;
+			_adaptiveEnvelopeGlobalQueryMinusCurvatureP90 = 0.0f;
+			return;
+		}
+
+		Array.Sort(active, 0, activeCount);
+		_adaptiveEnvelopeGlobalQueryMinusCurvatureP50 = SampleSortedPercentile(active, activeCount, 0.50f);
+		_adaptiveEnvelopeGlobalQueryMinusCurvatureP90 = SampleSortedPercentile(active, activeCount, 0.90f);
+	}
+
+	private float ComputeAdaptiveEnvelopeScaleForRect(int xStart, int xEndExclusive, int yStart, int yEndExclusive, float baseScale)
+	{
+		float baseClamped = Mathf.Clamp(baseScale, 0.65f, 1.1f);
+		if (!AdaptiveTelemetryEnvelopeScalingEnabledForCurrentRun())
+		{
+			return baseClamped;
+		}
+
+		int x0 = Math.Max(0, xStart);
+		int y0 = Math.Max(0, yStart);
+		int x1 = Math.Min(_filmWidth, xEndExclusive);
+		int y1 = Math.Min(_filmHeight, yEndExclusive);
+		if (x0 >= x1 || y0 >= y1)
+		{
+			return baseClamped;
+		}
+
+		double mismatchSum = 0.0;
+		float mismatchMax = float.NegativeInfinity;
+		float[] localMismatch = new float[Math.Max(1, (x1 - x0) * (y1 - y0))];
+		int activeCount = 0;
+		for (int y = y0; y < y1; y++)
+		{
+			int rowBase = y * _filmWidth;
+			for (int x = x0; x < x1; x++)
+			{
+				int pi = rowBase + x;
+				if (_telemetryPass1AcceptedSteps[pi] <= 0f && _telemetryCurvatureMean[pi] <= 0f && _telemetryQueryCount[pi] <= 0f)
+				{
+					continue;
+				}
+
+				float mismatchValue = _adaptiveEnvelopeMismatchPrior[pi];
+				mismatchSum += mismatchValue;
+				if (mismatchValue > mismatchMax)
+				{
+					mismatchMax = mismatchValue;
+				}
+				localMismatch[activeCount] = mismatchValue;
+				activeCount++;
+			}
+		}
+
+		if (activeCount < 4)
+		{
+			return baseClamped;
+		}
+
+		string statisticToken = ResolveAdaptiveEnvelopeThresholdStatisticToken();
+		float mismatch = statisticToken switch
+		{
+			"p90" => ComputeActivePercentile(localMismatch, activeCount, 0.90f),
+			"max" => mismatchMax,
+			_ => (float)(mismatchSum / activeCount)
+		};
+		float localScale = 1.0f;
+		if (mismatch > _adaptiveEnvelopeGlobalQueryMinusCurvatureP90)
+		{
+			localScale = 0.70f;
+		}
+		else if (mismatch < _adaptiveEnvelopeGlobalQueryMinusCurvatureP50)
+		{
+			localScale = 1.05f;
+		}
+
+		return Mathf.Clamp(localScale, 0.65f, 1.1f);
+	}
+
+	private float[] BuildAdaptiveEnvelopeScaleBySubtileForBand(int yStart, int bandHeight, float baseScale)
+	{
+		float[] scales = new float[Math.Max(0, _tileMetricCurrentSubtileCount)];
+		if (scales.Length == 0)
+		{
+			return scales;
+		}
+
+		float defaultScale = Mathf.Clamp(baseScale, 0.65f, 1.1f);
+		for (int i = 0; i < scales.Length; i++)
+		{
+			scales[i] = defaultScale;
+		}
+
+		if (!AdaptiveTelemetryEnvelopeScalingEnabledForCurrentRun())
+		{
+			return scales;
+		}
+
+		float passProgress = _filmHeight > 0 ? Mathf.Clamp((float)yStart / _filmHeight, 0f, 1f) : 0f;
+		if (passProgress < 0.25f)
+		{
+			return scales;
+		}
+
+		RefreshAdaptiveEnvelopeTelemetryPriors();
+		int yEnd = Math.Min(_filmHeight, yStart + Math.Max(1, bandHeight));
+		for (int subtileIndex = 0; subtileIndex < scales.Length; subtileIndex++)
+		{
+			int subtileXStart = subtileIndex * _tileMetricCurrentSubtileWidth;
+			int subtileXEnd = Math.Max(0, Math.Min(_filmWidth, subtileXStart + _tileMetricCurrentSubtileWidth));
+			scales[subtileIndex] = ComputeAdaptiveEnvelopeScaleForRect(subtileXStart, subtileXEnd, yStart, yEnd, baseScale);
+			RecordAdaptiveEnvelopeScaleSample(scales[subtileIndex]);
+		}
+
+		return scales;
+	}
+
+	private void RecordAdaptiveEnvelopeScaleSample(float scale)
+	{
+		float clamped = Mathf.Clamp(scale, 0.65f, 1.1f);
+		if (_adaptiveEnvelopeScaleCountThisRun <= 0)
+		{
+			_adaptiveEnvelopeScaleMinThisRun = clamped;
+			_adaptiveEnvelopeScaleMaxThisRun = clamped;
+			_adaptiveEnvelopeScaleSumThisRun = clamped;
+			_adaptiveEnvelopeScaleCountThisRun = 1;
+		}
+		else
+		{
+			_adaptiveEnvelopeScaleMinThisRun = Math.Min(_adaptiveEnvelopeScaleMinThisRun, clamped);
+			_adaptiveEnvelopeScaleMaxThisRun = Math.Max(_adaptiveEnvelopeScaleMaxThisRun, clamped);
+			_adaptiveEnvelopeScaleSumThisRun += clamped;
+			_adaptiveEnvelopeScaleCountThisRun++;
+		}
+
+		if (clamped <= 0.75f)
+		{
+			_adaptiveEnvelopeTightCountThisRun++;
+		}
+		else if (clamped >= 1.025f)
+		{
+			_adaptiveEnvelopeRelaxedCountThisRun++;
+		}
+		else
+		{
+			_adaptiveEnvelopeNeutralCountThisRun++;
+		}
+
+		int histIndex;
+		if (clamped < 0.75f) histIndex = 0;
+		else if (clamped < 0.85f) histIndex = 1;
+		else if (clamped < 0.95f) histIndex = 2;
+		else if (clamped < 1.025f) histIndex = 3;
+		else histIndex = 4;
+		if ((uint)histIndex < (uint)_adaptiveEnvelopeScaleHistogram.Length)
+		{
+			_adaptiveEnvelopeScaleHistogram[histIndex]++;
+		}
+	}
+
+	private static float SampleSortedPercentile(float[] sorted, int count, float percentile)
+	{
+		if (sorted == null || count <= 0)
+		{
+			return 0f;
+		}
+
+		float clampedPercentile = Mathf.Clamp(percentile, 0f, 1f);
+		int index = Math.Clamp((int)MathF.Round((count - 1) * clampedPercentile), 0, count - 1);
+		return sorted[index];
+	}
+
+	private static float ComputeActivePercentile(float[] values, int count, float percentile)
+	{
+		if (values == null || count <= 0)
+		{
+			return 0f;
+		}
+
+		float[] copy = new float[count];
+		Array.Copy(values, copy, count);
+		Array.Sort(copy, 0, count);
+		return SampleSortedPercentile(copy, count, percentile);
+	}
+
+	private void AccumulateTelemetryBlock(float[] target, int x, int y, int stride, float value)
+	{
+		if (target == null || target.Length == 0 || value <= 0f || _filmWidth <= 0 || _filmHeight <= 0)
+		{
+			return;
+		}
+
+		int safeStride = Math.Max(1, stride);
+		int yMax = Math.Min(_filmHeight, y + safeStride);
+		int xMax = Math.Min(_filmWidth, x + safeStride);
+		for (int yy = Math.Max(0, y); yy < yMax; yy++)
+		{
+			int rowBase = yy * _filmWidth;
+			for (int xx = Math.Max(0, x); xx < xMax; xx++)
+			{
+				target[rowBase + xx] += value;
+			}
+		}
+	}
+
+	private bool TelemetryHeatmapsEnabledForCurrentRun()
+	{
+		return ExportTelemetryHeatmaps
+			&& _filmWidth > 0
+			&& _filmHeight > 0
+			&& _telemetryPass1AcceptedSteps.Length == _filmWidth * _filmHeight
+			&& _telemetryCandidateCount.Length == _filmWidth * _filmHeight
+			&& _telemetryQueryCount.Length == _filmWidth * _filmHeight
+			&& _telemetryResolveCount.Length == _filmWidth * _filmHeight
+			&& _telemetryCurvatureMax.Length == _filmWidth * _filmHeight
+			&& _telemetryCurvatureMean.Length == _filmWidth * _filmHeight
+			&& _telemetryDkMax.Length == _filmWidth * _filmHeight
+			&& _telemetryD2kMax.Length == _filmWidth * _filmHeight;
+	}
+
+	private bool TryGetTelemetrySource(TelemetryHeatmapKind kind, out float[] source, out string key)
+	{
+		source = null;
+		key = string.Empty;
+		switch (kind)
+		{
+			case TelemetryHeatmapKind.Work:
+				key = "work";
+				return TelemetryHeatmapsEnabledForCurrentRun();
+			case TelemetryHeatmapKind.Candidates:
+				source = _telemetryCandidateCount;
+				key = "candidates";
+				break;
+			case TelemetryHeatmapKind.Query:
+				source = _telemetryQueryCount;
+				key = "query";
+				break;
+			case TelemetryHeatmapKind.Resolve:
+				source = _telemetryResolveCount;
+				key = "resolve";
+				break;
+			case TelemetryHeatmapKind.Pass1Steps:
+				source = _telemetryPass1AcceptedSteps;
+				key = "pass1_steps";
+				break;
+			case TelemetryHeatmapKind.CurvatureMax:
+				source = _telemetryCurvatureMax;
+				key = "curvature_max";
+				break;
+			case TelemetryHeatmapKind.CurvatureMean:
+				source = _telemetryCurvatureMean;
+				key = "curvature_mean";
+				break;
+			case TelemetryHeatmapKind.DkMax:
+				source = _telemetryDkMax;
+				key = "dk_max";
+				break;
+			case TelemetryHeatmapKind.D2kMax:
+				source = _telemetryD2kMax;
+				key = "d2k_max";
+				break;
+			case TelemetryHeatmapKind.WorkMinusCurvature:
+				key = "work_minus_curvature";
+				return TelemetryHeatmapsEnabledForCurrentRun();
+			case TelemetryHeatmapKind.QueryMinusCurvature:
+				key = "query_minus_curvature";
+				return TelemetryHeatmapsEnabledForCurrentRun();
+			case TelemetryHeatmapKind.Efficiency:
+				key = "efficiency";
+				return TelemetryHeatmapsEnabledForCurrentRun();
+			default:
+				return false;
+		}
+
+		return TelemetryHeatmapsEnabledForCurrentRun() && source != null;
+	}
+
+	private float[] BuildDerivedWorkScoreArray()
+	{
+		if (!TelemetryHeatmapsEnabledForCurrentRun())
+		{
+			return Array.Empty<float>();
+		}
+
+		int pixelCount = _filmWidth * _filmHeight;
+		float[] work = new float[pixelCount];
+		for (int i = 0; i < pixelCount; i++)
+		{
+			work[i] =
+				_telemetryPass1AcceptedSteps[i] +
+				_telemetryCandidateCount[i] +
+				_telemetryQueryCount[i] +
+				_telemetryResolveCount[i];
+		}
+
+		return work;
+	}
+
+	private float[] BuildDerivedNormalizedDifferenceArray(float[] lhs, float[] rhs)
+	{
+		if (!TelemetryHeatmapsEnabledForCurrentRun())
+		{
+			return Array.Empty<float>();
+		}
+		if (lhs == null || rhs == null || lhs.Length != rhs.Length || lhs.Length != (_filmWidth * _filmHeight))
+		{
+			return Array.Empty<float>();
+		}
+
+		TelemetryHeatmapStats lhsStats = ComputeTelemetryHeatmapStats(lhs, "lhs", ResolveTelemetryHeatmapModeToken());
+		TelemetryHeatmapStats rhsStats = ComputeTelemetryHeatmapStats(rhs, "rhs", ResolveTelemetryHeatmapModeToken());
+		float lhsDenom = lhsStats.ClampMax > 0f ? lhsStats.ClampMax : Math.Max(0f, lhsStats.Max);
+		float rhsDenom = rhsStats.ClampMax > 0f ? rhsStats.ClampMax : Math.Max(0f, rhsStats.Max);
+		float[] diff = new float[lhs.Length];
+		for (int i = 0; i < lhs.Length; i++)
+		{
+			float lhsNorm = lhsDenom > 0f ? Mathf.Clamp(lhs[i] / lhsDenom, 0f, 1f) : 0f;
+			float rhsNorm = rhsDenom > 0f ? Mathf.Clamp(rhs[i] / rhsDenom, 0f, 1f) : 0f;
+			diff[i] = lhsNorm - rhsNorm;
+		}
+
+		return diff;
+	}
+
+	private float[] BuildDerivedEfficiencyArray(float epsilon)
+	{
+		if (!TelemetryHeatmapsEnabledForCurrentRun())
+		{
+			return Array.Empty<float>();
+		}
+
+		float safeEpsilon = Mathf.Max(1e-6f, epsilon);
+		float[] work = BuildDerivedWorkScoreArray();
+		if (work.Length != _telemetryCurvatureMean.Length)
+		{
+			return Array.Empty<float>();
+		}
+
+		float[] efficiency = new float[work.Length];
+		for (int i = 0; i < work.Length; i++)
+		{
+			efficiency[i] = work[i] / (_telemetryCurvatureMean[i] + safeEpsilon);
+		}
+
+		return efficiency;
+	}
+
+	private bool IsSignedTelemetryHeatmapKind(TelemetryHeatmapKind kind)
+	{
+		return kind == TelemetryHeatmapKind.WorkMinusCurvature || kind == TelemetryHeatmapKind.QueryMinusCurvature;
+	}
+
+	private float[] ResolveTelemetryValues(TelemetryHeatmapKind kind, float[] source)
+	{
+		switch (kind)
+		{
+			case TelemetryHeatmapKind.Work:
+				return BuildDerivedWorkScoreArray();
+			case TelemetryHeatmapKind.WorkMinusCurvature:
+				return BuildDerivedNormalizedDifferenceArray(BuildDerivedWorkScoreArray(), _telemetryCurvatureMean);
+			case TelemetryHeatmapKind.QueryMinusCurvature:
+				return BuildDerivedNormalizedDifferenceArray(_telemetryQueryCount, _telemetryCurvatureMean);
+			case TelemetryHeatmapKind.Efficiency:
+				return BuildDerivedEfficiencyArray(1e-3f);
+			default:
+				return source ?? Array.Empty<float>();
+		}
+	}
+
+	private string ResolveTelemetryHeatmapModeToken()
+	{
+		string mode = string.IsNullOrWhiteSpace(TelemetryHeatmapMode)
+			? "basic"
+			: TelemetryHeatmapMode.Trim().ToLowerInvariant();
+		return string.IsNullOrWhiteSpace(mode) ? "basic" : mode;
+	}
+
+	private static TelemetryHeatmapStats ComputeTelemetryHeatmapStats(float[] values, string key, string mode)
+	{
+		if (values == null || values.Length == 0)
+		{
+			return new TelemetryHeatmapStats(key, 0f, 0f, 0f, 0f, 0f, 0f, 0f, mode);
+		}
+
+		float min = float.PositiveInfinity;
+		float max = float.NegativeInfinity;
+		double sum = 0.0;
+		float[] sorted = new float[values.Length];
+		for (int i = 0; i < values.Length; i++)
+		{
+			float value = values[i];
+			if (float.IsNaN(value) || float.IsInfinity(value))
+			{
+				value = 0f;
+			}
+			sorted[i] = value;
+			if (value < min) min = value;
+			if (value > max) max = value;
+			sum += value;
+		}
+
+		Array.Sort(sorted);
+		float p10 = SamplePercentile(sorted, 0.10f);
+		float p50 = SamplePercentile(sorted, 0.50f);
+		float p90 = SamplePercentile(sorted, 0.90f);
+		float p99 = SamplePercentile(sorted, 0.99f);
+		bool hasNegative = min < 0f;
+		float clampMax;
+		if (string.Equals(mode, "basic", StringComparison.OrdinalIgnoreCase))
+		{
+			if (hasNegative)
+			{
+				float p01 = SamplePercentile(sorted, 0.01f);
+				clampMax = Math.Max(Math.Abs(p01), Math.Abs(p99));
+				clampMax = Math.Max(clampMax, Math.Max(Math.Abs(p10), Math.Abs(p90)));
+			}
+			else
+			{
+				clampMax = Math.Max(p90, p99);
+			}
+		}
+		else
+		{
+			clampMax = hasNegative ? Math.Max(Math.Abs(min), Math.Abs(max)) : max;
+		}
+		if (clampMax <= 0f)
+		{
+			clampMax = hasNegative ? Math.Max(Math.Abs(min), Math.Abs(max)) : max;
+		}
+
+		return new TelemetryHeatmapStats(
+			key,
+			float.IsFinite(min) ? min : 0f,
+			float.IsFinite(max) ? max : 0f,
+			(float)(sum / values.Length),
+			p10,
+			p50,
+			p90,
+			float.IsFinite(clampMax) ? clampMax : 0f,
+			mode);
+	}
+
+	private static float SamplePercentile(float[] sorted, float percentile)
+	{
+		if (sorted == null || sorted.Length == 0)
+		{
+			return 0f;
+		}
+
+		float clamped = Mathf.Clamp(percentile, 0f, 1f);
+		int index = Mathf.Clamp(Mathf.RoundToInt((sorted.Length - 1) * clamped), 0, sorted.Length - 1);
+		float value = sorted[index];
+		return float.IsFinite(value) ? value : 0f;
+	}
+
+	private static Color EvaluateTelemetryHeatColor(float t)
+	{
+		float clamped = Mathf.Clamp(t, 0f, 1f);
+		if (clamped <= 0.33f)
+		{
+			float local = clamped / 0.33f;
+			return new Color(0f, local, 1f, 1f);
+		}
+		if (clamped <= 0.66f)
+		{
+			float local = (clamped - 0.33f) / 0.33f;
+			return new Color(local, 1f, 1f - local, 1f);
+		}
+
+		float tail = (clamped - 0.66f) / 0.34f;
+		return new Color(1f, 1f - tail, 0f, 1f);
+	}
+
+	private static float ComputePearsonCorrelation(float[] lhs, float[] rhs)
+	{
+		if (lhs == null || rhs == null || lhs.Length == 0 || lhs.Length != rhs.Length)
+		{
+			return 0f;
+		}
+
+		double lhsSum = 0.0;
+		double rhsSum = 0.0;
+		int count = lhs.Length;
+		for (int i = 0; i < count; i++)
+		{
+			double l = SanitizeTelemetryValue(lhs[i]);
+			double r = SanitizeTelemetryValue(rhs[i]);
+			lhsSum += l;
+			rhsSum += r;
+		}
+
+		double lhsMean = lhsSum / count;
+		double rhsMean = rhsSum / count;
+		double covariance = 0.0;
+		double lhsVar = 0.0;
+		double rhsVar = 0.0;
+		for (int i = 0; i < count; i++)
+		{
+			double l = SanitizeTelemetryValue(lhs[i]) - lhsMean;
+			double r = SanitizeTelemetryValue(rhs[i]) - rhsMean;
+			covariance += l * r;
+			lhsVar += l * l;
+			rhsVar += r * r;
+		}
+
+		double denom = Math.Sqrt(lhsVar * rhsVar);
+		if (!double.IsFinite(denom) || denom <= 1e-12)
+		{
+			return 0f;
+		}
+
+		double corr = covariance / denom;
+		if (!double.IsFinite(corr))
+		{
+			return 0f;
+		}
+
+		return (float)Mathf.Clamp((float)corr, -1f, 1f);
+	}
+
+	private static double SanitizeTelemetryValue(float value)
+	{
+		return (float.IsNaN(value) || float.IsInfinity(value)) ? 0.0 : value;
 	}
 
 	private void ResetFixtureRowParticipationForRunStart()
@@ -6408,7 +7327,7 @@ private sealed class OverlayRollingWindow
 					}
 
 					// CROSS-CLASS CONTRACT: RayBeamRenderer builds segments + pass1 hit info.
-					int count = _rbr.BuildRaySegmentsCamera_Pass1(
+						int count = _rbr.BuildRaySegmentsCamera_Pass1(
 						space,
 						ref local.QuickRayParams,
 						pass1Cam, pass1PxPerRad, pass1CamPos,
@@ -6433,13 +7352,17 @@ private sealed class OverlayRollingWindow
 						out int fieldEvals,
 						out int pass1RaycastsLocal,
 						out int pass1ProbeHitsLocal,
-						out int fieldGridHitsLocal,
-						out int fieldGridMissesLocal,
-						out int fieldGridFallbacksLocal,
-						out int fieldSourceEvalsLocal,
-						curvatureGridForPass1,
-						fieldGridForPass1
-					);
+							out int fieldGridHitsLocal,
+							out int fieldGridMissesLocal,
+							out int fieldGridFallbacksLocal,
+							out int fieldSourceEvalsLocal,
+							out float telemetryCurvatureMax,
+							out float telemetryCurvatureMean,
+							out float telemetryDkMax,
+							out float telemetryD2kMax,
+							curvatureGridForPass1,
+							fieldGridForPass1
+						);
 
 					// DECISION: accumulate perf counters only when enabled.
 					if (collectPass1Perf)
@@ -6449,7 +7372,20 @@ private sealed class OverlayRollingWindow
 						if (stoppedEarly) local.EarlyStopPixels++;
 					}
 					// DECISION: accumulate steps when enabled.
-					if (collectPass1Steps) local.StepsIntegrated += stepsIntegrated;
+						if (collectPass1Steps) local.StepsIntegrated += stepsIntegrated;
+						if (TelemetryHeatmapsEnabledForCurrentRun())
+						{
+							if (stepsIntegrated > 0)
+								AccumulateTelemetryBlock(_telemetryPass1AcceptedSteps, x, y, stride, stepsIntegrated);
+							if (telemetryCurvatureMax > 0f)
+								AccumulateTelemetryBlock(_telemetryCurvatureMax, x, y, stride, telemetryCurvatureMax);
+							if (telemetryCurvatureMean > 0f)
+								AccumulateTelemetryBlock(_telemetryCurvatureMean, x, y, stride, telemetryCurvatureMean);
+							if (telemetryDkMax > 0f)
+								AccumulateTelemetryBlock(_telemetryDkMax, x, y, stride, telemetryDkMax);
+							if (telemetryD2kMax > 0f)
+								AccumulateTelemetryBlock(_telemetryD2kMax, x, y, stride, telemetryD2kMax);
+						}
 					// DECISION: accumulate field evals when frame perf is enabled.
 					if (framePerfEnabled) local.FieldEvals += fieldEvals;
 					// DECISION: accumulate extra pass1 counters when enabled.
@@ -6645,6 +7581,10 @@ private sealed class OverlayRollingWindow
 			_tileMetricCurrentSubtileCount = Math.Max(1, (filmW + _tileMetricCurrentSubtileWidth - 1) / _tileMetricCurrentSubtileWidth);
 			EnsureTileMetricSubtileCapacity(_tileMetricCurrentSubtileCount);
 			PrepareExperimentalSubtileSchedulerOrderForCurrentBand();
+			float[] adaptiveEnvelopeScaleBySubtile = BuildAdaptiveEnvelopeScaleBySubtileForBand(
+				yStart,
+				bandH,
+				Mathf.Max(0.1f, cfg.Pass2GeomEnvelopeRadiusScale));
 			long shadeUsecAccum = 0;
 			long pass2EnvelopeUsecAccum = 0;
 			long pass2CandidateEvalUsecAccum = 0;
@@ -6693,6 +7633,7 @@ private sealed class OverlayRollingWindow
 			Vector3 camPosPass2 = _cam.GlobalPosition;
 			bool useOverlap = effOverlap;
 			bool useQuickRay = effQuickRay;
+			bool telemetryHeatmapsEnabled = TelemetryHeatmapsEnabledForCurrentRun();
 
 			// DECISION: configure overlap broadphase only when enabled.
 			if (useOverlap)
@@ -7448,7 +8389,10 @@ private sealed class OverlayRollingWindow
 										var segANum = new System.Numerics.Vector3(segA.X, segA.Y, segA.Z);
 										var segBNum = new System.Numerics.Vector3(segB.X, segB.Y, segB.Z);
 										float baseRadiusBound = Mathf.Max(0f, seg.RadiusBound);
-										float geomEnvelopeRadius = baseRadiusBound * Mathf.Max(1.0f, cfg.Pass2GeomEnvelopeRadiusScale);
+										float localEnvelopeScale = (uint)subtileIndex < (uint)adaptiveEnvelopeScaleBySubtile.Length
+											? adaptiveEnvelopeScaleBySubtile[subtileIndex]
+											: Mathf.Max(0.1f, cfg.Pass2GeomEnvelopeRadiusScale);
+										float geomEnvelopeRadius = baseRadiusBound * Mathf.Max(0.1f, localEnvelopeScale);
 										float geomEnvelopeAabbExpand = Mathf.Max(0.0f, cfg.Pass2GeomEnvelopeAabbExpand);
 										Aabb3 envelope = Aabb3.FromSegment(segANum, segBNum).Expand(geomEnvelopeRadius);
 										if (geomEnvelopeAabbExpand > 0f)
@@ -7656,6 +8600,9 @@ private sealed class OverlayRollingWindow
 										bool skippedAnyByStrideThisPixel = false;
 										bool geomPixelProcessedThisPixel = false;
 										bool geomPixelHadAnyCandidatesThisPixel = false;
+										float telemetryCandidateCountThisPixel = 0f;
+										float telemetryQueryCountThisPixel = 0f;
+										float telemetryResolveCountThisPixel = 0f;
 										bool hadHit = false;
 										float hitDistance = 0f;
 										float bestHit = float.PositiveInfinity;
@@ -7719,6 +8666,8 @@ private sealed class OverlayRollingWindow
 											int geomCandidateCount = (uint)candidateRecordIndex < (uint)pass2CandidateEvalRecords.Length
 												? pass2CandidateEvalRecords[candidateRecordIndex].CandidateCount
 												: 0;
+											if (geomCandidateCount > 0)
+												telemetryCandidateCountThisPixel += geomCandidateCount;
 											chunk.Geom.GeomSegmentsQueried++;
 											if (geomCandidateCount <= 0)
 												chunk.Geom.GeomSegZeroCandidates++;
@@ -7758,6 +8707,7 @@ private sealed class OverlayRollingWindow
 											var overlaps = space.IntersectShape(localOverlapQuery, broadphaseCfg.MaxResults);
 											if (statsEnabled && overlapStartUsec > 0)
 												chunk.QueryUsec += (long)(Time.GetTicksUsec() - overlapStartUsec);
+											telemetryQueryCountThisPixel += 1f;
 											if (!geomPixelProcessedThisPixel)
 											{
 												chunk.Geom.GeomPixelProcessed++;
@@ -7772,17 +8722,19 @@ private sealed class OverlayRollingWindow
 											if (localOverlapCandidates.Count == 0)
 												continue;
 
-											if (rayCfg.UseSphereSweepCollision)
-											{
+									if (rayCfg.UseSphereSweepCollision)
+									{
 												ulong queryStartUsec = statsEnabled ? Time.GetTicksUsec() : 0;
 												bool didHitSweep = RayBeamRenderer.SweepSegmentHit(space, segA, segB, rayCfg.CollisionMask, rayCfg.CollisionRadius, out Vector3 hpSweep);
 												if (statsEnabled && queryStartUsec > 0)
 													chunk.QueryUsec += (long)(Time.GetTicksUsec() - queryStartUsec);
+												telemetryQueryCountThisPixel += 1f;
 												chunk.PhysicsQueries++;
 												chunk.Geom.GeomRayTestsTotal++;
 												if (!didHitSweep)
 													continue;
 												float hitDistAlongRay = seg.TraveledB - segLen + (hpSweep - segA).Length();
+												telemetryResolveCountThisPixel += 1f;
 												ulong resolveStartUsec = statsEnabled ? Time.GetTicksUsec() : 0;
 												if (hitDistAlongRay < bestHit)
 												{
@@ -7834,15 +8786,17 @@ private sealed class OverlayRollingWindow
 												diagnosticQueryKind: "pass2_threaded_query_resolve");
 												if (statsEnabled && queryStart > 0)
 													chunk.QueryUsec += (long)(Time.GetTicksUsec() - queryStart);
+												telemetryQueryCountThisPixel += Math.Max(1, rayQueries);
 												chunk.SubdividedRayCalls++;
 												chunk.SubdividedRayQueries += rayQueries;
 												chunk.SubdividedRaySubsteps += sub;
 												chunk.PhysicsQueries += rayQueries;
 												chunk.Geom.GeomRayTestsTotal += rayQueries;
-												if (!didHit)
-													continue;
+											if (!didHit)
+												continue;
 
 											float resolvedHitDistance = seg.TraveledB - segLen + (hp - segA).Length();
+											telemetryResolveCountThisPixel += 1f;
 											ulong resolveStart = statsEnabled ? Time.GetTicksUsec() : 0;
 											if (resolvedHitDistance < bestHit)
 											{
@@ -7886,6 +8840,9 @@ private sealed class OverlayRollingWindow
 											PrevHadHitForSoftGate = prevHadHitForSoftGate,
 											TestedAnyInPass0ThisPixel = testedAnyInPass0ThisPixel,
 											SoftGateHitThisPixel = false,
+											CandidateCount = telemetryCandidateCountThisPixel,
+											QueryCount = telemetryQueryCountThisPixel,
+											ResolveCount = telemetryResolveCountThisPixel,
 											HitDistance = hitDistance,
 											BestHp = bestHp,
 											BestHn = bestHn,
@@ -8217,6 +9174,12 @@ private sealed class OverlayRollingWindow
 							}
 
 							int filled = FillPixelBlock(sample.X, sample.Y, sample.Stride, shaded.Color, filmW, filmH);
+							if (telemetryHeatmapsEnabled)
+							{
+								AccumulateTelemetryBlock(_telemetryCandidateCount, sample.X, sample.Y, sample.Stride, sample.CandidateCount);
+								AccumulateTelemetryBlock(_telemetryQueryCount, sample.X, sample.Y, sample.Stride, sample.QueryCount);
+								AccumulateTelemetryBlock(_telemetryResolveCount, sample.X, sample.Y, sample.Stride, sample.ResolveCount);
+							}
 							if (statsEnabled) _perfFrame.FilledPixels += filled;
 							if (framePerfEnabled) bandFilledPixels += filled;
 							if (sample.HadHit)
@@ -8523,6 +9486,9 @@ private sealed class OverlayRollingWindow
 						bool hadCandidatesThisPixel = false;
 						bool geomPixelHadAnyCandidatesThisPixel = false;
 						bool noCandidatesThisPixel = false;
+						float telemetryCandidateCountThisPixel = 0f;
+						float telemetryQueryCountThisPixel = 0f;
+						float telemetryResolveCountThisPixel = 0f;
 						long geomRayTestsAtPixelStart = _geomRayTestsTotalThisFrame;
 						bool useHybridBroadphase = broadphaseCfg.Policy == BroadphasePolicyMode.HybridQuickRayThenOverlap;
 						var geomTlas = geomTlasForStep;
@@ -8678,7 +9644,10 @@ private sealed class OverlayRollingWindow
 									var segANum = new System.Numerics.Vector3(segA.X, segA.Y, segA.Z);
 									var segBNum = new System.Numerics.Vector3(segB.X, segB.Y, segB.Z);
 									float baseRadiusBound = Mathf.Max(0f, seg.RadiusBound);
-									float geomEnvelopeRadius = baseRadiusBound * Mathf.Max(1.0f, cfg.Pass2GeomEnvelopeRadiusScale);
+									float localEnvelopeScale = (uint)subtileIndexThisPixel < (uint)adaptiveEnvelopeScaleBySubtile.Length
+										? adaptiveEnvelopeScaleBySubtile[subtileIndexThisPixel]
+										: Mathf.Max(0.1f, cfg.Pass2GeomEnvelopeRadiusScale);
+									float geomEnvelopeRadius = baseRadiusBound * Mathf.Max(0.1f, localEnvelopeScale);
 									float geomEnvelopeAabbExpand = Mathf.Max(0.0f, cfg.Pass2GeomEnvelopeAabbExpand);
 									envelope = Aabb3.FromSegment(segANum, segBNum).Expand(geomEnvelopeRadius);
 									if (geomEnvelopeAabbExpand > 0f)
@@ -9079,11 +10048,15 @@ private sealed class OverlayRollingWindow
 									}
 									ulong queryStartUsec = 0;
 									if (statsEnabled) queryStartUsec = Time.GetTicksUsec();
-									MarkGeomPixelProcessedForWork();
-									didHit = RayBeamRenderer.SweepSegmentHit(space, segA, segB, rayCfg.CollisionMask, rayCfg.CollisionRadius, out hp);
-									if (statsEnabled && queryStartUsec > 0)
-										pass2QueryUsecAccum += (long)(Time.GetTicksUsec() - queryStartUsec);
-									_geomRayTestsTotalThisFrame++;
+										MarkGeomPixelProcessedForWork();
+										didHit = RayBeamRenderer.SweepSegmentHit(space, segA, segB, rayCfg.CollisionMask, rayCfg.CollisionRadius, out hp);
+										if (statsEnabled && queryStartUsec > 0)
+											pass2QueryUsecAccum += (long)(Time.GetTicksUsec() - queryStartUsec);
+										if (telemetryHeatmapsEnabled)
+											telemetryQueryCountThisPixel += 1f;
+										if (didHit && telemetryHeatmapsEnabled)
+											telemetryResolveCountThisPixel += 1f;
+										_geomRayTestsTotalThisFrame++;
 									if ((statsEnabled || framePerfEnabled) && !segCounted)
 									{
 										if (statsEnabled) _perfFrame.SegsTested++;
@@ -9131,6 +10104,8 @@ private sealed class OverlayRollingWindow
 										var overlaps = localSpace.IntersectShape(_overlapQuery, broadphaseCfg.MaxResults);
 										if (statsEnabled && queryStartUsec > 0)
 											pass2QueryUsecAccum += (long)(Time.GetTicksUsec() - queryStartUsec);
+										if (telemetryHeatmapsEnabled)
+											telemetryQueryCountThisPixel += 1f;
 										if (statsEnabled) _perfFrame.IntersectShapeCalls++;
 										if (bandCountersEnabled) bandPhysicsQueries++;
 										if ((statsEnabled || framePerfEnabled) && !segCounted)
@@ -9304,6 +10279,8 @@ private sealed class OverlayRollingWindow
 											renderModeToken,
 											ref _renderSpaceRayQueryWarned,
 											out var hit0);
+										if (quickRaySucceeded && telemetryHeatmapsEnabled)
+											telemetryQueryCountThisPixel += 1f;
 										if (quickRaySucceeded)
 										{
 											_geomRayTestsTotalThisFrame++;
@@ -9380,6 +10357,8 @@ private sealed class OverlayRollingWindow
 										if (framePerfEnabled) _framePerf.Pass2QuickRayHits++;
 										Vector3 hitPos = (Vector3)hit0["position"];
 										float d = seg.TraveledB - segLen + (hitPos - p0).Length();
+										if (telemetryHeatmapsEnabled)
+											telemetryResolveCountThisPixel += 1f;
 										AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, true, d);
 										if (d < bestHitDistAlongRay)
 											bestHitDistAlongRay = d;
@@ -9508,6 +10487,8 @@ private sealed class OverlayRollingWindow
 											}
 										}
 									}
+									if (telemetryHeatmapsEnabled && candidateCount > 0)
+										telemetryCandidateCountThisPixel += candidateCount;
 
 									if (renderHealthSampleThisSeg && !renderHealthSampleRecorded && envelopeComputed)
 									{
@@ -9675,6 +10656,8 @@ private sealed class OverlayRollingWindow
 												out var hit0);
 											if (statsEnabled && queryStartUsec > 0)
 												pass2QueryUsecAccum += (long)(Time.GetTicksUsec() - queryStartUsec);
+											if (quickRaySucceeded && telemetryHeatmapsEnabled)
+												telemetryQueryCountThisPixel += 1f;
 											if (quickRaySucceeded)
 											{
 												_geomRayTestsTotalThisFrame++;
@@ -9735,6 +10718,8 @@ private sealed class OverlayRollingWindow
 											if (framePerfEnabled) _framePerf.Pass2QuickRayHits++;
 											Vector3 hitPos = (Vector3)hit0["position"];
 											float d = seg.TraveledB - segLen + (hitPos - segA).Length();
+											if (telemetryHeatmapsEnabled)
+												telemetryResolveCountThisPixel += 1f;
 											AddPass2QuickRayCache(ax, ay, az, bx, by, bz, pass2FlagsKey, true, d);
 											if (d < bestHitDistAlongRay)
 												bestHitDistAlongRay = d;
@@ -9851,6 +10836,8 @@ private sealed class OverlayRollingWindow
 												diagnosticQueryKind: "pass2_subdivided_ray");
 									if (statsEnabled && queryStartUsec > 0)
 										pass2QueryUsecAccum += (long)(Time.GetTicksUsec() - queryStartUsec);
+									if (telemetryHeatmapsEnabled)
+										telemetryQueryCountThisPixel += Math.Max(1, rayQueries);
 									if (rayQueries > 0)
 										_geomRayTestsTotalThisFrame += rayQueries;
 									if (statsEnabled)
@@ -9929,6 +10916,8 @@ private sealed class OverlayRollingWindow
 											softGateSampleThisSeg);
 										if (didHit)
 											hitDistAlongRay = seg.TraveledB - segLen + (hp - segA).Length();
+										if (didHit && telemetryHeatmapsEnabled)
+											telemetryResolveCountThisPixel += 1f;
 										return didHit;
 									}
 
@@ -10157,6 +11146,9 @@ private sealed class OverlayRollingWindow
 									PrevHadHitForSoftGate = prevHadHitForSoftGate,
 									TestedAnyInPass0ThisPixel = testedAnyInPass0ThisPixel,
 									SoftGateHitThisPixel = softGateHitThisPixel,
+									CandidateCount = telemetryCandidateCountThisPixel,
+									QueryCount = telemetryQueryCountThisPixel,
+									ResolveCount = telemetryResolveCountThisPixel,
 									HitDistance = hitDistance,
 									BestHp = bestHp,
 									BestHn = bestHn,
@@ -10320,6 +11312,12 @@ private sealed class OverlayRollingWindow
 						}
 
 						int filled = FillPixelBlock(x, y, stride, col, filmW, filmH);
+						if (telemetryHeatmapsEnabled)
+						{
+							AccumulateTelemetryBlock(_telemetryCandidateCount, x, y, stride, telemetryCandidateCountThisPixel);
+							AccumulateTelemetryBlock(_telemetryQueryCount, x, y, stride, telemetryQueryCountThisPixel);
+							AccumulateTelemetryBlock(_telemetryResolveCount, x, y, stride, telemetryResolveCountThisPixel);
+						}
 						rowHadWritesThisPass |= filled > 0;
 						if (hadHit)
 						{
@@ -11896,6 +12894,7 @@ private sealed class OverlayRollingWindow
 		int targetPixels = targetW * targetH;
 		if (_img != null && _filmWidth == targetW && _filmHeight == targetH)
 		{
+			EnsureTelemetryHeatmapCapacity(targetPixels);
 			if (_pass2PrevHadHit.Length != targetPixels)
 				_pass2PrevHadHit = new byte[targetPixels];
 				if (_pass2HadHitLostThisFrame.Length != targetPixels)
@@ -11922,6 +12921,8 @@ private sealed class OverlayRollingWindow
 		ResetRenderHealthOverlayWindowState();
 		_img = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
 		_img.Fill(cfg.SkyColor);
+		EnsureTelemetryHeatmapCapacity(_filmWidth * _filmHeight);
+		ClearTelemetryHeatmapArrays();
 		_fixtureFinalHitOnlyImg = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
 		_fixtureFinalHitOnlyImg.Fill(Colors.Black);
 		_fixtureCategoricalFinalImg = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
@@ -12539,8 +13540,12 @@ private sealed class OverlayRollingWindow
 			Pass2CollisionStrideFar = Pass2CollisionStrideFar,
 			Pass2CollisionStrideFarStartT = Pass2CollisionStrideFarStartT,
 			MinSegLenForStrideSkip = MinSegLenForStrideSkip,
-			Pass2GeomEnvelopeRadiusScale = Mathf.Max(1.0f, Pass2GeomEnvelopeRadiusScale),
+			Pass2GeomEnvelopeRadiusScale = Mathf.Max(0.1f, Pass2GeomEnvelopeRadiusScale),
 			Pass2GeomEnvelopeAabbExpand = Mathf.Max(0.0f, Pass2GeomEnvelopeAabbExpand),
+			AdaptiveTelemetryEnvelopeScalingEnabled = AdaptiveTelemetryEnvelopeScalingEnabled,
+			AdaptiveEnvelopeThresholdStatistic = ResolveAdaptiveEnvelopeThresholdStatisticToken(),
+			AdaptiveTelemetryEnvelopeLowThreshold = Mathf.Clamp(AdaptiveTelemetryEnvelopeLowThreshold, 0.0f, 1.0f),
+			AdaptiveTelemetryEnvelopeHighThreshold = Mathf.Clamp(AdaptiveTelemetryEnvelopeHighThreshold, 0.0f, 1.0f),
 			UseGeometryTLASPruning = UseGeometryTLASPruning,
 			Pass2HitBackFaces = Pass2HitBackFaces,
 			Pass2HitFromInside = Pass2HitFromInside,
@@ -12834,6 +13839,10 @@ private sealed class OverlayRollingWindow
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.MinSegLenForStrideSkip));
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.Pass2GeomEnvelopeRadiusScale));
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.Pass2GeomEnvelopeAabbExpand));
+		hash.Add(cfg.AdaptiveTelemetryEnvelopeScalingEnabled);
+		hash.Add(cfg.AdaptiveEnvelopeThresholdStatistic ?? string.Empty);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.AdaptiveTelemetryEnvelopeLowThreshold));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.AdaptiveTelemetryEnvelopeHighThreshold));
 		hash.Add(cfg.UseGeometryTLASPruning);
 		hash.Add(cfg.Pass2HitBackFaces);
 		hash.Add(cfg.Pass2HitFromInside);
@@ -12943,6 +13952,7 @@ private sealed class OverlayRollingWindow
 			$"stride={cfg.Film.PixelStride} resScale={cfg.Film.ResolutionScale:0.###} rows={cfg.Film.RowsPerFrame} " +
 			$"stepLen={cfg.RayMarch.StepLength:0.###} collRad={cfg.RayMarch.CollisionRadius:0.###} mask=0x{cfg.RayMarch.CollisionMask:X8} " +
 			$"envRadScale={cfg.Pass2GeomEnvelopeRadiusScale:0.###} envAabbExpand={cfg.Pass2GeomEnvelopeAabbExpand:0.###} " +
+			$"adaptiveEnv={(cfg.AdaptiveTelemetryEnvelopeScalingEnabled ? 1 : 0)} adaptiveStat={cfg.AdaptiveEnvelopeThresholdStatistic} adaptiveLow={cfg.AdaptiveTelemetryEnvelopeLowThreshold:0.##} adaptiveHigh={cfg.AdaptiveTelemetryEnvelopeHighThreshold:0.##} " +
 			$"geomPrune={(cfg.UseGeometryTLASPruning ? 1 : 0)} maxDist={cfg.Film.MaxDistance:0.###}");
 	}
 
