@@ -103,7 +103,16 @@ public partial class RenderTestRunner : Node
 	private const string TelemetryHeatmapModeCmdArgPrefix = "--telemetry-heatmap-mode=";
 	private const string TelemetryExperimentEnvelopeScaleCmdArgPrefix = "--telemetry-experiment-envelope-scale=";
 	private const string TelemetryAdaptiveEnvelopeCmdArgPrefix = "--telemetry-adaptive-envelope=";
+	private const string AdaptiveEnvelopeControllerModeCmdArgPrefix = "--adaptive-envelope-controller-mode=";
+	private const string AdaptiveEnvelopePriorSourceCmdArgPrefix = "--adaptive-envelope-prior-source=";
 	private const string AdaptiveEnvelopeThresholdStatisticCmdArgPrefix = "--adaptive-envelope-threshold-statistic=";
+	private const string AdaptiveEnvelopeHotThresholdPercentileCmdArgPrefix = "--adaptive-envelope-hot-threshold-percentile=";
+	private const string AdaptiveEnvelopeWarmThresholdPercentileCmdArgPrefix = "--adaptive-envelope-warm-threshold-percentile=";
+	private const string AdaptiveEnvelopeRelaxedThresholdPercentileCmdArgPrefix = "--adaptive-envelope-relaxed-threshold-percentile=";
+	private const string AdaptiveEnvelopeTightScaleCmdArgPrefix = "--adaptive-envelope-tight-scale=";
+	private const string AdaptiveEnvelopeWarmScaleCmdArgPrefix = "--adaptive-envelope-warm-scale=";
+	private const string AdaptiveEnvelopeNeutralScaleCmdArgPrefix = "--adaptive-envelope-neutral-scale=";
+	private const string AdaptiveEnvelopeRelaxedScaleCmdArgPrefix = "--adaptive-envelope-relaxed-scale=";
 	private const int RenderTestMinFramesPerRun = 90;
 	private const string FastBlackholeComparisonProfileToken = "blackhole_compare_fast";
 	private const string FastEinsteinComparisonProfileToken = "einstein_compare_fast";
@@ -168,8 +177,26 @@ public partial class RenderTestRunner : Node
 	private float _telemetryExperimentEnvelopeScale = 1.0f;
 	private bool _telemetryAdaptiveEnvelopeCliOverrideKnown = false;
 	private bool _telemetryAdaptiveEnvelopeEnabled = false;
+	private bool _adaptiveEnvelopeControllerModeCliOverrideKnown = false;
+	private string _adaptiveEnvelopeControllerMode = "three_state";
+	private bool _adaptiveEnvelopePriorSourceCliOverrideKnown = false;
+	private string _adaptiveEnvelopePriorSource = "same_pass";
 	private bool _adaptiveEnvelopeThresholdStatisticCliOverrideKnown = false;
 	private string _adaptiveEnvelopeThresholdStatistic = "mean";
+	private bool _adaptiveEnvelopeHotThresholdPercentileCliOverrideKnown = false;
+	private float _adaptiveEnvelopeHotThresholdPercentile = 95f;
+	private bool _adaptiveEnvelopeWarmThresholdPercentileCliOverrideKnown = false;
+	private float _adaptiveEnvelopeWarmThresholdPercentile = 80f;
+	private bool _adaptiveEnvelopeRelaxedThresholdPercentileCliOverrideKnown = false;
+	private float _adaptiveEnvelopeRelaxedThresholdPercentile = 50f;
+	private bool _adaptiveEnvelopeTightScaleCliOverrideKnown = false;
+	private float _adaptiveEnvelopeTightScale = 0.70f;
+	private bool _adaptiveEnvelopeWarmScaleCliOverrideKnown = false;
+	private float _adaptiveEnvelopeWarmScale = 0.85f;
+	private bool _adaptiveEnvelopeNeutralScaleCliOverrideKnown = false;
+	private float _adaptiveEnvelopeNeutralScale = 1.00f;
+	private bool _adaptiveEnvelopeRelaxedScaleCliOverrideKnown = false;
+	private float _adaptiveEnvelopeRelaxedScale = 1.05f;
 	private bool _startupDependencyErrorLogged = false;
 	private bool _baselineApplied = false;
 	private HarnessState _harnessState = HarnessState.Idle;
@@ -457,7 +484,11 @@ public partial class RenderTestRunner : Node
 				$"telemetry_heatmap_dir={Sanitize(ResolveTelemetryHeatmapDirForLogging())} " +
 				$"telemetry_heatmap_mode={Sanitize(ResolveTelemetryHeatmapModeForLogging())} " +
 				$"telemetry_adaptive_envelope={(_telemetryAdaptiveEnvelopeCliOverrideKnown ? (_telemetryAdaptiveEnvelopeEnabled ? 1 : 0) : 0)} " +
+				$"adaptive_envelope_controller_mode={Sanitize(_adaptiveEnvelopeControllerModeCliOverrideKnown ? _adaptiveEnvelopeControllerMode : "three_state")} " +
+				$"adaptive_envelope_prior_source={Sanitize(_adaptiveEnvelopePriorSourceCliOverrideKnown ? _adaptiveEnvelopePriorSource : "same_pass")} " +
 				$"adaptive_envelope_threshold_statistic={Sanitize(_adaptiveEnvelopeThresholdStatisticCliOverrideKnown ? _adaptiveEnvelopeThresholdStatistic : "mean")} " +
+				$"adaptive_envelope_threshold_percentiles={(_adaptiveEnvelopeHotThresholdPercentileCliOverrideKnown ? _adaptiveEnvelopeHotThresholdPercentile.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) : "95")}/{(_adaptiveEnvelopeWarmThresholdPercentileCliOverrideKnown ? _adaptiveEnvelopeWarmThresholdPercentile.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) : "80")}/{(_adaptiveEnvelopeRelaxedThresholdPercentileCliOverrideKnown ? _adaptiveEnvelopeRelaxedThresholdPercentile.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) : "50")} " +
+				$"adaptive_envelope_scales={(_adaptiveEnvelopeTightScaleCliOverrideKnown ? _adaptiveEnvelopeTightScale.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : "0.7")}/{(_adaptiveEnvelopeWarmScaleCliOverrideKnown ? _adaptiveEnvelopeWarmScale.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : "0.85")}/{(_adaptiveEnvelopeNeutralScaleCliOverrideKnown ? _adaptiveEnvelopeNeutralScale.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : "1")}/{(_adaptiveEnvelopeRelaxedScaleCliOverrideKnown ? _adaptiveEnvelopeRelaxedScale.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : "1.05")} " +
 				$"telemetry_experiment_envelope_scale={(_telemetryExperimentEnvelopeScaleCliOverrideKnown ? _telemetryExperimentEnvelopeScale.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) : "na")}");
 			GD.Print($"[RenderTestRunner] TokenDetected={hasToken} shouldStart={shouldStart}");
 			if (!shouldStart)
@@ -1057,9 +1088,45 @@ public partial class RenderTestRunner : Node
 		{
 			_film.AdaptiveTelemetryEnvelopeScalingEnabled = _telemetryAdaptiveEnvelopeEnabled;
 		}
+		if (_adaptiveEnvelopeControllerModeCliOverrideKnown)
+		{
+			_film.AdaptiveEnvelopeControllerMode = _adaptiveEnvelopeControllerMode;
+		}
+		if (_adaptiveEnvelopePriorSourceCliOverrideKnown)
+		{
+			_film.AdaptiveEnvelopePriorSource = _adaptiveEnvelopePriorSource;
+		}
 		if (_adaptiveEnvelopeThresholdStatisticCliOverrideKnown)
 		{
 			_film.AdaptiveEnvelopeThresholdStatistic = _adaptiveEnvelopeThresholdStatistic;
+		}
+		if (_adaptiveEnvelopeHotThresholdPercentileCliOverrideKnown)
+		{
+			_film.AdaptiveEnvelopeHotThresholdPercentile = _adaptiveEnvelopeHotThresholdPercentile;
+		}
+		if (_adaptiveEnvelopeWarmThresholdPercentileCliOverrideKnown)
+		{
+			_film.AdaptiveEnvelopeWarmThresholdPercentile = _adaptiveEnvelopeWarmThresholdPercentile;
+		}
+		if (_adaptiveEnvelopeRelaxedThresholdPercentileCliOverrideKnown)
+		{
+			_film.AdaptiveEnvelopeRelaxedThresholdPercentile = _adaptiveEnvelopeRelaxedThresholdPercentile;
+		}
+		if (_adaptiveEnvelopeTightScaleCliOverrideKnown)
+		{
+			_film.AdaptiveEnvelopeTightScale = _adaptiveEnvelopeTightScale;
+		}
+		if (_adaptiveEnvelopeWarmScaleCliOverrideKnown)
+		{
+			_film.AdaptiveEnvelopeWarmScale = _adaptiveEnvelopeWarmScale;
+		}
+		if (_adaptiveEnvelopeNeutralScaleCliOverrideKnown)
+		{
+			_film.AdaptiveEnvelopeNeutralScale = _adaptiveEnvelopeNeutralScale;
+		}
+		if (_adaptiveEnvelopeRelaxedScaleCliOverrideKnown)
+		{
+			_film.AdaptiveEnvelopeRelaxedScale = _adaptiveEnvelopeRelaxedScale;
 		}
 		if (_telemetryExperimentEnvelopeScaleCliOverrideKnown)
 		{
@@ -2462,8 +2529,26 @@ public partial class RenderTestRunner : Node
 		summary.Append("\"benchmark_seed\":").Append(benchmarkSeedKnown ? benchmarkSeed.ToString() : "null").Append(",");
 		summary.Append("\"telemetry_adaptive_envelope\":")
 			.Append((_telemetryAdaptiveEnvelopeCliOverrideKnown ? _telemetryAdaptiveEnvelopeEnabled : _film.AdaptiveTelemetryEnvelopeScalingEnabled) ? "true" : "false").Append(",");
+		summary.Append("\"adaptive_envelope_controller_mode\":\"")
+			.Append(JsonEscape(_adaptiveEnvelopeControllerModeCliOverrideKnown ? _adaptiveEnvelopeControllerMode : _film.AdaptiveEnvelopeControllerMode)).Append("\",");
+		summary.Append("\"adaptive_envelope_prior_source\":\"")
+			.Append(JsonEscape(_adaptiveEnvelopePriorSourceCliOverrideKnown ? _adaptiveEnvelopePriorSource : _film.AdaptiveEnvelopePriorSource)).Append("\",");
 		summary.Append("\"adaptive_envelope_threshold_statistic\":\"")
 			.Append(JsonEscape(_adaptiveEnvelopeThresholdStatisticCliOverrideKnown ? _adaptiveEnvelopeThresholdStatistic : _film.AdaptiveEnvelopeThresholdStatistic)).Append("\",");
+		summary.Append("\"adaptive_envelope_hot_threshold_percentile\":")
+			.Append(FormatJsonFloat(_adaptiveEnvelopeHotThresholdPercentileCliOverrideKnown ? _adaptiveEnvelopeHotThresholdPercentile : _film.AdaptiveEnvelopeHotThresholdPercentile)).Append(",");
+		summary.Append("\"adaptive_envelope_warm_threshold_percentile\":")
+			.Append(FormatJsonFloat(_adaptiveEnvelopeWarmThresholdPercentileCliOverrideKnown ? _adaptiveEnvelopeWarmThresholdPercentile : _film.AdaptiveEnvelopeWarmThresholdPercentile)).Append(",");
+		summary.Append("\"adaptive_envelope_relaxed_threshold_percentile\":")
+			.Append(FormatJsonFloat(_adaptiveEnvelopeRelaxedThresholdPercentileCliOverrideKnown ? _adaptiveEnvelopeRelaxedThresholdPercentile : _film.AdaptiveEnvelopeRelaxedThresholdPercentile)).Append(",");
+		summary.Append("\"adaptive_envelope_tight_scale\":")
+			.Append(FormatJsonFloat(_adaptiveEnvelopeTightScaleCliOverrideKnown ? _adaptiveEnvelopeTightScale : _film.AdaptiveEnvelopeTightScale)).Append(",");
+		summary.Append("\"adaptive_envelope_warm_scale\":")
+			.Append(FormatJsonFloat(_adaptiveEnvelopeWarmScaleCliOverrideKnown ? _adaptiveEnvelopeWarmScale : _film.AdaptiveEnvelopeWarmScale)).Append(",");
+		summary.Append("\"adaptive_envelope_neutral_scale\":")
+			.Append(FormatJsonFloat(_adaptiveEnvelopeNeutralScaleCliOverrideKnown ? _adaptiveEnvelopeNeutralScale : _film.AdaptiveEnvelopeNeutralScale)).Append(",");
+		summary.Append("\"adaptive_envelope_relaxed_scale\":")
+			.Append(FormatJsonFloat(_adaptiveEnvelopeRelaxedScaleCliOverrideKnown ? _adaptiveEnvelopeRelaxedScale : _film.AdaptiveEnvelopeRelaxedScale)).Append(",");
 		summary.Append("\"telemetry_experiment_envelope_scale\":")
 			.Append(_telemetryExperimentEnvelopeScaleCliOverrideKnown ? FormatJsonFloat(_telemetryExperimentEnvelopeScale) : "null").Append(",");
 		summary.Append("\"fixture_traced_pixels\":").Append(hasFixtureDebugStats ? fixtureDebugStats.TracedPixels.ToString() : "null").Append(",");
@@ -2500,6 +2585,20 @@ public partial class RenderTestRunner : Node
 			summary.Append("\"adaptive_envelope_activation_progress_threshold\":0.25,");
 			summary.Append("\"adaptive_envelope_query_minus_curvature_p50\":").Append(FormatJsonFloat(adaptiveEnvelopeDebugStats.QueryMinusCurvatureP50)).Append(",");
 			summary.Append("\"adaptive_envelope_query_minus_curvature_p90\":").Append(FormatJsonFloat(adaptiveEnvelopeDebugStats.QueryMinusCurvatureP90)).Append(",");
+			summary.Append("\"adaptive_envelope_prior_snapshot_available\":")
+				.Append(adaptiveEnvelopeDebugStats.PriorSnapshotAvailable ? "true" : "false").Append(",");
+			summary.Append("\"adaptive_envelope_prior_fallback_behavior\":\"")
+				.Append(JsonEscape(adaptiveEnvelopeDebugStats.PriorFallbackBehavior)).Append("\",");
+			summary.Append("\"adaptive_envelope_prior_fallback_count\":")
+				.Append(adaptiveEnvelopeDebugStats.PriorFallbackCount).Append(",");
+			summary.Append("\"adaptive_envelope_prior_snapshot_unavailable_fallback_count\":")
+				.Append(adaptiveEnvelopeDebugStats.PriorSnapshotUnavailableFallbackCount).Append(",");
+			summary.Append("\"adaptive_envelope_prior_insufficient_data_fallback_count\":")
+				.Append(adaptiveEnvelopeDebugStats.PriorInsufficientDataFallbackCount).Append(",");
+			summary.Append("\"adaptive_envelope_regime_hot_pct\":")
+				.Append((adaptiveEnvelopeDebugStats.TightCount / sampleCount).ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)).Append(",");
+			summary.Append("\"adaptive_envelope_regime_warm_pct\":")
+				.Append((adaptiveEnvelopeDebugStats.WarmCount / sampleCount).ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)).Append(",");
 			summary.Append("\"adaptive_envelope_regime_tight_pct\":")
 				.Append((adaptiveEnvelopeDebugStats.TightCount / sampleCount).ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)).Append(",");
 			summary.Append("\"adaptive_envelope_regime_neutral_pct\":")
@@ -2519,6 +2618,13 @@ public partial class RenderTestRunner : Node
 			summary.Append("\"adaptive_envelope_activation_progress_threshold\":0.25,");
 			summary.Append("\"adaptive_envelope_query_minus_curvature_p50\":null,");
 			summary.Append("\"adaptive_envelope_query_minus_curvature_p90\":null,");
+			summary.Append("\"adaptive_envelope_prior_snapshot_available\":null,");
+			summary.Append("\"adaptive_envelope_prior_fallback_behavior\":null,");
+			summary.Append("\"adaptive_envelope_prior_fallback_count\":null,");
+			summary.Append("\"adaptive_envelope_prior_snapshot_unavailable_fallback_count\":null,");
+			summary.Append("\"adaptive_envelope_prior_insufficient_data_fallback_count\":null,");
+			summary.Append("\"adaptive_envelope_regime_hot_pct\":null,");
+			summary.Append("\"adaptive_envelope_regime_warm_pct\":null,");
 			summary.Append("\"adaptive_envelope_regime_tight_pct\":null,");
 			summary.Append("\"adaptive_envelope_regime_neutral_pct\":null,");
 			summary.Append("\"adaptive_envelope_regime_relaxed_pct\":null,");
@@ -3631,8 +3737,26 @@ public partial class RenderTestRunner : Node
 		_telemetryExperimentEnvelopeScale = 1.0f;
 		_telemetryAdaptiveEnvelopeCliOverrideKnown = false;
 		_telemetryAdaptiveEnvelopeEnabled = false;
+		_adaptiveEnvelopeControllerModeCliOverrideKnown = false;
+		_adaptiveEnvelopeControllerMode = "three_state";
+		_adaptiveEnvelopePriorSourceCliOverrideKnown = false;
+		_adaptiveEnvelopePriorSource = "same_pass";
 		_adaptiveEnvelopeThresholdStatisticCliOverrideKnown = false;
 		_adaptiveEnvelopeThresholdStatistic = "mean";
+		_adaptiveEnvelopeHotThresholdPercentileCliOverrideKnown = false;
+		_adaptiveEnvelopeHotThresholdPercentile = 95f;
+		_adaptiveEnvelopeWarmThresholdPercentileCliOverrideKnown = false;
+		_adaptiveEnvelopeWarmThresholdPercentile = 80f;
+		_adaptiveEnvelopeRelaxedThresholdPercentileCliOverrideKnown = false;
+		_adaptiveEnvelopeRelaxedThresholdPercentile = 50f;
+		_adaptiveEnvelopeTightScaleCliOverrideKnown = false;
+		_adaptiveEnvelopeTightScale = 0.70f;
+		_adaptiveEnvelopeWarmScaleCliOverrideKnown = false;
+		_adaptiveEnvelopeWarmScale = 0.85f;
+		_adaptiveEnvelopeNeutralScaleCliOverrideKnown = false;
+		_adaptiveEnvelopeNeutralScale = 1.00f;
+		_adaptiveEnvelopeRelaxedScaleCliOverrideKnown = false;
+		_adaptiveEnvelopeRelaxedScale = 1.05f;
 		if (TryGetBoolCmdArgValue(RenderTestCaptureCmdArgPrefix, out bool renderTestCaptureEnabled))
 		{
 			_renderTestCaptureEnabled = renderTestCaptureEnabled;
@@ -3676,6 +3800,26 @@ public partial class RenderTestRunner : Node
 			_telemetryAdaptiveEnvelopeCliOverrideKnown = true;
 			_telemetryAdaptiveEnvelopeEnabled = telemetryAdaptiveEnvelopeEnabled;
 		}
+		if (TryGetStringCmdArgValue(AdaptiveEnvelopeControllerModeCmdArgPrefix, out string adaptiveEnvelopeControllerMode) &&
+			!string.IsNullOrWhiteSpace(adaptiveEnvelopeControllerMode))
+		{
+			string token = adaptiveEnvelopeControllerMode.Trim().ToLowerInvariant();
+			if (token == "three_state" || token == "four_state_warm" || token == "four_state")
+			{
+				_adaptiveEnvelopeControllerModeCliOverrideKnown = true;
+				_adaptiveEnvelopeControllerMode = token == "four_state" ? "four_state_warm" : token;
+			}
+		}
+		if (TryGetStringCmdArgValue(AdaptiveEnvelopePriorSourceCmdArgPrefix, out string adaptiveEnvelopePriorSource) &&
+			!string.IsNullOrWhiteSpace(adaptiveEnvelopePriorSource))
+		{
+			string token = adaptiveEnvelopePriorSource.Trim().ToLowerInvariant();
+			if (token == "same_pass" || token == "previous_pass")
+			{
+				_adaptiveEnvelopePriorSourceCliOverrideKnown = true;
+				_adaptiveEnvelopePriorSource = token;
+			}
+		}
 		if (TryGetStringCmdArgValue(AdaptiveEnvelopeThresholdStatisticCmdArgPrefix, out string adaptiveEnvelopeThresholdStatistic) &&
 			!string.IsNullOrWhiteSpace(adaptiveEnvelopeThresholdStatistic))
 		{
@@ -3685,6 +3829,55 @@ public partial class RenderTestRunner : Node
 				_adaptiveEnvelopeThresholdStatisticCliOverrideKnown = true;
 				_adaptiveEnvelopeThresholdStatistic = token;
 			}
+		}
+		if (TryGetStringCmdArgValue(AdaptiveEnvelopeHotThresholdPercentileCmdArgPrefix, out string adaptiveEnvelopeHotThresholdPercentileRaw) &&
+			!string.IsNullOrWhiteSpace(adaptiveEnvelopeHotThresholdPercentileRaw) &&
+			float.TryParse(adaptiveEnvelopeHotThresholdPercentileRaw.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float adaptiveEnvelopeHotThresholdPercentile))
+		{
+			_adaptiveEnvelopeHotThresholdPercentileCliOverrideKnown = true;
+			_adaptiveEnvelopeHotThresholdPercentile = Mathf.Clamp(adaptiveEnvelopeHotThresholdPercentile, 0f, 100f);
+		}
+		if (TryGetStringCmdArgValue(AdaptiveEnvelopeWarmThresholdPercentileCmdArgPrefix, out string adaptiveEnvelopeWarmThresholdPercentileRaw) &&
+			!string.IsNullOrWhiteSpace(adaptiveEnvelopeWarmThresholdPercentileRaw) &&
+			float.TryParse(adaptiveEnvelopeWarmThresholdPercentileRaw.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float adaptiveEnvelopeWarmThresholdPercentile))
+		{
+			_adaptiveEnvelopeWarmThresholdPercentileCliOverrideKnown = true;
+			_adaptiveEnvelopeWarmThresholdPercentile = Mathf.Clamp(adaptiveEnvelopeWarmThresholdPercentile, 0f, 100f);
+		}
+		if (TryGetStringCmdArgValue(AdaptiveEnvelopeRelaxedThresholdPercentileCmdArgPrefix, out string adaptiveEnvelopeRelaxedThresholdPercentileRaw) &&
+			!string.IsNullOrWhiteSpace(adaptiveEnvelopeRelaxedThresholdPercentileRaw) &&
+			float.TryParse(adaptiveEnvelopeRelaxedThresholdPercentileRaw.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float adaptiveEnvelopeRelaxedThresholdPercentile))
+		{
+			_adaptiveEnvelopeRelaxedThresholdPercentileCliOverrideKnown = true;
+			_adaptiveEnvelopeRelaxedThresholdPercentile = Mathf.Clamp(adaptiveEnvelopeRelaxedThresholdPercentile, 0f, 100f);
+		}
+		if (TryGetStringCmdArgValue(AdaptiveEnvelopeTightScaleCmdArgPrefix, out string adaptiveEnvelopeTightScaleRaw) &&
+			!string.IsNullOrWhiteSpace(adaptiveEnvelopeTightScaleRaw) &&
+			float.TryParse(adaptiveEnvelopeTightScaleRaw.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float adaptiveEnvelopeTightScale))
+		{
+			_adaptiveEnvelopeTightScaleCliOverrideKnown = true;
+			_adaptiveEnvelopeTightScale = Mathf.Clamp(adaptiveEnvelopeTightScale, 0.1f, 2.0f);
+		}
+		if (TryGetStringCmdArgValue(AdaptiveEnvelopeWarmScaleCmdArgPrefix, out string adaptiveEnvelopeWarmScaleRaw) &&
+			!string.IsNullOrWhiteSpace(adaptiveEnvelopeWarmScaleRaw) &&
+			float.TryParse(adaptiveEnvelopeWarmScaleRaw.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float adaptiveEnvelopeWarmScale))
+		{
+			_adaptiveEnvelopeWarmScaleCliOverrideKnown = true;
+			_adaptiveEnvelopeWarmScale = Mathf.Clamp(adaptiveEnvelopeWarmScale, 0.1f, 2.0f);
+		}
+		if (TryGetStringCmdArgValue(AdaptiveEnvelopeNeutralScaleCmdArgPrefix, out string adaptiveEnvelopeNeutralScaleRaw) &&
+			!string.IsNullOrWhiteSpace(adaptiveEnvelopeNeutralScaleRaw) &&
+			float.TryParse(adaptiveEnvelopeNeutralScaleRaw.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float adaptiveEnvelopeNeutralScale))
+		{
+			_adaptiveEnvelopeNeutralScaleCliOverrideKnown = true;
+			_adaptiveEnvelopeNeutralScale = Mathf.Clamp(adaptiveEnvelopeNeutralScale, 0.1f, 2.0f);
+		}
+		if (TryGetStringCmdArgValue(AdaptiveEnvelopeRelaxedScaleCmdArgPrefix, out string adaptiveEnvelopeRelaxedScaleRaw) &&
+			!string.IsNullOrWhiteSpace(adaptiveEnvelopeRelaxedScaleRaw) &&
+			float.TryParse(adaptiveEnvelopeRelaxedScaleRaw.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float adaptiveEnvelopeRelaxedScale))
+		{
+			_adaptiveEnvelopeRelaxedScaleCliOverrideKnown = true;
+			_adaptiveEnvelopeRelaxedScale = Mathf.Clamp(adaptiveEnvelopeRelaxedScale, 0.1f, 2.0f);
 		}
 		if (TryGetBoolCmdArgValue(AutoCalCmdArgPrefix, out bool autoCalEnabled))
 		{

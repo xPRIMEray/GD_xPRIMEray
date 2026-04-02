@@ -74,6 +74,15 @@ public partial class GrinFilmCamera : Node
 		public float? Pass2GeomEnvelopeRadiusScale;
 		public float? Pass2GeomEnvelopeAabbExpand;
 		public bool? AdaptiveTelemetryEnvelopeScalingEnabled;
+		public string AdaptiveEnvelopeControllerMode;
+		public string AdaptiveEnvelopePriorSource;
+		public float? AdaptiveEnvelopeHotThresholdPercentile;
+		public float? AdaptiveEnvelopeWarmThresholdPercentile;
+		public float? AdaptiveEnvelopeRelaxedThresholdPercentile;
+		public float? AdaptiveEnvelopeTightScale;
+		public float? AdaptiveEnvelopeWarmScale;
+		public float? AdaptiveEnvelopeNeutralScale;
+		public float? AdaptiveEnvelopeRelaxedScale;
 		public bool? UsePass2CollisionStride;
 		public int? Pass2CollisionStrideNear;
 		public int? Pass2CollisionStrideFar;
@@ -113,7 +122,16 @@ public partial class GrinFilmCamera : Node
 		public float Pass2GeomEnvelopeRadiusScale;
 		public float Pass2GeomEnvelopeAabbExpand;
 		public bool AdaptiveTelemetryEnvelopeScalingEnabled;
+		public string AdaptiveEnvelopeControllerMode;
+		public string AdaptiveEnvelopePriorSource;
 		public string AdaptiveEnvelopeThresholdStatistic;
+		public float AdaptiveEnvelopeHotThresholdPercentile;
+		public float AdaptiveEnvelopeWarmThresholdPercentile;
+		public float AdaptiveEnvelopeRelaxedThresholdPercentile;
+		public float AdaptiveEnvelopeTightScale;
+		public float AdaptiveEnvelopeWarmScale;
+		public float AdaptiveEnvelopeNeutralScale;
+		public float AdaptiveEnvelopeRelaxedScale;
 		public bool UsePass2CollisionStride;
 		public int Pass2CollisionStrideNear;
 		public int Pass2CollisionStrideFar;
@@ -270,6 +288,7 @@ public partial class GrinFilmCamera : Node
 		public readonly float Max;
 		public readonly int SampleCount;
 		public readonly int TightCount;
+		public readonly int WarmCount;
 		public readonly int NeutralCount;
 		public readonly int RelaxedCount;
 		public readonly int HistBin0;
@@ -279,6 +298,12 @@ public partial class GrinFilmCamera : Node
 		public readonly int HistBin4;
 		public readonly float QueryMinusCurvatureP50;
 		public readonly float QueryMinusCurvatureP90;
+		public readonly string PriorSource;
+		public readonly string PriorFallbackBehavior;
+		public readonly bool PriorSnapshotAvailable;
+		public readonly int PriorFallbackCount;
+		public readonly int PriorSnapshotUnavailableFallbackCount;
+		public readonly int PriorInsufficientDataFallbackCount;
 
 		public AdaptiveEnvelopeDebugStats(
 			float min,
@@ -286,6 +311,7 @@ public partial class GrinFilmCamera : Node
 			float max,
 			int sampleCount,
 			int tightCount,
+			int warmCount,
 			int neutralCount,
 			int relaxedCount,
 			int histBin0,
@@ -294,13 +320,20 @@ public partial class GrinFilmCamera : Node
 			int histBin3,
 			int histBin4,
 			float queryMinusCurvatureP50,
-			float queryMinusCurvatureP90)
+			float queryMinusCurvatureP90,
+			string priorSource,
+			string priorFallbackBehavior,
+			bool priorSnapshotAvailable,
+			int priorFallbackCount,
+			int priorSnapshotUnavailableFallbackCount,
+			int priorInsufficientDataFallbackCount)
 		{
 			Min = min;
 			Mean = mean;
 			Max = max;
 			SampleCount = sampleCount;
 			TightCount = tightCount;
+			WarmCount = warmCount;
 			NeutralCount = neutralCount;
 			RelaxedCount = relaxedCount;
 			HistBin0 = histBin0;
@@ -310,6 +343,12 @@ public partial class GrinFilmCamera : Node
 			HistBin4 = histBin4;
 			QueryMinusCurvatureP50 = queryMinusCurvatureP50;
 			QueryMinusCurvatureP90 = queryMinusCurvatureP90;
+			PriorSource = priorSource ?? string.Empty;
+			PriorFallbackBehavior = priorFallbackBehavior ?? string.Empty;
+			PriorSnapshotAvailable = priorSnapshotAvailable;
+			PriorFallbackCount = priorFallbackCount;
+			PriorSnapshotUnavailableFallbackCount = priorSnapshotUnavailableFallbackCount;
+			PriorInsufficientDataFallbackCount = priorInsufficientDataFallbackCount;
 		}
 	}
 
@@ -505,12 +544,30 @@ public partial class GrinFilmCamera : Node
 	[Export] public string TelemetryHeatmapMode = "basic";
 	/// <summary>Enables telemetry-driven adaptive envelope scaling for pass-2 candidate gathering.</summary>
 	[Export] public bool AdaptiveTelemetryEnvelopeScalingEnabled = false;
+	/// <summary>Selects the adaptive controller layout. "three_state" preserves the current reference behavior; "four_state_warm" enables a hot/warm/neutral/relaxed split.</summary>
+	[Export] public string AdaptiveEnvelopeControllerMode = "three_state";
+	/// <summary>Selects whether adaptive envelope priors come from the same in-progress pass or the previous completed frame/pass snapshot.</summary>
+	[Export] public string AdaptiveEnvelopePriorSource = "same_pass";
 	/// <summary>Statistic used to trigger adaptive envelope thresholds: mean, p90, or max.</summary>
 	[Export] public string AdaptiveEnvelopeThresholdStatistic = "mean";
+	/// <summary>Global percentile threshold above which the hot regime activates in four-state mode.</summary>
+	[Export(PropertyHint.Range, "50,100,1")] public float AdaptiveEnvelopeHotThresholdPercentile = 95f;
+	/// <summary>Global percentile threshold above which the warm regime activates in four-state mode.</summary>
+	[Export(PropertyHint.Range, "0,100,1")] public float AdaptiveEnvelopeWarmThresholdPercentile = 80f;
+	/// <summary>Global percentile threshold below which the relaxed regime activates in four-state mode.</summary>
+	[Export(PropertyHint.Range, "0,100,1")] public float AdaptiveEnvelopeRelaxedThresholdPercentile = 50f;
 	/// <summary>Low threshold on the normalized telemetry mismatch signal.</summary>
 	[Export(PropertyHint.Range, "0.0,1.0,0.01")] public float AdaptiveTelemetryEnvelopeLowThreshold = 0.35f;
 	/// <summary>High threshold on the normalized telemetry mismatch signal.</summary>
 	[Export(PropertyHint.Range, "0.0,1.0,0.01")] public float AdaptiveTelemetryEnvelopeHighThreshold = 0.65f;
+	/// <summary>Envelope radius scale used in the tight adaptive regime.</summary>
+	[Export(PropertyHint.Range, "0.1,2.0,0.01")] public float AdaptiveEnvelopeTightScale = 0.70f;
+	/// <summary>Envelope radius scale used in the warm adaptive regime.</summary>
+	[Export(PropertyHint.Range, "0.1,2.0,0.01")] public float AdaptiveEnvelopeWarmScale = 0.85f;
+	/// <summary>Envelope radius scale used in the neutral adaptive regime.</summary>
+	[Export(PropertyHint.Range, "0.1,2.0,0.01")] public float AdaptiveEnvelopeNeutralScale = 1.00f;
+	/// <summary>Envelope radius scale used in the relaxed adaptive regime.</summary>
+	[Export(PropertyHint.Range, "0.1,2.0,0.01")] public float AdaptiveEnvelopeRelaxedScale = 1.05f;
 
 	[ExportSubgroup("Research Mode")]
 	// Optional per-camera overrides for research behavior. Inert unless override flags enable fields.
@@ -1225,16 +1282,35 @@ public partial class GrinFilmCamera : Node
 	private float[] _telemetryDkMax = Array.Empty<float>();
 	private float[] _telemetryD2kMax = Array.Empty<float>();
 	private float[] _adaptiveEnvelopeMismatchPrior = Array.Empty<float>();
+	private byte[] _adaptiveEnvelopeActiveMask = Array.Empty<byte>();
+	private float[] _adaptiveEnvelopePreviousMismatchPrior = Array.Empty<float>();
+	private byte[] _adaptiveEnvelopePreviousActiveMask = Array.Empty<byte>();
 	private float _adaptiveEnvelopeScaleMinThisRun = 1.0f;
 	private float _adaptiveEnvelopeScaleMaxThisRun = 1.0f;
 	private double _adaptiveEnvelopeScaleSumThisRun = 0.0;
 	private long _adaptiveEnvelopeScaleCountThisRun = 0;
 	private int _adaptiveEnvelopeTightCountThisRun = 0;
+	private int _adaptiveEnvelopeWarmCountThisRun = 0;
 	private int _adaptiveEnvelopeNeutralCountThisRun = 0;
 	private int _adaptiveEnvelopeRelaxedCountThisRun = 0;
 	private int[] _adaptiveEnvelopeScaleHistogram = new int[5];
 	private float _adaptiveEnvelopeGlobalQueryMinusCurvatureP50 = 0.0f;
 	private float _adaptiveEnvelopeGlobalQueryMinusCurvatureP90 = 0.0f;
+	private float _adaptiveEnvelopeGlobalRelaxedThreshold = 0.0f;
+	private float _adaptiveEnvelopeGlobalWarmThreshold = 0.0f;
+	private float _adaptiveEnvelopeGlobalHotThreshold = 0.0f;
+	private float _adaptiveEnvelopePreviousGlobalQueryMinusCurvatureP50 = 0.0f;
+	private float _adaptiveEnvelopePreviousGlobalQueryMinusCurvatureP90 = 0.0f;
+	private float _adaptiveEnvelopePreviousGlobalRelaxedThreshold = 0.0f;
+	private float _adaptiveEnvelopePreviousGlobalWarmThreshold = 0.0f;
+	private float _adaptiveEnvelopePreviousGlobalHotThreshold = 0.0f;
+	private bool _adaptiveEnvelopePreviousSnapshotAvailable = false;
+	private int _adaptiveEnvelopePriorFallbackCountThisRun = 0;
+	private int _adaptiveEnvelopePriorSnapshotUnavailableFallbackCountThisRun = 0;
+	private int _adaptiveEnvelopePriorInsufficientDataFallbackCountThisRun = 0;
+	private string _adaptiveEnvelopePriorFallbackBehaviorThisRun = "none";
+	private bool _adaptiveEnvelopePriorSnapshotUnavailableLoggedThisRun = false;
+	private bool _adaptiveEnvelopePriorInsufficientDataLoggedThisRun = false;
 	private TextureRect _filmView;   // if user supplies FilmViewPath
 	private TextureRect _overlayRect; // auto-created fallback
 	private int _rowCursor = 0;
@@ -2005,9 +2081,18 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 		public float Pass2GeomEnvelopeRadiusScale;
 		public float Pass2GeomEnvelopeAabbExpand;
 		public bool AdaptiveTelemetryEnvelopeScalingEnabled;
+		public string AdaptiveEnvelopeControllerMode;
+		public string AdaptiveEnvelopePriorSource;
 		public string AdaptiveEnvelopeThresholdStatistic;
 		public float AdaptiveTelemetryEnvelopeLowThreshold;
 		public float AdaptiveTelemetryEnvelopeHighThreshold;
+		public float AdaptiveEnvelopeHotThresholdPercentile;
+		public float AdaptiveEnvelopeWarmThresholdPercentile;
+		public float AdaptiveEnvelopeRelaxedThresholdPercentile;
+		public float AdaptiveEnvelopeTightScale;
+		public float AdaptiveEnvelopeWarmScale;
+		public float AdaptiveEnvelopeNeutralScale;
+		public float AdaptiveEnvelopeRelaxedScale;
 		public bool UseGeometryTLASPruning;
 		public bool Pass2HitBackFaces;
 		public bool Pass2HitFromInside;
@@ -3739,10 +3824,19 @@ private sealed class OverlayRollingWindow
 				UseThreadedPass2LocalAccumulation = UseThreadedPass2LocalAccumulation,
 				ThreadedPass2WorkerCount = ThreadedPass2WorkerCount,
 				ThreadedPass2RowsPerChunk = ThreadedPass2RowsPerChunk,
-				Pass2GeomEnvelopeRadiusScale = Pass2GeomEnvelopeRadiusScale,
+			Pass2GeomEnvelopeRadiusScale = Pass2GeomEnvelopeRadiusScale,
 			Pass2GeomEnvelopeAabbExpand = Pass2GeomEnvelopeAabbExpand,
 			AdaptiveTelemetryEnvelopeScalingEnabled = AdaptiveTelemetryEnvelopeScalingEnabled,
+			AdaptiveEnvelopeControllerMode = AdaptiveEnvelopeControllerMode,
+			AdaptiveEnvelopePriorSource = AdaptiveEnvelopePriorSource,
 			AdaptiveEnvelopeThresholdStatistic = AdaptiveEnvelopeThresholdStatistic,
+			AdaptiveEnvelopeHotThresholdPercentile = AdaptiveEnvelopeHotThresholdPercentile,
+			AdaptiveEnvelopeWarmThresholdPercentile = AdaptiveEnvelopeWarmThresholdPercentile,
+			AdaptiveEnvelopeRelaxedThresholdPercentile = AdaptiveEnvelopeRelaxedThresholdPercentile,
+			AdaptiveEnvelopeTightScale = AdaptiveEnvelopeTightScale,
+			AdaptiveEnvelopeWarmScale = AdaptiveEnvelopeWarmScale,
+			AdaptiveEnvelopeNeutralScale = AdaptiveEnvelopeNeutralScale,
+			AdaptiveEnvelopeRelaxedScale = AdaptiveEnvelopeRelaxedScale,
 				UsePass2CollisionStride = UsePass2CollisionStride,
 			Pass2CollisionStrideNear = Pass2CollisionStrideNear,
 			Pass2CollisionStrideFar = Pass2CollisionStrideFar,
@@ -3766,6 +3860,15 @@ private sealed class OverlayRollingWindow
 		if (run.Pass2GeomEnvelopeRadiusScale.HasValue) Pass2GeomEnvelopeRadiusScale = Mathf.Max(0.1f, run.Pass2GeomEnvelopeRadiusScale.Value);
 		if (run.Pass2GeomEnvelopeAabbExpand.HasValue) Pass2GeomEnvelopeAabbExpand = Mathf.Max(0.0f, run.Pass2GeomEnvelopeAabbExpand.Value);
 		if (run.AdaptiveTelemetryEnvelopeScalingEnabled.HasValue) AdaptiveTelemetryEnvelopeScalingEnabled = run.AdaptiveTelemetryEnvelopeScalingEnabled.Value;
+		if (!string.IsNullOrWhiteSpace(run.AdaptiveEnvelopeControllerMode)) AdaptiveEnvelopeControllerMode = run.AdaptiveEnvelopeControllerMode;
+		if (!string.IsNullOrWhiteSpace(run.AdaptiveEnvelopePriorSource)) AdaptiveEnvelopePriorSource = run.AdaptiveEnvelopePriorSource;
+		if (run.AdaptiveEnvelopeHotThresholdPercentile.HasValue) AdaptiveEnvelopeHotThresholdPercentile = Mathf.Clamp(run.AdaptiveEnvelopeHotThresholdPercentile.Value, 0f, 100f);
+		if (run.AdaptiveEnvelopeWarmThresholdPercentile.HasValue) AdaptiveEnvelopeWarmThresholdPercentile = Mathf.Clamp(run.AdaptiveEnvelopeWarmThresholdPercentile.Value, 0f, 100f);
+		if (run.AdaptiveEnvelopeRelaxedThresholdPercentile.HasValue) AdaptiveEnvelopeRelaxedThresholdPercentile = Mathf.Clamp(run.AdaptiveEnvelopeRelaxedThresholdPercentile.Value, 0f, 100f);
+		if (run.AdaptiveEnvelopeTightScale.HasValue) AdaptiveEnvelopeTightScale = Mathf.Clamp(run.AdaptiveEnvelopeTightScale.Value, 0.1f, 2.0f);
+		if (run.AdaptiveEnvelopeWarmScale.HasValue) AdaptiveEnvelopeWarmScale = Mathf.Clamp(run.AdaptiveEnvelopeWarmScale.Value, 0.1f, 2.0f);
+		if (run.AdaptiveEnvelopeNeutralScale.HasValue) AdaptiveEnvelopeNeutralScale = Mathf.Clamp(run.AdaptiveEnvelopeNeutralScale.Value, 0.1f, 2.0f);
+		if (run.AdaptiveEnvelopeRelaxedScale.HasValue) AdaptiveEnvelopeRelaxedScale = Mathf.Clamp(run.AdaptiveEnvelopeRelaxedScale.Value, 0.1f, 2.0f);
 		if (run.UsePass2CollisionStride.HasValue) UsePass2CollisionStride = run.UsePass2CollisionStride.Value;
 		if (run.Pass2CollisionStrideNear.HasValue) Pass2CollisionStrideNear = Math.Max(1, run.Pass2CollisionStrideNear.Value);
 		if (run.Pass2CollisionStrideFar.HasValue) Pass2CollisionStrideFar = Math.Max(1, run.Pass2CollisionStrideFar.Value);
@@ -3803,7 +3906,16 @@ private sealed class OverlayRollingWindow
 			Pass2GeomEnvelopeRadiusScale = defaults.Pass2GeomEnvelopeRadiusScale;
 		Pass2GeomEnvelopeAabbExpand = defaults.Pass2GeomEnvelopeAabbExpand;
 		AdaptiveTelemetryEnvelopeScalingEnabled = defaults.AdaptiveTelemetryEnvelopeScalingEnabled;
+		AdaptiveEnvelopeControllerMode = defaults.AdaptiveEnvelopeControllerMode;
+		AdaptiveEnvelopePriorSource = defaults.AdaptiveEnvelopePriorSource;
 		AdaptiveEnvelopeThresholdStatistic = defaults.AdaptiveEnvelopeThresholdStatistic;
+		AdaptiveEnvelopeHotThresholdPercentile = defaults.AdaptiveEnvelopeHotThresholdPercentile;
+		AdaptiveEnvelopeWarmThresholdPercentile = defaults.AdaptiveEnvelopeWarmThresholdPercentile;
+		AdaptiveEnvelopeRelaxedThresholdPercentile = defaults.AdaptiveEnvelopeRelaxedThresholdPercentile;
+		AdaptiveEnvelopeTightScale = defaults.AdaptiveEnvelopeTightScale;
+		AdaptiveEnvelopeWarmScale = defaults.AdaptiveEnvelopeWarmScale;
+		AdaptiveEnvelopeNeutralScale = defaults.AdaptiveEnvelopeNeutralScale;
+		AdaptiveEnvelopeRelaxedScale = defaults.AdaptiveEnvelopeRelaxedScale;
 		UsePass2CollisionStride = defaults.UsePass2CollisionStride;
 		Pass2CollisionStrideNear = defaults.Pass2CollisionStrideNear;
 		Pass2CollisionStrideFar = defaults.Pass2CollisionStrideFar;
@@ -3949,16 +4061,35 @@ private sealed class OverlayRollingWindow
 	{
 		ClearTelemetryHeatmapArrays();
 		Array.Clear(_adaptiveEnvelopeMismatchPrior, 0, _adaptiveEnvelopeMismatchPrior.Length);
+		Array.Clear(_adaptiveEnvelopeActiveMask, 0, _adaptiveEnvelopeActiveMask.Length);
+		Array.Clear(_adaptiveEnvelopePreviousMismatchPrior, 0, _adaptiveEnvelopePreviousMismatchPrior.Length);
+		Array.Clear(_adaptiveEnvelopePreviousActiveMask, 0, _adaptiveEnvelopePreviousActiveMask.Length);
 		_adaptiveEnvelopeScaleMinThisRun = 1.0f;
 		_adaptiveEnvelopeScaleMaxThisRun = 1.0f;
 		_adaptiveEnvelopeScaleSumThisRun = 0.0;
 		_adaptiveEnvelopeScaleCountThisRun = 0;
 		_adaptiveEnvelopeTightCountThisRun = 0;
+		_adaptiveEnvelopeWarmCountThisRun = 0;
 		_adaptiveEnvelopeNeutralCountThisRun = 0;
 		_adaptiveEnvelopeRelaxedCountThisRun = 0;
 		Array.Clear(_adaptiveEnvelopeScaleHistogram, 0, _adaptiveEnvelopeScaleHistogram.Length);
 		_adaptiveEnvelopeGlobalQueryMinusCurvatureP50 = 0.0f;
 		_adaptiveEnvelopeGlobalQueryMinusCurvatureP90 = 0.0f;
+		_adaptiveEnvelopeGlobalRelaxedThreshold = 0.0f;
+		_adaptiveEnvelopeGlobalWarmThreshold = 0.0f;
+		_adaptiveEnvelopeGlobalHotThreshold = 0.0f;
+		_adaptiveEnvelopePreviousGlobalQueryMinusCurvatureP50 = 0.0f;
+		_adaptiveEnvelopePreviousGlobalQueryMinusCurvatureP90 = 0.0f;
+		_adaptiveEnvelopePreviousGlobalRelaxedThreshold = 0.0f;
+		_adaptiveEnvelopePreviousGlobalWarmThreshold = 0.0f;
+		_adaptiveEnvelopePreviousGlobalHotThreshold = 0.0f;
+		_adaptiveEnvelopePreviousSnapshotAvailable = false;
+		_adaptiveEnvelopePriorFallbackCountThisRun = 0;
+		_adaptiveEnvelopePriorSnapshotUnavailableFallbackCountThisRun = 0;
+		_adaptiveEnvelopePriorInsufficientDataFallbackCountThisRun = 0;
+		_adaptiveEnvelopePriorFallbackBehaviorThisRun = "none";
+		_adaptiveEnvelopePriorSnapshotUnavailableLoggedThisRun = false;
+		_adaptiveEnvelopePriorInsufficientDataLoggedThisRun = false;
 	}
 
 	public bool TryCopyTelemetryHeatmapImageForTesting(TelemetryHeatmapKind kind, out Image image, out TelemetryHeatmapStats stats)
@@ -4078,6 +4209,7 @@ private sealed class OverlayRollingWindow
 			_adaptiveEnvelopeScaleMaxThisRun,
 			(int)Math.Min(int.MaxValue, _adaptiveEnvelopeScaleCountThisRun),
 			_adaptiveEnvelopeTightCountThisRun,
+			_adaptiveEnvelopeWarmCountThisRun,
 			_adaptiveEnvelopeNeutralCountThisRun,
 			_adaptiveEnvelopeRelaxedCountThisRun,
 			_adaptiveEnvelopeScaleHistogram.Length > 0 ? _adaptiveEnvelopeScaleHistogram[0] : 0,
@@ -4086,7 +4218,13 @@ private sealed class OverlayRollingWindow
 			_adaptiveEnvelopeScaleHistogram.Length > 3 ? _adaptiveEnvelopeScaleHistogram[3] : 0,
 			_adaptiveEnvelopeScaleHistogram.Length > 4 ? _adaptiveEnvelopeScaleHistogram[4] : 0,
 			_adaptiveEnvelopeGlobalQueryMinusCurvatureP50,
-			_adaptiveEnvelopeGlobalQueryMinusCurvatureP90);
+			_adaptiveEnvelopeGlobalQueryMinusCurvatureP90,
+			ResolveAdaptiveEnvelopePriorSourceToken(),
+			_adaptiveEnvelopePriorFallbackBehaviorThisRun,
+			_adaptiveEnvelopePreviousSnapshotAvailable,
+			_adaptiveEnvelopePriorFallbackCountThisRun,
+			_adaptiveEnvelopePriorSnapshotUnavailableFallbackCountThisRun,
+			_adaptiveEnvelopePriorInsufficientDataFallbackCountThisRun);
 		return true;
 	}
 
@@ -4197,6 +4335,12 @@ private sealed class OverlayRollingWindow
 			_telemetryD2kMax = new float[safeCount];
 		if (_adaptiveEnvelopeMismatchPrior.Length != safeCount)
 			_adaptiveEnvelopeMismatchPrior = new float[safeCount];
+		if (_adaptiveEnvelopeActiveMask.Length != safeCount)
+			_adaptiveEnvelopeActiveMask = new byte[safeCount];
+		if (_adaptiveEnvelopePreviousMismatchPrior.Length != safeCount)
+			_adaptiveEnvelopePreviousMismatchPrior = new float[safeCount];
+		if (_adaptiveEnvelopePreviousActiveMask.Length != safeCount)
+			_adaptiveEnvelopePreviousActiveMask = new byte[safeCount];
 	}
 
 	private void ClearTelemetryHeatmapArrays()
@@ -4233,17 +4377,65 @@ private sealed class OverlayRollingWindow
 		};
 	}
 
-	private void RefreshAdaptiveEnvelopeTelemetryPriors()
+	private string ResolveAdaptiveEnvelopeControllerModeToken()
 	{
+		string token = string.IsNullOrWhiteSpace(AdaptiveEnvelopeControllerMode)
+			? "three_state"
+			: AdaptiveEnvelopeControllerMode.Trim().ToLowerInvariant();
+		return token switch
+		{
+			"four_state_warm" => "four_state_warm",
+			"four_state" => "four_state_warm",
+			_ => "three_state"
+		};
+	}
+
+	private string ResolveAdaptiveEnvelopePriorSourceToken()
+	{
+		string token = string.IsNullOrWhiteSpace(AdaptiveEnvelopePriorSource)
+			? "same_pass"
+			: AdaptiveEnvelopePriorSource.Trim().ToLowerInvariant();
+		return token switch
+		{
+			"previous_pass" => "previous_pass",
+			_ => "same_pass"
+		};
+	}
+
+	private static float NormalizeAdaptiveEnvelopePercentileSetting(float percentile)
+	{
+		return Mathf.Clamp(percentile, 0f, 100f) / 100f;
+	}
+
+	private bool TryPopulateAdaptiveEnvelopeTelemetrySnapshot(
+		float[] mismatchTarget,
+		byte[] activeMaskTarget,
+		out float globalP50,
+		out float globalP90,
+		out float globalRelaxedThreshold,
+		out float globalWarmThreshold,
+		out float globalHotThreshold)
+	{
+		globalP50 = 0.0f;
+		globalP90 = 0.0f;
+		globalRelaxedThreshold = 0.0f;
+		globalWarmThreshold = 0.0f;
+		globalHotThreshold = 0.0f;
 		if (!AdaptiveTelemetryEnvelopeScalingEnabledForCurrentRun())
 		{
-			return;
+			return false;
+		}
+
+		if (mismatchTarget == null || mismatchTarget.Length != _filmWidth * _filmHeight ||
+			activeMaskTarget == null || activeMaskTarget.Length != _filmWidth * _filmHeight)
+		{
+			return false;
 		}
 
 		float[] queryMinusCurvature = BuildDerivedNormalizedDifferenceArray(_telemetryQueryCount, _telemetryCurvatureMean);
 		if (queryMinusCurvature.Length != _filmWidth * _filmHeight)
 		{
-			return;
+			return false;
 		}
 
 		float[] active = new float[queryMinusCurvature.Length];
@@ -4251,23 +4443,105 @@ private sealed class OverlayRollingWindow
 		for (int i = 0; i < queryMinusCurvature.Length; i++)
 		{
 			float mismatch = queryMinusCurvature[i];
-			_adaptiveEnvelopeMismatchPrior[i] = mismatch;
-			if (_telemetryPass1AcceptedSteps[i] > 0f || _telemetryCurvatureMean[i] > 0f || _telemetryQueryCount[i] > 0f)
+			mismatchTarget[i] = mismatch;
+			bool isActive = _telemetryPass1AcceptedSteps[i] > 0f || _telemetryCurvatureMean[i] > 0f || _telemetryQueryCount[i] > 0f;
+			activeMaskTarget[i] = isActive ? (byte)1 : (byte)0;
+			if (!isActive)
 			{
-				active[activeCount++] = mismatch;
+				continue;
 			}
+
+			active[activeCount++] = mismatch;
 		}
 
 		if (activeCount <= 0)
 		{
-			_adaptiveEnvelopeGlobalQueryMinusCurvatureP50 = 0.0f;
-			_adaptiveEnvelopeGlobalQueryMinusCurvatureP90 = 0.0f;
-			return;
+			return false;
 		}
 
 		Array.Sort(active, 0, activeCount);
-		_adaptiveEnvelopeGlobalQueryMinusCurvatureP50 = SampleSortedPercentile(active, activeCount, 0.50f);
-		_adaptiveEnvelopeGlobalQueryMinusCurvatureP90 = SampleSortedPercentile(active, activeCount, 0.90f);
+		globalP50 = SampleSortedPercentile(active, activeCount, 0.50f);
+		globalP90 = SampleSortedPercentile(active, activeCount, 0.90f);
+		globalRelaxedThreshold = SampleSortedPercentile(active, activeCount, NormalizeAdaptiveEnvelopePercentileSetting(AdaptiveEnvelopeRelaxedThresholdPercentile));
+		globalWarmThreshold = SampleSortedPercentile(active, activeCount, NormalizeAdaptiveEnvelopePercentileSetting(AdaptiveEnvelopeWarmThresholdPercentile));
+		globalHotThreshold = SampleSortedPercentile(active, activeCount, NormalizeAdaptiveEnvelopePercentileSetting(AdaptiveEnvelopeHotThresholdPercentile));
+		return true;
+	}
+
+	private void RefreshAdaptiveEnvelopeTelemetryPriors()
+	{
+		if (!TryPopulateAdaptiveEnvelopeTelemetrySnapshot(
+			_adaptiveEnvelopeMismatchPrior,
+			_adaptiveEnvelopeActiveMask,
+			out _adaptiveEnvelopeGlobalQueryMinusCurvatureP50,
+			out _adaptiveEnvelopeGlobalQueryMinusCurvatureP90,
+			out _adaptiveEnvelopeGlobalRelaxedThreshold,
+			out _adaptiveEnvelopeGlobalWarmThreshold,
+			out _adaptiveEnvelopeGlobalHotThreshold))
+		{
+			_adaptiveEnvelopeGlobalQueryMinusCurvatureP50 = 0.0f;
+			_adaptiveEnvelopeGlobalQueryMinusCurvatureP90 = 0.0f;
+			_adaptiveEnvelopeGlobalRelaxedThreshold = 0.0f;
+			_adaptiveEnvelopeGlobalWarmThreshold = 0.0f;
+			_adaptiveEnvelopeGlobalHotThreshold = 0.0f;
+		}
+	}
+
+	private void CaptureAdaptiveEnvelopePreviousTelemetrySnapshot()
+	{
+		if (TryPopulateAdaptiveEnvelopeTelemetrySnapshot(
+			_adaptiveEnvelopePreviousMismatchPrior,
+			_adaptiveEnvelopePreviousActiveMask,
+			out _adaptiveEnvelopePreviousGlobalQueryMinusCurvatureP50,
+			out _adaptiveEnvelopePreviousGlobalQueryMinusCurvatureP90,
+			out _adaptiveEnvelopePreviousGlobalRelaxedThreshold,
+			out _adaptiveEnvelopePreviousGlobalWarmThreshold,
+			out _adaptiveEnvelopePreviousGlobalHotThreshold))
+		{
+			_adaptiveEnvelopePreviousSnapshotAvailable = true;
+			return;
+		}
+
+		_adaptiveEnvelopePreviousSnapshotAvailable = false;
+		_adaptiveEnvelopePreviousGlobalQueryMinusCurvatureP50 = 0.0f;
+		_adaptiveEnvelopePreviousGlobalQueryMinusCurvatureP90 = 0.0f;
+		_adaptiveEnvelopePreviousGlobalRelaxedThreshold = 0.0f;
+		_adaptiveEnvelopePreviousGlobalWarmThreshold = 0.0f;
+		_adaptiveEnvelopePreviousGlobalHotThreshold = 0.0f;
+	}
+
+	private void RecordAdaptiveEnvelopePriorFallback(string reason)
+	{
+		_adaptiveEnvelopePriorFallbackBehaviorThisRun = "neutral";
+		_adaptiveEnvelopePriorFallbackCountThisRun++;
+		if (string.Equals(reason, "snapshot_unavailable", StringComparison.Ordinal))
+		{
+			_adaptiveEnvelopePriorSnapshotUnavailableFallbackCountThisRun++;
+			if (!_adaptiveEnvelopePriorSnapshotUnavailableLoggedThisRun)
+			{
+				_adaptiveEnvelopePriorSnapshotUnavailableLoggedThisRun = true;
+				GD.Print("[AdaptiveEnvelope] prior_source=previous_pass fallback=neutral reason=snapshot_unavailable");
+			}
+			return;
+		}
+
+		if (string.Equals(reason, "insufficient_prior_samples", StringComparison.Ordinal))
+		{
+			_adaptiveEnvelopePriorInsufficientDataFallbackCountThisRun++;
+			if (!_adaptiveEnvelopePriorInsufficientDataLoggedThisRun)
+			{
+				_adaptiveEnvelopePriorInsufficientDataLoggedThisRun = true;
+				GD.Print("[AdaptiveEnvelope] prior_source=previous_pass fallback=neutral reason=insufficient_prior_samples");
+			}
+		}
+	}
+
+	private enum AdaptiveEnvelopeRegime
+	{
+		Hot = 0,
+		Warm = 1,
+		Neutral = 2,
+		Relaxed = 3
 	}
 
 	private float ComputeAdaptiveEnvelopeScaleForRect(int xStart, int xEndExclusive, int yStart, int yEndExclusive, float baseScale)
@@ -4287,6 +4561,31 @@ private sealed class OverlayRollingWindow
 			return baseClamped;
 		}
 
+		string priorSourceToken = ResolveAdaptiveEnvelopePriorSourceToken();
+		float[] mismatchPrior = _adaptiveEnvelopeMismatchPrior;
+		byte[] activeMask = _adaptiveEnvelopeActiveMask;
+		float globalP50 = _adaptiveEnvelopeGlobalQueryMinusCurvatureP50;
+		float globalP90 = _adaptiveEnvelopeGlobalQueryMinusCurvatureP90;
+		float globalRelaxedThreshold = _adaptiveEnvelopeGlobalRelaxedThreshold;
+		float globalWarmThreshold = _adaptiveEnvelopeGlobalWarmThreshold;
+		float globalHotThreshold = _adaptiveEnvelopeGlobalHotThreshold;
+		if (priorSourceToken == "previous_pass")
+		{
+			if (!_adaptiveEnvelopePreviousSnapshotAvailable)
+			{
+				RecordAdaptiveEnvelopePriorFallback("snapshot_unavailable");
+				return 1.0f;
+			}
+
+			mismatchPrior = _adaptiveEnvelopePreviousMismatchPrior;
+			activeMask = _adaptiveEnvelopePreviousActiveMask;
+			globalP50 = _adaptiveEnvelopePreviousGlobalQueryMinusCurvatureP50;
+			globalP90 = _adaptiveEnvelopePreviousGlobalQueryMinusCurvatureP90;
+			globalRelaxedThreshold = _adaptiveEnvelopePreviousGlobalRelaxedThreshold;
+			globalWarmThreshold = _adaptiveEnvelopePreviousGlobalWarmThreshold;
+			globalHotThreshold = _adaptiveEnvelopePreviousGlobalHotThreshold;
+		}
+
 		double mismatchSum = 0.0;
 		float mismatchMax = float.NegativeInfinity;
 		float[] localMismatch = new float[Math.Max(1, (x1 - x0) * (y1 - y0))];
@@ -4297,12 +4596,12 @@ private sealed class OverlayRollingWindow
 			for (int x = x0; x < x1; x++)
 			{
 				int pi = rowBase + x;
-				if (_telemetryPass1AcceptedSteps[pi] <= 0f && _telemetryCurvatureMean[pi] <= 0f && _telemetryQueryCount[pi] <= 0f)
+				if (activeMask[pi] == 0)
 				{
 					continue;
 				}
 
-				float mismatchValue = _adaptiveEnvelopeMismatchPrior[pi];
+				float mismatchValue = mismatchPrior[pi];
 				mismatchSum += mismatchValue;
 				if (mismatchValue > mismatchMax)
 				{
@@ -4315,27 +4614,60 @@ private sealed class OverlayRollingWindow
 
 		if (activeCount < 4)
 		{
+			if (priorSourceToken == "previous_pass")
+			{
+				RecordAdaptiveEnvelopePriorFallback("insufficient_prior_samples");
+				return 1.0f;
+			}
+
 			return baseClamped;
 		}
 
 		string statisticToken = ResolveAdaptiveEnvelopeThresholdStatisticToken();
+		string controllerModeToken = ResolveAdaptiveEnvelopeControllerModeToken();
 		float mismatch = statisticToken switch
 		{
 			"p90" => ComputeActivePercentile(localMismatch, activeCount, 0.90f),
 			"max" => mismatchMax,
 			_ => (float)(mismatchSum / activeCount)
 		};
-		float localScale = 1.0f;
-		if (mismatch > _adaptiveEnvelopeGlobalQueryMinusCurvatureP90)
+		AdaptiveEnvelopeRegime regime = AdaptiveEnvelopeRegime.Neutral;
+		float localScale = Mathf.Clamp(AdaptiveEnvelopeNeutralScale, 0.1f, 2.0f);
+		if (controllerModeToken == "four_state_warm")
 		{
-			localScale = 0.70f;
+			float relaxedThreshold = globalRelaxedThreshold;
+			float warmThreshold = Math.Max(globalRelaxedThreshold, globalWarmThreshold);
+			float hotThreshold = Math.Max(warmThreshold, globalHotThreshold);
+			if (mismatch > hotThreshold)
+			{
+				regime = AdaptiveEnvelopeRegime.Hot;
+				localScale = Mathf.Clamp(AdaptiveEnvelopeTightScale, 0.1f, 2.0f);
+			}
+			else if (mismatch > warmThreshold)
+			{
+				regime = AdaptiveEnvelopeRegime.Warm;
+				localScale = Mathf.Clamp(AdaptiveEnvelopeWarmScale, 0.1f, 2.0f);
+			}
+			else if (mismatch < relaxedThreshold)
+			{
+				regime = AdaptiveEnvelopeRegime.Relaxed;
+				localScale = Mathf.Clamp(AdaptiveEnvelopeRelaxedScale, 0.1f, 2.0f);
+			}
 		}
-		else if (mismatch < _adaptiveEnvelopeGlobalQueryMinusCurvatureP50)
+		else if (mismatch > globalP90)
 		{
-			localScale = 1.05f;
+			regime = AdaptiveEnvelopeRegime.Hot;
+			localScale = Mathf.Clamp(AdaptiveEnvelopeTightScale, 0.1f, 2.0f);
+		}
+		else if (mismatch < globalP50)
+		{
+			regime = AdaptiveEnvelopeRegime.Relaxed;
+			localScale = Mathf.Clamp(AdaptiveEnvelopeRelaxedScale, 0.1f, 2.0f);
 		}
 
-		return Mathf.Clamp(localScale, 0.65f, 1.1f);
+		float clampedScale = Mathf.Clamp(localScale, 0.65f, 1.1f);
+		RecordAdaptiveEnvelopeScaleSample(clampedScale, regime);
+		return clampedScale;
 	}
 
 	private float[] BuildAdaptiveEnvelopeScaleBySubtileForBand(int yStart, int bandHeight, float baseScale)
@@ -4370,13 +4702,12 @@ private sealed class OverlayRollingWindow
 			int subtileXStart = subtileIndex * _tileMetricCurrentSubtileWidth;
 			int subtileXEnd = Math.Max(0, Math.Min(_filmWidth, subtileXStart + _tileMetricCurrentSubtileWidth));
 			scales[subtileIndex] = ComputeAdaptiveEnvelopeScaleForRect(subtileXStart, subtileXEnd, yStart, yEnd, baseScale);
-			RecordAdaptiveEnvelopeScaleSample(scales[subtileIndex]);
 		}
 
 		return scales;
 	}
 
-	private void RecordAdaptiveEnvelopeScaleSample(float scale)
+	private void RecordAdaptiveEnvelopeScaleSample(float scale, AdaptiveEnvelopeRegime regime)
 	{
 		float clamped = Mathf.Clamp(scale, 0.65f, 1.1f);
 		if (_adaptiveEnvelopeScaleCountThisRun <= 0)
@@ -4394,17 +4725,20 @@ private sealed class OverlayRollingWindow
 			_adaptiveEnvelopeScaleCountThisRun++;
 		}
 
-		if (clamped <= 0.75f)
+		switch (regime)
 		{
-			_adaptiveEnvelopeTightCountThisRun++;
-		}
-		else if (clamped >= 1.025f)
-		{
-			_adaptiveEnvelopeRelaxedCountThisRun++;
-		}
-		else
-		{
-			_adaptiveEnvelopeNeutralCountThisRun++;
+			case AdaptiveEnvelopeRegime.Hot:
+				_adaptiveEnvelopeTightCountThisRun++;
+				break;
+			case AdaptiveEnvelopeRegime.Warm:
+				_adaptiveEnvelopeWarmCountThisRun++;
+				break;
+			case AdaptiveEnvelopeRegime.Relaxed:
+				_adaptiveEnvelopeRelaxedCountThisRun++;
+				break;
+			default:
+				_adaptiveEnvelopeNeutralCountThisRun++;
+				break;
 		}
 
 		int histIndex;
@@ -12062,6 +12396,7 @@ private sealed class OverlayRollingWindow
 			_lastRenderStepBandEnd = yEnd;
 			_lastProcessedPixelsThisBand = processedPixelsThisBand;
 			_hasLastProcessedPixelsThisBand = true;
+			CaptureAdaptiveEnvelopePreviousTelemetrySnapshot();
 			Interlocked.Exchange(ref _renderStepActive, 0);
 		}
 		}
@@ -13543,9 +13878,18 @@ private sealed class OverlayRollingWindow
 			Pass2GeomEnvelopeRadiusScale = Mathf.Max(0.1f, Pass2GeomEnvelopeRadiusScale),
 			Pass2GeomEnvelopeAabbExpand = Mathf.Max(0.0f, Pass2GeomEnvelopeAabbExpand),
 			AdaptiveTelemetryEnvelopeScalingEnabled = AdaptiveTelemetryEnvelopeScalingEnabled,
+			AdaptiveEnvelopeControllerMode = ResolveAdaptiveEnvelopeControllerModeToken(),
+			AdaptiveEnvelopePriorSource = ResolveAdaptiveEnvelopePriorSourceToken(),
 			AdaptiveEnvelopeThresholdStatistic = ResolveAdaptiveEnvelopeThresholdStatisticToken(),
 			AdaptiveTelemetryEnvelopeLowThreshold = Mathf.Clamp(AdaptiveTelemetryEnvelopeLowThreshold, 0.0f, 1.0f),
 			AdaptiveTelemetryEnvelopeHighThreshold = Mathf.Clamp(AdaptiveTelemetryEnvelopeHighThreshold, 0.0f, 1.0f),
+			AdaptiveEnvelopeHotThresholdPercentile = Mathf.Clamp(AdaptiveEnvelopeHotThresholdPercentile, 0f, 100f),
+			AdaptiveEnvelopeWarmThresholdPercentile = Mathf.Clamp(AdaptiveEnvelopeWarmThresholdPercentile, 0f, 100f),
+			AdaptiveEnvelopeRelaxedThresholdPercentile = Mathf.Clamp(AdaptiveEnvelopeRelaxedThresholdPercentile, 0f, 100f),
+			AdaptiveEnvelopeTightScale = Mathf.Clamp(AdaptiveEnvelopeTightScale, 0.1f, 2.0f),
+			AdaptiveEnvelopeWarmScale = Mathf.Clamp(AdaptiveEnvelopeWarmScale, 0.1f, 2.0f),
+			AdaptiveEnvelopeNeutralScale = Mathf.Clamp(AdaptiveEnvelopeNeutralScale, 0.1f, 2.0f),
+			AdaptiveEnvelopeRelaxedScale = Mathf.Clamp(AdaptiveEnvelopeRelaxedScale, 0.1f, 2.0f),
 			UseGeometryTLASPruning = UseGeometryTLASPruning,
 			Pass2HitBackFaces = Pass2HitBackFaces,
 			Pass2HitFromInside = Pass2HitFromInside,
@@ -13840,9 +14184,18 @@ private sealed class OverlayRollingWindow
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.Pass2GeomEnvelopeRadiusScale));
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.Pass2GeomEnvelopeAabbExpand));
 		hash.Add(cfg.AdaptiveTelemetryEnvelopeScalingEnabled);
+		hash.Add(cfg.AdaptiveEnvelopeControllerMode ?? string.Empty);
+		hash.Add(cfg.AdaptiveEnvelopePriorSource ?? string.Empty);
 		hash.Add(cfg.AdaptiveEnvelopeThresholdStatistic ?? string.Empty);
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.AdaptiveTelemetryEnvelopeLowThreshold));
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.AdaptiveTelemetryEnvelopeHighThreshold));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.AdaptiveEnvelopeHotThresholdPercentile));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.AdaptiveEnvelopeWarmThresholdPercentile));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.AdaptiveEnvelopeRelaxedThresholdPercentile));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.AdaptiveEnvelopeTightScale));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.AdaptiveEnvelopeWarmScale));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.AdaptiveEnvelopeNeutralScale));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.AdaptiveEnvelopeRelaxedScale));
 		hash.Add(cfg.UseGeometryTLASPruning);
 		hash.Add(cfg.Pass2HitBackFaces);
 		hash.Add(cfg.Pass2HitFromInside);
@@ -13952,7 +14305,7 @@ private sealed class OverlayRollingWindow
 			$"stride={cfg.Film.PixelStride} resScale={cfg.Film.ResolutionScale:0.###} rows={cfg.Film.RowsPerFrame} " +
 			$"stepLen={cfg.RayMarch.StepLength:0.###} collRad={cfg.RayMarch.CollisionRadius:0.###} mask=0x{cfg.RayMarch.CollisionMask:X8} " +
 			$"envRadScale={cfg.Pass2GeomEnvelopeRadiusScale:0.###} envAabbExpand={cfg.Pass2GeomEnvelopeAabbExpand:0.###} " +
-			$"adaptiveEnv={(cfg.AdaptiveTelemetryEnvelopeScalingEnabled ? 1 : 0)} adaptiveStat={cfg.AdaptiveEnvelopeThresholdStatistic} adaptiveLow={cfg.AdaptiveTelemetryEnvelopeLowThreshold:0.##} adaptiveHigh={cfg.AdaptiveTelemetryEnvelopeHighThreshold:0.##} " +
+			$"adaptiveEnv={(cfg.AdaptiveTelemetryEnvelopeScalingEnabled ? 1 : 0)} adaptiveMode={cfg.AdaptiveEnvelopeControllerMode} adaptivePrior={cfg.AdaptiveEnvelopePriorSource} adaptiveStat={cfg.AdaptiveEnvelopeThresholdStatistic} adaptiveLow={cfg.AdaptiveTelemetryEnvelopeLowThreshold:0.##} adaptiveHigh={cfg.AdaptiveTelemetryEnvelopeHighThreshold:0.##} adaptivePct={cfg.AdaptiveEnvelopeHotThresholdPercentile:0.#}/{cfg.AdaptiveEnvelopeWarmThresholdPercentile:0.#}/{cfg.AdaptiveEnvelopeRelaxedThresholdPercentile:0.#} adaptiveScales={cfg.AdaptiveEnvelopeTightScale:0.##}/{cfg.AdaptiveEnvelopeWarmScale:0.##}/{cfg.AdaptiveEnvelopeNeutralScale:0.##}/{cfg.AdaptiveEnvelopeRelaxedScale:0.##} " +
 			$"geomPrune={(cfg.UseGeometryTLASPruning ? 1 : 0)} maxDist={cfg.Film.MaxDistance:0.###}");
 	}
 
