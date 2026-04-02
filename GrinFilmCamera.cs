@@ -66,6 +66,14 @@ public partial class GrinFilmCamera : Node
 		RowsAdvanced = 1
 	}
 
+	public enum RuntimeMacroMode
+	{
+		Accurate = 0,
+		Tight08 = 1,
+		CheapMotion = 2,
+		SettleRefine = 3
+	}
+
 	public struct TestRunConfig
 	{
 		public string Name;
@@ -663,6 +671,18 @@ public partial class GrinFilmCamera : Node
 		}
 	}
 
+	[ExportGroup("Runtime Macro Modes")]
+	/// <summary>Enables interactive runtime macro mode switching for live experimentation.</summary>
+	[Export] public bool RuntimeMacroModeSwitchingEnabled = true;
+	/// <summary>Applies the selected runtime macro mode on startup. Off by default so existing scene/test defaults stay unchanged.</summary>
+	[Export] public bool RuntimeMacroApplyOnReady = false;
+	/// <summary>Shows runtime macro mode state in the on-screen HUD when active in interactive mode.</summary>
+	[Export] public bool RuntimeMacroShowHudStatus = true;
+	/// <summary>Allows keyboard hotkeys for runtime macro mode switching.</summary>
+	[Export] public bool RuntimeMacroHotkeysEnabled = true;
+	/// <summary>Selected runtime macro mode for hotkeys and optional startup apply.</summary>
+	[Export] public RuntimeMacroMode RuntimeMacroSelectedMode = RuntimeMacroMode.Tight08;
+
 	[ExportGroup("Profiling")]
 	[ExportSubgroup("Runtime Stats")]
 	// This section affects profiling counters and sampling only.
@@ -974,7 +994,7 @@ public partial class GrinFilmCamera : Node
 	[Export(PropertyHint.Range, "0,1,0.001")] public float MinSegLenForStrideSkip = 0f;
 	/// <summary>Multiplier applied to pass-2 geometry envelope radius before TLAS query.</summary>
 	// CONTROL FACTOR: Higher values make candidate gathering more conservative (fewer false rejects, more candidates).
-	[Export(PropertyHint.Range, "1.0,2.0,0.01")] public float Pass2GeomEnvelopeRadiusScale = 1.10f;
+	[Export(PropertyHint.Range, "0.1,2.0,0.01")] public float Pass2GeomEnvelopeRadiusScale = 1.10f;
 	/// <summary>Additional axis-aligned expansion applied to pass-2 geometry envelope after radius expansion.</summary>
 	// CONTROL FACTOR: Higher values increase TLAS query conservativeness independently of segment radius.
 	[Export(PropertyHint.Range, "0.0,2.0,0.01")] public float Pass2GeomEnvelopeAabbExpand = 0.0f;
@@ -1838,6 +1858,24 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private SmartScaleSavedConfig _smartScaleSavedConfig;
 	private bool _smartScaleSavedConfigValid = false;
 	private SmartScaleProbeConfig[] _smartScaleProbePlan = Array.Empty<SmartScaleProbeConfig>();
+	private TestRunDefaults _runtimeMacroBaselineDefaults;
+	private bool _runtimeMacroBaselineCaptured = false;
+	private bool _runtimeMacroModeActive = false;
+	private bool _runtimeMacroAvailabilityWarned = false;
+	private bool _runtimeMacroHasMotionSample = false;
+	private Vector3 _runtimeMacroLastCameraPosition = Vector3.Zero;
+	private Basis _runtimeMacroLastCameraBasis = Basis.Identity;
+	private bool _runtimeMacroCameraMoving = false;
+	private float _runtimeMacroLastMotionDistance = 0.0f;
+	private float _runtimeMacroLastMotionAngleDeg = 0.0f;
+	private string _runtimeMacroLastAppliedSummary = string.Empty;
+	private const float RuntimeMacroMotionDistanceEps = 0.003f;
+	private const float RuntimeMacroMotionAngleDegEps = 0.2f;
+	private const Key RuntimeMacroCycleKey = Key.F6;
+	private const Key RuntimeMacroAccurateKey = Key.F7;
+	private const Key RuntimeMacroTight08Key = Key.F8;
+	private const Key RuntimeMacroCheapMotionKey = Key.F9;
+	private const Key RuntimeMacroSettleRefineKey = Key.F10;
 
 	private struct SmartScaleSavedConfig
 	{
@@ -2849,6 +2887,18 @@ private sealed class OverlayRollingWindow
 			_presetDirtyReason = "";
 		}
 		SyncAndApplyIfDirty("ready", force: ApplyPresetOnReady);
+		SetProcessUnhandledInput(true);
+		CaptureRuntimeMacroBaselineDefaults();
+		if (RuntimeMacroApplyOnReady)
+		{
+			TryApplyRuntimeMacroMode(RuntimeMacroSelectedMode, "ready_apply");
+		}
+		else if (RuntimeMacroSwitchingAllowed() && RuntimeMacroHotkeysEnabled)
+		{
+			GD.Print(
+				$"[RuntimeMacroMode] hotkeys cycle={RuntimeMacroCycleKey} accurate={RuntimeMacroAccurateKey} tight08={RuntimeMacroTight08Key} cheapMotion={RuntimeMacroCheapMotionKey} settleRefine={RuntimeMacroSettleRefineKey} " +
+				$"startupMode={GetRuntimeMacroModeLabel(RuntimeMacroSelectedMode)} applyOnReady={(RuntimeMacroApplyOnReady ? 1 : 0)}");
+		}
 
 		if (!IsProcessing() && !_warnedNotProcessing)
 		{
@@ -3193,6 +3243,7 @@ private sealed class OverlayRollingWindow
 		DebugLogConfig.EnableProbeLog = DebugProbeLog;
 		DebugLogConfig.ProbeLogIntervalSec = Mathf.Max(0.05f, DebugProbeIntervalSec);
 		DebugLogConfig.EnableGeomRejectSample = DebugGeomRejectSampleEnabled;
+		UpdateRuntimeMacroMotionState();
 
 			SyncAndApplyIfDirty("process");
 			// Keep broadphase controls in sync each frame so the inspector reflects effective state.
@@ -3323,6 +3374,46 @@ private sealed class OverlayRollingWindow
 		}
 
 		BeginSmartScaleRun();
+	}
+
+	public override void _UnhandledInput(InputEvent e)
+	{
+		if (!RuntimeMacroHotkeysEnabled || e is not InputEventKey keyEvent || !keyEvent.Pressed || keyEvent.Echo)
+			return;
+
+		RuntimeMacroMode requestedMode;
+		bool applyRequested = true;
+		switch (keyEvent.Keycode)
+		{
+			case RuntimeMacroCycleKey:
+				requestedMode = GetNextRuntimeMacroMode(RuntimeMacroSelectedMode);
+				break;
+			case RuntimeMacroAccurateKey:
+				requestedMode = RuntimeMacroMode.Accurate;
+				break;
+			case RuntimeMacroTight08Key:
+				requestedMode = RuntimeMacroMode.Tight08;
+				break;
+			case RuntimeMacroCheapMotionKey:
+				requestedMode = RuntimeMacroMode.CheapMotion;
+				break;
+			case RuntimeMacroSettleRefineKey:
+				requestedMode = RuntimeMacroMode.SettleRefine;
+				break;
+			default:
+				applyRequested = false;
+				requestedMode = RuntimeMacroSelectedMode;
+				break;
+		}
+
+		if (!applyRequested)
+			return;
+
+		RuntimeMacroSelectedMode = requestedMode;
+		if (TryApplyRuntimeMacroMode(requestedMode, keyEvent.Keycode == RuntimeMacroCycleKey ? "hotkey_cycle" : "hotkey_direct"))
+		{
+			GetViewport()?.SetInputAsHandled();
+		}
 	}
 
 	private bool IsSmartScaleSafeBoundary()
@@ -3852,6 +3943,204 @@ private sealed class OverlayRollingWindow
 		};
 	}
 
+	private void CaptureRuntimeMacroBaselineDefaults()
+	{
+		_runtimeMacroBaselineDefaults = CaptureTestRunDefaults();
+		_runtimeMacroBaselineCaptured = true;
+	}
+
+	private bool RuntimeMacroSwitchingAllowed()
+	{
+		if (!RuntimeMacroModeSwitchingEnabled)
+			return false;
+		if (_deterministicBenchmarkModeRequested)
+			return false;
+
+		foreach (string arg in GetHudCmdArgs())
+		{
+			string trimmed = NormalizeHudValue(arg);
+			if (string.Equals(trimmed, "--render-test", StringComparison.OrdinalIgnoreCase) ||
+				trimmed.StartsWith("--render-test-", StringComparison.OrdinalIgnoreCase) ||
+				trimmed.StartsWith("--render-test-fixture=", StringComparison.OrdinalIgnoreCase))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	private bool ShouldShowRuntimeMacroHudStatus()
+	{
+		return RuntimeMacroShowHudStatus && (RuntimeMacroSwitchingAllowed() || _runtimeMacroModeActive);
+	}
+
+	private static RuntimeMacroMode GetNextRuntimeMacroMode(RuntimeMacroMode mode)
+	{
+		return mode switch
+		{
+			RuntimeMacroMode.Accurate => RuntimeMacroMode.Tight08,
+			RuntimeMacroMode.Tight08 => RuntimeMacroMode.CheapMotion,
+			RuntimeMacroMode.CheapMotion => RuntimeMacroMode.SettleRefine,
+			_ => RuntimeMacroMode.Accurate
+		};
+	}
+
+	private static string GetRuntimeMacroModeLabel(RuntimeMacroMode mode)
+	{
+		return mode switch
+		{
+			RuntimeMacroMode.Accurate => "Accurate",
+			RuntimeMacroMode.Tight08 => "Tight08",
+			RuntimeMacroMode.CheapMotion => "CheapMotion",
+			RuntimeMacroMode.SettleRefine => "SettleRefine",
+			_ => mode.ToString()
+		};
+	}
+
+	private TestRunConfig BuildRuntimeMacroModeConfig(RuntimeMacroMode mode)
+	{
+		return mode switch
+		{
+			RuntimeMacroMode.Tight08 => new TestRunConfig
+			{
+				Name = "runtime_macro_tight08",
+				UseGeometryTLASPruning = true,
+				Pass2GeomEnvelopeRadiusScale = 0.80f,
+				Pass2GeomEnvelopeAabbExpand = 0.00f,
+				AdaptiveTelemetryEnvelopeScalingEnabled = false,
+				UsePass2CollisionStride = false,
+				Pass2SoftGateEnableQuickRayMiss = false,
+				Pass2SoftGateScoringEnabled = false
+			},
+			RuntimeMacroMode.CheapMotion => new TestRunConfig
+			{
+				Name = "runtime_macro_cheap_motion",
+				UseGeometryTLASPruning = true,
+				Pass2GeomEnvelopeRadiusScale = 1.02f,
+				Pass2GeomEnvelopeAabbExpand = 0.01f,
+				AdaptiveTelemetryEnvelopeScalingEnabled = false,
+				UsePass2CollisionStride = true,
+				Pass2CollisionStrideNear = 1,
+				Pass2CollisionStrideFar = 4,
+				Pass2CollisionStrideFarStartT = 0.35f,
+				MinSegLenForStrideSkip = 0.25f,
+				Pass2SoftGateEnableQuickRayMiss = false,
+				Pass2SoftGateScoringEnabled = false
+			},
+			RuntimeMacroMode.SettleRefine => new TestRunConfig
+			{
+				Name = "runtime_macro_settle_refine",
+				UseGeometryTLASPruning = true,
+				Pass2GeomEnvelopeRadiusScale = 1.00f,
+				Pass2GeomEnvelopeAabbExpand = 0.00f,
+				AdaptiveTelemetryEnvelopeScalingEnabled = true,
+				AdaptiveEnvelopeControllerMode = "four_state_warm",
+				AdaptiveEnvelopePriorSource = "previous_pass",
+				AdaptiveEnvelopeHotThresholdPercentile = 95f,
+				AdaptiveEnvelopeWarmThresholdPercentile = 80f,
+				AdaptiveEnvelopeRelaxedThresholdPercentile = 50f,
+				AdaptiveEnvelopeTightScale = 0.70f,
+				AdaptiveEnvelopeWarmScale = 0.85f,
+				AdaptiveEnvelopeNeutralScale = 1.00f,
+				AdaptiveEnvelopeRelaxedScale = 1.05f,
+				UsePass2CollisionStride = false,
+				Pass2SoftGateEnableQuickRayMiss = true,
+				Pass2SoftGateScoringEnabled = true
+			},
+			_ => new TestRunConfig
+			{
+				Name = "runtime_macro_accurate"
+			}
+		};
+	}
+
+	private string BuildRuntimeMacroAppliedSummary(RuntimeMacroMode mode)
+	{
+		ResolveRayBeamRendererReference();
+		string motionToken = _runtimeMacroCameraMoving ? "moving" : "still";
+		return
+			$"mode={GetRuntimeMacroModeLabel(mode)} " +
+			$"prune={(UseGeometryTLASPruning ? 1 : 0)} envScale={Pass2GeomEnvelopeRadiusScale:0.##} envAabb={Pass2GeomEnvelopeAabbExpand:0.##} " +
+			$"adaptiveEnv={(AdaptiveTelemetryEnvelopeScalingEnabled ? 1 : 0)} adaptiveMode={AdaptiveEnvelopeControllerMode} adaptivePrior={AdaptiveEnvelopePriorSource} " +
+			$"stride={(UsePass2CollisionStride ? 1 : 0)} strideNear={Pass2CollisionStrideNear} strideFar={Pass2CollisionStrideFar} strideT={Pass2CollisionStrideFarStartT:0.##} minSeg={MinSegLenForStrideSkip:0.###} " +
+			$"softQuickMiss={(Pass2SoftGateEnableQuickRayMiss ? 1 : 0)} softScore={(Pass2SoftGateScoringEnabled ? 1 : 0)} " +
+			$"stepsPerRay={(_rbr != null ? _rbr.StepsPerRay : 0)} minStep={(_rbr != null ? _rbr.MinStepLength : 0f):0.####} maxStep={(_rbr != null ? _rbr.MaxStepLength : 0f):0.###} " +
+			$"camMotion={motionToken}";
+	}
+
+	private bool TryApplyRuntimeMacroMode(RuntimeMacroMode mode, string reason)
+	{
+		if (!RuntimeMacroSwitchingAllowed())
+		{
+			if (!_runtimeMacroAvailabilityWarned)
+			{
+				_runtimeMacroAvailabilityWarned = true;
+				GD.Print("[RuntimeMacroMode] switching_locked=1 reason=benchmark_or_render_test");
+			}
+			return false;
+		}
+
+		if (!_runtimeMacroBaselineCaptured)
+			CaptureRuntimeMacroBaselineDefaults();
+
+		if (mode == RuntimeMacroMode.Accurate)
+		{
+			RestoreTestRunDefaults(in _runtimeMacroBaselineDefaults);
+		}
+		else
+		{
+			RestoreTestRunDefaults(in _runtimeMacroBaselineDefaults);
+			TestRunConfig config = BuildRuntimeMacroModeConfig(mode);
+			ApplyTestRunConfig(in config);
+		}
+
+		SanitizeAndClampSettings();
+		UpdateBroadphaseEffectiveState();
+		_runtimeMacroModeActive = true;
+		RuntimeMacroSelectedMode = mode;
+		_runtimeMacroLastAppliedSummary = BuildRuntimeMacroAppliedSummary(mode);
+		ResetRenderHealthWindowForRunStart();
+		ResetRowCursor($"runtime_macro_{GetRuntimeMacroModeLabel(mode).ToLowerInvariant()}");
+		GD.Print($"[RuntimeMacroMode] reason={reason} {_runtimeMacroLastAppliedSummary}");
+		return true;
+	}
+
+	private void UpdateRuntimeMacroMotionState()
+	{
+		Camera3D cam = _cam;
+		if (cam == null || !GodotObject.IsInstanceValid(cam))
+		{
+			cam = GetViewport()?.GetCamera3D();
+			if (cam != null && GodotObject.IsInstanceValid(cam))
+				_cam = cam;
+		}
+
+		if (cam == null || !GodotObject.IsInstanceValid(cam))
+			return;
+
+		Vector3 currentPos = cam.GlobalPosition;
+		Basis currentBasis = cam.GlobalTransform.Basis;
+		if (!_runtimeMacroHasMotionSample)
+		{
+			_runtimeMacroHasMotionSample = true;
+			_runtimeMacroLastCameraPosition = currentPos;
+			_runtimeMacroLastCameraBasis = currentBasis;
+			_runtimeMacroCameraMoving = false;
+			_runtimeMacroLastMotionDistance = 0.0f;
+			_runtimeMacroLastMotionAngleDeg = 0.0f;
+			return;
+		}
+
+		_runtimeMacroLastMotionDistance = currentPos.DistanceTo(_runtimeMacroLastCameraPosition);
+		float dot = Mathf.Clamp(currentBasis.Z.Normalized().Dot(_runtimeMacroLastCameraBasis.Z.Normalized()), -1.0f, 1.0f);
+		_runtimeMacroLastMotionAngleDeg = Mathf.RadToDeg(Mathf.Acos(dot));
+		_runtimeMacroCameraMoving = _runtimeMacroLastMotionDistance > RuntimeMacroMotionDistanceEps
+			|| _runtimeMacroLastMotionAngleDeg > RuntimeMacroMotionAngleDegEps;
+		_runtimeMacroLastCameraPosition = currentPos;
+		_runtimeMacroLastCameraBasis = currentBasis;
+	}
+
 	public void ApplyTestRunConfig(in TestRunConfig run)
 	{
 		ResolveRayBeamRendererReference();
@@ -3956,6 +4245,11 @@ private sealed class OverlayRollingWindow
 		stepIndex = _renderHealthStepIndex;
 		return _testHasRenderHealthSnapshot;
 	}
+
+	public bool RuntimeMacroModeActiveDebug => _runtimeMacroModeActive;
+	public bool RuntimeMacroCameraMovingDebug => _runtimeMacroCameraMoving;
+	public float RuntimeMacroCameraMotionDistanceDebug => _runtimeMacroLastMotionDistance;
+	public float RuntimeMacroCameraMotionAngleDegDebug => _runtimeMacroLastMotionAngleDeg;
 
 	public bool TryGetLatestRenderHealthDiagnosticsForTesting(out RenderHealthDiagnosticsSnapshot snapshot)
 	{
@@ -5711,6 +6005,10 @@ private sealed class OverlayRollingWindow
 
 		AppendHudToken(_overlayHudSb, "sourcePattern", ResolveHudSourcePatternMode());
 		AppendHudToken(_overlayHudSb, "MODE", ResolveHudModePath());
+		if (ShouldShowRuntimeMacroHudStatus())
+		{
+			AppendHudToken(_overlayHudSb, "macro", ResolveRuntimeMacroHudToken());
+		}
 		AppendHudToken(_overlayHudSb, "FILM_ACCUM", ResolveHudFilmAccumulationStatus());
 		return _overlayHudSb.ToString();
 	}
@@ -5739,6 +6037,11 @@ private sealed class OverlayRollingWindow
 			AppendHudToken(_overlayHudSb, "metricLaw", metricSteeringLaw);
 		}
 		AppendHudToken(_overlayHudSb, "sourcePattern", ResolveHudSourcePatternMode());
+		if (ShouldShowRuntimeMacroHudStatus())
+		{
+			AppendHudToken(_overlayHudSb, "macro", ResolveRuntimeMacroHudToken());
+			AppendHudToken(_overlayHudSb, "camMotion", _runtimeMacroCameraMoving ? "moving" : "still");
+		}
 		AppendHudToken(_overlayHudSb, "filmAccum", ResolveHudFilmAccumulationStatus());
 		if (_overlayHudSb.Length > 0)
 			lines.Add(_overlayHudSb.ToString());
@@ -5902,8 +6205,20 @@ private sealed class OverlayRollingWindow
 		AppendHudToken(_overlayHudSb, "fixture", ResolveHudFixtureName());
 		AppendHudToken(_overlayHudSb, "transport", ResolveHudTransportModel());
 		AppendHudToken(_overlayHudSb, "mode", ResolveHudModePath());
+		if (ShouldShowRuntimeMacroHudStatus())
+		{
+			AppendHudToken(_overlayHudSb, "macro", ResolveRuntimeMacroHudToken());
+			AppendHudToken(_overlayHudSb, "camMotion", _runtimeMacroCameraMoving ? "moving" : "still");
+		}
 		AppendHudToken(_overlayHudSb, "filmAccum", ResolveHudFilmAccumulationStatus());
 		return _overlayHudSb.ToString();
+	}
+
+	private string ResolveRuntimeMacroHudToken()
+	{
+		if (!_runtimeMacroModeActive)
+			return $"inactive({GetRuntimeMacroModeLabel(RuntimeMacroSelectedMode)})";
+		return GetRuntimeMacroModeLabel(RuntimeMacroSelectedMode);
 	}
 
 	private string ResolveHudSceneName()
