@@ -1,3 +1,21 @@
+res://tools/renderhealth_summary.pruneMode.translation
+res://tools/renderhealth_summary.meanMs.translation
+res://tools/renderhealth_summary.p95Ms.translation
+res://tools/renderhealth_summary.totalWindows.translation
+res://tools/renderhealth_summary.trustedWindows.translation
+res://tools/renderhealth_summary.pctLowRaytests.translation
+res://tools/renderhealth_summary.meanPerPxOffNumeric.translation
+res://tools/renderhealth_summary.meanPerPxOnNumeric.translation
+res://tools/renderhealth_summary.meanSavedPctNumeric.translation
+res://tools/renderhealth_summary.meanP2Samp.translation
+res://tools/renderhealth_summary.meanHitRate.translation
+res://tools/renderhealth_summary.effectiveCfgShort.translation
+res://tools/renderhealth_summary.scene.translation
+res://tools/renderhealth_summary.canonical.translation
+res://tools/renderhealth_summary.probe.translation
+res://tools/renderhealth_summary.preset.translation
+res://tools/renderhealth_summary.shadow.translation
+res://tools/renderhealth_summary.auto.translation
 res://addons/grin_inspector_help/GrinInspectorHelpInspector.cs
 res://Fixtures/CurvedMinimalFingerprint.cs
 res://addons/grin_inspector_help/GrinInspectorHelpPlugin.cs
@@ -18,3 +36,4 @@ res://RayBeamRenderer.cs
 res://addons/fieldsource_gizmo/FieldSourceNodeGizmo.cs
 res://CurvedCamera.cs
 res://test.tscn
+res://FreeFlyCamera.cs
