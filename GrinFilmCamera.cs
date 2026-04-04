@@ -218,6 +218,68 @@ public partial class GrinFilmCamera : Node
 		}
 	}
 
+	public readonly struct WormholePostRemapDiagnosticsSnapshot
+	{
+		public readonly long PixelsWithPostRemapSegments;
+		public readonly long PixelsWithMultiRemap;
+		public readonly long PostRemapSegments;
+		public readonly long PostRemapCandidateSegments;
+		public readonly long PostRemapInsightRejectedSegments;
+		public readonly long PostRemapStrideRejectedSegments;
+		public readonly long PostRemapBudgetRejectedSegments;
+		public readonly long PostRemapQueryEligibleSegments;
+		public readonly long PostRemapQueries;
+		public readonly long PostRemapGeometryHits;
+		public readonly long PostRemapFinalHitPixels;
+		public readonly long PostRemapSourceHits;
+		public readonly long PostRemapBackgroundHits;
+		public readonly long PostRemapUnclassifiedHits;
+		public readonly long PostRemapAbsorbedHits;
+		public readonly long PostRemapMissPixels;
+		public readonly long PostRemapFinalWritePixels;
+		public readonly int MaxBoundaryRemapCountSeen;
+
+		public WormholePostRemapDiagnosticsSnapshot(
+			long pixelsWithPostRemapSegments,
+			long pixelsWithMultiRemap,
+			long postRemapSegments,
+			long postRemapCandidateSegments,
+			long postRemapInsightRejectedSegments,
+			long postRemapStrideRejectedSegments,
+			long postRemapBudgetRejectedSegments,
+			long postRemapQueryEligibleSegments,
+			long postRemapQueries,
+			long postRemapGeometryHits,
+			long postRemapFinalHitPixels,
+			long postRemapSourceHits,
+			long postRemapBackgroundHits,
+			long postRemapUnclassifiedHits,
+			long postRemapAbsorbedHits,
+			long postRemapMissPixels,
+			long postRemapFinalWritePixels,
+			int maxBoundaryRemapCountSeen)
+		{
+			PixelsWithPostRemapSegments = pixelsWithPostRemapSegments;
+			PixelsWithMultiRemap = pixelsWithMultiRemap;
+			PostRemapSegments = postRemapSegments;
+			PostRemapCandidateSegments = postRemapCandidateSegments;
+			PostRemapInsightRejectedSegments = postRemapInsightRejectedSegments;
+			PostRemapStrideRejectedSegments = postRemapStrideRejectedSegments;
+			PostRemapBudgetRejectedSegments = postRemapBudgetRejectedSegments;
+			PostRemapQueryEligibleSegments = postRemapQueryEligibleSegments;
+			PostRemapQueries = postRemapQueries;
+			PostRemapGeometryHits = postRemapGeometryHits;
+			PostRemapFinalHitPixels = postRemapFinalHitPixels;
+			PostRemapSourceHits = postRemapSourceHits;
+			PostRemapBackgroundHits = postRemapBackgroundHits;
+			PostRemapUnclassifiedHits = postRemapUnclassifiedHits;
+			PostRemapAbsorbedHits = postRemapAbsorbedHits;
+			PostRemapMissPixels = postRemapMissPixels;
+			PostRemapFinalWritePixels = postRemapFinalWritePixels;
+			MaxBoundaryRemapCountSeen = maxBoundaryRemapCountSeen;
+		}
+	}
+
 	public readonly struct FilmCaptureDiagnosticsSnapshot
 	{
 		public readonly int FilmWidth;
@@ -1644,6 +1706,24 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private long _fixtureDebugMissHitsThisRun = 0;
 	private long _fixtureFinalHitPixelCountThisRun = 0;
 	private long _fixtureTraversalWritePixelCountThisRun = 0;
+	private long _wormholePostRemapPixelsThisRun = 0;
+	private long _wormholePostRemapPixelsMultiRemapThisRun = 0;
+	private long _wormholePostRemapSegmentsThisRun = 0;
+	private long _wormholePostRemapCandidateSegmentsThisRun = 0;
+	private long _wormholePostRemapInsightRejectedSegmentsThisRun = 0;
+	private long _wormholePostRemapStrideRejectedSegmentsThisRun = 0;
+	private long _wormholePostRemapBudgetRejectedSegmentsThisRun = 0;
+	private long _wormholePostRemapQueryEligibleSegmentsThisRun = 0;
+	private long _wormholePostRemapQueriesThisRun = 0;
+	private long _wormholePostRemapGeometryHitsThisRun = 0;
+	private long _wormholePostRemapFinalHitPixelsThisRun = 0;
+	private long _wormholePostRemapSourceHitsThisRun = 0;
+	private long _wormholePostRemapBackgroundHitsThisRun = 0;
+	private long _wormholePostRemapUnclassifiedHitsThisRun = 0;
+	private long _wormholePostRemapAbsorbedHitsThisRun = 0;
+	private long _wormholePostRemapMissPixelsThisRun = 0;
+	private long _wormholePostRemapFinalWritePixelsThisRun = 0;
+	private int _wormholePostRemapMaxCountThisRun = 0;
 	private byte[] _fixtureRowsConsidered = Array.Empty<byte>();
 	private byte[] _fixtureRowsProcessed = Array.Empty<byte>();
 	private byte[] _fixtureRowsSkipped = Array.Empty<byte>();
@@ -2596,6 +2676,12 @@ private sealed class OverlayRollingWindow
 		public Vector3 BestHn;
 		public ulong BestCid;
 		public string HitName;
+		public int PostRemapSegmentCount;
+		public int PostRemapCandidateSegmentCount;
+		public int PostRemapQueryCount;
+		public int PostRemapGeometryHitCount;
+		public int MaxBoundaryRemapCount;
+		public bool BestHitWasPostRemap;
 	}
 
 	private struct Pass2ShadedSample
@@ -4351,6 +4437,40 @@ private sealed class OverlayRollingWindow
 			snapshot.TraversalWritePixelCount > 0;
 	}
 
+	public bool TryGetWormholePostRemapDiagnosticsForTesting(out WormholePostRemapDiagnosticsSnapshot snapshot)
+	{
+		snapshot = new WormholePostRemapDiagnosticsSnapshot(
+			_wormholePostRemapPixelsThisRun,
+			_wormholePostRemapPixelsMultiRemapThisRun,
+			_wormholePostRemapSegmentsThisRun,
+			_wormholePostRemapCandidateSegmentsThisRun,
+			_wormholePostRemapInsightRejectedSegmentsThisRun,
+			_wormholePostRemapStrideRejectedSegmentsThisRun,
+			_wormholePostRemapBudgetRejectedSegmentsThisRun,
+			_wormholePostRemapQueryEligibleSegmentsThisRun,
+			_wormholePostRemapQueriesThisRun,
+			_wormholePostRemapGeometryHitsThisRun,
+			_wormholePostRemapFinalHitPixelsThisRun,
+			_wormholePostRemapSourceHitsThisRun,
+			_wormholePostRemapBackgroundHitsThisRun,
+			_wormholePostRemapUnclassifiedHitsThisRun,
+			_wormholePostRemapAbsorbedHitsThisRun,
+			_wormholePostRemapMissPixelsThisRun,
+			_wormholePostRemapFinalWritePixelsThisRun,
+			_wormholePostRemapMaxCountThisRun);
+		return snapshot.PixelsWithPostRemapSegments > 0 ||
+			snapshot.PostRemapSegments > 0 ||
+			snapshot.PostRemapCandidateSegments > 0 ||
+			snapshot.PostRemapInsightRejectedSegments > 0 ||
+			snapshot.PostRemapStrideRejectedSegments > 0 ||
+			snapshot.PostRemapBudgetRejectedSegments > 0 ||
+			snapshot.PostRemapQueryEligibleSegments > 0 ||
+			snapshot.PostRemapQueries > 0 ||
+			snapshot.PostRemapGeometryHits > 0 ||
+			snapshot.PostRemapFinalHitPixels > 0 ||
+			snapshot.PostRemapFinalWritePixels > 0;
+	}
+
 	public void ResetTelemetryHeatmapsForRunStart()
 	{
 		ClearTelemetryHeatmapArrays();
@@ -5424,6 +5544,24 @@ private sealed class OverlayRollingWindow
 	{
 		_fixtureFinalHitPixelCountThisRun = 0;
 		_fixtureTraversalWritePixelCountThisRun = 0;
+		_wormholePostRemapPixelsThisRun = 0;
+		_wormholePostRemapPixelsMultiRemapThisRun = 0;
+		_wormholePostRemapSegmentsThisRun = 0;
+		_wormholePostRemapCandidateSegmentsThisRun = 0;
+		_wormholePostRemapInsightRejectedSegmentsThisRun = 0;
+		_wormholePostRemapStrideRejectedSegmentsThisRun = 0;
+		_wormholePostRemapBudgetRejectedSegmentsThisRun = 0;
+		_wormholePostRemapQueryEligibleSegmentsThisRun = 0;
+		_wormholePostRemapQueriesThisRun = 0;
+		_wormholePostRemapGeometryHitsThisRun = 0;
+		_wormholePostRemapFinalHitPixelsThisRun = 0;
+		_wormholePostRemapSourceHitsThisRun = 0;
+		_wormholePostRemapBackgroundHitsThisRun = 0;
+		_wormholePostRemapUnclassifiedHitsThisRun = 0;
+		_wormholePostRemapAbsorbedHitsThisRun = 0;
+		_wormholePostRemapMissPixelsThisRun = 0;
+		_wormholePostRemapFinalWritePixelsThisRun = 0;
+		_wormholePostRemapMaxCountThisRun = 0;
 		if (_fixtureRowsStarted.Length > 0) Array.Clear(_fixtureRowsStarted, 0, _fixtureRowsStarted.Length);
 		if (_fixtureRowsCompleted.Length > 0) Array.Clear(_fixtureRowsCompleted, 0, _fixtureRowsCompleted.Length);
 		if (_fixtureRowsPartiallyWritten.Length > 0) Array.Clear(_fixtureRowsPartiallyWritten, 0, _fixtureRowsPartiallyWritten.Length);
@@ -9261,6 +9399,12 @@ private sealed class OverlayRollingWindow
 										string hitName = "<none>";
 										bool needHitName = cfg.NeedColliderNames;
 										bool absorbedByInnerRadius = false;
+										int postRemapSegmentCountThisPixel = 0;
+										int postRemapCandidateSegmentCountThisPixel = 0;
+										int postRemapQueryCountThisPixel = 0;
+										int postRemapGeometryHitCountThisPixel = 0;
+										int maxBoundaryRemapCountThisPixel = 0;
+										bool bestHitWasPostRemap = false;
 										bool segmentsMonotonic = true;
 										if (segCount > 1)
 										{
@@ -9299,6 +9443,13 @@ private sealed class OverlayRollingWindow
 										}
 
 											ref readonly var seg = ref _segBuf[segOffset + si];
+											bool segPostRemap = seg.BoundaryRemapCount > 0;
+											if (segPostRemap)
+											{
+												postRemapSegmentCountThisPixel++;
+												if (seg.BoundaryRemapCount > maxBoundaryRemapCountThisPixel)
+													maxBoundaryRemapCountThisPixel = seg.BoundaryRemapCount;
+											}
 											Vector3 segA = seg.A;
 											Vector3 segB = seg.B;
 											float segLen = (segB - segA).Length();
@@ -9317,6 +9468,8 @@ private sealed class OverlayRollingWindow
 												: 0;
 											if (geomCandidateCount > 0)
 												telemetryCandidateCountThisPixel += geomCandidateCount;
+											if (segPostRemap && geomCandidateCount > 0)
+												postRemapCandidateSegmentCountThisPixel++;
 											chunk.Geom.GeomSegmentsQueried++;
 											if (geomCandidateCount <= 0)
 												chunk.Geom.GeomSegZeroCandidates++;
@@ -9335,18 +9488,22 @@ private sealed class OverlayRollingWindow
 												continue;
 											geomPixelHadAnyCandidatesThisPixel = true;
 
-											if (!pass1StoppedEarly && cfg.UsePass2CollisionStride && segCount > 1)
+										if (!pass1StoppedEarly && cfg.UsePass2CollisionStride && segCount > 1)
+										{
+											bool forceTest = si == 0 || si == lastSi
+												|| (cfg.MinSegLenForStrideSkip > 0f && segLen < cfg.MinSegLenForStrideSkip);
+											if (!forceTest && (si % Math.Max(1, pass2Stride)) != 0)
 											{
-												bool forceTest = si == 0 || si == lastSi
-													|| (cfg.MinSegLenForStrideSkip > 0f && segLen < cfg.MinSegLenForStrideSkip);
-												if (!forceTest && (si % Math.Max(1, pass2Stride)) != 0)
-												{
-													skippedAnyByStrideThisPixel = true;
-													continue;
-												}
+												if (segPostRemap)
+													_wormholePostRemapStrideRejectedSegmentsThisRun++;
+												skippedAnyByStrideThisPixel = true;
+												continue;
 											}
+										}
 
-											testedAnyInPass0ThisPixel = true;
+										if (segPostRemap)
+											_wormholePostRemapQueryEligibleSegmentsThisRun++;
+										testedAnyInPass0ThisPixel = true;
 											chunk.Pass2StrideSum += pass2Stride;
 											chunk.Pass2StrideCount++;
 
@@ -9357,6 +9514,8 @@ private sealed class OverlayRollingWindow
 											if (statsEnabled && overlapStartUsec > 0)
 												chunk.QueryUsec += (long)(Time.GetTicksUsec() - overlapStartUsec);
 											telemetryQueryCountThisPixel += 1f;
+											if (segPostRemap)
+												postRemapQueryCountThisPixel++;
 											if (!geomPixelProcessedThisPixel)
 											{
 												chunk.Geom.GeomPixelProcessed++;
@@ -9378,12 +9537,16 @@ private sealed class OverlayRollingWindow
 												if (statsEnabled && queryStartUsec > 0)
 													chunk.QueryUsec += (long)(Time.GetTicksUsec() - queryStartUsec);
 												telemetryQueryCountThisPixel += 1f;
+												if (segPostRemap)
+													postRemapQueryCountThisPixel++;
 												chunk.PhysicsQueries++;
 												chunk.Geom.GeomRayTestsTotal++;
 												if (!didHitSweep)
 													continue;
 												float hitDistAlongRay = seg.TraveledB - segLen + (hpSweep - segA).Length();
 												telemetryResolveCountThisPixel += 1f;
+												if (segPostRemap)
+													postRemapGeometryHitCountThisPixel++;
 												ulong resolveStartUsec = statsEnabled ? Time.GetTicksUsec() : 0;
 												if (hitDistAlongRay < bestHit)
 												{
@@ -9393,6 +9556,7 @@ private sealed class OverlayRollingWindow
 													bestHp = hpSweep;
 													bestHn = Vector3.Up;
 													bestCid = 0;
+													bestHitWasPostRemap = segPostRemap;
 												}
 												if (statsEnabled && resolveStartUsec > 0)
 													chunk.ResolveUsec += (long)(Time.GetTicksUsec() - resolveStartUsec);
@@ -9436,6 +9600,8 @@ private sealed class OverlayRollingWindow
 												if (statsEnabled && queryStart > 0)
 													chunk.QueryUsec += (long)(Time.GetTicksUsec() - queryStart);
 												telemetryQueryCountThisPixel += Math.Max(1, rayQueries);
+												if (segPostRemap)
+													postRemapQueryCountThisPixel += Math.Max(1, rayQueries);
 												chunk.SubdividedRayCalls++;
 												chunk.SubdividedRayQueries += rayQueries;
 												chunk.SubdividedRaySubsteps += sub;
@@ -9446,6 +9612,8 @@ private sealed class OverlayRollingWindow
 
 											float resolvedHitDistance = seg.TraveledB - segLen + (hp - segA).Length();
 											telemetryResolveCountThisPixel += 1f;
+											if (segPostRemap)
+												postRemapGeometryHitCountThisPixel++;
 											ulong resolveStart = statsEnabled ? Time.GetTicksUsec() : 0;
 											if (resolvedHitDistance < bestHit)
 											{
@@ -9455,6 +9623,7 @@ private sealed class OverlayRollingWindow
 												bestHp = hp;
 												bestHn = hn;
 												bestCid = cid;
+												bestHitWasPostRemap = segPostRemap;
 												if (needHitName)
 													hitName = cname;
 											}
@@ -9496,7 +9665,13 @@ private sealed class OverlayRollingWindow
 											BestHp = bestHp,
 											BestHn = bestHn,
 											BestCid = bestCid,
-											HitName = needHitName ? hitName : string.Empty
+											HitName = needHitName ? hitName : string.Empty,
+											PostRemapSegmentCount = postRemapSegmentCountThisPixel,
+											PostRemapCandidateSegmentCount = postRemapCandidateSegmentCountThisPixel,
+											PostRemapQueryCount = postRemapQueryCountThisPixel,
+											PostRemapGeometryHitCount = postRemapGeometryHitCountThisPixel,
+											MaxBoundaryRemapCount = maxBoundaryRemapCountThisPixel,
+											BestHitWasPostRemap = bestHitWasPostRemap
 										});
 									}
 								}
@@ -9779,6 +9954,17 @@ private sealed class OverlayRollingWindow
 						{
 							Pass2ResolvedSample sample = pass2ResolvedSamples[sampleIndex];
 							Pass2ShadedSample shaded = shadedSamples[sampleIndex];
+							if (sample.PostRemapSegmentCount > 0)
+							{
+								_wormholePostRemapPixelsThisRun++;
+								_wormholePostRemapSegmentsThisRun += sample.PostRemapSegmentCount;
+								_wormholePostRemapCandidateSegmentsThisRun += sample.PostRemapCandidateSegmentCount;
+								_wormholePostRemapQueriesThisRun += sample.PostRemapQueryCount;
+								_wormholePostRemapGeometryHitsThisRun += sample.PostRemapGeometryHitCount;
+								_wormholePostRemapMaxCountThisRun = Math.Max(_wormholePostRemapMaxCountThisRun, sample.MaxBoundaryRemapCount);
+								if (sample.MaxBoundaryRemapCount >= 2)
+									_wormholePostRemapPixelsMultiRemapThisRun++;
+							}
 
 							if (sample.HadHit)
 							{
@@ -9835,6 +10021,30 @@ private sealed class OverlayRollingWindow
 							{
 								_fixtureFinalHitPixelCountThisRun += filled;
 								FillPixelBlock(_fixtureFinalHitOnlyImg, sample.X, sample.Y, sample.Stride, shaded.Color, filmW, filmH);
+							}
+							if (sample.BestHitWasPostRemap)
+							{
+								_wormholePostRemapFinalHitPixelsThisRun++;
+								_wormholePostRemapFinalWritePixelsThisRun += filled;
+								switch (shaded.FixtureHitKind)
+								{
+									case "source":
+										_wormholePostRemapSourceHitsThisRun++;
+										break;
+									case "background":
+										_wormholePostRemapBackgroundHitsThisRun++;
+										break;
+									case "unclassified":
+										_wormholePostRemapUnclassifiedHitsThisRun++;
+										break;
+									case "absorbed":
+										_wormholePostRemapAbsorbedHitsThisRun++;
+										break;
+								}
+							}
+							else if (sample.PostRemapSegmentCount > 0)
+							{
+								_wormholePostRemapMissPixelsThisRun++;
 							}
 							Color categoricalColor = sample.HadHit
 								? FixtureCategoricalFinalHitColor
@@ -10164,6 +10374,12 @@ private sealed class OverlayRollingWindow
 						Vector3 bestHn = Vector3.Up;
 						ulong bestCid = 0;
 						bool absorbedByInnerRadius = false;
+						int postRemapSegmentCountThisPixel = 0;
+						int postRemapCandidateSegmentCountThisPixel = 0;
+						int postRemapQueryCountThisPixel = 0;
+						int postRemapGeometryHitCountThisPixel = 0;
+						int maxBoundaryRemapCountThisPixel = 0;
+						bool bestHitWasPostRemap = false;
 
 						int segCount = _segCountPerPixel[pi];
 						int segOffset = pi * maxSeg;
@@ -10242,6 +10458,13 @@ private sealed class OverlayRollingWindow
 							for (int si = segStart; si <= segEnd; si++)
 							{
 								var seg = _segBuf[segOffset + si];
+								bool segPostRemap = seg.BoundaryRemapCount > 0;
+								if (segPostRemap)
+								{
+									postRemapSegmentCountThisPixel++;
+									if (seg.BoundaryRemapCount > maxBoundaryRemapCountThisPixel)
+										maxBoundaryRemapCountThisPixel = seg.BoundaryRemapCount;
+								}
 								Vector3 segA = seg.A;
 								Vector3 segB = seg.B;
 								Vector3 segDelta = segB - segA;
@@ -10673,6 +10896,8 @@ private sealed class OverlayRollingWindow
 											geomPixelHadAnyCandidatesThisPixel = true;
 										}
 									}
+									if (segPostRemap && geomCandidateInstanceCount > 0)
+										postRemapCandidateSegmentCountThisPixel++;
 									EvaluatePruneAuditCandidateCoverage(geomCandidateInstanceCount);
 									if (renderHealthSampleThisSeg && !renderHealthSampleRecorded && envelopeComputed)
 									{
@@ -10703,8 +10928,12 @@ private sealed class OverlayRollingWindow
 											pass2QueryUsecAccum += (long)(Time.GetTicksUsec() - queryStartUsec);
 										if (telemetryHeatmapsEnabled)
 											telemetryQueryCountThisPixel += 1f;
+										if (segPostRemap)
+											postRemapQueryCountThisPixel += 1;
 										if (didHit && telemetryHeatmapsEnabled)
 											telemetryResolveCountThisPixel += 1f;
+										if (didHit && segPostRemap)
+											postRemapGeometryHitCountThisPixel++;
 										_geomRayTestsTotalThisFrame++;
 									if ((statsEnabled || framePerfEnabled) && !segCounted)
 									{
@@ -10723,6 +10952,8 @@ private sealed class OverlayRollingWindow
 										//if (!SegmentCrossesPlane(segA, segB, insightPlane, insightEps))
 										if (!RayBeamRenderer.SegmentCrossesPlane(segA, segB, insightPlane, insightEps))
 										{
+											if (segPostRemap)
+												_wormholePostRemapInsightRejectedSegmentsThisRun++;
 											if (framePerfEnabled) _framePerf.Pass2Skip_InsightPlane++;
 											continue;
 										}
@@ -11138,16 +11369,23 @@ private sealed class OverlayRollingWindow
 									}
 									if (telemetryHeatmapsEnabled && candidateCount > 0)
 										telemetryCandidateCountThisPixel += candidateCount;
+									if (segPostRemap && candidateCount > 0)
+										postRemapCandidateSegmentCountThisPixel++;
 
-									if (renderHealthSampleThisSeg && !renderHealthSampleRecorded && envelopeComputed)
-									{
-										// TLAS pruning off restores pre-TLAS full narrowphase, so candidate histograms are intentionally NA.
-										int renderHealthCandidateCount = useGeomTlasPruning ? candidateCount : -1;
-										RecordRenderHealthPass2Sample(renderHealthSampleRadius, renderHealthSampleEnvDiag, renderHealthSampleEnvelopeInflation, renderHealthCandidateCount);
-										renderHealthSampleRecorded = true;
-									}
+										if (renderHealthSampleThisSeg && !renderHealthSampleRecorded && envelopeComputed)
+										{
+											// TLAS pruning off restores pre-TLAS full narrowphase, so candidate histograms are intentionally NA.
+											int renderHealthCandidateCount = useGeomTlasPruning ? candidateCount : -1;
+											RecordRenderHealthPass2Sample(renderHealthSampleRadius, renderHealthSampleEnvDiag, renderHealthSampleEnvelopeInflation, renderHealthCandidateCount);
+											renderHealthSampleRecorded = true;
+										}
 
-									if (budgetStop) break;
+										if (budgetStop)
+										{
+											if (segPostRemap && candidateCount > 0)
+												_wormholePostRemapBudgetRejectedSegmentsThisRun++;
+											break;
+										}
 									if (useGeomTlasPruning)
 									{
 										if (skipBroadphaseSegment)
@@ -11307,6 +11545,8 @@ private sealed class OverlayRollingWindow
 												pass2QueryUsecAccum += (long)(Time.GetTicksUsec() - queryStartUsec);
 											if (quickRaySucceeded && telemetryHeatmapsEnabled)
 												telemetryQueryCountThisPixel += 1f;
+											if (quickRaySucceeded && segPostRemap)
+												postRemapQueryCountThisPixel += 1;
 											if (quickRaySucceeded)
 											{
 												_geomRayTestsTotalThisFrame++;
@@ -11383,6 +11623,8 @@ private sealed class OverlayRollingWindow
 											subRaysForcedByPass2Stride++;
 										else if ((si % pass2Stride) != 0)
 										{
+											if (segPostRemap)
+												_wormholePostRemapStrideRejectedSegmentsThisRun++;
 											subRaysSkippedByPass2Stride++;
 											skippedAnyByStrideThisPixel = true;
 											_perfFrame.SubRaySkippedByStride++;
@@ -11405,6 +11647,8 @@ private sealed class OverlayRollingWindow
 											continue;
 										}
 									}
+									if (segPostRemap)
+										_wormholePostRemapQueryEligibleSegmentsThisRun++;
 									if (!forceStride1)
 									{
 										testedAnyInPass0ThisPixel = true;
@@ -11487,6 +11731,8 @@ private sealed class OverlayRollingWindow
 										pass2QueryUsecAccum += (long)(Time.GetTicksUsec() - queryStartUsec);
 									if (telemetryHeatmapsEnabled)
 										telemetryQueryCountThisPixel += Math.Max(1, rayQueries);
+									if (segPostRemap)
+										postRemapQueryCountThisPixel += Math.Max(1, rayQueries);
 									if (rayQueries > 0)
 										_geomRayTestsTotalThisFrame += rayQueries;
 									if (statsEnabled)
@@ -11567,6 +11813,8 @@ private sealed class OverlayRollingWindow
 											hitDistAlongRay = seg.TraveledB - segLen + (hp - segA).Length();
 										if (didHit && telemetryHeatmapsEnabled)
 											telemetryResolveCountThisPixel += 1f;
+										if (didHit && segPostRemap)
+											postRemapGeometryHitCountThisPixel++;
 										return didHit;
 									}
 
@@ -11671,6 +11919,7 @@ private sealed class OverlayRollingWindow
 										bestHp = hp;      // ADD
 										bestHn = hn;      // ADD
 										bestCid = cid;
+										bestHitWasPostRemap = segPostRemap;
 									}
 
 									// If you only want the nearest hit, keep scanning segments
@@ -11802,7 +12051,13 @@ private sealed class OverlayRollingWindow
 									BestHp = bestHp,
 									BestHn = bestHn,
 									BestCid = bestCid,
-									HitName = needHitName ? hitName : string.Empty
+									HitName = needHitName ? hitName : string.Empty,
+									PostRemapSegmentCount = postRemapSegmentCountThisPixel,
+									PostRemapCandidateSegmentCount = postRemapCandidateSegmentCountThisPixel,
+									PostRemapQueryCount = postRemapQueryCountThisPixel,
+									PostRemapGeometryHitCount = postRemapGeometryHitCountThisPixel,
+									MaxBoundaryRemapCount = maxBoundaryRemapCountThisPixel,
+									BestHitWasPostRemap = bestHitWasPostRemap
 								});
 								rowHadWritesThisPass = true;
 								continue;
@@ -11925,6 +12180,18 @@ private sealed class OverlayRollingWindow
 							}
 						}
 
+						if (postRemapSegmentCountThisPixel > 0)
+						{
+							_wormholePostRemapPixelsThisRun++;
+							_wormholePostRemapSegmentsThisRun += postRemapSegmentCountThisPixel;
+							_wormholePostRemapCandidateSegmentsThisRun += postRemapCandidateSegmentCountThisPixel;
+							_wormholePostRemapQueriesThisRun += postRemapQueryCountThisPixel;
+							_wormholePostRemapGeometryHitsThisRun += postRemapGeometryHitCountThisPixel;
+							_wormholePostRemapMaxCountThisRun = Math.Max(_wormholePostRemapMaxCountThisRun, maxBoundaryRemapCountThisPixel);
+							if (maxBoundaryRemapCountThisPixel >= 2)
+								_wormholePostRemapPixelsMultiRemapThisRun++;
+						}
+
 						switch (fixtureHitKind)
 						{
 							case "source":
@@ -11972,6 +12239,30 @@ private sealed class OverlayRollingWindow
 						{
 							_fixtureFinalHitPixelCountThisRun += filled;
 							FillPixelBlock(_fixtureFinalHitOnlyImg, x, y, stride, col, filmW, filmH);
+						}
+						if (bestHitWasPostRemap)
+						{
+							_wormholePostRemapFinalHitPixelsThisRun++;
+							_wormholePostRemapFinalWritePixelsThisRun += filled;
+							switch (fixtureHitKind)
+							{
+								case "source":
+									_wormholePostRemapSourceHitsThisRun++;
+									break;
+								case "background":
+									_wormholePostRemapBackgroundHitsThisRun++;
+									break;
+								case "unclassified":
+									_wormholePostRemapUnclassifiedHitsThisRun++;
+									break;
+								case "absorbed":
+									_wormholePostRemapAbsorbedHitsThisRun++;
+									break;
+							}
+						}
+						else if (postRemapSegmentCountThisPixel > 0)
+						{
+							_wormholePostRemapMissPixelsThisRun++;
 						}
 						Color categoricalColor = hadHit
 							? FixtureCategoricalFinalHitColor

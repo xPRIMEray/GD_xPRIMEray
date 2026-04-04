@@ -528,6 +528,7 @@ public partial class RayBeamRenderer : Node3D
 	private int[] _boundaryDebugEntryCounts = Array.Empty<int>();
 	private int[] _boundaryDebugExitCounts = Array.Empty<int>();
 	private int _boundaryDebugImpulseCount = 0;
+	private int _boundaryDebugSceneTransformCount = 0;
 	private bool _boundaryDebugRunActive = false;
 	private bool _boundaryDebugHasEvents = false;
 
@@ -593,6 +594,7 @@ public partial class RayBeamRenderer : Node3D
 		public Vector3 B;
 		public float TraveledB; // path length at end of segment (at B)
 		public float RadiusBound; // conservative curve deviation bound for this segment
+		public int BoundaryRemapCount; // number of scene-transform remaps experienced before this segment end
 	}
 
 	public delegate bool SegmentCallback(in RaySeg seg, int segIndex);
@@ -684,6 +686,7 @@ public partial class RayBeamRenderer : Node3D
 			Array.Clear(_boundaryDebugExitCounts, 0, _boundaryDebugExitCounts.Length);
 
 		_boundaryDebugImpulseCount = 0;
+		_boundaryDebugSceneTransformCount = 0;
 		_boundaryDebugHasEvents = false;
 		_boundaryDebugRunActive = true;
 	}
@@ -700,7 +703,7 @@ public partial class RayBeamRenderer : Node3D
 			totalExits += _boundaryDebugExitCounts[i];
 
 		string suffix = string.IsNullOrWhiteSpace(label) ? "" : $" {label}";
-		GD.Print($"[BLV][Summary]{suffix} entries={totalEntries} exits={totalExits} impulses={_boundaryDebugImpulseCount} layers={_boundaryLayerSnaps.Length}");
+		GD.Print($"[BLV][Summary]{suffix} entries={totalEntries} exits={totalExits} impulses={_boundaryDebugImpulseCount} remaps={_boundaryDebugSceneTransformCount} layers={_boundaryLayerSnaps.Length}");
 		for (int i = 0; i < _boundaryLayerSnaps.Length; i++)
 		{
 			if (_boundaryDebugEntryCounts[i] == 0 && _boundaryDebugExitCounts[i] == 0)
@@ -726,6 +729,12 @@ public partial class RayBeamRenderer : Node3D
 			_boundaryDebugImpulseCount++;
 			_boundaryDebugHasEvents = true;
 		}
+	}
+
+	private void RecordBoundarySceneTransformValidation()
+	{
+		if (!_boundaryDebugRunActive) return;
+		_boundaryDebugSceneTransformCount++;
 	}
 
 	public readonly struct DebugRayBundle
@@ -2382,6 +2391,7 @@ public partial class RayBeamRenderer : Node3D
 		uint blvInsideMask = (_hasBoundaryLayers && UseIntegratedField)
 			? ComputeInsideMask(p, _boundaryLayerSnaps)
 			: 0u;
+		int boundaryRemapCount = 0;
 
 		// DECISION: integrate along the ray for up to StepsPerRay steps.
 		for (int s = 0; s <= StepsPerRay; s++)
@@ -2396,7 +2406,7 @@ public partial class RayBeamRenderer : Node3D
 			// Boundary layer: continuous effects and crossing-event detection.
 			if (_hasBoundaryLayers && UseIntegratedField)
 			{
-				ApplyBoundaryLayerInteractions(ref p, ref v, _boundaryLayerSnaps, ref blvInsideMask);
+				boundaryRemapCount += ApplyBoundaryLayerInteractions(ref p, ref v, _boundaryLayerSnaps, ref blvInsideMask);
 			}
 
 			Vector3 a = Vector3.Zero;
@@ -2649,6 +2659,7 @@ public partial class RayBeamRenderer : Node3D
 		uint blvInsideMask = (_hasBoundaryLayers && UseIntegratedField)
 			? ComputeInsideMask(p, _boundaryLayerSnaps)
 			: 0u;
+		int boundaryRemapCount = 0;
 
 		// DECISION: integrate along the ray for up to StepsPerRay steps.
 		for (int s = 0; s <= StepsPerRay; s++)
@@ -2663,7 +2674,7 @@ public partial class RayBeamRenderer : Node3D
 			// Boundary layer: continuous effects and crossing-event detection.
 			if (_hasBoundaryLayers && UseIntegratedField)
 			{
-				ApplyBoundaryLayerInteractions(ref p, ref v, _boundaryLayerSnaps, ref blvInsideMask);
+				boundaryRemapCount += ApplyBoundaryLayerInteractions(ref p, ref v, _boundaryLayerSnaps, ref blvInsideMask);
 			}
 
 			Vector3 next = p;
@@ -2865,6 +2876,7 @@ public partial class RayBeamRenderer : Node3D
 		uint blvInsideMask = (hasBoundaryLayers && UseIntegratedField)
 			? ComputeInsideMask(p, boundaryLayers)
 			: 0u;
+		int boundaryRemapCount = 0;
 		/////////////////////////
 		/// 
 
@@ -2879,7 +2891,7 @@ public partial class RayBeamRenderer : Node3D
 
 			if (hasBoundaryLayers && UseIntegratedField)
 			{
-				ApplyBoundaryLayerInteractions(ref p, ref v, boundaryLayers, ref blvInsideMask);
+				boundaryRemapCount += ApplyBoundaryLayerInteractions(ref p, ref v, boundaryLayers, ref blvInsideMask);
 			}
 
 			Vector3 next = p;
@@ -3046,7 +3058,8 @@ public partial class RayBeamRenderer : Node3D
 					A = p,
 					B = next,
 					TraveledB = traveled,
-					RadiusBound = RadiusMin
+					RadiusBound = RadiusMin,
+					BoundaryRemapCount = boundaryRemapCount
 				};
 				outSegs[outOffset + written] = seg;
 				// DECISION: allow optional callback to terminate segment emission early.
@@ -3187,6 +3200,7 @@ public partial class RayBeamRenderer : Node3D
 		uint blvInsideMask = (hasBoundaryLayers && UseIntegratedField)
 			? ComputeInsideMask(p, boundaryLayers)
 			: 0u;
+		int boundaryRemapCount = 0;
 
 		// DECISION: integrate along the ray for up to StepsPerRay steps.
 		for (int s = 0; s <= maxIntegrationSteps; s++)
@@ -3203,7 +3217,7 @@ public partial class RayBeamRenderer : Node3D
 			// Boundary layer: continuous effects and crossing-event detection.
 			if (hasBoundaryLayers && UseIntegratedField)
 			{
-				ApplyBoundaryLayerInteractions(ref p, ref v, boundaryLayers, ref blvInsideMask);
+				boundaryRemapCount += ApplyBoundaryLayerInteractions(ref p, ref v, boundaryLayers, ref blvInsideMask);
 			}
 
 			Vector3 next = p;
@@ -3438,7 +3452,8 @@ public partial class RayBeamRenderer : Node3D
 					A = p,
 					B = next,
 					TraveledB = traveled,
-					RadiusBound = radiusBound
+					RadiusBound = radiusBound,
+					BoundaryRemapCount = boundaryRemapCount
 				};
 				// TODO(metric-pass1): When Metric_NullGeodesic emits persistent MetricRayState
 				// steps, mirror this RaySeg emission through RendererCore.Transport.
@@ -3780,6 +3795,7 @@ public partial class RayBeamRenderer : Node3D
 						break;
 					case BoundaryLayerVolume.BoundaryBehavior.SceneTransform:
 						ApplyBoundarySceneTransform(ref p, ref v, in layer);
+						RecordBoundarySceneTransformValidation();
 						break;
 				}
 				RecordBoundaryValidationEvent(i, isEntry: true, isExit: false);
@@ -3795,6 +3811,7 @@ public partial class RayBeamRenderer : Node3D
 						break;
 					case BoundaryLayerVolume.BoundaryBehavior.SceneTransform:
 						ApplyBoundarySceneTransform(ref p, ref v, in layer);
+						RecordBoundarySceneTransformValidation();
 						break;
 				}
 				RecordBoundaryValidationEvent(i, isEntry: false, isExit: true);
@@ -3822,25 +3839,29 @@ public partial class RayBeamRenderer : Node3D
 		p = layer.LinkedCenter + radial.Normalized() * (layer.LinkedRadius + layer.SceneTransformExitOffset);
 	}
 
-	private void ApplyBoundaryLayerInteractions(ref Vector3 p, ref Vector3 v, BoundaryLayerSnap[] layers, ref uint insideMask)
+	private int ApplyBoundaryLayerInteractions(ref Vector3 p, ref Vector3 v, BoundaryLayerSnap[] layers, ref uint insideMask)
 	{
 		if (layers == null || layers.Length == 0)
 		{
 			insideMask = 0u;
-			return;
+			return 0;
 		}
 
 		uint newMask = ComputeInsideMask(p, layers);
 		uint crossings = newMask ^ insideMask;
+		int sceneTransformEvents = 0;
 		v = ApplyBoundaryLayerBias(p, v, layers);
 		if (crossings != 0u)
 		{
+			int beforeSceneTransformCount = _boundaryDebugSceneTransformCount;
 			ApplyBoundaryLayerCrossings(ref p, ref v, layers, crossings & newMask, crossings & insideMask);
+			sceneTransformEvents = Math.Max(0, _boundaryDebugSceneTransformCount - beforeSceneTransformCount);
 			insideMask = ComputeInsideMask(p, layers);
-			return;
+			return sceneTransformEvents;
 		}
 
 		insideMask = newMask;
+		return sceneTransformEvents;
 	}
 
 	public static TransportModel ResolveActiveTransportModel(FieldSourceSnap[] sources)

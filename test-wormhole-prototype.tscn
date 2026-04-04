@@ -76,17 +76,21 @@ PortalAPath = NodePath("SceneA/PortalA")
 PortalBPath = NodePath("SceneB/PortalB")
 RayBeamRendererPath = NodePath("RayBeamRenderer")
 StartInSceneA = true
-EnableAutoMotion = true
-AutoMotionOrbitRadius = 8.2
+EnableAutoMotion = false
+AutoMotionOrbitRadius = 2.35
 AutoMotionHeight = 1.4
 AutoMotionPeriodSeconds = 34.0
 AutoMotionStartAngleDegrees = 176.0
 AutoMotionLookAtActivePortal = true
+AutoMotionRadialWaveAmplitude = 0.8
+AutoMotionRadialWavePeriodSeconds = 14.0
 CaptureValidationScreenshot = true
-ValidationCaptureDelaySeconds = 3.5
+ValidationCaptureDelaySeconds = 20.0
+ValidationCaptureMaxDelaySeconds = 60.0
 ValidationCapturePath = "res://output/wormhole_test/wormhole_validation_capture.png"
 EmitBoundaryValidationSummaryAfterCapture = true
 BoundaryValidationLabel = "wormhole_validation"
+ValidationWaitForFilmWrap = true
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 
@@ -96,7 +100,7 @@ light_energy = 1.4
 shadow_enabled = true
 
 [node name="PlayerCamera" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)
+transform = Transform3D(0, 0.5118052, -0.85910153, -0, 0.85910153, 0.5118052, 1, 0, -0, -2.35, 1.4, 0)
 current = true
 fov = 52.0
 near = 0.01
@@ -181,7 +185,7 @@ ExecutionMode = 1
 Behavior = 1
 Radius = 2.0
 LinkedBoundaryPath = NodePath("../../../SceneB/PortalB/BoundaryShell")
-SceneTransformExitOffset = 0.28
+SceneTransformExitOffset = 3.5
 DebugLogCrossings = true
 
 [node name="FieldSource3D" type="Node3D" parent="SceneA/PortalA"]
@@ -284,7 +288,7 @@ ExecutionMode = 1
 Behavior = 1
 Radius = 2.0
 LinkedBoundaryPath = NodePath("../../../SceneA/PortalA/BoundaryShell")
-SceneTransformExitOffset = 0.28
+SceneTransformExitOffset = 3.5
 DebugLogCrossings = true
 
 [node name="FieldSource3D" type="Node3D" parent="SceneB/PortalB"]
@@ -351,6 +355,7 @@ DebugProbeLog = false
 DebugGeomPruneAuditEnabled = true
 AutoRangeMin = 0.01
 BroadphasePolicy = 2
+UsePass2CollisionStride = false
 RayBeamRendererPath = NodePath("../RayBeamRenderer")
 DebugEveryNPixels = 12
 DebugMaxFilmRays = 1024
