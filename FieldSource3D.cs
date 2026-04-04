@@ -175,7 +175,7 @@ public partial class FieldSource3D : Node3D
 	[Export] public Color DebugVizDensityZoneColorMax { get; set; } = new Color(1.0f, 0, 0.10f, 0.95f);
 
 	[ExportSubgroup("Density Vectors")]
-	[Export] public bool DebugVizShowDensityVectors { get; set; } = false;
+	[Export] public bool DebugVizShowDensityVectors { get; set; } = true;
 	[Export(PropertyHint.Range, "2,16,1")] public int DebugVizDensityVectorLayers { get; set; } = 6;
 	[Export(PropertyHint.Range, "4,96,1")] public int DebugVizDensityVectorCount { get; set; } = 16;
 	[Export(PropertyHint.Range, "0.05,5.0,0.01")] public float DebugVizDensityVectorScale { get; set; } = 0.75f;
@@ -203,7 +203,7 @@ public partial class FieldSource3D : Node3D
 	[ExportSubgroup("Render")]
 	[Export(PropertyHint.Range, "0.0,1.0,0.01")] public float DebugVizGlobalOpacity { get; set; } = 0.90f;
 	[Export] public bool DebugVizAlwaysOnTop { get; set; } = true;
-	[Export] public bool DebugVizInGame { get; set; } = false;
+	[Export] public bool DebugVizInGame { get; set; } = true;
 
 	[Export]
 	public string DebugVizSummary
