@@ -258,6 +258,17 @@ material_override = SubResource("Material_marker_b2")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="SceneB/MarkerB_Top"]
 shape = SubResource("SphereShape_marker")
 
+[node name="ProbeWallB" type="StaticBody3D" parent="SceneB" groups=["fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -5)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="SceneB/ProbeWallB"]
+layers = 4
+mesh = SubResource("BoxMesh_backdrop")
+material_override = SubResource("Material_backdrop_b")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SceneB/ProbeWallB"]
+shape = SubResource("BoxShape_backdrop")
+
 [node name="PortalB" type="Node3D" parent="SceneB"]
 transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 0)
 script = ExtResource("2_portal")
@@ -341,11 +352,11 @@ FilmOpacity = 1.0
 ShadingMode = 1
 FlipNormalToCamera = true
 UpdateEveryFrame = true
-UpdateEveryFrameBudgetMs = 600.0
+UpdateEveryFrameBudgetMs = 6000.0
 UpdateEveryFrameMaxRowsPerStep = 1024
 RenderStepMaxMs = 1000
 RenderStepMaxSegmentsPerFrame = 200000000
-TargetMsPerFrame = 50
+TargetMsPerFrame = 500
 MaxRowsPerFrameCap = 1024
 EnableFramePerf = false
 RenderStepPhaseLog = false

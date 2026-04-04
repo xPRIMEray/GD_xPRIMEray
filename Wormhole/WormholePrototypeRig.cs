@@ -324,7 +324,9 @@ public partial class WormholePrototypeRig : Node3D
 			GD.Print(
 				$"[WormholeValidation] post_remap_funnel pixels={wormholeSnapshot.PixelsWithPostRemapSegments} " +
 				$"multi_remap_pixels={wormholeSnapshot.PixelsWithMultiRemap} remap_segments={wormholeSnapshot.PostRemapSegments} " +
-				$"candidate_segments={wormholeSnapshot.PostRemapCandidateSegments} insight_reject={wormholeSnapshot.PostRemapInsightRejectedSegments} " +
+				$"candidate_segments={wormholeSnapshot.PostRemapCandidateSegments} candidate_gate_pass={wormholeSnapshot.PostRemapCandidateGatePassedSegments} " +
+				$"insight_reject={wormholeSnapshot.PostRemapInsightRejectedSegments} skip_broadphase={wormholeSnapshot.PostRemapSkipBroadphaseSegments} " +
+				$"quickray_softgate_reject={wormholeSnapshot.PostRemapQuickRaySoftGateRejectedSegments} " +
 				$"stride_reject={wormholeSnapshot.PostRemapStrideRejectedSegments} budget_reject={wormholeSnapshot.PostRemapBudgetRejectedSegments} " +
 				$"query_eligible={wormholeSnapshot.PostRemapQueryEligibleSegments} queries={wormholeSnapshot.PostRemapQueries} " +
 				$"geom_hits={wormholeSnapshot.PostRemapGeometryHits} final_hit_pixels={wormholeSnapshot.PostRemapFinalHitPixels} " +
@@ -335,7 +337,7 @@ public partial class WormholePrototypeRig : Node3D
 		}
 		else
 		{
-			GD.Print("[WormholeValidation] post_remap_funnel pixels=0 multi_remap_pixels=0 remap_segments=0 candidate_segments=0 insight_reject=0 stride_reject=0 budget_reject=0 query_eligible=0 queries=0 geom_hits=0 final_hit_pixels=0 source=0 background=0 unclassified=0 absorbed=0 miss_pixels=0 final_write_px=0 max_remaps_seen=0");
+			GD.Print("[WormholeValidation] post_remap_funnel pixels=0 multi_remap_pixels=0 remap_segments=0 candidate_segments=0 candidate_gate_pass=0 insight_reject=0 skip_broadphase=0 quickray_softgate_reject=0 stride_reject=0 budget_reject=0 query_eligible=0 queries=0 geom_hits=0 final_hit_pixels=0 source=0 background=0 unclassified=0 absorbed=0 miss_pixels=0 final_write_px=0 max_remaps_seen=0");
 		}
 
 		if (_filmCamera.TryGetLatestRenderHealthDiagnosticsForTesting(out GrinFilmCamera.RenderHealthDiagnosticsSnapshot renderHealth))

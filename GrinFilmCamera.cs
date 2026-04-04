@@ -224,7 +224,10 @@ public partial class GrinFilmCamera : Node
 		public readonly long PixelsWithMultiRemap;
 		public readonly long PostRemapSegments;
 		public readonly long PostRemapCandidateSegments;
+		public readonly long PostRemapCandidateGatePassedSegments;
 		public readonly long PostRemapInsightRejectedSegments;
+		public readonly long PostRemapSkipBroadphaseSegments;
+		public readonly long PostRemapQuickRaySoftGateRejectedSegments;
 		public readonly long PostRemapStrideRejectedSegments;
 		public readonly long PostRemapBudgetRejectedSegments;
 		public readonly long PostRemapQueryEligibleSegments;
@@ -244,7 +247,10 @@ public partial class GrinFilmCamera : Node
 			long pixelsWithMultiRemap,
 			long postRemapSegments,
 			long postRemapCandidateSegments,
+			long postRemapCandidateGatePassedSegments,
 			long postRemapInsightRejectedSegments,
+			long postRemapSkipBroadphaseSegments,
+			long postRemapQuickRaySoftGateRejectedSegments,
 			long postRemapStrideRejectedSegments,
 			long postRemapBudgetRejectedSegments,
 			long postRemapQueryEligibleSegments,
@@ -263,7 +269,10 @@ public partial class GrinFilmCamera : Node
 			PixelsWithMultiRemap = pixelsWithMultiRemap;
 			PostRemapSegments = postRemapSegments;
 			PostRemapCandidateSegments = postRemapCandidateSegments;
+			PostRemapCandidateGatePassedSegments = postRemapCandidateGatePassedSegments;
 			PostRemapInsightRejectedSegments = postRemapInsightRejectedSegments;
+			PostRemapSkipBroadphaseSegments = postRemapSkipBroadphaseSegments;
+			PostRemapQuickRaySoftGateRejectedSegments = postRemapQuickRaySoftGateRejectedSegments;
 			PostRemapStrideRejectedSegments = postRemapStrideRejectedSegments;
 			PostRemapBudgetRejectedSegments = postRemapBudgetRejectedSegments;
 			PostRemapQueryEligibleSegments = postRemapQueryEligibleSegments;
@@ -1710,7 +1719,10 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private long _wormholePostRemapPixelsMultiRemapThisRun = 0;
 	private long _wormholePostRemapSegmentsThisRun = 0;
 	private long _wormholePostRemapCandidateSegmentsThisRun = 0;
+	private long _wormholePostRemapCandidateGatePassedSegmentsThisRun = 0;
 	private long _wormholePostRemapInsightRejectedSegmentsThisRun = 0;
+	private long _wormholePostRemapSkipBroadphaseSegmentsThisRun = 0;
+	private long _wormholePostRemapQuickRaySoftGateRejectedSegmentsThisRun = 0;
 	private long _wormholePostRemapStrideRejectedSegmentsThisRun = 0;
 	private long _wormholePostRemapBudgetRejectedSegmentsThisRun = 0;
 	private long _wormholePostRemapQueryEligibleSegmentsThisRun = 0;
@@ -1724,6 +1736,7 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private long _wormholePostRemapMissPixelsThisRun = 0;
 	private long _wormholePostRemapFinalWritePixelsThisRun = 0;
 	private int _wormholePostRemapMaxCountThisRun = 0;
+	private bool _wormholeSpatialProbeLoggedThisRun = false;
 	private byte[] _fixtureRowsConsidered = Array.Empty<byte>();
 	private byte[] _fixtureRowsProcessed = Array.Empty<byte>();
 	private byte[] _fixtureRowsSkipped = Array.Empty<byte>();
@@ -4444,7 +4457,10 @@ private sealed class OverlayRollingWindow
 			_wormholePostRemapPixelsMultiRemapThisRun,
 			_wormholePostRemapSegmentsThisRun,
 			_wormholePostRemapCandidateSegmentsThisRun,
+			_wormholePostRemapCandidateGatePassedSegmentsThisRun,
 			_wormholePostRemapInsightRejectedSegmentsThisRun,
+			_wormholePostRemapSkipBroadphaseSegmentsThisRun,
+			_wormholePostRemapQuickRaySoftGateRejectedSegmentsThisRun,
 			_wormholePostRemapStrideRejectedSegmentsThisRun,
 			_wormholePostRemapBudgetRejectedSegmentsThisRun,
 			_wormholePostRemapQueryEligibleSegmentsThisRun,
@@ -5548,7 +5564,10 @@ private sealed class OverlayRollingWindow
 		_wormholePostRemapPixelsMultiRemapThisRun = 0;
 		_wormholePostRemapSegmentsThisRun = 0;
 		_wormholePostRemapCandidateSegmentsThisRun = 0;
+		_wormholePostRemapCandidateGatePassedSegmentsThisRun = 0;
 		_wormholePostRemapInsightRejectedSegmentsThisRun = 0;
+		_wormholePostRemapSkipBroadphaseSegmentsThisRun = 0;
+		_wormholePostRemapQuickRaySoftGateRejectedSegmentsThisRun = 0;
 		_wormholePostRemapStrideRejectedSegmentsThisRun = 0;
 		_wormholePostRemapBudgetRejectedSegmentsThisRun = 0;
 		_wormholePostRemapQueryEligibleSegmentsThisRun = 0;
@@ -5562,6 +5581,7 @@ private sealed class OverlayRollingWindow
 		_wormholePostRemapMissPixelsThisRun = 0;
 		_wormholePostRemapFinalWritePixelsThisRun = 0;
 		_wormholePostRemapMaxCountThisRun = 0;
+		_wormholeSpatialProbeLoggedThisRun = false;
 		if (_fixtureRowsStarted.Length > 0) Array.Clear(_fixtureRowsStarted, 0, _fixtureRowsStarted.Length);
 		if (_fixtureRowsCompleted.Length > 0) Array.Clear(_fixtureRowsCompleted, 0, _fixtureRowsCompleted.Length);
 		if (_fixtureRowsPartiallyWritten.Length > 0) Array.Clear(_fixtureRowsPartiallyWritten, 0, _fixtureRowsPartiallyWritten.Length);
@@ -9487,6 +9507,8 @@ private sealed class OverlayRollingWindow
 											if (geomCandidateCount <= 0)
 												continue;
 											geomPixelHadAnyCandidatesThisPixel = true;
+											if (segPostRemap)
+												_wormholePostRemapCandidateGatePassedSegmentsThisRun++;
 
 										if (!pass1StoppedEarly && cfg.UsePass2CollisionStride && segCount > 1)
 										{
@@ -10910,6 +10932,69 @@ private sealed class OverlayRollingWindow
 										noCandidatesThisPixel = true;
 										continue;
 									}
+								if (segPostRemap)
+									_wormholePostRemapCandidateGatePassedSegmentsThisRun++;
+								}
+								long probeCand0Id = geomCandidateInstanceCount > 0 ? geomCandidateInstanceIds[0] : 0;
+								long probeCand1Id = geomCandidateInstanceCount > 1 ? geomCandidateInstanceIds[1] : 0;
+								long probeCand2Id = geomCandidateInstanceCount > 2 ? geomCandidateInstanceIds[2] : 0;
+
+								void TryLogWormholeSpatialProbe(int overlapCount, bool manualDidHit, Vector3 manualHp, ulong manualCid)
+								{
+									if (_wormholeSpatialProbeLoggedThisRun || !segPostRemap || geomCandidateInstanceCount <= 0)
+										return;
+									_wormholeSpatialProbeLoggedThisRun = true;
+
+									var sb = new StringBuilder(512);
+									Vector3 segDir = (segB - segA).Normalized();
+									sb.Append("[WormholeSpatialProbe]")
+										.Append(" row=").Append(y)
+										.Append(" x=").Append(x)
+										.Append(" seg=").Append(si)
+										.Append(" remaps=").Append(seg.BoundaryRemapCount)
+										.Append(" a=(").Append(segA.X.ToString("0.###")).Append(",").Append(segA.Y.ToString("0.###")).Append(",").Append(segA.Z.ToString("0.###")).Append(")")
+										.Append(" b=(").Append(segB.X.ToString("0.###")).Append(",").Append(segB.Y.ToString("0.###")).Append(",").Append(segB.Z.ToString("0.###")).Append(")")
+										.Append(" dir=(").Append(segDir.X.ToString("0.###")).Append(",").Append(segDir.Y.ToString("0.###")).Append(",").Append(segDir.Z.ToString("0.###")).Append(")")
+										.Append(" segLen=").Append(segLen.ToString("0.###"))
+										.Append(" radiusBound=").Append(seg.RadiusBound.ToString("0.###"))
+										.Append(" geomCand=").Append(geomCandidateInstanceCount)
+										.Append(" overlapCount=").Append(overlapCount)
+										.Append(" manualHit=").Append(manualDidHit ? 1 : 0)
+										.Append(" manualCid=").Append(unchecked((long)manualCid));
+									if (manualDidHit)
+										sb.Append(" manualHp=(").Append(manualHp.X.ToString("0.###")).Append(",").Append(manualHp.Y.ToString("0.###")).Append(",").Append(manualHp.Z.ToString("0.###")).Append(")");
+
+									int preview = Math.Min(3, geomCandidateInstanceCount);
+									for (int ci = 0; ci < preview; ci++)
+									{
+										long candId = ci switch
+										{
+											0 => probeCand0Id,
+											1 => probeCand1Id,
+											_ => probeCand2Id
+										};
+										sb.Append(" cand").Append(ci).Append("Id=").Append(candId);
+										if (geomEntities?.GodotInstanceIds != null && geomEntities.WorldBounds != null)
+										{
+											for (int gi = 0; gi < geomEntities.Count; gi++)
+											{
+												if (geomEntities.GodotInstanceIds[gi] != candId)
+													continue;
+												Aabb3 aabb = geomEntities.WorldBounds[gi];
+												sb.Append(" cand").Append(ci).Append("AabbMin=(")
+													.Append(aabb.Min.X.ToString("0.###")).Append(",")
+													.Append(aabb.Min.Y.ToString("0.###")).Append(",")
+													.Append(aabb.Min.Z.ToString("0.###")).Append(")")
+													.Append(" cand").Append(ci).Append("AabbMax=(")
+													.Append(aabb.Max.X.ToString("0.###")).Append(",")
+													.Append(aabb.Max.Y.ToString("0.###")).Append(",")
+													.Append(aabb.Max.Z.ToString("0.###")).Append(")");
+												break;
+											}
+										}
+									}
+
+									GD.Print(sb.ToString());
 								}
 
 								if (rayCfg.UseSphereSweepCollision)
@@ -10922,6 +11007,8 @@ private sealed class OverlayRollingWindow
 									}
 									ulong queryStartUsec = 0;
 									if (statsEnabled) queryStartUsec = Time.GetTicksUsec();
+										if (segPostRemap)
+											_wormholePostRemapQueryEligibleSegmentsThisRun++;
 										MarkGeomPixelProcessedForWork();
 										didHit = RayBeamRenderer.SweepSegmentHit(space, segA, segB, rayCfg.CollisionMask, rayCfg.CollisionRadius, out hp);
 										if (statsEnabled && queryStartUsec > 0)
@@ -10934,6 +11021,8 @@ private sealed class OverlayRollingWindow
 											telemetryResolveCountThisPixel += 1f;
 										if (didHit && segPostRemap)
 											postRemapGeometryHitCountThisPixel++;
+										if (segPostRemap && geomCandidateInstanceCount > 0)
+											TryLogWormholeSpatialProbe(overlapCount: -1, manualDidHit: didHit, manualHp: hp, manualCid: cid);
 										_geomRayTestsTotalThisFrame++;
 									if ((statsEnabled || framePerfEnabled) && !segCounted)
 									{
@@ -10986,6 +11075,11 @@ private sealed class OverlayRollingWindow
 											pass2QueryUsecAccum += (long)(Time.GetTicksUsec() - queryStartUsec);
 										if (telemetryHeatmapsEnabled)
 											telemetryQueryCountThisPixel += 1f;
+										if (segPostRemap)
+										{
+											postRemapQueryCountThisPixel += 1;
+											_wormholePostRemapQueryEligibleSegmentsThisRun++;
+										}
 										if (statsEnabled) _perfFrame.IntersectShapeCalls++;
 										if (bandCountersEnabled) bandPhysicsQueries++;
 										if ((statsEnabled || framePerfEnabled) && !segCounted)
@@ -11366,6 +11460,32 @@ private sealed class OverlayRollingWindow
 													candidateCount = qrayCountLocal;
 											}
 										}
+										if (segPostRemap && geomCandidateInstanceCount > 0 && overlapCount == 0)
+										{
+											int manualSub = 1;
+											if (segLen > rayCfg.CollisionRaySubdivideThreshold)
+												manualSub = Mathf.CeilToInt(segLen / rayCfg.CollisionRaySubdivideThreshold);
+											manualSub = Mathf.Clamp(manualSub, 1, Math.Max(1, rayCfg.MaxCollisionSubsteps));
+											bool manualDidHit = RayBeamRenderer.SubdividedRayHit(
+												space,
+												segA,
+												segB,
+												rayCfg.CollisionMask,
+												manualSub,
+												out Vector3 manualHp,
+												out _,
+												out ulong manualCid,
+												out _,
+												out _,
+												includeColliderName: false,
+												hitBackFaces: pass2Flags.HitBackFaces,
+												hitFromInside: pass2Flags.HitFromInside,
+												diagnosticSceneName: renderSceneName,
+												diagnosticFixtureName: renderFixtureName,
+												diagnosticModeToken: renderModeToken,
+												diagnosticQueryKind: "wormhole_spatial_probe_manual");
+											TryLogWormholeSpatialProbe(overlapCount, manualDidHit, manualHp, manualCid);
+										}
 									}
 									if (telemetryHeatmapsEnabled && candidateCount > 0)
 										telemetryCandidateCountThisPixel += candidateCount;
@@ -11390,6 +11510,8 @@ private sealed class OverlayRollingWindow
 									{
 										if (skipBroadphaseSegment)
 										{
+											if (segPostRemap && candidateCount > 0)
+												_wormholePostRemapSkipBroadphaseSegmentsThisRun++;
 											FinalizePruneAuditResult(false, geomCandidateInstanceCount);
 											AccountEligibleRayWorkEarlyOut("skip_broadphase_segment", candidateCount);
 											FlushHybridQuickRayMissCache();
@@ -11424,6 +11546,8 @@ private sealed class OverlayRollingWindow
 												ref softGateBudgetExceeded))
 											{
 												if (budgetStop) break;
+												if (segPostRemap && candidateCount > 0)
+													_wormholePostRemapQuickRaySoftGateRejectedSegmentsThisRun++;
 												FinalizePruneAuditResult(false, geomCandidateInstanceCount);
 												AccountEligibleRayWorkEarlyOut("quickray_softgate_reject", candidateCount);
 												FlushHybridQuickRayMissCache();
@@ -11449,6 +11573,8 @@ private sealed class OverlayRollingWindow
 
 										if (candidateCount > 0 || softGateAllowedNoCandidate)
 										{
+											if (segPostRemap && candidateCount > 0)
+												_wormholePostRemapCandidateGatePassedSegmentsThisRun++;
 											bandHadCandidates = true;
 											hadCandidatesThisPixel = true;
 										}
