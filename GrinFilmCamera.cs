@@ -1477,6 +1477,7 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 
 	private const int Pass2QuickRayCacheSize = 512;
 	private const float Pass2QuickRayCacheQuantize = 10f;
+	private const float Pass2OverlapCacheQuantize = 50f;
 	private const int BroadphaseHybridFallbackLogLimitPerFrame = 4;
 	private const int BroadphaseHybridFallbackHitLogLimitPerFrame = 4;
 	private const int BroadphaseHybridGateLogLimitPerFrame = 4;
@@ -1535,6 +1536,51 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private Pass2QuickRayCacheEntry[] _pass2QuickRayCache = Array.Empty<Pass2QuickRayCacheEntry>();
 	private int _pass2QuickRayCacheCount = 0;
 	private int _pass2QuickRayCacheWrite = 0;
+	private readonly System.Collections.Generic.Dictionary<Pass2OverlapCacheKey, int> _pass2OverlapCountCache
+		= new System.Collections.Generic.Dictionary<Pass2OverlapCacheKey, int>(4096);
+
+	private readonly struct Pass2OverlapCacheKey : System.IEquatable<Pass2OverlapCacheKey>
+	{
+		public readonly int Mx;
+		public readonly int My;
+		public readonly int Mz;
+		public readonly int CandidateCount;
+		public readonly long Candidate0;
+		public readonly long Candidate1;
+		public readonly long Candidate2;
+
+		public Pass2OverlapCacheKey(int mx, int my, int mz, int candidateCount, long candidate0, long candidate1, long candidate2)
+		{
+			Mx = mx;
+			My = my;
+			Mz = mz;
+			CandidateCount = candidateCount;
+			Candidate0 = candidate0;
+			Candidate1 = candidate1;
+			Candidate2 = candidate2;
+		}
+
+		public bool Equals(Pass2OverlapCacheKey other)
+		{
+			return Mx == other.Mx
+				&& My == other.My
+				&& Mz == other.Mz
+				&& CandidateCount == other.CandidateCount
+				&& Candidate0 == other.Candidate0
+				&& Candidate1 == other.Candidate1
+				&& Candidate2 == other.Candidate2;
+		}
+
+		public override bool Equals(object obj)
+		{
+			return obj is Pass2OverlapCacheKey other && Equals(other);
+		}
+
+		public override int GetHashCode()
+		{
+			return System.HashCode.Combine(Mx, My, Mz, CandidateCount, Candidate0, Candidate1, Candidate2);
+		}
+	}
 
 	private struct ToggleSnapshot
 	{
@@ -8471,6 +8517,10 @@ private sealed class OverlayRollingWindow
 				EnsurePass2QuickRayCache();
 				ResetPass2QuickRayCache();
 			}
+			if (useOverlap && !useQuickRay)
+			{
+				ResetPass2OverlapCache();
+			}
 
 				PerfScope pass2Scope = default;
 				// DECISION: enable pass2 perf scope when frame perf is enabled.
@@ -11065,6 +11115,29 @@ private sealed class OverlayRollingWindow
 										out int overlapCount)
 									{
 										Vector3 mid = (p0 + p1) * 0.5f;
+										bool useOverlapReuseCache = !useQuickRay && geomCandidateInstanceCount > 0;
+										Pass2OverlapCacheKey overlapCacheKey = default;
+										if (useOverlapReuseCache)
+										{
+											overlapCacheKey = BuildPass2OverlapCacheKey(mid, geomCandidateInstanceIdsArray, geomCandidateInstanceCount);
+											if (TryGetPass2OverlapCacheCount(in overlapCacheKey, out overlapCount))
+											{
+												reuse.Clear();
+												if (framePerfEnabled)
+												{
+													if (overlapCount == 0)
+													{
+														_framePerf.Pass2OverlapMisses++;
+														_framePerf.Pass2Skip_OverlapEmpty++;
+													}
+													else
+													{
+														_framePerf.Pass2OverlapHits++;
+													}
+												}
+												return;
+											}
+										}
 
 										_overlapQuery.Transform = new Transform3D(Basis.Identity, mid);
 										ulong queryStartUsec = 0;
@@ -11095,6 +11168,8 @@ private sealed class OverlayRollingWindow
 											var o = (Godot.Collections.Dictionary)overlaps[oi];
 											reuse.Add(o);
 										}
+										if (useOverlapReuseCache)
+											AddPass2OverlapCacheCount(in overlapCacheKey, overlapCount);
 										if (framePerfEnabled)
 										{
 											if (overlapCount == 0)
@@ -13686,6 +13761,41 @@ private sealed class OverlayRollingWindow
 	{
 		_pass2QuickRayCacheCount = 0;
 		_pass2QuickRayCacheWrite = 0;
+	}
+
+	private static int QuantizePass2Overlap(float v)
+	{
+		return Mathf.FloorToInt(v * Pass2OverlapCacheQuantize);
+	}
+
+	private static Pass2OverlapCacheKey BuildPass2OverlapCacheKey(Vector3 mid, long[] candidateIds, int candidateCount)
+	{
+		long candidate0 = candidateCount > 0 ? candidateIds[0] : 0L;
+		long candidate1 = candidateCount > 1 ? candidateIds[1] : 0L;
+		long candidate2 = candidateCount > 2 ? candidateIds[2] : 0L;
+		return new Pass2OverlapCacheKey(
+			QuantizePass2Overlap(mid.X),
+			QuantizePass2Overlap(mid.Y),
+			QuantizePass2Overlap(mid.Z),
+			candidateCount,
+			candidate0,
+			candidate1,
+			candidate2);
+	}
+
+	private void ResetPass2OverlapCache()
+	{
+		_pass2OverlapCountCache.Clear();
+	}
+
+	private bool TryGetPass2OverlapCacheCount(in Pass2OverlapCacheKey key, out int overlapCount)
+	{
+		return _pass2OverlapCountCache.TryGetValue(key, out overlapCount);
+	}
+
+	private void AddPass2OverlapCacheCount(in Pass2OverlapCacheKey key, int overlapCount)
+	{
+		_pass2OverlapCountCache[key] = overlapCount;
 	}
 
 	private static int QuantizePass2QuickRay(float v)
