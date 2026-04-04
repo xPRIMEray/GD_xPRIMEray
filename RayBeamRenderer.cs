@@ -638,6 +638,8 @@ public partial class RayBeamRenderer : Node3D
 	{
 		public bool Enabled;
 		public Vector3 Center;
+		public Transform3D WorldFromLocal;
+		public Transform3D LocalFromWorld;
 		public BoundaryLayerVolume.BoundaryShapeType ShapeType;
 		public float Radius;
 		public Vector3 HalfExtents;   // Box only: local-space half-extents
@@ -648,6 +650,12 @@ public partial class RayBeamRenderer : Node3D
 		// DirectionBias params (already in world space at snapshot time):
 		public Vector3 BiasDirection;
 		public float BiasStrength;
+		// SceneTransform params:
+		public bool HasLinkedTransform;
+		public Transform3D LinkedWorldFromLocal;
+		public Vector3 LinkedCenter;
+		public float LinkedRadius;
+		public float SceneTransformExitOffset;
 		// Debug fields (captured at snapshot time; not used in hot path unless DebugLogCrossings is set):
 		public string NodeName;
 		public bool DebugLogCrossings;
@@ -2388,12 +2396,7 @@ public partial class RayBeamRenderer : Node3D
 			// Boundary layer: continuous effects and crossing-event detection.
 			if (_hasBoundaryLayers && UseIntegratedField)
 			{
-				uint blvNewMask = ComputeInsideMask(p, _boundaryLayerSnaps);
-				uint blvCrossings = blvNewMask ^ blvInsideMask;
-				v = ApplyBoundaryLayerBias(p, v, _boundaryLayerSnaps);
-				if (blvCrossings != 0u)
-					v = ApplyBoundaryLayerCrossings(p, v, _boundaryLayerSnaps, blvCrossings & blvNewMask, blvCrossings & blvInsideMask);
-				blvInsideMask = blvNewMask;
+				ApplyBoundaryLayerInteractions(ref p, ref v, _boundaryLayerSnaps, ref blvInsideMask);
 			}
 
 			Vector3 a = Vector3.Zero;
@@ -2660,12 +2663,7 @@ public partial class RayBeamRenderer : Node3D
 			// Boundary layer: continuous effects and crossing-event detection.
 			if (_hasBoundaryLayers && UseIntegratedField)
 			{
-				uint blvNewMask = ComputeInsideMask(p, _boundaryLayerSnaps);
-				uint blvCrossings = blvNewMask ^ blvInsideMask;
-				v = ApplyBoundaryLayerBias(p, v, _boundaryLayerSnaps);
-				if (blvCrossings != 0u)
-					v = ApplyBoundaryLayerCrossings(p, v, _boundaryLayerSnaps, blvCrossings & blvNewMask, blvCrossings & blvInsideMask);
-				blvInsideMask = blvNewMask;
+				ApplyBoundaryLayerInteractions(ref p, ref v, _boundaryLayerSnaps, ref blvInsideMask);
 			}
 
 			Vector3 next = p;
@@ -2862,6 +2860,11 @@ public partial class RayBeamRenderer : Node3D
 		float metricErrorTolerance = Mathf.Max(1e-5f, MetricAdaptiveErrorTolerance);
 		int metricMaxSubdivisions = Mathf.Max(0, MetricAdaptiveMaxSubdivisions);
 		DerivativeAwareStepState derivativeStepState = default;
+		BoundaryLayerSnap[] boundaryLayers = _boundaryLayerSnaps;
+		bool hasBoundaryLayers = _hasBoundaryLayers;
+		uint blvInsideMask = (hasBoundaryLayers && UseIntegratedField)
+			? ComputeInsideMask(p, boundaryLayers)
+			: 0u;
 		/////////////////////////
 		/// 
 
@@ -2872,6 +2875,11 @@ public partial class RayBeamRenderer : Node3D
 			if (UseIntegratedField && hasSources && TryGetAbsorbingSourceAtPoint(p, fieldSnaps, out _))
 			{
 				break;
+			}
+
+			if (hasBoundaryLayers && UseIntegratedField)
+			{
+				ApplyBoundaryLayerInteractions(ref p, ref v, boundaryLayers, ref blvInsideMask);
 			}
 
 			Vector3 next = p;
@@ -3195,12 +3203,7 @@ public partial class RayBeamRenderer : Node3D
 			// Boundary layer: continuous effects and crossing-event detection.
 			if (hasBoundaryLayers && UseIntegratedField)
 			{
-				uint blvNewMask = ComputeInsideMask(p, boundaryLayers);
-				uint blvCrossings = blvNewMask ^ blvInsideMask;
-				v = ApplyBoundaryLayerBias(p, v, boundaryLayers);
-				if (blvCrossings != 0u)
-					v = ApplyBoundaryLayerCrossings(p, v, boundaryLayers, blvCrossings & blvNewMask, blvCrossings & blvInsideMask);
-				blvInsideMask = blvNewMask;
+				ApplyBoundaryLayerInteractions(ref p, ref v, boundaryLayers, ref blvInsideMask);
 			}
 
 			Vector3 next = p;
@@ -3631,27 +3634,48 @@ public partial class RayBeamRenderer : Node3D
 	private static BoundaryLayerSnap BuildBoundaryLayerSnap(BoundaryLayerVolume blv)
 	{
 		bool isBox = blv.ShapeType == BoundaryLayerVolume.BoundaryShapeType.Box;
+		Transform3D worldFromLocal = blv.GlobalTransform;
+		Transform3D localFromWorld = worldFromLocal.AffineInverse();
+		Node3D linkedNode = null;
+		if (!blv.LinkedBoundaryPath.IsEmpty)
+			linkedNode = blv.GetNodeOrNull<Node3D>(blv.LinkedBoundaryPath);
+		if (blv.Behavior == BoundaryLayerVolume.BoundaryBehavior.SceneTransform && linkedNode == null)
+			GD.PushWarning($"{blv.Name}: SceneTransform behavior requires a valid LinkedBoundaryPath.");
+		float linkedRadius = blv.Radius;
+		if (linkedNode is BoundaryLayerVolume linkedBoundary)
+			linkedRadius = Mathf.Max(0f, linkedBoundary.Radius);
 		// Transform bias direction from local to world space and re-normalize.
-		Vector3 biasWorld = blv.GlobalTransform.Basis * blv.BiasDirection;
+		Vector3 biasWorld = worldFromLocal.Basis * blv.BiasDirection;
 		float bLen = biasWorld.Length();
 		if (bLen > FieldMath.Epsilon) biasWorld /= bLen;
 		return new BoundaryLayerSnap
 		{
 			Enabled           = blv.Enabled,
 			Center            = blv.GlobalPosition,
+			WorldFromLocal    = worldFromLocal,
+			LocalFromWorld    = localFromWorld,
 			ShapeType         = blv.ShapeType,
 			Radius            = Mathf.Max(0f, blv.Radius),
 			HalfExtents       = isBox ? blv.BoxExtents : Vector3.Zero,
-			InvBasis          = isBox ? blv.GlobalTransform.Basis.Inverse() : default,
+			InvBasis          = isBox ? worldFromLocal.Basis.Inverse() : default,
 			ExecutionMode     = blv.ExecutionMode,
 			CrossingPolicy    = blv.CrossingPolicy,
 			Behavior          = blv.Behavior,
 			BiasDirection     = biasWorld,
 			BiasStrength      = Mathf.Clamp(blv.BiasStrength, 0f, 1f),
+			HasLinkedTransform = linkedNode != null,
+			LinkedWorldFromLocal = linkedNode?.GlobalTransform ?? default,
+			LinkedCenter = linkedNode?.GlobalPosition ?? Vector3.Zero,
+			LinkedRadius = linkedRadius,
+			SceneTransformExitOffset = Mathf.Max(0f, blv.SceneTransformExitOffset),
 			NodeName          = blv.Name,
 			DebugLogCrossings = blv.DebugLogCrossings
 		};
 	}
+
+	private static readonly Transform3D BoundarySceneFlip = new Transform3D(
+		Basis.FromEuler(new Vector3(0f, Mathf.Pi, 0f)),
+		Vector3.Zero);
 
 	// Returns true when world-space point p is inside the boundary layer's support region.
 	private static bool IsInsideBoundaryLayer(Vector3 p, in BoundaryLayerSnap layer)
@@ -3728,8 +3752,8 @@ public partial class RayBeamRenderer : Node3D
 	//   - DirectionBias uses identical logic for entry and exit (stateless nudge; no inverse needed).
 	//     If a step produces both entry and exit bits for the same layer (sub-step-width volume),
 	//     EntryAndExit will apply the bias twice. This is a degenerate scene-setup case.
-	private Vector3 ApplyBoundaryLayerCrossings(
-		Vector3 p, Vector3 v,
+	private void ApplyBoundaryLayerCrossings(
+		ref Vector3 p, ref Vector3 v,
 		BoundaryLayerSnap[] layers,
 		uint entryBits,
 		uint exitBits)
@@ -3754,6 +3778,9 @@ public partial class RayBeamRenderer : Node3D
 					case BoundaryLayerVolume.BoundaryBehavior.DirectionBias:
 						v = SafeNormalized(v + layer.BiasDirection * layer.BiasStrength, v);
 						break;
+					case BoundaryLayerVolume.BoundaryBehavior.SceneTransform:
+						ApplyBoundarySceneTransform(ref p, ref v, in layer);
+						break;
 				}
 				RecordBoundaryValidationEvent(i, isEntry: true, isExit: false);
 				if (layer.DebugLogCrossings && !_boundaryDebugRunActive)
@@ -3766,13 +3793,54 @@ public partial class RayBeamRenderer : Node3D
 					case BoundaryLayerVolume.BoundaryBehavior.DirectionBias:
 						v = SafeNormalized(v + layer.BiasDirection * layer.BiasStrength, v);
 						break;
+					case BoundaryLayerVolume.BoundaryBehavior.SceneTransform:
+						ApplyBoundarySceneTransform(ref p, ref v, in layer);
+						break;
 				}
 				RecordBoundaryValidationEvent(i, isEntry: false, isExit: true);
 				if (layer.DebugLogCrossings && !_boundaryDebugRunActive)
 					GD.Print($"[BLV] exit event: layer={i} name='{layer.NodeName}' behavior={layer.Behavior} pos=({p.X:0.##},{p.Y:0.##},{p.Z:0.##})");
 			}
 		}
-		return v;
+	}
+
+	private static void ApplyBoundarySceneTransform(ref Vector3 p, ref Vector3 v, in BoundaryLayerSnap layer)
+	{
+		if (!layer.HasLinkedTransform)
+			return;
+
+		Transform3D map = layer.LinkedWorldFromLocal * BoundarySceneFlip * layer.LocalFromWorld;
+		p = map * p;
+
+		Basis directionMap = layer.LinkedWorldFromLocal.Basis * BoundarySceneFlip.Basis * layer.LocalFromWorld.Basis;
+		v = SafeNormalized(directionMap * v, v);
+
+		Vector3 radial = p - layer.LinkedCenter;
+		if (radial.LengthSquared() < 1e-6f)
+			radial = -layer.LinkedWorldFromLocal.Basis.Z;
+
+		p = layer.LinkedCenter + radial.Normalized() * (layer.LinkedRadius + layer.SceneTransformExitOffset);
+	}
+
+	private void ApplyBoundaryLayerInteractions(ref Vector3 p, ref Vector3 v, BoundaryLayerSnap[] layers, ref uint insideMask)
+	{
+		if (layers == null || layers.Length == 0)
+		{
+			insideMask = 0u;
+			return;
+		}
+
+		uint newMask = ComputeInsideMask(p, layers);
+		uint crossings = newMask ^ insideMask;
+		v = ApplyBoundaryLayerBias(p, v, layers);
+		if (crossings != 0u)
+		{
+			ApplyBoundaryLayerCrossings(ref p, ref v, layers, crossings & newMask, crossings & insideMask);
+			insideMask = ComputeInsideMask(p, layers);
+			return;
+		}
+
+		insideMask = newMask;
 	}
 
 	public static TransportModel ResolveActiveTransportModel(FieldSourceSnap[] sources)

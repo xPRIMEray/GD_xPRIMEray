@@ -70,7 +70,13 @@ public partial class BoundaryLayerVolume : Node3D
 		/// Effect magnitude is proportional to BiasStrength; keep small for stability.
 		/// Works with Continuous (per-step) and CrossingEvent (entry, exit, or both per CrossingPolicy).
 		/// </summary>
-		DirectionBias = 0
+		DirectionBias = 0,
+		/// <summary>
+		/// Applies a paired scene-space transform at the crossing shell.
+		/// Intended for portal/wormhole topology changes where the shell is the
+		/// topological boundary and any surrounding GRIN field remains separate.
+		/// </summary>
+		SceneTransform = 1
 	}
 
 	[ExportGroup("Boundary Layer Volume")]
@@ -108,6 +114,19 @@ public partial class BoundaryLayerVolume : Node3D
 	/// Keep below 0.1 for subtle effects; larger values cause sharp bends.
 	/// </summary>
 	[Export(PropertyHint.Range, "0,1,0.001")] public float BiasStrength = 0.02f;
+
+	[ExportSubgroup("SceneTransform")]
+	/// <summary>
+	/// Linked destination shell used when Behavior = SceneTransform.
+	/// The transform maps source-local coordinates to destination-local coordinates
+	/// with a 180° forward flip, matching linked portal-camera conventions.
+	/// </summary>
+	[Export] public NodePath LinkedBoundaryPath;
+	/// <summary>
+	/// Offset applied after the crossing transform so the sample resumes just outside
+	/// the destination shell instead of remaining inside it.
+	/// </summary>
+	[Export(PropertyHint.Range, "0,5,0.001")] public float SceneTransformExitOffset = 0.2f;
 
 	[ExportSubgroup("Debug")]
 	/// <summary>

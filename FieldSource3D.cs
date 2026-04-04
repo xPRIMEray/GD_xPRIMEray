@@ -934,27 +934,33 @@ public partial class FieldSource3D : Node3D
 
 	private bool HasMeaningfulLegacyParams(out string reason)
 	{
-		if (Mathf.Abs(Strength) > ResolveEps)
+		if (!HasLegacyNonDefaultOverrides())
+		{
+			reason = "none";
+			return false;
+		}
+
+		if (!Mathf.IsEqualApprox(Strength, 1.0f))
 		{
 			reason = "legacy Strength";
 			return true;
 		}
-		if (Mathf.Abs(BetaScale) > ResolveEps || OverrideBetaScale)
+		if (!Mathf.IsEqualApprox(BetaScale, 0.0010f) || !OverrideBetaScale)
 		{
 			reason = "legacy BetaScale";
 			return true;
 		}
-		if (Mathf.Abs(Gamma) > ResolveEps || OverrideGamma)
+		if (!Mathf.IsEqualApprox(Gamma, 1.0f) || !OverrideGamma)
 		{
 			reason = "legacy Gamma";
 			return true;
 		}
-		if (Mathf.Abs(InnerRadius) > ResolveEps || Mathf.Abs(OuterRadius) > ResolveEps)
+		if (!Mathf.IsEqualApprox(InnerRadius, 3.0f) || !Mathf.IsEqualApprox(OuterRadius, 6.0f))
 		{
 			reason = "legacy Inner/Outer radius";
 			return true;
 		}
-		if (Mathf.Abs(MinRadius) > ResolveEps || Mathf.Abs(MaxRadius) > ResolveEps)
+		if (!Mathf.IsEqualApprox(MinRadius, 0.0f) || !Mathf.IsEqualApprox(MaxRadius, 0.0f))
 		{
 			reason = "legacy Min/Max radius";
 			return true;
