@@ -71,6 +71,7 @@ These are still useful for historical context and design evolution comparison.
 ## 🔬 Research & Experimental Frameworks
 
 - [Curved Ray Transport Model Review](Research/curved_ray_transport_model_review.md)
+- [Wormhole Render Pipeline Validation](Research/wormhole_render_pipeline_validation.md) — validated ground-truth pipeline, proof methodology, failure-mode history, and baseline guardrails for future wormhole tuning
 
 - [GRIN Fixture Auto-Calibration Framework](Research/grin_fixture_auto_calibration_phase_plan.md)
 - [Fixture Research Note Pattern](Research/fixture_note_pattern.md) — shared note/template guidance, including canonical analysis basis declarations for future fixtures
