@@ -737,6 +737,11 @@ public partial class RayBeamRenderer : Node3D
 		_boundaryDebugSceneTransformCount++;
 	}
 
+	public BoundaryLayerSnap[] GetBoundaryLayerSnapsForTesting()
+	{
+		return _boundaryLayerSnaps ?? Array.Empty<BoundaryLayerSnap>();
+	}
+
 	public readonly struct DebugRayBundle
 	{
 		public readonly Vector3[] Points;     // concatenated polyline points (world)

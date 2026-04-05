@@ -88,9 +88,16 @@ CaptureValidationScreenshot = true
 ValidationCaptureDelaySeconds = 20.0
 ValidationCaptureMaxDelaySeconds = 60.0
 ValidationCapturePath = "res://output/wormhole_test/wormhole_validation_capture.png"
+ProtoCausticInvariantLayer = 1
+ProtoCausticInvariantRadialBin = 3
+ProtoCausticInvariantMinHitDensity = 800.0
+ProtoCausticInvariantMinHitContinuityRatio = 0.95
+ProtoCausticInvariantMinPositiveOverlapContinuityRatio = 0.95
+ProtoCausticInvariantMinRadialGradient = 600.0
 EmitBoundaryValidationSummaryAfterCapture = true
 BoundaryValidationLabel = "wormhole_validation"
 ValidationWaitForFilmWrap = true
+LockTravelerInputDuringValidation = true
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 
@@ -366,6 +373,12 @@ DebugProbeLog = false
 DebugGeomPruneAuditEnabled = true
 AutoRangeMin = 0.01
 BroadphasePolicy = 2
+WormholePortalSectorDiagnosticsEnabled = true
+WormholePortalSectorRepresentativeOverlapEnabled = false
+WormholePortalSectorThetaBins = 16
+WormholePortalSectorRadialBins = 4
+WormholePortalSectorDirectionBins = 8
+WormholePortalSectorRepresentativeMinSamples = 4
 UsePass2CollisionStride = false
 RayBeamRendererPath = NodePath("../RayBeamRenderer")
 DebugEveryNPixels = 12

@@ -8,25 +8,41 @@ public partial class FreeFlyCamera : Camera3D
     [Export] public float PitchMinDegrees = -89.0f;
     [Export] public float PitchMaxDegrees = 89.0f;
     [Export] public bool CaptureMouseOnStart = true;
+    [Export] public bool InputEnabled = true;
 
     private float _yaw;
     private float _pitch;
 
     public override void _Ready()
     {
-        SetProcessInput(true);
-        SetPhysicsProcess(true);
+        SetProcessInput(InputEnabled);
+        SetProcessUnhandledInput(InputEnabled);
+        SetPhysicsProcess(InputEnabled);
 
         Vector3 rot = Rotation;
         _pitch = rot.X;
         _yaw = rot.Y;
 
-        if (CaptureMouseOnStart)
+        if (InputEnabled && CaptureMouseOnStart)
             Input.MouseMode = Input.MouseModeEnum.Captured;
+    }
+
+    public void SetInputEnabled(bool enabled, bool releaseMouse = true)
+    {
+        InputEnabled = enabled;
+        SetProcessInput(enabled);
+        SetProcessUnhandledInput(enabled);
+        SetPhysicsProcess(enabled);
+
+        if (!enabled && releaseMouse && Input.MouseMode == Input.MouseModeEnum.Captured)
+            Input.MouseMode = Input.MouseModeEnum.Visible;
     }
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (!InputEnabled)
+            return;
+
         if (@event is InputEventMouseMotion motion &&
             Input.MouseMode == Input.MouseModeEnum.Captured)
         {
@@ -51,6 +67,9 @@ public partial class FreeFlyCamera : Camera3D
 
     public override void _PhysicsProcess(double delta)
     {
+        if (!InputEnabled)
+            return;
+
         Vector3 direction = Vector3.Zero;
 
         if (Input.IsActionPressed("move_forward"))

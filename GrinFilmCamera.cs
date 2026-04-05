@@ -289,6 +289,206 @@ public partial class GrinFilmCamera : Node
 		}
 	}
 
+	public readonly struct WormholePortalSectorDiagnosticsSnapshot
+	{
+		public readonly int SectorCount;
+		public readonly long CandidateSamples;
+		public readonly int CandidateInvariantSectors;
+		public readonly int CandidateVariantSectors;
+		public readonly long HitSamples;
+		public readonly int HitInvariantSectors;
+		public readonly int HitVariantSectors;
+		public readonly int PositiveOverlapInvariantSectors;
+		public readonly int RepresentativeEligibleSectors;
+		public readonly long RepresentativeQueriesApplied;
+		public readonly long RepresentativeQueriesSaved;
+		public readonly int MaxSamplesPerSector;
+
+		public WormholePortalSectorDiagnosticsSnapshot(
+			int sectorCount,
+			long candidateSamples,
+			int candidateInvariantSectors,
+			int candidateVariantSectors,
+			long hitSamples,
+			int hitInvariantSectors,
+			int hitVariantSectors,
+			int positiveOverlapInvariantSectors,
+			int representativeEligibleSectors,
+			long representativeQueriesApplied,
+			long representativeQueriesSaved,
+			int maxSamplesPerSector)
+		{
+			SectorCount = sectorCount;
+			CandidateSamples = candidateSamples;
+			CandidateInvariantSectors = candidateInvariantSectors;
+			CandidateVariantSectors = candidateVariantSectors;
+			HitSamples = hitSamples;
+			HitInvariantSectors = hitInvariantSectors;
+			HitVariantSectors = hitVariantSectors;
+			PositiveOverlapInvariantSectors = positiveOverlapInvariantSectors;
+			RepresentativeEligibleSectors = representativeEligibleSectors;
+			RepresentativeQueriesApplied = representativeQueriesApplied;
+			RepresentativeQueriesSaved = representativeQueriesSaved;
+			MaxSamplesPerSector = maxSamplesPerSector;
+		}
+	}
+
+	public readonly struct WormholePortalSectorEntrySnapshot
+	{
+		public readonly int LayerIndex;
+		public readonly int ThetaBin;
+		public readonly int RadialBin;
+		public readonly int DirectionBin;
+		public readonly int RemapBin;
+		public readonly int CandidateSamples;
+		public readonly int FirstCandidateCount;
+		public readonly ulong FirstCandidateHash;
+		public readonly bool CandidateInvariant;
+		public readonly int PositiveOverlapSamples;
+		public readonly int FirstPositiveOverlapCount;
+		public readonly bool PositiveOverlapInvariant;
+		public readonly int HitSamples;
+		public readonly int BackgroundHits;
+		public readonly int SourceHits;
+		public readonly int UnclassifiedHits;
+		public readonly int AbsorbedHits;
+		public readonly int MissHits;
+
+		public WormholePortalSectorEntrySnapshot(
+			int layerIndex,
+			int thetaBin,
+			int radialBin,
+			int directionBin,
+			int remapBin,
+			int candidateSamples,
+			int firstCandidateCount,
+			ulong firstCandidateHash,
+			bool candidateInvariant,
+			int positiveOverlapSamples,
+			int firstPositiveOverlapCount,
+			bool positiveOverlapInvariant,
+			int hitSamples,
+			int backgroundHits,
+			int sourceHits,
+			int unclassifiedHits,
+			int absorbedHits,
+			int missHits)
+		{
+			LayerIndex = layerIndex;
+			ThetaBin = thetaBin;
+			RadialBin = radialBin;
+			DirectionBin = directionBin;
+			RemapBin = remapBin;
+			CandidateSamples = candidateSamples;
+			FirstCandidateCount = firstCandidateCount;
+			FirstCandidateHash = firstCandidateHash;
+			CandidateInvariant = candidateInvariant;
+			PositiveOverlapSamples = positiveOverlapSamples;
+			FirstPositiveOverlapCount = firstPositiveOverlapCount;
+			PositiveOverlapInvariant = positiveOverlapInvariant;
+			HitSamples = hitSamples;
+			BackgroundHits = backgroundHits;
+			SourceHits = sourceHits;
+			UnclassifiedHits = unclassifiedHits;
+			AbsorbedHits = absorbedHits;
+			MissHits = missHits;
+		}
+	}
+
+	public readonly struct WormholePortalSectorDetailedSnapshot
+	{
+		public readonly int ThetaBins;
+		public readonly int RadialBins;
+		public readonly int DirectionBins;
+		public readonly WormholePortalSectorEntrySnapshot[] Entries;
+
+		public WormholePortalSectorDetailedSnapshot(
+			int thetaBins,
+			int radialBins,
+			int directionBins,
+			WormholePortalSectorEntrySnapshot[] entries)
+		{
+			ThetaBins = thetaBins;
+			RadialBins = radialBins;
+			DirectionBins = directionBins;
+			Entries = entries ?? Array.Empty<WormholePortalSectorEntrySnapshot>();
+		}
+	}
+
+	private readonly struct WormholePortalSectorKey : IEquatable<WormholePortalSectorKey>
+	{
+		public readonly int LayerIndex;
+		public readonly int ThetaBin;
+		public readonly int RadialBin;
+		public readonly int DirectionBin;
+		public readonly int RemapBin;
+
+		public WormholePortalSectorKey(int layerIndex, int thetaBin, int radialBin, int directionBin, int remapBin)
+		{
+			LayerIndex = layerIndex;
+			ThetaBin = thetaBin;
+			RadialBin = radialBin;
+			DirectionBin = directionBin;
+			RemapBin = remapBin;
+		}
+
+		public bool Equals(WormholePortalSectorKey other)
+		{
+			return LayerIndex == other.LayerIndex
+				&& ThetaBin == other.ThetaBin
+				&& RadialBin == other.RadialBin
+				&& DirectionBin == other.DirectionBin
+				&& RemapBin == other.RemapBin;
+		}
+
+		public override bool Equals(object obj) => obj is WormholePortalSectorKey other && Equals(other);
+
+		public override int GetHashCode()
+		{
+			unchecked
+			{
+				int hash = 17;
+				hash = hash * 31 + LayerIndex;
+				hash = hash * 31 + ThetaBin;
+				hash = hash * 31 + RadialBin;
+				hash = hash * 31 + DirectionBin;
+				hash = hash * 31 + RemapBin;
+				return hash;
+			}
+		}
+	}
+
+	private sealed class WormholePortalSectorState
+	{
+		public int CandidateSamples;
+		public int HitSamples;
+		public int FirstCandidateCount = -1;
+		public ulong FirstCandidateHash = 0;
+		public bool CandidateInvariant = true;
+		public int FirstPositiveOverlapCount = -1;
+		public bool PositiveOverlapInvariant = true;
+		public int PositiveOverlapSamples = 0;
+		public int BackgroundHits = 0;
+		public int SourceHits = 0;
+		public int UnclassifiedHits = 0;
+		public int AbsorbedHits = 0;
+		public int MissHits = 0;
+
+		public int DistinctHitKindCount
+		{
+			get
+			{
+				int count = 0;
+				if (BackgroundHits > 0) count++;
+				if (SourceHits > 0) count++;
+				if (UnclassifiedHits > 0) count++;
+				if (AbsorbedHits > 0) count++;
+				if (MissHits > 0) count++;
+				return count;
+			}
+		}
+	}
+
 	public readonly struct FilmCaptureDiagnosticsSnapshot
 	{
 		public readonly int FilmWidth;
@@ -1011,6 +1211,14 @@ public partial class GrinFilmCamera : Node
 	/// <summary>Max overlap results to consider.</summary>
 	// CONTROL FACTOR: Cap on overlap results; higher may increase cost.
 	[Export] public int BroadphaseMaxResults = 8;
+
+	[ExportSubgroup("Broadphase / Wormhole Congruence")]
+	[Export] public bool WormholePortalSectorDiagnosticsEnabled = false;
+	[Export] public bool WormholePortalSectorRepresentativeOverlapEnabled = false;
+	[Export(PropertyHint.Range, "4,64,1")] public int WormholePortalSectorThetaBins = 16;
+	[Export(PropertyHint.Range, "1,16,1")] public int WormholePortalSectorRadialBins = 4;
+	[Export(PropertyHint.Range, "2,32,1")] public int WormholePortalSectorDirectionBins = 8;
+	[Export(PropertyHint.Range, "2,16,1")] public int WormholePortalSectorRepresentativeMinSamples = 4;
 
 	[ExportSubgroup("Broadphase / Auto Heuristics")]
 	/// <summary>Render-health window size used by Auto broadphase policy.</summary>
@@ -1782,7 +1990,10 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private long _wormholePostRemapMissPixelsThisRun = 0;
 	private long _wormholePostRemapFinalWritePixelsThisRun = 0;
 	private int _wormholePostRemapMaxCountThisRun = 0;
+	private long _wormholePortalSectorRepresentativeQueriesAppliedThisRun = 0;
+	private long _wormholePortalSectorRepresentativeQueriesSavedThisRun = 0;
 	private bool _wormholeSpatialProbeLoggedThisRun = false;
+	private readonly System.Collections.Generic.Dictionary<WormholePortalSectorKey, WormholePortalSectorState> _wormholePortalSectorStates = new();
 	private byte[] _fixtureRowsConsidered = Array.Empty<byte>();
 	private byte[] _fixtureRowsProcessed = Array.Empty<byte>();
 	private byte[] _fixtureRowsSkipped = Array.Empty<byte>();
@@ -4533,6 +4744,253 @@ private sealed class OverlayRollingWindow
 			snapshot.PostRemapFinalWritePixels > 0;
 	}
 
+	public bool TryGetWormholePortalSectorDiagnosticsForTesting(out WormholePortalSectorDiagnosticsSnapshot snapshot)
+	{
+		int sectorCount = _wormholePortalSectorStates.Count;
+		long candidateSamples = 0;
+		long hitSamples = 0;
+		int candidateInvariantSectors = 0;
+		int candidateVariantSectors = 0;
+		int hitInvariantSectors = 0;
+		int hitVariantSectors = 0;
+		int positiveOverlapInvariantSectors = 0;
+		int representativeEligibleSectors = 0;
+		int maxSamplesPerSector = 0;
+		int minRepresentativeSamples = Math.Max(1, WormholePortalSectorRepresentativeMinSamples);
+
+		foreach (var pair in _wormholePortalSectorStates)
+		{
+			WormholePortalSectorState state = pair.Value;
+			candidateSamples += state.CandidateSamples;
+			hitSamples += state.HitSamples;
+			maxSamplesPerSector = Math.Max(maxSamplesPerSector, state.CandidateSamples);
+			if (state.CandidateSamples > 0)
+			{
+				if (state.CandidateInvariant) candidateInvariantSectors++;
+				else candidateVariantSectors++;
+			}
+			if (state.PositiveOverlapSamples > 0 && state.PositiveOverlapInvariant)
+				positiveOverlapInvariantSectors++;
+			if (state.CandidateInvariant
+				&& state.PositiveOverlapInvariant
+				&& state.PositiveOverlapSamples >= minRepresentativeSamples
+				&& state.FirstPositiveOverlapCount > 0)
+			{
+				representativeEligibleSectors++;
+			}
+			if (state.HitSamples > 0)
+			{
+				if (state.DistinctHitKindCount <= 1) hitInvariantSectors++;
+				else hitVariantSectors++;
+			}
+		}
+
+		snapshot = new WormholePortalSectorDiagnosticsSnapshot(
+			sectorCount,
+			candidateSamples,
+			candidateInvariantSectors,
+			candidateVariantSectors,
+			hitSamples,
+			hitInvariantSectors,
+			hitVariantSectors,
+			positiveOverlapInvariantSectors,
+			representativeEligibleSectors,
+			_wormholePortalSectorRepresentativeQueriesAppliedThisRun,
+			_wormholePortalSectorRepresentativeQueriesSavedThisRun,
+			maxSamplesPerSector);
+		return snapshot.SectorCount > 0
+			|| snapshot.CandidateSamples > 0
+			|| snapshot.HitSamples > 0
+			|| snapshot.RepresentativeQueriesApplied > 0
+			|| snapshot.RepresentativeQueriesSaved > 0;
+	}
+
+	public bool TryGetWormholePortalSectorDetailedSnapshotForTesting(out WormholePortalSectorDetailedSnapshot snapshot)
+	{
+		var entries = new WormholePortalSectorEntrySnapshot[_wormholePortalSectorStates.Count];
+		int index = 0;
+		foreach (var pair in _wormholePortalSectorStates)
+		{
+			WormholePortalSectorKey key = pair.Key;
+			WormholePortalSectorState state = pair.Value;
+			entries[index++] = new WormholePortalSectorEntrySnapshot(
+				key.LayerIndex,
+				key.ThetaBin,
+				key.RadialBin,
+				key.DirectionBin,
+				key.RemapBin,
+				state.CandidateSamples,
+				state.FirstCandidateCount,
+				state.FirstCandidateHash,
+				state.CandidateInvariant,
+				state.PositiveOverlapSamples,
+				state.FirstPositiveOverlapCount,
+				state.PositiveOverlapInvariant,
+				state.HitSamples,
+				state.BackgroundHits,
+				state.SourceHits,
+				state.UnclassifiedHits,
+				state.AbsorbedHits,
+				state.MissHits);
+		}
+
+		snapshot = new WormholePortalSectorDetailedSnapshot(
+			Math.Max(1, WormholePortalSectorThetaBins),
+			Math.Max(1, WormholePortalSectorRadialBins),
+			Math.Max(1, WormholePortalSectorDirectionBins),
+			entries);
+		return entries.Length > 0;
+	}
+
+	private bool TryBuildWormholePortalSectorKey(
+		Vector3 worldPos,
+		Vector3 worldDir,
+		int remapCount,
+		RayBeamRenderer.BoundaryLayerSnap[] boundarySnaps,
+		out WormholePortalSectorKey key)
+	{
+		key = default;
+		if (!WormholePortalSectorDiagnosticsEnabled || boundarySnaps == null || boundarySnaps.Length == 0)
+			return false;
+
+		int thetaBins = Math.Max(1, WormholePortalSectorThetaBins);
+		int radialBins = Math.Max(1, WormholePortalSectorRadialBins);
+		int dirBins = Math.Max(1, WormholePortalSectorDirectionBins);
+
+		int bestLayerIndex = -1;
+		float bestDistSq = float.PositiveInfinity;
+		for (int i = 0; i < boundarySnaps.Length; i++)
+		{
+			ref readonly var layer = ref boundarySnaps[i];
+			if (!layer.Enabled) continue;
+			if (!layer.HasLinkedTransform) continue;
+			if (layer.Behavior != BoundaryLayerVolume.BoundaryBehavior.SceneTransform) continue;
+			float distSq = (worldPos - layer.Center).LengthSquared();
+			if (distSq < bestDistSq)
+			{
+				bestDistSq = distSq;
+				bestLayerIndex = i;
+			}
+		}
+
+		if (bestLayerIndex < 0)
+			return false;
+
+		ref readonly var bestLayer = ref boundarySnaps[bestLayerIndex];
+		Vector3 localPos = bestLayer.LocalFromWorld * worldPos;
+		Vector3 localDir = bestLayer.LocalFromWorld.Basis * worldDir;
+		float theta = Mathf.Atan2(localPos.Y, localPos.X);
+		float radial = Mathf.Sqrt(localPos.X * localPos.X + localPos.Y * localPos.Y);
+		float radial01 = bestLayer.Radius > 1e-5f
+			? Mathf.Clamp(radial / bestLayer.Radius, 0f, 0.999999f)
+			: 0f;
+		int thetaBin = QuantizeWormholeAngle(theta, thetaBins);
+		int radialBin = Mathf.Clamp((int)MathF.Floor(radial01 * radialBins), 0, radialBins - 1);
+		int dirBin = QuantizeWormholeAngle(Mathf.Atan2(localDir.Y, localDir.X), dirBins);
+		int remapBin = Mathf.Clamp(remapCount, 1, 7);
+		key = new WormholePortalSectorKey(bestLayerIndex, thetaBin, radialBin, dirBin, remapBin);
+		return true;
+	}
+
+	private static int QuantizeWormholeAngle(float angle, int bins)
+	{
+		int safeBins = Math.Max(1, bins);
+		float normalized = angle / (Mathf.Pi * 2f);
+		normalized -= Mathf.Floor(normalized);
+		return Mathf.Clamp((int)MathF.Floor(normalized * safeBins), 0, safeBins - 1);
+	}
+
+	private WormholePortalSectorState GetOrCreateWormholePortalSectorState(in WormholePortalSectorKey key)
+	{
+		if (!_wormholePortalSectorStates.TryGetValue(key, out WormholePortalSectorState state))
+		{
+			state = new WormholePortalSectorState();
+			_wormholePortalSectorStates.Add(key, state);
+		}
+		return state;
+	}
+
+	private void ObserveWormholePortalSectorCandidate(in WormholePortalSectorKey key, int candidateCount, ulong candidateHash)
+	{
+		WormholePortalSectorState state = GetOrCreateWormholePortalSectorState(in key);
+		state.CandidateSamples++;
+		if (state.FirstCandidateCount < 0)
+		{
+			state.FirstCandidateCount = candidateCount;
+			state.FirstCandidateHash = candidateHash;
+		}
+		else if (state.FirstCandidateCount != candidateCount || state.FirstCandidateHash != candidateHash)
+		{
+			state.CandidateInvariant = false;
+		}
+	}
+
+	private void ObserveWormholePortalSectorPositiveOverlap(in WormholePortalSectorKey key, int overlapCount)
+	{
+		if (overlapCount <= 0)
+			return;
+
+		WormholePortalSectorState state = GetOrCreateWormholePortalSectorState(in key);
+		state.PositiveOverlapSamples++;
+		if (state.FirstPositiveOverlapCount < 0)
+		{
+			state.FirstPositiveOverlapCount = overlapCount;
+		}
+		else if (state.FirstPositiveOverlapCount != overlapCount)
+		{
+			state.PositiveOverlapInvariant = false;
+		}
+	}
+
+	private bool TryUseWormholePortalSectorRepresentativeOverlap(
+		in WormholePortalSectorKey key,
+		int candidateCount,
+		ulong candidateHash,
+		out int overlapCount)
+	{
+		overlapCount = 0;
+		if (!WormholePortalSectorDiagnosticsEnabled || !WormholePortalSectorRepresentativeOverlapEnabled)
+			return false;
+		if (!_wormholePortalSectorStates.TryGetValue(key, out WormholePortalSectorState state))
+			return false;
+		int minSamples = Math.Max(1, WormholePortalSectorRepresentativeMinSamples);
+		if (!state.CandidateInvariant || !state.PositiveOverlapInvariant)
+			return false;
+		if (state.PositiveOverlapSamples < minSamples || state.FirstPositiveOverlapCount <= 0)
+			return false;
+		if (state.FirstCandidateCount != candidateCount || state.FirstCandidateHash != candidateHash)
+			return false;
+
+		overlapCount = state.FirstPositiveOverlapCount;
+		_wormholePortalSectorRepresentativeQueriesAppliedThisRun++;
+		_wormholePortalSectorRepresentativeQueriesSavedThisRun++;
+		return true;
+	}
+
+	private void ObserveWormholePortalSectorHitKind(in WormholePortalSectorKey key, string hitKind)
+	{
+		WormholePortalSectorState state = GetOrCreateWormholePortalSectorState(in key);
+		state.HitSamples++;
+		switch (hitKind)
+		{
+			case "source":
+				state.SourceHits++;
+				break;
+			case "background":
+				state.BackgroundHits++;
+				break;
+			case "unclassified":
+				state.UnclassifiedHits++;
+				break;
+			case "absorbed":
+				state.AbsorbedHits++;
+				break;
+			default:
+				state.MissHits++;
+				break;
+		}
+	}
+
 	public void ResetTelemetryHeatmapsForRunStart()
 	{
 		ClearTelemetryHeatmapArrays();
@@ -5627,6 +6085,9 @@ private sealed class OverlayRollingWindow
 		_wormholePostRemapMissPixelsThisRun = 0;
 		_wormholePostRemapFinalWritePixelsThisRun = 0;
 		_wormholePostRemapMaxCountThisRun = 0;
+		_wormholePortalSectorRepresentativeQueriesAppliedThisRun = 0;
+		_wormholePortalSectorRepresentativeQueriesSavedThisRun = 0;
+		_wormholePortalSectorStates.Clear();
 		_wormholeSpatialProbeLoggedThisRun = false;
 		if (_fixtureRowsStarted.Length > 0) Array.Clear(_fixtureRowsStarted, 0, _fixtureRowsStarted.Length);
 		if (_fixtureRowsCompleted.Length > 0) Array.Clear(_fixtureRowsCompleted, 0, _fixtureRowsCompleted.Length);
@@ -8487,6 +8948,13 @@ private sealed class OverlayRollingWindow
 			bool useOverlap = effOverlap;
 			bool useQuickRay = effQuickRay;
 			bool telemetryHeatmapsEnabled = TelemetryHeatmapsEnabledForCurrentRun();
+			RayBeamRenderer.BoundaryLayerSnap[] wormholeBoundarySnaps =
+				WormholePortalSectorDiagnosticsEnabled && _rbr != null
+					? _rbr.GetBoundaryLayerSnapsForTesting()
+					: Array.Empty<RayBeamRenderer.BoundaryLayerSnap>();
+			bool wormholePortalSectorDiagnosticsActive = WormholePortalSectorDiagnosticsEnabled && wormholeBoundarySnaps.Length > 0;
+			bool wormholePortalSectorRepresentativeOverlapActive =
+				wormholePortalSectorDiagnosticsActive && WormholePortalSectorRepresentativeOverlapEnabled;
 
 			// DECISION: configure overlap broadphase only when enabled.
 			if (useOverlap)
@@ -10452,6 +10920,8 @@ private sealed class OverlayRollingWindow
 						int postRemapGeometryHitCountThisPixel = 0;
 						int maxBoundaryRemapCountThisPixel = 0;
 						bool bestHitWasPostRemap = false;
+						WormholePortalSectorKey bestPostRemapSectorKey = default;
+						bool bestPostRemapSectorValid = false;
 
 						int segCount = _segCountPerPixel[pi];
 						int segOffset = pi * maxSeg;
@@ -11466,6 +11936,24 @@ private sealed class OverlayRollingWindow
 									int qrayCount = -1;
 									bool forceNarrowphaseDueToQuickRay = false;
 									var overlapCandidates = _pass2OverlapCandidatesScratch;
+									WormholePortalSectorKey portalSectorKey = default;
+									bool portalSectorValid = false;
+									ulong portalSectorCandidateHash = 0;
+									if (wormholePortalSectorDiagnosticsActive && segPostRemap && geomCandidateInstanceCount > 0)
+									{
+										Vector3 segDirNorm = (segB - segA).Normalized();
+										portalSectorValid = TryBuildWormholePortalSectorKey(
+											(segA + segB) * 0.5f,
+											segDirNorm,
+											seg.BoundaryRemapCount,
+											wormholeBoundarySnaps,
+											out portalSectorKey);
+										if (portalSectorValid)
+										{
+											portalSectorCandidateHash = HashLongSpanFNV(geomCandidateInstanceIds, geomCandidateInstanceCount);
+											ObserveWormholePortalSectorCandidate(in portalSectorKey, geomCandidateInstanceCount, portalSectorCandidateHash);
+										}
+									}
 									if (useGeomTlasPruning)
 									{
 										candidateCount = 0;
@@ -11523,7 +12011,21 @@ private sealed class OverlayRollingWindow
 										{
 											if (useOverlap)
 											{
-												RunOverlapQuery(space, segA, segB, overlapCandidates, out overlapCount);
+												bool usedRepresentativeOverlap = false;
+												if (portalSectorValid && wormholePortalSectorRepresentativeOverlapActive)
+												{
+													usedRepresentativeOverlap = TryUseWormholePortalSectorRepresentativeOverlap(
+														in portalSectorKey,
+														geomCandidateInstanceCount,
+														portalSectorCandidateHash,
+														out overlapCount);
+												}
+												if (!usedRepresentativeOverlap)
+												{
+													RunOverlapQuery(space, segA, segB, overlapCandidates, out overlapCount);
+													if (portalSectorValid)
+														ObserveWormholePortalSectorPositiveOverlap(in portalSectorKey, overlapCount);
+												}
 												if (overlapCount > 0)
 													candidateCount = overlapCount;
 											}
@@ -12121,6 +12623,9 @@ private sealed class OverlayRollingWindow
 										bestHn = hn;      // ADD
 										bestCid = cid;
 										bestHitWasPostRemap = segPostRemap;
+										bestPostRemapSectorValid = segPostRemap && portalSectorValid;
+										if (bestPostRemapSectorValid)
+											bestPostRemapSectorKey = portalSectorKey;
 									}
 
 									// If you only want the nearest hit, keep scanning segments
@@ -12340,6 +12845,8 @@ private sealed class OverlayRollingWindow
 								GD.Print($"Film hit: dist={hitDistance:0.000} name={hitName} mode={cfg.ShadingMode}");
 						}
 						fixtureHitKind = ClassifyFixtureHitKind(hadHit, absorbedByInnerRadius, bestCid);
+						if (bestHitWasPostRemap && bestPostRemapSectorValid)
+							ObserveWormholePortalSectorHitKind(in bestPostRemapSectorKey, fixtureHitKind);
 
 						if (cfg.FixtureDebugHitColoringEnabled)
 						{

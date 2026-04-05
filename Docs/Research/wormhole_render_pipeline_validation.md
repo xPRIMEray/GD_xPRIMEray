@@ -181,7 +181,114 @@ Required test: **Wormhole Validation Loop**
 
 This loop is the required safety gate for future smart adjust work.
 
-## 6. Performance Baseline
+## 6. Deterministic Harness Requirement
+
+Wormhole validation and performance runs must execute under deterministic harness conditions.
+
+Required conditions:
+
+- fixed camera transform
+- no live mouse drift
+- no keyboard-driven camera movement
+- stable scene framing across runs
+- identical film-path capture methodology across before/after comparisons
+
+Why this matters:
+
+- remap counts, post-remap query counts, and hit/write totals are camera-sensitive
+- small input drift can change portal framing, downstream geometry coverage, and candidate density near the mouth
+- uncontrolled mouse capture or free-fly motion can contaminate pass-1 and pass-2 timing comparisons
+
+The current wormhole harness therefore locks traveler input during validation/performance runs:
+
+- `WormholePrototypeRig` can disable `FreeFlyCamera` input for validation mode
+- mouse mode is forced visible during the locked run
+- the validation scene keeps a fixed camera transform and does not rely on operator discipline
+
+This deterministic harness requirement is part of the wormhole validation contract, not an optional convenience.
+
+## 7. Optimization History
+
+The wormhole optimization history is now grounded enough to distinguish keepers from regressions.
+
+### Rejected: `BroadphasePolicy = Both`
+
+Result:
+
+- reduced useful hits and writes
+- failed to preserve the validated wormhole output quality
+- was reverted
+
+Engineering conclusion:
+
+- enabling `Both` broadphase globally for this wormhole scene is not a safe forward path
+
+### Kept: per-frame overlap-result reuse cache in the `OverlapOnly` pass-2 path
+
+Result:
+
+- reduced `pass2.query`
+- improved `pass2.physics`
+- preserved remaps, queries, geometry hits, and final film writes
+- remained repeatable under locked deterministic runs
+
+Engineering conclusion:
+
+- this optimization is currently worth keeping
+
+### Rejected: overlap-result copy elision inside `RunOverlapQuery(...)`
+
+Result:
+
+- safe
+- did not produce a useful improvement in the target bucket
+- was reverted
+
+Engineering conclusion:
+
+- not every local pass-2 cleanup change produces measurable benefit
+- future work should continue to be validated by before/after measurement, not by intuition alone
+
+## 8. Optimization Validation Contract
+
+Any future optimization, smart-adjust path, or adaptive rendering change must preserve the wormhole pipeline invariants below:
+
+- `remaps > 0`
+- `queries > 0`
+- `geom_hits > 0`
+- `final_write_px > 0`
+
+In addition, every optimization experiment must satisfy all of the following:
+
+- deterministic run conditions
+- fixed capture path through the real film/composited result
+- before/after timing collected from comparable completed-frame runs
+- explicit disposition recorded as `KEEP` or `REVERT`
+
+If one of the wormhole pipeline invariants drops to zero, the optimization is not valid for this path even if an isolated timing bucket appears to improve.
+
+## 9. Smart Adjust / Adaptive Validation Guidance
+
+Smart-adjust and adaptive logic must be validated against wormhole optical paths, not only against ordinary single-scene GRIN fixtures.
+
+Required wormhole-side adaptive validation steps:
+
+1. run the static wormhole validation scene
+2. use deterministic camera/input conditions
+3. capture funnel metrics from the runtime log
+4. compare candidate, query, hit, and write continuity before and after the adaptive change
+5. confirm that adaptation does not suppress wormhole-specific remap visibility or remap-hit continuity
+
+Explicit adaptive failure conditions include:
+
+- remaps still occur but post-remap queries collapse
+- queries still occur but geometry hits collapse
+- hits still occur but final writes collapse
+- adaptive heuristics preserve ordinary GRIN behavior while suppressing wormhole-specific optical paths
+
+The wormhole path must therefore remain a standing regression gate for any future smart-adjust or adaptive scheduler work.
+
+## 10. Performance Baseline
 
 Validated baseline scene configuration:
 
@@ -218,7 +325,7 @@ Therefore the primary bottleneck is:
 
 - **pass-2 query dispatch**
 
-## 7. Future Work
+## 11. Future Work
 
 Validated next-step priorities are:
 
