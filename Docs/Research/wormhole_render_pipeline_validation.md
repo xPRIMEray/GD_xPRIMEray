@@ -236,6 +236,61 @@ Engineering conclusion:
 
 - this optimization is currently worth keeping
 
+### Kept: geometry-aware low-value sector throttle
+
+Current kept profile:
+
+- `layer = 0`
+- `radial_bin = 3`
+- `theta bins = {13,14,15,0}`
+- `period = 2`
+
+Why it is kept:
+
+- it targets a measured waste region identified by the portal-centric usefulness map
+- it does not touch the invariant annulus (`layer = 1`, `radial_bin = 3`)
+- it improved the two target timing buckets while preserving wormhole output and both validation contracts
+
+Measured effect from the kept widened-theta run:
+
+- `pass2.query`: `3433.15 ms -> 3289.79 ms`
+- `pass2.physics`: `37280.85 ms -> 36543.19 ms`
+- `geom_hits`: `21933 -> 21933`
+- `final_write_px`: `21933 -> 21933`
+- proto-caustic invariant: `pass=true`
+- low-value sector budget: `pass=true`
+- low-value query-share margin improved: `0.0722 -> 0.0818`
+
+Engineering conclusion:
+
+- this is the current best-known wormhole performance profile
+- it is both geometry-aware and contract-safe
+
+### Rejected: stronger throttle on the same low-value family
+
+Rejected profile:
+
+- `layer = 0`
+- `radial_bin = 3`
+- `theta bins = {13,14,15,0}`
+- `period = 3`
+
+Why it was rejected:
+
+- `pass2.query` got worse: `3289.79 ms -> 3623.40 ms`
+- `pass2.physics` got worse: `36543.19 ms -> 37130.80 ms`
+- `geom_hits` drifted downward: `21933 -> 21689`
+- `final_write_px` drifted downward: `21933 -> 21689`
+- the proto-caustic invariant still passed, but the annulus metrics weakened:
+  - hit density: `1056.3125 -> 1041.0625`
+  - radial gradient: `901.9375 -> 886.6875`
+
+Engineering conclusion:
+
+- the safe throttle boundary is currently at `period = 2`
+- increasing intensity to `period = 3` crosses the safe boundary even though the formal contracts still pass
+- this is a case where contract pass alone was not sufficient; hit/write stability and target bucket performance still mattered
+
 ### Rejected: overlap-result copy elision inside `RunOverlapQuery(...)`
 
 Result:
@@ -267,6 +322,23 @@ In addition, every optimization experiment must satisfy all of the following:
 
 If one of the wormhole pipeline invariants drops to zero, the optimization is not valid for this path even if an isolated timing bucket appears to improve.
 
+In practice, the current wormhole path now uses a two-sided contract:
+
+- positive invariant: preserve the destination-side proto-caustic annulus
+- negative invariant: keep the low-value outer-ring query share under budget
+
+The current active negative invariant is:
+
+- target region: `layer = 0`, `radial_bin = 3`
+- baseline query share: `0.4011`
+- maximum allowed query share: `baseline * 0.9 = 0.361`
+
+This contract is necessary but not sufficient by itself. The period-3 throttle experiment showed that a change can still be rejected if:
+
+- `pass2.query` or `pass2.physics` regresses
+- `geom_hits` / `final_write_px` drift downward
+- or the annulus metrics weaken materially
+
 ## 9. Smart Adjust / Adaptive Validation Guidance
 
 Smart-adjust and adaptive logic must be validated against wormhole optical paths, not only against ordinary single-scene GRIN fixtures.
@@ -295,6 +367,11 @@ Validated baseline scene configuration:
 - static wormhole validation scene
 - `OverlapOnly` broadphase path
 - validation proof geometry retained to guarantee downstream hit visibility
+- current best-known low-value throttle profile:
+  - `layer = 0`
+  - `radial_bin = 3`
+  - `theta bins = {13,14,15,0}`
+  - `period = 2`
 
 Validated baseline metrics from the completed film pass:
 
@@ -325,6 +402,11 @@ Therefore the primary bottleneck is:
 
 - **pass-2 query dispatch**
 
+Safe throttle boundary:
+
+- safe/current: `layer=0`, `radial_bin=3`, `theta={13,14,15,0}`, `period=2`
+- unsafe/rejected: same region with `period=3`
+
 ## 11. Future Work
 
 Validated next-step priorities are:
@@ -337,6 +419,7 @@ Validated next-step priorities are:
 One explicit non-keeper from the validation cycle:
 
 - switching the wormhole scene from `OverlapOnly` to `Both` broadphase was a regression and should not be treated as the current forward path
+- increasing the kept low-value throttle from `period=2` to `period=3` was also a regression and should not be treated as the current forward path
 
 ## Current Status
 

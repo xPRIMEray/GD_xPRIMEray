@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -14,6 +15,11 @@ public partial class WormholePrototypeRig : Node3D
 {
 	private sealed class PortalSectorArtifactCell
 	{
+		public int LayerIndex = -1;
+		public int ThetaBin = -1;
+		public int RadialBin = -1;
+		public bool InvariantRing;
+		public int QuerySamples;
 		public int Samples;
 		public bool HasCandidateState;
 		public bool CandidateInvariant = true;
@@ -62,6 +68,23 @@ public partial class WormholePrototypeRig : Node3D
 		public bool SharpAngularTransition;
 	}
 
+	private sealed class PortalUsefulnessMetric
+	{
+		public int LayerIndex;
+		public int ThetaBin;
+		public int RadialBin;
+		public bool InvariantRing;
+		public int QuerySamples;
+		public int CandidateSamples;
+		public int HitSamples;
+		public int PositiveOverlapSamples;
+		public string DominantHitKind = "none";
+		public float QueryHitYield;
+		public float QueryShare;
+		public float LowValueScore;
+		public float HighValueScore;
+	}
+
 	private readonly struct ProtoCausticInvariantContract
 	{
 		public readonly int LayerIndex;
@@ -100,6 +123,63 @@ public partial class WormholePrototypeRig : Node3D
 		public float RadialGradientDelta;
 	}
 
+	private readonly struct LowValueSectorBudgetContract
+	{
+		public readonly int LayerIndex;
+		public readonly int RadialBin;
+		public readonly float BaselineQueryShare;
+		public readonly float MaxQueryShareScale;
+
+		public LowValueSectorBudgetContract(
+			int layerIndex,
+			int radialBin,
+			float baselineQueryShare,
+			float maxQueryShareScale)
+		{
+			LayerIndex = layerIndex;
+			RadialBin = radialBin;
+			BaselineQueryShare = baselineQueryShare;
+			MaxQueryShareScale = maxQueryShareScale;
+		}
+
+		public float MaximumAllowedQueryShare => BaselineQueryShare * MaxQueryShareScale;
+	}
+
+	private sealed class LowValueSectorBudgetResult
+	{
+		public bool TargetFound;
+		public bool Passed;
+		public string FailureReason = "unknown";
+		public float ActualQueryShare;
+		public float MaximumAllowedQueryShare;
+		public float QueryShareDelta;
+		public int TotalQuerySamples;
+		public int TargetQuerySamples;
+	}
+
+	private readonly struct LowValueThrottleProfileSnapshot
+	{
+		public readonly bool Enabled;
+		public readonly int LayerIndex;
+		public readonly int RadialBin;
+		public readonly string ThetaBinsCsv;
+		public readonly int Period;
+
+		public LowValueThrottleProfileSnapshot(
+			bool enabled,
+			int layerIndex,
+			int radialBin,
+			string thetaBinsCsv,
+			int period)
+		{
+			Enabled = enabled;
+			LayerIndex = layerIndex;
+			RadialBin = radialBin;
+			ThetaBinsCsv = thetaBinsCsv ?? string.Empty;
+			Period = period;
+		}
+	}
+
 	[ExportGroup("References")]
 	[Export] public NodePath TravelerPath;
 	[Export] public NodePath MainCameraPath;
@@ -127,6 +207,8 @@ public partial class WormholePrototypeRig : Node3D
 	[Export(PropertyHint.Range, "1,120,0.1")] public float ValidationCaptureDelaySeconds = 20.0f;
 	[Export(PropertyHint.Range, "1,180,0.1")] public float ValidationCaptureMaxDelaySeconds = 30.0f;
 	[Export] public string ValidationCapturePath = "res://output/wormhole_test/wormhole_validation_capture.png";
+	[Export] public bool CaptureValidationCompositeScreenshot = true;
+	[Export] public string ValidationCompositeCapturePath = "res://output/wormhole_test/wormhole_validation_composed.png";
 	[Export] public bool EmitBoundaryValidationSummaryAfterCapture = true;
 	[Export] public string BoundaryValidationLabel = "wormhole_validation";
 	[Export] public bool ValidationWaitForFilmWrap = true;
@@ -139,6 +221,13 @@ public partial class WormholePrototypeRig : Node3D
 	[Export(PropertyHint.Range, "0,1,0.01")] public float ProtoCausticInvariantMinHitContinuityRatio = 0.95f;
 	[Export(PropertyHint.Range, "0,1,0.01")] public float ProtoCausticInvariantMinPositiveOverlapContinuityRatio = 0.95f;
 	[Export(PropertyHint.Range, "0,5000,1")] public float ProtoCausticInvariantMinRadialGradient = 600.0f;
+
+	[ExportGroup("Low-Value Sector Budget")]
+	[Export] public bool LowValueSectorBudgetEnabled = true;
+	[Export] public int LowValueSectorBudgetLayer = 0;
+	[Export] public int LowValueSectorBudgetRadialBin = 3;
+	[Export(PropertyHint.Range, "0,1,0.0001")] public float LowValueSectorBudgetBaselineQueryShare = 0.4011f;
+	[Export(PropertyHint.Range, "0,2,0.01")] public float LowValueSectorBudgetMaxQueryShareScale = 0.9f;
 
 	private Node3D _traveler;
 	private Camera3D _mainCamera;
@@ -356,6 +445,10 @@ public partial class WormholePrototypeRig : Node3D
 		if (CaptureValidationScreenshot)
 		{
 			CaptureFilmScreenshot();
+			if (CaptureValidationCompositeScreenshot)
+			{
+				CaptureCompositeScreenshot();
+			}
 		}
 
 		SavePortalSectorArtifacts();
@@ -404,6 +497,37 @@ public partial class WormholePrototypeRig : Node3D
 		}
 	}
 
+	private void CaptureCompositeScreenshot()
+	{
+		Viewport viewport = GetViewport();
+		Image image = viewport?.GetTexture()?.GetImage();
+		if (image == null)
+		{
+			GD.PushWarning("[WormholeValidation] failed to save composite capture reason=missing_viewport_image");
+			return;
+		}
+
+		string projectPath = string.IsNullOrWhiteSpace(ValidationCompositeCapturePath)
+			? "res://output/wormhole_test/wormhole_validation_composed.png"
+			: ValidationCompositeCapturePath.Trim();
+		string absolutePath = ProjectSettings.GlobalizePath(projectPath);
+		string directory = Path.GetDirectoryName(absolutePath);
+		if (!string.IsNullOrWhiteSpace(directory))
+		{
+			DirAccess.MakeDirRecursiveAbsolute(directory);
+		}
+
+		Error saveError = image.SavePng(absolutePath);
+		if (saveError == Error.Ok)
+		{
+			GD.Print($"[WormholeValidation] capture_saved path={absolutePath} source=viewport_composite");
+		}
+		else
+		{
+			GD.PushWarning($"[WormholeValidation] failed to save composite capture path={absolutePath} error={saveError}");
+		}
+	}
+
 	private void SavePortalSectorArtifacts()
 	{
 		GD.Print("[WormholeValidation] portal_sector_artifacts begin");
@@ -423,11 +547,28 @@ public partial class WormholePrototypeRig : Node3D
 		string jsonPath = BuildValidationArtifactAbsolutePath("wormhole_portal_sector_report.json");
 		string heatmapPath = BuildValidationArtifactAbsolutePath("wormhole_portal_sector_heatmap.png");
 		string ringDensityPath = BuildValidationArtifactAbsolutePath("wormhole_portal_ring_density.png");
+		string usefulnessPath = BuildValidationArtifactAbsolutePath("wormhole_portal_usefulness.png");
 		ProtoCausticInvariantContract invariantContract = BuildProtoCausticInvariantContract();
-		WritePortalSectorJsonReport(snapshot, jsonPath, invariantContract, out PortalRingMetric[] ringMetrics, out ProtoCausticInvariantResult invariantResult);
+		LowValueSectorBudgetContract lowValueContract = BuildLowValueSectorBudgetContract();
+		LowValueThrottleProfileSnapshot throttleProfile = BuildLowValueThrottleProfileSnapshot();
+		WritePortalSectorJsonReport(snapshot, jsonPath, invariantContract,
+			out PortalRingMetric[] ringMetrics,
+			out ProtoCausticInvariantResult invariantResult,
+			out PortalUsefulnessMetric[] usefulnessMetrics,
+			out float invariantRingQueryShare,
+			out float nonInvariantQueryShare,
+			out LowValueSectorBudgetResult lowValueResult,
+			lowValueContract,
+			throttleProfile);
 		WritePortalSectorHeatmap(snapshot, heatmapPath);
 		WritePortalRingDensityVisualization(ringMetrics, snapshot.RadialBins, ringDensityPath, invariantContract, invariantResult);
+		WritePortalUsefulnessVisualization(usefulnessMetrics, snapshot.ThetaBins, snapshot.RadialBins, usefulnessPath, invariantContract);
 		LogProtoCausticInvariantResult(invariantContract, invariantResult);
+		LogLowValueSectorBudgetResult(lowValueContract, lowValueResult);
+		LogLowValueThrottleProfile(throttleProfile);
+		GD.Print(
+			$"[WormholeValidation] portal_usefulness invariant_ring_query_share={FormatFloat(invariantRingQueryShare)} " +
+			$"non_invariant_query_share={FormatFloat(nonInvariantQueryShare)} sector_count={usefulnessMetrics?.Length ?? 0}");
 	}
 
 	private string BuildValidationArtifactAbsolutePath(string fileName)
@@ -449,10 +590,19 @@ public partial class WormholePrototypeRig : Node3D
 		string absolutePath,
 		ProtoCausticInvariantContract invariantContract,
 		out PortalRingMetric[] ringMetrics,
-		out ProtoCausticInvariantResult invariantResult)
+		out ProtoCausticInvariantResult invariantResult,
+		out PortalUsefulnessMetric[] usefulnessMetrics,
+		out float invariantRingQueryShare,
+		out float nonInvariantQueryShare,
+		out LowValueSectorBudgetResult lowValueResult,
+		LowValueSectorBudgetContract lowValueContract,
+		LowValueThrottleProfileSnapshot throttleProfile)
 	{
 		PortalSectorArtifactCell[,,] cells = BuildPortalSectorArtifactCells(snapshot, out int layerCount, out int maxSamples, out int occupiedCells);
 		ringMetrics = BuildPortalRingMetrics(cells, layerCount, snapshot.RadialBins, snapshot.ThetaBins);
+		usefulnessMetrics = BuildPortalUsefulnessMetrics(cells, layerCount, snapshot.RadialBins, snapshot.ThetaBins, invariantContract);
+		ComputePortalUsefulnessShares(usefulnessMetrics, out invariantRingQueryShare, out nonInvariantQueryShare);
+		lowValueResult = EvaluateLowValueSectorBudget(usefulnessMetrics, lowValueContract);
 		ComputeProtoCausticFlags(ringMetrics,
 			out int stableAnnularBands,
 			out int sharpRadialTransitions,
@@ -470,6 +620,8 @@ public partial class WormholePrototypeRig : Node3D
 		sb.AppendLine($"  \"entry_count\": {snapshot.Entries.Length},");
 		sb.AppendLine($"  \"occupied_cells\": {occupiedCells},");
 		sb.AppendLine($"  \"max_cell_samples\": {maxSamples},");
+		AppendLowValueThrottleProfileJson(sb, throttleProfile);
+		sb.AppendLine(",");
 		sb.AppendLine("  \"invariant_contract\": {");
 		sb.AppendLine($"    \"layer\": {invariantContract.LayerIndex},");
 		sb.AppendLine($"    \"radial_bin\": {invariantContract.RadialBin},");
@@ -487,6 +639,8 @@ public partial class WormholePrototypeRig : Node3D
 		sb.AppendLine($"    \"positive_overlap_continuity_delta\": {FormatFloat(invariantResult.PositiveOverlapContinuityDelta)},");
 		sb.AppendLine($"    \"radial_gradient_delta\": {FormatFloat(invariantResult.RadialGradientDelta)}");
 		sb.AppendLine("  },");
+		AppendLowValueSectorBudgetJson(sb, lowValueContract, lowValueResult);
+		sb.AppendLine(",");
 		sb.AppendLine("  \"proto_caustic\": {");
 		sb.AppendLine($"    \"stable_annular_bands\": {stableAnnularBands},");
 		sb.AppendLine($"    \"sharp_radial_transitions\": {sharpRadialTransitions},");
@@ -495,6 +649,8 @@ public partial class WormholePrototypeRig : Node3D
 		sb.AppendLine($"    \"max_radial_gradient\": {FormatFloat(maxRadialGradient)},");
 		sb.AppendLine($"    \"max_angular_variation\": {FormatFloat(maxAngularVariation)}");
 		sb.AppendLine("  },");
+		AppendUsefulnessSummaryJson(sb, usefulnessMetrics, invariantRingQueryShare, nonInvariantQueryShare);
+		sb.AppendLine(",");
 		sb.AppendLine("  \"ring_metrics\": [");
 		for (int i = 0; i < ringMetrics.Length; i++)
 		{
@@ -583,6 +739,7 @@ public partial class WormholePrototypeRig : Node3D
 			sb.Append($"\"radial_bin\": {entry.RadialBin}, ");
 			sb.Append($"\"direction_bin\": {entry.DirectionBin}, ");
 			sb.Append($"\"remap_bin\": {entry.RemapBin}, ");
+			sb.Append($"\"query_samples\": {entry.QuerySamples}, ");
 			sb.Append($"\"candidate_samples\": {entry.CandidateSamples}, ");
 			sb.Append($"\"first_candidate_count\": {entry.FirstCandidateCount}, ");
 			sb.Append($"\"first_candidate_hash\": \"{entry.FirstCandidateHash}\", ");
@@ -676,10 +833,14 @@ public partial class WormholePrototypeRig : Node3D
 			if (cell == null)
 			{
 				cell = new PortalSectorArtifactCell();
+				cell.LayerIndex = entry.LayerIndex;
+				cell.RadialBin = entry.RadialBin;
+				cell.ThetaBin = entry.ThetaBin;
 				cells[entry.LayerIndex, entry.RadialBin, entry.ThetaBin] = cell;
 				occupiedCells++;
 			}
 
+			cell.QuerySamples += entry.QuerySamples;
 			cell.Samples += entry.CandidateSamples;
 			if (!cell.HasCandidateState)
 			{
@@ -722,6 +883,275 @@ public partial class WormholePrototypeRig : Node3D
 		}
 
 		return cells;
+	}
+
+	private static PortalUsefulnessMetric[] BuildPortalUsefulnessMetrics(
+		PortalSectorArtifactCell[,,] cells,
+		int layerCount,
+		int radialBins,
+		int thetaBins,
+		ProtoCausticInvariantContract invariantContract)
+	{
+		List<PortalUsefulnessMetric> metrics = new();
+		double totalQuerySamples = 0.0;
+		for (int layer = 0; layer < layerCount; layer++)
+		{
+			for (int radial = 0; radial < radialBins; radial++)
+			{
+				for (int theta = 0; theta < thetaBins; theta++)
+				{
+					PortalSectorArtifactCell cell = cells[layer, radial, theta];
+					if (cell == null || cell.QuerySamples <= 0)
+						continue;
+
+					bool invariantRing = layer == invariantContract.LayerIndex && radial == invariantContract.RadialBin;
+					cell.InvariantRing = invariantRing;
+					PortalUsefulnessMetric metric = new()
+					{
+						LayerIndex = layer,
+						ThetaBin = theta,
+						RadialBin = radial,
+						InvariantRing = invariantRing,
+						QuerySamples = cell.QuerySamples,
+						CandidateSamples = cell.Samples,
+						HitSamples = cell.HitSamples,
+						PositiveOverlapSamples = cell.PositiveOverlapCount > 0 ? cell.PositiveOverlapCount : 0,
+						DominantHitKind = DetermineDominantHitKind(cell)
+					};
+					metric.QueryHitYield = metric.QuerySamples > 0
+						? (float)metric.HitSamples / metric.QuerySamples
+						: 0f;
+					metric.LowValueScore = metric.QuerySamples * (1f - metric.QueryHitYield) * (metric.InvariantRing ? 0.25f : 1f);
+					metric.HighValueScore = metric.QuerySamples * metric.QueryHitYield * (metric.InvariantRing ? 1.35f : 1f);
+					totalQuerySamples += metric.QuerySamples;
+					metrics.Add(metric);
+				}
+			}
+		}
+
+		float totalQuery = (float)Math.Max(1.0, totalQuerySamples);
+		foreach (PortalUsefulnessMetric metric in metrics)
+		{
+			metric.QueryShare = metric.QuerySamples / totalQuery;
+		}
+
+		return metrics.ToArray();
+	}
+
+	private static void ComputePortalUsefulnessShares(
+		PortalUsefulnessMetric[] metrics,
+		out float invariantRingQueryShare,
+		out float nonInvariantQueryShare)
+	{
+		invariantRingQueryShare = 0f;
+		nonInvariantQueryShare = 0f;
+		if (metrics == null || metrics.Length == 0)
+			return;
+
+		double totalQuery = 0.0;
+		double invariantQuery = 0.0;
+		foreach (PortalUsefulnessMetric metric in metrics)
+		{
+			totalQuery += metric.QuerySamples;
+			if (metric.InvariantRing)
+				invariantQuery += metric.QuerySamples;
+		}
+
+		if (totalQuery <= 0.0)
+			return;
+
+		invariantRingQueryShare = (float)(invariantQuery / totalQuery);
+		nonInvariantQueryShare = 1f - invariantRingQueryShare;
+	}
+
+	private LowValueSectorBudgetContract BuildLowValueSectorBudgetContract()
+	{
+		return new LowValueSectorBudgetContract(
+			LowValueSectorBudgetLayer,
+			LowValueSectorBudgetRadialBin,
+			LowValueSectorBudgetBaselineQueryShare,
+			LowValueSectorBudgetMaxQueryShareScale);
+	}
+
+	private LowValueThrottleProfileSnapshot BuildLowValueThrottleProfileSnapshot()
+	{
+		if (_filmCamera == null || !GodotObject.IsInstanceValid(_filmCamera))
+		{
+			return new LowValueThrottleProfileSnapshot(false, 0, 0, string.Empty, 0);
+		}
+
+		return new LowValueThrottleProfileSnapshot(
+			_filmCamera.WormholePortalSectorLowValueThrottleEnabled,
+			_filmCamera.WormholePortalSectorLowValueThrottleLayer,
+			_filmCamera.WormholePortalSectorLowValueThrottleRadialBin,
+			_filmCamera.WormholePortalSectorLowValueThetaBinsCsv,
+			_filmCamera.WormholePortalSectorLowValueThrottlePeriod);
+	}
+
+	private LowValueSectorBudgetResult EvaluateLowValueSectorBudget(
+		PortalUsefulnessMetric[] metrics,
+		LowValueSectorBudgetContract contract)
+	{
+		LowValueSectorBudgetResult result = new()
+		{
+			MaximumAllowedQueryShare = contract.MaximumAllowedQueryShare
+		};
+		if (!LowValueSectorBudgetEnabled || metrics == null || metrics.Length == 0)
+		{
+			result.TargetFound = metrics != null && metrics.Length > 0;
+			result.Passed = true;
+			result.FailureReason = LowValueSectorBudgetEnabled ? "no_metrics" : "disabled";
+			return result;
+		}
+
+		int totalQuerySamples = 0;
+		int targetQuerySamples = 0;
+		foreach (PortalUsefulnessMetric metric in metrics)
+		{
+			totalQuerySamples += metric.QuerySamples;
+			if (metric.LayerIndex == contract.LayerIndex && metric.RadialBin == contract.RadialBin)
+			{
+				targetQuerySamples += metric.QuerySamples;
+				result.TargetFound = true;
+			}
+		}
+
+		result.TotalQuerySamples = totalQuerySamples;
+		result.TargetQuerySamples = targetQuerySamples;
+		if (!result.TargetFound || totalQuerySamples <= 0)
+		{
+			result.Passed = !LowValueSectorBudgetEnabled;
+			result.FailureReason = result.TargetFound ? "no_total_query_samples" : "target_ring_missing";
+			return result;
+		}
+
+		result.ActualQueryShare = (float)targetQuerySamples / totalQuerySamples;
+		result.QueryShareDelta = result.MaximumAllowedQueryShare - result.ActualQueryShare;
+		result.Passed = result.QueryShareDelta >= 0f;
+		result.FailureReason = result.Passed ? "ok" : "query_share_above_budget";
+		return result;
+	}
+
+	private static void AppendUsefulnessSummaryJson(
+		StringBuilder sb,
+		PortalUsefulnessMetric[] metrics,
+		float invariantRingQueryShare,
+		float nonInvariantQueryShare)
+	{
+		sb.AppendLine("  \"usefulness_summary\": {");
+		if (metrics == null || metrics.Length == 0)
+		{
+			sb.AppendLine("    \"total_query_samples\": 0,");
+			sb.AppendLine("    \"invariant_ring_query_share\": 0,");
+			sb.AppendLine("    \"non_invariant_query_share\": 0,");
+			sb.AppendLine("    \"high_cost_low_value\": [],");
+			sb.AppendLine("    \"high_value\": []");
+			sb.Append("  }");
+			return;
+		}
+
+		int totalQuerySamples = 0;
+		int totalHitSamples = 0;
+		foreach (PortalUsefulnessMetric metric in metrics)
+		{
+			totalQuerySamples += metric.QuerySamples;
+			totalHitSamples += metric.HitSamples;
+		}
+
+		PortalUsefulnessMetric[] lowValue = (PortalUsefulnessMetric[])metrics.Clone();
+		Array.Sort(lowValue, (a, b) =>
+		{
+			int scoreCmp = b.LowValueScore.CompareTo(a.LowValueScore);
+			if (scoreCmp != 0) return scoreCmp;
+			return b.QuerySamples.CompareTo(a.QuerySamples);
+		});
+		PortalUsefulnessMetric[] highValue = (PortalUsefulnessMetric[])metrics.Clone();
+		Array.Sort(highValue, (a, b) =>
+		{
+			int scoreCmp = b.HighValueScore.CompareTo(a.HighValueScore);
+			if (scoreCmp != 0) return scoreCmp;
+			return b.HitSamples.CompareTo(a.HitSamples);
+		});
+
+		sb.AppendLine($"    \"total_query_samples\": {totalQuerySamples},");
+		sb.AppendLine($"    \"total_hit_samples\": {totalHitSamples},");
+		sb.AppendLine($"    \"invariant_ring_query_share\": {FormatFloat(invariantRingQueryShare)},");
+		sb.AppendLine($"    \"non_invariant_query_share\": {FormatFloat(nonInvariantQueryShare)},");
+		sb.AppendLine("    \"high_cost_low_value\": [");
+		AppendUsefulnessMetricArrayJson(sb, lowValue, 3);
+		sb.AppendLine();
+		sb.AppendLine("    ],");
+		sb.AppendLine("    \"high_value\": [");
+		AppendUsefulnessMetricArrayJson(sb, highValue, 3);
+		sb.AppendLine();
+		sb.AppendLine("    ]");
+		sb.Append("  }");
+	}
+
+	private static void AppendLowValueSectorBudgetJson(
+		StringBuilder sb,
+		LowValueSectorBudgetContract contract,
+		LowValueSectorBudgetResult result)
+	{
+		sb.AppendLine("  \"low_value_sector_budget_contract\": {");
+		sb.AppendLine($"    \"layer\": {contract.LayerIndex},");
+		sb.AppendLine($"    \"radial_bin\": {contract.RadialBin},");
+		sb.AppendLine($"    \"baseline_query_share\": {FormatFloat(contract.BaselineQueryShare)},");
+		sb.AppendLine($"    \"max_query_share_scale\": {FormatFloat(contract.MaxQueryShareScale)},");
+		sb.AppendLine($"    \"maximum_allowed_query_share\": {FormatFloat(contract.MaximumAllowedQueryShare)}");
+		sb.AppendLine("  },");
+		sb.AppendLine("  \"low_value_sector_budget_result\": {");
+		sb.AppendLine($"    \"target_found\": {result.TargetFound.ToString().ToLowerInvariant()},");
+		sb.AppendLine($"    \"passed\": {result.Passed.ToString().ToLowerInvariant()},");
+		sb.AppendLine($"    \"failure_reason\": \"{result.FailureReason}\",");
+		sb.AppendLine($"    \"actual_query_share\": {FormatFloat(result.ActualQueryShare)},");
+		sb.AppendLine($"    \"maximum_allowed_query_share\": {FormatFloat(result.MaximumAllowedQueryShare)},");
+		sb.AppendLine($"    \"query_share_delta\": {FormatFloat(result.QueryShareDelta)},");
+		sb.AppendLine($"    \"target_query_samples\": {result.TargetQuerySamples},");
+		sb.AppendLine($"    \"total_query_samples\": {result.TotalQuerySamples}");
+		sb.Append("  }");
+	}
+
+	private static void AppendLowValueThrottleProfileJson(
+		StringBuilder sb,
+		LowValueThrottleProfileSnapshot profile)
+	{
+		sb.AppendLine("  \"low_value_throttle_profile\": {");
+		sb.AppendLine($"    \"enabled\": {profile.Enabled.ToString().ToLowerInvariant()},");
+		sb.AppendLine($"    \"layer\": {profile.LayerIndex},");
+		sb.AppendLine($"    \"radial_bin\": {profile.RadialBin},");
+		sb.AppendLine($"    \"theta_bins_csv\": \"{profile.ThetaBinsCsv}\",");
+		sb.AppendLine($"    \"period\": {profile.Period}");
+		sb.Append("  }");
+	}
+
+	private static void AppendUsefulnessMetricArrayJson(
+		StringBuilder sb,
+		PortalUsefulnessMetric[] metrics,
+		int maxCount)
+	{
+		int written = 0;
+		for (int i = 0; i < metrics.Length && written < maxCount; i++)
+		{
+			PortalUsefulnessMetric metric = metrics[i];
+			if (written > 0)
+				sb.AppendLine(",");
+			sb.Append("      {");
+			sb.Append($"\"layer\": {metric.LayerIndex}, ");
+			sb.Append($"\"radial_bin\": {metric.RadialBin}, ");
+			sb.Append($"\"theta_bin\": {metric.ThetaBin}, ");
+			sb.Append($"\"invariant_ring\": {metric.InvariantRing.ToString().ToLowerInvariant()}, ");
+			sb.Append($"\"query_samples\": {metric.QuerySamples}, ");
+			sb.Append($"\"candidate_samples\": {metric.CandidateSamples}, ");
+			sb.Append($"\"hit_samples\": {metric.HitSamples}, ");
+			sb.Append($"\"query_share\": {FormatFloat(metric.QueryShare)}, ");
+			sb.Append($"\"query_hit_yield\": {FormatFloat(metric.QueryHitYield)}, ");
+			sb.Append($"\"dominant_hit_kind\": \"{metric.DominantHitKind}\", ");
+			sb.Append($"\"low_value_score\": {FormatFloat(metric.LowValueScore)}, ");
+			sb.Append($"\"high_value_score\": {FormatFloat(metric.HighValueScore)}");
+			sb.Append("}");
+			written++;
+		}
 	}
 
 	private static void ComputeRingContinuity(
@@ -1060,6 +1490,87 @@ public partial class WormholePrototypeRig : Node3D
 		}
 	}
 
+	private void WritePortalUsefulnessVisualization(
+		PortalUsefulnessMetric[] metrics,
+		int thetaBins,
+		int radialBins,
+		string absolutePath,
+		ProtoCausticInvariantContract invariantContract)
+	{
+		if (metrics == null || metrics.Length == 0)
+			return;
+
+		int layerCount = 0;
+		int maxQueries = 0;
+		float maxYield = 0f;
+		foreach (PortalUsefulnessMetric metric in metrics)
+		{
+			layerCount = Math.Max(layerCount, metric.LayerIndex + 1);
+			maxQueries = Math.Max(maxQueries, metric.QuerySamples);
+			maxYield = Math.Max(maxYield, metric.QueryHitYield);
+		}
+
+		int cellSize = 12;
+		int panelCount = 3;
+		int width = Math.Max(1, thetaBins * cellSize);
+		int height = Math.Max(1, layerCount * radialBins * panelCount * cellSize);
+		Image image = Image.CreateEmpty(width, height, false, Image.Format.Rgba8);
+		image.Fill(new Color(0.03f, 0.03f, 0.04f, 1f));
+
+		foreach (PortalUsefulnessMetric metric in metrics)
+		{
+			Color queryColor = ComputeUsefulnessQueryColor(metric.QuerySamples, maxQueries);
+			Color yieldColor = ComputeUsefulnessYieldColor(metric.QueryHitYield, maxYield);
+			Color contributionColor = ComputeUsefulnessContributionColor(metric);
+			PaintPortalUsefulnessCell(image, metric.ThetaBin, metric.LayerIndex, metric.RadialBin, 0, radialBins, panelCount, cellSize, queryColor);
+			PaintPortalUsefulnessCell(image, metric.ThetaBin, metric.LayerIndex, metric.RadialBin, 1, radialBins, panelCount, cellSize, yieldColor);
+			PaintPortalUsefulnessCell(image, metric.ThetaBin, metric.LayerIndex, metric.RadialBin, 2, radialBins, panelCount, cellSize, contributionColor);
+
+			if (metric.LayerIndex == invariantContract.LayerIndex && metric.RadialBin == invariantContract.RadialBin)
+			{
+				int startX = metric.ThetaBin * cellSize;
+				for (int panel = 0; panel < panelCount; panel++)
+				{
+					int startY = ((metric.LayerIndex * panelCount + panel) * radialBins + metric.RadialBin) * cellSize;
+					DrawMetricOutline(image, startX, startY, cellSize, cellSize, new Color(0.24f, 0.95f, 0.34f, 1f));
+				}
+			}
+		}
+
+		Error saveError = image.SavePng(absolutePath);
+		if (saveError == Error.Ok)
+		{
+			GD.Print($"[WormholeValidation] portal_usefulness_heatmap_saved path={absolutePath}");
+		}
+		else
+		{
+			GD.PushWarning($"[WormholeValidation] failed to save portal usefulness heatmap path={absolutePath} error={saveError}");
+		}
+	}
+
+	private static void PaintPortalUsefulnessCell(
+		Image image,
+		int theta,
+		int layer,
+		int radial,
+		int panelIndex,
+		int radialBins,
+		int panelCount,
+		int cellSize,
+		Color color)
+	{
+		int startX = theta * cellSize;
+		int startY = ((layer * panelCount + panelIndex) * radialBins + radial) * cellSize;
+		for (int y = 0; y < cellSize; y++)
+		{
+			for (int x = 0; x < cellSize; x++)
+			{
+				bool border = x == 0 || y == 0;
+				image.SetPixel(startX + x, startY + y, border ? color.Darkened(0.35f) : color);
+			}
+		}
+	}
+
 	private static void PaintMetricCell(Image image, int startX, int startY, int width, int height, Color color)
 	{
 		for (int y = 0; y < height; y++)
@@ -1177,6 +1688,27 @@ public partial class WormholePrototypeRig : Node3D
 			$"d_radial_gradient={FormatFloat(invariantResult.RadialGradientDelta)}");
 	}
 
+	private static void LogLowValueSectorBudgetResult(
+		LowValueSectorBudgetContract contract,
+		LowValueSectorBudgetResult result)
+	{
+		GD.Print(
+			$"[WormholeValidation] low_value_sector_budget pass={result.Passed.ToString().ToLowerInvariant()} " +
+			$"target_layer={contract.LayerIndex} target_radial_bin={contract.RadialBin} " +
+			$"reason={result.FailureReason} actual_query_share={FormatFloat(result.ActualQueryShare)} " +
+			$"max_query_share={FormatFloat(result.MaximumAllowedQueryShare)} " +
+			$"d_query_share={FormatFloat(result.QueryShareDelta)} target_query_samples={result.TargetQuerySamples} " +
+			$"total_query_samples={result.TotalQuerySamples}");
+	}
+
+	private static void LogLowValueThrottleProfile(LowValueThrottleProfileSnapshot profile)
+	{
+		GD.Print(
+			$"[WormholeValidation] low_value_throttle enabled={profile.Enabled.ToString().ToLowerInvariant()} " +
+			$"layer={profile.LayerIndex} radial_bin={profile.RadialBin} " +
+			$"theta_bins={profile.ThetaBinsCsv} period={profile.Period}");
+	}
+
 	private static string FormatFloat(float value)
 	{
 		return value.ToString("0.####", CultureInfo.InvariantCulture);
@@ -1234,6 +1766,33 @@ public partial class WormholePrototypeRig : Node3D
 		return cell.PositiveOverlapInvariant
 			? new Color(0.15f, 0.65f, 0.88f, 1f)
 			: new Color(0.85f, 0.45f, 0.18f, 1f);
+	}
+
+	private static Color ComputeUsefulnessQueryColor(int querySamples, int maxQuerySamples)
+	{
+		if (querySamples <= 0 || maxQuerySamples <= 0)
+			return new Color(0.08f, 0.08f, 0.1f, 1f);
+		float normalized = Mathf.Clamp((float)Math.Log(querySamples + 1) / (float)Math.Log(maxQuerySamples + 1), 0f, 1f);
+		return new Color(0.1f, 0.12f + 0.65f * normalized, 0.16f + 0.72f * normalized, 1f);
+	}
+
+	private static Color ComputeUsefulnessYieldColor(float queryHitYield, float maxYield)
+	{
+		if (queryHitYield <= 0f || maxYield <= 1e-5f)
+			return new Color(0.08f, 0.08f, 0.1f, 1f);
+		float normalized = Mathf.Clamp(queryHitYield / maxYield, 0f, 1f);
+		return new Color(0.18f + 0.72f * normalized, 0.12f + 0.70f * normalized, 0.10f, 1f);
+	}
+
+	private static Color ComputeUsefulnessContributionColor(PortalUsefulnessMetric metric)
+	{
+		if (metric == null || metric.QuerySamples <= 0)
+			return new Color(0.08f, 0.08f, 0.1f, 1f);
+		if (metric.InvariantRing && metric.HitSamples > 0)
+			return new Color(0.24f, 0.92f, 0.34f, 1f);
+		if (metric.HitSamples > 0)
+			return new Color(0.92f, 0.76f, 0.20f, 1f);
+		return new Color(0.78f, 0.18f, 0.16f, 1f);
 	}
 
 	private static Color ComputeHitColor(PortalSectorArtifactCell cell)

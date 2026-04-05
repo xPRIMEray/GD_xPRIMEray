@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3]
+[gd_scene load_steps=24 format=3]
 
 [ext_resource type="Script" path="res://Wormhole/WormholePrototypeRig.cs" id="1_rig"]
 [ext_resource type="Script" path="res://Wormhole/WormholePortal.cs" id="2_portal"]
@@ -8,6 +8,8 @@
 [ext_resource type="Script" path="res://RayBeamRenderer.cs" id="6_rbr"]
 [ext_resource type="Script" path="res://GrinFilmCamera.cs" id="7_grin"]
 [ext_resource type="Script" path="res://FilmOverlay2D.cs" id="8_overlay"]
+[ext_resource type="Script" path="res://Wormhole/WormholeResearchOverlay.cs" id="9_research"]
+[ext_resource type="Script" path="res://Wormhole/WormholeResearchOverlayCanvas.cs" id="10_research_canvas"]
 
 [sub_resource type="SphereMesh" id="SphereMesh_marker"]
 radius = 0.7
@@ -88,12 +90,19 @@ CaptureValidationScreenshot = true
 ValidationCaptureDelaySeconds = 20.0
 ValidationCaptureMaxDelaySeconds = 60.0
 ValidationCapturePath = "res://output/wormhole_test/wormhole_validation_capture.png"
+CaptureValidationCompositeScreenshot = true
+ValidationCompositeCapturePath = "res://output/wormhole_test/wormhole_validation_composed.png"
 ProtoCausticInvariantLayer = 1
 ProtoCausticInvariantRadialBin = 3
 ProtoCausticInvariantMinHitDensity = 800.0
 ProtoCausticInvariantMinHitContinuityRatio = 0.95
 ProtoCausticInvariantMinPositiveOverlapContinuityRatio = 0.95
 ProtoCausticInvariantMinRadialGradient = 600.0
+LowValueSectorBudgetEnabled = true
+LowValueSectorBudgetLayer = 0
+LowValueSectorBudgetRadialBin = 3
+LowValueSectorBudgetBaselineQueryShare = 0.4011
+LowValueSectorBudgetMaxQueryShareScale = 0.9
 EmitBoundaryValidationSummaryAfterCapture = true
 BoundaryValidationLabel = "wormhole_validation"
 ValidationWaitForFilmWrap = true
@@ -379,12 +388,67 @@ WormholePortalSectorThetaBins = 16
 WormholePortalSectorRadialBins = 4
 WormholePortalSectorDirectionBins = 8
 WormholePortalSectorRepresentativeMinSamples = 4
+WormholePortalSectorLowValueThrottleEnabled = true
+WormholePortalSectorLowValueThrottleLayer = 0
+WormholePortalSectorLowValueThrottleRadialBin = 3
+WormholePortalSectorLowValueThetaBinsCsv = "13,14,15,0"
+WormholePortalSectorLowValueThrottlePeriod = 2
 UsePass2CollisionStride = false
 RayBeamRendererPath = NodePath("../RayBeamRenderer")
 DebugEveryNPixels = 12
 DebugMaxFilmRays = 1024
 FilmViewPath = NodePath("../CanvasLayer/FilmView")
 FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
+
+[node name="ResearchOverlayViewport" type="SubViewport" parent="."]
+size = Vector2i(320, 180)
+transparent_bg = false
+own_world_3d = true
+render_target_update_mode = 4
+
+[node name="ResearchOverlayCamera" type="Camera3D" parent="ResearchOverlayViewport"]
+projection = 1
+size = 125.0
+near = 0.01
+far = 600.0
+cull_mask = 16
+current = true
+
+[node name="ResearchOverlayCanvas" type="Control" parent="ResearchOverlayViewport"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("10_research_canvas")
+OverlayControllerPath = NodePath("../../ResearchOverlayDebug")
+
+[node name="ResearchOverlayDebug" type="Node3D" parent="."]
+script = ExtResource("9_research")
+MainCameraPath = NodePath("../PlayerCamera")
+PortalAPath = NodePath("../SceneA/PortalA")
+PortalBPath = NodePath("../SceneB/PortalB")
+ProbeWallPath = NodePath("../SceneB/ProbeWallB")
+BackdropAPath = NodePath("../SceneA/BackdropA")
+BackdropBPath = NodePath("../SceneB/BackdropB")
+OverlayViewportPath = NodePath("../ResearchOverlayViewport")
+OverlayCameraPath = NodePath("../ResearchOverlayViewport/ResearchOverlayCamera")
+OverlayTextureRectPath = NodePath("../CanvasLayer/ResearchOverlayPanel/InsetMargin/InsetVBox/ResearchOverlayView")
+OverlayLabelPath = NodePath("../CanvasLayer/ResearchOverlayPanel/InsetMargin/InsetVBox/OverlayLabel")
+OverlayLegendPath = NodePath("../CanvasLayer/ResearchOverlayPanel/InsetMargin/InsetVBox/OverlayLegend")
+ViewMode = 1
+ShowFieldShells = true
+ShowProbeGeometry = true
+ShowBackdrops = true
+ResearchLayerMask = 16
+InsetSize = Vector2i(320, 180)
+TopDownHeight = 120.0
+TopDownOrthoSize = 125.0
+ObliqueDistance = 96.0
+ObliqueHeight = 58.0
+ObliqueOrthoSize = 132.0
+CameraForwardLength = 8.0
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 layer = -2
@@ -417,3 +481,42 @@ ComparisonBackdropThickness = 2.5
 ComparisonLineColor = Color(1, 1, 1, 0.18)
 ComparisonBackdropColor = Color(0, 0, 0, 0.14)
 metadata/_edit_use_anchors_ = true
+
+[node name="ResearchOverlayPanel" type="PanelContainer" parent="CanvasLayer"]
+anchors_preset = 10
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -352.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 252.0
+grow_horizontal = 0
+mouse_filter = 2
+
+[node name="InsetMargin" type="MarginContainer" parent="CanvasLayer/ResearchOverlayPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="InsetVBox" type="VBoxContainer" parent="CanvasLayer/ResearchOverlayPanel/InsetMargin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="OverlayLabel" type="Label" parent="CanvasLayer/ResearchOverlayPanel/InsetMargin/InsetVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "RESEARCH VIEW · OBLIQUE MAP"
+
+[node name="ResearchOverlayView" type="TextureRect" parent="CanvasLayer/ResearchOverlayPanel/InsetMargin/InsetVBox"]
+custom_minimum_size = Vector2(320, 180)
+layout_mode = 2
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="OverlayLegend" type="Label" parent="CanvasLayer/ResearchOverlayPanel/InsetMargin/InsetVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+modulate = Color(0.86, 0.9, 0.96, 0.82)
+text = "A mouth/shell  B mouth/shell  yellow=camera  blue=probe"

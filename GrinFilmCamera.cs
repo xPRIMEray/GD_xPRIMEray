@@ -340,6 +340,7 @@ public partial class GrinFilmCamera : Node
 		public readonly int RadialBin;
 		public readonly int DirectionBin;
 		public readonly int RemapBin;
+		public readonly int QuerySamples;
 		public readonly int CandidateSamples;
 		public readonly int FirstCandidateCount;
 		public readonly ulong FirstCandidateHash;
@@ -360,6 +361,7 @@ public partial class GrinFilmCamera : Node
 			int radialBin,
 			int directionBin,
 			int remapBin,
+			int querySamples,
 			int candidateSamples,
 			int firstCandidateCount,
 			ulong firstCandidateHash,
@@ -379,6 +381,7 @@ public partial class GrinFilmCamera : Node
 			RadialBin = radialBin;
 			DirectionBin = directionBin;
 			RemapBin = remapBin;
+			QuerySamples = querySamples;
 			CandidateSamples = candidateSamples;
 			FirstCandidateCount = firstCandidateCount;
 			FirstCandidateHash = firstCandidateHash;
@@ -460,6 +463,7 @@ public partial class GrinFilmCamera : Node
 
 	private sealed class WormholePortalSectorState
 	{
+		public int QuerySamples;
 		public int CandidateSamples;
 		public int HitSamples;
 		public int FirstCandidateCount = -1;
@@ -1219,6 +1223,11 @@ public partial class GrinFilmCamera : Node
 	[Export(PropertyHint.Range, "1,16,1")] public int WormholePortalSectorRadialBins = 4;
 	[Export(PropertyHint.Range, "2,32,1")] public int WormholePortalSectorDirectionBins = 8;
 	[Export(PropertyHint.Range, "2,16,1")] public int WormholePortalSectorRepresentativeMinSamples = 4;
+	[Export] public bool WormholePortalSectorLowValueThrottleEnabled = false;
+	[Export] public int WormholePortalSectorLowValueThrottleLayer = 0;
+	[Export] public int WormholePortalSectorLowValueThrottleRadialBin = 3;
+	[Export] public string WormholePortalSectorLowValueThetaBinsCsv = "";
+	[Export(PropertyHint.Range, "2,8,1")] public int WormholePortalSectorLowValueThrottlePeriod = 2;
 
 	[ExportSubgroup("Broadphase / Auto Heuristics")]
 	/// <summary>Render-health window size used by Auto broadphase policy.</summary>
@@ -1994,6 +2003,8 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private long _wormholePortalSectorRepresentativeQueriesSavedThisRun = 0;
 	private bool _wormholeSpatialProbeLoggedThisRun = false;
 	private readonly System.Collections.Generic.Dictionary<WormholePortalSectorKey, WormholePortalSectorState> _wormholePortalSectorStates = new();
+	private readonly System.Collections.Generic.HashSet<int> _wormholePortalSectorLowValueThetaBins = new();
+	private string _wormholePortalSectorLowValueThetaBinsCsvCached = string.Empty;
 	private byte[] _fixtureRowsConsidered = Array.Empty<byte>();
 	private byte[] _fixtureRowsProcessed = Array.Empty<byte>();
 	private byte[] _fixtureRowsSkipped = Array.Empty<byte>();
@@ -4819,6 +4830,7 @@ private sealed class OverlayRollingWindow
 				key.RadialBin,
 				key.DirectionBin,
 				key.RemapBin,
+				state.QuerySamples,
 				state.CandidateSamples,
 				state.FirstCandidateCount,
 				state.FirstCandidateHash,
@@ -4940,6 +4952,47 @@ private sealed class OverlayRollingWindow
 		{
 			state.PositiveOverlapInvariant = false;
 		}
+	}
+
+	private void ObserveWormholePortalSectorQuery(in WormholePortalSectorKey key)
+	{
+		WormholePortalSectorState state = GetOrCreateWormholePortalSectorState(in key);
+		state.QuerySamples++;
+	}
+
+	private void EnsureWormholePortalSectorLowValueThetaBinsCache()
+	{
+		string csv = WormholePortalSectorLowValueThetaBinsCsv?.Trim() ?? string.Empty;
+		if (string.Equals(csv, _wormholePortalSectorLowValueThetaBinsCsvCached, StringComparison.Ordinal))
+			return;
+
+		_wormholePortalSectorLowValueThetaBinsCsvCached = csv;
+		_wormholePortalSectorLowValueThetaBins.Clear();
+		if (string.IsNullOrWhiteSpace(csv))
+			return;
+
+		string[] tokens = csv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+		foreach (string token in tokens)
+		{
+			if (int.TryParse(token, out int thetaBin))
+				_wormholePortalSectorLowValueThetaBins.Add(thetaBin);
+		}
+	}
+
+	private bool ShouldThrottleWormholePortalSectorQuery(in WormholePortalSectorKey key, int pixelX, int pixelY, int segmentIndex)
+	{
+		if (!WormholePortalSectorLowValueThrottleEnabled)
+			return false;
+		if (key.LayerIndex != WormholePortalSectorLowValueThrottleLayer || key.RadialBin != WormholePortalSectorLowValueThrottleRadialBin)
+			return false;
+
+		EnsureWormholePortalSectorLowValueThetaBinsCache();
+		if (_wormholePortalSectorLowValueThetaBins.Count > 0 && !_wormholePortalSectorLowValueThetaBins.Contains(key.ThetaBin))
+			return false;
+
+		int period = Math.Max(2, WormholePortalSectorLowValueThrottlePeriod);
+		int selector = Math.Abs(pixelX + pixelY + segmentIndex);
+		return (selector % period) != 0;
 	}
 
 	private bool TryUseWormholePortalSectorRepresentativeOverlap(
@@ -12022,9 +12075,17 @@ private sealed class OverlayRollingWindow
 												}
 												if (!usedRepresentativeOverlap)
 												{
-													RunOverlapQuery(space, segA, segB, overlapCandidates, out overlapCount);
-													if (portalSectorValid)
-														ObserveWormholePortalSectorPositiveOverlap(in portalSectorKey, overlapCount);
+													bool throttledLowValueSector = portalSectorValid
+														&& ShouldThrottleWormholePortalSectorQuery(in portalSectorKey, x, y, si);
+													if (!throttledLowValueSector)
+													{
+														RunOverlapQuery(space, segA, segB, overlapCandidates, out overlapCount);
+														if (portalSectorValid)
+														{
+															ObserveWormholePortalSectorQuery(in portalSectorKey);
+															ObserveWormholePortalSectorPositiveOverlap(in portalSectorKey, overlapCount);
+														}
+													}
 												}
 												if (overlapCount > 0)
 													candidateCount = overlapCount;
