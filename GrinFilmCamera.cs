@@ -2025,6 +2025,8 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private bool _hasLastRangeFar;
 
 	private FramePerf _framePerf = new FramePerf();
+	private PerfFrameReport _lastCompletedPerfFrame;
+	private bool _hasLastCompletedPerfFrame = false;
 	private uint[] _presentTouchedEpoch = Array.Empty<uint>();
 	private uint[] _refreshTouchedEpoch = Array.Empty<uint>();
 	private uint _presentTouchedEpochId = 1;
@@ -4641,6 +4643,12 @@ private sealed class OverlayRollingWindow
 			latest.GeomPruneRequested,
 			latest.UseGeometryTLASPruning);
 		return true;
+	}
+
+	public bool TryGetLatestPerfFrameReportForTesting(out PerfFrameReport report)
+	{
+		report = _lastCompletedPerfFrame;
+		return _hasLastCompletedPerfFrame;
 	}
 
 	public void ResetFixtureDebugStatsForRunStart()
@@ -13483,6 +13491,8 @@ private sealed class OverlayRollingWindow
 					&& _perfFrame.Hits == 0
 					&& _perfFrame.TracedPixels > 0
 					&& _perfFrame.ShadingSkippedPixels >= _perfFrame.TracedPixels;
+				_lastCompletedPerfFrame = _perfFrame;
+				_hasLastCompletedPerfFrame = true;
 				_perfStats.FinalizeAndPrint(ref _perfFrame, cfg.VerbosePerfLogs);
 			}
 			if (framePerfEnabled && _rowCursor == 0)

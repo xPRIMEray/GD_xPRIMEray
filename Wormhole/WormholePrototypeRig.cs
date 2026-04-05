@@ -235,6 +235,8 @@ public partial class WormholePrototypeRig : Node3D
 	private WormholePortal _portalB;
 	private RayBeamRenderer _rayBeamRenderer;
 	private GrinFilmCamera _filmCamera;
+	private WormholeResearchOverlay _researchOverlay;
+	private Label _researchOverlayStatusLabel;
 	private WormholePortal _activePortal;
 	private float _lastActivePortalDelta;
 	private double _teleportCooldownRemaining;
@@ -246,6 +248,12 @@ public partial class WormholePrototypeRig : Node3D
 	private bool _validationSawFilmProgress;
 	private string _validationTriggerReason = "unknown";
 	private int _teleportCount;
+	private PerfFrameReport _latestPerfFrameReport;
+	private bool _hasLatestPerfFrameReport;
+	private ProtoCausticInvariantResult _latestProtoCausticInvariantResult;
+	private LowValueSectorBudgetResult _latestLowValueSectorBudgetResult;
+	private LowValueThrottleProfileSnapshot _latestLowValueThrottleProfile;
+	private PortalRingMetric _latestInvariantRingMetric;
 
 	public override void _Ready()
 	{
@@ -255,6 +263,8 @@ public partial class WormholePrototypeRig : Node3D
 		_portalB = GetNodeOrNull<WormholePortal>(PortalBPath);
 		_rayBeamRenderer = GetNodeOrNull<RayBeamRenderer>(RayBeamRendererPath);
 		_filmCamera = GetNodeOrNull<GrinFilmCamera>(FilmCameraPath);
+		_researchOverlay = GetNodeOrNull<WormholeResearchOverlay>("ResearchOverlayDebug");
+		_researchOverlayStatusLabel = GetNodeOrNull<Label>("CanvasLayer/ResearchOverlayPanel/InsetMargin/InsetVBox/OverlayStatus");
 
 		if (_traveler == null || _mainCamera == null || _portalA == null || _portalB == null)
 		{
@@ -432,7 +442,7 @@ public partial class WormholePrototypeRig : Node3D
 		GD.Print("[WormholeValidation] input_lock traveler_input=disabled mouse_mode=visible");
 	}
 
-	private void ExecuteValidationCapture()
+	private async void ExecuteValidationCapture()
 	{
 		if (!IsInsideTree() || _validationCaptureCompleted)
 		{
@@ -445,13 +455,15 @@ public partial class WormholePrototypeRig : Node3D
 		if (CaptureValidationScreenshot)
 		{
 			CaptureFilmScreenshot();
-			if (CaptureValidationCompositeScreenshot)
-			{
-				CaptureCompositeScreenshot();
-			}
 		}
 
 		SavePortalSectorArtifacts();
+		if (CaptureValidationScreenshot && CaptureValidationCompositeScreenshot)
+		{
+			await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+			CaptureCompositeScreenshot();
+		}
+		await GenerateFigureQuartetArtifactsAsync();
 
 		if (EmitBoundaryValidationSummaryAfterCapture)
 		{
@@ -566,6 +578,20 @@ public partial class WormholePrototypeRig : Node3D
 		LogProtoCausticInvariantResult(invariantContract, invariantResult);
 		LogLowValueSectorBudgetResult(lowValueContract, lowValueResult);
 		LogLowValueThrottleProfile(throttleProfile);
+		_latestProtoCausticInvariantResult = invariantResult;
+		_latestLowValueSectorBudgetResult = lowValueResult;
+		_latestLowValueThrottleProfile = throttleProfile;
+		_latestInvariantRingMetric = invariantResult?.TargetMetric;
+		_hasLatestPerfFrameReport = _filmCamera.TryGetLatestPerfFrameReportForTesting(out _latestPerfFrameReport);
+		_researchOverlay?.SetValidationContractStatus(invariantResult.Passed, lowValueResult.Passed);
+		if (_researchOverlayStatusLabel != null)
+		{
+			_researchOverlayStatusLabel.Text =
+				$"{(invariantResult.Passed ? "CAUSTIC PASS" : "CAUSTIC FAIL")} · {(lowValueResult.Passed ? "BUDGET PASS" : "BUDGET FAIL")}";
+			_researchOverlayStatusLabel.Modulate = invariantResult.Passed && lowValueResult.Passed
+				? new Color(0.82f, 0.98f, 0.86f, 0.96f)
+				: new Color(1f, 0.76f, 0.68f, 0.96f);
+		}
 		GD.Print(
 			$"[WormholeValidation] portal_usefulness invariant_ring_query_share={FormatFloat(invariantRingQueryShare)} " +
 			$"non_invariant_query_share={FormatFloat(nonInvariantQueryShare)} sector_count={usefulnessMetrics?.Length ?? 0}");
@@ -583,6 +609,286 @@ public partial class WormholePrototypeRig : Node3D
 			DirAccess.MakeDirRecursiveAbsolute(directory);
 		}
 		return Path.Combine(directory ?? ProjectSettings.GlobalizePath("res://output/wormhole_test"), fileName);
+	}
+
+	private string BuildValidationFigureAbsolutePath(string fileName)
+	{
+		string directory = Path.Combine(
+			Path.GetDirectoryName(BuildValidationArtifactAbsolutePath("wormhole_validation_capture.png"))
+				?? ProjectSettings.GlobalizePath("res://output/wormhole_test"),
+			"figures");
+		DirAccess.MakeDirRecursiveAbsolute(directory);
+		return Path.Combine(directory, fileName);
+	}
+
+	private async System.Threading.Tasks.Task GenerateFigureQuartetArtifactsAsync()
+	{
+		string figureAPath = BuildValidationFigureAbsolutePath("figure_A_main_render.png");
+		string figureBPath = BuildValidationFigureAbsolutePath("figure_B_composed_overlay.png");
+		string figureCPath = BuildValidationFigureAbsolutePath("figure_C_ring_density.png");
+		string figureDPath = BuildValidationFigureAbsolutePath("figure_D_metrics_table.png");
+		string captionsPath = BuildValidationFigureAbsolutePath("figure_captions.md");
+		CopyArtifactIfAvailable(ProjectSettings.GlobalizePath(ValidationCapturePath), figureAPath, "figure_A_main_render");
+		CopyArtifactIfAvailable(ProjectSettings.GlobalizePath(ValidationCompositeCapturePath), figureBPath, "figure_B_composed_overlay");
+		CopyArtifactIfAvailable(BuildValidationArtifactAbsolutePath("wormhole_portal_ring_density.png"), figureCPath, "figure_C_ring_density");
+		await WriteMetricsTableFigureAsync(figureDPath);
+		WriteFigureCaptionsMarkdown(captionsPath);
+		GD.Print(
+			$"[WormholeValidation] figure_quartet_saved dir={Path.GetDirectoryName(figureAPath)} " +
+			$"A={Path.GetFileName(figureAPath)} B={Path.GetFileName(figureBPath)} " +
+			$"C={Path.GetFileName(figureCPath)} D={Path.GetFileName(figureDPath)}");
+	}
+
+	private static void CopyArtifactIfAvailable(string sourceAbsolutePath, string destinationAbsolutePath, string label)
+	{
+		if (string.IsNullOrWhiteSpace(sourceAbsolutePath) || !File.Exists(sourceAbsolutePath))
+		{
+			GD.PushWarning($"[WormholeValidation] quartet_copy_missing label={label} path={sourceAbsolutePath}");
+			return;
+		}
+
+		string directory = Path.GetDirectoryName(destinationAbsolutePath);
+		if (!string.IsNullOrWhiteSpace(directory))
+		{
+			DirAccess.MakeDirRecursiveAbsolute(directory);
+		}
+
+		File.Copy(sourceAbsolutePath, destinationAbsolutePath, overwrite: true);
+		GD.Print($"[WormholeValidation] quartet_copy_saved label={label} path={destinationAbsolutePath}");
+	}
+
+	private async System.Threading.Tasks.Task WriteMetricsTableFigureAsync(string absolutePath)
+	{
+		string directory = Path.GetDirectoryName(absolutePath);
+		if (!string.IsNullOrWhiteSpace(directory))
+		{
+			DirAccess.MakeDirRecursiveAbsolute(directory);
+		}
+
+		GrinFilmCamera.WormholePostRemapDiagnosticsSnapshot wormholeSnapshot = default;
+		bool hasWormholeSnapshot = _filmCamera != null
+			&& GodotObject.IsInstanceValid(_filmCamera)
+			&& _filmCamera.TryGetWormholePostRemapDiagnosticsForTesting(out wormholeSnapshot);
+		if (_filmCamera != null && GodotObject.IsInstanceValid(_filmCamera)
+			&& _filmCamera.TryGetLatestPerfFrameReportForTesting(out PerfFrameReport latestPerf))
+		{
+			_latestPerfFrameReport = latestPerf;
+			_hasLatestPerfFrameReport = true;
+		}
+
+		SubViewport viewport = new()
+		{
+			Disable3D = true,
+			TransparentBg = false,
+			Size = new Vector2I(920, 420),
+			RenderTargetUpdateMode = SubViewport.UpdateMode.Always,
+			HandleInputLocally = false
+		};
+		AddChild(viewport);
+
+		Control root = new()
+		{
+			CustomMinimumSize = viewport.Size,
+			Size = viewport.Size,
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+		viewport.AddChild(root);
+
+		ColorRect background = new()
+		{
+			Color = new Color(0.045f, 0.05f, 0.07f, 1f),
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		background.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+		root.AddChild(background);
+
+		MarginContainer margin = new()
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		margin.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+		margin.AddThemeConstantOverride("margin_left", 22);
+		margin.AddThemeConstantOverride("margin_top", 18);
+		margin.AddThemeConstantOverride("margin_right", 22);
+		margin.AddThemeConstantOverride("margin_bottom", 18);
+		root.AddChild(margin);
+
+		VBoxContainer stack = new()
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			SizeFlagsVertical = Control.SizeFlags.ExpandFill
+		};
+		margin.AddChild(stack);
+
+		stack.AddChild(CreateMetricsLabel(
+			"WORMHOLE VALIDATION QUARTET · FIGURE D",
+			19,
+			new Color(0.95f, 0.97f, 1f, 0.98f)));
+		stack.AddChild(CreateMetricsLabel(
+			"Deterministic static harness metrics for the current kept wormhole profile.",
+			12,
+			new Color(0.78f, 0.84f, 0.92f, 0.92f)));
+		stack.AddChild(CreateMetricsSpacer(8));
+
+		HBoxContainer statusRow = new()
+		{
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		statusRow.AddThemeConstantOverride("separation", 12);
+		statusRow.AddChild(CreateBadgeLabel(
+			_latestProtoCausticInvariantResult?.Passed == true ? "PROTO-CAUSTIC PASS" : "PROTO-CAUSTIC FAIL",
+			_latestProtoCausticInvariantResult?.Passed == true
+				? new Color(0.22f, 0.74f, 0.38f, 1f)
+				: new Color(0.86f, 0.28f, 0.24f, 1f)));
+		statusRow.AddChild(CreateBadgeLabel(
+			_latestLowValueSectorBudgetResult?.Passed == true ? "LOW-VALUE BUDGET PASS" : "LOW-VALUE BUDGET FAIL",
+			_latestLowValueSectorBudgetResult?.Passed == true
+				? new Color(0.18f, 0.63f, 0.84f, 1f)
+				: new Color(0.86f, 0.28f, 0.24f, 1f)));
+		stack.AddChild(statusRow);
+		stack.AddChild(CreateMetricsSpacer(10));
+
+		PortalRingMetric targetMetric = _latestInvariantRingMetric;
+		stack.AddChild(CreateMetricsLabel("Optical / Contract", 15, new Color(0.92f, 0.95f, 1f, 0.96f)));
+		stack.AddChild(CreateMetricsLabel(
+			BuildMetricsBlock(new (string, string)[]
+			{
+				("Throttle", BuildThrottleProfileSummary(_latestLowValueThrottleProfile)),
+				("Hit density", targetMetric != null ? FormatFloat(targetMetric.MeanHitSamplesPerTheta) : "n/a"),
+				("Hit continuity", targetMetric != null ? FormatFloat(targetMetric.HitContinuityRatio) : "n/a"),
+				("Overlap continuity", targetMetric != null ? FormatFloat(targetMetric.PositiveOverlapContinuityRatio) : "n/a"),
+				("Radial gradient", targetMetric != null ? FormatFloat(targetMetric.RadialHitGradientFromPrev) : "n/a"),
+				("Caustic margin", _latestProtoCausticInvariantResult != null ? FormatFloat(_latestProtoCausticInvariantResult.HitDensityDelta) : "n/a"),
+				("Budget margin", _latestLowValueSectorBudgetResult != null ? FormatFloat(_latestLowValueSectorBudgetResult.QueryShareDelta) : "n/a")
+			}),
+			12,
+			new Color(0.90f, 0.94f, 1f, 0.96f),
+			wrap: false));
+		stack.AddChild(CreateMetricsSpacer(10));
+		stack.AddChild(CreateMetricsLabel("Performance / Output", 15, new Color(0.92f, 0.95f, 1f, 0.96f)));
+		stack.AddChild(CreateMetricsLabel(
+			BuildMetricsBlock(new (string, string)[]
+			{
+				("pass2.query", _hasLatestPerfFrameReport ? $"{_latestPerfFrameReport.Pass2QueryMs:0.00} ms" : "n/a"),
+				("pass2.physics", _hasLatestPerfFrameReport ? $"{_latestPerfFrameReport.Pass2PhysMs:0.00} ms" : "n/a"),
+				("pass2.candidate", _hasLatestPerfFrameReport ? $"{_latestPerfFrameReport.Pass2CandidateEvalMs:0.00} ms" : "n/a"),
+				("geom hits", hasWormholeSnapshot ? wormholeSnapshot.PostRemapGeometryHits.ToString(CultureInfo.InvariantCulture) : "n/a"),
+				("final write px", hasWormholeSnapshot ? wormholeSnapshot.PostRemapFinalWritePixels.ToString(CultureInfo.InvariantCulture) : "n/a"),
+				("candidate segs", hasWormholeSnapshot ? wormholeSnapshot.PostRemapCandidateSegments.ToString(CultureInfo.InvariantCulture) : "n/a"),
+				("post-remap queries", hasWormholeSnapshot ? wormholeSnapshot.PostRemapQueries.ToString(CultureInfo.InvariantCulture) : "n/a")
+			}),
+			12,
+			new Color(0.90f, 0.94f, 1f, 0.96f),
+			wrap: false));
+
+		stack.AddChild(CreateMetricsSpacer(10));
+		stack.AddChild(CreateMetricsLabel(
+			"Figure D summarizes the active optical contracts, throttle profile, and deterministic pass-2 measurements.",
+			11,
+			new Color(0.72f, 0.78f, 0.86f, 0.9f)));
+
+		await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+		await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+
+		Image image = viewport.GetTexture()?.GetImage();
+		if (image == null)
+		{
+			GD.PushWarning("[WormholeValidation] failed to save figure_D_metrics_table reason=missing_viewport_image");
+			viewport.QueueFree();
+			return;
+		}
+
+		Error saveError = image.SavePng(absolutePath);
+		if (saveError == Error.Ok)
+		{
+			GD.Print($"[WormholeValidation] quartet_metrics_saved path={absolutePath}");
+		}
+		else
+		{
+			GD.PushWarning($"[WormholeValidation] failed to save figure_D_metrics_table path={absolutePath} error={saveError}");
+		}
+
+		viewport.QueueFree();
+	}
+
+	private static string BuildMetricsBlock((string Label, string Value)[] rows)
+	{
+		StringBuilder sb = new();
+		for (int i = 0; i < rows.Length; i++)
+		{
+			if (i > 0)
+			{
+				sb.Append('\n');
+			}
+			sb.Append(rows[i].Label.PadRight(20)).Append("  ").Append(rows[i].Value);
+		}
+		return sb.ToString();
+	}
+
+	private static Control CreateMetricsSpacer(int height)
+	{
+		return new Control
+		{
+			CustomMinimumSize = new Vector2(0, height),
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+	}
+
+	private static Label CreateMetricsLabel(string text, int fontSize, Color color, bool wrap = true)
+	{
+		Label label = new()
+		{
+			Text = text ?? string.Empty,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			AutowrapMode = wrap ? TextServer.AutowrapMode.WordSmart : TextServer.AutowrapMode.Off
+		};
+		LabelSettings settings = new()
+		{
+			FontSize = fontSize,
+			FontColor = color
+		};
+		label.LabelSettings = settings;
+		return label;
+	}
+
+	private static Label CreateBadgeLabel(string text, Color badgeColor)
+	{
+		Label label = CreateMetricsLabel(text, 11, new Color(0.98f, 0.99f, 1f, 0.98f));
+		label.AutowrapMode = TextServer.AutowrapMode.Off;
+		label.AddThemeColorOverride("font_outline_color", badgeColor.Darkened(0.55f));
+		label.AddThemeConstantOverride("outline_size", 6);
+		return label;
+	}
+
+	private static string BuildThrottleProfileSummary(LowValueThrottleProfileSnapshot profile)
+	{
+		if (!profile.Enabled)
+		{
+			return "disabled";
+		}
+
+		return $"L{profile.LayerIndex} · R{profile.RadialBin} · th {{{profile.ThetaBinsCsv}}} · p={profile.Period}";
+	}
+
+	private void WriteFigureCaptionsMarkdown(string absolutePath)
+	{
+		string directory = Path.GetDirectoryName(absolutePath);
+		if (!string.IsNullOrWhiteSpace(directory))
+		{
+			DirAccess.MakeDirRecursiveAbsolute(directory);
+		}
+
+		string text =
+			"# Wormhole Validation Figure Captions\n\n" +
+			"**Figure A.** Raw accumulated film-buffer capture from the deterministic wormhole validation harness. The image is saved directly from the film path without the research overlay.\n\n" +
+			"**Figure B.** Composed deterministic validation capture showing the film result together with the research-view inset, HUD text, and contract status line.\n\n" +
+			"**Figure C.** Portal-centric ring-density visualization derived from the saved sector aggregation. The highlighted destination-side annulus corresponds to the active proto-caustic invariant target ring.\n\n" +
+			"**Figure D.** Compact summary card for the deterministic wormhole harness, reporting contract status, active low-value throttle profile, optical metrics for the invariant ring, and the current pass-2 performance buckets.\n";
+		File.WriteAllText(absolutePath, text);
+		GD.Print($"[WormholeValidation] quartet_captions_saved path={absolutePath}");
 	}
 
 	private void WritePortalSectorJsonReport(

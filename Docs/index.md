@@ -85,6 +85,19 @@ effective field center and image center remain aligned. Asymmetric fixtures
 should prefer field-relative analysis as the primary basis, while keeping
 image-center artifacts as companion diagnostics for screen-space interpretation.
 
+## Wormhole Validation Snapshot
+
+Each run produces a deterministic “figure quartet”:
+
+- A: raw render  
+- B: render + research overlay  
+- C: portal-sector density map  
+- D: invariant + performance summary  
+
+These artifacts allow visual, geometric, and quantitative validation of wormhole rendering in a single snapshot.
+
+See: [Docs/Research/wormhole_render_pipeline_validation.md](Docs/Research/wormhole_render_pipeline_validation.md)
+
 
 ### Archive
 

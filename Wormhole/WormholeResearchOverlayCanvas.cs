@@ -14,6 +14,7 @@ public partial class WormholeResearchOverlayCanvas : Control
 	[Export] public Color BackdropAColor = new(1f, 0.46f, 0.18f, 0.25f);
 	[Export] public Color BackdropBColor = new(0.24f, 0.52f, 1f, 0.25f);
 	[Export] public Color CameraColor = new(0.98f, 0.90f, 0.28f, 1f);
+	[Export] public Color InvariantHighlightColor = new(1f, 0.94f, 0.42f, 0.92f);
 
 	private WormholeResearchOverlay _overlayController;
 
@@ -62,6 +63,10 @@ public partial class WormholeResearchOverlayCanvas : Control
 			DrawArc(portalA, 18f, 0f, Mathf.Tau, 48, FieldAColor, 3f);
 			DrawArc(portalB, 18f, 0f, Mathf.Tau, 48, FieldBColor, 3f);
 		}
+
+		// Highlight the preserved destination-side invariant annulus.
+		DrawArc(portalB, 22f, 0f, Mathf.Tau, 64, InvariantHighlightColor, 2.5f);
+		DrawArc(portalB, 25f, 0f, Mathf.Tau, 64, new Color(InvariantHighlightColor, 0.45f), 1.5f);
 
 		DrawArc(portalA, 12f, 0f, Mathf.Tau, 48, ShellColor, 2f);
 		DrawArc(portalB, 12f, 0f, Mathf.Tau, 48, ShellColor, 2f);

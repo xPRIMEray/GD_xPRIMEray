@@ -436,6 +436,7 @@ OverlayViewportPath = NodePath("../ResearchOverlayViewport")
 OverlayCameraPath = NodePath("../ResearchOverlayViewport/ResearchOverlayCamera")
 OverlayTextureRectPath = NodePath("../CanvasLayer/ResearchOverlayPanel/InsetMargin/InsetVBox/ResearchOverlayView")
 OverlayLabelPath = NodePath("../CanvasLayer/ResearchOverlayPanel/InsetMargin/InsetVBox/OverlayLabel")
+OverlayStatusPath = NodePath("../CanvasLayer/ResearchOverlayPanel/InsetMargin/InsetVBox/OverlayStatus")
 OverlayLegendPath = NodePath("../CanvasLayer/ResearchOverlayPanel/InsetMargin/InsetVBox/OverlayLegend")
 ViewMode = 1
 ShowFieldShells = true
@@ -508,6 +509,12 @@ theme_override_constants/separation = 6
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
 text = "RESEARCH VIEW · OBLIQUE MAP"
+
+[node name="OverlayStatus" type="Label" parent="CanvasLayer/ResearchOverlayPanel/InsetMargin/InsetVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+modulate = Color(0.82, 0.98, 0.86, 0.96)
+text = "CAUSTIC PASS · BUDGET PASS"
 
 [node name="ResearchOverlayView" type="TextureRect" parent="CanvasLayer/ResearchOverlayPanel/InsetMargin/InsetVBox"]
 custom_minimum_size = Vector2(320, 180)

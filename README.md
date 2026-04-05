@@ -40,7 +40,18 @@ https://aethertopologist.github.io/GD_xPRIMEray/
 
 - [Curved_Ray_Transport_Model_Review](Research/curved_ray_transport_model_review.md) derivative-aware stepping +  hamiltonian transport roadmap
 
+## Wormhole Validation Snapshot
 
+Each run produces a deterministic “figure quartet”:
+
+- A: raw render  
+- B: render + research overlay  
+- C: portal-sector density map  
+- D: invariant + performance summary  
+
+These artifacts allow visual, geometric, and quantitative validation of wormhole rendering in a single snapshot.
+
+See: [Docs/Research/wormhole_render_pipeline_validation.md](Docs/Research/wormhole_render_pipeline_validation.md)
 
 ### Current / revised specifications
 

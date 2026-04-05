@@ -64,6 +64,7 @@ public partial class WormholeResearchOverlay : Node3D
 	[Export] public NodePath OverlayCameraPath = new("../ResearchOverlayViewport/ResearchOverlayCamera");
 	[Export] public NodePath OverlayTextureRectPath = new("../CanvasLayer/ResearchOverlayPanel/InsetMargin/InsetVBox/ResearchOverlayView");
 	[Export] public NodePath OverlayLabelPath = new("../CanvasLayer/ResearchOverlayPanel/InsetMargin/InsetVBox/OverlayLabel");
+	[Export] public NodePath OverlayStatusPath = new("../CanvasLayer/ResearchOverlayPanel/InsetMargin/InsetVBox/OverlayStatus");
 	[Export] public NodePath OverlayLegendPath = new("../CanvasLayer/ResearchOverlayPanel/InsetMargin/InsetVBox/OverlayLegend");
 
 	[ExportGroup("Display")]
@@ -90,7 +91,10 @@ public partial class WormholeResearchOverlay : Node3D
 	private Camera3D _overlayCamera;
 	private TextureRect _overlayTextureRect;
 	private Label _overlayLabel;
+	private Label _overlayStatus;
 	private Label _overlayLegend;
+	private bool _protoCausticPass = true;
+	private bool _lowValueBudgetPass = true;
 
 	private MeshInstance3D _portalAMouth;
 	private MeshInstance3D _portalAShell;
@@ -117,6 +121,7 @@ public partial class WormholeResearchOverlay : Node3D
 		_overlayCamera = GetNodeOrNull<Camera3D>(OverlayCameraPath);
 		_overlayTextureRect = GetNodeOrNull<TextureRect>(OverlayTextureRectPath);
 		_overlayLabel = GetNodeOrNull<Label>(OverlayLabelPath);
+		_overlayStatus = GetNodeOrNull<Label>(OverlayStatusPath);
 		_overlayLegend = GetNodeOrNull<Label>(OverlayLegendPath);
 
 		ConfigureOverlayViewport();
@@ -318,7 +323,7 @@ public partial class WormholeResearchOverlay : Node3D
 	{
 		if (_overlayLabel == null)
 		{
-			if (_overlayLegend == null)
+			if (_overlayLegend == null && _overlayStatus == null)
 				return;
 		}
 
@@ -328,10 +333,27 @@ public partial class WormholeResearchOverlay : Node3D
 			_overlayLabel.Text = $"RESEARCH VIEW · {modeText}";
 		}
 
+		if (_overlayStatus != null)
+		{
+			string protoText = _protoCausticPass ? "CAUSTIC PASS" : "CAUSTIC FAIL";
+			string budgetText = _lowValueBudgetPass ? "BUDGET PASS" : "BUDGET FAIL";
+			_overlayStatus.Text = $"{protoText} · {budgetText}";
+			_overlayStatus.Modulate = _protoCausticPass && _lowValueBudgetPass
+				? new Color(0.82f, 0.98f, 0.86f, 0.96f)
+				: new Color(1f, 0.76f, 0.68f, 0.96f);
+		}
+
 		if (_overlayLegend != null)
 		{
 			_overlayLegend.Text = "A mouth/shell  B mouth/shell  yellow=camera  blue=probe";
 		}
+	}
+
+	public void SetValidationContractStatus(bool protoCausticPass, bool lowValueBudgetPass)
+	{
+		_protoCausticPass = protoCausticPass;
+		_lowValueBudgetPass = lowValueBudgetPass;
+		UpdateOverlayLabel();
 	}
 
 	public bool TryGetSnapshot(out ResearchOverlaySnapshot snapshot)
