@@ -6,7 +6,7 @@ Positioned as both a **scientific research toolkit** and an **open-source GPU/CP
 ---
 
 ![Screenshot](icon.webp)
-![Screenshot](output/wormhole_test/figures/figure_B_composed_overlay.png)
+![Screenshot](_Wormhole_figures/figure_B_composed_overlay.png)
 
 ## Overview
 
