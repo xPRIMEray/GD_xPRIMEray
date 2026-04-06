@@ -6,7 +6,7 @@ Positioned as both a **scientific research toolkit** and an **open-source GPU/CP
 ---
 
 ![Screenshot](icon.webp)
-![Screenshot](output/wormhole_test/wormhole_validation_composed.png)
+![Screenshot](output/wormhole_test/figures/figure_B_composed_overlay.png)
 
 ## Overview
 
@@ -122,3 +122,16 @@ See: [Docs/Research/wormhole_render_pipeline_validation.md](Docs/Research/wormho
 - The MkDocs configuration should set `docs_dir: Docs` so GitHub Actions builds from the correct capitalized folder.
 - The current navigation treats `_1` spec files as the active revised versions, while the non-`_1` files are retained as legacy baselines.
 - The current `index.md` intentionally avoids linking to non-existent assets like `icon.webp` or missing screenshot paths.
+
+
+![Screenshot](screenshots/2026-03-01_CurvedMinimalFixture.png)
+
+![Screenshot](screenshots/2026-02-26_GenericScene-4fields-5obj.png)
+
+![Screenshot](screenshots/2026-02-26_GenericScene-4fields-5obj_camera-highmove.png)
+
+![Screenshot](screenshots/2026-02-26_GenericScene-4fields-5obj_negCurvature.png)
+
+![Screenshot](screenshots/wormhole_validation_capture.png)
+
+![Screenshot](output/wormhole_test/figures/figure_B_composed_overlay.png)
