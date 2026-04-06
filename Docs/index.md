@@ -5,6 +5,9 @@ Positioned as both a **scientific research toolkit** and an **open-source GPU/CP
 
 ---
 
+![Screenshot](icon.webp)
+![Screenshot](output/wormhole_test/wormhole_validation_composed.png)
+
 ## Overview
 
 GD_xPRIMEray is a hybrid symbolic-numeric ray transport system built on Godot Engine. It augments Godot’s renderer with **curved ray physics** — enabling simulation of graded refractive media, advanced optical phenomena, and non-Euclidean propagation domains.
@@ -72,6 +75,8 @@ These are still useful for historical context and design evolution comparison.
 
 - [Curved Ray Transport Model Review](Research/curved_ray_transport_model_review.md)
 - [Wormhole Render Pipeline Validation](Research/wormhole_render_pipeline_validation.md) — validated ground-truth pipeline, proof methodology, failure-mode history, and baseline guardrails for future wormhole tuning
+- [Papers](papers/index.md) — paper-family system for structured research notes, publication-style drafts, and reusable manuscript scaffolding
+- [Paper 001: Proto-Caustic Invariant in Geometry-Aware Wormhole Transport](papers/paper_001_proto_caustic_invariant/paper.md) — short research-note draft connecting the deterministic wormhole harness, the annular invariant, and geometry-aware validation logic
 
 - [GRIN Fixture Auto-Calibration Framework](Research/grin_fixture_auto_calibration_phase_plan.md)
 - [Fixture Research Note Pattern](Research/fixture_note_pattern.md) — shared note/template guidance, including canonical analysis basis declarations for future fixtures

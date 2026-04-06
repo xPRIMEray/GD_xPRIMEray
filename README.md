@@ -6,7 +6,7 @@ Positioned as both a **scientific research toolkit** and an **open-source GPU/CP
 ---
 
 ![Screenshot](icon.webp)
-
+![Screenshot](output/wormhole_test/wormhole_validation_composed.png)
 
 ## Overview
 
