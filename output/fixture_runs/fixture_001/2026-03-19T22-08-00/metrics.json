@@ -1,0 +1,30 @@
+{
+  "fixture_id": "fixture_001",
+  "scene": "res://test-grin-basic-visual-minimal.tscn",
+  "launcher": "run_fixture_001",
+  "status": "ok",
+  "failure_reason": null,
+  "transport_model_used": "GRIN_Optical",
+  "capture_succeeded": true,
+  "runtime_seconds": 23.456,
+  "traced_pixels": 39200,
+  "source_hits": 1806,
+  "background_hits": 6665,
+  "absorbed_hits": 0,
+  "miss_hits": 30729,
+  "ready_frames": 12,
+  "render_health_step": 41,
+  "processed_rows": 164,
+  "hit_success_rate": 0.04607142857142857,
+  "miss_rate": 0.7839030612244898,
+  "launch_audit": {
+    "requested_launcher": "manual",
+    "actual_scene": "res://test-grin-basic-visual-minimal.tscn",
+    "actual_fixture": "grin_basic_visual_minimal",
+    "expected_scene": "res://test-grin-basic-visual-minimal.tscn",
+    "expected_fixture": "grin_basic_visual_minimal",
+    "scene_match": 1,
+    "fixture_match": 1,
+    "status": "ok"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "enabled": false,
+  "reason": "field_projection_failed",
+  "analysis_capture_mode": "categorical_final",
+  "fixture_field_analysis": {
+    "resolved": false,
+    "reason": "field_projection_failed",
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-grin-basic-visual-linear-minimal.tscn",
+    "field_path": "FixtureGrinBasicVisualLinear/FieldSource3D",
+    "fixture_root_path": "FixtureGrinBasicVisualLinear",
+    "camera_path": "FixtureGrinBasicVisualLinear/Camera3D",
+    "projection_failures": []
+  }
+}

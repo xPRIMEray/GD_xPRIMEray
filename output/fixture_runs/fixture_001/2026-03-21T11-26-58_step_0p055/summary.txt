@@ -1,0 +1,11 @@
+Fixture: fixture_001
+Scene: res://test-grin-basic-visual-minimal.tscn
+Status: ok
+Runtime Seconds: 31.822
+Traced Pixels: 44576
+Source Hits: 2054
+Miss Hits: 39464
+Capture Succeeded: true
+Render Health Step: 41
+Processed Rows: 164
+Output Path: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_001/2026-03-21T11-26-58_step_0p055

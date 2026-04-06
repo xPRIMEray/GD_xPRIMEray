@@ -1,0 +1,16 @@
+Fixture: fixture_001
+Timestamp: 2026-03-21T14-13-00
+Scene: res://test-grin-basic-visual-minimal.tscn
+Status: ok
+Runtime Seconds: 28.452
+Traced Pixels: 50592
+Source Hits: 2310
+Miss Hits: 48282
+Capture Succeeded: true
+Launch Audit Status: ok
+Guard Progress Exits: 0
+Forced Advance Events: 0
+Render Health Step: 41
+Processed Rows: 164
+Turn Threshold: 4.8
+Output Path: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_001/2026-03-21T14-13-00

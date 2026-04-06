@@ -1,0 +1,22 @@
+Radial Profile
+Capture Path: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_004/2026-03-23T21-39-16/capture.png
+Analysis Capture Mode: categorical_final
+Bin Count: 8
+Center Pixel: (239.5, 134.5)
+Max Radius Px: 274.6825
+Legend: bin radius_px pixels final_hit rendered_no_hit unrendered hit_frac_rendered rendered_coverage other
+bin0   0.000- 34.335 px= 3712 hit=  646 nohit= 3066 unrendered=    0 hitFrac=0.1740 renderedCov=1.0000 other=    0
+bin1  34.335- 68.671 px=11116 hit=  235 nohit= 8293 unrendered= 2588 hitFrac=0.0276 renderedCov=0.7672 other=    0
+bin2  68.671-103.006 px=18504 hit=    0 nohit=11884 unrendered= 6620 hitFrac=0.0000 renderedCov=0.6422 other=    0
+bin3 103.006-137.341 px=25764 hit=    0 nohit=15458 unrendered=10306 hitFrac=0.0000 renderedCov=0.6000 other=    0
+bin4 137.341-171.677 px=22888 hit=    0 nohit=14018 unrendered= 8870 hitFrac=0.0000 renderedCov=0.6125 other=    0
+bin5 171.677-206.012 px=20704 hit=    0 nohit=12910 unrendered= 7794 hitFrac=0.0000 renderedCov=0.6236 other=    0
+bin6 206.012-240.347 px=19896 hit=    0 nohit=12494 unrendered= 7402 hitFrac=0.0000 renderedCov=0.6280 other=    0
+bin7 240.347-274.683 px= 7016 hit=    0 nohit= 3556 unrendered= 3460 hitFrac=0.0000 renderedCov=0.5068 other=    0
+Totals
+Pixels: 129600
+Final Hit Pixels: 881
+Rendered No-Hit Pixels: 81679
+Unrendered Pixels: 47040
+Overall Hit Fraction Within Rendered Area: 0.010671
+Overall Rendered Coverage Fraction: 0.637037

@@ -9,7 +9,6 @@ screenshots/
 __pycache__/
 *.pyc
 .env.local
-output/
 
 # Local machine junk
 .dotnet_cli/
