@@ -11,7 +11,8 @@ Each paper directory should contain:
 Current paper family:
 
 - [Paper 001: Proto-Caustic Invariant in Geometry-Aware Wormhole Transport](paper_001_proto_caustic_invariant/paper.md)
-- [Paper 002: Low-Value Sector Budget as a Negative Invariant in Geometry-Aware Wormhole Transport](paper_002_<slug>/paper.md)
+- [Paper 002: Low-Value Sector Budget as a Negative Invariant in Geometry-Aware Wormhole Transport](paper_002_low_value_sector_budget/paper.md)
+- [Paper 003: Coupled Invariants and Stability Phase Space in Geometry-Aware Wormhole Transport](paper_003_coupled_invariants_phase_space/paper.md)
 - [Paper Template](./_template/paper_template.md)
 
 Conventions:

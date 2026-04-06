@@ -134,4 +134,4 @@ See: [Docs/Research/wormhole_render_pipeline_validation.md](Docs/Research/wormho
 
 ![Screenshot](screenshots/wormhole_validation_capture.png)
 
-![Screenshot](output/wormhole_test/figures/figure_B_composed_overlay.png)
+![Screenshot](_Wormhole_figures/figure_B_composed_overlay.png)
