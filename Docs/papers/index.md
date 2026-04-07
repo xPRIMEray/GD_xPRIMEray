@@ -10,10 +10,14 @@ Each paper directory should contain:
 
 Current paper family:
 
-- [Paper 001: Proto-Caustic Invariant in Geometry-Aware Wormhole Transport](paper_001_proto_caustic_invariant/paper.md)
-- [Paper 002: Low-Value Sector Budget as a Negative Invariant in Geometry-Aware Wormhole Transport](paper_002_low_value_sector_budget/paper.md)
-- [Paper 003: Coupled Invariants and Stability Phase Space in Geometry-Aware Wormhole Transport](paper_003_coupled_invariants_phase_space/paper.md)
-- [Paper Template](./_template/paper_template.md)
+- [Paper 000: Unified Summary of the Wormhole Invariant Trilogy](paper_000_unified_summary/paper.md) — concise series overview framing the trilogy as one invariant-driven rendering program.
+- [Paper 001: Proto-Caustic Invariant in Geometry-Aware Wormhole Transport](paper_001_proto_caustic_invariant/paper.md) — defines the destination-side annulus as the positive geometric invariant.
+- [Paper 002: Low-Value Sector Budget as a Negative Invariant in Geometry-Aware Wormhole Transport](paper_002_low_value_sector_budget/paper.md) — defines the low-value outer-ring query-share budget as the complementary negative invariant.
+- [Paper 003: Coupled Invariants and Stability Phase Space in Geometry-Aware Wormhole Transport](paper_003_coupled_invariants_phase_space/paper.md) — studies the two contracts together and identifies a bounded stable operating region.
+- [Figure E: Coupled Phase Space](../../output/wormhole_test/figures/figure_E_phase_space.png) — compact visual summary of the observed under-constrained, stable, and rejected regions.
+- [Shared Related-Work and Bibliography Note](shared_related_work.md) — common terminology, notation, and reference buckets for eventual manuscript unification.
+- [Shared Figure Captions](figure_captions.md) — concise reusable captions for Figures A–E in a consistent paper-ready voice.
+- [Paper Template](./_template/paper_template.md) — reusable manuscript scaffold for future notes in the series.
 
 Conventions:
 

@@ -114,7 +114,6 @@ These are still useful for historical context and design evolution comparison.
 Licensed under MIT — recommended for both academic and creative use.
 
 If used in academic work, please cite accordingly.
-
 ![Screenshot](screenshots/2026-03-01_CurvedMinimalFixture.png)
 
 ![Screenshot](screenshots/2026-02-26_GenericScene-4fields-5obj.png)
@@ -123,4 +122,6 @@ If used in academic work, please cite accordingly.
 
 ![Screenshot](screenshots/2026-02-26_GenericScene-4fields-5obj_negCurvature.png)
 
-![Screenshot](_Wormhole_figures/figure_B_composed_overlay.png)
+![Screenshot](screenshots/wormhole_validation_capture.png)
+
+![Screenshot](wormhole_test/figures/figure_B_composed_overlay.png)

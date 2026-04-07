@@ -5,8 +5,7 @@ Positioned as both a **scientific research toolkit** and an **open-source GPU/CP
 
 ---
 
-![Screenshot](icon.webp)
-![Screenshot](_Wormhole_figures/figure_B_composed_overlay.png)
+![Screenshot](wormhole_test/figures/figure_B_composed_overlay.png)
 
 ## Overview
 
@@ -74,6 +73,7 @@ These are still useful for historical context and design evolution comparison.
 ## 🔬 Research & Experimental Frameworks
 
 - [Curved Ray Transport Model Review](Research/curved_ray_transport_model_review.md)
+- [Overspace Architecture Layer](Research/overspace_architecture_layer.md) — metadata-first world/layer/anchor/link graph for wormhole systems, rabbit-hole nesting, and future scale-clock-density transforms
 - [Wormhole Render Pipeline Validation](Research/wormhole_render_pipeline_validation.md) — validated ground-truth pipeline, proof methodology, failure-mode history, and baseline guardrails for future wormhole tuning
 - [Papers](papers/index.md) — paper-family system for structured research notes, publication-style drafts, and reusable manuscript scaffolding
 - [Paper 001: Proto-Caustic Invariant in Geometry-Aware Wormhole Transport](papers/paper_001_proto_caustic_invariant/paper.md) — short research-note draft connecting the deterministic wormhole harness, the annular invariant, and geometry-aware validation logic
@@ -134,4 +134,4 @@ See: [Docs/Research/wormhole_render_pipeline_validation.md](Docs/Research/wormho
 
 ![Screenshot](screenshots/wormhole_validation_capture.png)
 
-![Screenshot](_Wormhole_figures/figure_B_composed_overlay.png)
+![Screenshot](wormhole_test/figures/figure_B_composed_overlay.png)

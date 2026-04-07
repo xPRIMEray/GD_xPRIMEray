@@ -11,15 +11,15 @@ related_fixtures: wormhole_prototype
 
 ## Abstract
 
-We define a low-value sector budget as a negative invariant for deterministic wormhole rendering, complementing the proto-caustic annulus introduced in Paper 001. Whereas the proto-caustic invariant preserves a destination-side high-value optical structure, the present contract limits how much overlap-query work may continue to accumulate in portal-local sectors shown to have negligible contribution to the preserved image. Traditional ray tracing has little language for such a condition, since waste is usually measured globally through timing counters rather than geometrically through persistent low-yield regions. We demonstrate that the wormhole harness in `GD_xPRIMEray` admits a stable budget contract on a non-invariant outer-ring family and that a modest deterministic throttle can reduce pass-2 query cost while preserving hits, final writes, and the annular structure defined previously. The result is a paired validation system in which geometry dictates not only what must be preserved, but also where expenditure should remain bounded.
+We define a low-value sector budget as a negative invariant for deterministic wormhole rendering, complementing the proto-caustic annulus introduced in Paper 001. Whereas the proto-caustic invariant preserves a destination-side high-value optical structure, the present contract limits how much overlap-query work may continue to accumulate in portal-local sectors shown to have negligible contribution to the preserved image. Traditional ray tracing has little language for such a condition, since waste is usually measured globally through timing counters rather than geometrically through persistent low-yield regions. We demonstrate that the wormhole harness in `GD_xPRIMEray` admits a stable budget contract on a non-invariant outer-ring family and that a modest deterministic throttle reduces pass-2 query cost while preserving hits, final writes, and the annular structure defined previously. The result is a paired validation system in which geometry dictates not only what must be preserved, but also where expenditure should remain bounded.
 
 ## 1. Motivation
 
 Paper 001 established that wormhole transport in this harness should not be judged merely by whether rays survive remap and reach film. It showed that a portal-local annulus on the destination side carries structured optical value: continuity, density, and radial separation that remain stable under deterministic runs. That result immediately raises a complementary question. If some regions are demonstrably rich in optical significance, are there others whose cost can be bounded without injury to the preserved structure?
 
-Classical rendering practice often answers such a question only indirectly. One measures global timing, samples fewer rays, or prunes heuristically, then checks whether the image appears worse. Such a method is too blunt for a wormhole scene. The transport is curved, remapped, and observer-dependent; it is therefore easy to save time in the wrong place while leaving total correctness under-specified. One needs a notion of negative structure: a region whose repeated expenditure can be shown to have low value relative to the maintained optical signature.
+Classical rendering practice usually answers such a question only indirectly. One measures global timing, samples fewer rays, or prunes heuristically, then asks whether the image appears worse. Such a method is too blunt for a wormhole scene. The transport is curved, remapped, and observer-dependent; it is easy to save time in the wrong place while leaving correctness under-specified. One needs a notion of negative structure: a region whose repeated expenditure can be shown to have low value relative to the maintained optical signature.
 
-The deterministic harness already suggests such a region. Portal-sector usefulness mapping shows that a subset of outer-ring sectors on `layer = 0`, `radial_bin = 3` accumulates heavy query traffic while contributing little or nothing to the preserved annulus and, in the strongest cases, no final hits at all. The question is not whether these sectors are metaphysically unimportant. It is whether the geometry permits their budget to be constrained without corrupting the observer-facing structure that the transport is supposed to preserve.
+The deterministic harness already suggests such a region. Portal-sector usefulness mapping shows that a subset of outer-ring sectors on `layer = 0`, `radial_bin = 3` accumulates heavy query traffic while contributing little or nothing to the preserved annulus and, in the strongest cases, no final hits at all. The question is not whether these sectors are metaphysically unimportant. It is whether the geometry permits their budget to be constrained without corrupting the observer-facing structure that transport is supposed to preserve.
 
 The motivation of the present paper is therefore complementary to that of Paper 001. There the task was to identify a positive invariant: a high-value annulus that must survive. Here the task is to identify a negative invariant: a low-value region whose query share must not be allowed to grow beyond an explicit bound. Meaningful rendering requires both. Together they begin to define not only where wormhole optical reality concentrates, but also where computation may be prevented from dissipating into regions that do not materially support that concentration.
 
@@ -62,7 +62,7 @@ This is not merely a timing budget renamed in geometric language. It is a geomet
 
 One may therefore describe this as geometric pruning in a disciplined sense. The system does not discard a region because it looks empty in one frame. It bounds expenditure because a sector family has been shown, across deterministic runs, to contribute disproportionately little to the preserved optical structure. The suppression is structural rather than heuristic.
 
-In the present harness, the meaning of the budget is straightforward: the outer-ring low-value family must not reclaim too much of the pass-2 query budget once the geometry has already shown that its optical yield is weak. The constraint therefore complements the proto-caustic invariant. One preserves the annulus where signal concentrates; the other bounds the sectors where cost continues but significance does not.
+In the present harness, the meaning of the budget is straightforward: the outer-ring low-value family must not reclaim too much of the pass-2 query budget once geometry has shown that its optical yield is weak. The constraint therefore complements the proto-caustic invariant. One preserves the annulus where signal concentrates; the other bounds the sectors where cost continues but significance does not.
 
 <!--
 Perspective Alignment Notes
@@ -120,13 +120,13 @@ Perspective Alignment Notes
 
 ## 4. Results
 
-The results should again be read as coordinated views of a single underlying structure.
+The results should again be read as coordinated views of one underlying structure.
 
 ### Figure A
 
 ![Figure A — Main Render](../../../output/wormhole_test/figures/figure_A_main_render.png)
 
-Figure A shows the raw film result under the active kept low-value throttle profile. Its role here is contextual. The image must remain stable not because it is visually pleasing in the abstract, but because the budget contract has value only if the observer-facing output remains intact.
+Figure A shows the raw film result under the active kept low-value throttle profile. Its role here is contextual. The image must remain stable not because it is pleasing in the abstract, but because the budget contract has value only if the observer-facing output remains intact.
 
 ### Figure B
 
@@ -144,13 +144,13 @@ Figure C is especially important in the present paper. It makes visible the port
 
 ![Figure D — Metrics Table](../../../output/wormhole_test/figures/figure_D_metrics_table.png)
 
-Figure D closes the loop quantitatively. It records the proto-caustic invariant status, the low-value sector budget status, the active throttle profile, and the key pass-2 timing metrics. It also makes visible the budget margin itself. For the current kept profile, the relevant values are:
+Figure D closes the loop quantitatively. It records the proto-caustic invariant status, the low-value sector budget status, the active throttle profile, and the key pass-2 timing metrics. It also makes the budget margin visible. For the current kept profile, the relevant values are:
 
 - `actual low-value query share = 0.2888`
 - `maximum allowed query share = 0.361`
 - budget margin = `0.0722`
 
-The central empirical result is therefore twofold. First, low-value regions are not merely asserted; they are measured through query share and yield. Second, the bounded suppression of those regions reduces waste without disturbing the annular structure that Paper 001 treats as geometrically significant.
+The central empirical result is therefore twofold. First, low-value regions are not merely asserted; they are measured through query share and yield. Second, bounded suppression of those regions reduces waste without disturbing the annular structure that Paper 001 treats as geometrically significant.
 
 <!--
 Perspective Alignment Notes
@@ -171,16 +171,16 @@ For the current kept profile, the measured example is:
 - `maximum_allowed_query_share = 0.361`
 - budget margin = `0.0722`
 
-This margin matters. It indicates that the retained throttle profile does not merely scrape beneath the threshold; it preserves a nontrivial buffer while leaving `geom_hits` and `final_write_px` unchanged.
+This margin matters. It indicates that the retained throttle profile does not merely scrape beneath threshold; it preserves a nontrivial buffer while leaving `geom_hits` and `final_write_px` unchanged.
 
 The negative invariant is not evaluated in isolation. It is paired with the proto-caustic annulus contract from Paper 001. A run is acceptable only if:
 
 - the destination-side annulus preserves hit density, hit continuity, positive-overlap continuity, and radial gradient above threshold
 - the low-value family remains below its maximum allowed query share
 
-Failure therefore has a clear meaning. It would appear either as oversampling of low-significance sectors, as re-expansion of their query share, or as a disturbance to the preserved annulus and the final observer-facing output. In practical terms, oversampling noise regions risks degrading the clarity of the wormhole’s structured focusing behavior even if some gross timing metric appears to improve.
+Failure therefore has a clear meaning. It would appear either as oversampling of low-significance sectors, as re-expansion of their query share, or as disturbance to the preserved annulus and the final observer-facing output. In practical terms, oversampling noise regions risks degrading the clarity of the wormhole’s structured focusing behavior even if some gross timing metric appears to improve.
 
-The rejected stronger throttle boundary is also informative. Increasing the same low-value family from `period = 2` to `period = 3` still passed the formal contracts, but it weakened annular metrics, worsened the target timing buckets, and reduced `geom_hits` and `final_write_px`. This shows that the negative invariant is necessary but not sufficient: retained configurations must satisfy the budget contract, preserve the positive invariant, and avoid hit/write drift.
+The rejected stronger throttle boundary is equally informative. Increasing the same low-value family from `period = 2` to `period = 3` still passed the formal contracts, but it weakened annular metrics, worsened the target timing buckets, and reduced `geom_hits` and `final_write_px`. This shows that the negative invariant is necessary but not sufficient: retained configurations must satisfy the budget contract, preserve the positive invariant, and avoid hit/write drift.
 
 <!--
 Perspective Alignment Notes
@@ -193,11 +193,11 @@ Perspective Alignment Notes
 
 The significance of the low-value sector budget lies in the emergence of a dual invariant system. Paper 001 supplies the positive invariant: preserve a geometrically meaningful annulus. Paper 002 supplies the negative invariant: limit expenditure in portal-local sectors whose recurrent yield is low. The pair is more powerful than either component alone.
 
-This duality is geometric and statistical at once. Geometry defines the partition and reveals the annulus. Statistics measure density, continuity, and query share within that partition. Efficiency then emerges not from an externally imposed heuristic, but from the constraints imposed by measured structure itself. One does not guess where to save work; one learns where cost is recurrently uninformative.
+This duality is geometric and statistical at once. Geometry defines the partition and reveals the annulus. Statistics measure density, continuity, and query share within that partition. Efficiency then emerges not from an externally imposed heuristic, but from constraints imposed by measured structure itself. One does not guess where to save work; one learns where cost is recurrently uninformative.
 
-There is also a restrained observer-aware reading available here. The system does not become intelligent in any anthropomorphic sense. But it does begin to self-organize toward informative regions. It protects the annulus where optical significance concentrates and limits the expansion of sectors whose repeated cost does not materially support the visible result. In that narrow but meaningful sense, the rendering process becomes shaped by contracts rather than by tuning knobs.
+A restrained observer-aware reading is available here as well. The system does not become intelligent in any anthropomorphic sense. But it does begin to self-organize toward informative regions. It protects the annulus where optical significance concentrates and limits the expansion of sectors whose repeated cost does not materially support the visible result. In that narrow but meaningful sense, the rendering process becomes shaped by contracts rather than by tuning knobs.
 
-This is likely to matter for future adaptive rendering work. A renderer that preserves signal without suppressing low-value expenditure remains incomplete. A renderer that suppresses cost without preserving optical structure is equally incomplete. The dual invariant system suggests a more disciplined path: adaptive logic should be judged by whether it keeps the geometry’s concentrations intact while bounding the branches that remain computationally active but optically weak.
+This matters for future adaptive rendering work. A renderer that preserves signal without suppressing low-value expenditure remains incomplete. A renderer that suppresses cost without preserving optical structure is equally incomplete. The dual invariant system suggests a more disciplined path: adaptive logic should be judged by whether it keeps the geometry’s concentrations intact while bounding the branches that remain computationally active but optically weak.
 
 <!--
 Perspective Alignment Notes

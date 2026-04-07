@@ -1,0 +1,457 @@
+[gd_scene load_steps=35 format=3]
+
+[ext_resource type="Script" path="res://Wormhole/Overspace/OverspaceTrophyRoomDemo.cs" id="1_demo"]
+[ext_resource type="Script" path="res://Wormhole/WormholePortal.cs" id="2_portal"]
+[ext_resource type="Script" path="res://FreeFlyCamera.cs" id="3_fly"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_floor"]
+size = Vector3(20, 0.25, 22)
+
+[sub_resource type="BoxMesh" id="BoxMesh_wall"]
+size = Vector3(20, 8, 0.3)
+
+[sub_resource type="BoxMesh" id="BoxMesh_side_wall"]
+size = Vector3(0.3, 8, 22)
+
+[sub_resource type="BoxMesh" id="BoxMesh_pedestal"]
+size = Vector3(1.8, 2.2, 1.8)
+
+[sub_resource type="BoxMesh" id="BoxMesh_plaque"]
+size = Vector3(2.5, 0.16, 0.7)
+
+[sub_resource type="SphereMesh" id="SphereMesh_orb"]
+radius = 1.1
+height = 2.2
+radial_segments = 48
+rings = 24
+
+[sub_resource type="SphereMesh" id="SphereMesh_marker_large"]
+radius = 0.9
+height = 1.8
+radial_segments = 32
+rings = 16
+
+[sub_resource type="SphereMesh" id="SphereMesh_marker_small"]
+radius = 0.55
+height = 1.1
+radial_segments = 24
+rings = 12
+
+[sub_resource type="StandardMaterial3D" id="Material_room"]
+albedo_color = Color(0.17, 0.18, 0.21, 1)
+roughness = 0.82
+
+[sub_resource type="StandardMaterial3D" id="Material_trim"]
+albedo_color = Color(0.63, 0.57, 0.42, 1)
+metallic = 0.55
+roughness = 0.22
+
+[sub_resource type="StandardMaterial3D" id="Material_pedestal"]
+albedo_color = Color(0.33, 0.31, 0.28, 1)
+roughness = 0.75
+
+[sub_resource type="StandardMaterial3D" id="Material_earth_world"]
+albedo_color = Color(0.13, 0.42, 0.81, 1)
+emission_enabled = true
+emission = Color(0.04, 0.11, 0.22, 1)
+
+[sub_resource type="StandardMaterial3D" id="Material_earth_marker_a"]
+albedo_color = Color(0.24, 0.92, 0.56, 1)
+emission_enabled = true
+emission = Color(0.06, 0.24, 0.14, 1)
+
+[sub_resource type="StandardMaterial3D" id="Material_earth_marker_b"]
+albedo_color = Color(0.87, 0.98, 1, 1)
+emission_enabled = true
+emission = Color(0.14, 0.18, 0.22, 1)
+
+[sub_resource type="StandardMaterial3D" id="Material_sun_world"]
+albedo_color = Color(0.93, 0.46, 0.12, 1)
+emission_enabled = true
+emission = Color(0.38, 0.12, 0.03, 1)
+
+[sub_resource type="StandardMaterial3D" id="Material_sun_marker_a"]
+albedo_color = Color(1, 0.86, 0.26, 1)
+emission_enabled = true
+emission = Color(0.45, 0.28, 0.05, 1)
+
+[sub_resource type="StandardMaterial3D" id="Material_sun_marker_b"]
+albedo_color = Color(1, 0.66, 0.24, 1)
+emission_enabled = true
+emission = Color(0.35, 0.12, 0.02, 1)
+
+[sub_resource type="StandardMaterial3D" id="Material_moon_world"]
+albedo_color = Color(0.5, 0.52, 0.57, 1)
+emission_enabled = true
+emission = Color(0.08, 0.09, 0.11, 1)
+
+[sub_resource type="StandardMaterial3D" id="Material_moon_marker_a"]
+albedo_color = Color(0.79, 0.8, 0.85, 1)
+emission_enabled = true
+emission = Color(0.11, 0.11, 0.14, 1)
+
+[sub_resource type="StandardMaterial3D" id="Material_moon_marker_b"]
+albedo_color = Color(0.7, 0.74, 0.8, 1)
+emission_enabled = true
+emission = Color(0.08, 0.1, 0.12, 1)
+
+[node name="OverspaceTrophyRoomDemo" type="Node3D"]
+script = ExtResource("1_demo")
+ViewerCameraPath = NodePath("PlayerCamera")
+SummaryLabelPath = NodePath("CanvasLayer/DemoSummary")
+TeleportCooldownSeconds = 0.4
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+
+[node name="SunLight" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.784886, -0.422618, 0.453154, 0, 0.731354, 0.681998, -0.619642, -0.535277, 0.574956, 0, 7, 0)
+light_energy = 1.8
+shadow_enabled = true
+
+[node name="AccentLightLeft" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 5.5, 3)
+light_color = Color(0.65, 0.78, 1, 1)
+light_energy = 1.6
+omni_range = 18.0
+
+[node name="AccentLightRight" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 5.5, 3)
+light_color = Color(1, 0.78, 0.44, 1)
+light_energy = 1.6
+omni_range = 18.0
+
+[node name="PlayerCamera" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 10)
+current = true
+fov = 55.0
+near = 0.01
+far = 600.0
+cull_mask = 3
+script = ExtResource("3_fly")
+MoveSpeed = 5.5
+SprintMultiplier = 2.5
+
+[node name="Gallery" type="Node3D" parent="."]
+
+[node name="Floor" type="MeshInstance3D" parent="Gallery"]
+layers = 1
+mesh = SubResource("BoxMesh_floor")
+material_override = SubResource("Material_room")
+
+[node name="BackWall" type="MeshInstance3D" parent="Gallery"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, -8)
+layers = 1
+mesh = SubResource("BoxMesh_wall")
+material_override = SubResource("Material_room")
+
+[node name="LeftWall" type="MeshInstance3D" parent="Gallery"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 4, 0)
+layers = 1
+mesh = SubResource("BoxMesh_side_wall")
+material_override = SubResource("Material_room")
+
+[node name="RightWall" type="MeshInstance3D" parent="Gallery"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 4, 0)
+layers = 1
+mesh = SubResource("BoxMesh_side_wall")
+material_override = SubResource("Material_room")
+
+[node name="Ceiling" type="MeshInstance3D" parent="Gallery"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8, 0)
+layers = 1
+mesh = SubResource("BoxMesh_floor")
+material_override = SubResource("Material_room")
+
+[node name="TrimPanel" type="MeshInstance3D" parent="Gallery"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.6, -6.95)
+layers = 1
+mesh = SubResource("BoxMesh_wall")
+material_override = SubResource("Material_trim")
+
+[node name="EarthPedestal" type="Node3D" parent="Gallery"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, -1)
+
+[node name="Base" type="MeshInstance3D" parent="Gallery/EarthPedestal"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+layers = 1
+mesh = SubResource("BoxMesh_pedestal")
+material_override = SubResource("Material_pedestal")
+
+[node name="Plaque" type="MeshInstance3D" parent="Gallery/EarthPedestal"]
+transform = Transform3D(1, 0, 0, 0, 0.965926, 0.258819, 0, -0.258819, 0.965926, 0, 1.5, 1.1)
+layers = 1
+mesh = SubResource("BoxMesh_plaque")
+material_override = SubResource("Material_trim")
+
+[node name="EarthLabel" type="Label3D" parent="Gallery/EarthPedestal"]
+transform = Transform3D(1, 0, 0, 0, 0.965926, -0.258819, 0, 0.258819, 0.965926, 0, 3.4, 1.25)
+text = "EARTH"
+font_size = 64
+
+[node name="SunPedestal" type="Node3D" parent="Gallery"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1)
+
+[node name="Base" type="MeshInstance3D" parent="Gallery/SunPedestal"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+layers = 1
+mesh = SubResource("BoxMesh_pedestal")
+material_override = SubResource("Material_pedestal")
+
+[node name="Plaque" type="MeshInstance3D" parent="Gallery/SunPedestal"]
+transform = Transform3D(1, 0, 0, 0, 0.965926, 0.258819, 0, -0.258819, 0.965926, 0, 1.5, 1.1)
+layers = 1
+mesh = SubResource("BoxMesh_plaque")
+material_override = SubResource("Material_trim")
+
+[node name="SunLabel" type="Label3D" parent="Gallery/SunPedestal"]
+transform = Transform3D(1, 0, 0, 0, 0.965926, -0.258819, 0, 0.258819, 0.965926, 0, 3.4, 1.25)
+text = "SUN"
+font_size = 64
+
+[node name="MoonPedestal" type="Node3D" parent="Gallery"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, -1)
+
+[node name="Base" type="MeshInstance3D" parent="Gallery/MoonPedestal"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+layers = 1
+mesh = SubResource("BoxMesh_pedestal")
+material_override = SubResource("Material_pedestal")
+
+[node name="Plaque" type="MeshInstance3D" parent="Gallery/MoonPedestal"]
+transform = Transform3D(1, 0, 0, 0, 0.965926, 0.258819, 0, -0.258819, 0.965926, 0, 1.5, 1.1)
+layers = 1
+mesh = SubResource("BoxMesh_plaque")
+material_override = SubResource("Material_trim")
+
+[node name="MoonLabel" type="Label3D" parent="Gallery/MoonPedestal"]
+transform = Transform3D(1, 0, 0, 0, 0.965926, -0.258819, 0, 0.258819, 0.965926, 0, 3.4, 1.25)
+text = "MOON"
+font_size = 64
+
+[node name="EarthOrbPortal" type="Node3D" parent="Gallery"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 2.55, -1)
+script = ExtResource("2_portal")
+LinkedPortalPath = NodePath("../../Worlds/EarthWorld/EarthArrivalPortal")
+GeometryLayerNumber = 1
+PortalLayerNumber = 2
+Radius = 1.1
+ExitOffset = 0.4
+PortalSurfacePath = NodePath("PortalSurface")
+PortalViewportPath = NodePath("PortalViewport")
+PortalCameraPath = NodePath("PortalViewport/PortalCamera")
+DistortionStrength = 0.09
+PortalTextureSize = 384
+
+[node name="PortalSurface" type="MeshInstance3D" parent="Gallery/EarthOrbPortal"]
+layers = 2
+mesh = SubResource("SphereMesh_orb")
+
+[node name="PortalViewport" type="SubViewport" parent="Gallery/EarthOrbPortal"]
+size = Vector2i(384, 384)
+
+[node name="PortalCamera" type="Camera3D" parent="Gallery/EarthOrbPortal/PortalViewport"]
+near = 0.01
+far = 600.0
+
+[node name="SunOrbPortal" type="Node3D" parent="Gallery"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.55, -1)
+script = ExtResource("2_portal")
+LinkedPortalPath = NodePath("../../Worlds/SunWorld/SunArrivalPortal")
+GeometryLayerNumber = 1
+PortalLayerNumber = 2
+Radius = 1.1
+ExitOffset = 0.4
+PortalSurfacePath = NodePath("PortalSurface")
+PortalViewportPath = NodePath("PortalViewport")
+PortalCameraPath = NodePath("PortalViewport/PortalCamera")
+DistortionStrength = 0.11
+PortalTextureSize = 384
+
+[node name="PortalSurface" type="MeshInstance3D" parent="Gallery/SunOrbPortal"]
+layers = 2
+mesh = SubResource("SphereMesh_orb")
+
+[node name="PortalViewport" type="SubViewport" parent="Gallery/SunOrbPortal"]
+size = Vector2i(384, 384)
+
+[node name="PortalCamera" type="Camera3D" parent="Gallery/SunOrbPortal/PortalViewport"]
+near = 0.01
+far = 600.0
+
+[node name="MoonOrbPortal" type="Node3D" parent="Gallery"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 2.55, -1)
+script = ExtResource("2_portal")
+LinkedPortalPath = NodePath("../../Worlds/MoonWorld/MoonArrivalPortal")
+GeometryLayerNumber = 1
+PortalLayerNumber = 2
+Radius = 1.1
+ExitOffset = 0.4
+PortalSurfacePath = NodePath("PortalSurface")
+PortalViewportPath = NodePath("PortalViewport")
+PortalCameraPath = NodePath("PortalViewport/PortalCamera")
+DistortionStrength = 0.07
+PortalTextureSize = 384
+
+[node name="PortalSurface" type="MeshInstance3D" parent="Gallery/MoonOrbPortal"]
+layers = 2
+mesh = SubResource("SphereMesh_orb")
+
+[node name="PortalViewport" type="SubViewport" parent="Gallery/MoonOrbPortal"]
+size = Vector2i(384, 384)
+
+[node name="PortalCamera" type="Camera3D" parent="Gallery/MoonOrbPortal/PortalViewport"]
+near = 0.01
+far = 600.0
+
+[node name="Worlds" type="Node3D" parent="."]
+
+[node name="EarthWorld" type="Node3D" parent="Worlds"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 140, 0, 0)
+
+[node name="Backdrop" type="MeshInstance3D" parent="Worlds/EarthWorld"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.6, -11)
+layers = 4
+mesh = SubResource("BoxMesh_wall")
+material_override = SubResource("Material_earth_world")
+
+[node name="MarkerA" type="MeshInstance3D" parent="Worlds/EarthWorld"]
+transform = Transform3D(1.6, 0, 0, 0, 1.6, 0, 0, 0, 1.6, -3.8, 1.4, -7)
+layers = 4
+mesh = SubResource("SphereMesh_marker_large")
+material_override = SubResource("Material_earth_marker_a")
+
+[node name="MarkerB" type="MeshInstance3D" parent="Worlds/EarthWorld"]
+transform = Transform3D(1.1, 0, 0, 0, 1.1, 0, 0, 0, 1.1, 3.3, 3.3, -6)
+layers = 4
+mesh = SubResource("SphereMesh_marker_small")
+material_override = SubResource("Material_earth_marker_b")
+
+[node name="EarthArrivalPortal" type="Node3D" parent="Worlds/EarthWorld"]
+script = ExtResource("2_portal")
+LinkedPortalPath = NodePath("../../../Gallery/EarthOrbPortal")
+GeometryLayerNumber = 3
+PortalLayerNumber = 4
+Radius = 1.1
+ExitOffset = 0.4
+PortalSurfacePath = NodePath("PortalSurface")
+PortalViewportPath = NodePath("PortalViewport")
+PortalCameraPath = NodePath("PortalViewport/PortalCamera")
+DistortionStrength = 0.09
+PortalTextureSize = 384
+
+[node name="PortalSurface" type="MeshInstance3D" parent="Worlds/EarthWorld/EarthArrivalPortal"]
+layers = 8
+mesh = SubResource("SphereMesh_orb")
+
+[node name="PortalViewport" type="SubViewport" parent="Worlds/EarthWorld/EarthArrivalPortal"]
+size = Vector2i(384, 384)
+
+[node name="PortalCamera" type="Camera3D" parent="Worlds/EarthWorld/EarthArrivalPortal/PortalViewport"]
+near = 0.01
+far = 600.0
+
+[node name="SunWorld" type="Node3D" parent="Worlds"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 280, 0, 0)
+
+[node name="Backdrop" type="MeshInstance3D" parent="Worlds/SunWorld"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.6, -11)
+layers = 16
+mesh = SubResource("BoxMesh_wall")
+material_override = SubResource("Material_sun_world")
+
+[node name="MarkerA" type="MeshInstance3D" parent="Worlds/SunWorld"]
+transform = Transform3D(2.1, 0, 0, 0, 2.1, 0, 0, 0, 2.1, 0, 2.2, -7.5)
+layers = 16
+mesh = SubResource("SphereMesh_marker_large")
+material_override = SubResource("Material_sun_marker_a")
+
+[node name="MarkerB" type="MeshInstance3D" parent="Worlds/SunWorld"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, -4.1, 0.8, -6.1)
+layers = 16
+mesh = SubResource("SphereMesh_marker_small")
+material_override = SubResource("Material_sun_marker_b")
+
+[node name="MarkerC" type="MeshInstance3D" parent="Worlds/SunWorld"]
+transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, 4.1, 3.2, -6.4)
+layers = 16
+mesh = SubResource("SphereMesh_marker_small")
+material_override = SubResource("Material_sun_marker_b")
+
+[node name="SunArrivalPortal" type="Node3D" parent="Worlds/SunWorld"]
+script = ExtResource("2_portal")
+LinkedPortalPath = NodePath("../../../Gallery/SunOrbPortal")
+GeometryLayerNumber = 5
+PortalLayerNumber = 6
+Radius = 1.1
+ExitOffset = 0.4
+PortalSurfacePath = NodePath("PortalSurface")
+PortalViewportPath = NodePath("PortalViewport")
+PortalCameraPath = NodePath("PortalViewport/PortalCamera")
+DistortionStrength = 0.11
+PortalTextureSize = 384
+
+[node name="PortalSurface" type="MeshInstance3D" parent="Worlds/SunWorld/SunArrivalPortal"]
+layers = 32
+mesh = SubResource("SphereMesh_orb")
+
+[node name="PortalViewport" type="SubViewport" parent="Worlds/SunWorld/SunArrivalPortal"]
+size = Vector2i(384, 384)
+
+[node name="PortalCamera" type="Camera3D" parent="Worlds/SunWorld/SunArrivalPortal/PortalViewport"]
+near = 0.01
+far = 600.0
+
+[node name="MoonWorld" type="Node3D" parent="Worlds"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 420, 0, 0)
+
+[node name="Backdrop" type="MeshInstance3D" parent="Worlds/MoonWorld"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.6, -11)
+layers = 64
+mesh = SubResource("BoxMesh_wall")
+material_override = SubResource("Material_moon_world")
+
+[node name="MarkerA" type="MeshInstance3D" parent="Worlds/MoonWorld"]
+transform = Transform3D(1.45, 0, 0, 0, 1.45, 0, 0, 0, 1.45, -2.8, 1.2, -6.8)
+layers = 64
+mesh = SubResource("SphereMesh_marker_large")
+material_override = SubResource("Material_moon_marker_a")
+
+[node name="MarkerB" type="MeshInstance3D" parent="Worlds/MoonWorld"]
+transform = Transform3D(0.85, 0, 0, 0, 0.85, 0, 0, 0, 0.85, 3.5, 2.6, -5.8)
+layers = 64
+mesh = SubResource("SphereMesh_marker_small")
+material_override = SubResource("Material_moon_marker_b")
+
+[node name="MoonArrivalPortal" type="Node3D" parent="Worlds/MoonWorld"]
+script = ExtResource("2_portal")
+LinkedPortalPath = NodePath("../../../Gallery/MoonOrbPortal")
+GeometryLayerNumber = 7
+PortalLayerNumber = 8
+Radius = 1.1
+ExitOffset = 0.4
+PortalSurfacePath = NodePath("PortalSurface")
+PortalViewportPath = NodePath("PortalViewport")
+PortalCameraPath = NodePath("PortalViewport/PortalCamera")
+DistortionStrength = 0.07
+PortalTextureSize = 384
+
+[node name="PortalSurface" type="MeshInstance3D" parent="Worlds/MoonWorld/MoonArrivalPortal"]
+layers = 128
+mesh = SubResource("SphereMesh_orb")
+
+[node name="PortalViewport" type="SubViewport" parent="Worlds/MoonWorld/MoonArrivalPortal"]
+size = Vector2i(384, 384)
+
+[node name="PortalCamera" type="Camera3D" parent="Worlds/MoonWorld/MoonArrivalPortal/PortalViewport"]
+near = 0.01
+far = 600.0
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="DemoSummary" type="Label" parent="CanvasLayer"]
+offset_left = 18.0
+offset_top = 18.0
+offset_right = 600.0
+offset_bottom = 150.0
+theme_override_font_sizes/font_size = 18
+text = "OVERSPACE TROPHY ROOM"
