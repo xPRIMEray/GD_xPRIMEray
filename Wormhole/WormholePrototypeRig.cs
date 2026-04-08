@@ -180,6 +180,20 @@ public partial class WormholePrototypeRig : Node3D
 		}
 	}
 
+	public enum DualRealityOverlayModeKind
+	{
+		None = 0,
+		FilmHeatmap = 1,
+		CurvaturePlaceholder = 2
+	}
+
+	public enum DualRealityWireframePlacementMode
+	{
+		FullscreenCurved = 0,
+		StraightTransportReference = 1,
+		Both = 2
+	}
+
 	[ExportGroup("References")]
 	[Export] public NodePath TravelerPath;
 	[Export] public NodePath MainCameraPath;
@@ -229,6 +243,26 @@ public partial class WormholePrototypeRig : Node3D
 	[Export(PropertyHint.Range, "0,1,0.0001")] public float LowValueSectorBudgetBaselineQueryShare = 0.4011f;
 	[Export(PropertyHint.Range, "0,2,0.01")] public float LowValueSectorBudgetMaxQueryShareScale = 0.9f;
 
+	[ExportGroup("Dual Reality Research")]
+	[Export] public bool EnableDualRealityResearchMode = false;
+	[Export] public bool DualRealityInsetEnabled = true;
+	[Export(PropertyHint.Range, "0.15,0.5,0.01")] public float DualRealityInsetScale = 0.25f;
+	[Export] public DualRealityOverlayModeKind DualRealityOverlayMode = DualRealityOverlayModeKind.None;
+	[Export(PropertyHint.Range, "0,1,0.01")] public float DualRealityOverlayOpacity = 0.58f;
+	[Export] public bool DualRealityWireframeReferenceOverlayEnabled = false;
+	[Export] public DualRealityWireframePlacementMode DualRealityWireframePlacement = DualRealityWireframePlacementMode.FullscreenCurved;
+	[Export(PropertyHint.Range, "0,1,0.01")] public float DualRealityWireframeOverlayOpacity = 0.86f;
+	[Export] public bool DualRealityWireframeShowPortalMouthRings = true;
+	[Export] public bool DualRealityWireframeShowShellRings = true;
+	[Export] public bool DualRealityWireframeShowFieldShellRings = true;
+	[Export] public bool DualRealityWireframeShowBackdropAndProbePlanes = true;
+	[Export] public bool DualRealityWireframeShowCenterAnchor = false;
+	[Export] public bool DualRealityWireframeAllowEdgeOnPlanesForDebug = false;
+	[Export(PropertyHint.Range, "0,0.5,0.01")] public float DualRealityWireframeEdgeOnPlaneDotThreshold = 0.08f;
+	[Export] public bool DualRealityFreezeBaseline = false;
+	[Export] public bool DualRealityRefreshBaseline = false;
+	[Export] public string DualRealityCapturePath = "res://output/dual_reality/wormhole_inset_baseline.png";
+
 	private Node3D _traveler;
 	private Camera3D _mainCamera;
 	private WormholePortal _portalA;
@@ -254,9 +288,34 @@ public partial class WormholePrototypeRig : Node3D
 	private LowValueSectorBudgetResult _latestLowValueSectorBudgetResult;
 	private LowValueThrottleProfileSnapshot _latestLowValueThrottleProfile;
 	private PortalRingMetric _latestInvariantRingMetric;
+	private StraightRayReferenceCache _straightRayReferenceCache;
+	private CanvasLayer _hudCanvasLayer;
+	private Control _researchOverlayPanel;
+	private TextureRect _researchOverlayView;
+	private PanelContainer _dualRealityInsetPanel;
+	private TextureRect _dualRealityBaselineView;
+	private TextureRect _dualRealityOverlayView;
+	private Label _dualRealityTitleLabel;
+	private Label _dualRealityModeLabel;
+	private Label _dualRealityStateLabel;
+	private WireframeReferenceOverlay _dualRealityWireframeFullscreenOverlay;
+	private WireframeReferenceOverlay _dualRealityWireframePanelOverlay;
+	private ImageTexture _dualRealityOverlayTexture;
+	private ulong _dualRealityObservedStateHash;
+	private int _dualRealityStableFrames;
+	private double _dualRealityOverlayRefreshSeconds;
+	private DualRealityOverlayModeKind _lastDualRealityOverlayMode = (DualRealityOverlayModeKind)(-1);
+	private bool _dualRealityStartupHoldActive;
+	private bool _dualRealityStartupHoldMainUpdateEveryFrame;
+	private ulong _dualRealityStartupHoldTicksMsec;
+	private bool _dualRealityPreviousRuntimeMacroHotkeysEnabled;
+	private bool _dualRealityPreviousRuntimeMacroSwitchingEnabled;
+	private bool _dualRealityRuntimeMacroHotkeysOverridden;
+	private string _dualRealityLastWireframeDebugSummary = string.Empty;
 
 	public override void _Ready()
 	{
+		ApplyDualRealityCmdArgs();
 		_traveler = GetNodeOrNull<Node3D>(TravelerPath);
 		_mainCamera = GetNodeOrNull<Camera3D>(MainCameraPath);
 		_portalA = GetNodeOrNull<WormholePortal>(PortalAPath);
@@ -276,14 +335,22 @@ public partial class WormholePrototypeRig : Node3D
 
 		SetProcess(true);
 		SetPhysicsProcess(true);
+		SetProcessUnhandledInput(true);
 
 		_activePortal = StartInSceneA ? _portalA : _portalB;
 		ApplyWorldVisibility(_activePortal);
 		_lastActivePortalDelta = _activePortal.SignedRadiusDelta(_traveler.GlobalPosition);
 		ApplyValidationInputLock();
-		_rayBeamRenderer?.BeginBoundaryValidationRun();
-		_validationStartTicksMsec = Time.GetTicksMsec();
-		_validationPendingCapture = true;
+		InitializeDualRealityResearch();
+		if (_dualRealityStartupHoldActive)
+		{
+			_dualRealityStartupHoldTicksMsec = Time.GetTicksMsec();
+			_validationPendingCapture = false;
+		}
+		else
+		{
+			StartValidationHarnessRun();
+		}
 	}
 
 	public override void _Process(double delta)
@@ -334,6 +401,59 @@ public partial class WormholePrototypeRig : Node3D
 
 		_portalA?.UpdatePortalView(_mainCamera);
 		_portalB?.UpdatePortalView(_mainCamera);
+		UpdateDualRealityResearch(delta);
+	}
+
+	public override void _UnhandledInput(InputEvent @event)
+	{
+		if (@event is not InputEventKey keyEvent || !keyEvent.Pressed || keyEvent.Echo)
+		{
+			return;
+		}
+
+		// Use a modified shortcut chord so deterministic harness runs are not perturbed by
+		// ambient function-key events that the engine or desktop environment may emit.
+		if (!keyEvent.AltPressed)
+		{
+			return;
+		}
+
+		switch (keyEvent.Keycode)
+		{
+			case Key.F6:
+				DualRealityWireframeReferenceOverlayEnabled = !DualRealityWireframeReferenceOverlayEnabled;
+				UpdateDualRealityHudState(forceOverlayRefresh: false);
+				GetViewport()?.SetInputAsHandled();
+				break;
+			case Key.F7:
+				EnableDualRealityResearchMode = !EnableDualRealityResearchMode;
+				if (EnableDualRealityResearchMode)
+				{
+					RequestDualRealityBaselineRefresh("hotkey_toggle_on", force: true);
+				}
+				UpdateDualRealityHudState(forceOverlayRefresh: true);
+				GetViewport()?.SetInputAsHandled();
+				break;
+			case Key.F8:
+				DualRealityOverlayMode = DualRealityOverlayMode switch
+				{
+					DualRealityOverlayModeKind.None => DualRealityOverlayModeKind.FilmHeatmap,
+					DualRealityOverlayModeKind.FilmHeatmap => DualRealityOverlayModeKind.CurvaturePlaceholder,
+					_ => DualRealityOverlayModeKind.None,
+				};
+				UpdateDualRealityHudState(forceOverlayRefresh: true);
+				GetViewport()?.SetInputAsHandled();
+				break;
+			case Key.F9:
+				DualRealityFreezeBaseline = !DualRealityFreezeBaseline;
+				UpdateDualRealityHudState(forceOverlayRefresh: false);
+				GetViewport()?.SetInputAsHandled();
+				break;
+			case Key.F10:
+				RequestDualRealityBaselineRefresh("hotkey_manual_refresh", force: true);
+				GetViewport()?.SetInputAsHandled();
+				break;
+		}
 	}
 
 	public override void _PhysicsProcess(double delta)
@@ -442,6 +562,641 @@ public partial class WormholePrototypeRig : Node3D
 		GD.Print("[WormholeValidation] input_lock traveler_input=disabled mouse_mode=visible");
 	}
 
+	private void StartValidationHarnessRun()
+	{
+		_rayBeamRenderer?.BeginBoundaryValidationRun();
+		_validationStartTicksMsec = Time.GetTicksMsec();
+		_validationPendingCapture = true;
+	}
+
+	private void InitializeDualRealityResearch()
+	{
+		_hudCanvasLayer = GetNodeOrNull<CanvasLayer>("CanvasLayer");
+		_researchOverlayPanel = GetNodeOrNull<Control>("CanvasLayer/ResearchOverlayPanel");
+		_researchOverlayView = GetNodeOrNull<TextureRect>("CanvasLayer/ResearchOverlayPanel/InsetMargin/InsetVBox/ResearchOverlayView");
+		if (_filmCamera == null || _rayBeamRenderer == null)
+		{
+			return;
+		}
+
+		_straightRayReferenceCache = new StraightRayReferenceCache
+		{
+			Name = "StraightRayReferenceCache"
+		};
+		AddChild(_straightRayReferenceCache);
+		_straightRayReferenceCache.Configure(_filmCamera, _rayBeamRenderer);
+		EnsureDualRealityInsetUi();
+		ApplyDualRealityRuntimeHotkeyGuard();
+		UpdateDualRealityHudState(forceOverlayRefresh: true);
+		if (EnableDualRealityResearchMode)
+		{
+			_dualRealityStartupHoldActive = true;
+			_dualRealityStartupHoldMainUpdateEveryFrame = _filmCamera.UpdateEveryFrame;
+			_filmCamera.UpdateEveryFrame = false;
+			DualRealityRefreshBaseline = false;
+			RequestDualRealityBaselineRefresh("startup", force: true);
+		}
+	}
+
+	private void EnsureDualRealityInsetUi()
+	{
+		if (_hudCanvasLayer == null)
+		{
+			return;
+		}
+
+		if (_dualRealityInsetPanel == null)
+		{
+			_dualRealityInsetPanel = new PanelContainer
+			{
+				Name = "DualRealityInsetPanel",
+				MouseFilter = Control.MouseFilterEnum.Ignore,
+				Visible = false,
+				ZIndex = 15,
+			};
+			_dualRealityInsetPanel.AnchorLeft = 1f;
+			_dualRealityInsetPanel.AnchorTop = 0f;
+			_dualRealityInsetPanel.AnchorRight = 1f;
+			_dualRealityInsetPanel.AnchorBottom = 0f;
+			_hudCanvasLayer.AddChild(_dualRealityInsetPanel);
+
+			MarginContainer margin = new()
+			{
+				Name = "InsetMargin",
+				MouseFilter = Control.MouseFilterEnum.Ignore,
+			};
+			margin.AddThemeConstantOverride("margin_left", 8);
+			margin.AddThemeConstantOverride("margin_top", 8);
+			margin.AddThemeConstantOverride("margin_right", 8);
+			margin.AddThemeConstantOverride("margin_bottom", 8);
+			_dualRealityInsetPanel.AddChild(margin);
+
+			VBoxContainer vbox = new()
+			{
+				Name = "InsetVBox",
+				MouseFilter = Control.MouseFilterEnum.Ignore,
+			};
+			vbox.AddThemeConstantOverride("separation", 4);
+			margin.AddChild(vbox);
+
+			_dualRealityTitleLabel = new Label
+			{
+				Name = "DualRealityTitleLabel",
+				Text = "STRAIGHT TRANSPORT REFERENCE",
+				MouseFilter = Control.MouseFilterEnum.Ignore,
+			};
+			_dualRealityTitleLabel.AddThemeFontSizeOverride("font_size", 11);
+			vbox.AddChild(_dualRealityTitleLabel);
+
+			// The straight transport reference remains a literal cached render. Diagnostic and
+			// wireframe layers are optional overlays on top of that image rather than substitutes.
+			Control stack = new()
+			{
+				Name = "DualRealityTextureStack",
+				MouseFilter = Control.MouseFilterEnum.Ignore,
+			};
+			vbox.AddChild(stack);
+
+			_dualRealityBaselineView = new TextureRect
+			{
+				Name = "DualRealityBaselineView",
+				MouseFilter = Control.MouseFilterEnum.Ignore,
+				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+				StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
+				TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+			};
+			_dualRealityBaselineView.AnchorLeft = 0f;
+			_dualRealityBaselineView.AnchorTop = 0f;
+			_dualRealityBaselineView.AnchorRight = 1f;
+			_dualRealityBaselineView.AnchorBottom = 1f;
+			stack.AddChild(_dualRealityBaselineView);
+
+			_dualRealityOverlayView = new TextureRect
+			{
+				Name = "DualRealityOverlayView",
+				MouseFilter = Control.MouseFilterEnum.Ignore,
+				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+				StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
+				TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+				Visible = false,
+			};
+			_dualRealityOverlayView.AnchorLeft = 0f;
+			_dualRealityOverlayView.AnchorTop = 0f;
+			_dualRealityOverlayView.AnchorRight = 1f;
+			_dualRealityOverlayView.AnchorBottom = 1f;
+			stack.AddChild(_dualRealityOverlayView);
+
+			_dualRealityWireframePanelOverlay = new WireframeReferenceOverlay
+			{
+				Name = "WireframeReferenceOverlayPanel",
+				Visible = false,
+				ZIndex = 2,
+			};
+			stack.AddChild(_dualRealityWireframePanelOverlay);
+
+			_dualRealityModeLabel = new Label
+			{
+				Name = "DualRealityModeLabel",
+				MouseFilter = Control.MouseFilterEnum.Ignore,
+				Modulate = new Color(0.86f, 0.92f, 0.98f, 0.9f),
+			};
+			_dualRealityModeLabel.AddThemeFontSizeOverride("font_size", 9);
+			vbox.AddChild(_dualRealityModeLabel);
+
+			_dualRealityStateLabel = new Label
+			{
+				Name = "DualRealityStateLabel",
+				MouseFilter = Control.MouseFilterEnum.Ignore,
+				Modulate = new Color(0.82f, 0.9f, 0.84f, 0.9f),
+			};
+			_dualRealityStateLabel.AddThemeFontSizeOverride("font_size", 9);
+			vbox.AddChild(_dualRealityStateLabel);
+		}
+
+		if (_dualRealityWireframeFullscreenOverlay == null)
+		{
+			_dualRealityWireframeFullscreenOverlay = new WireframeReferenceOverlay
+			{
+				Name = "WireframeReferenceOverlayFullscreen",
+				Visible = false,
+				ZIndex = 6,
+			};
+			_hudCanvasLayer.AddChild(_dualRealityWireframeFullscreenOverlay);
+		}
+
+		Node3D probeWall = GetNodeOrNull<Node3D>("SceneB/ProbeWallB");
+		Node3D backdropA = GetNodeOrNull<Node3D>("SceneA/BackdropA");
+		Node3D backdropB = GetNodeOrNull<Node3D>("SceneB/BackdropB");
+		_dualRealityWireframeFullscreenOverlay?.Configure(_mainCamera, _portalA, _portalB, probeWall, backdropA, backdropB);
+		_dualRealityWireframePanelOverlay?.Configure(_mainCamera, _portalA, _portalB, probeWall, backdropA, backdropB);
+
+		if (_dualRealityWireframePanelOverlay != null)
+		{
+			_dualRealityWireframePanelOverlay.ModeLabel = "WIRELINE REFERENCE · BASELINE";
+		}
+		if (_dualRealityWireframeFullscreenOverlay != null)
+		{
+			_dualRealityWireframeFullscreenOverlay.ModeLabel = "WIRELINE REFERENCE · CURVED";
+		}
+	}
+
+	private void UpdateDualRealityInsetLayout()
+	{
+		if (_dualRealityInsetPanel == null)
+		{
+			return;
+		}
+
+		Vector2 viewportSize = GetViewport()?.GetVisibleRect().Size ?? new Vector2(1280f, 720f);
+		float targetWidth = Mathf.Clamp(viewportSize.X * Mathf.Clamp(DualRealityInsetScale, 0.15f, 0.5f), 180f, 320f);
+		float textureHeight = targetWidth / (16f / 9f);
+		float panelHeight = textureHeight + 62f;
+		float panelTop = 16f;
+		if (_researchOverlayPanel != null && _researchOverlayPanel.Visible)
+		{
+			panelTop = _researchOverlayPanel.GetRect().End.Y + 12f;
+		}
+
+		_dualRealityInsetPanel.OffsetLeft = -targetWidth - 16f;
+		_dualRealityInsetPanel.OffsetTop = panelTop;
+		_dualRealityInsetPanel.OffsetRight = -16f;
+		_dualRealityInsetPanel.OffsetBottom = panelTop + panelHeight;
+
+		Control textureStack = _dualRealityBaselineView?.GetParent() as Control;
+		if (textureStack != null)
+		{
+			textureStack.CustomMinimumSize = new Vector2(targetWidth - 16f, textureHeight);
+		}
+	}
+
+	private void UpdateDualRealityInsetVisibility()
+	{
+		if (_dualRealityInsetPanel == null && _dualRealityWireframeFullscreenOverlay == null && _dualRealityWireframePanelOverlay == null)
+		{
+			return;
+		}
+
+		bool panelVisible = EnableDualRealityResearchMode && DualRealityInsetEnabled;
+		if (_dualRealityInsetPanel != null)
+		{
+			_dualRealityInsetPanel.Visible = panelVisible;
+		}
+
+		bool wireframeVisible = EnableDualRealityResearchMode && DualRealityWireframeReferenceOverlayEnabled;
+		bool wireframeFullscreen = wireframeVisible && (DualRealityWireframePlacement == DualRealityWireframePlacementMode.FullscreenCurved || DualRealityWireframePlacement == DualRealityWireframePlacementMode.Both);
+		bool wireframePanel = wireframeVisible && panelVisible && (DualRealityWireframePlacement == DualRealityWireframePlacementMode.StraightTransportReference || DualRealityWireframePlacement == DualRealityWireframePlacementMode.Both);
+		ApplyWireframeOverlayState(_dualRealityWireframeFullscreenOverlay, wireframeFullscreen, "WIRELINE REFERENCE · CURVED");
+		ApplyWireframeOverlayState(_dualRealityWireframePanelOverlay, wireframePanel, "WIRELINE REFERENCE · BASELINE");
+	}
+
+	private void ApplyWireframeOverlayState(WireframeReferenceOverlay overlay, bool visible, string label)
+	{
+		if (overlay == null)
+		{
+			return;
+		}
+
+		overlay.Visible = visible;
+		overlay.OverlayEnabled = visible;
+		overlay.OverlayOpacity = Mathf.Clamp(DualRealityWireframeOverlayOpacity, 0f, 1f);
+		overlay.ModeLabel = label;
+		overlay.ShowPortalMouthRings = DualRealityWireframeShowPortalMouthRings;
+		overlay.ShowShellRings = DualRealityWireframeShowShellRings;
+		overlay.ShowFieldShellRings = DualRealityWireframeShowFieldShellRings;
+		overlay.ShowBackdropAndProbePlanes = DualRealityWireframeShowBackdropAndProbePlanes;
+		overlay.ShowCenterAnchor = DualRealityWireframeShowCenterAnchor;
+		overlay.AllowEdgeOnPlanesForDebug = DualRealityWireframeAllowEdgeOnPlanesForDebug;
+		overlay.EdgeOnPlaneDotThreshold = Mathf.Clamp(DualRealityWireframeEdgeOnPlaneDotThreshold, 0f, 0.5f);
+	}
+
+	private static void AppendQuantizedTransform(ref HashCode hash, Transform3D transform)
+	{
+		static float Quantize(float value) => Mathf.Snapped(value, 0.001f);
+		hash.Add(Quantize(transform.Origin.X));
+		hash.Add(Quantize(transform.Origin.Y));
+		hash.Add(Quantize(transform.Origin.Z));
+		hash.Add(Quantize(transform.Basis.X.X));
+		hash.Add(Quantize(transform.Basis.X.Y));
+		hash.Add(Quantize(transform.Basis.X.Z));
+		hash.Add(Quantize(transform.Basis.Y.X));
+		hash.Add(Quantize(transform.Basis.Y.Y));
+		hash.Add(Quantize(transform.Basis.Y.Z));
+		hash.Add(Quantize(transform.Basis.Z.X));
+		hash.Add(Quantize(transform.Basis.Z.Y));
+		hash.Add(Quantize(transform.Basis.Z.Z));
+	}
+
+	private ulong ComputeDualRealityStateHash()
+	{
+		HashCode hash = new();
+		if (_mainCamera != null)
+		{
+			AppendQuantizedTransform(ref hash, _mainCamera.GlobalTransform);
+		}
+		if (_portalA != null)
+		{
+			AppendQuantizedTransform(ref hash, _portalA.GlobalTransform);
+		}
+		if (_portalB != null)
+		{
+			AppendQuantizedTransform(ref hash, _portalB.GlobalTransform);
+		}
+		hash.Add(_teleportCount);
+		hash.Add(_activePortal == _portalA ? 0 : 1);
+		hash.Add(_validationCaptureCompleted);
+		return unchecked((ulong)hash.ToHashCode());
+	}
+
+	private float ResolveDualRealityReferenceResolutionScale()
+	{
+		if (_filmCamera == null)
+		{
+			return 0.3f;
+		}
+
+		float scaled = _filmCamera.FilmResolutionScale * 0.5f;
+		return Mathf.Clamp(scaled, 0.18f, _filmCamera.FilmResolutionScale);
+	}
+
+	private void RequestDualRealityBaselineRefresh(string reason, bool force)
+	{
+		if (!EnableDualRealityResearchMode || _straightRayReferenceCache == null)
+		{
+			return;
+		}
+
+		ulong stateHash = ComputeDualRealityStateHash();
+		if (!force && DualRealityFreezeBaseline && _straightRayReferenceCache.TryGetBaselineSnapshot(out _))
+		{
+			return;
+		}
+
+		_straightRayReferenceCache.RequestRefresh(stateHash, ResolveDualRealityReferenceResolutionScale());
+		GD.Print($"[DualReality] baseline_refresh_requested reason={reason} state_hash={stateHash} freeze={(DualRealityFreezeBaseline ? 1 : 0)}");
+	}
+
+	private GrinFilmCamera.TelemetryHeatmapKind ResolveDualRealityHeatmapKind()
+	{
+		return DualRealityOverlayMode == DualRealityOverlayModeKind.CurvaturePlaceholder
+			? GrinFilmCamera.TelemetryHeatmapKind.CurvatureMax
+			: GrinFilmCamera.TelemetryHeatmapKind.Work;
+	}
+
+	private string ResolveDualRealityOverlayModeLabel()
+	{
+		return DualRealityOverlayMode switch
+		{
+			DualRealityOverlayModeKind.FilmHeatmap => "DIAGNOSTIC OVERLAY · FILM HEATMAP",
+			DualRealityOverlayModeKind.CurvaturePlaceholder => "DIAGNOSTIC OVERLAY · CURVATURE PROXY",
+			_ => "DIAGNOSTIC OVERLAY · NONE",
+		};
+	}
+
+	private string ResolveWireframePlacementLabel()
+	{
+		return DualRealityWireframePlacement switch
+		{
+			DualRealityWireframePlacementMode.StraightTransportReference => "WIRELINE · BASELINE PANEL",
+			DualRealityWireframePlacementMode.Both => "WIRELINE · CURVED + BASELINE",
+			_ => "WIRELINE · CURVED FULLSCREEN",
+		};
+	}
+
+	private void UpdateDualRealityOverlayTexture(bool force)
+	{
+		if (_dualRealityOverlayView == null || _filmCamera == null)
+		{
+			return;
+		}
+
+		if (DualRealityOverlayMode == DualRealityOverlayModeKind.None)
+		{
+			_dualRealityOverlayView.Visible = false;
+			return;
+		}
+
+		if (!force && _dualRealityOverlayRefreshSeconds < 0.5)
+		{
+			return;
+		}
+
+		_dualRealityOverlayRefreshSeconds = 0.0;
+		if (!_filmCamera.TryCopyTelemetryHeatmapImageForTesting(ResolveDualRealityHeatmapKind(), out Image image, out _)
+			|| image == null)
+		{
+			_dualRealityOverlayView.Visible = false;
+			return;
+		}
+
+		if (_dualRealityOverlayTexture == null || _dualRealityOverlayTexture.GetSize() != image.GetSize())
+		{
+			_dualRealityOverlayTexture = ImageTexture.CreateFromImage(image);
+		}
+		else
+		{
+			_dualRealityOverlayTexture.Update(image);
+		}
+
+		_dualRealityOverlayView.Texture = _dualRealityOverlayTexture;
+		_dualRealityOverlayView.Modulate = new Color(1f, 1f, 1f, Mathf.Clamp(DualRealityOverlayOpacity, 0f, 1f));
+		_dualRealityOverlayView.Visible = true;
+	}
+
+	private void UpdateDualRealityHudState(bool forceOverlayRefresh)
+	{
+		UpdateDualRealityInsetVisibility();
+		UpdateDualRealityInsetLayout();
+
+		if (_dualRealityTitleLabel == null || _dualRealityModeLabel == null || _dualRealityStateLabel == null)
+		{
+			return;
+		}
+
+		if (_straightRayReferenceCache != null && _straightRayReferenceCache.TryGetBaselineSnapshot(out StraightRayReferenceCache.BaselineSnapshot snapshot))
+		{
+			_dualRealityBaselineView.Texture = snapshot.Texture;
+			_dualRealityStateLabel.Text = snapshot.RefreshInFlight
+				? "BASELINE · REFRESHING"
+				: $"BASELINE · {(DualRealityFreezeBaseline ? "FROZEN" : "LIVE")} · REF #{snapshot.RefreshCount}";
+		}
+		else
+		{
+			_dualRealityBaselineView.Texture = null;
+			_dualRealityStateLabel.Text = _straightRayReferenceCache?.RefreshInFlight == true
+				? "BASELINE · REFRESHING"
+				: "BASELINE · PENDING";
+		}
+
+		_dualRealityModeLabel.Text = $"{ResolveDualRealityOverlayModeLabel()} · {ResolveWireframePlacementLabel()}";
+		_dualRealityTitleLabel.Modulate = EnableDualRealityResearchMode
+			? new Color(0.96f, 0.98f, 1f, 0.96f)
+			: new Color(0.82f, 0.84f, 0.88f, 0.72f);
+		UpdateDualRealityOverlayTexture(forceOverlayRefresh);
+		if (_dualRealityWireframeFullscreenOverlay != null || _dualRealityWireframePanelOverlay != null)
+		{
+			string categorySummary =
+				$"portal={(DualRealityWireframeShowPortalMouthRings ? 1 : 0)} shell={(DualRealityWireframeShowShellRings ? 1 : 0)} field={(DualRealityWireframeShowFieldShellRings ? 1 : 0)} planes={(DualRealityWireframeShowBackdropAndProbePlanes ? 1 : 0)} anchor={(DualRealityWireframeShowCenterAnchor ? 1 : 0)} edgeDebug={(DualRealityWireframeAllowEdgeOnPlanesForDebug ? 1 : 0)}";
+			string summary = $"placement={ResolveWireframePlacementLabel()} opacity={DualRealityWireframeOverlayOpacity:0.00} {categorySummary} note=yellow_center_anchor";
+			if (!string.Equals(summary, _dualRealityLastWireframeDebugSummary, StringComparison.Ordinal))
+			{
+				_dualRealityLastWireframeDebugSummary = summary;
+				GD.Print($"[DualReality] wireframe {summary}");
+			}
+		}
+	}
+
+	private void UpdateDualRealityResearch(double delta)
+	{
+		if (_straightRayReferenceCache == null)
+		{
+			return;
+		}
+
+		ApplyDualRealityRuntimeHotkeyGuard();
+		_dualRealityOverlayRefreshSeconds += delta;
+		if (DualRealityRefreshBaseline)
+		{
+			DualRealityRefreshBaseline = false;
+			RequestDualRealityBaselineRefresh("inspector_refresh", force: true);
+		}
+
+		UpdateDualRealityInsetVisibility();
+		if (!EnableDualRealityResearchMode)
+		{
+			return;
+		}
+
+		if (_dualRealityStartupHoldActive)
+		{
+			bool startupReady = _straightRayReferenceCache.TryGetBaselineSnapshot(out _)
+				&& !_straightRayReferenceCache.RefreshInFlight;
+			bool startupTimedOut = Time.GetTicksMsec() - _dualRealityStartupHoldTicksMsec > 15000;
+			if (startupReady || startupTimedOut)
+			{
+				_dualRealityStartupHoldActive = false;
+				if (_filmCamera != null)
+				{
+					_filmCamera.UpdateEveryFrame = _dualRealityStartupHoldMainUpdateEveryFrame;
+				}
+				StartValidationHarnessRun();
+				GD.Print($"[DualReality] startup_hold_released ready={(startupReady ? 1 : 0)} timed_out={(startupTimedOut ? 1 : 0)}");
+			}
+
+			UpdateDualRealityHudState(forceOverlayRefresh: true);
+			return;
+		}
+
+		ulong stateHash = ComputeDualRealityStateHash();
+		if (stateHash != _dualRealityObservedStateHash)
+		{
+			_dualRealityObservedStateHash = stateHash;
+			_dualRealityStableFrames = 0;
+		}
+		else
+		{
+			_dualRealityStableFrames++;
+		}
+
+		bool forceOverlayRefresh = _lastDualRealityOverlayMode != DualRealityOverlayMode;
+		_lastDualRealityOverlayMode = DualRealityOverlayMode;
+		bool validationRunActive = _validationPendingCapture && !_validationCaptureCompleted;
+
+		bool hasBaseline = _straightRayReferenceCache.TryGetBaselineSnapshot(out StraightRayReferenceCache.BaselineSnapshot baselineSnapshot);
+		if (!hasBaseline && !_straightRayReferenceCache.RefreshInFlight && _dualRealityStableFrames >= 2)
+		{
+			RequestDualRealityBaselineRefresh("initial_fill", force: true);
+		}
+		else if (!validationRunActive
+			&& !DualRealityFreezeBaseline
+			&& hasBaseline
+			&& baselineSnapshot.StateHash != stateHash
+			&& !_straightRayReferenceCache.RefreshInFlight
+			&& _dualRealityStableFrames >= 6)
+		{
+			RequestDualRealityBaselineRefresh("camera_settled", force: true);
+		}
+
+		UpdateDualRealityHudState(forceOverlayRefresh);
+	}
+
+	private void ApplyDualRealityRuntimeHotkeyGuard()
+	{
+		if (_filmCamera == null)
+		{
+			return;
+		}
+
+		if (EnableDualRealityResearchMode)
+		{
+			if (!_dualRealityRuntimeMacroHotkeysOverridden)
+			{
+				_dualRealityPreviousRuntimeMacroHotkeysEnabled = _filmCamera.RuntimeMacroHotkeysEnabled;
+				_dualRealityPreviousRuntimeMacroSwitchingEnabled = _filmCamera.RuntimeMacroModeSwitchingEnabled;
+				_dualRealityRuntimeMacroHotkeysOverridden = true;
+			}
+
+			_filmCamera.RuntimeMacroHotkeysEnabled = false;
+			_filmCamera.RuntimeMacroModeSwitchingEnabled = false;
+		}
+		else if (_dualRealityRuntimeMacroHotkeysOverridden)
+		{
+			_filmCamera.RuntimeMacroHotkeysEnabled = _dualRealityPreviousRuntimeMacroHotkeysEnabled;
+			_filmCamera.RuntimeMacroModeSwitchingEnabled = _dualRealityPreviousRuntimeMacroSwitchingEnabled;
+			_dualRealityRuntimeMacroHotkeysOverridden = false;
+		}
+	}
+
+	private static bool TryGetRigArgValue(string arg, string prefix, out string value)
+	{
+		if (!string.IsNullOrWhiteSpace(arg) && arg.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+		{
+			value = arg[prefix.Length..];
+			return true;
+		}
+
+		value = string.Empty;
+		return false;
+	}
+
+	private static string[] GetRigCmdArgs()
+	{
+		string[] userArgs = OS.GetCmdlineUserArgs();
+		string[] args = OS.GetCmdlineArgs();
+		if (userArgs.Length == 0)
+		{
+			return args;
+		}
+		if (args.Length == 0)
+		{
+			return userArgs;
+		}
+
+		string[] merged = new string[userArgs.Length + args.Length];
+		Array.Copy(userArgs, merged, userArgs.Length);
+		Array.Copy(args, 0, merged, userArgs.Length, args.Length);
+		return merged;
+	}
+
+	private static bool ParseCliBool(string value)
+	{
+		string normalized = value.Trim().ToLowerInvariant();
+		return normalized is "1" or "true" or "on" or "yes";
+	}
+
+	private static bool TryParseDualRealityOverlayMode(string value, out DualRealityOverlayModeKind mode)
+	{
+		string normalized = value.Trim().ToLowerInvariant();
+		switch (normalized)
+		{
+			case "none":
+			case "off":
+				mode = DualRealityOverlayModeKind.None;
+				return true;
+			case "filmheatmap":
+			case "heatmap":
+			case "film":
+				mode = DualRealityOverlayModeKind.FilmHeatmap;
+				return true;
+			case "curvature":
+			case "curvatureplaceholder":
+			case "curvatureproxy":
+				mode = DualRealityOverlayModeKind.CurvaturePlaceholder;
+				return true;
+			default:
+				mode = DualRealityOverlayModeKind.None;
+				return false;
+		}
+	}
+
+	private void ApplyDualRealityCmdArgs()
+	{
+		foreach (string arg in GetRigCmdArgs())
+		{
+			if (TryGetRigArgValue(arg, "--dual-reality=", out string enabledValue))
+			{
+				EnableDualRealityResearchMode = ParseCliBool(enabledValue);
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--dual-reality-inset=", out string insetValue))
+			{
+				DualRealityInsetEnabled = ParseCliBool(insetValue);
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--dual-reality-scale=", out string scaleValue)
+				&& float.TryParse(scaleValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedScale))
+			{
+				DualRealityInsetScale = Mathf.Clamp(parsedScale, 0.15f, 0.5f);
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--dual-reality-overlay=", out string overlayValue)
+				&& TryParseDualRealityOverlayMode(overlayValue, out DualRealityOverlayModeKind overlayMode))
+			{
+				DualRealityOverlayMode = overlayMode;
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--dual-reality-wireframe=", out string wireframeValue))
+			{
+				DualRealityWireframeReferenceOverlayEnabled = ParseCliBool(wireframeValue);
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--dual-reality-freeze=", out string freezeValue))
+			{
+				DualRealityFreezeBaseline = ParseCliBool(freezeValue);
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--dual-reality-refresh=", out string refreshValue))
+			{
+				DualRealityRefreshBaseline = ParseCliBool(refreshValue);
+			}
+		}
+	}
+
 	private async void ExecuteValidationCapture()
 	{
 		if (!IsInsideTree() || _validationCaptureCompleted)
@@ -462,6 +1217,11 @@ public partial class WormholePrototypeRig : Node3D
 		{
 			await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 			CaptureCompositeScreenshot();
+			if (EnableDualRealityResearchMode && DualRealityInsetEnabled && !string.IsNullOrWhiteSpace(DualRealityCapturePath))
+			{
+				await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+				CaptureViewportScreenshot(DualRealityCapturePath.Trim(), "dual_reality_composite");
+			}
 		}
 		await GenerateFigureQuartetArtifactsAsync();
 
@@ -511,17 +1271,22 @@ public partial class WormholePrototypeRig : Node3D
 
 	private void CaptureCompositeScreenshot()
 	{
+		string projectPath = string.IsNullOrWhiteSpace(ValidationCompositeCapturePath)
+			? "res://output/wormhole_test/wormhole_validation_composed.png"
+			: ValidationCompositeCapturePath.Trim();
+		CaptureViewportScreenshot(projectPath, "viewport_composite");
+	}
+
+	private void CaptureViewportScreenshot(string projectPath, string sourceToken)
+	{
 		Viewport viewport = GetViewport();
 		Image image = viewport?.GetTexture()?.GetImage();
 		if (image == null)
 		{
-			GD.PushWarning("[WormholeValidation] failed to save composite capture reason=missing_viewport_image");
+			GD.PushWarning($"[WormholeValidation] failed to save composite capture reason=missing_viewport_image source={sourceToken}");
 			return;
 		}
 
-		string projectPath = string.IsNullOrWhiteSpace(ValidationCompositeCapturePath)
-			? "res://output/wormhole_test/wormhole_validation_composed.png"
-			: ValidationCompositeCapturePath.Trim();
 		string absolutePath = ProjectSettings.GlobalizePath(projectPath);
 		string directory = Path.GetDirectoryName(absolutePath);
 		if (!string.IsNullOrWhiteSpace(directory))
@@ -532,11 +1297,11 @@ public partial class WormholePrototypeRig : Node3D
 		Error saveError = image.SavePng(absolutePath);
 		if (saveError == Error.Ok)
 		{
-			GD.Print($"[WormholeValidation] capture_saved path={absolutePath} source=viewport_composite");
+			GD.Print($"[WormholeValidation] capture_saved path={absolutePath} source={sourceToken}");
 		}
 		else
 		{
-			GD.PushWarning($"[WormholeValidation] failed to save composite capture path={absolutePath} error={saveError}");
+			GD.PushWarning($"[WormholeValidation] failed to save composite capture path={absolutePath} error={saveError} source={sourceToken}");
 		}
 	}
 

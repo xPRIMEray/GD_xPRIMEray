@@ -107,6 +107,7 @@ EmitBoundaryValidationSummaryAfterCapture = true
 BoundaryValidationLabel = "wormhole_validation"
 ValidationWaitForFilmWrap = true
 LockTravelerInputDuringValidation = true
+DualRealityWireframeShowCenterAnchor = false
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 
