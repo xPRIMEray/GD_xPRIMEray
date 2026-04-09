@@ -194,6 +194,24 @@ public partial class WormholePrototypeRig : Node3D
 		Both = 2
 	}
 
+	public enum DualRealityCollisionRadarFilterMode
+	{
+		AllVisible = 0,
+		HitConfirmedOnly = 1,
+		PrimaryOnly = 2,
+		RemappedOnly = 3,
+		BackgroundOnly = 4,
+		HelpersOnly = 5
+	}
+
+	public enum DualRealityCollisionRadarBoundsMode
+	{
+		CenterOnly = 0,
+		Sphere = 1,
+		Aabb = 2,
+		LabelOnly = 3
+	}
+
 	[ExportGroup("References")]
 	[Export] public NodePath TravelerPath;
 	[Export] public NodePath MainCameraPath;
@@ -227,6 +245,12 @@ public partial class WormholePrototypeRig : Node3D
 	[Export] public string BoundaryValidationLabel = "wormhole_validation";
 	[Export] public bool ValidationWaitForFilmWrap = true;
 	[Export] public bool LockTravelerInputDuringValidation = true;
+	[ExportGroup("Validation Camera")]
+	[Export] public string ValidationCameraPosePreset = "validation_nearfield";
+	[Export(PropertyHint.Range, "0,64,0.1")] public float ValidationNearfieldBackoffDistance = 0.0f;
+	[Export(PropertyHint.Range, "0,64,0.1")] public float PresentationMidBackoffDistance = 5.0f;
+	[Export(PropertyHint.Range, "0,64,0.1")] public float PresentationFarBackoffDistance = 10.0f;
+	[Export(PropertyHint.Range, "0,64,0.1")] public float ValidationCameraBackoffDistance = 0.0f;
 
 	[ExportGroup("Proto-Caustic Invariant")]
 	[Export] public int ProtoCausticInvariantLayer = 1;
@@ -252,13 +276,27 @@ public partial class WormholePrototypeRig : Node3D
 	[Export] public bool DualRealityWireframeReferenceOverlayEnabled = false;
 	[Export] public DualRealityWireframePlacementMode DualRealityWireframePlacement = DualRealityWireframePlacementMode.FullscreenCurved;
 	[Export(PropertyHint.Range, "0,1,0.01")] public float DualRealityWireframeOverlayOpacity = 0.86f;
-	[Export] public bool DualRealityWireframeShowPortalMouthRings = true;
-	[Export] public bool DualRealityWireframeShowShellRings = true;
-	[Export] public bool DualRealityWireframeShowFieldShellRings = true;
-	[Export] public bool DualRealityWireframeShowBackdropAndProbePlanes = true;
+	[Export] public bool DualRealityWireframeShowFieldGlyphs = true;
+	[Export] public bool DualRealityWireframeShowBoundaryLayerGlyphs = true;
+	[Export] public bool DualRealityWireframeShowWormholePortalGlyphs = true;
+	[Export] public bool DualRealityWireframeShowBackdropAndProbeHelpers = true;
 	[Export] public bool DualRealityWireframeShowCenterAnchor = false;
 	[Export] public bool DualRealityWireframeAllowEdgeOnPlanesForDebug = false;
 	[Export(PropertyHint.Range, "0,0.5,0.01")] public float DualRealityWireframeEdgeOnPlaneDotThreshold = 0.08f;
+	[ExportGroup("Dual Reality Collision Radar")]
+	[Export] public bool DualRealityCollisionRadarOverlayEnabled = false;
+	[Export] public DualRealityWireframePlacementMode DualRealityCollisionRadarPlacement = DualRealityWireframePlacementMode.FullscreenCurved;
+	[Export(PropertyHint.Range, "0,1,0.01")] public float DualRealityCollisionRadarOpacity = 0.78f;
+	[Export] public bool DualRealityCollisionRadarShowPrimarySceneGeometry = true;
+	[Export] public bool DualRealityCollisionRadarShowRemappedSceneGeometry = true;
+	[Export] public bool DualRealityCollisionRadarShowBackgroundObjects = true;
+	[Export] public bool DualRealityCollisionRadarShowProbeHelpers = true;
+	[Export] public DualRealityCollisionRadarFilterMode DualRealityCollisionRadarFilter = DualRealityCollisionRadarFilterMode.AllVisible;
+	[Export] public DualRealityCollisionRadarBoundsMode DualRealityCollisionRadarBounds = DualRealityCollisionRadarBoundsMode.Aabb;
+	[Export] public bool DualRealityCollisionRadarShowCenterMarkers = true;
+	[Export] public bool DualRealityCollisionRadarShowLabels = true;
+	[Export] public bool DualRealityCollisionRadarShowLeaderLines = true;
+	[Export] public bool DualRealityCollisionRadarShowLegend = true;
 	[Export] public bool DualRealityFreezeBaseline = false;
 	[Export] public bool DualRealityRefreshBaseline = false;
 	[Export] public string DualRealityCapturePath = "res://output/dual_reality/wormhole_inset_baseline.png";
@@ -300,6 +338,8 @@ public partial class WormholePrototypeRig : Node3D
 	private Label _dualRealityStateLabel;
 	private WireframeReferenceOverlay _dualRealityWireframeFullscreenOverlay;
 	private WireframeReferenceOverlay _dualRealityWireframePanelOverlay;
+	private CameraSpaceCollisionOverlay _dualRealityCollisionFullscreenOverlay;
+	private CameraSpaceCollisionOverlay _dualRealityCollisionPanelOverlay;
 	private ImageTexture _dualRealityOverlayTexture;
 	private ulong _dualRealityObservedStateHash;
 	private int _dualRealityStableFrames;
@@ -312,6 +352,11 @@ public partial class WormholePrototypeRig : Node3D
 	private bool _dualRealityPreviousRuntimeMacroSwitchingEnabled;
 	private bool _dualRealityRuntimeMacroHotkeysOverridden;
 	private string _dualRealityLastWireframeDebugSummary = string.Empty;
+	private string _dualRealityLastCollisionRadarDebugSummary = string.Empty;
+	private double _dualRealityCollisionActivityRefreshSeconds;
+	private float _appliedValidationCameraBackoffDistance;
+	private string _appliedValidationCameraPosePreset = "validation_nearfield";
+	private bool _validationCameraBackoffOverrideActive;
 
 	public override void _Ready()
 	{
@@ -341,6 +386,7 @@ public partial class WormholePrototypeRig : Node3D
 		ApplyWorldVisibility(_activePortal);
 		_lastActivePortalDelta = _activePortal.SignedRadiusDelta(_traveler.GlobalPosition);
 		ApplyValidationInputLock();
+		ApplyValidationCameraBackoff();
 		InitializeDualRealityResearch();
 		if (_dualRealityStartupHoldActive)
 		{
@@ -569,6 +615,65 @@ public partial class WormholePrototypeRig : Node3D
 		_validationPendingCapture = true;
 	}
 
+	private void ApplyValidationCameraBackoff()
+	{
+		_appliedValidationCameraPosePreset = NormalizeValidationCameraPosePreset(ValidationCameraPosePreset);
+		float presetBackoff = ResolveValidationCameraPresetBackoff(_appliedValidationCameraPosePreset);
+		_appliedValidationCameraBackoffDistance = _validationCameraBackoffOverrideActive
+			? Mathf.Max(0f, ValidationCameraBackoffDistance)
+			: presetBackoff;
+		if (_mainCamera == null)
+		{
+			return;
+		}
+
+		if (_appliedValidationCameraBackoffDistance > 0f && _traveler != null)
+		{
+			Vector3 backward = _mainCamera.GlobalTransform.Basis.Z.Normalized();
+			Vector3 delta = backward * _appliedValidationCameraBackoffDistance;
+			_traveler.GlobalPosition += delta;
+			if (!ReferenceEquals(_traveler, _mainCamera))
+			{
+				_mainCamera.GlobalPosition += delta;
+			}
+		}
+
+		Vector3 position = _mainCamera.GlobalPosition;
+		Vector3 forward = -_mainCamera.GlobalTransform.Basis.Z.Normalized();
+		GD.Print(
+			$"[WormholeValidation] camera_pose preset={_appliedValidationCameraPosePreset} " +
+			$"override_active={(_validationCameraBackoffOverrideActive ? "true" : "false")} " +
+			$"amount={_appliedValidationCameraBackoffDistance:0.###} " +
+			$"position=({position.X:0.###},{position.Y:0.###},{position.Z:0.###}) " +
+			$"forward=({forward.X:0.###},{forward.Y:0.###},{forward.Z:0.###})");
+	}
+
+	private string NormalizeValidationCameraPosePreset(string preset)
+	{
+		if (string.IsNullOrWhiteSpace(preset))
+		{
+			return "validation_nearfield";
+		}
+
+		return preset.Trim().ToLowerInvariant() switch
+		{
+			"validation" or "validation_near" or "validation_nearfield" or "near" or "nearfield" => "validation_nearfield",
+			"presentation_mid" or "presentation-mid" or "mid" or "mid_backoff" => "presentation_mid",
+			"presentation_far" or "presentation-far" or "far" or "far_backoff" => "presentation_far",
+			_ => "validation_nearfield",
+		};
+	}
+
+	private float ResolveValidationCameraPresetBackoff(string preset)
+	{
+		return preset switch
+		{
+			"presentation_mid" => Mathf.Max(0f, PresentationMidBackoffDistance),
+			"presentation_far" => Mathf.Max(0f, PresentationFarBackoffDistance),
+			_ => Mathf.Max(0f, ValidationNearfieldBackoffDistance),
+		};
+	}
+
 	private void InitializeDualRealityResearch()
 	{
 		_hudCanvasLayer = GetNodeOrNull<CanvasLayer>("CanvasLayer");
@@ -694,6 +799,14 @@ public partial class WormholePrototypeRig : Node3D
 			};
 			stack.AddChild(_dualRealityWireframePanelOverlay);
 
+			_dualRealityCollisionPanelOverlay = new CameraSpaceCollisionOverlay
+			{
+				Name = "CameraSpaceCollisionOverlayPanel",
+				Visible = false,
+				ZIndex = 3,
+			};
+			stack.AddChild(_dualRealityCollisionPanelOverlay);
+
 			_dualRealityModeLabel = new Label
 			{
 				Name = "DualRealityModeLabel",
@@ -724,19 +837,42 @@ public partial class WormholePrototypeRig : Node3D
 			_hudCanvasLayer.AddChild(_dualRealityWireframeFullscreenOverlay);
 		}
 
+		if (_dualRealityCollisionFullscreenOverlay == null)
+		{
+			_dualRealityCollisionFullscreenOverlay = new CameraSpaceCollisionOverlay
+			{
+				Name = "CameraSpaceCollisionOverlayFullscreen",
+				Visible = false,
+				ZIndex = 5,
+			};
+			_hudCanvasLayer.AddChild(_dualRealityCollisionFullscreenOverlay);
+		}
+
 		Node3D probeWall = GetNodeOrNull<Node3D>("SceneB/ProbeWallB");
 		Node3D backdropA = GetNodeOrNull<Node3D>("SceneA/BackdropA");
 		Node3D backdropB = GetNodeOrNull<Node3D>("SceneB/BackdropB");
+		Node3D sceneA = GetNodeOrNull<Node3D>("SceneA");
+		Node3D sceneB = GetNodeOrNull<Node3D>("SceneB");
 		_dualRealityWireframeFullscreenOverlay?.Configure(_mainCamera, _portalA, _portalB, probeWall, backdropA, backdropB);
 		_dualRealityWireframePanelOverlay?.Configure(_mainCamera, _portalA, _portalB, probeWall, backdropA, backdropB);
+		_dualRealityCollisionFullscreenOverlay?.Configure(_mainCamera, sceneA, sceneB, _portalA, _portalB);
+		_dualRealityCollisionPanelOverlay?.Configure(_mainCamera, sceneA, sceneB, _portalA, _portalB);
 
 		if (_dualRealityWireframePanelOverlay != null)
 		{
-			_dualRealityWireframePanelOverlay.ModeLabel = "WIRELINE REFERENCE · BASELINE";
+			_dualRealityWireframePanelOverlay.ModeLabel = "SEMANTIC REFERENCE GLYPHS · BASELINE";
 		}
 		if (_dualRealityWireframeFullscreenOverlay != null)
 		{
-			_dualRealityWireframeFullscreenOverlay.ModeLabel = "WIRELINE REFERENCE · CURVED";
+			_dualRealityWireframeFullscreenOverlay.ModeLabel = "SEMANTIC REFERENCE GLYPHS · CURVED";
+		}
+		if (_dualRealityCollisionPanelOverlay != null)
+		{
+			_dualRealityCollisionPanelOverlay.ModeLabel = "COLLISION RADAR · BASELINE";
+		}
+		if (_dualRealityCollisionFullscreenOverlay != null)
+		{
+			_dualRealityCollisionFullscreenOverlay.ModeLabel = "COLLISION RADAR · CURVED";
 		}
 	}
 
@@ -785,8 +921,14 @@ public partial class WormholePrototypeRig : Node3D
 		bool wireframeVisible = EnableDualRealityResearchMode && DualRealityWireframeReferenceOverlayEnabled;
 		bool wireframeFullscreen = wireframeVisible && (DualRealityWireframePlacement == DualRealityWireframePlacementMode.FullscreenCurved || DualRealityWireframePlacement == DualRealityWireframePlacementMode.Both);
 		bool wireframePanel = wireframeVisible && panelVisible && (DualRealityWireframePlacement == DualRealityWireframePlacementMode.StraightTransportReference || DualRealityWireframePlacement == DualRealityWireframePlacementMode.Both);
-		ApplyWireframeOverlayState(_dualRealityWireframeFullscreenOverlay, wireframeFullscreen, "WIRELINE REFERENCE · CURVED");
-		ApplyWireframeOverlayState(_dualRealityWireframePanelOverlay, wireframePanel, "WIRELINE REFERENCE · BASELINE");
+		ApplyWireframeOverlayState(_dualRealityWireframeFullscreenOverlay, wireframeFullscreen, "SEMANTIC REFERENCE GLYPHS · CURVED");
+		ApplyWireframeOverlayState(_dualRealityWireframePanelOverlay, wireframePanel, "SEMANTIC REFERENCE GLYPHS · BASELINE");
+
+		bool collisionVisible = EnableDualRealityResearchMode && DualRealityCollisionRadarOverlayEnabled;
+		bool collisionFullscreen = collisionVisible && (DualRealityCollisionRadarPlacement == DualRealityWireframePlacementMode.FullscreenCurved || DualRealityCollisionRadarPlacement == DualRealityWireframePlacementMode.Both);
+		bool collisionPanel = collisionVisible && panelVisible && (DualRealityCollisionRadarPlacement == DualRealityWireframePlacementMode.StraightTransportReference || DualRealityCollisionRadarPlacement == DualRealityWireframePlacementMode.Both);
+		ApplyCollisionOverlayState(_dualRealityCollisionFullscreenOverlay, collisionFullscreen, "COLLISION RADAR · CURVED");
+		ApplyCollisionOverlayState(_dualRealityCollisionPanelOverlay, collisionPanel, "COLLISION RADAR · BASELINE");
 	}
 
 	private void ApplyWireframeOverlayState(WireframeReferenceOverlay overlay, bool visible, string label)
@@ -800,13 +942,38 @@ public partial class WormholePrototypeRig : Node3D
 		overlay.OverlayEnabled = visible;
 		overlay.OverlayOpacity = Mathf.Clamp(DualRealityWireframeOverlayOpacity, 0f, 1f);
 		overlay.ModeLabel = label;
-		overlay.ShowPortalMouthRings = DualRealityWireframeShowPortalMouthRings;
-		overlay.ShowShellRings = DualRealityWireframeShowShellRings;
-		overlay.ShowFieldShellRings = DualRealityWireframeShowFieldShellRings;
-		overlay.ShowBackdropAndProbePlanes = DualRealityWireframeShowBackdropAndProbePlanes;
+		overlay.ShowFieldGlyphs = DualRealityWireframeShowFieldGlyphs;
+		overlay.ShowBoundaryLayerGlyphs = DualRealityWireframeShowBoundaryLayerGlyphs;
+		overlay.ShowWormholePortalGlyphs = DualRealityWireframeShowWormholePortalGlyphs;
+		overlay.ShowBackdropAndProbeHelpers = DualRealityWireframeShowBackdropAndProbeHelpers;
 		overlay.ShowCenterAnchor = DualRealityWireframeShowCenterAnchor;
 		overlay.AllowEdgeOnPlanesForDebug = DualRealityWireframeAllowEdgeOnPlanesForDebug;
 		overlay.EdgeOnPlaneDotThreshold = Mathf.Clamp(DualRealityWireframeEdgeOnPlaneDotThreshold, 0f, 0.5f);
+	}
+
+	private void ApplyCollisionOverlayState(CameraSpaceCollisionOverlay overlay, bool visible, string label)
+	{
+		if (overlay == null)
+		{
+			return;
+		}
+
+		bool primarySceneIsA = _activePortal == _portalA;
+		overlay.SetPrimarySceneIsA(primarySceneIsA);
+		overlay.Visible = visible;
+		overlay.OverlayEnabled = visible;
+		overlay.OverlayOpacity = Mathf.Clamp(DualRealityCollisionRadarOpacity, 0f, 1f);
+		overlay.ModeLabel = label;
+		overlay.ShowPrimarySceneGeometry = DualRealityCollisionRadarShowPrimarySceneGeometry;
+		overlay.ShowRemappedSceneGeometry = DualRealityCollisionRadarShowRemappedSceneGeometry;
+		overlay.ShowBackgroundObjects = DualRealityCollisionRadarShowBackgroundObjects;
+		overlay.ShowProbeHelpers = DualRealityCollisionRadarShowProbeHelpers;
+		overlay.DisplayFilterMode = (CameraSpaceCollisionOverlay.CollisionRadarDisplayFilterMode)DualRealityCollisionRadarFilter;
+		overlay.BoundsMode = (CameraSpaceCollisionOverlay.CollisionRadarBoundsMode)DualRealityCollisionRadarBounds;
+		overlay.ShowCenterMarkers = DualRealityCollisionRadarShowCenterMarkers;
+		overlay.ShowLabels = DualRealityCollisionRadarShowLabels;
+		overlay.ShowLeaderLines = DualRealityCollisionRadarShowLeaderLines;
+		overlay.ShowLegend = DualRealityCollisionRadarShowLegend;
 	}
 
 	private static void AppendQuantizedTransform(ref HashCode hash, Transform3D transform)
@@ -896,10 +1063,53 @@ public partial class WormholePrototypeRig : Node3D
 	{
 		return DualRealityWireframePlacement switch
 		{
-			DualRealityWireframePlacementMode.StraightTransportReference => "WIRELINE · BASELINE PANEL",
-			DualRealityWireframePlacementMode.Both => "WIRELINE · CURVED + BASELINE",
-			_ => "WIRELINE · CURVED FULLSCREEN",
+			DualRealityWireframePlacementMode.StraightTransportReference => "SEMANTIC GLYPHS · BASELINE PANEL",
+			DualRealityWireframePlacementMode.Both => "SEMANTIC GLYPHS · CURVED + BASELINE",
+			_ => "SEMANTIC GLYPHS · CURVED FULLSCREEN",
 		};
+	}
+
+	private string ResolveCollisionPlacementLabel()
+	{
+		return DualRealityCollisionRadarPlacement switch
+		{
+			DualRealityWireframePlacementMode.StraightTransportReference => "COLLISION RADAR · BASELINE PANEL",
+			DualRealityWireframePlacementMode.Both => "COLLISION RADAR · CURVED + BASELINE",
+			_ => "COLLISION RADAR · CURVED FULLSCREEN",
+		};
+	}
+
+	private void RefreshCollisionRadarHitActivity(bool force)
+	{
+		if (!EnableDualRealityResearchMode || _filmCamera == null)
+		{
+			return;
+		}
+
+		bool anyCollisionOverlayVisible =
+			(_dualRealityCollisionFullscreenOverlay?.Visible == true) ||
+			(_dualRealityCollisionPanelOverlay?.Visible == true);
+		if (!anyCollisionOverlayVisible)
+		{
+			return;
+		}
+
+		if (!force && _dualRealityCollisionActivityRefreshSeconds < 0.35)
+		{
+			return;
+		}
+
+		_dualRealityCollisionActivityRefreshSeconds = 0.0;
+		if (_filmCamera.TryGetColliderHitActivityForTesting(out GrinFilmCamera.ColliderHitActivityEntry[] entries))
+		{
+			_dualRealityCollisionFullscreenOverlay?.SetHitActivity(entries);
+			_dualRealityCollisionPanelOverlay?.SetHitActivity(entries);
+		}
+		else
+		{
+			_dualRealityCollisionFullscreenOverlay?.SetHitActivity(Array.Empty<GrinFilmCamera.ColliderHitActivityEntry>());
+			_dualRealityCollisionPanelOverlay?.SetHitActivity(Array.Empty<GrinFilmCamera.ColliderHitActivityEntry>());
+		}
 	}
 
 	private void UpdateDualRealityOverlayTexture(bool force)
@@ -946,6 +1156,7 @@ public partial class WormholePrototypeRig : Node3D
 	{
 		UpdateDualRealityInsetVisibility();
 		UpdateDualRealityInsetLayout();
+		RefreshCollisionRadarHitActivity(forceOverlayRefresh);
 
 		if (_dualRealityTitleLabel == null || _dualRealityModeLabel == null || _dualRealityStateLabel == null)
 		{
@@ -967,7 +1178,13 @@ public partial class WormholePrototypeRig : Node3D
 				: "BASELINE · PENDING";
 		}
 
-		_dualRealityModeLabel.Text = $"{ResolveDualRealityOverlayModeLabel()} · {ResolveWireframePlacementLabel()}";
+		string wireframeMode = DualRealityWireframeReferenceOverlayEnabled
+			? ResolveWireframePlacementLabel()
+			: "SEMANTIC GLYPHS · OFF";
+		string collisionMode = DualRealityCollisionRadarOverlayEnabled
+			? ResolveCollisionPlacementLabel()
+			: "COLLISION RADAR · OFF";
+		_dualRealityModeLabel.Text = $"{ResolveDualRealityOverlayModeLabel()} · {wireframeMode} · {collisionMode}";
 		_dualRealityTitleLabel.Modulate = EnableDualRealityResearchMode
 			? new Color(0.96f, 0.98f, 1f, 0.96f)
 			: new Color(0.82f, 0.84f, 0.88f, 0.72f);
@@ -975,12 +1192,30 @@ public partial class WormholePrototypeRig : Node3D
 		if (_dualRealityWireframeFullscreenOverlay != null || _dualRealityWireframePanelOverlay != null)
 		{
 			string categorySummary =
-				$"portal={(DualRealityWireframeShowPortalMouthRings ? 1 : 0)} shell={(DualRealityWireframeShowShellRings ? 1 : 0)} field={(DualRealityWireframeShowFieldShellRings ? 1 : 0)} planes={(DualRealityWireframeShowBackdropAndProbePlanes ? 1 : 0)} anchor={(DualRealityWireframeShowCenterAnchor ? 1 : 0)} edgeDebug={(DualRealityWireframeAllowEdgeOnPlanesForDebug ? 1 : 0)}";
-			string summary = $"placement={ResolveWireframePlacementLabel()} opacity={DualRealityWireframeOverlayOpacity:0.00} {categorySummary} note=yellow_center_anchor";
+				$"fields={(DualRealityWireframeShowFieldGlyphs ? 1 : 0)} blv={(DualRealityWireframeShowBoundaryLayerGlyphs ? 1 : 0)} portals={(DualRealityWireframeShowWormholePortalGlyphs ? 1 : 0)} helpers={(DualRealityWireframeShowBackdropAndProbeHelpers ? 1 : 0)} anchor={(DualRealityWireframeShowCenterAnchor ? 1 : 0)} edgeDebug={(DualRealityWireframeAllowEdgeOnPlanesForDebug ? 1 : 0)}";
+			string primitiveSummary = _dualRealityWireframeFullscreenOverlay?.Visible == true
+				? _dualRealityWireframeFullscreenOverlay.DebugPrimitiveSummary
+				: _dualRealityWireframePanelOverlay?.DebugPrimitiveSummary ?? string.Empty;
+			string summary = $"placement={ResolveWireframePlacementLabel()} opacity={DualRealityWireframeOverlayOpacity:0.00} {categorySummary} glyphs=\"{primitiveSummary}\"";
 			if (!string.Equals(summary, _dualRealityLastWireframeDebugSummary, StringComparison.Ordinal))
 			{
 				_dualRealityLastWireframeDebugSummary = summary;
 				GD.Print($"[DualReality] wireframe {summary}");
+			}
+		}
+
+		if (_dualRealityCollisionFullscreenOverlay != null || _dualRealityCollisionPanelOverlay != null)
+		{
+			string categorySummary =
+				$"filter={DualRealityCollisionRadarFilter} bounds={DualRealityCollisionRadarBounds} primary={(DualRealityCollisionRadarShowPrimarySceneGeometry ? 1 : 0)} remapped={(DualRealityCollisionRadarShowRemappedSceneGeometry ? 1 : 0)} background={(DualRealityCollisionRadarShowBackgroundObjects ? 1 : 0)} helpers={(DualRealityCollisionRadarShowProbeHelpers ? 1 : 0)} centers={(DualRealityCollisionRadarShowCenterMarkers ? 1 : 0)} labels={(DualRealityCollisionRadarShowLabels ? 1 : 0)} leaders={(DualRealityCollisionRadarShowLeaderLines ? 1 : 0)} legend={(DualRealityCollisionRadarShowLegend ? 1 : 0)}";
+			string visibleSummary = _dualRealityCollisionFullscreenOverlay?.Visible == true
+				? _dualRealityCollisionFullscreenOverlay.DebugVisibleSummary
+				: _dualRealityCollisionPanelOverlay?.DebugVisibleSummary ?? string.Empty;
+			string summary = $"placement={ResolveCollisionPlacementLabel()} opacity={DualRealityCollisionRadarOpacity:0.00} {categorySummary} visible=\"{visibleSummary}\"";
+			if (!string.Equals(summary, _dualRealityLastCollisionRadarDebugSummary, StringComparison.Ordinal))
+			{
+				_dualRealityLastCollisionRadarDebugSummary = summary;
+				GD.Print($"[DualReality] collision_radar {summary}");
 			}
 		}
 	}
@@ -994,6 +1229,7 @@ public partial class WormholePrototypeRig : Node3D
 
 		ApplyDualRealityRuntimeHotkeyGuard();
 		_dualRealityOverlayRefreshSeconds += delta;
+		_dualRealityCollisionActivityRefreshSeconds += delta;
 		if (DualRealityRefreshBaseline)
 		{
 			DualRealityRefreshBaseline = false;
@@ -1150,6 +1386,7 @@ public partial class WormholePrototypeRig : Node3D
 
 	private void ApplyDualRealityCmdArgs()
 	{
+		_validationCameraBackoffOverrideActive = false;
 		foreach (string arg in GetRigCmdArgs())
 		{
 			if (TryGetRigArgValue(arg, "--dual-reality=", out string enabledValue))
@@ -1184,6 +1421,24 @@ public partial class WormholePrototypeRig : Node3D
 				continue;
 			}
 
+			if (TryGetRigArgValue(arg, "--dual-reality-collision=", out string collisionValue))
+			{
+				DualRealityCollisionRadarOverlayEnabled = ParseCliBool(collisionValue);
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--dual-reality-collision-placement=", out string collisionPlacementValue))
+			{
+				string normalized = collisionPlacementValue.Trim().ToLowerInvariant();
+				DualRealityCollisionRadarPlacement = normalized switch
+				{
+					"panel" or "baseline" or "straight" => DualRealityWireframePlacementMode.StraightTransportReference,
+					"both" => DualRealityWireframePlacementMode.Both,
+					_ => DualRealityWireframePlacementMode.FullscreenCurved,
+				};
+				continue;
+			}
+
 			if (TryGetRigArgValue(arg, "--dual-reality-freeze=", out string freezeValue))
 			{
 				DualRealityFreezeBaseline = ParseCliBool(freezeValue);
@@ -1193,6 +1448,20 @@ public partial class WormholePrototypeRig : Node3D
 			if (TryGetRigArgValue(arg, "--dual-reality-refresh=", out string refreshValue))
 			{
 				DualRealityRefreshBaseline = ParseCliBool(refreshValue);
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--camera-backoff=", out string backoffValue)
+				&& float.TryParse(backoffValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedBackoff))
+			{
+				_validationCameraBackoffOverrideActive = true;
+				ValidationCameraBackoffDistance = Mathf.Max(0f, parsedBackoff);
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--camera-preset=", out string presetValue))
+			{
+				ValidationCameraPosePreset = NormalizeValidationCameraPosePreset(presetValue);
 			}
 		}
 	}
@@ -1691,6 +1960,8 @@ public partial class WormholePrototypeRig : Node3D
 		sb.AppendLine($"  \"entry_count\": {snapshot.Entries.Length},");
 		sb.AppendLine($"  \"occupied_cells\": {occupiedCells},");
 		sb.AppendLine($"  \"max_cell_samples\": {maxSamples},");
+		AppendValidationCameraPoseProfileJson(sb);
+		sb.AppendLine(",");
 		AppendLowValueThrottleProfileJson(sb, throttleProfile);
 		sb.AppendLine(",");
 		sb.AppendLine("  \"invariant_contract\": {");
@@ -2180,6 +2451,18 @@ public partial class WormholePrototypeRig : Node3D
 		sb.AppendLine($"    \"query_share_delta\": {FormatFloat(result.QueryShareDelta)},");
 		sb.AppendLine($"    \"target_query_samples\": {result.TargetQuerySamples},");
 		sb.AppendLine($"    \"total_query_samples\": {result.TotalQuerySamples}");
+		sb.Append("  }");
+	}
+
+	private void AppendValidationCameraPoseProfileJson(StringBuilder sb)
+	{
+		sb.AppendLine("  \"validation_camera_pose_profile\": {");
+		sb.AppendLine($"    \"preset\": \"{_appliedValidationCameraPosePreset}\",");
+		sb.AppendLine($"    \"override_active\": {_validationCameraBackoffOverrideActive.ToString().ToLowerInvariant()},");
+		sb.AppendLine($"    \"effective_backoff\": {FormatFloat(_appliedValidationCameraBackoffDistance)},");
+		sb.AppendLine($"    \"validation_nearfield_backoff\": {FormatFloat(ValidationNearfieldBackoffDistance)},");
+		sb.AppendLine($"    \"presentation_mid_backoff\": {FormatFloat(PresentationMidBackoffDistance)},");
+		sb.AppendLine($"    \"presentation_far_backoff\": {FormatFloat(PresentationFarBackoffDistance)}");
 		sb.Append("  }");
 	}
 

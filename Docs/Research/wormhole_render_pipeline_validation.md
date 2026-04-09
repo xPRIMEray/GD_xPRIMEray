@@ -407,6 +407,51 @@ Safe throttle boundary:
 - safe/current: `layer=0`, `radial_bin=3`, `theta={13,14,15,0}`, `period=2`
 - unsafe/rejected: same region with `period=3`
 
+Validation versus presentation camera poses:
+
+- `validation_nearfield`
+  - backoff: `0.0`
+  - role: scientific baseline for full-film validation and invariant enforcement
+  - measured result:
+    - hit rate: `29.57%`
+    - total hits: `21,316`
+    - `geom_hits`: `21,316`
+    - `final_write_px`: `21,316`
+    - proto-caustic invariant: `pass=true`
+    - low-value sector budget: `pass=true`
+
+- `presentation_mid`
+  - backoff: `5.0`
+  - role: communication pose for cleaner scene readability
+  - measured result:
+    - hit rate: `2.01%`
+    - total hits: `1,469`
+    - `geom_hits`: `1,469`
+    - `final_write_px`: `1,469`
+    - proto-caustic invariant: `pass=false`
+    - low-value sector budget: `pass=true`
+
+- `presentation_far`
+  - backoff: `10.0`
+  - role: presentation-only wide stand-off
+  - measured result:
+    - hit rate: `0.79%`
+    - total hits: `561`
+    - `geom_hits`: `153`
+    - `final_write_px`: `153`
+    - proto-caustic invariant: `pass=false`
+    - low-value sector budget: `pass=true`
+
+Engineering conclusion:
+
+- the validated wormhole regime is preserved only at the near-field pose
+- backing the camera away improves overlay readability and scene-legibility for communication
+- larger stand-off distances collapse the proto-caustic structure and should therefore be treated as presentation poses, not validation poses
+
+Reference artifact:
+
+- `output/camera_distance_sweep/preset_summary.txt`
+
 ## 11. Future Work
 
 Validated next-step priorities are:
@@ -420,6 +465,10 @@ One explicit non-keeper from the validation cycle:
 
 - switching the wormhole scene from `OverlapOnly` to `Both` broadphase was a regression and should not be treated as the current forward path
 - increasing the kept low-value throttle from `period=2` to `period=3` was also a regression and should not be treated as the current forward path
+
+Optional characterization follow-up:
+
+- run a fine-grained local sweep around `validation_nearfield`, for example `0.0`, `0.5`, `1.0`, `1.5`, `2.0`, to determine whether the proto-caustic regime ends at a sharp threshold or across a broader near-field plateau
 
 ## Current Status
 

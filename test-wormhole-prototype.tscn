@@ -107,6 +107,10 @@ EmitBoundaryValidationSummaryAfterCapture = true
 BoundaryValidationLabel = "wormhole_validation"
 ValidationWaitForFilmWrap = true
 LockTravelerInputDuringValidation = true
+ValidationCameraPosePreset = "validation_nearfield"
+ValidationNearfieldBackoffDistance = 0.0
+PresentationMidBackoffDistance = 5.0
+PresentationFarBackoffDistance = 10.0
 DualRealityWireframeShowCenterAnchor = false
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]

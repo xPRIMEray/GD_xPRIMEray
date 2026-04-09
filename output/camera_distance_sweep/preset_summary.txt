@@ -1,0 +1,9 @@
+Wormhole Camera Pose Preset Comparison
+
+preset | backoff | hitRate | totalHits | geomHits | finalWritePx | pass2.query(ms) | pass2.physics(ms) | proto | budget | elapsedToWrap(s)
+validation_nearfield |     0.0 |   29.57 |     21316 |    21316 |        21316 |         4238.29 |          44449.81 |  true |   true |           53.62
+                      camera_pos=(-2.35,1.4,0) forward=(0.859,-0.512,-0) full_pass=yes hit_density=1017.7500 radial_gradient=863.3750 actual_query_share=0.1297
+    presentation_mid |     5.0 |    2.01 |      1469 |     1469 |         1469 |         6104.55 |          33498.43 | false |   true |           49.18
+                      camera_pos=(-6.646,3.959,0) forward=(0.859,-0.512,-0) full_pass=yes hit_density=82.9375 radial_gradient=77.6875 actual_query_share=0.0605
+    presentation_far |    10.0 |    0.79 |       561 |      153 |          153 |         6602.02 |          31809.31 | false |   true |           51.26
+                      camera_pos=(-10.941,6.518,0) forward=(0.859,-0.512,-0) full_pass=yes hit_density=8.8750 radial_gradient=8.4375 actual_query_share=0.0433

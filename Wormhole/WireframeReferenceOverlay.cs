@@ -2,18 +2,28 @@ using Godot;
 using System;
 using System.Text;
 
+/// <summary>
+/// Projected semantic glyph overlay for dual-reality research. This remains distinct from:
+/// - StraightTransportReference: literal cached straight-path render
+/// - DiagnosticOverlay: scalar heatmaps / curvature-like overlays
+/// It only draws projected scene/entity symbols using the active camera and straight projection.
+/// </summary>
 public partial class WireframeReferenceOverlay : Control
 {
-	private const float PortalRadius = 2.0f;
-	private const float ShellRadius = 2.12f;
-	private const float FieldRadius = 3.15f;
+	private const float DefaultPortalRadius = 2.0f;
+	private const float DefaultFieldRadius = 3.15f;
 
 	private Camera3D _mainCamera;
-	private Node3D _portalA;
-	private Node3D _portalB;
+	private WormholePortal _portalA;
+	private WormholePortal _portalB;
 	private Node3D _probeWall;
 	private Node3D _backdropA;
 	private Node3D _backdropB;
+	private FieldSource3D _fieldA;
+	private FieldSource3D _fieldB;
+	private BoundaryLayerVolume _boundaryA;
+	private BoundaryLayerVolume _boundaryB;
+
 	private string _debugPrimitiveSummary = string.Empty;
 	private bool _suppressedEdgeOnPlanes;
 	private float _dominantSegmentLength;
@@ -22,15 +32,17 @@ public partial class WireframeReferenceOverlay : Control
 	private string _dominantVerticalSegmentLabel = string.Empty;
 
 	public bool OverlayEnabled { get; set; }
-	public bool ShowPortalMouthRings { get; set; } = true;
-	public bool ShowShellRings { get; set; } = true;
-	public bool ShowFieldShellRings { get; set; } = true;
-	public bool ShowBackdropAndProbePlanes { get; set; } = true;
+	public bool ShowFieldGlyphs { get; set; } = true;
+	public bool ShowBoundaryLayerGlyphs { get; set; } = true;
+	public bool ShowWormholePortalGlyphs { get; set; } = true;
+	public bool ShowBackdropAndProbeHelpers { get; set; } = true;
 	public bool ShowCenterAnchor { get; set; }
 	public bool AllowEdgeOnPlanesForDebug { get; set; }
 	public float EdgeOnPlaneDotThreshold { get; set; } = 0.08f;
 	public float OverlayOpacity { get; set; } = 0.86f;
-	public string ModeLabel { get; set; } = "WIRELINE REFERENCE";
+	public string ModeLabel { get; set; } = "WIREFRAME REFERENCE OVERLAY";
+	public string DebugPrimitiveSummary => _debugPrimitiveSummary;
+	public string DominantVerticalPrimitiveLabel => _dominantVerticalSegmentLabel;
 
 	public override void _Ready()
 	{
@@ -62,16 +74,21 @@ public partial class WireframeReferenceOverlay : Control
 		Node3D backdropB)
 	{
 		_mainCamera = mainCamera;
-		_portalA = portalA;
-		_portalB = portalB;
+		_portalA = portalA as WormholePortal;
+		_portalB = portalB as WormholePortal;
 		_probeWall = probeWall;
 		_backdropA = backdropA;
 		_backdropB = backdropB;
+
+		_fieldA = ResolveFieldGlyphSource(_portalA);
+		_fieldB = ResolveFieldGlyphSource(_portalB);
+		_boundaryA = ResolveBoundaryGlyphSource(_portalA);
+		_boundaryB = ResolveBoundaryGlyphSource(_portalB);
 	}
 
 	public override void _Draw()
 	{
-		if (!OverlayEnabled || _mainCamera == null || _portalA == null || _portalB == null)
+		if (!OverlayEnabled || _mainCamera == null)
 		{
 			return;
 		}
@@ -82,52 +99,48 @@ public partial class WireframeReferenceOverlay : Control
 		_dominantVerticalSegmentLength = 0f;
 		_dominantVerticalSegmentLabel = string.Empty;
 
-		Color portalAColor = new(1f, 0.62f, 0.28f, 0.92f * OverlayOpacity);
-		Color portalBColor = new(0.34f, 0.88f, 1f, 0.92f * OverlayOpacity);
-		Color shellColor = new(1f, 1f, 1f, 0.68f * OverlayOpacity);
-		Color fieldAColor = new(0.42f, 0.92f, 0.66f, 0.48f * OverlayOpacity);
-		Color fieldBColor = new(0.28f, 0.74f, 1f, 0.48f * OverlayOpacity);
-		Color probeColor = new(0.34f, 0.58f, 1f, 0.74f * OverlayOpacity);
-		Color backdropAColor = new(1f, 0.54f, 0.26f, 0.42f * OverlayOpacity);
-		Color backdropBColor = new(0.34f, 0.58f, 1f, 0.42f * OverlayOpacity);
-		Color centerColor = new(1f, 0.92f, 0.34f, 0.92f * OverlayOpacity);
-
-		if (ShowPortalMouthRings)
+		if (ShowFieldGlyphs)
 		{
-			DrawProjectedRing("portalA", _portalA.GlobalTransform, PortalRadius, portalAColor, 2.5f, 36);
-			DrawProjectedRing("portalB", _portalB.GlobalTransform, PortalRadius, portalBColor, 2.5f, 36);
+			DrawFieldGlyph("fieldA", _fieldA, new Color(0.36f, 0.94f, 0.68f, 0.92f * OverlayOpacity));
+			DrawFieldGlyph("fieldB", _fieldB, new Color(0.28f, 0.76f, 1f, 0.92f * OverlayOpacity));
 		}
 
-		if (ShowShellRings)
+		if (ShowBoundaryLayerGlyphs)
 		{
-			DrawProjectedRing("shellA", _portalA.GlobalTransform, ShellRadius, shellColor, 1.6f, 40);
-			DrawProjectedRing("shellB", _portalB.GlobalTransform, ShellRadius, shellColor, 1.6f, 40);
+			DrawBoundaryGlyph("boundaryA", _boundaryA, new Color(1f, 0.92f, 0.42f, 0.92f * OverlayOpacity), "BLV A");
+			DrawBoundaryGlyph("boundaryB", _boundaryB, new Color(1f, 0.74f, 0.26f, 0.92f * OverlayOpacity), "BLV B");
 		}
 
-		if (ShowFieldShellRings)
+		if (ShowWormholePortalGlyphs)
 		{
-			DrawProjectedRing("fieldA", _portalA.GlobalTransform, FieldRadius, fieldAColor, 1.4f, 44);
-			DrawProjectedRing("fieldB", _portalB.GlobalTransform, FieldRadius, fieldBColor, 1.4f, 44);
+			DrawPortalGlyph("portalA", _portalA, new Color(1f, 0.58f, 0.28f, 0.96f * OverlayOpacity), "PORTAL A");
+			DrawPortalGlyph("portalB", _portalB, new Color(0.34f, 0.88f, 1f, 0.96f * OverlayOpacity), "PORTAL B");
 		}
 
-		if (ShowBackdropAndProbePlanes)
+		if (ShowBackdropAndProbeHelpers)
 		{
-			DrawProjectedPlaneBox("probe", _probeWall, new Vector2(24f, 14f), probeColor, 2f);
-			DrawProjectedPlaneBox("backdropA", _backdropA, new Vector2(24f, 14f), backdropAColor, 1.6f);
-			DrawProjectedPlaneBox("backdropB", _backdropB, new Vector2(24f, 14f), backdropBColor, 1.6f);
+			DrawProjectedPlaneBox("probe", _probeWall, new Vector2(24f, 14f), new Color(0.34f, 0.58f, 1f, 0.70f * OverlayOpacity), 1.8f);
+			DrawProjectedPlaneBox("backdropA", _backdropA, new Vector2(24f, 14f), new Color(1f, 0.52f, 0.24f, 0.38f * OverlayOpacity), 1.4f);
+			DrawProjectedPlaneBox("backdropB", _backdropB, new Vector2(24f, 14f), new Color(0.34f, 0.58f, 1f, 0.38f * OverlayOpacity), 1.4f);
 		}
 
 		if (ShowCenterAnchor)
 		{
-			Vector2 center = GetRect().Size * 0.5f;
-			DrawRect(new Rect2(center + new Vector2(-12f, -1f), new Vector2(24f, 2f)), centerColor, true);
-			DrawRect(new Rect2(center + new Vector2(-1f, -12f), new Vector2(2f, 24f)), centerColor, true);
-			DrawRect(new Rect2(center + new Vector2(-3f, -3f), new Vector2(6f, 6f)), centerColor, true);
-			DrawArc(center, 18f, 0f, Mathf.Tau, 32, new Color(centerColor, 0.42f), 1.5f);
+			DrawCenterAnchor();
 		}
 
 		_debugPrimitiveSummary = BuildPrimitiveSummary();
 		DrawOverlayLabel();
+	}
+
+	private static FieldSource3D ResolveFieldGlyphSource(Node node)
+	{
+		return node?.GetNodeOrNull<FieldSource3D>("FieldSource3D");
+	}
+
+	private static BoundaryLayerVolume ResolveBoundaryGlyphSource(Node node)
+	{
+		return node?.GetNodeOrNull<BoundaryLayerVolume>("BoundaryShell");
 	}
 
 	private void DrawOverlayLabel()
@@ -135,8 +148,8 @@ public partial class WireframeReferenceOverlay : Control
 		Color labelBackdrop = new(0.04f, 0.06f, 0.1f, 0.78f * OverlayOpacity);
 		Color labelText = new(0.92f, 0.97f, 1f, 0.95f * OverlayOpacity);
 		Color noteText = new(0.86f, 0.92f, 0.98f, 0.88f * OverlayOpacity);
-		float labelHeight = _suppressedEdgeOnPlanes ? 52f : 50f;
-		DrawRect(new Rect2(16f, 16f, 320f, labelHeight), labelBackdrop, true);
+		float labelHeight = _suppressedEdgeOnPlanes ? 54f : 50f;
+		DrawRect(new Rect2(16f, 16f, 380f, labelHeight), labelBackdrop, true);
 		DrawString(ThemeDB.FallbackFont, new Vector2(26f, 36f), ModeLabel, HorizontalAlignment.Left, -1f, 14, labelText);
 		DrawString(ThemeDB.FallbackFont, new Vector2(26f, 52f), _debugPrimitiveSummary, HorizontalAlignment.Left, -1f, 11, noteText);
 	}
@@ -144,11 +157,11 @@ public partial class WireframeReferenceOverlay : Control
 	private string BuildPrimitiveSummary()
 	{
 		StringBuilder sb = new();
-		if (ShowPortalMouthRings) sb.Append("portal ");
-		if (ShowShellRings) sb.Append("shell ");
-		if (ShowFieldShellRings) sb.Append("field ");
-		if (ShowBackdropAndProbePlanes) sb.Append(_suppressedEdgeOnPlanes ? "planes=culled " : "planes ");
-		if (ShowCenterAnchor) sb.Append("yellow=center-anchor ");
+		if (ShowFieldGlyphs) sb.Append("fields(xy/xz/yz) ");
+		if (ShowBoundaryLayerGlyphs) sb.Append("blv(double/dashed) ");
+		if (ShowWormholePortalGlyphs) sb.Append("wormhole(arcs/notch) ");
+		if (ShowBackdropAndProbeHelpers) sb.Append(_suppressedEdgeOnPlanes ? "helpers=culled " : "helpers ");
+		if (ShowCenterAnchor) sb.Append("center-anchor ");
 		if (!string.IsNullOrWhiteSpace(_dominantVerticalSegmentLabel))
 		{
 			sb.Append($"dominant-vertical={_dominantVerticalSegmentLabel} ");
@@ -157,24 +170,128 @@ public partial class WireframeReferenceOverlay : Control
 		{
 			sb.Append($"dominant={_dominantSegmentLabel} ");
 		}
-		if (!AllowEdgeOnPlanesForDebug) sb.Append("edge-on-planes=culled");
+		if (!AllowEdgeOnPlanesForDebug) sb.Append("edge-on-helpers=culled");
 		return sb.ToString().TrimEnd();
 	}
 
-	private void DrawProjectedRing(string label, Transform3D transform, float radius, Color color, float width, int steps)
+	private void DrawFieldGlyph(string label, FieldSource3D field, Color baseColor)
+	{
+		if (field == null || !GodotObject.IsInstanceValid(field) || !field.Enabled)
+		{
+			return;
+		}
+
+		float radius = ResolveFieldRadius(field);
+		Transform3D t = field.GlobalTransform;
+		DrawProjectedPlanarCircle($"{label}.xy", t.Origin, t.Basis.X, t.Basis.Y, radius, baseColor, 1.7f, 48);
+		DrawProjectedPlanarCircle($"{label}.xz", t.Origin, t.Basis.X, t.Basis.Z, radius, new Color(0.46f, 0.88f, 1f, baseColor.A), 1.5f, 48);
+		DrawProjectedPlanarCircle($"{label}.yz", t.Origin, t.Basis.Y, t.Basis.Z, radius, new Color(1f, 0.84f, 0.36f, baseColor.A * 0.92f), 1.5f, 48);
+		DrawProjectedCenterLabel(field.GlobalPosition, field.Name, baseColor);
+	}
+
+	private void DrawBoundaryGlyph(string label, BoundaryLayerVolume boundary, Color color, string shortLabel)
+	{
+		if (boundary == null || !GodotObject.IsInstanceValid(boundary) || !boundary.Enabled)
+		{
+			return;
+		}
+
+		float radius = Mathf.Max(0.25f, boundary.Radius);
+		Transform3D t = boundary.GlobalTransform;
+		DrawProjectedPlanarCircle($"{label}.outer", t.Origin, t.Basis.X, t.Basis.Y, radius, color, 2.4f, 48);
+		DrawProjectedPlanarCircle($"{label}.inner", t.Origin, t.Basis.X, t.Basis.Y, radius * 0.88f, new Color(color, 0.72f), 1.6f, 48, dashed: true, dashPeriod: 2);
+		DrawProjectedPlanarCircle($"{label}.cross", t.Origin, t.Basis.X, t.Basis.Z, radius * 0.92f, new Color(color, 0.48f), 1.3f, 36, dashed: true, dashPeriod: 3);
+		DrawProjectedCenterLabel(boundary.GlobalPosition, shortLabel, color);
+	}
+
+	private void DrawPortalGlyph(string label, WormholePortal portal, Color color, string shortLabel)
+	{
+		if (portal == null || !GodotObject.IsInstanceValid(portal))
+		{
+			return;
+		}
+
+		float radius = Mathf.Max(0.35f, portal.Radius);
+		Transform3D t = portal.GlobalTransform;
+		DrawProjectedPlanarCircle($"{label}.arcOuterA", t.Origin, t.Basis.X, t.Basis.Y, radius, color, 2.6f, 40, startAngle: -2.55f, endAngle: -0.42f);
+		DrawProjectedPlanarCircle($"{label}.arcOuterB", t.Origin, t.Basis.X, t.Basis.Y, radius, color, 2.6f, 40, startAngle: 0.42f, endAngle: 2.15f);
+		DrawProjectedPlanarCircle($"{label}.arcInner", t.Origin + t.Basis.Z * 0.08f, t.Basis.X, t.Basis.Y, radius * 0.82f, new Color(color, 0.66f), 1.6f, 30, startAngle: -1.75f, endAngle: 1.25f);
+
+		Vector3 notchBase = t.Origin + t.Basis.X * radius * 1.03f;
+		Vector3 notchTip = notchBase + t.Basis.Z * (radius * 0.42f);
+		Vector3 notchWing = notchBase + t.Basis.Y * (radius * 0.18f);
+		if (TryProject(notchBase, out Vector2 a) && TryProject(notchTip, out Vector2 b))
+		{
+			DrawTrackedLine($"{label}.notch", a, b, color, 2.2f);
+		}
+		if (TryProject(notchBase, out Vector2 c) && TryProject(notchWing, out Vector2 d))
+		{
+			DrawTrackedLine($"{label}.notchWing", c, d, new Color(color, 0.8f), 1.7f);
+		}
+
+		DrawProjectedCenterLabel(portal.GlobalPosition, shortLabel, color);
+	}
+
+	private void DrawCenterAnchor()
+	{
+		Color centerColor = new(1f, 0.92f, 0.34f, 0.92f * OverlayOpacity);
+		Vector2 center = GetRect().Size * 0.5f;
+		DrawRect(new Rect2(center + new Vector2(-12f, -1f), new Vector2(24f, 2f)), centerColor, true);
+		DrawRect(new Rect2(center + new Vector2(-1f, -12f), new Vector2(2f, 24f)), centerColor, true);
+		DrawRect(new Rect2(center + new Vector2(-3f, -3f), new Vector2(6f, 6f)), centerColor, true);
+		DrawArc(center, 18f, 0f, Mathf.Tau, 32, new Color(centerColor, 0.42f), 1.5f);
+	}
+
+	private void DrawProjectedCenterLabel(Vector3 worldPosition, string text, Color color)
+	{
+		if (!TryProject(worldPosition, out Vector2 center))
+		{
+			return;
+		}
+
+		Vector2 pos = center + new Vector2(8f, -8f);
+		DrawString(ThemeDB.FallbackFont, pos, text, HorizontalAlignment.Left, -1f, 10, new Color(color, 0.9f));
+	}
+
+	private float ResolveFieldRadius(FieldSource3D field)
+	{
+		float radius = field.ROuter > 0f ? field.ROuter : DefaultFieldRadius;
+		return Mathf.Max(0.25f, radius);
+	}
+
+	private void DrawProjectedPlanarCircle(
+		string label,
+		Vector3 origin,
+		Vector3 axisA,
+		Vector3 axisB,
+		float radius,
+		Color color,
+		float width,
+		int steps,
+		float startAngle = 0f,
+		float endAngle = Mathf.Tau,
+		bool dashed = false,
+		int dashPeriod = 2)
 	{
 		Vector2? previous = null;
+		int dashCounter = 0;
+		Vector3 a = axisA.Normalized();
+		Vector3 b = axisB.Normalized();
 		for (int i = 0; i <= steps; i++)
 		{
-			float angle = i / (float)steps * Mathf.Tau;
-			Vector3 worldPoint = transform.Origin
-				+ transform.Basis.X * Mathf.Cos(angle) * radius
-				+ transform.Basis.Y * Mathf.Sin(angle) * radius;
+			float t = i / (float)steps;
+			float angle = Mathf.Lerp(startAngle, endAngle, t);
+			Vector3 worldPoint = origin + a * Mathf.Cos(angle) * radius + b * Mathf.Sin(angle) * radius;
 			if (TryProject(worldPoint, out Vector2 screen))
 			{
 				if (previous.HasValue)
 				{
-					DrawTrackedLine(label, previous.Value, screen, color, width);
+					bool drawSegment = !dashed || ((dashCounter / Mathf.Max(1, dashPeriod)) % 2 == 0);
+					if (drawSegment)
+					{
+						DrawTrackedLine(label, previous.Value, screen, color, width);
+					}
+					dashCounter++;
 				}
 				previous = screen;
 			}
@@ -201,7 +318,6 @@ public partial class WireframeReferenceOverlay : Control
 		Vector3 hx = node.GlobalTransform.Basis.X * (size.X * 0.5f);
 		Vector3 hy = node.GlobalTransform.Basis.Y * (size.Y * 0.5f);
 		Vector3 origin = node.GlobalTransform.Origin;
-
 		Vector3[] corners =
 		{
 			origin - hx - hy,
@@ -277,9 +393,7 @@ public partial class WireframeReferenceOverlay : Control
 		Vector2 normalized = new(
 			viewportScreen.X / viewportSize.X,
 			viewportScreen.Y / viewportSize.Y);
-		screenPoint = new Vector2(
-			normalized.X * Size.X,
-			normalized.Y * Size.Y);
+		screenPoint = new Vector2(normalized.X * Size.X, normalized.Y * Size.Y);
 		return new Rect2(Vector2.Zero, Size).HasPoint(screenPoint);
 	}
 }

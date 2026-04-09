@@ -1,0 +1,9 @@
+Wormhole Camera Distance Sweep
+
+Columns: backoff | tested | hits | hitPct | queries | geomHits | finalWritePx | p2.query(ms) | p2.physics(ms) | elapsedToWrap(s) | fullPass | proto | budget
+    0.0 | 4640729 | 21074 |  29.36 | 4645749 |    21074 |        21074 |      4565.14 |        44337.19 |           53.80 |      yes |  true |   true
+         camera_pos=(-2.35,1.4,0) forward=(0.859,-0.512,-0) cover=0.019 row_cursor=0/216 hit_density=1002.6250 radial_gradient=848.2500 actual_query_share=0.1320
+    5.0 | 6031925 |  1491 |   2.00 | 1166556 |     1491 |         1491 |      5873.06 |        32340.06 |           48.30 |      yes | false |   true
+         camera_pos=(-6.646,3.959,0) forward=(0.859,-0.512,-0) cover=0.019 row_cursor=0/216 hit_density=84.3125 radial_gradient=79.0625 actual_query_share=0.0600
+   10.0 | 7138527 |   568 |   0.77 |  433541 |      185 |          185 |      6795.65 |        32319.41 |           50.70 |      yes | false |   true
+         camera_pos=(-10.941,6.518,0) forward=(0.859,-0.512,-0) cover=0.019 row_cursor=0/216 hit_density=10.6875 radial_gradient=10.1875 actual_query_share=0.0445

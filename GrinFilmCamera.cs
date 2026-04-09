@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -531,6 +532,18 @@ public partial class GrinFilmCamera : Node
 			FrameSegmentsTested = frameSegmentsTested;
 			FramePhysicsQueries = framePhysicsQueries;
 			SkyColor = skyColor;
+		}
+	}
+
+	public readonly struct ColliderHitActivityEntry
+	{
+		public readonly ulong ColliderId;
+		public readonly int HitCount;
+
+		public ColliderHitActivityEntry(ulong colliderId, int hitCount)
+		{
+			ColliderId = colliderId;
+			HitCount = hitCount;
 		}
 	}
 
@@ -5307,6 +5320,48 @@ private sealed class OverlayRollingWindow
 			_framePerf.PhysicsQueries,
 			SkyColor);
 		return _filmWidth > 0 && _filmHeight > 0;
+	}
+
+	public bool TryGetColliderHitActivityForTesting(out ColliderHitActivityEntry[] entries)
+	{
+		if (_pass1HitColliderId == null || _pass1HitColliderId.Length == 0)
+		{
+			entries = Array.Empty<ColliderHitActivityEntry>();
+			return false;
+		}
+
+		Dictionary<ulong, int> counts = new();
+		for (int i = 0; i < _pass1HitColliderId.Length; i++)
+		{
+			ulong colliderId = _pass1HitColliderId[i];
+			if (colliderId == 0)
+			{
+				continue;
+			}
+
+			counts.TryGetValue(colliderId, out int current);
+			counts[colliderId] = current + 1;
+		}
+
+		if (counts.Count == 0)
+		{
+			entries = Array.Empty<ColliderHitActivityEntry>();
+			return false;
+		}
+
+		entries = new ColliderHitActivityEntry[counts.Count];
+		int index = 0;
+		foreach (KeyValuePair<ulong, int> pair in counts)
+		{
+			entries[index++] = new ColliderHitActivityEntry(pair.Key, pair.Value);
+		}
+
+		Array.Sort(entries, static (a, b) =>
+		{
+			int countOrder = b.HitCount.CompareTo(a.HitCount);
+			return countOrder != 0 ? countOrder : a.ColliderId.CompareTo(b.ColliderId);
+		});
+		return true;
 	}
 
 	private void EnsureTelemetryHeatmapCapacity(int pixelCount)
