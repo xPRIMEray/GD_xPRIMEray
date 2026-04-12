@@ -9,6 +9,10 @@ public partial class WormholePortal : Node3D
 {
 	[ExportGroup("Link")]
 	[Export] public NodePath LinkedPortalPath;
+	[Export] public string WormholeId = string.Empty;
+	[Export] public string LinkedWormholeId = string.Empty;
+	[Export] public string ParentRegionId = string.Empty;
+	[Export] public string ChildRegionId = string.Empty;
 
 	[ExportGroup("World Layers")]
 	[Export(PropertyHint.Range, "1,20,1")] public int GeometryLayerNumber = 1;
@@ -17,6 +21,11 @@ public partial class WormholePortal : Node3D
 	[ExportGroup("Shell")]
 	[Export] public float Radius = 2.0f;
 	[Export] public float ExitOffset = 0.2f;
+	[Export(PropertyHint.Range, "-180,180,0.1")] public float ZeroPhaseAngleDegrees = 0.0f;
+	[Export(PropertyHint.Range, "-1,1,1")] public int SpinDirection = 1;
+	[Export] public bool RightHanded = true;
+	[Export] public float ZoneMinZ = -8.0f;
+	[Export] public float ZoneMaxZ = 8.0f;
 
 	[ExportGroup("Surface")]
 	[Export] public NodePath PortalSurfacePath;
@@ -105,9 +114,146 @@ public partial class WormholePortal : Node3D
 		return mapped;
 	}
 
+	public Transform3D BuildPhaseLockedExitTransform(Transform3D sourceTransform)
+	{
+		if (_linkedPortal == null)
+		{
+			return sourceTransform;
+		}
+
+		Vector3 sourceSample = GetBoundarySampleWorldPoint(sourceTransform.Origin);
+		Vector3 destinationDirection = MapBoundaryDirectionToLinkedWorld(sourceSample);
+		if (destinationDirection.LengthSquared() < 1e-6f)
+		{
+			destinationDirection = -_linkedPortal.GlobalTransform.Basis.Z;
+		}
+
+		Vector3 forward = destinationDirection.Normalized();
+		Vector3 upHint = _linkedPortal.GlobalTransform.Basis.Y.Normalized();
+		if (Mathf.Abs(forward.Dot(upHint)) > 0.98f)
+		{
+			upHint = _linkedPortal.GlobalTransform.Basis.X.Normalized();
+		}
+
+		Vector3 right = upHint.Cross(forward).Normalized();
+		Vector3 trueUp = forward.Cross(right).Normalized();
+		Basis basis = new Basis(right, trueUp, -forward).Orthonormalized();
+
+		return new Transform3D(
+			basis,
+			_linkedPortal.GlobalPosition + forward * (_linkedPortal.Radius + _linkedPortal.ExitOffset));
+	}
+
+	public Vector3 GetBoundarySampleWorldPoint(Vector3 worldPoint)
+	{
+		Vector3 local = ToLocal(worldPoint);
+		if (local.LengthSquared() < 1e-6f)
+		{
+			local = -GlobalTransform.Basis.Z;
+		}
+
+		return GlobalTransform * local.Normalized() * Radius;
+	}
+
+	public Vector3 GetZeroMarkerWorldPoint(float radiusScale = 1.0f)
+	{
+		float markerRadius = Mathf.Max(0.05f, Radius * radiusScale);
+		Vector3 local = new Vector3(Mathf.Cos(GetZeroPhaseRadians()), 0f, Mathf.Sin(GetZeroPhaseRadians())) * markerRadius;
+		return GlobalTransform * local;
+	}
+
+	public Vector3 MapBoundarySamplePointToLinkedWorld(Vector3 sourceWorldPoint)
+	{
+		Vector3 direction = MapBoundaryDirectionToLinkedWorld(sourceWorldPoint);
+		if (direction.LengthSquared() < 1e-6f)
+		{
+			direction = -_linkedPortal.GlobalTransform.Basis.Z;
+		}
+
+		return _linkedPortal.GlobalPosition + direction.Normalized() * _linkedPortal.Radius;
+	}
+
+	public Vector3 MapBoundaryDirectionToLinkedWorld(Vector3 sourceWorldPoint)
+	{
+		if (_linkedPortal == null)
+		{
+			return Vector3.Zero;
+		}
+
+		Vector3 local = ResolveSampleLocalDirection(sourceWorldPoint);
+		float height = Mathf.Clamp(local.Y, -1.0f, 1.0f);
+		float planarLength = Mathf.Sqrt(Mathf.Max(0.0f, 1.0f - height * height));
+		float sourceAzimuth = planarLength > 1e-5f ? Mathf.Atan2(local.Z, local.X) : 0.0f;
+		float relativePhase = WrapAngle(sourceAzimuth - GetZeroPhaseRadians());
+
+		int sourceHand = RightHanded ? 1 : -1;
+		int targetHand = _linkedPortal.RightHanded ? 1 : -1;
+		int targetSpin = Mathf.Clamp(_linkedPortal.SpinDirection, -1, 1);
+		if (targetSpin == 0)
+		{
+			targetSpin = 1;
+		}
+
+		float targetAzimuth = _linkedPortal.GetZeroPhaseRadians() + relativePhase * sourceHand * targetHand * targetSpin;
+		Vector3 destinationLocal = new Vector3(
+			Mathf.Cos(targetAzimuth) * planarLength,
+			height,
+			Mathf.Sin(targetAzimuth) * planarLength);
+		return (_linkedPortal.GlobalTransform.Basis * destinationLocal).Normalized();
+	}
+
+	public float ComputePhaseAngleDegrees(Vector3 sourceWorldPoint)
+	{
+		Vector3 local = ResolveSampleLocalDirection(sourceWorldPoint);
+		float planarLength = Mathf.Sqrt(local.X * local.X + local.Z * local.Z);
+		float sourceAzimuth = planarLength > 1e-5f ? Mathf.Atan2(local.Z, local.X) : 0.0f;
+		return Mathf.RadToDeg(WrapAngle(sourceAzimuth - GetZeroPhaseRadians()));
+	}
+
+	public bool ContainsWorldZ(float worldZ)
+	{
+		return worldZ >= Mathf.Min(ZoneMinZ, ZoneMaxZ) && worldZ <= Mathf.Max(ZoneMinZ, ZoneMaxZ);
+	}
+
+	public string ResolveZoneLabel()
+	{
+		if (!string.IsNullOrWhiteSpace(ParentRegionId))
+		{
+			return ParentRegionId;
+		}
+
+		if (!string.IsNullOrWhiteSpace(ChildRegionId))
+		{
+			return ChildRegionId;
+		}
+
+		return Name;
+	}
+
 	public WormholePortal GetLinkedPortal()
 	{
 		return _linkedPortal;
+	}
+
+	private Vector3 ResolveSampleLocalDirection(Vector3 sourceWorldPoint)
+	{
+		Vector3 local = ToLocal(sourceWorldPoint);
+		if (local.LengthSquared() < 1e-6f)
+		{
+			local = -GlobalTransform.Basis.Z;
+		}
+
+		return local.Normalized();
+	}
+
+	private float GetZeroPhaseRadians()
+	{
+		return Mathf.DegToRad(ZeroPhaseAngleDegrees);
+	}
+
+	private static float WrapAngle(float radians)
+	{
+		return Mathf.Wrap(radians, -Mathf.Pi, Mathf.Pi);
 	}
 
 	private void ConfigureSurfaceMaterial()

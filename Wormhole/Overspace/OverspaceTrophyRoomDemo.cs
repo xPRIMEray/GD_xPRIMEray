@@ -1,19 +1,30 @@
 using Godot;
+using System;
 using System.Collections.Generic;
 
 public partial class OverspaceTrophyRoomDemo : Node3D
 {
+	private const string GalleryEarthAnchorId = "gallery_earth_orb";
+	private const string EarthArrivalAnchorId = "earth_layer1_arrival";
+
 	[ExportGroup("References")]
 	[Export] public NodePath ViewerCameraPath = new("PlayerCamera");
 	[Export] public NodePath SummaryLabelPath = new("CanvasLayer/DemoSummary");
+	[Export] public NodePath DebugOverlayPath = new("CanvasLayer/OverspaceDebugOverlay");
 
 	[ExportGroup("Behavior")]
 	[Export(PropertyHint.Range, "0,2,0.01")] public float TeleportCooldownSeconds = 0.35f;
 	[Export] public bool BuildDefaultGraphIfMissing = true;
 	[Export] public UniverseGraph DemoGraph;
+	[Export] public bool EnableAutoValidation = false;
+	[Export] public string ValidationCapturePath = "res://output/overspace/overspace_first_milestone.png";
+	[Export(PropertyHint.Range, "0.5,20,0.1")] public float ValidationMoveSpeed = 3.2f;
+	[Export(PropertyHint.Range, "0,10,0.1")] public float ValidationCaptureDelaySeconds = 1.0f;
+	[Export(PropertyHint.Range, "1,30,0.5")] public float ValidationFallbackCaptureSeconds = 8.0f;
 
 	private Camera3D _viewerCamera;
 	private Label _summaryLabel;
+	private OverspacePortalDebugOverlay _debugOverlay;
 	private readonly Dictionary<string, WormholePortal> _portalByAnchorId = new();
 	private readonly Dictionary<WormholePortal, string> _anchorIdByPortal = new();
 	private readonly Dictionary<WormholePortal, float> _lastPortalDelta = new();
@@ -21,11 +32,23 @@ public partial class OverspaceTrophyRoomDemo : Node3D
 	private float _teleportCooldownRemaining;
 	private string _currentWorldId = "TrophyRoom";
 	private string _currentLayerId = "foyer";
+	private string _currentZoneLabel = "gallery_z0";
+	private string _activeAnchorId = GalleryEarthAnchorId;
+	private bool _validationMode;
+	private bool _validationTeleported;
+	private bool _validationCaptureSaved;
+	private bool _validationPathSampleMode;
+	private double _validationCaptureCountdown;
+	private double _validationElapsedSeconds;
+	private float _validationCaptureProgressTarget = -1f;
+	private Vector3 _validationStartPosition = Vector3.Zero;
 
 	public override void _Ready()
 	{
+		GD.Print("[OverspaceDemo] _Ready entered");
 		_viewerCamera = GetNodeOrNull<Camera3D>(ViewerCameraPath);
 		_summaryLabel = GetNodeOrNull<Label>(SummaryLabelPath);
+		_debugOverlay = GetNodeOrNull<OverspacePortalDebugOverlay>(DebugOverlayPath);
 
 		if (DemoGraph == null && BuildDefaultGraphIfMissing)
 		{
@@ -34,10 +57,13 @@ public partial class OverspaceTrophyRoomDemo : Node3D
 
 		BindSceneNodes();
 		ConfigureGalleryLabels();
-		ApplyGalleryCameraMask();
+		EnsureViewerSeesAllZones();
 		PrimePortalDeltas();
 		UpdatePortalViews();
+		_debugOverlay?.Configure(_viewerCamera);
+		UpdateDebugOverlay();
 		UpdateSummaryLabel();
+		InitializeValidationMode();
 	}
 
 	public override void _Process(double delta)
@@ -49,10 +75,13 @@ public partial class OverspaceTrophyRoomDemo : Node3D
 			return;
 		}
 
+		RunValidationStep(delta);
+
 		if (_teleportCooldownRemaining > 0f)
 		{
 			_teleportCooldownRemaining = Mathf.Max(0f, _teleportCooldownRemaining - (float)delta);
 			PrimePortalDeltas();
+			UpdateDebugOverlay();
 			return;
 		}
 
@@ -69,20 +98,15 @@ public partial class OverspaceTrophyRoomDemo : Node3D
 				break;
 			}
 		}
+
+		UpdateDebugOverlay();
 	}
 
 	private void BindSceneNodes()
 	{
-		RegisterPortal("gallery_earth_orb", "Gallery/EarthOrbPortal");
-		RegisterPortal("gallery_sun_orb", "Gallery/SunOrbPortal");
-		RegisterPortal("gallery_moon_orb", "Gallery/MoonOrbPortal");
-		RegisterPortal("earth_layer1_arrival", "Worlds/EarthWorld/EarthArrivalPortal");
-		RegisterPortal("sun_layer1_arrival", "Worlds/SunWorld/SunArrivalPortal");
-		RegisterPortal("moon_layer1_arrival", "Worlds/MoonWorld/MoonArrivalPortal");
-
-		RegisterGalleryLabel("gallery_earth_orb", "Gallery/EarthPedestal/EarthLabel");
-		RegisterGalleryLabel("gallery_sun_orb", "Gallery/SunPedestal/SunLabel");
-		RegisterGalleryLabel("gallery_moon_orb", "Gallery/MoonPedestal/MoonLabel");
+		RegisterPortal(GalleryEarthAnchorId, "Gallery/EarthOrbPortal");
+		RegisterPortal(EarthArrivalAnchorId, "Worlds/EarthWorld/EarthArrivalPortal");
+		RegisterGalleryLabel(GalleryEarthAnchorId, "Gallery/EarthPedestal/EarthLabel");
 	}
 
 	private void RegisterPortal(string anchorId, string scenePath)
@@ -133,7 +157,7 @@ public partial class OverspaceTrophyRoomDemo : Node3D
 			}
 
 			label.Text =
-				$"{targetAnchor.WorldId.ToUpperInvariant()} LAYER 1\n" +
+				$"{targetAnchor.WorldId.ToUpperInvariant()} Z-ZONE\n" +
 				$"{targetAnchor.WorldId} / {targetAnchor.DensityLayerId}\n" +
 				$"{link.LinkId}";
 		}
@@ -172,9 +196,9 @@ public partial class OverspaceTrophyRoomDemo : Node3D
 			return;
 		}
 
-		_viewerCamera.GlobalTransform = sourcePortal.BuildExitTransform(_viewerCamera.GlobalTransform);
-		_viewerCamera.CullMask = targetPortal.GeometryMask | targetPortal.PortalMask;
+		_viewerCamera.GlobalTransform = sourcePortal.BuildPhaseLockedExitTransform(_viewerCamera.GlobalTransform);
 		_teleportCooldownRemaining = TeleportCooldownSeconds;
+		_activeAnchorId = link.TargetAnchorId;
 
 		PortalAnchor targetAnchor = DemoGraph.FindAnchor(link.TargetAnchorId);
 		if (targetAnchor != null)
@@ -182,8 +206,15 @@ public partial class OverspaceTrophyRoomDemo : Node3D
 			_currentWorldId = targetAnchor.WorldId;
 			_currentLayerId = targetAnchor.DensityLayerId;
 		}
+		_currentZoneLabel = targetPortal.ResolveZoneLabel();
+		if (!_validationTeleported && _validationMode)
+		{
+			_validationTeleported = true;
+			_validationCaptureCountdown = ValidationCaptureDelaySeconds;
+		}
 
 		PrimePortalDeltas();
+		UpdateDebugOverlay();
 		UpdateSummaryLabel();
 	}
 
@@ -200,17 +231,14 @@ public partial class OverspaceTrophyRoomDemo : Node3D
 		}
 	}
 
-	private void ApplyGalleryCameraMask()
+	private void EnsureViewerSeesAllZones()
 	{
 		if (_viewerCamera == null)
 		{
 			return;
 		}
 
-		if (_portalByAnchorId.TryGetValue("gallery_earth_orb", out WormholePortal galleryPortal))
-		{
-			_viewerCamera.CullMask = galleryPortal.GeometryMask | galleryPortal.PortalMask;
-		}
+		_viewerCamera.CullMask = uint.MaxValue;
 	}
 
 	private void UpdateSummaryLabel()
@@ -224,9 +252,10 @@ public partial class OverspaceTrophyRoomDemo : Node3D
 			"OVERSPACE TROPHY ROOM\n" +
 			$"Current world: {_currentWorldId}\n" +
 			$"Current layer: {_currentLayerId}\n" +
-			"Live links: Earth Layer 1, Sun Layer 1, Moon Layer 1\n" +
+			$"Active z-zone: {_currentZoneLabel}\n" +
+			"Live link: Earth z-zone enclosure\n" +
 			"Controls: WASD move, E/Q rise-fall, Shift sprint, Esc release mouse\n" +
-			"Step into an orb to traverse, then use the return orb to re-enter the foyer.";
+			"Step into the orb to traverse, then re-enter the return orb to come back.";
 	}
 
 	private UniverseGraph BuildDefaultGraph()
@@ -259,41 +288,13 @@ public partial class OverspaceTrophyRoomDemo : Node3D
 			WorldProfile = identity
 		};
 		trophyRoom.DensityLayers.Add(foyerLayer);
-		trophyRoom.AnchorIds.Add("gallery_earth_orb");
-		trophyRoom.AnchorIds.Add("gallery_sun_orb");
-		trophyRoom.AnchorIds.Add("gallery_moon_orb");
-
-		WorldNode solarSystem = new()
-		{
-			WorldId = "SolarSystem",
-			DisplayName = "Solar System",
-			ParentWorldId = "PrimeShelf",
-			DefaultLayerId = "interplanetary",
-			WorldProfile = identity
-		};
-		solarSystem.ChildWorldIds.Add("Earth");
-		solarSystem.ChildWorldIds.Add("Sun");
-		solarSystem.ChildWorldIds.Add("Moon");
-		solarSystem.DensityLayers.Add(new DensityLayer
-		{
-			LayerId = "interplanetary",
-			DisplayName = "Interplanetary",
-			LayerProfile = new OverspaceProfile
-			{
-				ProfileId = "interplanetary",
-				DensityScalar = 1.0f,
-				PhaseScalar = 1.0f,
-				ClockScalar = 1.0f,
-				ScaleScalar = 1.0f,
-				FieldScalar = 1.0f
-			}
-		});
+		trophyRoom.AnchorIds.Add(GalleryEarthAnchorId);
 
 		WorldNode earth = new()
 		{
 			WorldId = "Earth",
 			DisplayName = "Earth",
-			ParentWorldId = "SolarSystem",
+			ParentWorldId = "TrophyRoom",
 			DefaultLayerId = "layer_1",
 			WorldProfile = new OverspaceProfile
 			{
@@ -319,117 +320,30 @@ public partial class OverspaceTrophyRoomDemo : Node3D
 				FieldScalar = 1.2f
 			}
 		});
-		earth.AnchorIds.Add("earth_layer1_arrival");
+		earth.AnchorIds.Add(EarthArrivalAnchorId);
 
-		WorldNode sun = new()
-		{
-			WorldId = "Sun",
-			DisplayName = "Sun",
-			ParentWorldId = "SolarSystem",
-			DefaultLayerId = "layer_1",
-			WorldProfile = new OverspaceProfile
-			{
-				ProfileId = "sun_profile",
-				DensityScalar = 1.8f,
-				PhaseScalar = 1.08f,
-				ClockScalar = 0.94f,
-				ScaleScalar = 1.0f,
-				FieldScalar = 2.4f
-			}
-		};
-		sun.DensityLayers.Add(new DensityLayer
-		{
-			LayerId = "layer_1",
-			DisplayName = "Sun Layer 1",
-			LayerProfile = new OverspaceProfile
-			{
-				ProfileId = "sun_layer_1",
-				DensityScalar = 2.4f,
-				PhaseScalar = 1.12f,
-				ClockScalar = 0.88f,
-				ScaleScalar = 0.95f,
-				FieldScalar = 3.2f
-			}
-		});
-		sun.AnchorIds.Add("sun_layer1_arrival");
+		PortalAnchor galleryEarth = CreateAnchor(GalleryEarthAnchorId, "TrophyRoom", "foyer", "Gallery/EarthOrbPortal");
+		PortalAnchor earthArrival = CreateAnchor(EarthArrivalAnchorId, "Earth", "layer_1", "Worlds/EarthWorld/EarthArrivalPortal");
 
-		WorldNode moon = new()
-		{
-			WorldId = "Moon",
-			DisplayName = "Moon",
-			ParentWorldId = "SolarSystem",
-			DefaultLayerId = "layer_1",
-			WorldProfile = new OverspaceProfile
-			{
-				ProfileId = "moon_profile",
-				DensityScalar = 0.8f,
-				PhaseScalar = 0.98f,
-				ClockScalar = 1.01f,
-				ScaleScalar = 0.9f,
-				FieldScalar = 0.85f
-			}
-		};
-		moon.DensityLayers.Add(new DensityLayer
-		{
-			LayerId = "layer_1",
-			DisplayName = "Moon Layer 1",
-			LayerProfile = new OverspaceProfile
-			{
-				ProfileId = "moon_layer_1",
-				DensityScalar = 0.9f,
-				PhaseScalar = 0.99f,
-				ClockScalar = 1.0f,
-				ScaleScalar = 0.92f,
-				FieldScalar = 0.8f
-			}
-		});
-		moon.AnchorIds.Add("moon_layer1_arrival");
-
-		PortalAnchor galleryEarth = CreateAnchor("gallery_earth_orb", "TrophyRoom", "foyer", "Gallery/EarthOrbPortal");
-		PortalAnchor gallerySun = CreateAnchor("gallery_sun_orb", "TrophyRoom", "foyer", "Gallery/SunOrbPortal");
-		PortalAnchor galleryMoon = CreateAnchor("gallery_moon_orb", "TrophyRoom", "foyer", "Gallery/MoonOrbPortal");
-		PortalAnchor earthArrival = CreateAnchor("earth_layer1_arrival", "Earth", "layer_1", "Worlds/EarthWorld/EarthArrivalPortal");
-		PortalAnchor sunArrival = CreateAnchor("sun_layer1_arrival", "Sun", "layer_1", "Worlds/SunWorld/SunArrivalPortal");
-		PortalAnchor moonArrival = CreateAnchor("moon_layer1_arrival", "Moon", "layer_1", "Worlds/MoonWorld/MoonArrivalPortal");
-
-		PortalLink galleryToEarth = CreateLink("gallery_to_earth_l1", "gallery_earth_orb", "earth_layer1_arrival", "earth_to_gallery_l1", 1.0f, 1.0f, 1.0f);
-		PortalLink earthToGallery = CreateLink("earth_to_gallery_l1", "earth_layer1_arrival", "gallery_earth_orb", "gallery_to_earth_l1", 1.0f, 1.0f, 1.0f);
-		PortalLink galleryToSun = CreateLink("gallery_to_sun_l1", "gallery_sun_orb", "sun_layer1_arrival", "sun_to_gallery_l1", 0.95f, 0.88f, 2.1f);
-		PortalLink sunToGallery = CreateLink("sun_to_gallery_l1", "sun_layer1_arrival", "gallery_sun_orb", "gallery_to_sun_l1", 1.05f, 1.12f, 0.7f);
-		PortalLink galleryToMoon = CreateLink("gallery_to_moon_l1", "gallery_moon_orb", "moon_layer1_arrival", "moon_to_gallery_l1", 0.92f, 1.0f, 0.8f);
-		PortalLink moonToGallery = CreateLink("moon_to_gallery_l1", "moon_layer1_arrival", "gallery_moon_orb", "gallery_to_moon_l1", 1.08f, 1.0f, 1.2f);
+		PortalLink galleryToEarth = CreateLink("gallery_to_earth_z1", GalleryEarthAnchorId, EarthArrivalAnchorId, "earth_to_gallery_z1", 1.0f, 1.0f, 1.0f);
+		PortalLink earthToGallery = CreateLink("earth_to_gallery_z1", EarthArrivalAnchorId, GalleryEarthAnchorId, "gallery_to_earth_z1", 1.0f, 1.0f, 1.0f);
 
 		galleryEarth.LinkIds.Add(galleryToEarth.LinkId);
-		gallerySun.LinkIds.Add(galleryToSun.LinkId);
-		galleryMoon.LinkIds.Add(galleryToMoon.LinkId);
 		earthArrival.LinkIds.Add(earthToGallery.LinkId);
-		sunArrival.LinkIds.Add(sunToGallery.LinkId);
-		moonArrival.LinkIds.Add(moonToGallery.LinkId);
 
 		UniverseGraph graph = new()
 		{
 			GraphId = "overspace_trophy_room_demo",
 			DisplayName = "Overspace Trophy Room Demo",
-			RootWorldId = "PrimeShelf",
+			RootWorldId = "TrophyRoom",
 			UniverseProfile = identity
 		};
 		graph.Worlds.Add(trophyRoom);
-		graph.Worlds.Add(solarSystem);
 		graph.Worlds.Add(earth);
-		graph.Worlds.Add(sun);
-		graph.Worlds.Add(moon);
 		graph.Anchors.Add(galleryEarth);
-		graph.Anchors.Add(gallerySun);
-		graph.Anchors.Add(galleryMoon);
 		graph.Anchors.Add(earthArrival);
-		graph.Anchors.Add(sunArrival);
-		graph.Anchors.Add(moonArrival);
 		graph.Links.Add(galleryToEarth);
 		graph.Links.Add(earthToGallery);
-		graph.Links.Add(galleryToSun);
-		graph.Links.Add(sunToGallery);
-		graph.Links.Add(galleryToMoon);
-		graph.Links.Add(moonToGallery);
 		return graph;
 	}
 
@@ -442,7 +356,8 @@ public partial class OverspaceTrophyRoomDemo : Node3D
 			WorldId = worldId,
 			DensityLayerId = layerId,
 			SceneNodePath = new NodePath(nodePath),
-			InfluenceRadius = 1.15f
+			InfluenceRadius = 1.15f,
+			Notes = $"z-zone milestone anchor for {worldId}"
 		};
 	}
 
@@ -475,5 +390,216 @@ public partial class OverspaceTrophyRoomDemo : Node3D
 				FieldScalar = fieldScalar
 			}
 		};
+	}
+
+	private void UpdateDebugOverlay()
+	{
+		if (_debugOverlay == null)
+		{
+			return;
+		}
+
+		WormholePortal sourcePortal = ResolveActivePortal();
+		WormholePortal targetPortal = sourcePortal?.GetLinkedPortal();
+		_debugOverlay.SetPortalPair(sourcePortal, targetPortal, _currentZoneLabel);
+	}
+
+	private WormholePortal ResolveActivePortal()
+	{
+		if (_portalByAnchorId.TryGetValue(_activeAnchorId, out WormholePortal portal))
+		{
+			return portal;
+		}
+
+		if (_portalByAnchorId.TryGetValue(GalleryEarthAnchorId, out WormholePortal fallback))
+		{
+			return fallback;
+		}
+
+		return null;
+	}
+
+	private void InitializeValidationMode()
+	{
+		string envValidation = System.Environment.GetEnvironmentVariable("OVERSPACE_AUTOVALIDATE") ?? string.Empty;
+		string envCapturePath = System.Environment.GetEnvironmentVariable("OVERSPACE_CAPTURE_PATH") ?? string.Empty;
+		string envCaptureProgress = System.Environment.GetEnvironmentVariable("OVERSPACE_CAPTURE_PROGRESS") ?? string.Empty;
+		_validationMode = EnableAutoValidation || HasCliFlag("--overspace-autovalidate") || envValidation == "1";
+		string capturePathOverride = GetCliValue("--overspace-capture-path");
+		string captureProgressOverride = GetCliValue("--overspace-capture-progress");
+		if (string.IsNullOrWhiteSpace(capturePathOverride) && !string.IsNullOrWhiteSpace(envCapturePath))
+		{
+			capturePathOverride = envCapturePath;
+		}
+		if (string.IsNullOrWhiteSpace(captureProgressOverride) && !string.IsNullOrWhiteSpace(envCaptureProgress))
+		{
+			captureProgressOverride = envCaptureProgress;
+		}
+		if (!string.IsNullOrWhiteSpace(capturePathOverride))
+		{
+			ValidationCapturePath = capturePathOverride;
+		}
+		if (!string.IsNullOrWhiteSpace(captureProgressOverride)
+			&& float.TryParse(captureProgressOverride, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float captureProgress))
+		{
+			_validationCaptureProgressTarget = Mathf.Clamp(captureProgress, 0f, 1f);
+			_validationPathSampleMode = true;
+		}
+
+		GD.Print($"[OverspaceValidation] mode={(_validationMode ? "enabled" : "disabled")} capture_path={ValidationCapturePath} capture_progress={_validationCaptureProgressTarget:F2}");
+		if (!_validationMode || _viewerCamera == null)
+		{
+			return;
+		}
+
+		_validationStartPosition = _viewerCamera.GlobalPosition;
+
+		if (_viewerCamera is FreeFlyCamera flyCamera)
+		{
+			flyCamera.SetInputEnabled(false);
+		}
+
+		GD.Print("[OverspaceValidation] mode=enabled");
+	}
+
+	private void RunValidationStep(double delta)
+	{
+		if (!_validationMode || _viewerCamera == null || _validationCaptureSaved)
+		{
+			return;
+		}
+
+		_validationElapsedSeconds += delta;
+
+		if (!_validationTeleported)
+		{
+			if (_portalByAnchorId.TryGetValue(GalleryEarthAnchorId, out WormholePortal galleryPortal))
+			{
+				Vector3 target = galleryPortal.GlobalPosition + new Vector3(0f, 0f, -1.6f);
+				float progress = ComputeValidationProgress(target);
+				if (_validationPathSampleMode && progress >= _validationCaptureProgressTarget - 0.0005f)
+				{
+					GD.Print($"[OverspaceValidation] progress_capture progress={progress:F3} target={_validationCaptureProgressTarget:F3}");
+					SaveValidationCapture();
+					return;
+				}
+
+				Vector3 toTarget = target - _viewerCamera.GlobalPosition;
+				_viewerCamera.LookAt(galleryPortal.GlobalPosition, Vector3.Up);
+				if (toTarget.LengthSquared() > 0.01f)
+				{
+					_viewerCamera.GlobalPosition += toTarget.Normalized() * ValidationMoveSpeed * (float)delta;
+				}
+			}
+
+			if (_validationElapsedSeconds >= ValidationFallbackCaptureSeconds)
+			{
+				GD.Print($"[OverspaceValidation] fallback_capture elapsed={_validationElapsedSeconds:F2}s");
+				SaveValidationCapture();
+			}
+
+			return;
+		}
+
+		if (_validationCaptureCountdown > 0.0)
+		{
+			_validationCaptureCountdown -= delta;
+			return;
+		}
+
+		SaveValidationCapture();
+	}
+
+	private void SaveValidationCapture()
+	{
+		Viewport viewport = GetViewport();
+		if (viewport == null)
+		{
+			return;
+		}
+
+		Image image = viewport.GetTexture()?.GetImage();
+		if (image == null)
+		{
+			return;
+		}
+
+		string absolutePath = ProjectSettings.GlobalizePath(ValidationCapturePath);
+		string directory = System.IO.Path.GetDirectoryName(absolutePath);
+		if (!string.IsNullOrWhiteSpace(directory))
+		{
+			System.IO.Directory.CreateDirectory(directory);
+		}
+
+		Error saveError = image.SavePng(absolutePath);
+		GD.Print($"[OverspaceValidation] capture path={absolutePath} save_error={saveError} zone={_currentZoneLabel} world={_currentWorldId} sample_mode={_validationPathSampleMode} progress_target={_validationCaptureProgressTarget:F2}");
+		_validationCaptureSaved = saveError == Error.Ok;
+		if (_validationCaptureSaved)
+		{
+			GetTree()?.Quit(0);
+		}
+	}
+
+	private float ComputeValidationProgress(Vector3 target)
+	{
+		Vector3 path = target - _validationStartPosition;
+		float pathLengthSquared = path.LengthSquared();
+		if (pathLengthSquared <= Mathf.Epsilon)
+		{
+			return 1f;
+		}
+
+		Vector3 fromStart = _viewerCamera.GlobalPosition - _validationStartPosition;
+		float projected = fromStart.Dot(path) / pathLengthSquared;
+		return Mathf.Clamp(projected, 0f, 1f);
+	}
+
+	private static bool HasCliFlag(string flag)
+	{
+		foreach (string arg in EnumerateCliArgs())
+		{
+			if (string.Equals(arg, flag))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private static string GetCliValue(string key)
+	{
+		List<string> args = EnumerateCliArgs();
+		for (int i = 0; i < args.Count; i++)
+		{
+			string arg = args[i] ?? string.Empty;
+			if (arg.StartsWith(key + "=", StringComparison.Ordinal))
+			{
+				return arg.Substring(key.Length + 1);
+			}
+
+			if (string.Equals(arg, key, StringComparison.Ordinal) && i + 1 < args.Count)
+			{
+				return args[i + 1];
+			}
+		}
+
+		return string.Empty;
+	}
+
+	private static List<string> EnumerateCliArgs()
+	{
+		List<string> args = new();
+		args.AddRange(OS.GetCmdlineArgs());
+		string[] userArgs = OS.GetCmdlineUserArgs();
+		for (int i = 0; i < userArgs.Length; i++)
+		{
+			if (!args.Contains(userArgs[i]))
+			{
+				args.Add(userArgs[i]);
+			}
+		}
+
+		return args;
 	}
 }

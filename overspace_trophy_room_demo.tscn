@@ -1,8 +1,9 @@
-[gd_scene load_steps=35 format=3]
+[gd_scene load_steps=40 format=3]
 
 [ext_resource type="Script" path="res://Wormhole/Overspace/OverspaceTrophyRoomDemo.cs" id="1_demo"]
 [ext_resource type="Script" path="res://Wormhole/WormholePortal.cs" id="2_portal"]
 [ext_resource type="Script" path="res://FreeFlyCamera.cs" id="3_fly"]
+[ext_resource type="Script" path="res://Wormhole/Overspace/OverspacePortalDebugOverlay.cs" id="4_overlay"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
 size = Vector3(20, 0.25, 22)
@@ -36,6 +37,15 @@ radius = 0.55
 height = 1.1
 radial_segments = 24
 rings = 12
+
+[sub_resource type="BoxShape3D" id="BoxShape_floor"]
+size = Vector3(20, 0.25, 22)
+
+[sub_resource type="BoxShape3D" id="BoxShape_wall"]
+size = Vector3(20, 8, 0.3)
+
+[sub_resource type="BoxShape3D" id="BoxShape_side_wall"]
+size = Vector3(0.3, 8, 22)
 
 [sub_resource type="StandardMaterial3D" id="Material_room"]
 albedo_color = Color(0.17, 0.18, 0.21, 1)
@@ -99,6 +109,7 @@ emission = Color(0.08, 0.1, 0.12, 1)
 script = ExtResource("1_demo")
 ViewerCameraPath = NodePath("PlayerCamera")
 SummaryLabelPath = NodePath("CanvasLayer/DemoSummary")
+DebugOverlayPath = NodePath("CanvasLayer/OverspaceDebugOverlay")
 TeleportCooldownSeconds = 0.4
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
@@ -126,7 +137,7 @@ current = true
 fov = 55.0
 near = 0.01
 far = 600.0
-cull_mask = 3
+cull_mask = 255
 script = ExtResource("3_fly")
 MoveSpeed = 5.5
 SprintMultiplier = 2.5
@@ -189,6 +200,7 @@ text = "EARTH"
 font_size = 64
 
 [node name="SunPedestal" type="Node3D" parent="Gallery"]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1)
 
 [node name="Base" type="MeshInstance3D" parent="Gallery/SunPedestal"]
@@ -209,6 +221,7 @@ text = "SUN"
 font_size = 64
 
 [node name="MoonPedestal" type="Node3D" parent="Gallery"]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, -1)
 
 [node name="Base" type="MeshInstance3D" parent="Gallery/MoonPedestal"]
@@ -232,10 +245,18 @@ font_size = 64
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 2.55, -1)
 script = ExtResource("2_portal")
 LinkedPortalPath = NodePath("../../Worlds/EarthWorld/EarthArrivalPortal")
+WormholeId = "gallery_orb_earth"
+LinkedWormholeId = "earth_room_arrival"
+ParentRegionId = "gallery_z0"
+ChildRegionId = "earth_z_child"
 GeometryLayerNumber = 1
 PortalLayerNumber = 2
 Radius = 1.1
 ExitOffset = 0.4
+ZeroPhaseAngleDegrees = 0.0
+SpinDirection = 1
+ZoneMinZ = -12.0
+ZoneMaxZ = 24.0
 PortalSurfacePath = NodePath("PortalSurface")
 PortalViewportPath = NodePath("PortalViewport")
 PortalCameraPath = NodePath("PortalViewport/PortalCamera")
@@ -254,6 +275,7 @@ near = 0.01
 far = 600.0
 
 [node name="SunOrbPortal" type="Node3D" parent="Gallery"]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.55, -1)
 script = ExtResource("2_portal")
 LinkedPortalPath = NodePath("../../Worlds/SunWorld/SunArrivalPortal")
@@ -279,6 +301,7 @@ near = 0.01
 far = 600.0
 
 [node name="MoonOrbPortal" type="Node3D" parent="Gallery"]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 2.55, -1)
 script = ExtResource("2_portal")
 LinkedPortalPath = NodePath("../../Worlds/MoonWorld/MoonArrivalPortal")
@@ -306,33 +329,101 @@ far = 600.0
 [node name="Worlds" type="Node3D" parent="."]
 
 [node name="EarthWorld" type="Node3D" parent="Worlds"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 140, 0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -140)
 
-[node name="Backdrop" type="MeshInstance3D" parent="Worlds/EarthWorld"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.6, -11)
+[node name="Floor" type="StaticBody3D" parent="Worlds/EarthWorld"]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Worlds/EarthWorld/Floor"]
+layers = 4
+mesh = SubResource("BoxMesh_floor")
+material_override = SubResource("Material_earth_world")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Worlds/EarthWorld/Floor"]
+shape = SubResource("BoxShape_floor")
+
+[node name="Ceiling" type="StaticBody3D" parent="Worlds/EarthWorld"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Worlds/EarthWorld/Ceiling"]
+layers = 4
+mesh = SubResource("BoxMesh_floor")
+material_override = SubResource("Material_earth_world")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Worlds/EarthWorld/Ceiling"]
+shape = SubResource("BoxShape_floor")
+
+[node name="BackWall" type="StaticBody3D" parent="Worlds/EarthWorld"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, -8)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Worlds/EarthWorld/BackWall"]
 layers = 4
 mesh = SubResource("BoxMesh_wall")
 material_override = SubResource("Material_earth_world")
 
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Worlds/EarthWorld/BackWall"]
+shape = SubResource("BoxShape_wall")
+
+[node name="FrontWall" type="StaticBody3D" parent="Worlds/EarthWorld"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 8)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Worlds/EarthWorld/FrontWall"]
+layers = 4
+mesh = SubResource("BoxMesh_wall")
+material_override = SubResource("Material_earth_world")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Worlds/EarthWorld/FrontWall"]
+shape = SubResource("BoxShape_wall")
+
+[node name="LeftWall" type="StaticBody3D" parent="Worlds/EarthWorld"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 4, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Worlds/EarthWorld/LeftWall"]
+layers = 4
+mesh = SubResource("BoxMesh_side_wall")
+material_override = SubResource("Material_earth_world")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Worlds/EarthWorld/LeftWall"]
+shape = SubResource("BoxShape_side_wall")
+
+[node name="RightWall" type="StaticBody3D" parent="Worlds/EarthWorld"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 4, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Worlds/EarthWorld/RightWall"]
+layers = 4
+mesh = SubResource("BoxMesh_side_wall")
+material_override = SubResource("Material_earth_world")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Worlds/EarthWorld/RightWall"]
+shape = SubResource("BoxShape_side_wall")
+
 [node name="MarkerA" type="MeshInstance3D" parent="Worlds/EarthWorld"]
-transform = Transform3D(1.6, 0, 0, 0, 1.6, 0, 0, 0, 1.6, -3.8, 1.4, -7)
+transform = Transform3D(1.6, 0, 0, 0, 1.6, 0, 0, 0, 1.6, -3.8, 1.4, -4.7)
 layers = 4
 mesh = SubResource("SphereMesh_marker_large")
 material_override = SubResource("Material_earth_marker_a")
 
 [node name="MarkerB" type="MeshInstance3D" parent="Worlds/EarthWorld"]
-transform = Transform3D(1.1, 0, 0, 0, 1.1, 0, 0, 0, 1.1, 3.3, 3.3, -6)
+transform = Transform3D(1.1, 0, 0, 0, 1.1, 0, 0, 0, 1.1, 3.3, 3.3, -3.8)
 layers = 4
 mesh = SubResource("SphereMesh_marker_small")
 material_override = SubResource("Material_earth_marker_b")
 
 [node name="EarthArrivalPortal" type="Node3D" parent="Worlds/EarthWorld"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.55, 4.4)
 script = ExtResource("2_portal")
 LinkedPortalPath = NodePath("../../../Gallery/EarthOrbPortal")
+WormholeId = "earth_room_arrival"
+LinkedWormholeId = "gallery_orb_earth"
+ParentRegionId = "earth_z_child"
+ChildRegionId = "gallery_z0"
 GeometryLayerNumber = 3
 PortalLayerNumber = 4
 Radius = 1.1
 ExitOffset = 0.4
+ZeroPhaseAngleDegrees = 180.0
+SpinDirection = -1
+ZoneMinZ = -168.0
+ZoneMaxZ = -118.0
 PortalSurfacePath = NodePath("PortalSurface")
 PortalViewportPath = NodePath("PortalViewport")
 PortalCameraPath = NodePath("PortalViewport/PortalCamera")
@@ -351,6 +442,7 @@ near = 0.01
 far = 600.0
 
 [node name="SunWorld" type="Node3D" parent="Worlds"]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 280, 0, 0)
 
 [node name="Backdrop" type="MeshInstance3D" parent="Worlds/SunWorld"]
@@ -402,6 +494,7 @@ near = 0.01
 far = 600.0
 
 [node name="MoonWorld" type="Node3D" parent="Worlds"]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 420, 0, 0)
 
 [node name="Backdrop" type="MeshInstance3D" parent="Worlds/MoonWorld"]
@@ -450,8 +543,11 @@ far = 600.0
 
 [node name="DemoSummary" type="Label" parent="CanvasLayer"]
 offset_left = 18.0
-offset_top = 18.0
+offset_top = 128.0
 offset_right = 600.0
-offset_bottom = 150.0
+offset_bottom = 250.0
 theme_override_font_sizes/font_size = 18
 text = "OVERSPACE TROPHY ROOM"
+
+[node name="OverspaceDebugOverlay" type="Control" parent="CanvasLayer"]
+script = ExtResource("4_overlay")
