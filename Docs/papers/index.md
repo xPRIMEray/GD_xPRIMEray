@@ -1,5 +1,9 @@
 # Papers
 
+![Wormhole DualRealityTransport](../../output/dual_reality/wormhole_inset_baseline.png)
+
+*Current wormhole DualRealityTransport capture showing the curved main view, straight transport reference panel, and diagnostic overlays.*
+
 This directory holds paper-style research notes that are more structured than fixture notes and more publication-oriented than implementation docs.
 
 Each paper directory should contain:

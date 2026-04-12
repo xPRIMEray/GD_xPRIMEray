@@ -1,5 +1,9 @@
 # Wormhole Render Pipeline Validation
 
+![Wormhole DualRealityTransport](../../output/dual_reality/wormhole_inset_baseline.png)
+
+*Current wormhole DualRealityTransport capture showing the curved main view, straight transport reference panel, and diagnostic overlays.*
+
 ## 1. Overview
 
 The current wormhole prototype in `GD_xPRIMEray` is a curved-ray rendering path that combines:

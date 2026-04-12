@@ -9,6 +9,10 @@ related_fixtures: wormhole_prototype
 
 # Paper 002: Low-Value Sector Budget as a Negative Invariant in Geometry-Aware Wormhole Transport
 
+![Wormhole DualRealityTransport](../../../output/dual_reality/wormhole_inset_baseline.png)
+
+*Current wormhole DualRealityTransport capture showing the curved main view, straight transport reference panel, and diagnostic overlays.*
+
 ## Abstract
 
 We define a low-value sector budget as a negative invariant for deterministic wormhole rendering, complementing the proto-caustic annulus introduced in Paper 001. Whereas the proto-caustic invariant preserves a destination-side high-value optical structure, the present contract limits how much overlap-query work may continue to accumulate in portal-local sectors shown to have negligible contribution to the preserved image. Traditional ray tracing has little language for such a condition, since waste is usually measured globally through timing counters rather than geometrically through persistent low-yield regions. We demonstrate that the wormhole harness in `GD_xPRIMEray` admits a stable budget contract on a non-invariant outer-ring family and that a modest deterministic throttle reduces pass-2 query cost while preserving hits, final writes, and the annular structure defined previously. The result is a paired validation system in which geometry dictates not only what must be preserved, but also where expenditure should remain bounded.

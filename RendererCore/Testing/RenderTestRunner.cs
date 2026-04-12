@@ -2514,7 +2514,9 @@ public partial class RenderTestRunner : Node
 			GrinFilmCamera.TelemetryHeatmapKind.D2kMax,
 			GrinFilmCamera.TelemetryHeatmapKind.WorkMinusCurvature,
 			GrinFilmCamera.TelemetryHeatmapKind.QueryMinusCurvature,
-			GrinFilmCamera.TelemetryHeatmapKind.Efficiency
+			GrinFilmCamera.TelemetryHeatmapKind.Efficiency,
+			GrinFilmCamera.TelemetryHeatmapKind.TurnSum,
+			GrinFilmCamera.TelemetryHeatmapKind.TurnMax
 		};
 
 		System.Text.StringBuilder summary = new System.Text.StringBuilder(768);
@@ -2661,6 +2663,8 @@ public partial class RenderTestRunner : Node
 				GrinFilmCamera.TelemetryHeatmapKind.WorkMinusCurvature => "heat_work_minus_curvature",
 				GrinFilmCamera.TelemetryHeatmapKind.QueryMinusCurvature => "heat_query_minus_curvature",
 				GrinFilmCamera.TelemetryHeatmapKind.Efficiency => "heat_efficiency",
+				GrinFilmCamera.TelemetryHeatmapKind.TurnSum => "heat_turn_sum",
+				GrinFilmCamera.TelemetryHeatmapKind.TurnMax => "heat_turn_max",
 				_ => "heat_unknown"
 			};
 			string outPath = Path.Combine(outputDir, captureStem + "." + suffix + ".png");

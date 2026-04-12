@@ -9,6 +9,10 @@ related_fixtures: wormhole_prototype
 
 # Paper 003: Coupled Invariants and Stability Phase Space in Geometry-Aware Wormhole Transport
 
+![Wormhole DualRealityTransport](../../../output/dual_reality/wormhole_inset_baseline.png)
+
+*Current wormhole DualRealityTransport capture showing the curved main view, straight transport reference panel, and diagnostic overlays.*
+
 ## Abstract
 
 We study the wormhole renderer in `GD_xPRIMEray` not through a single invariant, but through the coupled action of two already-validated constraints: the proto-caustic annulus and the low-value sector budget. The central result is that these contracts define a bounded operational phase space rather than a single acceptable point. Within that space, a stable region exists in which annular optical structure is preserved while low-yield expenditure remains constrained; outside it, the system either wastes computation or suppresses structure too aggressively. Conventional rendering validation rarely describes behavior in these terms, because correctness and efficiency are usually tested separately rather than as interacting constraints on one transport process. The present note shows that deterministic wormhole transport admits a system-level description in which stable behavior is selected by the simultaneous satisfaction of coupled invariants.

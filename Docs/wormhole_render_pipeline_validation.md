@@ -1,6 +1,10 @@
 Wormhole Validation Results
 ## Wormhole Validation Results (Figure Quartet)
 
+![Wormhole DualRealityTransport](../output/dual_reality/wormhole_inset_baseline.png)
+
+*Current wormhole DualRealityTransport capture showing the curved main view, straight transport reference panel, and diagnostic overlays.*
+
 The wormhole validation harness produces a standardized set of deterministic artifacts for each run. These are organized as a compact “results quartet” suitable for documentation, debugging, and research communication.
 
 ### Figure A — Main Render (Film Buffer)

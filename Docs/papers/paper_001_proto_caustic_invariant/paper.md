@@ -10,6 +10,10 @@ related_fixtures:
 
 # Paper 001: Proto-Caustic Invariant in Geometry-Aware Wormhole Transport
 
+![Wormhole DualRealityTransport](../../../output/dual_reality/wormhole_inset_baseline.png)
+
+*Current wormhole DualRealityTransport capture showing the curved main view, straight transport reference panel, and diagnostic overlays.*
+
 ## Abstract
 
 We define a proto-caustic invariant for a deterministic wormhole rendering harness in which curved transport, topological remap, and observer-side film formation are treated as one optical process. The invariant is not an image-space score. It is a portal-local annular structure characterized by hit density, angular continuity, positive-overlap continuity, and radial transition strength that remain stable under fixed viewing and capture conditions. Conventional ray tracing rarely states correctness in these terms; its validation language usually rests on pixel agreement, stochastic convergence, or isolated hit statistics rather than on the preservation of structured focusing regions tied to transport geometry. We show that the wormhole prototype in `GD_xPRIMEray` admits a preserved destination-side annulus under deterministic validation and that this annulus can function simultaneously as a correctness condition and as a guide for geometry-aware performance work. The result is a rendering contract in which optical structure is treated as primary evidence rather than as a side effect of computation.

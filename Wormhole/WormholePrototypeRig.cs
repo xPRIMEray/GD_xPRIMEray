@@ -184,7 +184,23 @@ public partial class WormholePrototypeRig : Node3D
 	{
 		None = 0,
 		FilmHeatmap = 1,
-		CurvaturePlaceholder = 2
+		CurvatureHeatmap = 2
+	}
+
+	public enum CurvatureHeatmapMetricMode
+	{
+		CumulativeTurnAngle = 0,
+		MaxLocalTurnAngle = 1,
+		CurvatureMean = 2,
+		CurvatureMax = 3,
+		Pass1StepDensityPlaceholder = 4
+	}
+
+	public enum CurvatureHeatmapNormalizationMode
+	{
+		AutoPercentile = 0,
+		AutoFullRange = 1,
+		FixedRange = 2
 	}
 
 	public enum DualRealityWireframePlacementMode
@@ -273,6 +289,14 @@ public partial class WormholePrototypeRig : Node3D
 	[Export(PropertyHint.Range, "0.15,0.5,0.01")] public float DualRealityInsetScale = 0.25f;
 	[Export] public DualRealityOverlayModeKind DualRealityOverlayMode = DualRealityOverlayModeKind.None;
 	[Export(PropertyHint.Range, "0,1,0.01")] public float DualRealityOverlayOpacity = 0.58f;
+	[Export] public bool EnableCurvatureHeatmap = true;
+	[Export(PropertyHint.Range, "0,1,0.01")] public float CurvatureHeatmapOpacity = 0.62f;
+	[Export] public DualRealityWireframePlacementMode CurvatureHeatmapPlacement = DualRealityWireframePlacementMode.FullscreenCurved;
+	[Export] public CurvatureHeatmapMetricMode CurvatureHeatmapMetric = CurvatureHeatmapMetricMode.CumulativeTurnAngle;
+	[Export] public CurvatureHeatmapNormalizationMode CurvatureHeatmapNormalization = CurvatureHeatmapNormalizationMode.AutoPercentile;
+	[Export(PropertyHint.Range, "0,10,0.001")] public float CurvatureHeatmapMin = 0.0f;
+	[Export(PropertyHint.Range, "0.001,10,0.001")] public float CurvatureHeatmapMax = 0.35f;
+	[Export] public bool CurvatureHeatmapShowLegend = true;
 	[Export] public bool DualRealityWireframeReferenceOverlayEnabled = false;
 	[Export] public DualRealityWireframePlacementMode DualRealityWireframePlacement = DualRealityWireframePlacementMode.FullscreenCurved;
 	[Export(PropertyHint.Range, "0,1,0.01")] public float DualRealityWireframeOverlayOpacity = 0.86f;
@@ -333,14 +357,19 @@ public partial class WormholePrototypeRig : Node3D
 	private PanelContainer _dualRealityInsetPanel;
 	private TextureRect _dualRealityBaselineView;
 	private TextureRect _dualRealityOverlayView;
+	private TextureRect _dualRealityOverlayFullscreenView;
 	private Label _dualRealityTitleLabel;
 	private Label _dualRealityModeLabel;
 	private Label _dualRealityStateLabel;
+	private Label _dualRealityOverlayPanelLegendLabel;
+	private PanelContainer _dualRealityOverlayFullscreenLegendPanel;
+	private Label _dualRealityOverlayFullscreenLegendLabel;
 	private WireframeReferenceOverlay _dualRealityWireframeFullscreenOverlay;
 	private WireframeReferenceOverlay _dualRealityWireframePanelOverlay;
 	private CameraSpaceCollisionOverlay _dualRealityCollisionFullscreenOverlay;
 	private CameraSpaceCollisionOverlay _dualRealityCollisionPanelOverlay;
 	private ImageTexture _dualRealityOverlayTexture;
+	private string _dualRealityLastOverlayLegendText = string.Empty;
 	private ulong _dualRealityObservedStateHash;
 	private int _dualRealityStableFrames;
 	private double _dualRealityOverlayRefreshSeconds;
@@ -484,7 +513,7 @@ public partial class WormholePrototypeRig : Node3D
 				DualRealityOverlayMode = DualRealityOverlayMode switch
 				{
 					DualRealityOverlayModeKind.None => DualRealityOverlayModeKind.FilmHeatmap,
-					DualRealityOverlayModeKind.FilmHeatmap => DualRealityOverlayModeKind.CurvaturePlaceholder,
+					DualRealityOverlayModeKind.FilmHeatmap => DualRealityOverlayModeKind.CurvatureHeatmap,
 					_ => DualRealityOverlayModeKind.None,
 				};
 				UpdateDualRealityHudState(forceOverlayRefresh: true);
@@ -816,6 +845,16 @@ public partial class WormholePrototypeRig : Node3D
 			_dualRealityModeLabel.AddThemeFontSizeOverride("font_size", 9);
 			vbox.AddChild(_dualRealityModeLabel);
 
+			_dualRealityOverlayPanelLegendLabel = new Label
+			{
+				Name = "DualRealityOverlayPanelLegendLabel",
+				MouseFilter = Control.MouseFilterEnum.Ignore,
+				Visible = false,
+				Modulate = new Color(0.9f, 0.94f, 1f, 0.88f),
+			};
+			_dualRealityOverlayPanelLegendLabel.AddThemeFontSizeOverride("font_size", 9);
+			vbox.AddChild(_dualRealityOverlayPanelLegendLabel);
+
 			_dualRealityStateLabel = new Label
 			{
 				Name = "DualRealityStateLabel",
@@ -837,6 +876,25 @@ public partial class WormholePrototypeRig : Node3D
 			_hudCanvasLayer.AddChild(_dualRealityWireframeFullscreenOverlay);
 		}
 
+		if (_dualRealityOverlayFullscreenView == null)
+		{
+			_dualRealityOverlayFullscreenView = new TextureRect
+			{
+				Name = "DualRealityOverlayFullscreenView",
+				MouseFilter = Control.MouseFilterEnum.Ignore,
+				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+				StretchMode = TextureRect.StretchModeEnum.Scale,
+				TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+				Visible = false,
+				ZIndex = 4,
+			};
+			_dualRealityOverlayFullscreenView.AnchorLeft = 0f;
+			_dualRealityOverlayFullscreenView.AnchorTop = 0f;
+			_dualRealityOverlayFullscreenView.AnchorRight = 1f;
+			_dualRealityOverlayFullscreenView.AnchorBottom = 1f;
+			_hudCanvasLayer.AddChild(_dualRealityOverlayFullscreenView);
+		}
+
 		if (_dualRealityCollisionFullscreenOverlay == null)
 		{
 			_dualRealityCollisionFullscreenOverlay = new CameraSpaceCollisionOverlay
@@ -846,6 +904,43 @@ public partial class WormholePrototypeRig : Node3D
 				ZIndex = 5,
 			};
 			_hudCanvasLayer.AddChild(_dualRealityCollisionFullscreenOverlay);
+		}
+
+		if (_dualRealityOverlayFullscreenLegendPanel == null)
+		{
+			_dualRealityOverlayFullscreenLegendPanel = new PanelContainer
+			{
+				Name = "DualRealityOverlayFullscreenLegendPanel",
+				MouseFilter = Control.MouseFilterEnum.Ignore,
+				Visible = false,
+				ZIndex = 8,
+			};
+			_dualRealityOverlayFullscreenLegendPanel.AnchorLeft = 1f;
+			_dualRealityOverlayFullscreenLegendPanel.AnchorTop = 1f;
+			_dualRealityOverlayFullscreenLegendPanel.AnchorRight = 1f;
+			_dualRealityOverlayFullscreenLegendPanel.AnchorBottom = 1f;
+			_hudCanvasLayer.AddChild(_dualRealityOverlayFullscreenLegendPanel);
+
+			MarginContainer legendMargin = new()
+			{
+				Name = "OverlayLegendMargin",
+				MouseFilter = Control.MouseFilterEnum.Ignore,
+			};
+			legendMargin.AddThemeConstantOverride("margin_left", 8);
+			legendMargin.AddThemeConstantOverride("margin_top", 6);
+			legendMargin.AddThemeConstantOverride("margin_right", 8);
+			legendMargin.AddThemeConstantOverride("margin_bottom", 6);
+			_dualRealityOverlayFullscreenLegendPanel.AddChild(legendMargin);
+
+			_dualRealityOverlayFullscreenLegendLabel = new Label
+			{
+				Name = "DualRealityOverlayFullscreenLegendLabel",
+				MouseFilter = Control.MouseFilterEnum.Ignore,
+				AutowrapMode = TextServer.AutowrapMode.WordSmart,
+				Modulate = new Color(0.95f, 0.97f, 1f, 0.94f),
+			};
+			_dualRealityOverlayFullscreenLegendLabel.AddThemeFontSizeOverride("font_size", 10);
+			legendMargin.AddChild(_dualRealityOverlayFullscreenLegendLabel);
 		}
 
 		Node3D probeWall = GetNodeOrNull<Node3D>("SceneB/ProbeWallB");
@@ -903,6 +998,14 @@ public partial class WormholePrototypeRig : Node3D
 		{
 			textureStack.CustomMinimumSize = new Vector2(targetWidth - 16f, textureHeight);
 		}
+
+		if (_dualRealityOverlayFullscreenLegendPanel != null)
+		{
+			_dualRealityOverlayFullscreenLegendPanel.OffsetLeft = -236f;
+			_dualRealityOverlayFullscreenLegendPanel.OffsetTop = -92f;
+			_dualRealityOverlayFullscreenLegendPanel.OffsetRight = -16f;
+			_dualRealityOverlayFullscreenLegendPanel.OffsetBottom = -16f;
+		}
 	}
 
 	private void UpdateDualRealityInsetVisibility()
@@ -929,6 +1032,67 @@ public partial class WormholePrototypeRig : Node3D
 		bool collisionPanel = collisionVisible && panelVisible && (DualRealityCollisionRadarPlacement == DualRealityWireframePlacementMode.StraightTransportReference || DualRealityCollisionRadarPlacement == DualRealityWireframePlacementMode.Both);
 		ApplyCollisionOverlayState(_dualRealityCollisionFullscreenOverlay, collisionFullscreen, "COLLISION RADAR · CURVED");
 		ApplyCollisionOverlayState(_dualRealityCollisionPanelOverlay, collisionPanel, "COLLISION RADAR · BASELINE");
+
+		bool diagnosticVisible = IsDualRealityDiagnosticOverlayEnabled();
+		DualRealityWireframePlacementMode diagnosticPlacement = ResolveDiagnosticOverlayPlacementMode();
+		bool diagnosticFullscreen = diagnosticVisible && (diagnosticPlacement == DualRealityWireframePlacementMode.FullscreenCurved || diagnosticPlacement == DualRealityWireframePlacementMode.Both);
+		bool diagnosticPanel = diagnosticVisible && panelVisible && (diagnosticPlacement == DualRealityWireframePlacementMode.StraightTransportReference || diagnosticPlacement == DualRealityWireframePlacementMode.Both);
+		ApplyDiagnosticOverlayState(_dualRealityOverlayFullscreenView, diagnosticFullscreen);
+		ApplyDiagnosticOverlayState(_dualRealityOverlayView, diagnosticPanel);
+		bool showLegend = diagnosticVisible && ResolveDualRealityDiagnosticOverlayShowLegend();
+		if (_dualRealityOverlayPanelLegendLabel != null)
+		{
+			_dualRealityOverlayPanelLegendLabel.Visible = diagnosticPanel && showLegend;
+		}
+		if (_dualRealityOverlayFullscreenLegendPanel != null)
+		{
+			_dualRealityOverlayFullscreenLegendPanel.Visible = diagnosticFullscreen && showLegend;
+		}
+	}
+
+	private bool IsDualRealityDiagnosticOverlayEnabled()
+	{
+		if (!EnableDualRealityResearchMode)
+		{
+			return false;
+		}
+
+		return DualRealityOverlayMode switch
+		{
+			DualRealityOverlayModeKind.FilmHeatmap => true,
+			DualRealityOverlayModeKind.CurvatureHeatmap => EnableCurvatureHeatmap,
+			_ => false,
+		};
+	}
+
+	private DualRealityWireframePlacementMode ResolveDiagnosticOverlayPlacementMode()
+	{
+		return DualRealityOverlayMode == DualRealityOverlayModeKind.CurvatureHeatmap
+			? CurvatureHeatmapPlacement
+			: DualRealityWireframePlacementMode.StraightTransportReference;
+	}
+
+	private float ResolveDiagnosticOverlayOpacity()
+	{
+		return DualRealityOverlayMode == DualRealityOverlayModeKind.CurvatureHeatmap
+			? Mathf.Clamp(CurvatureHeatmapOpacity, 0f, 1f)
+			: Mathf.Clamp(DualRealityOverlayOpacity, 0f, 1f);
+	}
+
+	private bool ResolveDualRealityDiagnosticOverlayShowLegend()
+	{
+		return DualRealityOverlayMode == DualRealityOverlayModeKind.CurvatureHeatmap && CurvatureHeatmapShowLegend;
+	}
+
+	private void ApplyDiagnosticOverlayState(TextureRect overlay, bool visible)
+	{
+		if (overlay == null)
+		{
+			return;
+		}
+
+		overlay.Visible = visible;
+		overlay.Modulate = new Color(1f, 1f, 1f, ResolveDiagnosticOverlayOpacity());
 	}
 
 	private void ApplyWireframeOverlayState(WireframeReferenceOverlay overlay, bool visible, string label)
@@ -1044,9 +1208,51 @@ public partial class WormholePrototypeRig : Node3D
 
 	private GrinFilmCamera.TelemetryHeatmapKind ResolveDualRealityHeatmapKind()
 	{
-		return DualRealityOverlayMode == DualRealityOverlayModeKind.CurvaturePlaceholder
-			? GrinFilmCamera.TelemetryHeatmapKind.CurvatureMax
-			: GrinFilmCamera.TelemetryHeatmapKind.Work;
+		if (DualRealityOverlayMode == DualRealityOverlayModeKind.CurvatureHeatmap)
+		{
+			return CurvatureHeatmapMetric switch
+			{
+				CurvatureHeatmapMetricMode.MaxLocalTurnAngle => GrinFilmCamera.TelemetryHeatmapKind.TurnMax,
+				CurvatureHeatmapMetricMode.CurvatureMean => GrinFilmCamera.TelemetryHeatmapKind.CurvatureMean,
+				CurvatureHeatmapMetricMode.CurvatureMax => GrinFilmCamera.TelemetryHeatmapKind.CurvatureMax,
+				CurvatureHeatmapMetricMode.Pass1StepDensityPlaceholder => GrinFilmCamera.TelemetryHeatmapKind.Pass1Steps,
+				_ => GrinFilmCamera.TelemetryHeatmapKind.TurnSum,
+			};
+		}
+
+		return GrinFilmCamera.TelemetryHeatmapKind.Work;
+	}
+
+	private string ResolveCurvatureHeatmapNormalizationToken()
+	{
+		return CurvatureHeatmapNormalization switch
+		{
+			CurvatureHeatmapNormalizationMode.AutoFullRange => "full",
+			CurvatureHeatmapNormalizationMode.FixedRange => "fixed",
+			_ => "basic",
+		};
+	}
+
+	private string ResolveCurvatureHeatmapMetricLabel()
+	{
+		return CurvatureHeatmapMetric switch
+		{
+			CurvatureHeatmapMetricMode.MaxLocalTurnAngle => "MAX LOCAL TURN",
+			CurvatureHeatmapMetricMode.CurvatureMean => "MEAN CURVATURE",
+			CurvatureHeatmapMetricMode.CurvatureMax => "MAX CURVATURE",
+			CurvatureHeatmapMetricMode.Pass1StepDensityPlaceholder => "STEP DENSITY",
+			_ => "CUMULATIVE TURN",
+		};
+	}
+
+	private string ResolveCurvatureHeatmapNormalizationLabel()
+	{
+		return CurvatureHeatmapNormalization switch
+		{
+			CurvatureHeatmapNormalizationMode.AutoFullRange => "FULL",
+			CurvatureHeatmapNormalizationMode.FixedRange => "FIXED",
+			_ => "AUTO",
+		};
 	}
 
 	private string ResolveDualRealityOverlayModeLabel()
@@ -1054,8 +1260,23 @@ public partial class WormholePrototypeRig : Node3D
 		return DualRealityOverlayMode switch
 		{
 			DualRealityOverlayModeKind.FilmHeatmap => "DIAGNOSTIC OVERLAY · FILM HEATMAP",
-			DualRealityOverlayModeKind.CurvaturePlaceholder => "DIAGNOSTIC OVERLAY · CURVATURE PROXY",
+			DualRealityOverlayModeKind.CurvatureHeatmap => "DIAGNOSTIC OVERLAY · DISTORTION HEAT MAP",
 			_ => "DIAGNOSTIC OVERLAY · NONE",
+		};
+	}
+
+	private string ResolveDiagnosticOverlayPlacementLabel()
+	{
+		if (DualRealityOverlayMode != DualRealityOverlayModeKind.CurvatureHeatmap)
+		{
+			return "SCALAR OVERLAY · BASELINE PANEL";
+		}
+
+		return CurvatureHeatmapPlacement switch
+		{
+			DualRealityWireframePlacementMode.StraightTransportReference => "SCALAR OVERLAY · BASELINE PANEL",
+			DualRealityWireframePlacementMode.Both => "SCALAR OVERLAY · CURVED + BASELINE",
+			_ => "SCALAR OVERLAY · CURVED FULLSCREEN",
 		};
 	}
 
@@ -1112,16 +1333,49 @@ public partial class WormholePrototypeRig : Node3D
 		}
 	}
 
-	private void UpdateDualRealityOverlayTexture(bool force)
+	private void UpdateDualRealityTelemetryConfig()
 	{
-		if (_dualRealityOverlayView == null || _filmCamera == null)
+		if (_filmCamera == null)
 		{
 			return;
 		}
 
-		if (DualRealityOverlayMode == DualRealityOverlayModeKind.None)
+		bool needTelemetry = IsDualRealityDiagnosticOverlayEnabled();
+		_filmCamera.ExportTelemetryHeatmaps = needTelemetry;
+		if (needTelemetry)
 		{
-			_dualRealityOverlayView.Visible = false;
+			_filmCamera.TelemetryHeatmapMode = DualRealityOverlayMode == DualRealityOverlayModeKind.CurvatureHeatmap
+				? ResolveCurvatureHeatmapNormalizationToken()
+				: "basic";
+		}
+	}
+
+	private void UpdateDualRealityOverlayTexture(bool force)
+	{
+		if ((_dualRealityOverlayView == null && _dualRealityOverlayFullscreenView == null) || _filmCamera == null)
+		{
+			return;
+		}
+
+		if (!IsDualRealityDiagnosticOverlayEnabled())
+		{
+			if (_dualRealityOverlayView != null)
+			{
+				_dualRealityOverlayView.Visible = false;
+			}
+			if (_dualRealityOverlayFullscreenView != null)
+			{
+				_dualRealityOverlayFullscreenView.Visible = false;
+			}
+			if (_dualRealityOverlayPanelLegendLabel != null)
+			{
+				_dualRealityOverlayPanelLegendLabel.Visible = false;
+			}
+			if (_dualRealityOverlayFullscreenLegendPanel != null)
+			{
+				_dualRealityOverlayFullscreenLegendPanel.Visible = false;
+			}
+			_dualRealityLastOverlayLegendText = string.Empty;
 			return;
 		}
 
@@ -1131,10 +1385,26 @@ public partial class WormholePrototypeRig : Node3D
 		}
 
 		_dualRealityOverlayRefreshSeconds = 0.0;
-		if (!_filmCamera.TryCopyTelemetryHeatmapImageForTesting(ResolveDualRealityHeatmapKind(), out Image image, out _)
+		string normalizationToken = DualRealityOverlayMode == DualRealityOverlayModeKind.CurvatureHeatmap
+			? ResolveCurvatureHeatmapNormalizationToken()
+			: "basic";
+		float fixedMin = DualRealityOverlayMode == DualRealityOverlayModeKind.CurvatureHeatmap
+			? CurvatureHeatmapMin
+			: float.NaN;
+		float fixedMax = DualRealityOverlayMode == DualRealityOverlayModeKind.CurvatureHeatmap
+			? CurvatureHeatmapMax
+			: float.NaN;
+		if (!_filmCamera.TryCopyTelemetryHeatmapImageForTesting(ResolveDualRealityHeatmapKind(), out Image image, out GrinFilmCamera.TelemetryHeatmapStats stats, normalizationToken, fixedMin, fixedMax)
 			|| image == null)
 		{
-			_dualRealityOverlayView.Visible = false;
+			if (_dualRealityOverlayView != null)
+			{
+				_dualRealityOverlayView.Visible = false;
+			}
+			if (_dualRealityOverlayFullscreenView != null)
+			{
+				_dualRealityOverlayFullscreenView.Visible = false;
+			}
 			return;
 		}
 
@@ -1147,13 +1417,49 @@ public partial class WormholePrototypeRig : Node3D
 			_dualRealityOverlayTexture.Update(image);
 		}
 
-		_dualRealityOverlayView.Texture = _dualRealityOverlayTexture;
-		_dualRealityOverlayView.Modulate = new Color(1f, 1f, 1f, Mathf.Clamp(DualRealityOverlayOpacity, 0f, 1f));
-		_dualRealityOverlayView.Visible = true;
+		if (_dualRealityOverlayView != null)
+		{
+			_dualRealityOverlayView.Texture = _dualRealityOverlayTexture;
+			_dualRealityOverlayView.Modulate = new Color(1f, 1f, 1f, ResolveDiagnosticOverlayOpacity());
+		}
+		if (_dualRealityOverlayFullscreenView != null)
+		{
+			_dualRealityOverlayFullscreenView.Texture = _dualRealityOverlayTexture;
+			_dualRealityOverlayFullscreenView.Modulate = new Color(1f, 1f, 1f, ResolveDiagnosticOverlayOpacity());
+		}
+
+		string legendText = BuildDualRealityOverlayLegendText(stats);
+		if (_dualRealityOverlayPanelLegendLabel != null)
+		{
+			_dualRealityOverlayPanelLegendLabel.Text = legendText;
+		}
+		if (_dualRealityOverlayFullscreenLegendLabel != null)
+		{
+			_dualRealityOverlayFullscreenLegendLabel.Text = legendText;
+		}
+		if (!string.Equals(legendText, _dualRealityLastOverlayLegendText, StringComparison.Ordinal))
+		{
+			_dualRealityLastOverlayLegendText = legendText;
+			GD.Print($"[DualReality] diagnostic_overlay mode={ResolveDualRealityOverlayModeLabel()} placement={ResolveDiagnosticOverlayPlacementLabel()} legend=\"{legendText}\"");
+		}
+	}
+
+	private string BuildDualRealityOverlayLegendText(GrinFilmCamera.TelemetryHeatmapStats stats)
+	{
+		if (DualRealityOverlayMode != DualRealityOverlayModeKind.CurvatureHeatmap)
+		{
+			return "FILM HEATMAP";
+		}
+
+		string rangeLabel = CurvatureHeatmapNormalization == CurvatureHeatmapNormalizationMode.FixedRange
+			? $"{CurvatureHeatmapMin:0.###}..{CurvatureHeatmapMax:0.###}"
+			: $"{stats.Min:0.###}..{stats.Max:0.###}";
+		return $"DISTORTION HEAT MAP · metric {ResolveCurvatureHeatmapMetricLabel()} · {ResolveCurvatureHeatmapNormalizationLabel()} · range {rangeLabel}";
 	}
 
 	private void UpdateDualRealityHudState(bool forceOverlayRefresh)
 	{
+		UpdateDualRealityTelemetryConfig();
 		UpdateDualRealityInsetVisibility();
 		UpdateDualRealityInsetLayout();
 		RefreshCollisionRadarHitActivity(forceOverlayRefresh);
@@ -1184,7 +1490,10 @@ public partial class WormholePrototypeRig : Node3D
 		string collisionMode = DualRealityCollisionRadarOverlayEnabled
 			? ResolveCollisionPlacementLabel()
 			: "COLLISION RADAR · OFF";
-		_dualRealityModeLabel.Text = $"{ResolveDualRealityOverlayModeLabel()} · {wireframeMode} · {collisionMode}";
+		string diagnosticMode = IsDualRealityDiagnosticOverlayEnabled()
+			? ResolveDiagnosticOverlayPlacementLabel()
+			: "SCALAR OVERLAY · OFF";
+		_dualRealityModeLabel.Text = $"{ResolveDualRealityOverlayModeLabel()} · {diagnosticMode} · {wireframeMode} · {collisionMode}";
 		_dualRealityTitleLabel.Modulate = EnableDualRealityResearchMode
 			? new Color(0.96f, 0.98f, 1f, 0.96f)
 			: new Color(0.82f, 0.84f, 0.88f, 0.72f);
@@ -1374,14 +1683,26 @@ public partial class WormholePrototypeRig : Node3D
 				mode = DualRealityOverlayModeKind.FilmHeatmap;
 				return true;
 			case "curvature":
+			case "curvatureheatmap":
 			case "curvatureplaceholder":
 			case "curvatureproxy":
-				mode = DualRealityOverlayModeKind.CurvaturePlaceholder;
+				mode = DualRealityOverlayModeKind.CurvatureHeatmap;
 				return true;
 			default:
 				mode = DualRealityOverlayModeKind.None;
 				return false;
 		}
+	}
+
+	private static DualRealityWireframePlacementMode ParsePlacementMode(string value)
+	{
+		string normalized = value.Trim().ToLowerInvariant();
+		return normalized switch
+		{
+			"panel" or "baseline" or "straight" => DualRealityWireframePlacementMode.StraightTransportReference,
+			"both" => DualRealityWireframePlacementMode.Both,
+			_ => DualRealityWireframePlacementMode.FullscreenCurved,
+		};
 	}
 
 	private void ApplyDualRealityCmdArgs()
@@ -1415,6 +1736,77 @@ public partial class WormholePrototypeRig : Node3D
 				continue;
 			}
 
+			if (TryGetRigArgValue(arg, "--dual-reality-overlay-placement=", out string overlayPlacementValue))
+			{
+				CurvatureHeatmapPlacement = ParsePlacementMode(overlayPlacementValue);
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--dual-reality-curvature-enable=", out string curvatureEnabledValue))
+			{
+				EnableCurvatureHeatmap = ParseCliBool(curvatureEnabledValue);
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--dual-reality-curvature-placement=", out string curvaturePlacementValue))
+			{
+				CurvatureHeatmapPlacement = ParsePlacementMode(curvaturePlacementValue);
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--dual-reality-curvature-opacity=", out string curvatureOpacityValue)
+				&& float.TryParse(curvatureOpacityValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedCurvatureOpacity))
+			{
+				CurvatureHeatmapOpacity = Mathf.Clamp(parsedCurvatureOpacity, 0f, 1f);
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--dual-reality-curvature-metric=", out string curvatureMetricValue))
+			{
+				string normalized = curvatureMetricValue.Trim().ToLowerInvariant();
+				CurvatureHeatmapMetric = normalized switch
+				{
+					"turnmax" or "maxturn" => CurvatureHeatmapMetricMode.MaxLocalTurnAngle,
+					"curvaturemean" or "mean" => CurvatureHeatmapMetricMode.CurvatureMean,
+					"curvaturemax" or "max" => CurvatureHeatmapMetricMode.CurvatureMax,
+					"steps" or "stepdensity" or "placeholder" => CurvatureHeatmapMetricMode.Pass1StepDensityPlaceholder,
+					_ => CurvatureHeatmapMetricMode.CumulativeTurnAngle,
+				};
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--dual-reality-curvature-normalization=", out string curvatureNormalizationValue))
+			{
+				string normalized = curvatureNormalizationValue.Trim().ToLowerInvariant();
+				CurvatureHeatmapNormalization = normalized switch
+				{
+					"full" or "fullrange" => CurvatureHeatmapNormalizationMode.AutoFullRange,
+					"fixed" or "fixedrange" => CurvatureHeatmapNormalizationMode.FixedRange,
+					_ => CurvatureHeatmapNormalizationMode.AutoPercentile,
+				};
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--dual-reality-curvature-min=", out string curvatureMinValue)
+				&& float.TryParse(curvatureMinValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedCurvatureMin))
+			{
+				CurvatureHeatmapMin = parsedCurvatureMin;
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--dual-reality-curvature-max=", out string curvatureMaxValue)
+				&& float.TryParse(curvatureMaxValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedCurvatureMax))
+			{
+				CurvatureHeatmapMax = parsedCurvatureMax;
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--dual-reality-curvature-legend=", out string curvatureLegendValue))
+			{
+				CurvatureHeatmapShowLegend = ParseCliBool(curvatureLegendValue);
+				continue;
+			}
+
 			if (TryGetRigArgValue(arg, "--dual-reality-wireframe=", out string wireframeValue))
 			{
 				DualRealityWireframeReferenceOverlayEnabled = ParseCliBool(wireframeValue);
@@ -1429,13 +1821,7 @@ public partial class WormholePrototypeRig : Node3D
 
 			if (TryGetRigArgValue(arg, "--dual-reality-collision-placement=", out string collisionPlacementValue))
 			{
-				string normalized = collisionPlacementValue.Trim().ToLowerInvariant();
-				DualRealityCollisionRadarPlacement = normalized switch
-				{
-					"panel" or "baseline" or "straight" => DualRealityWireframePlacementMode.StraightTransportReference,
-					"both" => DualRealityWireframePlacementMode.Both,
-					_ => DualRealityWireframePlacementMode.FullscreenCurved,
-				};
+				DualRealityCollisionRadarPlacement = ParsePlacementMode(collisionPlacementValue);
 				continue;
 			}
 

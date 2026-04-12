@@ -9,6 +9,10 @@ related_fixtures: wormhole_prototype
 
 # Paper 000: Unified Summary of the Wormhole Invariant Trilogy
 
+![Wormhole DualRealityTransport](../../../output/dual_reality/wormhole_inset_baseline.png)
+
+*Current wormhole DualRealityTransport capture showing the curved main view, straight transport reference panel, and diagnostic overlays.*
+
 ## Abstract
 
 This note summarizes a three-paper framework for deterministic, geometry-aware wormhole transport in `GD_xPRIMEray`. Paper 001 defines a proto-caustic invariant that preserves a destination-side annular concentration. Paper 002 defines a low-value sector budget that bounds expenditure in portal-local regions shown to have weak optical yield. Paper 003 studies these two contracts as a coupled system and identifies a bounded stability region rather than a single acceptable operating point. Taken together, the trilogy describes rendering behavior through measured invariants rather than through ad hoc tuning.

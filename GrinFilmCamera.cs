@@ -560,7 +560,9 @@ public partial class GrinFilmCamera : Node
 		D2kMax = 8,
 		WorkMinusCurvature = 9,
 		QueryMinusCurvature = 10,
-		Efficiency = 11
+		Efficiency = 11,
+		TurnSum = 12,
+		TurnMax = 13
 	}
 
 	public readonly struct AdaptiveEnvelopeScaleStats
@@ -1602,6 +1604,8 @@ public partial class GrinFilmCamera : Node
 	private float[] _telemetryCurvatureMean = Array.Empty<float>();
 	private float[] _telemetryDkMax = Array.Empty<float>();
 	private float[] _telemetryD2kMax = Array.Empty<float>();
+	private float[] _telemetryTurnSum = Array.Empty<float>();
+	private float[] _telemetryTurnMax = Array.Empty<float>();
 	private float[] _adaptiveEnvelopeMismatchPrior = Array.Empty<float>();
 	private byte[] _adaptiveEnvelopeActiveMask = Array.Empty<byte>();
 	private float[] _adaptiveEnvelopePreviousMismatchPrior = Array.Empty<float>();
@@ -5102,6 +5106,17 @@ private sealed class OverlayRollingWindow
 
 	public bool TryCopyTelemetryHeatmapImageForTesting(TelemetryHeatmapKind kind, out Image image, out TelemetryHeatmapStats stats)
 	{
+		return TryCopyTelemetryHeatmapImageForTesting(kind, out image, out stats, null, float.NaN, float.NaN);
+	}
+
+	public bool TryCopyTelemetryHeatmapImageForTesting(
+		TelemetryHeatmapKind kind,
+		out Image image,
+		out TelemetryHeatmapStats stats,
+		string normalizationMode,
+		float fixedMin,
+		float fixedMax)
+	{
 		image = null;
 		stats = default;
 		if (_filmWidth <= 0 || _filmHeight <= 0)
@@ -5120,22 +5135,18 @@ private sealed class OverlayRollingWindow
 			return false;
 		}
 
-		TelemetryHeatmapStats computedStats = ComputeTelemetryHeatmapStats(values, key, ResolveTelemetryHeatmapModeToken());
+		string modeToken = ResolveTelemetryHeatmapModeToken(normalizationMode);
+		TelemetryHeatmapStats computedStats = ComputeTelemetryHeatmapStats(values, key, modeToken, fixedMin, fixedMax);
 		Image heatmap = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
 		bool signedMap = IsSignedTelemetryHeatmapKind(kind);
-		float clampMax = Math.Max(0f, computedStats.ClampMax);
-		float denom = clampMax > 0f
-			? clampMax
-			: (signedMap ? Math.Max(Math.Abs(computedStats.Min), Math.Abs(computedStats.Max)) : Math.Max(0f, computedStats.Max));
+		ResolveTelemetryDisplayRange(computedStats, signedMap, modeToken, fixedMin, fixedMax, out float displayMin, out float displayMax);
 		for (int y = 0; y < _filmHeight; y++)
 		{
 			int rowBase = y * _filmWidth;
 			for (int x = 0; x < _filmWidth; x++)
 			{
 				float raw = values[rowBase + x];
-				float normalized = signedMap
-					? (denom > 0f ? Mathf.Clamp(0.5f + (0.5f * (raw / denom)), 0f, 1f) : 0.5f)
-					: (denom > 0f ? Mathf.Clamp(raw / denom, 0f, 1f) : 0f);
+				float normalized = NormalizeTelemetryDisplayValue(raw, displayMin, displayMax, signedMap);
 				heatmap.SetPixel(x, y, EvaluateTelemetryHeatColor(normalized));
 			}
 		}
@@ -5146,6 +5157,16 @@ private sealed class OverlayRollingWindow
 	}
 
 	public bool TryGetTelemetryHeatmapStatsForTesting(TelemetryHeatmapKind kind, out TelemetryHeatmapStats stats)
+	{
+		return TryGetTelemetryHeatmapStatsForTesting(kind, out stats, null, float.NaN, float.NaN);
+	}
+
+	public bool TryGetTelemetryHeatmapStatsForTesting(
+		TelemetryHeatmapKind kind,
+		out TelemetryHeatmapStats stats,
+		string normalizationMode,
+		float fixedMin,
+		float fixedMax)
 	{
 		stats = default;
 		if (_filmWidth <= 0 || _filmHeight <= 0)
@@ -5164,7 +5185,7 @@ private sealed class OverlayRollingWindow
 			return false;
 		}
 
-		stats = ComputeTelemetryHeatmapStats(values, key, ResolveTelemetryHeatmapModeToken());
+		stats = ComputeTelemetryHeatmapStats(values, key, ResolveTelemetryHeatmapModeToken(normalizationMode), fixedMin, fixedMax);
 		return true;
 	}
 
@@ -5383,6 +5404,10 @@ private sealed class OverlayRollingWindow
 			_telemetryDkMax = new float[safeCount];
 		if (_telemetryD2kMax.Length != safeCount)
 			_telemetryD2kMax = new float[safeCount];
+		if (_telemetryTurnSum.Length != safeCount)
+			_telemetryTurnSum = new float[safeCount];
+		if (_telemetryTurnMax.Length != safeCount)
+			_telemetryTurnMax = new float[safeCount];
 		if (_adaptiveEnvelopeMismatchPrior.Length != safeCount)
 			_adaptiveEnvelopeMismatchPrior = new float[safeCount];
 		if (_adaptiveEnvelopeActiveMask.Length != safeCount)
@@ -5403,6 +5428,8 @@ private sealed class OverlayRollingWindow
 		Array.Clear(_telemetryCurvatureMean, 0, _telemetryCurvatureMean.Length);
 		Array.Clear(_telemetryDkMax, 0, _telemetryDkMax.Length);
 		Array.Clear(_telemetryD2kMax, 0, _telemetryD2kMax.Length);
+		Array.Clear(_telemetryTurnSum, 0, _telemetryTurnSum.Length);
+		Array.Clear(_telemetryTurnMax, 0, _telemetryTurnMax.Length);
 		Array.Clear(_adaptiveEnvelopeMismatchPrior, 0, _adaptiveEnvelopeMismatchPrior.Length);
 	}
 
@@ -5860,7 +5887,9 @@ private sealed class OverlayRollingWindow
 			&& _telemetryCurvatureMax.Length == _filmWidth * _filmHeight
 			&& _telemetryCurvatureMean.Length == _filmWidth * _filmHeight
 			&& _telemetryDkMax.Length == _filmWidth * _filmHeight
-			&& _telemetryD2kMax.Length == _filmWidth * _filmHeight;
+			&& _telemetryD2kMax.Length == _filmWidth * _filmHeight
+			&& _telemetryTurnSum.Length == _filmWidth * _filmHeight
+			&& _telemetryTurnMax.Length == _filmWidth * _filmHeight;
 	}
 
 	private bool TryGetTelemetrySource(TelemetryHeatmapKind kind, out float[] source, out string key)
@@ -5903,6 +5932,14 @@ private sealed class OverlayRollingWindow
 			case TelemetryHeatmapKind.D2kMax:
 				source = _telemetryD2kMax;
 				key = "d2k_max";
+				break;
+			case TelemetryHeatmapKind.TurnSum:
+				source = _telemetryTurnSum;
+				key = "turn_sum";
+				break;
+			case TelemetryHeatmapKind.TurnMax:
+				source = _telemetryTurnMax;
+				key = "turn_max";
 				break;
 			case TelemetryHeatmapKind.WorkMinusCurvature:
 				key = "work_minus_curvature";
@@ -6012,12 +6049,26 @@ private sealed class OverlayRollingWindow
 		}
 	}
 
-	private string ResolveTelemetryHeatmapModeToken()
+	private string ResolveTelemetryHeatmapModeToken(string overrideMode = null)
 	{
-		string mode = string.IsNullOrWhiteSpace(TelemetryHeatmapMode)
+		string source = string.IsNullOrWhiteSpace(overrideMode)
+			? TelemetryHeatmapMode
+			: overrideMode;
+		string mode = string.IsNullOrWhiteSpace(source)
 			? "basic"
-			: TelemetryHeatmapMode.Trim().ToLowerInvariant();
-		return string.IsNullOrWhiteSpace(mode) ? "basic" : mode;
+			: source.Trim().ToLowerInvariant();
+		if (string.IsNullOrWhiteSpace(mode))
+		{
+			return "basic";
+		}
+
+		return mode switch
+		{
+			"auto" or "basic" or "percentile" => "basic",
+			"full" or "fullrange" or "range" => "full",
+			"fixed" or "fixedrange" => "fixed",
+			_ => mode,
+		};
 	}
 
 	private static TelemetryHeatmapStats ComputeTelemetryHeatmapStats(float[] values, string key, string mode)
@@ -6083,6 +6134,74 @@ private sealed class OverlayRollingWindow
 			p90,
 			float.IsFinite(clampMax) ? clampMax : 0f,
 			mode);
+	}
+
+	private static TelemetryHeatmapStats ComputeTelemetryHeatmapStats(float[] values, string key, string mode, float fixedMin, float fixedMax)
+	{
+		TelemetryHeatmapStats stats = ComputeTelemetryHeatmapStats(values, key, mode);
+		if (!string.Equals(mode, "fixed", StringComparison.OrdinalIgnoreCase)
+			|| !float.IsFinite(fixedMin)
+			|| !float.IsFinite(fixedMax)
+			|| fixedMax <= fixedMin)
+		{
+			return stats;
+		}
+
+		float clampMax = Math.Max(Math.Abs(fixedMin), Math.Abs(fixedMax));
+		return new TelemetryHeatmapStats(
+			key,
+			fixedMin,
+			fixedMax,
+			stats.Mean,
+			stats.P10,
+			stats.P50,
+			stats.P90,
+			clampMax,
+			mode);
+	}
+
+	private static void ResolveTelemetryDisplayRange(
+		TelemetryHeatmapStats stats,
+		bool signedMap,
+		string mode,
+		float fixedMin,
+		float fixedMax,
+		out float displayMin,
+		out float displayMax)
+	{
+		if (string.Equals(mode, "fixed", StringComparison.OrdinalIgnoreCase)
+			&& float.IsFinite(fixedMin)
+			&& float.IsFinite(fixedMax)
+			&& fixedMax > fixedMin)
+		{
+			displayMin = fixedMin;
+			displayMax = fixedMax;
+			return;
+		}
+
+		if (signedMap)
+		{
+			float absMax = stats.ClampMax > 0f
+				? stats.ClampMax
+				: Math.Max(Math.Abs(stats.Min), Math.Abs(stats.Max));
+			displayMin = -absMax;
+			displayMax = absMax;
+			return;
+		}
+
+		displayMin = 0f;
+		displayMax = stats.ClampMax > 0f ? stats.ClampMax : Math.Max(0f, stats.Max);
+	}
+
+	private static float NormalizeTelemetryDisplayValue(float raw, float displayMin, float displayMax, bool signedMap)
+	{
+		float safeRaw = float.IsFinite(raw) ? raw : 0f;
+		if (!float.IsFinite(displayMin) || !float.IsFinite(displayMax) || displayMax <= displayMin)
+		{
+			return signedMap ? 0.5f : 0f;
+		}
+
+		return Mathf.Clamp(Mathf.InverseLerp(displayMin, displayMax, safeRaw), 0f, 1f);
 	}
 
 	private static float SamplePercentile(float[] sorted, float percentile)
@@ -8790,6 +8909,8 @@ private sealed class OverlayRollingWindow
 							out float telemetryCurvatureMean,
 							out float telemetryDkMax,
 							out float telemetryD2kMax,
+							out float telemetryTurnSum,
+							out float telemetryTurnMax,
 							curvatureGridForPass1,
 							fieldGridForPass1
 						);
@@ -8815,6 +8936,10 @@ private sealed class OverlayRollingWindow
 								AccumulateTelemetryBlock(_telemetryDkMax, x, y, stride, telemetryDkMax);
 							if (telemetryD2kMax > 0f)
 								AccumulateTelemetryBlock(_telemetryD2kMax, x, y, stride, telemetryD2kMax);
+							if (telemetryTurnSum > 0f)
+								AccumulateTelemetryBlock(_telemetryTurnSum, x, y, stride, telemetryTurnSum);
+							if (telemetryTurnMax > 0f)
+								AccumulateTelemetryBlock(_telemetryTurnMax, x, y, stride, telemetryTurnMax);
 						}
 					// DECISION: accumulate field evals when frame perf is enabled.
 					if (framePerfEnabled) local.FieldEvals += fieldEvals;

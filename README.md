@@ -7,6 +7,9 @@ Positioned as both a **scientific research toolkit** and an **open-source GPU/CP
 
 ![Screenshot](icon.webp)
 ![Screenshot](_Wormhole_figures/figure_B_composed_overlay.png)
+![Wormhole DualRealityTransport](output/dual_reality/wormhole_inset_baseline.png)
+
+*Current wormhole DualRealityTransport capture showing the curved main view, straight transport reference panel, and diagnostic overlays.*
 
 ## Overview
 

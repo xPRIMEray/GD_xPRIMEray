@@ -1,5 +1,9 @@
 Dual Reality Research Mode Scaffold
 
+![Wormhole DualRealityTransport](output/dual_reality/wormhole_inset_baseline.png)
+
+*Current wormhole DualRealityTransport capture showing the curved main view, straight transport reference panel, and diagnostic overlays.*
+
 Purpose
 
 Create a lightweight, additive-only research/perceptual overlay that gives users a stable straight-ray reference while comparing xPRIMEray curved transport behavior in the same scene.

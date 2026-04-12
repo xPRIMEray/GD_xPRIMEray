@@ -272,6 +272,7 @@ public partial class CameraSpaceCollisionOverlay : Control
 
 		_debugVisibleSummary = BuildVisibleSummary(entries.Count, primaryCount, remappedCount, backgroundCount, helperCount, hitConfirmedCount, visibleLabels);
 		DrawOverlayLabel();
+		DrawActivitySummary(visibleEntries.Count, hitConfirmedCount, primaryCount, remappedCount, backgroundCount, helperCount, visibleEntries);
 		if (ShowLegend)
 		{
 			DrawLegend(hitConfirmedCount);
@@ -601,6 +602,82 @@ public partial class CameraSpaceCollisionOverlay : Control
 		DrawRect(new Rect2(16f, 16f, Mathf.Min(560f, Size.X - 24f), 50f), panel, true);
 		DrawString(ThemeDB.FallbackFont, new Vector2(26f, 36f), ModeLabel, HorizontalAlignment.Left, -1f, 14, title);
 		DrawString(ThemeDB.FallbackFont, new Vector2(26f, 52f), _debugVisibleSummary, HorizontalAlignment.Left, -1f, 11, note);
+	}
+
+	private void DrawActivitySummary(
+		int visibleCount,
+		int hitConfirmedCount,
+		int primaryCount,
+		int remappedCount,
+		int backgroundCount,
+		int helperCount,
+		List<VisibleCollisionEntry> visibleEntries)
+	{
+		float width = Mathf.Min(300f, Size.X * 0.38f);
+		float height = 102f;
+		float rightMargin = ShowLegend ? 276f : 16f;
+		float x = Mathf.Max(16f, Size.X - width - rightMargin);
+		float y = Math.Max(76f, Size.Y - height - 16f);
+		Rect2 rect = new(x, y, width, height);
+		Color bg = new(0.05f, 0.07f, 0.11f, 0.76f * OverlayOpacity);
+		Color frame = new(0.34f, 0.44f, 0.62f, 0.50f * OverlayOpacity);
+		Color title = new(0.90f, 0.96f, 1f, 0.96f * OverlayOpacity);
+		Color body = new(0.84f, 0.92f, 0.98f, 0.92f * OverlayOpacity);
+		Color note = new(0.76f, 0.84f, 0.92f, 0.90f * OverlayOpacity);
+		DrawRect(rect, bg, true);
+		DrawRect(rect, frame, false, 1f);
+
+		DrawString(ThemeDB.FallbackFont, rect.Position + new Vector2(10f, 16f), $"OBJECT ACTIVITY · {DisplayFilterMode}", HorizontalAlignment.Left, -1f, 10, title);
+		DrawString(ThemeDB.FallbackFont, rect.Position + new Vector2(10f, 31f), $"visible {visibleCount} · hit-confirmed {hitConfirmedCount}", HorizontalAlignment.Left, -1f, 10, body);
+		DrawString(ThemeDB.FallbackFont, rect.Position + new Vector2(10f, 46f), BuildActiveCategorySummary(primaryCount, remappedCount, backgroundCount, helperCount), HorizontalAlignment.Left, -1f, 10, note);
+
+		string topLine = BuildTopHitLabelSummary(visibleEntries, 3);
+		if (!string.IsNullOrEmpty(topLine))
+		{
+			DrawString(ThemeDB.FallbackFont, rect.Position + new Vector2(10f, 64f), topLine, HorizontalAlignment.Left, -1f, 10, body);
+		}
+		else if (DisplayFilterMode == CollisionRadarDisplayFilterMode.HitConfirmedOnly)
+		{
+			DrawString(ThemeDB.FallbackFont, rect.Position + new Vector2(10f, 64f), "no visible hit-confirmed objects", HorizontalAlignment.Left, -1f, 10, new Color(0.90f, 0.78f, 0.62f, 0.95f * OverlayOpacity));
+		}
+
+		DrawString(ThemeDB.FallbackFont, rect.Position + new Vector2(10f, 82f), $"bounds {BoundsMode} · labels {(ShowLabels ? "on" : "off")} · leaders {(ShowLeaderLines ? "on" : "off")}", HorizontalAlignment.Left, -1f, 10, note);
+	}
+
+	private static string BuildActiveCategorySummary(int primaryCount, int remappedCount, int backgroundCount, int helperCount)
+	{
+		List<string> active = new(4);
+		if (primaryCount > 0) active.Add("primary");
+		if (remappedCount > 0) active.Add("remapped");
+		if (backgroundCount > 0) active.Add("background");
+		if (helperCount > 0) active.Add("helpers");
+		return active.Count > 0
+			? $"active {string.Join(" · ", active)}"
+			: "active none";
+	}
+
+	private static string BuildTopHitLabelSummary(List<VisibleCollisionEntry> visibleEntries, int maxCount)
+	{
+		if (visibleEntries == null || visibleEntries.Count == 0 || maxCount <= 0)
+		{
+			return string.Empty;
+		}
+
+		List<string> labels = new(maxCount);
+		for (int i = 0; i < visibleEntries.Count && labels.Count < maxCount; i++)
+		{
+			VisibleCollisionEntry visible = visibleEntries[i];
+			if (visible.HitCount <= 0)
+			{
+				continue;
+			}
+
+			labels.Add($"{visible.Entry.Label} h{visible.HitCount}");
+		}
+
+		return labels.Count > 0
+			? $"top hits {string.Join(" / ", labels)}"
+			: string.Empty;
 	}
 
 	private void DrawLegend(int hitConfirmedCount)

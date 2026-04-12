@@ -1074,6 +1074,8 @@ public partial class RayBeamRenderer : Node3D
 		public float CurvatureMax;
 		public float DkMax;
 		public float D2kMax;
+		public float TurnSum;
+		public float TurnMax;
 	}
 
 	public readonly struct DerivativeAwareSteppingDiagnosticsSnapshot
@@ -3117,6 +3119,8 @@ public partial class RayBeamRenderer : Node3D
 		out float curvatureMean,
 		out float dkMax,
 		out float d2kMax,
+		out float turnSum,
+		out float turnMax,
 		CurvatureBoundGrid curvatureGrid,
 		FieldGrid3D fieldGrid = null)
 	{
@@ -3158,6 +3162,8 @@ public partial class RayBeamRenderer : Node3D
 		curvatureMean = 0f;
 		dkMax = 0f;
 		d2kMax = 0f;
+		turnSum = 0f;
+		turnMax = 0f;
 
 		hitInfo = new Pass1HitInfo
 		{
@@ -3383,6 +3389,7 @@ public partial class RayBeamRenderer : Node3D
 				}
 
 				RecordTransportSteeringStep(p, vBeforeStep, v, center, fieldSnaps, hasSources);
+				RecordPass1TelemetryTurnSample(vBeforeStep, v, ref telemetryDerivativeState);
 
 				// traveled increment is ~step (v is normalized)
 				traveled += step;
@@ -3558,6 +3565,8 @@ public partial class RayBeamRenderer : Node3D
 				: 0f;
 			dkMax = telemetryDerivativeState.DkMax;
 			d2kMax = telemetryDerivativeState.D2kMax;
+			turnSum = telemetryDerivativeState.TurnSum;
+			turnMax = telemetryDerivativeState.TurnMax;
 			return written;
 		}
 
@@ -5075,6 +5084,21 @@ public partial class RayBeamRenderer : Node3D
 		state.CurvatureMax = Mathf.Max(state.CurvatureMax, kRaw);
 		state.DkMax = Mathf.Max(state.DkMax, Mathf.Abs(dk));
 		state.D2kMax = Mathf.Max(state.D2kMax, Mathf.Abs(d2k));
+	}
+
+	private static void RecordPass1TelemetryTurnSample(
+		Vector3 vBefore,
+		Vector3 vAfter,
+		ref Pass1TelemetryDerivativeState state)
+	{
+		float turn = ComputeDirectionTurnAngle(vBefore, vAfter);
+		if (!float.IsFinite(turn) || turn <= 0f)
+		{
+			return;
+		}
+
+		state.TurnSum += turn;
+		state.TurnMax = Mathf.Max(state.TurnMax, turn);
 	}
 
 	private void RecordDerivativeAwareMetricSubdivisionRetry()
