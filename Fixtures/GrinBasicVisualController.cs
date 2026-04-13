@@ -35,6 +35,18 @@ public partial class GrinBasicVisualController : Node3D
 	private const string CompareCrosshairArgPrefix = "--grin-basic-compare-crosshair=";
 	private const string VisualModeArgPrefix = "--grin-basic-visual-mode=";
 	private const string SourceHighlightArgPrefix = "--grin-basic-source-highlight=";
+	private const string CapturePathEnv = "GRIN_BASIC_CAPTURE_PATH";
+	private const string DebugCapturePathEnv = "GRIN_BASIC_DEBUG_CAPTURE_PATH";
+	private const string AnalysisCaptureModeEnv = "GRIN_BASIC_ANALYSIS_CAPTURE_MODE";
+	private const string SettleFramesEnv = "GRIN_BASIC_SETTLE_FRAMES";
+	private const string MinRenderHealthStepEnv = "GRIN_BASIC_MIN_RH_STEP";
+	private const string MinProcessedRowsEnv = "GRIN_BASIC_MIN_PROCESSED_ROWS";
+	private const string CaptureFilmOpacityEnv = "GRIN_BASIC_CAPTURE_FILM_OPACITY";
+	private const string CompareGridEnv = "GRIN_BASIC_COMPARE_GRID";
+	private const string CompareCrosshairEnv = "GRIN_BASIC_COMPARE_CROSSHAIR";
+	private const string VisualModeEnv = "GRIN_BASIC_VISUAL_MODE";
+	private const string SourceHighlightEnv = "GRIN_BASIC_SOURCE_HIGHLIGHT";
+	private const string ExitAfterCaptureEnv = "GRIN_BASIC_EXIT_AFTER_CAPTURE";
 
 	[Export] public NodePath FilmCameraPath = new("GrinFilmCamera");
 	[Export] public NodePath FieldPath = new("FixtureGrinBasicVisual/FieldSource3D");
@@ -90,7 +102,7 @@ public partial class GrinBasicVisualController : Node3D
 		_intendedFullRender = _filmCamera != null && _filmCamera.UpdateEveryFrame;
 		ConfigureCalibrationViewport();
 		TagDotNodesAsFixtureSource();
-		CmdlineOptions options = ParseCmdlineOptions(GetCmdArgsForParsing());
+		CmdlineOptions options = ApplyEnvFallbacks(ParseCmdlineOptions(GetCmdArgsForParsing()));
 		LogRuntimeBuildFingerprint(options);
 		_captureRequested = !string.IsNullOrWhiteSpace(options.CapturePath);
 		_exitAfterCapture = options.ExitAfterCapture;
@@ -177,6 +189,10 @@ public partial class GrinBasicVisualController : Node3D
 			{
 				_filmCamera.SetFilmOpacityForTesting(_captureFilmOpacityOverride);
 			}
+			if (_filmCamera != null && GodotObject.IsInstanceValid(_filmCamera))
+			{
+				_filmCamera.QuitAfterCompletedPass = false;
+			}
 			GD.Print(
 				$"[GrinBasicVisual][CaptureConfig] fixture={FixtureHudName} analysisPath={ResolveCapturePath(_capturePath)} " +
 				$"debugPath={ResolveCapturePath(_debugCapturePath)} " +
@@ -242,6 +258,12 @@ public partial class GrinBasicVisualController : Node3D
 		int renderHealthStep = 0;
 		bool hasRenderHealthStep = _filmCamera.TryGetLatestRenderHealthStepForTesting(out renderHealthStep);
 		int processedRows = Math.Max(0, _filmCamera.FilmRowCursor);
+		GrinFilmCamera.FixtureWriteDiagnosticsSnapshot liveWriteDiagnostics = default;
+		bool hasLiveWriteDiagnostics = _filmCamera.TryGetFixtureWriteDiagnosticsForTesting(out liveWriteDiagnostics);
+		if (hasLiveWriteDiagnostics)
+		{
+			processedRows = Math.Max(processedRows, liveWriteDiagnostics.RowsCompleted);
+		}
 		if (hasRenderHealthStep)
 		{
 			_captureMaxObservedRenderHealthStep = Math.Max(_captureMaxObservedRenderHealthStep, renderHealthStep);
@@ -591,10 +613,13 @@ public partial class GrinBasicVisualController : Node3D
 
 		bool finalHitOnlyAnalysis = string.Equals(_analysisCaptureMode, "final_hit_only", StringComparison.Ordinal);
 		bool categoricalFinalAnalysis = string.Equals(_analysisCaptureMode, "categorical_final", StringComparison.Ordinal);
+		bool transportClassificationAnalysis = string.Equals(_analysisCaptureMode, "transport_classification", StringComparison.Ordinal);
 		Image analysisImage = null;
-		bool copiedAnalysisImage = categoricalFinalAnalysis
-			? _filmCamera.TryCopyCategoricalFinalFilmImageForTesting(out analysisImage)
-			: finalHitOnlyAnalysis
+		bool copiedAnalysisImage = transportClassificationAnalysis
+			? _filmCamera.TryCopyTransportClassificationFilmImageForTesting(out analysisImage)
+			: categoricalFinalAnalysis
+				? _filmCamera.TryCopyCategoricalFinalFilmImageForTesting(out analysisImage)
+				: finalHitOnlyAnalysis
 				? _filmCamera.TryCopyFinalHitOnlyFilmImageForTesting(out analysisImage)
 				: _filmCamera.TryCopyFilmImageForTesting(out analysisImage);
 		if (!copiedAnalysisImage || analysisImage == null)
@@ -647,6 +672,8 @@ public partial class GrinBasicVisualController : Node3D
 		bool hasRenderHealthDiagnostics = _filmCamera.TryGetLatestRenderHealthDiagnosticsForTesting(out renderHealthDiagnostics);
 		GrinFilmCamera.FixtureWriteDiagnosticsSnapshot writeDiagnostics = default;
 		bool hasWriteDiagnostics = _filmCamera.TryGetFixtureWriteDiagnosticsForTesting(out writeDiagnostics);
+		GrinFilmCamera.FixtureTransportCoverageSnapshot transportCoverage = default;
+		bool hasTransportCoverage = _filmCamera.TryGetFixtureTransportCoverageForTesting(out transportCoverage);
 		FilmOverlay2D.OverlayRenderSnapshot overlaySnapshot = default;
 		bool hasOverlaySnapshot = _filmOverlay != null && GodotObject.IsInstanceValid(_filmOverlay);
 		if (hasOverlaySnapshot)
@@ -715,11 +742,12 @@ public partial class GrinBasicVisualController : Node3D
 			$"absorbedHits={snapshot.AbsorbedHits} missHits={snapshot.MissHits} readyFrames={_captureReadyFrames} " +
 			$"rhStep={(renderHealthStep >= 0 ? renderHealthStep.ToString(CultureInfo.InvariantCulture) : "na")} " +
 			$"processedRows={processedRows.ToString(CultureInfo.InvariantCulture)}");
-			GD.Print(
-				$"[GrinBasicVisual][CaptureArtifacts] fixture={FixtureHudName} " +
+		GD.Print(
+			$"[GrinBasicVisual][CaptureArtifacts] fixture={FixtureHudName} " +
 				$"analysisPath={analysisCapturePath} debugPath={debugCapturePath} " +
 				$"analysisCaptureMode={_analysisCaptureMode} " +
-				$"analysisCaptureWritten=1 debugCaptureWritten=1 categoricalFinalWritten={(categoricalFinalAnalysis ? 1 : 0)} overlayEnabledForAnalysisCapture=0 " +
+				$"analysisCaptureWritten=1 debugCaptureWritten=1 categoricalFinalWritten={(categoricalFinalAnalysis ? 1 : 0)} " +
+				$"transportClassificationWritten={(transportClassificationAnalysis ? 1 : 0)} overlayEnabledForAnalysisCapture=0 " +
 				$"analysisWidth={analysisImage.GetWidth()} analysisHeight={analysisImage.GetHeight()} " +
 			$"debugWidth={debugImage.GetWidth()} debugHeight={debugImage.GetHeight()} " +
 			$"viewportWidth={viewportSize.X} viewportHeight={viewportSize.Y} " +
@@ -777,6 +805,21 @@ public partial class GrinBasicVisualController : Node3D
 			$"rowsEarlyTerminated={(hasWriteDiagnostics ? writeDiagnostics.RowsEarlyTerminated.ToString(CultureInfo.InvariantCulture) : "na")} " +
 			$"finalHitPixelCount={(hasWriteDiagnostics ? writeDiagnostics.FinalHitPixelCount.ToString(CultureInfo.InvariantCulture) : "na")} " +
 			$"traversalWritePixelCount={(hasWriteDiagnostics ? writeDiagnostics.TraversalWritePixelCount.ToString(CultureInfo.InvariantCulture) : "na")}");
+		GD.Print(
+			$"[GrinBasicVisual][Coverage] fixture={FixtureHudName} " +
+			$"analysisCaptureMode={_analysisCaptureMode} " +
+			$"totalPixels={(hasTransportCoverage ? transportCoverage.TotalPixels.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"classifiedPixels={(hasTransportCoverage ? transportCoverage.ClassifiedPixels.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"classifiedCoverageRatio={(hasTransportCoverage ? transportCoverage.ClassifiedCoverageRatio.ToString("0.######", CultureInfo.InvariantCulture) : "na")} " +
+			$"geomHitPixels={(hasTransportCoverage ? transportCoverage.GeomHitPixels.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"portalHitPixels={(hasTransportCoverage ? transportCoverage.PortalHitPixels.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"throatEventPixels={(hasTransportCoverage ? transportCoverage.ThroatEventPixels.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"backgroundHitPixels={(hasTransportCoverage ? transportCoverage.BackgroundHitPixels.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"escapedNoHitPixels={(hasTransportCoverage ? transportCoverage.EscapedNoHitPixels.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"budgetExhaustedPixels={(hasTransportCoverage ? transportCoverage.BudgetExhaustedPixels.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"unclassifiedPixels={(hasTransportCoverage ? transportCoverage.UnclassifiedPixels.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"hermeticRuleSatisfied={(hasTransportCoverage ? (transportCoverage.HermeticRuleSatisfied ? "1" : "0") : "na")} " +
+			$"summary={(hasTransportCoverage ? transportCoverage.Summary : "na")}");
 		GD.Print(
 			$"[GrinBasicVisual][BottomRegionDiag] fixture={FixtureHudName} " +
 			$"analysisBottomBandPresent={(analysisBottomBand.Present ? 1 : 0)} analysisBandStart={analysisBottomBand.StartRow} " +
@@ -1314,10 +1357,91 @@ public partial class GrinBasicVisualController : Node3D
 			"default" => "resolved_film",
 			"categorical" => "categorical_final",
 			"categorical_final" => "categorical_final",
+			"transport" => "transport_classification",
+			"transport_classification" => "transport_classification",
+			"coverage" => "transport_classification",
+			"hermetic" => "transport_classification",
 			"final" => "final_hit_only",
 			"final_hit_only" => "final_hit_only",
 			"hit_only" => "final_hit_only",
 			_ => "resolved_film"
+		};
+	}
+
+	private static CmdlineOptions ApplyEnvFallbacks(CmdlineOptions options)
+	{
+		options.CapturePath = FirstNonEmptyToken(options.CapturePath, CapturePathEnv);
+		options.DebugCapturePath = FirstNonEmptyToken(options.DebugCapturePath, DebugCapturePathEnv);
+		options.AnalysisCaptureMode = FirstNonEmptyToken(options.AnalysisCaptureMode, AnalysisCaptureModeEnv);
+		options.VisualMode = FirstNonEmptyToken(options.VisualMode, VisualModeEnv);
+		options.SettleFrames = options.SettleFrames ?? ParseEnvInt(SettleFramesEnv);
+		options.MinRenderHealthStep = options.MinRenderHealthStep ?? ParseEnvInt(MinRenderHealthStepEnv);
+		options.MinProcessedRows = options.MinProcessedRows ?? ParseEnvInt(MinProcessedRowsEnv);
+		options.CaptureFilmOpacity = options.CaptureFilmOpacity ?? ParseEnvFloat(CaptureFilmOpacityEnv);
+		options.CompareGridEnabled = options.CompareGridEnabled ?? ParseEnvBool(CompareGridEnv);
+		options.CompareCrosshairEnabled = options.CompareCrosshairEnabled ?? ParseEnvBool(CompareCrosshairEnv);
+		options.SourceHighlightEnabled = options.SourceHighlightEnabled ?? ParseEnvBool(SourceHighlightEnv);
+		options.ExitAfterCapture = options.ExitAfterCapture || (ParseEnvBool(ExitAfterCaptureEnv) ?? false);
+		return options;
+	}
+
+	private static string FirstNonEmptyToken(string current, string envName)
+	{
+		if (!string.IsNullOrWhiteSpace(current))
+		{
+			return current;
+		}
+
+		string envValue = System.Environment.GetEnvironmentVariable(envName);
+		return string.IsNullOrWhiteSpace(envValue) ? current : envValue.Trim();
+	}
+
+	private static int? ParseEnvInt(string envName)
+	{
+		string envValue = System.Environment.GetEnvironmentVariable(envName);
+		if (string.IsNullOrWhiteSpace(envValue))
+		{
+			return null;
+		}
+
+		return int.TryParse(envValue.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+			? value
+			: null;
+	}
+
+	private static float? ParseEnvFloat(string envName)
+	{
+		string envValue = System.Environment.GetEnvironmentVariable(envName);
+		if (string.IsNullOrWhiteSpace(envValue))
+		{
+			return null;
+		}
+
+		return float.TryParse(envValue.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out float value)
+			? value
+			: null;
+	}
+
+	private static bool? ParseEnvBool(string envName)
+	{
+		string envValue = System.Environment.GetEnvironmentVariable(envName);
+		if (string.IsNullOrWhiteSpace(envValue))
+		{
+			return null;
+		}
+
+		string token = envValue.Trim().ToLowerInvariant();
+		return token switch
+		{
+			"1" => true,
+			"true" => true,
+			"yes" => true,
+			"on" => true,
+			"0" => false,
+			"false" => false,
+			"no" => false,
+			"off" => false,
+			_ => null
 		};
 	}
 
@@ -1539,6 +1663,12 @@ public partial class GrinBasicVisualController : Node3D
 		if (string.IsNullOrWhiteSpace(path))
 		{
 			return string.Empty;
+		}
+
+		if (path.StartsWith("res://", StringComparison.OrdinalIgnoreCase) ||
+			path.StartsWith("user://", StringComparison.OrdinalIgnoreCase))
+		{
+			return ProjectSettings.GlobalizePath(path);
 		}
 
 		if (Path.IsPathRooted(path))

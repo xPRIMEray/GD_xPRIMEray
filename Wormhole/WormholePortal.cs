@@ -7,6 +7,80 @@ using Godot;
 /// </summary>
 public partial class WormholePortal : Node3D
 {
+	public enum WormholeHandednessMode
+	{
+		RightHanded = 0,
+		LeftHanded = 1
+	}
+
+	public readonly struct ThroatDebugSnapshot
+	{
+		public readonly bool Valid;
+		public readonly string WormholeId;
+		public readonly string LinkedWormholeId;
+		public readonly string ParentRegionId;
+		public readonly string ChildRegionId;
+		public readonly float ThroatRadius;
+		public readonly float ZeroPhaseAngle;
+		public readonly int SpinDirection;
+		public readonly WormholeHandednessMode Handedness;
+		public readonly float ZoneMinZ;
+		public readonly float ZoneMaxZ;
+		public readonly bool PhaseLockedRemapEnabled;
+		public readonly bool ThroatDiagnosticsEnabled;
+		public readonly Vector3 MouthCenter;
+		public readonly Vector3 ZeroMarkerPoint;
+		public readonly Vector3 SpinArrowStart;
+		public readonly Vector3 SpinArrowTip;
+		public readonly Vector3 BoundarySamplePoint;
+		public readonly Vector3 DestinationPreviewPoint;
+		public readonly float PhaseAngleDegrees;
+
+		public ThroatDebugSnapshot(
+			bool valid,
+			string wormholeId,
+			string linkedWormholeId,
+			string parentRegionId,
+			string childRegionId,
+			float throatRadius,
+			float zeroPhaseAngle,
+			int spinDirection,
+			WormholeHandednessMode handedness,
+			float zoneMinZ,
+			float zoneMaxZ,
+			bool phaseLockedRemapEnabled,
+			bool throatDiagnosticsEnabled,
+			Vector3 mouthCenter,
+			Vector3 zeroMarkerPoint,
+			Vector3 spinArrowStart,
+			Vector3 spinArrowTip,
+			Vector3 boundarySamplePoint,
+			Vector3 destinationPreviewPoint,
+			float phaseAngleDegrees)
+		{
+			Valid = valid;
+			WormholeId = wormholeId ?? string.Empty;
+			LinkedWormholeId = linkedWormholeId ?? string.Empty;
+			ParentRegionId = parentRegionId ?? string.Empty;
+			ChildRegionId = childRegionId ?? string.Empty;
+			ThroatRadius = throatRadius;
+			ZeroPhaseAngle = zeroPhaseAngle;
+			SpinDirection = spinDirection;
+			Handedness = handedness;
+			ZoneMinZ = zoneMinZ;
+			ZoneMaxZ = zoneMaxZ;
+			PhaseLockedRemapEnabled = phaseLockedRemapEnabled;
+			ThroatDiagnosticsEnabled = throatDiagnosticsEnabled;
+			MouthCenter = mouthCenter;
+			ZeroMarkerPoint = zeroMarkerPoint;
+			SpinArrowStart = spinArrowStart;
+			SpinArrowTip = spinArrowTip;
+			BoundarySamplePoint = boundarySamplePoint;
+			DestinationPreviewPoint = destinationPreviewPoint;
+			PhaseAngleDegrees = phaseAngleDegrees;
+		}
+	}
+
 	[ExportGroup("Link")]
 	[Export] public NodePath LinkedPortalPath;
 	[Export] public string WormholeId = string.Empty;
@@ -17,6 +91,31 @@ public partial class WormholePortal : Node3D
 	[ExportGroup("World Layers")]
 	[Export(PropertyHint.Range, "1,20,1")] public int GeometryLayerNumber = 1;
 	[Export(PropertyHint.Range, "1,20,1")] public int PortalLayerNumber = 2;
+
+	[ExportGroup("Throat")]
+	[Export]
+	public float ThroatRadius
+	{
+		get => Radius;
+		set => Radius = Mathf.Max(0.05f, value);
+	}
+
+	[Export(PropertyHint.Range, "-180,180,0.1")]
+	public float ZeroPhaseAngle
+	{
+		get => ZeroPhaseAngleDegrees;
+		set => ZeroPhaseAngleDegrees = value;
+	}
+
+	[Export]
+	public WormholeHandednessMode Handedness
+	{
+		get => RightHanded ? WormholeHandednessMode.RightHanded : WormholeHandednessMode.LeftHanded;
+		set => RightHanded = value != WormholeHandednessMode.LeftHanded;
+	}
+
+	[Export] public bool EnablePhaseLockedRemap = true;
+	[Export] public bool EnableThroatDiagnostics = false;
 
 	[ExportGroup("Shell")]
 	[Export] public float Radius = 2.0f;
@@ -88,7 +187,7 @@ public partial class WormholePortal : Node3D
 
 	public float SignedRadiusDelta(Vector3 worldPoint)
 	{
-		return ToLocal(worldPoint).Length() - Radius;
+		return ToLocal(worldPoint).Length() - ThroatRadius;
 	}
 
 	public Transform3D MapTransformToLinked(Transform3D sourceTransform)
@@ -110,7 +209,7 @@ public partial class WormholePortal : Node3D
 			radial = -_linkedPortal.GlobalTransform.Basis.Z;
 		}
 
-		mapped.Origin = _linkedPortal.GlobalPosition + radial.Normalized() * (_linkedPortal.Radius + _linkedPortal.ExitOffset);
+		mapped.Origin = _linkedPortal.GlobalPosition + radial.Normalized() * (_linkedPortal.ThroatRadius + _linkedPortal.ExitOffset);
 		return mapped;
 	}
 
@@ -141,7 +240,14 @@ public partial class WormholePortal : Node3D
 
 		return new Transform3D(
 			basis,
-			_linkedPortal.GlobalPosition + forward * (_linkedPortal.Radius + _linkedPortal.ExitOffset));
+			_linkedPortal.GlobalPosition + forward * (_linkedPortal.ThroatRadius + _linkedPortal.ExitOffset));
+	}
+
+	public Transform3D BuildConfiguredExitTransform(Transform3D sourceTransform)
+	{
+		return EnablePhaseLockedRemap
+			? BuildPhaseLockedExitTransform(sourceTransform)
+			: BuildExitTransform(sourceTransform);
 	}
 
 	public Vector3 GetBoundarySampleWorldPoint(Vector3 worldPoint)
@@ -152,12 +258,12 @@ public partial class WormholePortal : Node3D
 			local = -GlobalTransform.Basis.Z;
 		}
 
-		return GlobalTransform * local.Normalized() * Radius;
+		return GlobalTransform * local.Normalized() * ThroatRadius;
 	}
 
 	public Vector3 GetZeroMarkerWorldPoint(float radiusScale = 1.0f)
 	{
-		float markerRadius = Mathf.Max(0.05f, Radius * radiusScale);
+		float markerRadius = Mathf.Max(0.05f, ThroatRadius * radiusScale);
 		Vector3 local = new Vector3(Mathf.Cos(GetZeroPhaseRadians()), 0f, Mathf.Sin(GetZeroPhaseRadians())) * markerRadius;
 		return GlobalTransform * local;
 	}
@@ -170,7 +276,7 @@ public partial class WormholePortal : Node3D
 			direction = -_linkedPortal.GlobalTransform.Basis.Z;
 		}
 
-		return _linkedPortal.GlobalPosition + direction.Normalized() * _linkedPortal.Radius;
+		return _linkedPortal.GlobalPosition + direction.Normalized() * _linkedPortal.ThroatRadius;
 	}
 
 	public Vector3 MapBoundaryDirectionToLinkedWorld(Vector3 sourceWorldPoint)
@@ -186,13 +292,9 @@ public partial class WormholePortal : Node3D
 		float sourceAzimuth = planarLength > 1e-5f ? Mathf.Atan2(local.Z, local.X) : 0.0f;
 		float relativePhase = WrapAngle(sourceAzimuth - GetZeroPhaseRadians());
 
-		int sourceHand = RightHanded ? 1 : -1;
-		int targetHand = _linkedPortal.RightHanded ? 1 : -1;
-		int targetSpin = Mathf.Clamp(_linkedPortal.SpinDirection, -1, 1);
-		if (targetSpin == 0)
-		{
-			targetSpin = 1;
-		}
+		int sourceHand = ResolveHandednessSign();
+		int targetHand = _linkedPortal.ResolveHandednessSign();
+		int targetSpin = _linkedPortal.ResolveSpinDirection();
 
 		float targetAzimuth = _linkedPortal.GetZeroPhaseRadians() + relativePhase * sourceHand * targetHand * targetSpin;
 		Vector3 destinationLocal = new Vector3(
@@ -235,6 +337,63 @@ public partial class WormholePortal : Node3D
 		return _linkedPortal;
 	}
 
+	public bool TryBuildThroatDebugSnapshot(Vector3 sourceWorldPoint, out ThroatDebugSnapshot snapshot)
+	{
+		Vector3 sample = GetBoundarySampleWorldPoint(sourceWorldPoint);
+		Vector3 mapped = MapBoundarySamplePointToLinkedWorld(sample);
+		float phaseAngle = ComputePhaseAngleDegrees(sample);
+		GetSpinArrowWorldPoints(out Vector3 spinArrowStart, out Vector3 spinArrowTip);
+
+		snapshot = new ThroatDebugSnapshot(
+			valid: _linkedPortal != null,
+			wormholeId: WormholeId,
+			linkedWormholeId: LinkedWormholeId,
+			parentRegionId: ParentRegionId,
+			childRegionId: ChildRegionId,
+			throatRadius: ThroatRadius,
+			zeroPhaseAngle: ZeroPhaseAngle,
+			spinDirection: ResolveSpinDirection(),
+			handedness: Handedness,
+			zoneMinZ: ZoneMinZ,
+			zoneMaxZ: ZoneMaxZ,
+			phaseLockedRemapEnabled: EnablePhaseLockedRemap,
+			throatDiagnosticsEnabled: EnableThroatDiagnostics,
+			mouthCenter: GlobalPosition,
+			zeroMarkerPoint: GetZeroMarkerWorldPoint(),
+			spinArrowStart: spinArrowStart,
+			spinArrowTip: spinArrowTip,
+			boundarySamplePoint: sample,
+			destinationPreviewPoint: mapped,
+			phaseAngleDegrees: phaseAngle);
+		return snapshot.Valid;
+	}
+
+	public void GetSpinArrowWorldPoints(out Vector3 startWorld, out Vector3 tipWorld)
+	{
+		int spin = ResolveSpinDirection();
+		float end = GetZeroPhaseRadians() + spin * 0.9f;
+		Vector3 arrowLocal = new Vector3(Mathf.Cos(end), 0f, Mathf.Sin(end)) * (ThroatRadius * 0.72f);
+		Vector3 tangentLocal = new Vector3(-Mathf.Sin(end), 0f, Mathf.Cos(end)) * spin;
+		startWorld = GlobalTransform * arrowLocal;
+		tipWorld = startWorld + GlobalTransform.Basis * tangentLocal.Normalized() * (ThroatRadius * 0.24f);
+	}
+
+	public int ResolveSpinDirection()
+	{
+		int spin = Mathf.Clamp(SpinDirection, -1, 1);
+		return spin == 0 ? 1 : spin;
+	}
+
+	public int ResolveHandednessSign()
+	{
+		return RightHanded ? 1 : -1;
+	}
+
+	public string ResolveHandednessLabel()
+	{
+		return RightHanded ? "RH" : "LH";
+	}
+
 	private Vector3 ResolveSampleLocalDirection(Vector3 sourceWorldPoint)
 	{
 		Vector3 local = ToLocal(sourceWorldPoint);
@@ -248,7 +407,7 @@ public partial class WormholePortal : Node3D
 
 	private float GetZeroPhaseRadians()
 	{
-		return Mathf.DegToRad(ZeroPhaseAngleDegrees);
+		return Mathf.DegToRad(ZeroPhaseAngle);
 	}
 
 	private static float WrapAngle(float radians)

@@ -1,0 +1,88 @@
+Fixture: fixture_005
+Timestamp: 2026-04-12T20-08-03
+Scene: res://test-overspace-hermetic-fixture.tscn
+Status: ok
+Runtime Seconds: 16.362369
+Traced Pixels: 150720
+Source Hits: 0
+Miss Hits: 170
+Capture Succeeded: true
+Launch Audit Status: ok
+Guard Progress Exits: 0
+Forced Advance Events: 0
+Render Health Step: 78
+Processed Rows: 270
+Total Rows Considered: 270
+Total Rows Processed: 270
+Total Rows Skipped: 0
+Processed Row Window: 0..269
+Zero-Hit Rows: 0
+Row Participation Summary: proc=0-269|skip=-|zero=-
+Row Coverage: PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
+Visual Mode: geometry_context
+Visual Shading Mode: NormalRGB
+Baseline Shading Mode: NormalRGB
+Analysis Capture Mode: transport_classification
+Analysis Capture Written: 1
+Debug Capture Written: 1
+Categorical Final Written: 0
+Transport Classification Written: 1
+Overlay Enabled For Analysis Capture: 0
+White Streak Likely Source: none_detected
+Rows Started: 270
+Rows Completed: 270
+Rows Partially Written: 0
+Rows Early Terminated: 0
+Final Hit Pixel Count: 150550
+Traversal Write Pixel Count: 0
+Rendered Bright Rows: 0
+RenderHealth Geom Segments Queried: 2574
+Bottom Region Likely Cause: not_detected
+Analysis Unrendered Rows: 226
+Analysis Band Matches Unrendered Rows: 0
+Radial Bin Count: None
+Radial Overall Hit Fraction: None
+Radial Overall Rendered Coverage: None
+Radial Profile Path: output/fixture_runs/fixture_005/2026-04-12T20-08-03/radial_profile.json
+Radial Sector Left Hit Fraction: None
+Radial Sector Right Hit Fraction: None
+Radial Sector Left Rendered Coverage: None
+Radial Sector Right Rendered Coverage: None
+Radial Sector Profile Path: output/fixture_runs/fixture_005/2026-04-12T20-08-03/radial_sector_profile.json
+Field Center Pixel: (None, None)
+Field World Origin: (None, None, None)
+Field Radial Overall Hit Fraction: None
+Field Radial Overall Rendered Coverage: None
+Field Radial Profile Path: output/fixture_runs/fixture_005/2026-04-12T20-08-03/field_radial_profile.json
+Field Sector Left Hit Fraction: None
+Field Sector Right Hit Fraction: None
+Field Sector Left Rendered Coverage: None
+Field Sector Right Rendered Coverage: None
+Field Radial Sector Profile Path: output/fixture_runs/fixture_005/2026-04-12T20-08-03/field_radial_sector_profile.json
+Nearest Attractor Count: None
+Nearest Attractor Partition Clean: None
+Nearest Attractor Clean Fraction: None
+Nearest Attractor Dominant Path: None
+Nearest Attractor Dominant Share: None
+Nearest Attractor Second Share: None
+Nearest Attractor Behavior: None
+Nearest Attractor Profile Path: output/fixture_runs/fixture_005/2026-04-12T20-08-03/nearest_attractor_profile.json
+Runtime Fingerprint: fixture005_runtime_fingerprint_v1_git_2ec5e769b92f_utc_20260413T010801Z_sha_8a649555d9e4f7c2
+Assembly Timestamp Present: true
+Requested Step Match: true
+Row Diagnostics Present: true
+Scheduler Clean: true
+Run Verified: true
+Turn Threshold: 2.4
+Output Path: output/fixture_runs/fixture_005/2026-04-12T20-08-03
+Classified Pixels: 129600
+Classified Coverage Ratio: 1
+Geom Hit Pixels: 75379
+Portal Hit Pixels: 32413
+Throat Event Pixels: 21808
+Background Hit Pixels: 0
+Escaped No-Hit Pixels: 0
+Budget Exhausted Pixels: 0
+Coverage Summary: geom=75379|portal=32413|throat=21808|background=0|escaped=0|budget=0|cov=1
+Hermetic Rule Satisfied: 1
+Coverage Mix: G:0.582 P:0.250 T:0.168

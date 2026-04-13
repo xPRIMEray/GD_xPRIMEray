@@ -196,7 +196,7 @@ public partial class OverspaceTrophyRoomDemo : Node3D
 			return;
 		}
 
-		_viewerCamera.GlobalTransform = sourcePortal.BuildPhaseLockedExitTransform(_viewerCamera.GlobalTransform);
+		_viewerCamera.GlobalTransform = sourcePortal.BuildConfiguredExitTransform(_viewerCamera.GlobalTransform);
 		_teleportCooldownRemaining = TeleportCooldownSeconds;
 		_activeAnchorId = link.TargetAnchorId;
 
@@ -248,12 +248,17 @@ public partial class OverspaceTrophyRoomDemo : Node3D
 			return;
 		}
 
+		WormholePortal activePortal = ResolveActivePortal();
+		string remapMode = activePortal != null && activePortal.EnablePhaseLockedRemap ? "Phase-locked throat remap" : "Direct linked-mouth remap";
+		string diagnosticsMode = activePortal != null && activePortal.EnableThroatDiagnostics ? "throat diagnostics on" : "throat diagnostics off";
+
 		_summaryLabel.Text =
 			"OVERSPACE TROPHY ROOM\n" +
 			$"Current world: {_currentWorldId}\n" +
 			$"Current layer: {_currentLayerId}\n" +
 			$"Active z-zone: {_currentZoneLabel}\n" +
 			"Live link: Earth z-zone enclosure\n" +
+			$"Traversal mode: {remapMode} ({diagnosticsMode})\n" +
 			"Controls: WASD move, E/Q rise-fall, Shift sprint, Esc release mouse\n" +
 			"Step into the orb to traverse, then re-enter the return orb to come back.";
 	}

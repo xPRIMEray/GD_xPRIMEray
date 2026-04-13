@@ -755,8 +755,58 @@ public partial class GrinFilmCamera : Node
 		}
 	}
 
+	public readonly struct FixtureTransportCoverageSnapshot
+	{
+		public readonly long TotalPixels;
+		public readonly long ClassifiedPixels;
+		public readonly double ClassifiedCoverageRatio;
+		public readonly long GeomHitPixels;
+		public readonly long PortalHitPixels;
+		public readonly long ThroatEventPixels;
+		public readonly long BackgroundHitPixels;
+		public readonly long EscapedNoHitPixels;
+		public readonly long BudgetExhaustedPixels;
+		public readonly long UnclassifiedPixels;
+		public readonly bool HermeticRuleSatisfied;
+		public readonly string Summary;
+
+		public FixtureTransportCoverageSnapshot(
+			long totalPixels,
+			long classifiedPixels,
+			double classifiedCoverageRatio,
+			long geomHitPixels,
+			long portalHitPixels,
+			long throatEventPixels,
+			long backgroundHitPixels,
+			long escapedNoHitPixels,
+			long budgetExhaustedPixels,
+			long unclassifiedPixels,
+			bool hermeticRuleSatisfied,
+			string summary)
+		{
+			TotalPixels = totalPixels;
+			ClassifiedPixels = classifiedPixels;
+			ClassifiedCoverageRatio = classifiedCoverageRatio;
+			GeomHitPixels = geomHitPixels;
+			PortalHitPixels = portalHitPixels;
+			ThroatEventPixels = throatEventPixels;
+			BackgroundHitPixels = backgroundHitPixels;
+			EscapedNoHitPixels = escapedNoHitPixels;
+			BudgetExhaustedPixels = budgetExhaustedPixels;
+			UnclassifiedPixels = unclassifiedPixels;
+			HermeticRuleSatisfied = hermeticRuleSatisfied;
+			Summary = summary ?? string.Empty;
+		}
+	}
+
 	private static readonly Color FixtureCategoricalFinalHitColor = new(1.0f, 0.82f, 0.18f, 1.0f);
 	private static readonly Color FixtureCategoricalRenderedNoHitColor = new(0.07f, 0.09f, 0.18f, 1.0f);
+	private static readonly Color FixtureTransportGeomHitColor = new(0.16f, 0.72f, 0.26f, 1.0f);
+	private static readonly Color FixtureTransportPortalHitColor = new(0.18f, 0.82f, 0.92f, 1.0f);
+	private static readonly Color FixtureTransportThroatEventColor = new(0.95f, 0.78f, 0.18f, 1.0f);
+	private static readonly Color FixtureTransportBackgroundHitColor = new(0.32f, 0.44f, 0.86f, 1.0f);
+	private static readonly Color FixtureTransportEscapedNoHitColor = new(0.55f, 0.17f, 0.17f, 1.0f);
+	private static readonly Color FixtureTransportBudgetExhaustedColor = new(0.95f, 0.18f, 0.18f, 1.0f);
 
 	[ExportGroup("Presets")]
 
@@ -1028,9 +1078,13 @@ public partial class GrinFilmCamera : Node
 	/// <summary>Group name used to classify source hits for fixture debug coloring.</summary>
 	// CONTROL FACTOR: Nodes in this group are treated as source hits.
 	[Export] public string FixtureDebugSourceGroup = "fixture_source";
+	/// <summary>Optional group name used to classify portal/frame hits in transport-classification fixtures.</summary>
+	[Export] public string FixtureDebugPortalGroup = "fixture_portal";
 	/// <summary>Optional group name used to classify fixture detector/background hits explicitly.</summary>
 	// CONTROL FACTOR: When populated, non-source hits outside this group are reported as unclassified.
 	[Export] public string FixtureDebugBackgroundGroup = "fixture_background";
+	/// <summary>Enables transport-classification outputs for hermetic fixture validation.</summary>
+	[Export] public bool FixtureTransportClassificationEnabled = false;
 	/// <summary>Color for fixture source hits when fixture debug coloring is enabled.</summary>
 	[Export] public Color FixtureDebugSourceHitColor = new Color(1f, 1f, 0.9f, 1f);
 	/// <summary>Color for fixture detector/background hits when fixture debug coloring is enabled.</summary>
@@ -1676,6 +1730,7 @@ public partial class GrinFilmCamera : Node
 	private SphereShape3D _overlapSphere;
 	private readonly System.Collections.Generic.List<Godot.Collections.Dictionary> _pass2OverlapCandidatesScratch = new System.Collections.Generic.List<Godot.Collections.Dictionary>(64);
 private readonly System.Collections.Generic.HashSet<ulong> _fixtureDebugSourceIds = new System.Collections.Generic.HashSet<ulong>();
+private readonly System.Collections.Generic.HashSet<ulong> _fixtureDebugPortalIds = new System.Collections.Generic.HashSet<ulong>();
 private readonly System.Collections.Generic.HashSet<ulong> _fixtureDebugBackgroundIds = new System.Collections.Generic.HashSet<ulong>();
 private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private readonly PerfStats _perfStats = new PerfStats(60);
@@ -2032,6 +2087,7 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private byte[] _fixtureRowsEarlyTerminated = Array.Empty<byte>();
 	private Image _fixtureFinalHitOnlyImg;
 	private Image _fixtureCategoricalFinalImg;
+	private Image _fixtureTransportClassificationImg;
 
 	// band hit ROI history
 	private float[] _bandHitRate = Array.Empty<float>();
@@ -2549,7 +2605,9 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 			public bool NeedColliderNames;
 		public bool FixtureDebugHitColoringEnabled;
 		public string FixtureDebugSourceGroup;
+		public string FixtureDebugPortalGroup;
 		public string FixtureDebugBackgroundGroup;
+		public bool FixtureTransportClassificationEnabled;
 		public Color FixtureDebugSourceHitColor;
 		public Color FixtureDebugBackgroundHitColor;
 		public Color FixtureDebugAbsorbedColor;
@@ -4743,6 +4801,89 @@ private sealed class OverlayRollingWindow
 			snapshot.TraversalWritePixelCount > 0;
 	}
 
+	public bool TryGetFixtureTransportCoverageForTesting(out FixtureTransportCoverageSnapshot snapshot)
+	{
+		snapshot = default;
+		if (!FixtureTransportClassificationEnabled ||
+			_fixtureTransportClassificationImg == null ||
+			_filmWidth <= 0 ||
+			_filmHeight <= 0)
+		{
+			return false;
+		}
+
+		long geomHitPixels = 0;
+		long portalHitPixels = 0;
+		long throatEventPixels = 0;
+		long backgroundHitPixels = 0;
+		long escapedNoHitPixels = 0;
+		long budgetExhaustedPixels = 0;
+		long unclassifiedPixels = 0;
+		long totalPixels = (long)_filmWidth * _filmHeight;
+
+		for (int y = 0; y < _filmHeight; y++)
+		{
+			for (int x = 0; x < _filmWidth; x++)
+			{
+				string transportKind = ResolveFixtureTransportKindFromPixel(
+					NormalizeFixtureTransportClassificationPixel(_fixtureTransportClassificationImg.GetPixel(x, y)));
+				switch (transportKind)
+				{
+					case "geom_hit":
+						geomHitPixels++;
+						break;
+					case "portal_hit":
+						portalHitPixels++;
+						break;
+					case "throat_event":
+						throatEventPixels++;
+						break;
+					case "background_hit":
+						backgroundHitPixels++;
+						break;
+					case "escaped_no_hit":
+						escapedNoHitPixels++;
+						break;
+					case "budget_exhausted":
+						budgetExhaustedPixels++;
+						break;
+					default:
+						unclassifiedPixels++;
+						break;
+				}
+			}
+		}
+
+		long classifiedPixels = totalPixels - unclassifiedPixels;
+		double classifiedCoverageRatio = totalPixels > 0
+			? (double)classifiedPixels / totalPixels
+			: 0.0;
+		bool hermeticRuleSatisfied =
+			classifiedPixels == totalPixels &&
+			escapedNoHitPixels == 0 &&
+			budgetExhaustedPixels == 0 &&
+			unclassifiedPixels == 0;
+		string summary =
+			$"geom={geomHitPixels}|portal={portalHitPixels}|throat={throatEventPixels}|" +
+			$"background={backgroundHitPixels}|escaped={escapedNoHitPixels}|budget={budgetExhaustedPixels}|" +
+			$"cov={classifiedCoverageRatio.ToString("0.###", CultureInfo.InvariantCulture)}";
+
+		snapshot = new FixtureTransportCoverageSnapshot(
+			totalPixels,
+			classifiedPixels,
+			classifiedCoverageRatio,
+			geomHitPixels,
+			portalHitPixels,
+			throatEventPixels,
+			backgroundHitPixels,
+			escapedNoHitPixels,
+			budgetExhaustedPixels,
+			unclassifiedPixels,
+			hermeticRuleSatisfied,
+			summary);
+		return totalPixels > 0;
+	}
+
 	public bool TryGetWormholePostRemapDiagnosticsForTesting(out WormholePostRemapDiagnosticsSnapshot snapshot)
 	{
 		snapshot = new WormholePostRemapDiagnosticsSnapshot(
@@ -5318,6 +5459,31 @@ private sealed class OverlayRollingWindow
 				{
 					pixel = FixtureCategoricalRenderedNoHitColor;
 				}
+				copy.SetPixel(x, y, pixel);
+			}
+		}
+
+		image = copy;
+		return true;
+	}
+
+	public bool TryCopyTransportClassificationFilmImageForTesting(out Image image)
+	{
+		image = null;
+		if (!FixtureTransportClassificationEnabled ||
+			_fixtureTransportClassificationImg == null ||
+			_filmWidth <= 0 ||
+			_filmHeight <= 0)
+		{
+			return false;
+		}
+
+		Image copy = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
+		for (int y = 0; y < _filmHeight; y++)
+		{
+			for (int x = 0; x < _filmWidth; x++)
+			{
+				Color pixel = NormalizeFixtureTransportClassificationPixel(_fixtureTransportClassificationImg.GetPixel(x, y));
 				copy.SetPixel(x, y, pixel);
 			}
 		}
@@ -6335,6 +6501,10 @@ private sealed class OverlayRollingWindow
 		if (_fixtureCategoricalFinalImg != null && _filmWidth > 0 && _filmHeight > 0)
 		{
 			_fixtureCategoricalFinalImg.Fill(Colors.Black);
+		}
+		if (_fixtureTransportClassificationImg != null && _filmWidth > 0 && _filmHeight > 0)
+		{
+			_fixtureTransportClassificationImg.Fill(Colors.Black);
 		}
 	}
 
@@ -8406,7 +8576,10 @@ private sealed class OverlayRollingWindow
 			// DECISION: throttle verbose field source logs to once per frame.
 			if (cfg.VerbosePerfLogs && (_rowCursor % filmH) == 0)
 				GD.Print($"fieldSnaps={fieldSnaps.Length} hasSources={hasSources}");
-			if (cfg.FixtureDebugHitColoringEnabled || cfg.FixtureDebugTraceEnabled || _renderHealthTestTrustEnforcementEnabled)
+			if (cfg.FixtureDebugHitColoringEnabled ||
+				cfg.FixtureDebugTraceEnabled ||
+				cfg.FixtureTransportClassificationEnabled ||
+				_renderHealthTestTrustEnforcementEnabled)
 				RefreshFixtureDebugSourceIds(cfg.FixtureDebugSourceGroup);
 
 
@@ -10827,6 +11000,20 @@ private sealed class OverlayRollingWindow
 							{
 								_wormholePostRemapMissPixelsThisRun++;
 							}
+							string transportKind = ClassifyFixtureTransportKind(
+								sample.HadHit,
+								sample.AbsorbedByInnerRadius,
+								sample.BestCid,
+								sample.PostRemapSegmentCount > 0,
+								sample.BestHitWasPostRemap);
+							FillPixelBlock(
+								_fixtureTransportClassificationImg,
+								sample.X,
+								sample.Y,
+								sample.Stride,
+								ResolveFixtureTransportClassColor(transportKind),
+								filmW,
+								filmH);
 							Color categoricalColor = sample.HadHit
 								? FixtureCategoricalFinalHitColor
 								: FixtureCategoricalRenderedNoHitColor;
@@ -10875,6 +11062,7 @@ private sealed class OverlayRollingWindow
 								Color finalWrittenColor = _img.GetPixel(sample.X, sample.Y);
 								GD.Print(
 									$"[FixtureDebugTrace] frame={_frameIndex} row={sample.Y} x={sample.X} kind={shaded.FixtureHitKind} hadHit={(sample.HadHit ? 1 : 0)} " +
+									$"transport={transportKind} " +
 									$"cid={sample.BestCid} debugChosen={FormatColorCompact(shaded.FixtureChosenDebugColor)} " +
 									$"finalWritten={FormatColorCompact(finalWrittenColor)} auth={(cfg.FixtureDebugColorAuthorityEnabled ? 1 : 0)} " +
 									$"chosen={(shaded.FixtureDebugColorChosen ? 1 : 0)}");
@@ -13221,6 +13409,20 @@ private sealed class OverlayRollingWindow
 						{
 							_wormholePostRemapMissPixelsThisRun++;
 						}
+						string transportKind = ClassifyFixtureTransportKind(
+							hadHit,
+							absorbedByInnerRadius,
+							bestCid,
+							postRemapSegmentCountThisPixel > 0,
+							bestHitWasPostRemap);
+						FillPixelBlock(
+							_fixtureTransportClassificationImg,
+							x,
+							y,
+							stride,
+							ResolveFixtureTransportClassColor(transportKind),
+							filmW,
+							filmH);
 						Color categoricalColor = hadHit
 							? FixtureCategoricalFinalHitColor
 							: FixtureCategoricalRenderedNoHitColor;
@@ -13269,6 +13471,7 @@ private sealed class OverlayRollingWindow
 							Color finalWrittenColor = _img.GetPixel(x, y);
 							GD.Print(
 								$"[FixtureDebugTrace] frame={_frameIndex} row={y} x={x} kind={fixtureHitKind} hadHit={(hadHit ? 1 : 0)} " +
+								$"transport={transportKind} " +
 								$"cid={bestCid} debugChosen={FormatColorCompact(fixtureChosenDebugColor)} " +
 								$"finalWritten={FormatColorCompact(finalWrittenColor)} auth={(cfg.FixtureDebugColorAuthorityEnabled ? 1 : 0)} " +
 								$"chosen={(fixtureDebugColorChosen ? 1 : 0)}");
@@ -14250,6 +14453,7 @@ private sealed class OverlayRollingWindow
 	private void RefreshFixtureDebugSourceIds(string sourceGroup)
 	{
 		_fixtureDebugSourceIds.Clear();
+		_fixtureDebugPortalIds.Clear();
 		_fixtureDebugBackgroundIds.Clear();
 		_fixtureDebugHasExplicitBackgroundGroup = false;
 		SceneTree tree = GetTree();
@@ -14265,6 +14469,21 @@ private sealed class OverlayRollingWindow
 			if (node is Node sourceNode)
 			{
 				_fixtureDebugSourceIds.Add(sourceNode.GetInstanceId());
+			}
+		}
+
+		string portalGroup = string.IsNullOrWhiteSpace(FixtureDebugPortalGroup)
+			? string.Empty
+			: FixtureDebugPortalGroup.Trim();
+		if (portalGroup.Length > 0)
+		{
+			var portalNodes = tree.GetNodesInGroup(portalGroup);
+			foreach (var node in portalNodes)
+			{
+				if (node is Node portalNode)
+				{
+					_fixtureDebugPortalIds.Add(portalNode.GetInstanceId());
+				}
 			}
 		}
 
@@ -14306,6 +14525,105 @@ private sealed class OverlayRollingWindow
 		}
 
 		return "background";
+	}
+
+	private string ClassifyFixtureTransportKind(
+		bool hadHit,
+		bool absorbedByInnerRadius,
+		ulong colliderId,
+		bool hadThroatEvent,
+		bool bestHitWasPostRemap)
+	{
+		if (hadHit)
+		{
+			if (_fixtureDebugPortalIds.Contains(colliderId))
+			{
+				return "portal_hit";
+			}
+
+			if (bestHitWasPostRemap || hadThroatEvent)
+			{
+				return "throat_event";
+			}
+
+			if (_fixtureDebugHasExplicitBackgroundGroup && _fixtureDebugBackgroundIds.Contains(colliderId))
+			{
+				return "background_hit";
+			}
+
+			return "geom_hit";
+		}
+
+		if (hadThroatEvent || absorbedByInnerRadius)
+		{
+			return "throat_event";
+		}
+
+		return "escaped_no_hit";
+	}
+
+	private static Color ResolveFixtureTransportClassColor(string kind)
+	{
+		return kind switch
+		{
+			"geom_hit" => FixtureTransportGeomHitColor,
+			"portal_hit" => FixtureTransportPortalHitColor,
+			"throat_event" => FixtureTransportThroatEventColor,
+			"background_hit" => FixtureTransportBackgroundHitColor,
+			"escaped_no_hit" => FixtureTransportEscapedNoHitColor,
+			"budget_exhausted" => FixtureTransportBudgetExhaustedColor,
+			_ => Colors.Black
+		};
+	}
+
+	private static Color NormalizeFixtureTransportClassificationPixel(Color pixel)
+	{
+		return IsCategoricalVoidPixel(pixel)
+			? FixtureTransportBudgetExhaustedColor
+			: pixel;
+	}
+
+	private static string ResolveFixtureTransportKindFromPixel(Color pixel)
+	{
+		if (ColorsClose(pixel, FixtureTransportGeomHitColor))
+		{
+			return "geom_hit";
+		}
+
+		if (ColorsClose(pixel, FixtureTransportPortalHitColor))
+		{
+			return "portal_hit";
+		}
+
+		if (ColorsClose(pixel, FixtureTransportThroatEventColor))
+		{
+			return "throat_event";
+		}
+
+		if (ColorsClose(pixel, FixtureTransportBackgroundHitColor))
+		{
+			return "background_hit";
+		}
+
+		if (ColorsClose(pixel, FixtureTransportEscapedNoHitColor))
+		{
+			return "escaped_no_hit";
+		}
+
+		if (ColorsClose(pixel, FixtureTransportBudgetExhaustedColor))
+		{
+			return "budget_exhausted";
+		}
+
+		return string.Empty;
+	}
+
+	private static bool ColorsClose(Color a, Color b, float epsilon = 0.01f)
+	{
+		return Mathf.Abs(a.R - b.R) <= epsilon &&
+			Mathf.Abs(a.G - b.G) <= epsilon &&
+			Mathf.Abs(a.B - b.B) <= epsilon &&
+			Mathf.Abs(a.A - b.A) <= epsilon;
 	}
 
 	private static string FormatTileClassShare(long hits, long totalHits)
@@ -14848,6 +15166,11 @@ private sealed class OverlayRollingWindow
 					_fixtureCategoricalFinalImg = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
 					_fixtureCategoricalFinalImg.Fill(Colors.Black);
 				}
+				if (_fixtureTransportClassificationImg == null)
+				{
+					_fixtureTransportClassificationImg = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
+					_fixtureTransportClassificationImg.Fill(Colors.Black);
+				}
 				return false;
 			}
 
@@ -14862,6 +15185,8 @@ private sealed class OverlayRollingWindow
 		_fixtureFinalHitOnlyImg.Fill(Colors.Black);
 		_fixtureCategoricalFinalImg = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
 		_fixtureCategoricalFinalImg.Fill(Colors.Black);
+		_fixtureTransportClassificationImg = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
+		_fixtureTransportClassificationImg.Fill(Colors.Black);
 		_tex = ImageTexture.CreateFromImage(_img);
 		_pass2PrevHadHit = new byte[_filmWidth * _filmHeight];
 		_pass2HadHitLostThisFrame = new byte[_filmWidth * _filmHeight];
@@ -15525,10 +15850,12 @@ private sealed class OverlayRollingWindow
 				UseThreadedPass2LocalAccumulation = UseThreadedPass2LocalAccumulation,
 				ThreadedPass2WorkerCount = Math.Clamp(ThreadedPass2WorkerCount, 1, 16),
 				ThreadedPass2RowsPerChunk = Math.Max(1, ThreadedPass2RowsPerChunk),
-				NeedColliderNames = NeedColliderNames,
+			NeedColliderNames = NeedColliderNames,
 			FixtureDebugHitColoringEnabled = FixtureDebugHitColoringEnabled,
 			FixtureDebugSourceGroup = string.IsNullOrWhiteSpace(FixtureDebugSourceGroup) ? "fixture_source" : FixtureDebugSourceGroup.Trim(),
+			FixtureDebugPortalGroup = string.IsNullOrWhiteSpace(FixtureDebugPortalGroup) ? "fixture_portal" : FixtureDebugPortalGroup.Trim(),
 			FixtureDebugBackgroundGroup = string.IsNullOrWhiteSpace(FixtureDebugBackgroundGroup) ? "fixture_background" : FixtureDebugBackgroundGroup.Trim(),
+			FixtureTransportClassificationEnabled = FixtureTransportClassificationEnabled,
 			FixtureDebugSourceHitColor = FixtureDebugSourceHitColor,
 			FixtureDebugBackgroundHitColor = FixtureDebugBackgroundHitColor,
 			FixtureDebugAbsorbedColor = FixtureDebugAbsorbedColor,
@@ -15834,7 +16161,9 @@ private sealed class OverlayRollingWindow
 		hash.Add(cfg.NeedColliderNames);
 		hash.Add(cfg.FixtureDebugHitColoringEnabled);
 		hash.Add(cfg.FixtureDebugSourceGroup ?? string.Empty);
+		hash.Add(cfg.FixtureDebugPortalGroup ?? string.Empty);
 		hash.Add(cfg.FixtureDebugBackgroundGroup ?? string.Empty);
+		hash.Add(cfg.FixtureTransportClassificationEnabled);
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugSourceHitColor.R));
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugSourceHitColor.G));
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.FixtureDebugSourceHitColor.B));

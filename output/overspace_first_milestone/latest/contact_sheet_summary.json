@@ -1,0 +1,77 @@
+{
+  "runDate": "latest",
+  "cases": [
+    {
+      "caseId": "01_path_start",
+      "status": "ok",
+      "title": "Path start",
+      "description": "Initial camera pose before the auto-path begins moving toward the gallery orb.",
+      "communicates": "Baseline framing for path-tuning. This is the exact starting pose that the auto-path logic inherits.",
+      "screenshotPath": "/home/bb/code/godot_xPRIMEray/output/overspace_first_milestone/latest/images/01_path_start.png",
+      "logPath": "/home/bb/code/godot_xPRIMEray/output/overspace_first_milestone/latest/logs/01_path_start.log",
+      "contactSheetLabel": "01_path_start\nPath start",
+      "exitCode": 0,
+      "progress": 0.0
+    },
+    {
+      "caseId": "02_path_20",
+      "status": "ok",
+      "title": "20% path progress",
+      "description": "Auto-path sample at the first evenly spaced progress stop toward the gallery orb.",
+      "communicates": "Early approach framing. This helps tune acceleration, centering, and early overlay legibility.",
+      "screenshotPath": "/home/bb/code/godot_xPRIMEray/output/overspace_first_milestone/latest/images/02_path_20.png",
+      "logPath": "/home/bb/code/godot_xPRIMEray/output/overspace_first_milestone/latest/logs/02_path_20.log",
+      "contactSheetLabel": "02_path_20\n20% path progress",
+      "exitCode": 0,
+      "progress": 0.2
+    },
+    {
+      "caseId": "03_path_40",
+      "status": "ok",
+      "title": "40% path progress",
+      "description": "Auto-path sample at forty percent of the planned approach distance.",
+      "communicates": "Mid-path stability check. This reveals whether the orb alignment converges cleanly before the close approach.",
+      "screenshotPath": "/home/bb/code/godot_xPRIMEray/output/overspace_first_milestone/latest/images/03_path_40.png",
+      "logPath": "/home/bb/code/godot_xPRIMEray/output/overspace_first_milestone/latest/logs/03_path_40.log",
+      "contactSheetLabel": "03_path_40\n40% path progress",
+      "exitCode": 0,
+      "progress": 0.4
+    },
+    {
+      "caseId": "04_path_60",
+      "status": "ok",
+      "title": "60% path progress",
+      "description": "Auto-path sample at sixty percent of the planned approach distance.",
+      "communicates": "Late-mid path check. This is where motion and portal framing should begin to feel intentional rather than exploratory.",
+      "screenshotPath": "/home/bb/code/godot_xPRIMEray/output/overspace_first_milestone/latest/images/04_path_60.png",
+      "logPath": "/home/bb/code/godot_xPRIMEray/output/overspace_first_milestone/latest/logs/04_path_60.log",
+      "contactSheetLabel": "04_path_60\n60% path progress",
+      "exitCode": 0,
+      "progress": 0.6
+    },
+    {
+      "caseId": "05_path_80",
+      "status": "ok",
+      "title": "80% path progress",
+      "description": "Auto-path sample near the close approach to the gallery orb.",
+      "communicates": "Pre-entry composition check. This shows whether the path gets us near the orb without losing diagnostic clarity.",
+      "screenshotPath": "/home/bb/code/godot_xPRIMEray/output/overspace_first_milestone/latest/images/05_path_80.png",
+      "logPath": "/home/bb/code/godot_xPRIMEray/output/overspace_first_milestone/latest/logs/05_path_80.log",
+      "contactSheetLabel": "05_path_80\n80% path progress",
+      "exitCode": 0,
+      "progress": 0.8
+    },
+    {
+      "caseId": "06_path_100",
+      "status": "ok",
+      "title": "100% path progress",
+      "description": "Final pre-entry approach sample at the end of the planned auto-path.",
+      "communicates": "Terminal path framing. This is the best pre-traversal frame for deciding whether speed, offset, and aim need adjustment.",
+      "screenshotPath": "/home/bb/code/godot_xPRIMEray/output/overspace_first_milestone/latest/images/06_path_100.png",
+      "logPath": "/home/bb/code/godot_xPRIMEray/output/overspace_first_milestone/latest/logs/06_path_100.log",
+      "contactSheetLabel": "06_path_100\n100% path progress",
+      "exitCode": 0,
+      "progress": 1.0
+    }
+  ]
+}

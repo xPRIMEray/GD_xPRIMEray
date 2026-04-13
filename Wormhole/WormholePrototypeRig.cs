@@ -567,7 +567,7 @@ public partial class WormholePrototypeRig : Node3D
 			return;
 		}
 
-		_traveler.GlobalTransform = sourcePortal.BuildExitTransform(_traveler.GlobalTransform);
+		_traveler.GlobalTransform = sourcePortal.BuildConfiguredExitTransform(_traveler.GlobalTransform);
 		_activePortal = destinationPortal;
 		_teleportCount++;
 		GD.Print($"[WormholeValidation] teleport_count={_teleportCount} active_portal={_activePortal.Name}");

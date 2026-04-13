@@ -56,6 +56,7 @@ def parse_log(text: str) -> dict:
     parsed = {
         "capture": None,
         "captureArtifacts": None,
+        "coverage": None,
         "overlayDiag": None,
         "whiteStreakDiag": None,
         "writeDiag": None,
@@ -65,6 +66,7 @@ def parse_log(text: str) -> dict:
         "runtimeBuild": None,
         "launchAudit": None,
         "renderer": None,
+        "sharedSnap": None,
         "captureFailure": None,
         "guardProgress": len(GUARD_PROGRESS_RE.findall(text)),
         "forcedAdvance": len(FORCED_ADVANCE_RE.findall(text)),
@@ -77,6 +79,10 @@ def parse_log(text: str) -> dict:
         capture_artifacts = parse_kv(line, "[GrinBasicVisual][CaptureArtifacts]")
         if capture_artifacts:
             parsed["captureArtifacts"] = capture_artifacts
+
+        coverage = parse_kv(line, "[GrinBasicVisual][Coverage]")
+        if coverage:
+            parsed["coverage"] = coverage
 
         overlay_diag = parse_kv(line, "[GrinBasicVisual][OverlayDiag]")
         if overlay_diag:
@@ -101,6 +107,10 @@ def parse_log(text: str) -> dict:
         renderer = parse_kv(line, "[GrinBasicVisual][Renderer]")
         if renderer:
             parsed["renderer"] = renderer
+
+        shared_snap = parse_kv(line, "[SharedSnap]")
+        if shared_snap:
+            parsed["sharedSnap"] = shared_snap
 
         rows = parse_kv(line, "[GrinBasicVisual][Rows]")
         if rows:
@@ -168,6 +178,7 @@ def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
     capture = parsed.get("capture") or {}
     rows = parsed.get("rows") or {}
     capture_artifacts = parsed.get("captureArtifacts") or {}
+    coverage = parsed.get("coverage") or {}
     overlay_diag = parsed.get("overlayDiag") or {}
     white_streak_diag = parsed.get("whiteStreakDiag") or {}
     write_diag = parsed.get("writeDiag") or {}
@@ -176,6 +187,7 @@ def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
     runtime_build = parsed.get("runtimeBuild") or {}
     launch = parsed.get("launchAudit") or {}
     renderer = parsed.get("renderer") or {}
+    shared_snap = parsed.get("sharedSnap") or {}
     image = detect_image_size(args.capture_path)
     effective_turn_threshold = renderer.get("turnThreshold")
     if effective_turn_threshold is None:
@@ -183,6 +195,10 @@ def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
     effective_error_tolerance = renderer.get("errorTolerance")
     if effective_error_tolerance is None:
         effective_error_tolerance = args.requested_error_tolerance
+    effective_steps_per_ray = first_non_empty(renderer.get("stepsPerRay"), shared_snap.get("steps"))
+    effective_step_length = first_non_empty(renderer.get("stepLength"), shared_snap.get("stepLen"))
+    effective_min_step_length = first_non_empty(renderer.get("minStepLength"), shared_snap.get("minStep"))
+    effective_max_step_length = first_non_empty(renderer.get("maxStepLength"), shared_snap.get("maxStep"))
     traced_pixels = capture.get("tracedPixels")
     source_hits = capture.get("sourceHits")
     miss_hits = capture.get("missHits")
@@ -255,10 +271,10 @@ def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
         "runtime_module_version_id": runtime_build.get("moduleVersionId"),
         "guard_progress": parsed.get("guardProgress"),
         "forced_advance": parsed.get("forcedAdvance"),
-        "effective_steps_per_ray": renderer.get("stepsPerRay"),
-        "effective_step_length": renderer.get("stepLength"),
-        "effective_min_step_length": renderer.get("minStepLength"),
-        "effective_max_step_length": renderer.get("maxStepLength"),
+        "effective_steps_per_ray": effective_steps_per_ray,
+        "effective_step_length": effective_step_length,
+        "effective_min_step_length": effective_min_step_length,
+        "effective_max_step_length": effective_max_step_length,
         "effective_turn_threshold": effective_turn_threshold,
         "effective_error_tolerance": effective_error_tolerance,
         "image_width": image.get("width"),
@@ -275,11 +291,13 @@ def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
         "debug_capture_path": capture_artifacts.get("debugPath"),
         "analysis_capture_mode": first_non_empty(
             write_diag.get("analysisCaptureMode"),
+            coverage.get("analysisCaptureMode"),
             capture_artifacts.get("analysisCaptureMode"),
         ),
         "analysis_capture_written": capture_artifacts.get("analysisCaptureWritten"),
         "debug_capture_written": capture_artifacts.get("debugCaptureWritten"),
         "categorical_final_written": capture_artifacts.get("categoricalFinalWritten"),
+        "transport_classification_written": capture_artifacts.get("transportClassificationWritten"),
         "overlay_enabled_for_analysis_capture": capture_artifacts.get("overlayEnabledForAnalysisCapture"),
         "analysis_capture_width": capture_artifacts.get("analysisWidth"),
         "analysis_capture_height": capture_artifacts.get("analysisHeight"),
@@ -336,6 +354,18 @@ def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
         "rows_early_terminated": write_diag.get("rowsEarlyTerminated"),
         "final_hit_pixel_count": write_diag.get("finalHitPixelCount"),
         "traversal_write_pixel_count": write_diag.get("traversalWritePixelCount"),
+        "total_pixels": coverage.get("totalPixels"),
+        "classified_pixels": coverage.get("classifiedPixels"),
+        "classified_coverage_ratio": coverage.get("classifiedCoverageRatio"),
+        "geom_hit_pixels": coverage.get("geomHitPixels"),
+        "portal_hit_pixels": coverage.get("portalHitPixels"),
+        "throat_event_pixels": coverage.get("throatEventPixels"),
+        "coverage_background_hit_pixels": coverage.get("backgroundHitPixels"),
+        "escaped_no_hit_pixels": coverage.get("escapedNoHitPixels"),
+        "budget_exhausted_pixels": coverage.get("budgetExhaustedPixels"),
+        "unclassified_pixels": coverage.get("unclassifiedPixels"),
+        "hermetic_rule_satisfied": coverage.get("hermeticRuleSatisfied"),
+        "coverage_summary": coverage.get("summary"),
         "white_streak_likely_source": white_streak_diag.get("likelySource"),
         "analysis_bottom_band_present": bottom_region_diag.get("analysisBottomBandPresent"),
         "analysis_bottom_band_start": bottom_region_diag.get("analysisBandStart"),
@@ -505,6 +535,61 @@ def build_row_coverage_artifact(metrics: dict) -> dict:
         "zero_hit_rows": metrics.get("zero_hit_rows"),
         "coverage_visual": "".join(chars),
         "coverage_legend": "P=processed_with_hits Z=processed_zero_hits S=skipped .=unseen",
+    }
+
+
+def build_transport_coverage_artifact(metrics: dict) -> dict:
+    total_pixels = parse_int_token(metrics.get("total_pixels"))
+    classified_pixels = parse_int_token(metrics.get("classified_pixels"))
+    coverage_ratio = metrics.get("classified_coverage_ratio")
+    if isinstance(coverage_ratio, str):
+        coverage_ratio = scalar(coverage_ratio)
+
+    geom_hit_pixels = parse_int_token(metrics.get("geom_hit_pixels")) or 0
+    portal_hit_pixels = parse_int_token(metrics.get("portal_hit_pixels")) or 0
+    throat_event_pixels = parse_int_token(metrics.get("throat_event_pixels")) or 0
+    background_hit_pixels = parse_int_token(metrics.get("coverage_background_hit_pixels")) or 0
+    escaped_no_hit_pixels = parse_int_token(metrics.get("escaped_no_hit_pixels")) or 0
+    budget_exhausted_pixels = parse_int_token(metrics.get("budget_exhausted_pixels")) or 0
+    unclassified_pixels = parse_int_token(metrics.get("unclassified_pixels")) or 0
+
+    coverage_visual = ""
+    if total_pixels is not None and total_pixels > 0:
+        shares = []
+        for label, count in (
+            ("G", geom_hit_pixels),
+            ("P", portal_hit_pixels),
+            ("T", throat_event_pixels),
+            ("B", background_hit_pixels),
+            ("E", escaped_no_hit_pixels),
+            ("X", budget_exhausted_pixels),
+            ("U", unclassified_pixels),
+        ):
+            if count <= 0:
+                continue
+            share = count / total_pixels
+            shares.append(f"{label}:{share:.3f}")
+        coverage_visual = " ".join(shares)
+
+    hermetic_rule_satisfied = metrics.get("hermetic_rule_satisfied")
+    if isinstance(hermetic_rule_satisfied, (int, float)):
+        hermetic_rule_satisfied = bool(hermetic_rule_satisfied)
+
+    return {
+        "total_pixels": metrics.get("total_pixels"),
+        "classified_pixels": metrics.get("classified_pixels"),
+        "classified_coverage_ratio": metrics.get("classified_coverage_ratio"),
+        "geom_hit_pixels": metrics.get("geom_hit_pixels"),
+        "portal_hit_pixels": metrics.get("portal_hit_pixels"),
+        "throat_event_pixels": metrics.get("throat_event_pixels"),
+        "background_hit_pixels": metrics.get("coverage_background_hit_pixels"),
+        "escaped_no_hit_pixels": metrics.get("escaped_no_hit_pixels"),
+        "budget_exhausted_pixels": metrics.get("budget_exhausted_pixels"),
+        "unclassified_pixels": metrics.get("unclassified_pixels"),
+        "hermetic_rule_satisfied": hermetic_rule_satisfied,
+        "coverage_summary": metrics.get("coverage_summary"),
+        "coverage_visual": coverage_visual,
+        "coverage_legend": "G=geom_hit P=portal_hit T=throat_event B=background_hit E=escaped_no_hit X=budget_exhausted U=unclassified",
     }
 
 
@@ -1783,6 +1868,7 @@ def build_nearest_attractor_profile_text(profile: dict) -> str:
 def build_summary(metrics: dict, args: argparse.Namespace) -> str:
     verification = metrics.get("verification") or {}
     row_coverage = metrics.get("row_coverage") or {}
+    transport_coverage = metrics.get("transport_coverage") or {}
     radial_profile = metrics.get("radial_profile") or {}
     radial_sector_profile = metrics.get("radial_sector_profile") or {}
     field_radial_profile = metrics.get("field_radial_profile") or {}
@@ -1827,6 +1913,7 @@ def build_summary(metrics: dict, args: argparse.Namespace) -> str:
         f"Analysis Capture Written: {metrics.get('analysis_capture_written')}",
         f"Debug Capture Written: {metrics.get('debug_capture_written')}",
         f"Categorical Final Written: {metrics.get('categorical_final_written')}",
+        f"Transport Classification Written: {metrics.get('transport_classification_written')}",
         f"Overlay Enabled For Analysis Capture: {metrics.get('overlay_enabled_for_analysis_capture')}",
         f"White Streak Likely Source: {metrics.get('white_streak_likely_source')}",
         f"Rows Started: {metrics.get('rows_started')}",
@@ -1876,6 +1963,22 @@ def build_summary(metrics: dict, args: argparse.Namespace) -> str:
         f"Turn Threshold: {metrics['effective_turn_threshold']}",
         f"Output Path: {args.run_dir}",
     ]
+    if metrics.get("classified_pixels") is not None:
+        lines.extend(
+            [
+                f"Classified Pixels: {metrics.get('classified_pixels')}",
+                f"Classified Coverage Ratio: {metrics.get('classified_coverage_ratio')}",
+                f"Geom Hit Pixels: {metrics.get('geom_hit_pixels')}",
+                f"Portal Hit Pixels: {metrics.get('portal_hit_pixels')}",
+                f"Throat Event Pixels: {metrics.get('throat_event_pixels')}",
+                f"Background Hit Pixels: {metrics.get('coverage_background_hit_pixels')}",
+                f"Escaped No-Hit Pixels: {metrics.get('escaped_no_hit_pixels')}",
+                f"Budget Exhausted Pixels: {metrics.get('budget_exhausted_pixels')}",
+                f"Coverage Summary: {metrics.get('coverage_summary')}",
+                f"Hermetic Rule Satisfied: {metrics.get('hermetic_rule_satisfied')}",
+                f"Coverage Mix: {transport_coverage.get('coverage_visual', '')}",
+            ]
+        )
     if metrics.get("failure_reason"):
         lines.append(f"Failure Reason: {metrics['failure_reason']}")
     return "\n".join(lines) + "\n"
@@ -1917,6 +2020,7 @@ def run_report(args: argparse.Namespace) -> int:
     metrics = build_metrics(args, parsed)
     metrics["verification"] = build_verification(metrics, params)
     metrics["row_coverage"] = build_row_coverage_artifact(metrics)
+    metrics["transport_coverage"] = build_transport_coverage_artifact(metrics)
     radial_profile, radial_sector_profile = build_spatial_profiles(args, metrics)
     field_radial_profile, field_radial_sector_profile = build_field_spatial_profiles(args, metrics)
     radial_profile_path = args.run_dir / "radial_profile.json"
@@ -1984,6 +2088,7 @@ def run_report(args: argparse.Namespace) -> int:
         "metrics": metrics,
         "capture": parsed.get("capture") or {},
         "captureArtifacts": parsed.get("captureArtifacts") or {},
+        "coverage": parsed.get("coverage") or {},
         "overlayDiag": parsed.get("overlayDiag") or {},
         "whiteStreakDiag": parsed.get("whiteStreakDiag") or {},
         "writeDiag": parsed.get("writeDiag") or {},
@@ -2023,6 +2128,28 @@ def run_report(args: argparse.Namespace) -> int:
     )
     (args.run_dir / "row_coverage.json").write_text(json.dumps(row_coverage, indent=2) + "\n", encoding="utf-8")
     (args.run_dir / "row_coverage.txt").write_text(row_coverage_text, encoding="utf-8")
+    transport_coverage = metrics.get("transport_coverage") or {}
+    transport_coverage_text = "\n".join(
+        [
+            f"Total Pixels: {transport_coverage.get('total_pixels')}",
+            f"Classified Pixels: {transport_coverage.get('classified_pixels')}",
+            f"Classified Coverage Ratio: {transport_coverage.get('classified_coverage_ratio')}",
+            f"Geom Hit Pixels: {transport_coverage.get('geom_hit_pixels')}",
+            f"Portal Hit Pixels: {transport_coverage.get('portal_hit_pixels')}",
+            f"Throat Event Pixels: {transport_coverage.get('throat_event_pixels')}",
+            f"Background Hit Pixels: {transport_coverage.get('background_hit_pixels')}",
+            f"Escaped No-Hit Pixels: {transport_coverage.get('escaped_no_hit_pixels')}",
+            f"Budget Exhausted Pixels: {transport_coverage.get('budget_exhausted_pixels')}",
+            f"Unclassified Pixels: {transport_coverage.get('unclassified_pixels')}",
+            f"Hermetic Rule Satisfied: {transport_coverage.get('hermetic_rule_satisfied')}",
+            f"Coverage Summary: {transport_coverage.get('coverage_summary')}",
+            f"Coverage Mix: {transport_coverage.get('coverage_visual')}",
+            f"Legend: {transport_coverage.get('coverage_legend')}",
+            "",
+        ]
+    )
+    (args.run_dir / "coverage.json").write_text(json.dumps(transport_coverage, indent=2) + "\n", encoding="utf-8")
+    (args.run_dir / "coverage.txt").write_text(transport_coverage_text, encoding="utf-8")
     return 0
 
 

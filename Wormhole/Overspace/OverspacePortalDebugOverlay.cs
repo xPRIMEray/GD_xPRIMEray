@@ -48,66 +48,57 @@ public partial class OverspacePortalDebugOverlay : Control
 			return;
 		}
 
-		Vector3 sample = _sourcePortal.GetBoundarySampleWorldPoint(_viewerCamera.GlobalPosition);
-		Vector3 mapped = _sourcePortal.MapBoundarySamplePointToLinkedWorld(sample);
-		float phase = _sourcePortal.ComputePhaseAngleDegrees(sample);
+		if (!_sourcePortal.TryBuildThroatDebugSnapshot(_viewerCamera.GlobalPosition, out WormholePortal.ThroatDebugSnapshot sourceSnapshot))
+		{
+			return;
+		}
+
+		if (!_sourcePortal.EnableThroatDiagnostics && !_targetPortal.EnableThroatDiagnostics)
+		{
+			return;
+		}
+
+		_targetPortal.TryBuildThroatDebugSnapshot(sourceSnapshot.DestinationPreviewPoint, out WormholePortal.ThroatDebugSnapshot targetSnapshot);
 
 		DrawPortalAxes(_sourcePortal, "SRC");
-		DrawZeroPhaseMarker(_sourcePortal, new Color(1f, 0.92f, 0.36f, 0.95f));
-		DrawSpinArrow(_sourcePortal, new Color(1f, 0.72f, 0.22f, 0.95f));
-		DrawRadialVector(_sourcePortal.GlobalPosition, sample, new Color(0.28f, 0.95f, 0.82f, 0.95f), "sample");
-		DrawRadialVector(_targetPortal.GlobalPosition, mapped, new Color(0.48f, 0.86f, 1f, 0.95f), "mapped");
-		DrawDestinationCompass(mapped - _targetPortal.GlobalPosition, phase);
-		DrawHud(phase);
+		DrawPortalAxes(_targetPortal, "DST");
+		DrawZeroPhaseMarker(sourceSnapshot, new Color(1f, 0.92f, 0.36f, 0.95f), "src zero");
+		DrawZeroPhaseMarker(targetSnapshot, new Color(0.68f, 0.88f, 1f, 0.92f), "dst zero");
+		DrawSpinArrow(sourceSnapshot, new Color(1f, 0.72f, 0.22f, 0.95f), "src spin");
+		DrawSpinArrow(targetSnapshot, new Color(0.52f, 0.84f, 1f, 0.92f), "dst spin");
+		DrawRadialVector(sourceSnapshot.MouthCenter, sourceSnapshot.BoundarySamplePoint, new Color(0.28f, 0.95f, 0.82f, 0.95f), "sample");
+		DrawRadialVector(_targetPortal.GlobalPosition, sourceSnapshot.DestinationPreviewPoint, new Color(0.48f, 0.86f, 1f, 0.95f), "mapped");
+		DrawDestinationCompass(sourceSnapshot.DestinationPreviewPoint - _targetPortal.GlobalPosition, sourceSnapshot.PhaseAngleDegrees);
+		DrawHud(sourceSnapshot, targetSnapshot);
 	}
 
 	private void DrawPortalAxes(WormholePortal portal, string label)
 	{
 		Vector3 origin = portal.GlobalPosition;
-		float axisLength = Mathf.Max(0.6f, portal.Radius * 1.45f);
+		float axisLength = Mathf.Max(0.6f, portal.ThroatRadius * 1.45f);
 		DrawProjectedLine(origin, origin + portal.GlobalTransform.Basis.X * axisLength, new Color(1f, 0.34f, 0.34f, 0.95f), $"{label}+X");
 		DrawProjectedLine(origin, origin + portal.GlobalTransform.Basis.Y * axisLength, new Color(0.32f, 1f, 0.42f, 0.95f), $"{label}+Y");
 		DrawProjectedLine(origin, origin + portal.GlobalTransform.Basis.Z * axisLength, new Color(0.36f, 0.72f, 1f, 0.95f), $"{label}+Z");
 	}
 
-	private void DrawZeroPhaseMarker(WormholePortal portal, Color color)
+	private void DrawZeroPhaseMarker(WormholePortal.ThroatDebugSnapshot snapshot, Color color, string label)
 	{
-		DrawProjectedLine(portal.GlobalPosition, portal.GetZeroMarkerWorldPoint(), color, "zero");
+		if (!snapshot.Valid)
+		{
+			return;
+		}
+
+		DrawProjectedLine(snapshot.MouthCenter, snapshot.ZeroMarkerPoint, color, label);
 	}
 
-	private void DrawSpinArrow(WormholePortal portal, Color color)
+	private void DrawSpinArrow(WormholePortal.ThroatDebugSnapshot snapshot, Color color, string label)
 	{
-		int spin = Mathf.Clamp(portal.SpinDirection, -1, 1);
-		if (spin == 0)
+		if (!snapshot.Valid)
 		{
-			spin = 1;
+			return;
 		}
 
-		int segments = 18;
-		float start = portal.ZeroPhaseAngleDegrees == 0.0f ? 0.0f : Mathf.DegToRad(portal.ZeroPhaseAngleDegrees);
-		float end = start + spin * 0.9f;
-		Vector3 previous = Vector3.Zero;
-		bool hasPrevious = false;
-		for (int i = 0; i <= segments; i++)
-		{
-			float t = (float)i / segments;
-			float angle = Mathf.Lerp(start, end, t);
-			Vector3 local = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * (portal.Radius * 0.72f);
-			Vector3 world = portal.GlobalTransform * local;
-			if (hasPrevious)
-			{
-				DrawProjectedLine(previous, world, color, string.Empty, false);
-			}
-
-			previous = world;
-			hasPrevious = true;
-		}
-
-		Vector3 arrowLocal = new Vector3(Mathf.Cos(end), 0f, Mathf.Sin(end)) * (portal.Radius * 0.72f);
-		Vector3 tangentLocal = new Vector3(-Mathf.Sin(end), 0f, Mathf.Cos(end)) * spin;
-		Vector3 arrowWorld = portal.GlobalTransform * arrowLocal;
-		Vector3 tipWorld = arrowWorld + portal.GlobalTransform.Basis * tangentLocal.Normalized() * (portal.Radius * 0.24f);
-		DrawProjectedLine(arrowWorld, tipWorld, color, "spin");
+		DrawProjectedLine(snapshot.SpinArrowStart, snapshot.SpinArrowTip, color, label);
 	}
 
 	private void DrawRadialVector(Vector3 center, Vector3 point, Color color, string label)
@@ -137,15 +128,22 @@ public partial class OverspacePortalDebugOverlay : Control
 		DrawLine(tip, tip - dir.Rotated(-0.45f) * 14f, new Color(0.48f, 0.86f, 1f, 0.95f), 3f);
 	}
 
-	private void DrawHud(float phase)
+	private void DrawHud(WormholePortal.ThroatDebugSnapshot sourceSnapshot, WormholePortal.ThroatDebugSnapshot targetSnapshot)
 	{
-		Rect2 rect = new Rect2(18f, 18f, 360f, 108f);
+		Rect2 rect = new Rect2(18f, 18f, 420f, 142f);
 		DrawRect(rect, new Color(0.04f, 0.06f, 0.11f, 0.78f), true);
-		DrawString(ThemeDB.FallbackFont, rect.Position + new Vector2(12f, 24f), "OVERSPACE PORTAL DEBUG", HorizontalAlignment.Left, -1f, 14, new Color(0.94f, 0.98f, 1f, 0.95f));
-		DrawString(ThemeDB.FallbackFont, rect.Position + new Vector2(12f, 44f), $"src {_sourcePortal.WormholeId} -> dst {_targetPortal.WormholeId}", HorizontalAlignment.Left, -1f, 11, new Color(0.88f, 0.94f, 1f, 0.95f));
-		DrawString(ThemeDB.FallbackFont, rect.Position + new Vector2(12f, 62f), $"phase {phase:0.0} deg  spin {_sourcePortal.SpinDirection:+#;-#;0}  handed {(_sourcePortal.RightHanded ? "RH" : "LH")}", HorizontalAlignment.Left, -1f, 11, new Color(0.84f, 0.90f, 0.98f, 0.92f));
-		DrawString(ThemeDB.FallbackFont, rect.Position + new Vector2(12f, 80f), $"active z-zone {_activeZone}", HorizontalAlignment.Left, -1f, 11, new Color(0.82f, 0.96f, 0.86f, 0.94f));
-		DrawString(ThemeDB.FallbackFont, rect.Position + new Vector2(12f, 98f), $"z-range {_sourcePortal.ZoneMinZ:0}..{_sourcePortal.ZoneMaxZ:0} -> {_targetPortal.ZoneMinZ:0}..{_targetPortal.ZoneMaxZ:0}", HorizontalAlignment.Left, -1f, 10, new Color(0.82f, 0.90f, 0.97f, 0.88f));
+		DrawString(ThemeDB.FallbackFont, rect.Position + new Vector2(12f, 24f), "PHASE A THROAT DEBUG", HorizontalAlignment.Left, -1f, 14, new Color(0.94f, 0.98f, 1f, 0.95f));
+		DrawString(ThemeDB.FallbackFont, rect.Position + new Vector2(12f, 44f), $"src {sourceSnapshot.WormholeId} -> dst {targetSnapshot.WormholeId}", HorizontalAlignment.Left, -1f, 11, new Color(0.88f, 0.94f, 1f, 0.95f));
+		DrawString(ThemeDB.FallbackFont, rect.Position + new Vector2(12f, 62f), $"throat r {sourceSnapshot.ThroatRadius:0.00}  zero {sourceSnapshot.ZeroPhaseAngle:0.0} deg  phase {sourceSnapshot.PhaseAngleDegrees:0.0} deg", HorizontalAlignment.Left, -1f, 11, new Color(0.84f, 0.90f, 0.98f, 0.92f));
+		DrawString(ThemeDB.FallbackFont, rect.Position + new Vector2(12f, 80f), $"spin {sourceSnapshot.SpinDirection:+#;-#;0}  handed {ResolveHandednessLabel(sourceSnapshot.Handedness)}  remap {(sourceSnapshot.PhaseLockedRemapEnabled ? "phase-locked" : "direct")}", HorizontalAlignment.Left, -1f, 11, new Color(0.84f, 0.90f, 0.98f, 0.92f));
+		DrawString(ThemeDB.FallbackFont, rect.Position + new Vector2(12f, 98f), $"regions {sourceSnapshot.ParentRegionId} -> {sourceSnapshot.ChildRegionId}", HorizontalAlignment.Left, -1f, 11, new Color(0.82f, 0.96f, 0.86f, 0.94f));
+		DrawString(ThemeDB.FallbackFont, rect.Position + new Vector2(12f, 116f), $"active z-zone {_activeZone}", HorizontalAlignment.Left, -1f, 11, new Color(0.82f, 0.96f, 0.86f, 0.94f));
+		DrawString(ThemeDB.FallbackFont, rect.Position + new Vector2(12f, 134f), $"z-range {sourceSnapshot.ZoneMinZ:0}..{sourceSnapshot.ZoneMaxZ:0} -> {targetSnapshot.ZoneMinZ:0}..{targetSnapshot.ZoneMaxZ:0}", HorizontalAlignment.Left, -1f, 10, new Color(0.82f, 0.90f, 0.97f, 0.88f));
+	}
+
+	private static string ResolveHandednessLabel(WormholePortal.WormholeHandednessMode handedness)
+	{
+		return handedness == WormholePortal.WormholeHandednessMode.LeftHanded ? "LH" : "RH";
 	}
 
 	private void DrawProjectedLine(Vector3 fromWorld, Vector3 toWorld, Color color, string label, bool drawLabel = true)
