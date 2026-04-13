@@ -1,0 +1,20 @@
+{
+  "total_pixels": 129600,
+  "classified_pixels": 129600,
+  "classified_coverage_ratio": 1,
+  "geom_hit_pixels": 75344,
+  "portal_hit_pixels": 32461,
+  "throat_event_pixels": 21795,
+  "throat_entry_pixels": 0,
+  "throat_exit_pixels": 170,
+  "throat_shell_transform_pixels": 21625,
+  "throat_inner_absorb_pixels": 0,
+  "background_hit_pixels": 0,
+  "escaped_no_hit_pixels": 0,
+  "budget_exhausted_pixels": 0,
+  "unclassified_pixels": 0,
+  "hermetic_rule_satisfied": true,
+  "coverage_summary": "geom=75344|portal=32461|throat=21795|t_entry=0|t_exit=170|t_xform=21625|t_absorb=0|background=0|escaped=0|budget=0|cov=1",
+  "coverage_visual": "G:0.581 P:0.250 TX:0.001 TT:0.167",
+  "coverage_legend": "G=geom_hit P=portal_hit TE=throat_entry TX=throat_exit TT=throat_shell_transform TA=throat_inner_absorb T=throat_event_total B=background_hit E=escaped_no_hit X=budget_exhausted U=unclassified"
+}

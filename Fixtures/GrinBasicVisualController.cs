@@ -814,6 +814,10 @@ public partial class GrinBasicVisualController : Node3D
 			$"geomHitPixels={(hasTransportCoverage ? transportCoverage.GeomHitPixels.ToString(CultureInfo.InvariantCulture) : "na")} " +
 			$"portalHitPixels={(hasTransportCoverage ? transportCoverage.PortalHitPixels.ToString(CultureInfo.InvariantCulture) : "na")} " +
 			$"throatEventPixels={(hasTransportCoverage ? transportCoverage.ThroatEventPixels.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"throatEntryPixels={(hasTransportCoverage ? transportCoverage.ThroatEntryPixels.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"throatExitPixels={(hasTransportCoverage ? transportCoverage.ThroatExitPixels.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"throatShellTransformPixels={(hasTransportCoverage ? transportCoverage.ThroatShellTransformPixels.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"throatInnerAbsorbPixels={(hasTransportCoverage ? transportCoverage.ThroatInnerAbsorbPixels.ToString(CultureInfo.InvariantCulture) : "na")} " +
 			$"backgroundHitPixels={(hasTransportCoverage ? transportCoverage.BackgroundHitPixels.ToString(CultureInfo.InvariantCulture) : "na")} " +
 			$"escapedNoHitPixels={(hasTransportCoverage ? transportCoverage.EscapedNoHitPixels.ToString(CultureInfo.InvariantCulture) : "na")} " +
 			$"budgetExhaustedPixels={(hasTransportCoverage ? transportCoverage.BudgetExhaustedPixels.ToString(CultureInfo.InvariantCulture) : "na")} " +

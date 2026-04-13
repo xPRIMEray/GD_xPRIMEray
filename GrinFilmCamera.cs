@@ -763,6 +763,10 @@ public partial class GrinFilmCamera : Node
 		public readonly long GeomHitPixels;
 		public readonly long PortalHitPixels;
 		public readonly long ThroatEventPixels;
+		public readonly long ThroatEntryPixels;
+		public readonly long ThroatExitPixels;
+		public readonly long ThroatShellTransformPixels;
+		public readonly long ThroatInnerAbsorbPixels;
 		public readonly long BackgroundHitPixels;
 		public readonly long EscapedNoHitPixels;
 		public readonly long BudgetExhaustedPixels;
@@ -777,6 +781,10 @@ public partial class GrinFilmCamera : Node
 			long geomHitPixels,
 			long portalHitPixels,
 			long throatEventPixels,
+			long throatEntryPixels,
+			long throatExitPixels,
+			long throatShellTransformPixels,
+			long throatInnerAbsorbPixels,
 			long backgroundHitPixels,
 			long escapedNoHitPixels,
 			long budgetExhaustedPixels,
@@ -790,6 +798,10 @@ public partial class GrinFilmCamera : Node
 			GeomHitPixels = geomHitPixels;
 			PortalHitPixels = portalHitPixels;
 			ThroatEventPixels = throatEventPixels;
+			ThroatEntryPixels = throatEntryPixels;
+			ThroatExitPixels = throatExitPixels;
+			ThroatShellTransformPixels = throatShellTransformPixels;
+			ThroatInnerAbsorbPixels = throatInnerAbsorbPixels;
 			BackgroundHitPixels = backgroundHitPixels;
 			EscapedNoHitPixels = escapedNoHitPixels;
 			BudgetExhaustedPixels = budgetExhaustedPixels;
@@ -804,6 +816,10 @@ public partial class GrinFilmCamera : Node
 	private static readonly Color FixtureTransportGeomHitColor = new(0.16f, 0.72f, 0.26f, 1.0f);
 	private static readonly Color FixtureTransportPortalHitColor = new(0.18f, 0.82f, 0.92f, 1.0f);
 	private static readonly Color FixtureTransportThroatEventColor = new(0.95f, 0.78f, 0.18f, 1.0f);
+	private static readonly Color FixtureTransportThroatEntryColor = new(0.96f, 0.72f, 0.24f, 1.0f);
+	private static readonly Color FixtureTransportThroatExitColor = new(0.96f, 0.52f, 0.20f, 1.0f);
+	private static readonly Color FixtureTransportThroatShellTransformColor = new(0.98f, 0.88f, 0.34f, 1.0f);
+	private static readonly Color FixtureTransportThroatInnerAbsorbColor = new(0.72f, 0.28f, 0.18f, 1.0f);
 	private static readonly Color FixtureTransportBackgroundHitColor = new(0.32f, 0.44f, 0.86f, 1.0f);
 	private static readonly Color FixtureTransportEscapedNoHitColor = new(0.55f, 0.17f, 0.17f, 1.0f);
 	private static readonly Color FixtureTransportBudgetExhaustedColor = new(0.95f, 0.18f, 0.18f, 1.0f);
@@ -4815,6 +4831,10 @@ private sealed class OverlayRollingWindow
 		long geomHitPixels = 0;
 		long portalHitPixels = 0;
 		long throatEventPixels = 0;
+		long throatEntryPixels = 0;
+		long throatExitPixels = 0;
+		long throatShellTransformPixels = 0;
+		long throatInnerAbsorbPixels = 0;
 		long backgroundHitPixels = 0;
 		long escapedNoHitPixels = 0;
 		long budgetExhaustedPixels = 0;
@@ -4837,6 +4857,22 @@ private sealed class OverlayRollingWindow
 						break;
 					case "throat_event":
 						throatEventPixels++;
+						break;
+					case "throat_entry":
+						throatEventPixels++;
+						throatEntryPixels++;
+						break;
+					case "throat_exit":
+						throatEventPixels++;
+						throatExitPixels++;
+						break;
+					case "throat_shell_transform":
+						throatEventPixels++;
+						throatShellTransformPixels++;
+						break;
+					case "throat_inner_absorb":
+						throatEventPixels++;
+						throatInnerAbsorbPixels++;
 						break;
 					case "background_hit":
 						backgroundHitPixels++;
@@ -4865,6 +4901,7 @@ private sealed class OverlayRollingWindow
 			unclassifiedPixels == 0;
 		string summary =
 			$"geom={geomHitPixels}|portal={portalHitPixels}|throat={throatEventPixels}|" +
+			$"t_entry={throatEntryPixels}|t_exit={throatExitPixels}|t_xform={throatShellTransformPixels}|t_absorb={throatInnerAbsorbPixels}|" +
 			$"background={backgroundHitPixels}|escaped={escapedNoHitPixels}|budget={budgetExhaustedPixels}|" +
 			$"cov={classifiedCoverageRatio.ToString("0.###", CultureInfo.InvariantCulture)}";
 
@@ -4875,6 +4912,10 @@ private sealed class OverlayRollingWindow
 			geomHitPixels,
 			portalHitPixels,
 			throatEventPixels,
+			throatEntryPixels,
+			throatExitPixels,
+			throatShellTransformPixels,
+			throatInnerAbsorbPixels,
 			backgroundHitPixels,
 			escapedNoHitPixels,
 			budgetExhaustedPixels,
@@ -11005,7 +11046,8 @@ private sealed class OverlayRollingWindow
 								sample.AbsorbedByInnerRadius,
 								sample.BestCid,
 								sample.PostRemapSegmentCount > 0,
-								sample.BestHitWasPostRemap);
+								sample.BestHitWasPostRemap,
+								sample.MaxBoundaryRemapCount);
 							FillPixelBlock(
 								_fixtureTransportClassificationImg,
 								sample.X,
@@ -13414,7 +13456,8 @@ private sealed class OverlayRollingWindow
 							absorbedByInnerRadius,
 							bestCid,
 							postRemapSegmentCountThisPixel > 0,
-							bestHitWasPostRemap);
+							bestHitWasPostRemap,
+							maxBoundaryRemapCountThisPixel);
 						FillPixelBlock(
 							_fixtureTransportClassificationImg,
 							x,
@@ -14532,7 +14575,8 @@ private sealed class OverlayRollingWindow
 		bool absorbedByInnerRadius,
 		ulong colliderId,
 		bool hadThroatEvent,
-		bool bestHitWasPostRemap)
+		bool bestHitWasPostRemap,
+		int maxBoundaryRemapCount)
 	{
 		if (hadHit)
 		{
@@ -14541,9 +14585,19 @@ private sealed class OverlayRollingWindow
 				return "portal_hit";
 			}
 
-			if (bestHitWasPostRemap || hadThroatEvent)
+			if (bestHitWasPostRemap)
 			{
-				return "throat_event";
+				return "throat_shell_transform";
+			}
+
+			if (absorbedByInnerRadius)
+			{
+				return "throat_inner_absorb";
+			}
+
+			if (hadThroatEvent)
+			{
+				return maxBoundaryRemapCount >= 2 ? "throat_exit" : "throat_entry";
 			}
 
 			if (_fixtureDebugHasExplicitBackgroundGroup && _fixtureDebugBackgroundIds.Contains(colliderId))
@@ -14554,9 +14608,14 @@ private sealed class OverlayRollingWindow
 			return "geom_hit";
 		}
 
-		if (hadThroatEvent || absorbedByInnerRadius)
+		if (absorbedByInnerRadius)
 		{
-			return "throat_event";
+			return "throat_inner_absorb";
+		}
+
+		if (hadThroatEvent)
+		{
+			return maxBoundaryRemapCount >= 2 ? "throat_exit" : "throat_entry";
 		}
 
 		return "escaped_no_hit";
@@ -14569,6 +14628,10 @@ private sealed class OverlayRollingWindow
 			"geom_hit" => FixtureTransportGeomHitColor,
 			"portal_hit" => FixtureTransportPortalHitColor,
 			"throat_event" => FixtureTransportThroatEventColor,
+			"throat_entry" => FixtureTransportThroatEntryColor,
+			"throat_exit" => FixtureTransportThroatExitColor,
+			"throat_shell_transform" => FixtureTransportThroatShellTransformColor,
+			"throat_inner_absorb" => FixtureTransportThroatInnerAbsorbColor,
 			"background_hit" => FixtureTransportBackgroundHitColor,
 			"escaped_no_hit" => FixtureTransportEscapedNoHitColor,
 			"budget_exhausted" => FixtureTransportBudgetExhaustedColor,
@@ -14598,6 +14661,26 @@ private sealed class OverlayRollingWindow
 		if (ColorsClose(pixel, FixtureTransportThroatEventColor))
 		{
 			return "throat_event";
+		}
+
+		if (ColorsClose(pixel, FixtureTransportThroatEntryColor))
+		{
+			return "throat_entry";
+		}
+
+		if (ColorsClose(pixel, FixtureTransportThroatExitColor))
+		{
+			return "throat_exit";
+		}
+
+		if (ColorsClose(pixel, FixtureTransportThroatShellTransformColor))
+		{
+			return "throat_shell_transform";
+		}
+
+		if (ColorsClose(pixel, FixtureTransportThroatInnerAbsorbColor))
+		{
+			return "throat_inner_absorb";
 		}
 
 		if (ColorsClose(pixel, FixtureTransportBackgroundHitColor))

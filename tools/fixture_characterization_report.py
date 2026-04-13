@@ -360,6 +360,10 @@ def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
         "geom_hit_pixels": coverage.get("geomHitPixels"),
         "portal_hit_pixels": coverage.get("portalHitPixels"),
         "throat_event_pixels": coverage.get("throatEventPixels"),
+        "throat_entry_pixels": coverage.get("throatEntryPixels"),
+        "throat_exit_pixels": coverage.get("throatExitPixels"),
+        "throat_shell_transform_pixels": coverage.get("throatShellTransformPixels"),
+        "throat_inner_absorb_pixels": coverage.get("throatInnerAbsorbPixels"),
         "coverage_background_hit_pixels": coverage.get("backgroundHitPixels"),
         "escaped_no_hit_pixels": coverage.get("escapedNoHitPixels"),
         "budget_exhausted_pixels": coverage.get("budgetExhaustedPixels"),
@@ -548,6 +552,10 @@ def build_transport_coverage_artifact(metrics: dict) -> dict:
     geom_hit_pixels = parse_int_token(metrics.get("geom_hit_pixels")) or 0
     portal_hit_pixels = parse_int_token(metrics.get("portal_hit_pixels")) or 0
     throat_event_pixels = parse_int_token(metrics.get("throat_event_pixels")) or 0
+    throat_entry_pixels = parse_int_token(metrics.get("throat_entry_pixels")) or 0
+    throat_exit_pixels = parse_int_token(metrics.get("throat_exit_pixels")) or 0
+    throat_shell_transform_pixels = parse_int_token(metrics.get("throat_shell_transform_pixels")) or 0
+    throat_inner_absorb_pixels = parse_int_token(metrics.get("throat_inner_absorb_pixels")) or 0
     background_hit_pixels = parse_int_token(metrics.get("coverage_background_hit_pixels")) or 0
     escaped_no_hit_pixels = parse_int_token(metrics.get("escaped_no_hit_pixels")) or 0
     budget_exhausted_pixels = parse_int_token(metrics.get("budget_exhausted_pixels")) or 0
@@ -559,6 +567,10 @@ def build_transport_coverage_artifact(metrics: dict) -> dict:
         for label, count in (
             ("G", geom_hit_pixels),
             ("P", portal_hit_pixels),
+            ("TE", throat_entry_pixels),
+            ("TX", throat_exit_pixels),
+            ("TT", throat_shell_transform_pixels),
+            ("TA", throat_inner_absorb_pixels),
             ("T", throat_event_pixels),
             ("B", background_hit_pixels),
             ("E", escaped_no_hit_pixels),
@@ -566,6 +578,13 @@ def build_transport_coverage_artifact(metrics: dict) -> dict:
             ("U", unclassified_pixels),
         ):
             if count <= 0:
+                continue
+            if label == "T" and (
+                throat_entry_pixels > 0 or
+                throat_exit_pixels > 0 or
+                throat_shell_transform_pixels > 0 or
+                throat_inner_absorb_pixels > 0
+            ):
                 continue
             share = count / total_pixels
             shares.append(f"{label}:{share:.3f}")
@@ -582,6 +601,10 @@ def build_transport_coverage_artifact(metrics: dict) -> dict:
         "geom_hit_pixels": metrics.get("geom_hit_pixels"),
         "portal_hit_pixels": metrics.get("portal_hit_pixels"),
         "throat_event_pixels": metrics.get("throat_event_pixels"),
+        "throat_entry_pixels": metrics.get("throat_entry_pixels"),
+        "throat_exit_pixels": metrics.get("throat_exit_pixels"),
+        "throat_shell_transform_pixels": metrics.get("throat_shell_transform_pixels"),
+        "throat_inner_absorb_pixels": metrics.get("throat_inner_absorb_pixels"),
         "background_hit_pixels": metrics.get("coverage_background_hit_pixels"),
         "escaped_no_hit_pixels": metrics.get("escaped_no_hit_pixels"),
         "budget_exhausted_pixels": metrics.get("budget_exhausted_pixels"),
@@ -589,7 +612,7 @@ def build_transport_coverage_artifact(metrics: dict) -> dict:
         "hermetic_rule_satisfied": hermetic_rule_satisfied,
         "coverage_summary": metrics.get("coverage_summary"),
         "coverage_visual": coverage_visual,
-        "coverage_legend": "G=geom_hit P=portal_hit T=throat_event B=background_hit E=escaped_no_hit X=budget_exhausted U=unclassified",
+        "coverage_legend": "G=geom_hit P=portal_hit TE=throat_entry TX=throat_exit TT=throat_shell_transform TA=throat_inner_absorb T=throat_event_total B=background_hit E=escaped_no_hit X=budget_exhausted U=unclassified",
     }
 
 
@@ -1971,6 +1994,10 @@ def build_summary(metrics: dict, args: argparse.Namespace) -> str:
                 f"Geom Hit Pixels: {metrics.get('geom_hit_pixels')}",
                 f"Portal Hit Pixels: {metrics.get('portal_hit_pixels')}",
                 f"Throat Event Pixels: {metrics.get('throat_event_pixels')}",
+                f"Throat Entry Pixels: {metrics.get('throat_entry_pixels')}",
+                f"Throat Exit Pixels: {metrics.get('throat_exit_pixels')}",
+                f"Throat Shell Transform Pixels: {metrics.get('throat_shell_transform_pixels')}",
+                f"Throat Inner Absorb Pixels: {metrics.get('throat_inner_absorb_pixels')}",
                 f"Background Hit Pixels: {metrics.get('coverage_background_hit_pixels')}",
                 f"Escaped No-Hit Pixels: {metrics.get('escaped_no_hit_pixels')}",
                 f"Budget Exhausted Pixels: {metrics.get('budget_exhausted_pixels')}",
@@ -2137,6 +2164,10 @@ def run_report(args: argparse.Namespace) -> int:
             f"Geom Hit Pixels: {transport_coverage.get('geom_hit_pixels')}",
             f"Portal Hit Pixels: {transport_coverage.get('portal_hit_pixels')}",
             f"Throat Event Pixels: {transport_coverage.get('throat_event_pixels')}",
+            f"Throat Entry Pixels: {transport_coverage.get('throat_entry_pixels')}",
+            f"Throat Exit Pixels: {transport_coverage.get('throat_exit_pixels')}",
+            f"Throat Shell Transform Pixels: {transport_coverage.get('throat_shell_transform_pixels')}",
+            f"Throat Inner Absorb Pixels: {transport_coverage.get('throat_inner_absorb_pixels')}",
             f"Background Hit Pixels: {transport_coverage.get('background_hit_pixels')}",
             f"Escaped No-Hit Pixels: {transport_coverage.get('escaped_no_hit_pixels')}",
             f"Budget Exhausted Pixels: {transport_coverage.get('budget_exhausted_pixels')}",
