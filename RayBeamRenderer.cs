@@ -595,6 +595,14 @@ public partial class RayBeamRenderer : Node3D
 		public float TraveledB; // path length at end of segment (at B)
 		public float RadiusBound; // conservative curve deviation bound for this segment
 		public int BoundaryRemapCount; // number of scene-transform remaps experienced before this segment end
+		public int EventCount; // cumulative boundary event count at segment end
+		public int BoundaryCrossings; // cumulative entry+exit count at segment end
+		public int TransformCount; // cumulative scene-transform count at segment end
+		public int EntryCount; // cumulative entry count at segment end
+		public int ExitCount; // cumulative exit count at segment end
+		public int LastCrossingLayer; // latest boundary layer index, or -1 when unset
+		public byte LastCrossingKind; // see LedgerCrossingKind
+		public bool AmbiguousOrdering; // true when multiple crossing events occurred in one dispatch step
 	}
 
 	public delegate bool SegmentCallback(in RaySeg seg, int segIndex);
@@ -639,6 +647,7 @@ public partial class RayBeamRenderer : Node3D
 	public struct BoundaryLayerSnap
 	{
 		public bool Enabled;
+		public ulong NodeInstanceId;
 		public Vector3 Center;
 		public Transform3D WorldFromLocal;
 		public Transform3D LocalFromWorld;
@@ -654,6 +663,8 @@ public partial class RayBeamRenderer : Node3D
 		public float BiasStrength;
 		// SceneTransform params:
 		public bool HasLinkedTransform;
+		public ulong LinkedNodeInstanceId;
+		public int LinkedLayerIndex;
 		public Transform3D LinkedWorldFromLocal;
 		public Vector3 LinkedCenter;
 		public float LinkedRadius;
@@ -661,6 +672,51 @@ public partial class RayBeamRenderer : Node3D
 		// Debug fields (captured at snapshot time; not used in hot path unless DebugLogCrossings is set):
 		public string NodeName;
 		public bool DebugLogCrossings;
+	}
+
+	public enum LedgerCrossingKind : byte
+	{
+		None = 0,
+		Entry = 1,
+		Exit = 2,
+	}
+
+	private struct BoundaryInteractionLedgerDelta
+	{
+		public int EventCount;
+		public int BoundaryCrossings;
+		public int TransformCount;
+		public int EntryCount;
+		public int ExitCount;
+		public int LastCrossingLayer;
+		public LedgerCrossingKind LastCrossingKind;
+		public bool AmbiguousOrdering;
+
+		public void RecordEvent(int layerIndex, LedgerCrossingKind kind, bool causedTransform)
+		{
+			if (EventCount > 0)
+			{
+				AmbiguousOrdering = true;
+			}
+
+			EventCount++;
+			BoundaryCrossings++;
+			LastCrossingLayer = layerIndex;
+			LastCrossingKind = kind;
+			if (causedTransform)
+			{
+				TransformCount++;
+			}
+
+			if (kind == LedgerCrossingKind.Entry)
+			{
+				EntryCount++;
+			}
+			else if (kind == LedgerCrossingKind.Exit)
+			{
+				ExitCount++;
+			}
+		}
 	}
 
 	public void BeginBoundaryValidationRun()
@@ -2399,6 +2455,14 @@ public partial class RayBeamRenderer : Node3D
 			? ComputeInsideMask(p, _boundaryLayerSnaps)
 			: 0u;
 		int boundaryRemapCount = 0;
+		int ledgerEventCount = 0;
+		int ledgerBoundaryCrossings = 0;
+		int ledgerTransformCount = 0;
+		int ledgerEntryCount = 0;
+		int ledgerExitCount = 0;
+		int ledgerLastCrossingLayer = -1;
+		LedgerCrossingKind ledgerLastCrossingKind = LedgerCrossingKind.None;
+		bool ledgerAmbiguousOrdering = false;
 
 		// DECISION: integrate along the ray for up to StepsPerRay steps.
 		for (int s = 0; s <= StepsPerRay; s++)
@@ -2413,7 +2477,19 @@ public partial class RayBeamRenderer : Node3D
 			// Boundary layer: continuous effects and crossing-event detection.
 			if (_hasBoundaryLayers && UseIntegratedField)
 			{
-				boundaryRemapCount += ApplyBoundaryLayerInteractions(ref p, ref v, _boundaryLayerSnaps, ref blvInsideMask);
+				BoundaryInteractionLedgerDelta boundaryDelta = ApplyBoundaryLayerInteractions(ref p, ref v, _boundaryLayerSnaps, ref blvInsideMask);
+				boundaryRemapCount += boundaryDelta.TransformCount;
+				ledgerEventCount += boundaryDelta.EventCount;
+				ledgerBoundaryCrossings += boundaryDelta.BoundaryCrossings;
+				ledgerTransformCount += boundaryDelta.TransformCount;
+				ledgerEntryCount += boundaryDelta.EntryCount;
+				ledgerExitCount += boundaryDelta.ExitCount;
+				if (boundaryDelta.LastCrossingKind != LedgerCrossingKind.None)
+				{
+					ledgerLastCrossingKind = boundaryDelta.LastCrossingKind;
+					ledgerLastCrossingLayer = boundaryDelta.LastCrossingLayer;
+				}
+				ledgerAmbiguousOrdering |= boundaryDelta.AmbiguousOrdering;
 			}
 
 			Vector3 a = Vector3.Zero;
@@ -2667,6 +2743,14 @@ public partial class RayBeamRenderer : Node3D
 			? ComputeInsideMask(p, _boundaryLayerSnaps)
 			: 0u;
 		int boundaryRemapCount = 0;
+		int ledgerEventCount = 0;
+		int ledgerBoundaryCrossings = 0;
+		int ledgerTransformCount = 0;
+		int ledgerEntryCount = 0;
+		int ledgerExitCount = 0;
+		int ledgerLastCrossingLayer = -1;
+		LedgerCrossingKind ledgerLastCrossingKind = LedgerCrossingKind.None;
+		bool ledgerAmbiguousOrdering = false;
 
 		// DECISION: integrate along the ray for up to StepsPerRay steps.
 		for (int s = 0; s <= StepsPerRay; s++)
@@ -2681,7 +2765,19 @@ public partial class RayBeamRenderer : Node3D
 			// Boundary layer: continuous effects and crossing-event detection.
 			if (_hasBoundaryLayers && UseIntegratedField)
 			{
-				boundaryRemapCount += ApplyBoundaryLayerInteractions(ref p, ref v, _boundaryLayerSnaps, ref blvInsideMask);
+				BoundaryInteractionLedgerDelta boundaryDelta = ApplyBoundaryLayerInteractions(ref p, ref v, _boundaryLayerSnaps, ref blvInsideMask);
+				boundaryRemapCount += boundaryDelta.TransformCount;
+				ledgerEventCount += boundaryDelta.EventCount;
+				ledgerBoundaryCrossings += boundaryDelta.BoundaryCrossings;
+				ledgerTransformCount += boundaryDelta.TransformCount;
+				ledgerEntryCount += boundaryDelta.EntryCount;
+				ledgerExitCount += boundaryDelta.ExitCount;
+				if (boundaryDelta.LastCrossingKind != LedgerCrossingKind.None)
+				{
+					ledgerLastCrossingKind = boundaryDelta.LastCrossingKind;
+					ledgerLastCrossingLayer = boundaryDelta.LastCrossingLayer;
+				}
+				ledgerAmbiguousOrdering |= boundaryDelta.AmbiguousOrdering;
 			}
 
 			Vector3 next = p;
@@ -2884,8 +2980,14 @@ public partial class RayBeamRenderer : Node3D
 			? ComputeInsideMask(p, boundaryLayers)
 			: 0u;
 		int boundaryRemapCount = 0;
-		/////////////////////////
-		/// 
+		int ledgerEventCount = 0;
+		int ledgerBoundaryCrossings = 0;
+		int ledgerTransformCount = 0;
+		int ledgerEntryCount = 0;
+		int ledgerExitCount = 0;
+		int ledgerLastCrossingLayer = -1;
+		LedgerCrossingKind ledgerLastCrossingKind = LedgerCrossingKind.None;
+		bool ledgerAmbiguousOrdering = false;
 
 
 		// DECISION: integrate along the ray for up to StepsPerRay steps.
@@ -2898,7 +3000,19 @@ public partial class RayBeamRenderer : Node3D
 
 			if (hasBoundaryLayers && UseIntegratedField)
 			{
-				boundaryRemapCount += ApplyBoundaryLayerInteractions(ref p, ref v, boundaryLayers, ref blvInsideMask);
+				BoundaryInteractionLedgerDelta boundaryDelta = ApplyBoundaryLayerInteractions(ref p, ref v, boundaryLayers, ref blvInsideMask);
+				boundaryRemapCount += boundaryDelta.TransformCount;
+				ledgerEventCount += boundaryDelta.EventCount;
+				ledgerBoundaryCrossings += boundaryDelta.BoundaryCrossings;
+				ledgerTransformCount += boundaryDelta.TransformCount;
+				ledgerEntryCount += boundaryDelta.EntryCount;
+				ledgerExitCount += boundaryDelta.ExitCount;
+				if (boundaryDelta.LastCrossingKind != LedgerCrossingKind.None)
+				{
+					ledgerLastCrossingKind = boundaryDelta.LastCrossingKind;
+					ledgerLastCrossingLayer = boundaryDelta.LastCrossingLayer;
+				}
+				ledgerAmbiguousOrdering |= boundaryDelta.AmbiguousOrdering;
 			}
 
 			Vector3 next = p;
@@ -3066,7 +3180,15 @@ public partial class RayBeamRenderer : Node3D
 					B = next,
 					TraveledB = traveled,
 					RadiusBound = RadiusMin,
-					BoundaryRemapCount = boundaryRemapCount
+					BoundaryRemapCount = boundaryRemapCount,
+					EventCount = ledgerEventCount,
+					BoundaryCrossings = ledgerBoundaryCrossings,
+					TransformCount = ledgerTransformCount,
+					EntryCount = ledgerEntryCount,
+					ExitCount = ledgerExitCount,
+					LastCrossingLayer = ledgerLastCrossingLayer,
+					LastCrossingKind = (byte)ledgerLastCrossingKind,
+					AmbiguousOrdering = ledgerAmbiguousOrdering
 				};
 				outSegs[outOffset + written] = seg;
 				// DECISION: allow optional callback to terminate segment emission early.
@@ -3212,6 +3334,14 @@ public partial class RayBeamRenderer : Node3D
 			? ComputeInsideMask(p, boundaryLayers)
 			: 0u;
 		int boundaryRemapCount = 0;
+		int ledgerEventCount = 0;
+		int ledgerBoundaryCrossings = 0;
+		int ledgerTransformCount = 0;
+		int ledgerEntryCount = 0;
+		int ledgerExitCount = 0;
+		int ledgerLastCrossingLayer = -1;
+		LedgerCrossingKind ledgerLastCrossingKind = LedgerCrossingKind.None;
+		bool ledgerAmbiguousOrdering = false;
 
 		// DECISION: integrate along the ray for up to StepsPerRay steps.
 		for (int s = 0; s <= maxIntegrationSteps; s++)
@@ -3228,7 +3358,19 @@ public partial class RayBeamRenderer : Node3D
 			// Boundary layer: continuous effects and crossing-event detection.
 			if (hasBoundaryLayers && UseIntegratedField)
 			{
-				boundaryRemapCount += ApplyBoundaryLayerInteractions(ref p, ref v, boundaryLayers, ref blvInsideMask);
+				BoundaryInteractionLedgerDelta boundaryDelta = ApplyBoundaryLayerInteractions(ref p, ref v, boundaryLayers, ref blvInsideMask);
+				boundaryRemapCount += boundaryDelta.TransformCount;
+				ledgerEventCount += boundaryDelta.EventCount;
+				ledgerBoundaryCrossings += boundaryDelta.BoundaryCrossings;
+				ledgerTransformCount += boundaryDelta.TransformCount;
+				ledgerEntryCount += boundaryDelta.EntryCount;
+				ledgerExitCount += boundaryDelta.ExitCount;
+				if (boundaryDelta.LastCrossingKind != LedgerCrossingKind.None)
+				{
+					ledgerLastCrossingKind = boundaryDelta.LastCrossingKind;
+					ledgerLastCrossingLayer = boundaryDelta.LastCrossingLayer;
+				}
+				ledgerAmbiguousOrdering |= boundaryDelta.AmbiguousOrdering;
 			}
 
 			Vector3 next = p;
@@ -3465,7 +3607,15 @@ public partial class RayBeamRenderer : Node3D
 					B = next,
 					TraveledB = traveled,
 					RadiusBound = radiusBound,
-					BoundaryRemapCount = boundaryRemapCount
+					BoundaryRemapCount = boundaryRemapCount,
+					EventCount = ledgerEventCount,
+					BoundaryCrossings = ledgerBoundaryCrossings,
+					TransformCount = ledgerTransformCount,
+					EntryCount = ledgerEntryCount,
+					ExitCount = ledgerExitCount,
+					LastCrossingLayer = ledgerLastCrossingLayer,
+					LastCrossingKind = (byte)ledgerLastCrossingKind,
+					AmbiguousOrdering = ledgerAmbiguousOrdering
 				};
 				// TODO(metric-pass1): When Metric_NullGeodesic emits persistent MetricRayState
 				// steps, mirror this RaySeg emission through RendererCore.Transport.
@@ -3638,6 +3788,23 @@ public partial class RayBeamRenderer : Node3D
 			if (node is BoundaryLayerVolume blv && blv.Enabled)
 				list.Add(BuildBoundaryLayerSnap(blv));
 		}
+		var layerIndexByInstanceId = new Dictionary<ulong, int>(list.Count);
+		for (int i = 0; i < list.Count; i++)
+		{
+			if (list[i].NodeInstanceId != 0)
+				layerIndexByInstanceId[list[i].NodeInstanceId] = i;
+		}
+		for (int i = 0; i < list.Count; i++)
+		{
+			BoundaryLayerSnap snap = list[i];
+			snap.LinkedLayerIndex = -1;
+			if (snap.LinkedNodeInstanceId != 0 &&
+				layerIndexByInstanceId.TryGetValue(snap.LinkedNodeInstanceId, out int linkedLayerIndex))
+			{
+				snap.LinkedLayerIndex = linkedLayerIndex;
+			}
+			list[i] = snap;
+		}
 		// Guard: crossing detection uses a uint bitmask; only the first 32 layers can be tracked.
 		// Continuous mode is unaffected (ApplyBoundaryLayerBias iterates all layers).
 		// Warn once if any CrossingEvent layer falls beyond the bitmask window.
@@ -3680,6 +3847,7 @@ public partial class RayBeamRenderer : Node3D
 		return new BoundaryLayerSnap
 		{
 			Enabled           = blv.Enabled,
+			NodeInstanceId    = blv.GetInstanceId(),
 			Center            = blv.GlobalPosition,
 			WorldFromLocal    = worldFromLocal,
 			LocalFromWorld    = localFromWorld,
@@ -3693,6 +3861,8 @@ public partial class RayBeamRenderer : Node3D
 			BiasDirection     = biasWorld,
 			BiasStrength      = Mathf.Clamp(blv.BiasStrength, 0f, 1f),
 			HasLinkedTransform = linkedNode != null,
+			LinkedNodeInstanceId = linkedNode?.GetInstanceId() ?? 0,
+			LinkedLayerIndex  = -1,
 			LinkedWorldFromLocal = linkedNode?.GlobalTransform ?? default,
 			LinkedCenter = linkedNode?.GlobalPosition ?? Vector3.Zero,
 			LinkedRadius = linkedRadius,
@@ -3785,7 +3955,8 @@ public partial class RayBeamRenderer : Node3D
 		ref Vector3 p, ref Vector3 v,
 		BoundaryLayerSnap[] layers,
 		uint entryBits,
-		uint exitBits)
+		uint exitBits,
+		ref BoundaryInteractionLedgerDelta ledgerDelta)
 	{
 		for (int i = 0; i < layers.Length && i < 32; i++)
 		{
@@ -3802,6 +3973,7 @@ public partial class RayBeamRenderer : Node3D
 
 			if (doEntry)
 			{
+				bool causedTransform = false;
 				switch (layer.Behavior)
 				{
 					case BoundaryLayerVolume.BoundaryBehavior.DirectionBias:
@@ -3810,14 +3982,21 @@ public partial class RayBeamRenderer : Node3D
 					case BoundaryLayerVolume.BoundaryBehavior.SceneTransform:
 						ApplyBoundarySceneTransform(ref p, ref v, in layer);
 						RecordBoundarySceneTransformValidation();
+						causedTransform = true;
 						break;
 				}
 				RecordBoundaryValidationEvent(i, isEntry: true, isExit: false);
+				ledgerDelta.RecordEvent(i, LedgerCrossingKind.Entry, causedTransform);
+				if (causedTransform)
+				{
+					RecordBoundaryTransformPairedEgress(in layer, ref ledgerDelta);
+				}
 				if (layer.DebugLogCrossings && !_boundaryDebugRunActive)
 					GD.Print($"[BLV] entry event: layer={i} name='{layer.NodeName}' behavior={layer.Behavior} pos=({p.X:0.##},{p.Y:0.##},{p.Z:0.##})");
 			}
 			if (doExit)
 			{
+				bool causedTransform = false;
 				switch (layer.Behavior)
 				{
 					case BoundaryLayerVolume.BoundaryBehavior.DirectionBias:
@@ -3826,13 +4005,32 @@ public partial class RayBeamRenderer : Node3D
 					case BoundaryLayerVolume.BoundaryBehavior.SceneTransform:
 						ApplyBoundarySceneTransform(ref p, ref v, in layer);
 						RecordBoundarySceneTransformValidation();
+						causedTransform = true;
 						break;
 				}
 				RecordBoundaryValidationEvent(i, isEntry: false, isExit: true);
+				ledgerDelta.RecordEvent(i, LedgerCrossingKind.Exit, causedTransform);
 				if (layer.DebugLogCrossings && !_boundaryDebugRunActive)
 					GD.Print($"[BLV] exit event: layer={i} name='{layer.NodeName}' behavior={layer.Behavior} pos=({p.X:0.##},{p.Y:0.##},{p.Z:0.##})");
 			}
 		}
+	}
+
+	private void RecordBoundaryTransformPairedEgress(in BoundaryLayerSnap layer, ref BoundaryInteractionLedgerDelta ledgerDelta)
+	{
+		// SceneTransform is a topological remap: the ray enters the source shell and resumes
+		// just outside the linked shell. There is no sampled geometric exit crossing at the
+		// destination, so we record an explicit paired egress event here for the causal ledger.
+		int linkedLayerIndex = layer.LinkedLayerIndex;
+		if (linkedLayerIndex < 0)
+			return;
+
+		RecordBoundaryValidationEvent(linkedLayerIndex, isEntry: false, isExit: true);
+		ledgerDelta.EventCount++;
+		ledgerDelta.BoundaryCrossings++;
+		ledgerDelta.ExitCount++;
+		ledgerDelta.LastCrossingLayer = linkedLayerIndex;
+		ledgerDelta.LastCrossingKind = LedgerCrossingKind.Exit;
 	}
 
 	private static void ApplyBoundarySceneTransform(ref Vector3 p, ref Vector3 v, in BoundaryLayerSnap layer)
@@ -3853,12 +4051,14 @@ public partial class RayBeamRenderer : Node3D
 		p = layer.LinkedCenter + radial.Normalized() * (layer.LinkedRadius + layer.SceneTransformExitOffset);
 	}
 
-	private int ApplyBoundaryLayerInteractions(ref Vector3 p, ref Vector3 v, BoundaryLayerSnap[] layers, ref uint insideMask)
+	private BoundaryInteractionLedgerDelta ApplyBoundaryLayerInteractions(ref Vector3 p, ref Vector3 v, BoundaryLayerSnap[] layers, ref uint insideMask)
 	{
+		BoundaryInteractionLedgerDelta ledgerDelta = default;
+		ledgerDelta.LastCrossingLayer = -1;
 		if (layers == null || layers.Length == 0)
 		{
 			insideMask = 0u;
-			return 0;
+			return ledgerDelta;
 		}
 
 		uint newMask = ComputeInsideMask(p, layers);
@@ -3867,15 +4067,13 @@ public partial class RayBeamRenderer : Node3D
 		v = ApplyBoundaryLayerBias(p, v, layers);
 		if (crossings != 0u)
 		{
-			int beforeSceneTransformCount = _boundaryDebugSceneTransformCount;
-			ApplyBoundaryLayerCrossings(ref p, ref v, layers, crossings & newMask, crossings & insideMask);
-			sceneTransformEvents = Math.Max(0, _boundaryDebugSceneTransformCount - beforeSceneTransformCount);
+			ApplyBoundaryLayerCrossings(ref p, ref v, layers, crossings & newMask, crossings & insideMask, ref ledgerDelta);
 			insideMask = ComputeInsideMask(p, layers);
-			return sceneTransformEvents;
+			return ledgerDelta;
 		}
 
 		insideMask = newMask;
-		return sceneTransformEvents;
+		return ledgerDelta;
 	}
 
 	public static TransportModel ResolveActiveTransportModel(FieldSourceSnap[] sources)

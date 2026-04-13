@@ -178,6 +178,8 @@ public partial class OverspaceTrophyRoomDemo : Node3D
 
 	private void TeleportVia(WormholePortal sourcePortal, string sourceAnchorId)
 	{
+		// Demo-only traversal seam. This direct portal remap is not part of the renderer causal
+		// validation ledger and should be treated as artistic/non-causal unless explicitly ledgered.
 		if (_viewerCamera == null || DemoGraph == null)
 		{
 			return;

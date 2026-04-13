@@ -6,12 +6,33 @@ import re
 import struct
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 
 FAIL_RE = re.compile(r"\[GrinBasicVisual\]\[Capture\]\[FAIL\].*")
 GUARD_PROGRESS_RE = re.compile(r"reason=guard_progress\b")
 FORCED_ADVANCE_RE = re.compile(r"forcedAdvance=1\b")
+
+TRANSPORT_COLOR_MAP = [
+    ("geom_hit", "Geom Hit", (41, 184, 66, 255), "G"),
+    ("portal_hit", "Portal Hit", (46, 209, 235, 255), "P"),
+    ("throat_entry", "Throat Entry", (245, 209, 41, 255), "TE"),
+    ("throat_exit", "Throat Exit", (245, 107, 36, 255), "TX"),
+    ("throat_shell_transform", "Throat Shell Transform", (184, 82, 235, 255), "TT"),
+    ("throat_inner_absorb", "Throat Inner Absorb", (117, 41, 36, 255), "TA"),
+    ("background_hit", "Background Hit", (82, 112, 219, 255), "B"),
+    ("escaped_no_hit", "Escaped No-Hit", (140, 43, 43, 255), "E"),
+    ("budget_exhausted", "Budget Exhausted", (242, 46, 46, 255), "X"),
+]
+
+THROAT_DEPTH_COLOR_STOPS = [
+    (0, "0"),
+    (1, "1"),
+    (2, "2"),
+    (4, "4"),
+    (8, "8"),
+    (16, "16+"),
+]
 
 
 def scalar(token: str):
@@ -57,9 +78,11 @@ def parse_log(text: str) -> dict:
         "capture": None,
         "captureArtifacts": None,
         "coverage": None,
+        "causal": None,
         "overlayDiag": None,
         "whiteStreakDiag": None,
         "writeDiag": None,
+        "throatDepth": None,
         "bottomRegionDiag": None,
         "rows": None,
         "visual": None,
@@ -84,6 +107,10 @@ def parse_log(text: str) -> dict:
         if coverage:
             parsed["coverage"] = coverage
 
+        causal = parse_kv(line, "[GrinBasicVisual][Causal]")
+        if causal:
+            parsed["causal"] = causal
+
         overlay_diag = parse_kv(line, "[GrinBasicVisual][OverlayDiag]")
         if overlay_diag:
             parsed["overlayDiag"] = overlay_diag
@@ -95,6 +122,10 @@ def parse_log(text: str) -> dict:
         write_diag = parse_kv(line, "[GrinBasicVisual][WriteDiag]")
         if write_diag:
             parsed["writeDiag"] = write_diag
+
+        throat_depth = parse_kv(line, "[GrinBasicVisual][ThroatDepth]")
+        if throat_depth:
+            parsed["throatDepth"] = throat_depth
 
         bottom_region_diag = parse_kv(line, "[GrinBasicVisual][BottomRegionDiag]")
         if bottom_region_diag:
@@ -179,9 +210,11 @@ def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
     rows = parsed.get("rows") or {}
     capture_artifacts = parsed.get("captureArtifacts") or {}
     coverage = parsed.get("coverage") or {}
+    causal = parsed.get("causal") or {}
     overlay_diag = parsed.get("overlayDiag") or {}
     white_streak_diag = parsed.get("whiteStreakDiag") or {}
     write_diag = parsed.get("writeDiag") or {}
+    throat_depth = parsed.get("throatDepth") or {}
     bottom_region_diag = parsed.get("bottomRegionDiag") or {}
     visual = parsed.get("visual") or {}
     runtime_build = parsed.get("runtimeBuild") or {}
@@ -298,6 +331,12 @@ def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
         "debug_capture_written": capture_artifacts.get("debugCaptureWritten"),
         "categorical_final_written": capture_artifacts.get("categoricalFinalWritten"),
         "transport_classification_written": capture_artifacts.get("transportClassificationWritten"),
+        "throat_depth_image_path": first_non_empty(throat_depth.get("path"), capture_artifacts.get("throatDepthPath")),
+        "throat_depth_written": first_non_empty(throat_depth.get("written"), capture_artifacts.get("throatDepthWritten")),
+        "throat_depth_pixels": throat_depth.get("throatPixels"),
+        "throat_depth_max_interaction_count": throat_depth.get("maxInteractionCount"),
+        "throat_depth_mean_interaction_count": throat_depth.get("meanInteractionCount"),
+        "throat_depth_summary": throat_depth.get("summary"),
         "overlay_enabled_for_analysis_capture": capture_artifacts.get("overlayEnabledForAnalysisCapture"),
         "analysis_capture_width": capture_artifacts.get("analysisWidth"),
         "analysis_capture_height": capture_artifacts.get("analysisHeight"),
@@ -370,6 +409,21 @@ def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
         "unclassified_pixels": coverage.get("unclassifiedPixels"),
         "hermetic_rule_satisfied": coverage.get("hermeticRuleSatisfied"),
         "coverage_summary": coverage.get("summary"),
+        "causal_observed_pixels": causal.get("observedPixels"),
+        "boundary_crossings_total": causal.get("boundaryCrossingsTotal"),
+        "scene_transform_events_total": causal.get("sceneTransformEventsTotal"),
+        "entry_events_total": causal.get("entryEventsTotal"),
+        "exit_events_total": causal.get("exitEventsTotal"),
+        "max_transform_count_seen": causal.get("maxTransformCountSeen"),
+        "ambiguous_order_pixels": causal.get("ambiguousOrderingPixels"),
+        "throat_classification_inferred_pixels": causal.get("throatClassificationInferredPixels"),
+        "path_length_mean": causal.get("pathLengthMean"),
+        "path_length_max": causal.get("pathLengthMax"),
+        "optical_path_tracked": causal.get("opticalPathTracked"),
+        "phase_tracked": causal.get("phaseTracked"),
+        "observer_camera_path": causal.get("observerCameraPath"),
+        "observer_camera_instance_id": causal.get("observerCameraInstanceId"),
+        "causal_summary": causal.get("summary"),
         "white_streak_likely_source": white_streak_diag.get("likelySource"),
         "analysis_bottom_band_present": bottom_region_diag.get("analysisBottomBandPresent"),
         "analysis_bottom_band_start": bottom_region_diag.get("analysisBandStart"),
@@ -497,6 +551,30 @@ def parse_int_token(value) -> int | None:
         return None
 
 
+def lerp_rgba(lhs: tuple[int, int, int, int], rhs: tuple[int, int, int, int], t: float) -> tuple[int, int, int, int]:
+    clamped = max(0.0, min(1.0, t))
+    return tuple(int(round(a + ((b - a) * clamped))) for a, b in zip(lhs, rhs))
+
+
+def evaluate_throat_depth_rgba(interaction_count: int) -> tuple[int, int, int, int]:
+    zero = (8, 8, 10, 255)
+    low = (20, 43, 107, 255)
+    mid = (23, 186, 209, 255)
+    high = (240, 214, 46, 255)
+    peak = (242, 71, 41, 255)
+
+    if interaction_count <= 0:
+        return zero
+
+    normalized = math.log(interaction_count + 1.0, 17.0)
+    normalized = max(0.0, min(1.0, normalized))
+    if normalized <= 0.33:
+        return lerp_rgba(low, mid, normalized / 0.33 if 0.33 > 0 else 0.0)
+    if normalized <= 0.66:
+        return lerp_rgba(mid, high, (normalized - 0.33) / 0.33 if 0.33 > 0 else 0.0)
+    return lerp_rgba(high, peak, (normalized - 0.66) / 0.34 if 0.34 > 0 else 0.0)
+
+
 def build_row_coverage_artifact(metrics: dict) -> dict:
     total_rows = parse_int_token(metrics.get("total_rows_considered"))
     if total_rows is None or total_rows <= 0:
@@ -598,6 +676,20 @@ def build_transport_coverage_artifact(metrics: dict) -> dict:
         "total_pixels": metrics.get("total_pixels"),
         "classified_pixels": metrics.get("classified_pixels"),
         "classified_coverage_ratio": metrics.get("classified_coverage_ratio"),
+        "causal_observed_pixels": metrics.get("causal_observed_pixels"),
+        "boundary_crossings_total": metrics.get("boundary_crossings_total"),
+        "scene_transform_events_total": metrics.get("scene_transform_events_total"),
+        "entry_events_total": metrics.get("entry_events_total"),
+        "exit_events_total": metrics.get("exit_events_total"),
+        "max_transform_count_seen": metrics.get("max_transform_count_seen"),
+        "ambiguous_order_pixels": metrics.get("ambiguous_order_pixels"),
+        "throat_classification_inferred_pixels": metrics.get("throat_classification_inferred_pixels"),
+        "path_length_mean": metrics.get("path_length_mean"),
+        "path_length_max": metrics.get("path_length_max"),
+        "optical_path_tracked": metrics.get("optical_path_tracked"),
+        "phase_tracked": metrics.get("phase_tracked"),
+        "observer_camera_path": metrics.get("observer_camera_path"),
+        "observer_camera_instance_id": metrics.get("observer_camera_instance_id"),
         "geom_hit_pixels": metrics.get("geom_hit_pixels"),
         "portal_hit_pixels": metrics.get("portal_hit_pixels"),
         "throat_event_pixels": metrics.get("throat_event_pixels"),
@@ -611,8 +703,127 @@ def build_transport_coverage_artifact(metrics: dict) -> dict:
         "unclassified_pixels": metrics.get("unclassified_pixels"),
         "hermetic_rule_satisfied": hermetic_rule_satisfied,
         "coverage_summary": metrics.get("coverage_summary"),
+        "causal_summary": metrics.get("causal_summary"),
         "coverage_visual": coverage_visual,
         "coverage_legend": "G=geom_hit P=portal_hit TE=throat_entry TX=throat_exit TT=throat_shell_transform TA=throat_inner_absorb T=throat_event_total B=background_hit E=escaped_no_hit X=budget_exhausted U=unclassified",
+        "coverage_palette": [
+            {
+                "kind": kind,
+                "label": label,
+                "short": short,
+                "rgba": list(rgba),
+                "hex": "#{:02X}{:02X}{:02X}".format(rgba[0], rgba[1], rgba[2]),
+            }
+            for kind, label, rgba, short in TRANSPORT_COLOR_MAP
+        ],
+    }
+
+
+def build_transport_legend_images(capture_path: Path, run_dir: Path) -> dict:
+    if not capture_path.exists() or capture_path.stat().st_size <= 0:
+        return {}
+
+    with Image.open(capture_path) as capture_img:
+        capture = capture_img.convert("RGBA")
+
+    font = ImageFont.load_default()
+    columns = 3
+    cell_h = 26
+    rows = math.ceil(len(TRANSPORT_COLOR_MAP) / columns)
+    legend_h = max(64, 16 + (rows * cell_h))
+    legend = Image.new("RGBA", (capture.width, legend_h), (20, 24, 32, 255))
+    draw = ImageDraw.Draw(legend)
+
+    cell_w = max(1, capture.width // columns)
+    swatch = 14
+    for index, (_, label, rgba, short) in enumerate(TRANSPORT_COLOR_MAP):
+        col = index % columns
+        row = index // columns
+        x0 = 10 + (col * cell_w)
+        y0 = 8 + (row * cell_h)
+        draw.rectangle((x0, y0 + 4, x0 + swatch, y0 + 4 + swatch), fill=rgba, outline=(240, 240, 240, 255), width=1)
+        draw.text((x0 + swatch + 8, y0 + 2), f"{short} {label}", fill=(238, 242, 248, 255), font=font)
+
+    annotated = Image.new("RGBA", (capture.width, capture.height + legend_h), (0, 0, 0, 255))
+    annotated.paste(capture, (0, 0))
+    annotated.paste(legend, (0, capture.height))
+
+    legend_path = run_dir / "coverage_legend.png"
+    annotated_path = run_dir / "coverage_annotated.png"
+    legend.save(legend_path)
+    annotated.save(annotated_path)
+    return {
+        "coverage_legend_image_path": str(legend_path),
+        "coverage_annotated_image_path": str(annotated_path),
+    }
+
+
+def build_throat_depth_artifact(metrics: dict) -> dict:
+    max_interaction_count = parse_int_token(metrics.get("throat_depth_max_interaction_count"))
+    mean_interaction_count = metrics.get("throat_depth_mean_interaction_count")
+    if isinstance(mean_interaction_count, str):
+        mean_interaction_count = scalar(mean_interaction_count)
+    throat_pixels = parse_int_token(metrics.get("throat_depth_pixels"))
+
+    return {
+        "image_path": metrics.get("throat_depth_image_path"),
+        "written": metrics.get("throat_depth_written"),
+        "throat_pixels": metrics.get("throat_depth_pixels"),
+        "max_interaction_count": metrics.get("throat_depth_max_interaction_count"),
+        "mean_interaction_count": mean_interaction_count,
+        "summary": metrics.get("throat_depth_summary"),
+        "legend": "0=no_throat_interaction 1=single_transform 2=two_interactions 4=multi_interaction 8=deep_transform 16+=capped_peak",
+        "palette": [
+            {
+                "label": label,
+                "count": count,
+                "rgba": list(evaluate_throat_depth_rgba(count)),
+                "hex": "#{:02X}{:02X}{:02X}".format(*evaluate_throat_depth_rgba(count)[:3]),
+            }
+            for count, label in THROAT_DEPTH_COLOR_STOPS
+        ],
+        "throat_pixels_present": bool(throat_pixels and throat_pixels > 0),
+        "max_interaction_count_value": max_interaction_count,
+    }
+
+
+def build_throat_depth_legend_images(depth_path: Path, run_dir: Path) -> dict:
+    if not depth_path.exists() or depth_path.stat().st_size <= 0:
+        return {}
+
+    with Image.open(depth_path) as depth_img:
+        depth = depth_img.convert("RGBA")
+
+    font = ImageFont.load_default()
+    columns = 3
+    cell_h = 26
+    rows = math.ceil(len(THROAT_DEPTH_COLOR_STOPS) / columns)
+    legend_h = max(64, 16 + (rows * cell_h))
+    legend = Image.new("RGBA", (depth.width, legend_h), (20, 24, 32, 255))
+    draw = ImageDraw.Draw(legend)
+
+    cell_w = max(1, depth.width // columns)
+    swatch = 14
+    for index, (count, label) in enumerate(THROAT_DEPTH_COLOR_STOPS):
+        col = index % columns
+        row = index // columns
+        x0 = 10 + (col * cell_w)
+        y0 = 8 + (row * cell_h)
+        rgba = evaluate_throat_depth_rgba(count)
+        draw.rectangle((x0, y0 + 4, x0 + swatch, y0 + 4 + swatch), fill=rgba, outline=(240, 240, 240, 255), width=1)
+        draw.text((x0 + swatch + 8, y0 + 2), f"{label} interactions", fill=(238, 242, 248, 255), font=font)
+
+    annotated = Image.new("RGBA", (depth.width, depth.height + legend_h), (0, 0, 0, 255))
+    annotated.paste(depth, (0, 0))
+    annotated.paste(legend, (0, depth.height))
+
+    legend_path = run_dir / "throat_depth_legend.png"
+    annotated_path = run_dir / "throat_depth_annotated.png"
+    legend.save(legend_path)
+    annotated.save(annotated_path)
+    return {
+        "throat_depth_legend_image_path": str(legend_path),
+        "throat_depth_annotated_image_path": str(annotated_path),
     }
 
 
@@ -1986,11 +2197,35 @@ def build_summary(metrics: dict, args: argparse.Namespace) -> str:
         f"Turn Threshold: {metrics['effective_turn_threshold']}",
         f"Output Path: {args.run_dir}",
     ]
+    if metrics.get("coverage_annotated_image_path"):
+        lines.append(f"Coverage Annotated Image: {metrics.get('coverage_annotated_image_path')}")
+    if metrics.get("coverage_legend_image_path"):
+        lines.append(f"Coverage Legend Image: {metrics.get('coverage_legend_image_path')}")
+    if metrics.get("throat_depth_image_path"):
+        lines.append(f"Throat Depth Image: {metrics.get('throat_depth_image_path')}")
+    if metrics.get("throat_depth_annotated_image_path"):
+        lines.append(f"Throat Depth Annotated Image: {metrics.get('throat_depth_annotated_image_path')}")
+    if metrics.get("throat_depth_legend_image_path"):
+        lines.append(f"Throat Depth Legend Image: {metrics.get('throat_depth_legend_image_path')}")
     if metrics.get("classified_pixels") is not None:
         lines.extend(
             [
                 f"Classified Pixels: {metrics.get('classified_pixels')}",
                 f"Classified Coverage Ratio: {metrics.get('classified_coverage_ratio')}",
+                f"Causal Observed Pixels: {metrics.get('causal_observed_pixels')}",
+                f"Boundary Crossings Total: {metrics.get('boundary_crossings_total')}",
+                f"Scene Transform Events Total: {metrics.get('scene_transform_events_total')}",
+                f"Entry Events Total: {metrics.get('entry_events_total')}",
+                f"Exit Events Total: {metrics.get('exit_events_total')}",
+                f"Max Transform Count Seen: {metrics.get('max_transform_count_seen')}",
+                f"Ambiguous Order Pixels: {metrics.get('ambiguous_order_pixels')}",
+                f"Throat Classification Inferred Pixels: {metrics.get('throat_classification_inferred_pixels')}",
+                f"Path Length Mean: {metrics.get('path_length_mean')}",
+                f"Path Length Max: {metrics.get('path_length_max')}",
+                f"Optical Path Tracked: {metrics.get('optical_path_tracked')}",
+                f"Phase Tracked: {metrics.get('phase_tracked')}",
+                f"Observer Camera Path: {metrics.get('observer_camera_path')}",
+                f"Observer Camera Instance Id: {metrics.get('observer_camera_instance_id')}",
                 f"Geom Hit Pixels: {metrics.get('geom_hit_pixels')}",
                 f"Portal Hit Pixels: {metrics.get('portal_hit_pixels')}",
                 f"Throat Event Pixels: {metrics.get('throat_event_pixels')}",
@@ -2002,8 +2237,21 @@ def build_summary(metrics: dict, args: argparse.Namespace) -> str:
                 f"Escaped No-Hit Pixels: {metrics.get('escaped_no_hit_pixels')}",
                 f"Budget Exhausted Pixels: {metrics.get('budget_exhausted_pixels')}",
                 f"Coverage Summary: {metrics.get('coverage_summary')}",
+                f"Causal Summary: {metrics.get('causal_summary')}",
                 f"Hermetic Rule Satisfied: {metrics.get('hermetic_rule_satisfied')}",
                 f"Coverage Mix: {transport_coverage.get('coverage_visual', '')}",
+                f"Coverage Legend: {transport_coverage.get('coverage_legend', '')}",
+            ]
+        )
+    throat_depth = metrics.get("throat_depth") or {}
+    if throat_depth:
+        lines.extend(
+            [
+                f"Throat Pixels: {throat_depth.get('throat_pixels')}",
+                f"Throat Max Interaction Count: {throat_depth.get('max_interaction_count')}",
+                f"Throat Mean Interaction Count: {throat_depth.get('mean_interaction_count')}",
+                f"Throat Depth Summary: {throat_depth.get('summary')}",
+                f"Throat Depth Legend: {throat_depth.get('legend')}",
             ]
         )
     if metrics.get("failure_reason"):
@@ -2048,6 +2296,11 @@ def run_report(args: argparse.Namespace) -> int:
     metrics["verification"] = build_verification(metrics, params)
     metrics["row_coverage"] = build_row_coverage_artifact(metrics)
     metrics["transport_coverage"] = build_transport_coverage_artifact(metrics)
+    metrics.update(build_transport_legend_images(args.capture_path, args.run_dir))
+    metrics["throat_depth"] = build_throat_depth_artifact(metrics)
+    throat_depth_path_token = metrics.get("throat_depth_image_path")
+    if throat_depth_path_token:
+        metrics.update(build_throat_depth_legend_images(Path(throat_depth_path_token), args.run_dir))
     radial_profile, radial_sector_profile = build_spatial_profiles(args, metrics)
     field_radial_profile, field_radial_sector_profile = build_field_spatial_profiles(args, metrics)
     radial_profile_path = args.run_dir / "radial_profile.json"
@@ -2116,9 +2369,11 @@ def run_report(args: argparse.Namespace) -> int:
         "capture": parsed.get("capture") or {},
         "captureArtifacts": parsed.get("captureArtifacts") or {},
         "coverage": parsed.get("coverage") or {},
+        "causal": parsed.get("causal") or {},
         "overlayDiag": parsed.get("overlayDiag") or {},
         "whiteStreakDiag": parsed.get("whiteStreakDiag") or {},
         "writeDiag": parsed.get("writeDiag") or {},
+        "throatDepth": parsed.get("throatDepth") or {},
         "bottomRegionDiag": parsed.get("bottomRegionDiag") or {},
         "rowParticipation": parsed.get("rows") or {},
         "runtimeBuild": parsed.get("runtimeBuild") or {},
@@ -2161,6 +2416,20 @@ def run_report(args: argparse.Namespace) -> int:
             f"Total Pixels: {transport_coverage.get('total_pixels')}",
             f"Classified Pixels: {transport_coverage.get('classified_pixels')}",
             f"Classified Coverage Ratio: {transport_coverage.get('classified_coverage_ratio')}",
+            f"Causal Observed Pixels: {transport_coverage.get('causal_observed_pixels')}",
+            f"Boundary Crossings Total: {transport_coverage.get('boundary_crossings_total')}",
+            f"Scene Transform Events Total: {transport_coverage.get('scene_transform_events_total')}",
+            f"Entry Events Total: {transport_coverage.get('entry_events_total')}",
+            f"Exit Events Total: {transport_coverage.get('exit_events_total')}",
+            f"Max Transform Count Seen: {transport_coverage.get('max_transform_count_seen')}",
+            f"Ambiguous Order Pixels: {transport_coverage.get('ambiguous_order_pixels')}",
+            f"Throat Classification Inferred Pixels: {transport_coverage.get('throat_classification_inferred_pixels')}",
+            f"Path Length Mean: {transport_coverage.get('path_length_mean')}",
+            f"Path Length Max: {transport_coverage.get('path_length_max')}",
+            f"Optical Path Tracked: {transport_coverage.get('optical_path_tracked')}",
+            f"Phase Tracked: {transport_coverage.get('phase_tracked')}",
+            f"Observer Camera Path: {transport_coverage.get('observer_camera_path')}",
+            f"Observer Camera Instance Id: {transport_coverage.get('observer_camera_instance_id')}",
             f"Geom Hit Pixels: {transport_coverage.get('geom_hit_pixels')}",
             f"Portal Hit Pixels: {transport_coverage.get('portal_hit_pixels')}",
             f"Throat Event Pixels: {transport_coverage.get('throat_event_pixels')}",
@@ -2174,13 +2443,33 @@ def run_report(args: argparse.Namespace) -> int:
             f"Unclassified Pixels: {transport_coverage.get('unclassified_pixels')}",
             f"Hermetic Rule Satisfied: {transport_coverage.get('hermetic_rule_satisfied')}",
             f"Coverage Summary: {transport_coverage.get('coverage_summary')}",
+            f"Causal Summary: {transport_coverage.get('causal_summary')}",
             f"Coverage Mix: {transport_coverage.get('coverage_visual')}",
             f"Legend: {transport_coverage.get('coverage_legend')}",
+            f"Legend Image: {metrics.get('coverage_legend_image_path')}",
+            f"Annotated Image: {metrics.get('coverage_annotated_image_path')}",
             "",
         ]
     )
     (args.run_dir / "coverage.json").write_text(json.dumps(transport_coverage, indent=2) + "\n", encoding="utf-8")
     (args.run_dir / "coverage.txt").write_text(transport_coverage_text, encoding="utf-8")
+    throat_depth = metrics.get("throat_depth") or {}
+    throat_depth_text = "\n".join(
+        [
+            f"Image Path: {throat_depth.get('image_path')}",
+            f"Written: {throat_depth.get('written')}",
+            f"Throat Pixels: {throat_depth.get('throat_pixels')}",
+            f"Max Interaction Count: {throat_depth.get('max_interaction_count')}",
+            f"Mean Interaction Count: {throat_depth.get('mean_interaction_count')}",
+            f"Summary: {throat_depth.get('summary')}",
+            f"Legend: {throat_depth.get('legend')}",
+            f"Legend Image: {metrics.get('throat_depth_legend_image_path')}",
+            f"Annotated Image: {metrics.get('throat_depth_annotated_image_path')}",
+            "",
+        ]
+    )
+    (args.run_dir / "throat_depth.json").write_text(json.dumps(throat_depth, indent=2) + "\n", encoding="utf-8")
+    (args.run_dir / "throat_depth.txt").write_text(throat_depth_text, encoding="utf-8")
     return 0
 
 

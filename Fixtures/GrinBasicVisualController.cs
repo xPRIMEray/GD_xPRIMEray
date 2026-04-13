@@ -582,12 +582,19 @@ public partial class GrinBasicVisualController : Node3D
 
 		string analysisCapturePath = ResolveCapturePath(_capturePath);
 		string debugCapturePath = ResolveCapturePath(_debugCapturePath);
+		string throatDepthCapturePath = string.Empty;
+		string analysisDirectory = Path.GetDirectoryName(analysisCapturePath) ?? string.Empty;
+		if (!string.IsNullOrWhiteSpace(analysisDirectory))
+		{
+			throatDepthCapturePath = Path.Combine(analysisDirectory, "throat_depth_map.png");
+		}
 		try
 		{
 			string[] directories =
 			{
 				Path.GetDirectoryName(analysisCapturePath),
-				Path.GetDirectoryName(debugCapturePath)
+				Path.GetDirectoryName(debugCapturePath),
+				Path.GetDirectoryName(throatDepthCapturePath)
 			};
 			foreach (string directory in directories)
 			{
@@ -674,6 +681,10 @@ public partial class GrinBasicVisualController : Node3D
 		bool hasWriteDiagnostics = _filmCamera.TryGetFixtureWriteDiagnosticsForTesting(out writeDiagnostics);
 		GrinFilmCamera.FixtureTransportCoverageSnapshot transportCoverage = default;
 		bool hasTransportCoverage = _filmCamera.TryGetFixtureTransportCoverageForTesting(out transportCoverage);
+		GrinFilmCamera.FixtureThroatDepthSnapshot throatDepthSnapshot = default;
+		bool hasThroatDepth = _filmCamera.TryGetFixtureThroatDepthForTesting(out throatDepthSnapshot);
+		GrinFilmCamera.FixtureCausalLedgerSnapshot causalLedgerSnapshot = default;
+		bool hasCausalLedger = _filmCamera.TryGetFixtureCausalLedgerForTesting(out causalLedgerSnapshot);
 		FilmOverlay2D.OverlayRenderSnapshot overlaySnapshot = default;
 		bool hasOverlaySnapshot = _filmOverlay != null && GodotObject.IsInstanceValid(_filmOverlay);
 		if (hasOverlaySnapshot)
@@ -733,6 +744,24 @@ public partial class GrinBasicVisualController : Node3D
 			analysisBottomBand,
 			analysisBottomBandMatchesUnrenderedRows,
 			analysisBottomBandMatchesSkyColor);
+		bool throatDepthWritten = false;
+		if (hasThroatDepth && !string.IsNullOrWhiteSpace(throatDepthCapturePath))
+		{
+			Image throatDepthImage = null;
+			if (_filmCamera.TryCopyThroatDepthFilmImageForTesting(out throatDepthImage) && throatDepthImage != null)
+			{
+				Error throatDepthSaveError = throatDepthImage.SavePng(throatDepthCapturePath);
+				if (throatDepthSaveError != Error.Ok)
+				{
+					FailCaptureAndQuit(
+						$"[GrinBasicVisual][Capture][FAIL] fixture={FixtureHudName} reason=save_throat_depth_png " +
+						$"path={throatDepthCapturePath} error={throatDepthSaveError}");
+					return;
+				}
+
+				throatDepthWritten = true;
+			}
+		}
 
 		_captureComplete = true;
 		SetProcess(false);
@@ -745,9 +774,12 @@ public partial class GrinBasicVisualController : Node3D
 		GD.Print(
 			$"[GrinBasicVisual][CaptureArtifacts] fixture={FixtureHudName} " +
 				$"analysisPath={analysisCapturePath} debugPath={debugCapturePath} " +
+				$"throatDepthPath={(string.IsNullOrWhiteSpace(throatDepthCapturePath) ? "na" : throatDepthCapturePath)} " +
 				$"analysisCaptureMode={_analysisCaptureMode} " +
 				$"analysisCaptureWritten=1 debugCaptureWritten=1 categoricalFinalWritten={(categoricalFinalAnalysis ? 1 : 0)} " +
-				$"transportClassificationWritten={(transportClassificationAnalysis ? 1 : 0)} overlayEnabledForAnalysisCapture=0 " +
+				$"transportClassificationWritten={(transportClassificationAnalysis ? 1 : 0)} " +
+				$"throatDepthWritten={(throatDepthWritten ? 1 : 0)} " +
+				$"overlayEnabledForAnalysisCapture=0 " +
 				$"analysisWidth={analysisImage.GetWidth()} analysisHeight={analysisImage.GetHeight()} " +
 			$"debugWidth={debugImage.GetWidth()} debugHeight={debugImage.GetHeight()} " +
 			$"viewportWidth={viewportSize.X} viewportHeight={viewportSize.Y} " +
@@ -824,6 +856,39 @@ public partial class GrinBasicVisualController : Node3D
 			$"unclassifiedPixels={(hasTransportCoverage ? transportCoverage.UnclassifiedPixels.ToString(CultureInfo.InvariantCulture) : "na")} " +
 			$"hermeticRuleSatisfied={(hasTransportCoverage ? (transportCoverage.HermeticRuleSatisfied ? "1" : "0") : "na")} " +
 			$"summary={(hasTransportCoverage ? transportCoverage.Summary : "na")}");
+		if (hasCausalLedger)
+		{
+			string observerCameraPath = string.IsNullOrWhiteSpace(causalLedgerSnapshot.ObserverCameraPath)
+				? "-"
+				: causalLedgerSnapshot.ObserverCameraPath.Replace(' ', '_');
+			GD.Print(
+				$"[GrinBasicVisual][Causal] fixture={FixtureHudName} " +
+				$"observedPixels={causalLedgerSnapshot.ObservedPixels} " +
+				$"boundaryCrossingsTotal={causalLedgerSnapshot.BoundaryCrossingsTotal} " +
+				$"sceneTransformEventsTotal={causalLedgerSnapshot.SceneTransformEventsTotal} " +
+				$"entryEventsTotal={causalLedgerSnapshot.EntryEventsTotal} " +
+				$"exitEventsTotal={causalLedgerSnapshot.ExitEventsTotal} " +
+				$"maxTransformCountSeen={causalLedgerSnapshot.MaxTransformCountSeen} " +
+				$"ambiguousOrderingPixels={causalLedgerSnapshot.AmbiguousOrderingPixels} " +
+				$"throatClassificationInferredPixels={causalLedgerSnapshot.ThroatClassificationInferredPixels} " +
+				$"pathLengthMean={causalLedgerSnapshot.PathLengthMean.ToString("0.######", CultureInfo.InvariantCulture)} " +
+				$"pathLengthMax={causalLedgerSnapshot.PathLengthMax.ToString("0.######", CultureInfo.InvariantCulture)} " +
+				$"opticalPathTracked={(causalLedgerSnapshot.OpticalPathTracked ? 1 : 0)} " +
+				$"phaseTracked={(causalLedgerSnapshot.PhaseTracked ? 1 : 0)} " +
+				$"observerCameraPath={observerCameraPath} " +
+				$"observerCameraInstanceId={causalLedgerSnapshot.ObserverCameraInstanceId} " +
+				$"summary={causalLedgerSnapshot.Summary}");
+		}
+		if (hasThroatDepth && throatDepthWritten)
+		{
+			GD.Print(
+				$"[GrinBasicVisual][ThroatDepth] fixture={FixtureHudName} " +
+				$"path={throatDepthCapturePath} written=1 " +
+				$"throatPixels={throatDepthSnapshot.ThroatPixels.ToString(CultureInfo.InvariantCulture)} " +
+				$"maxInteractionCount={throatDepthSnapshot.MaxInteractionCount.ToString(CultureInfo.InvariantCulture)} " +
+				$"meanInteractionCount={throatDepthSnapshot.MeanInteractionCount.ToString("0.######", CultureInfo.InvariantCulture)} " +
+				$"summary={throatDepthSnapshot.Summary}");
+		}
 		GD.Print(
 			$"[GrinBasicVisual][BottomRegionDiag] fixture={FixtureHudName} " +
 			$"analysisBottomBandPresent={(analysisBottomBand.Present ? 1 : 0)} analysisBandStart={analysisBottomBand.StartRow} " +

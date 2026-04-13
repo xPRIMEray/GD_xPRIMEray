@@ -561,6 +561,8 @@ public partial class WormholePrototypeRig : Node3D
 
 	private void TeleportThrough(WormholePortal sourcePortal)
 	{
+		// Demo-only traversal seam. This direct portal remap is not part of the renderer causal
+		// validation ledger and should be treated as artistic/non-causal unless explicitly ledgered.
 		WormholePortal destinationPortal = sourcePortal.GetLinkedPortal();
 		if (destinationPortal == null)
 		{

@@ -811,18 +811,99 @@ public partial class GrinFilmCamera : Node
 		}
 	}
 
+	public readonly struct FixtureThroatDepthSnapshot
+	{
+		public readonly long TotalPixels;
+		public readonly long ThroatPixels;
+		public readonly int MaxInteractionCount;
+		public readonly double MeanInteractionCount;
+		public readonly string Summary;
+
+		public FixtureThroatDepthSnapshot(
+			long totalPixels,
+			long throatPixels,
+			int maxInteractionCount,
+			double meanInteractionCount,
+			string summary)
+		{
+			TotalPixels = totalPixels;
+			ThroatPixels = throatPixels;
+			MaxInteractionCount = maxInteractionCount;
+			MeanInteractionCount = meanInteractionCount;
+			Summary = summary ?? string.Empty;
+		}
+	}
+
+	public readonly struct FixtureCausalLedgerSnapshot
+	{
+		public readonly long ObservedPixels;
+		public readonly long BoundaryCrossingsTotal;
+		public readonly long SceneTransformEventsTotal;
+		public readonly long EntryEventsTotal;
+		public readonly long ExitEventsTotal;
+		public readonly int MaxTransformCountSeen;
+		public readonly long AmbiguousOrderingPixels;
+		public readonly long ThroatClassificationInferredPixels;
+		public readonly double PathLengthMean;
+		public readonly double PathLengthMax;
+		public readonly bool OpticalPathTracked;
+		public readonly bool PhaseTracked;
+		public readonly string ObserverCameraPath;
+		public readonly ulong ObserverCameraInstanceId;
+		public readonly string Summary;
+
+		public FixtureCausalLedgerSnapshot(
+			long observedPixels,
+			long boundaryCrossingsTotal,
+			long sceneTransformEventsTotal,
+			long entryEventsTotal,
+			long exitEventsTotal,
+			int maxTransformCountSeen,
+			long ambiguousOrderingPixels,
+			long throatClassificationInferredPixels,
+			double pathLengthMean,
+			double pathLengthMax,
+			bool opticalPathTracked,
+			bool phaseTracked,
+			string observerCameraPath,
+			ulong observerCameraInstanceId,
+			string summary)
+		{
+			ObservedPixels = observedPixels;
+			BoundaryCrossingsTotal = boundaryCrossingsTotal;
+			SceneTransformEventsTotal = sceneTransformEventsTotal;
+			EntryEventsTotal = entryEventsTotal;
+			ExitEventsTotal = exitEventsTotal;
+			MaxTransformCountSeen = maxTransformCountSeen;
+			AmbiguousOrderingPixels = ambiguousOrderingPixels;
+			ThroatClassificationInferredPixels = throatClassificationInferredPixels;
+			PathLengthMean = pathLengthMean;
+			PathLengthMax = pathLengthMax;
+			OpticalPathTracked = opticalPathTracked;
+			PhaseTracked = phaseTracked;
+			ObserverCameraPath = observerCameraPath ?? string.Empty;
+			ObserverCameraInstanceId = observerCameraInstanceId;
+			Summary = summary ?? string.Empty;
+		}
+	}
+
 	private static readonly Color FixtureCategoricalFinalHitColor = new(1.0f, 0.82f, 0.18f, 1.0f);
 	private static readonly Color FixtureCategoricalRenderedNoHitColor = new(0.07f, 0.09f, 0.18f, 1.0f);
 	private static readonly Color FixtureTransportGeomHitColor = new(0.16f, 0.72f, 0.26f, 1.0f);
 	private static readonly Color FixtureTransportPortalHitColor = new(0.18f, 0.82f, 0.92f, 1.0f);
 	private static readonly Color FixtureTransportThroatEventColor = new(0.95f, 0.78f, 0.18f, 1.0f);
-	private static readonly Color FixtureTransportThroatEntryColor = new(0.96f, 0.72f, 0.24f, 1.0f);
-	private static readonly Color FixtureTransportThroatExitColor = new(0.96f, 0.52f, 0.20f, 1.0f);
-	private static readonly Color FixtureTransportThroatShellTransformColor = new(0.98f, 0.88f, 0.34f, 1.0f);
-	private static readonly Color FixtureTransportThroatInnerAbsorbColor = new(0.72f, 0.28f, 0.18f, 1.0f);
+	private static readonly Color FixtureTransportThroatEntryColor = new(0.96f, 0.82f, 0.16f, 1.0f);
+	private static readonly Color FixtureTransportThroatExitColor = new(0.96f, 0.42f, 0.14f, 1.0f);
+	private static readonly Color FixtureTransportThroatShellTransformColor = new(0.72f, 0.32f, 0.92f, 1.0f);
+	private static readonly Color FixtureTransportThroatInnerAbsorbColor = new(0.46f, 0.16f, 0.14f, 1.0f);
 	private static readonly Color FixtureTransportBackgroundHitColor = new(0.32f, 0.44f, 0.86f, 1.0f);
 	private static readonly Color FixtureTransportEscapedNoHitColor = new(0.55f, 0.17f, 0.17f, 1.0f);
 	private static readonly Color FixtureTransportBudgetExhaustedColor = new(0.95f, 0.18f, 0.18f, 1.0f);
+	private static readonly Color FixtureThroatDepthZeroColor = new(0.03f, 0.03f, 0.04f, 1.0f);
+	private static readonly Color FixtureThroatDepthLowColor = new(0.08f, 0.17f, 0.42f, 1.0f);
+	private static readonly Color FixtureThroatDepthMidColor = new(0.09f, 0.73f, 0.82f, 1.0f);
+	private static readonly Color FixtureThroatDepthHighColor = new(0.94f, 0.84f, 0.18f, 1.0f);
+	private static readonly Color FixtureThroatDepthPeakColor = new(0.95f, 0.28f, 0.16f, 1.0f);
 
 	[ExportGroup("Presets")]
 
@@ -2066,6 +2147,16 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private long _fixtureDebugMissHitsThisRun = 0;
 	private long _fixtureFinalHitPixelCountThisRun = 0;
 	private long _fixtureTraversalWritePixelCountThisRun = 0;
+	private long _fixtureCausalObservedPixelsThisRun = 0;
+	private long _fixtureCausalBoundaryCrossingsTotalThisRun = 0;
+	private long _fixtureCausalSceneTransformEventsTotalThisRun = 0;
+	private long _fixtureCausalEntryEventsTotalThisRun = 0;
+	private long _fixtureCausalExitEventsTotalThisRun = 0;
+	private int _fixtureCausalMaxTransformCountSeenThisRun = 0;
+	private long _fixtureCausalAmbiguousOrderingPixelsThisRun = 0;
+	private long _fixtureCausalThroatClassificationInferredPixelsThisRun = 0;
+	private double _fixtureCausalPathLengthSumThisRun = 0.0;
+	private double _fixtureCausalPathLengthMaxThisRun = 0.0;
 	private long _wormholePostRemapPixelsThisRun = 0;
 	private long _wormholePostRemapPixelsMultiRemapThisRun = 0;
 	private long _wormholePostRemapSegmentsThisRun = 0;
@@ -2104,6 +2195,8 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private Image _fixtureFinalHitOnlyImg;
 	private Image _fixtureCategoricalFinalImg;
 	private Image _fixtureTransportClassificationImg;
+	private Image _fixtureThroatDepthImg;
+	private int[] _fixtureThroatInteractionCounts = Array.Empty<int>();
 
 	// band hit ROI history
 	private float[] _bandHitRate = Array.Empty<float>();
@@ -3056,6 +3149,16 @@ private sealed class OverlayRollingWindow
 		public int PostRemapGeometryHitCount;
 		public int MaxBoundaryRemapCount;
 		public bool BestHitWasPostRemap;
+		public int EventCount;
+		public int BoundaryCrossings;
+		public int TransformCount;
+		public int EntryCount;
+		public int ExitCount;
+		public int LastCrossingLayer;
+		public byte LastCrossingKind;
+		public bool AmbiguousOrdering;
+		public float TerminalPathLength;
+		public float ObservedPathLength;
 	}
 
 	private struct Pass2ShadedSample
@@ -4749,6 +4852,16 @@ private sealed class OverlayRollingWindow
 		_fixtureDebugUnclassifiedHitsThisRun = 0;
 		_fixtureDebugAbsorbedHitsThisRun = 0;
 		_fixtureDebugMissHitsThisRun = 0;
+		_fixtureCausalObservedPixelsThisRun = 0;
+		_fixtureCausalBoundaryCrossingsTotalThisRun = 0;
+		_fixtureCausalSceneTransformEventsTotalThisRun = 0;
+		_fixtureCausalEntryEventsTotalThisRun = 0;
+		_fixtureCausalExitEventsTotalThisRun = 0;
+		_fixtureCausalMaxTransformCountSeenThisRun = 0;
+		_fixtureCausalAmbiguousOrderingPixelsThisRun = 0;
+		_fixtureCausalThroatClassificationInferredPixelsThisRun = 0;
+		_fixtureCausalPathLengthSumThisRun = 0.0;
+		_fixtureCausalPathLengthMaxThisRun = 0.0;
 		ResetTelemetryHeatmapsForRunStart();
 		ResetFixtureRowParticipationForRunStart();
 		ResetFixtureWriteDiagnosticsForRunStart();
@@ -4923,6 +5036,89 @@ private sealed class OverlayRollingWindow
 			hermeticRuleSatisfied,
 			summary);
 		return totalPixels > 0;
+	}
+
+	public bool TryGetFixtureThroatDepthForTesting(out FixtureThroatDepthSnapshot snapshot)
+	{
+		snapshot = default;
+		if (_fixtureThroatInteractionCounts == null || _fixtureThroatInteractionCounts.Length == 0)
+		{
+			return false;
+		}
+
+		long throatPixels = 0;
+		long interactionSum = 0;
+		int maxInteractionCount = 0;
+		long totalPixels = _fixtureThroatInteractionCounts.LongLength;
+		for (int i = 0; i < _fixtureThroatInteractionCounts.Length; i++)
+		{
+			int count = _fixtureThroatInteractionCounts[i];
+			if (count <= 0)
+			{
+				continue;
+			}
+
+			throatPixels++;
+			interactionSum += count;
+			if (count > maxInteractionCount)
+			{
+				maxInteractionCount = count;
+			}
+		}
+
+		double meanInteractionCount = throatPixels > 0
+			? (double)interactionSum / throatPixels
+			: 0.0;
+		string summary =
+			$"throatPx={throatPixels}|max={maxInteractionCount}|mean={meanInteractionCount.ToString("0.###", CultureInfo.InvariantCulture)}";
+
+		snapshot = new FixtureThroatDepthSnapshot(
+			totalPixels,
+			throatPixels,
+			maxInteractionCount,
+			meanInteractionCount,
+			summary);
+		return totalPixels > 0;
+	}
+
+	public bool TryGetFixtureCausalLedgerForTesting(out FixtureCausalLedgerSnapshot snapshot)
+	{
+		string observerCameraPath = string.Empty;
+		ulong observerCameraInstanceId = 0;
+		if (_cam != null && GodotObject.IsInstanceValid(_cam))
+		{
+			observerCameraPath = _cam.GetPath().ToString();
+			observerCameraInstanceId = _cam.GetInstanceId();
+		}
+
+		double pathLengthMean = _fixtureCausalObservedPixelsThisRun > 0
+			? _fixtureCausalPathLengthSumThisRun / _fixtureCausalObservedPixelsThisRun
+			: 0.0;
+		string summary =
+			$"obs={_fixtureCausalObservedPixelsThisRun}|cross={_fixtureCausalBoundaryCrossingsTotalThisRun}|" +
+			$"xform={_fixtureCausalSceneTransformEventsTotalThisRun}|entry={_fixtureCausalEntryEventsTotalThisRun}|exit={_fixtureCausalExitEventsTotalThisRun}|" +
+			$"ambig={_fixtureCausalAmbiguousOrderingPixelsThisRun}|infer={_fixtureCausalThroatClassificationInferredPixelsThisRun}|" +
+			$"pathMean={pathLengthMean.ToString("0.###", CultureInfo.InvariantCulture)}|pathMax={_fixtureCausalPathLengthMaxThisRun.ToString("0.###", CultureInfo.InvariantCulture)}";
+
+		snapshot = new FixtureCausalLedgerSnapshot(
+			_fixtureCausalObservedPixelsThisRun,
+			_fixtureCausalBoundaryCrossingsTotalThisRun,
+			_fixtureCausalSceneTransformEventsTotalThisRun,
+			_fixtureCausalEntryEventsTotalThisRun,
+			_fixtureCausalExitEventsTotalThisRun,
+			_fixtureCausalMaxTransformCountSeenThisRun,
+			_fixtureCausalAmbiguousOrderingPixelsThisRun,
+			_fixtureCausalThroatClassificationInferredPixelsThisRun,
+			pathLengthMean,
+			_fixtureCausalPathLengthMaxThisRun,
+			opticalPathTracked: false,
+			phaseTracked: false,
+			observerCameraPath,
+			observerCameraInstanceId,
+			summary);
+		return _fixtureCausalObservedPixelsThisRun > 0 ||
+			_fixtureCausalBoundaryCrossingsTotalThisRun > 0 ||
+			_fixtureCausalSceneTransformEventsTotalThisRun > 0;
 	}
 
 	public bool TryGetWormholePostRemapDiagnosticsForTesting(out WormholePostRemapDiagnosticsSnapshot snapshot)
@@ -5526,6 +5722,27 @@ private sealed class OverlayRollingWindow
 			{
 				Color pixel = NormalizeFixtureTransportClassificationPixel(_fixtureTransportClassificationImg.GetPixel(x, y));
 				copy.SetPixel(x, y, pixel);
+			}
+		}
+
+		image = copy;
+		return true;
+	}
+
+	public bool TryCopyThroatDepthFilmImageForTesting(out Image image)
+	{
+		image = null;
+		if (_fixtureThroatDepthImg == null || _filmWidth <= 0 || _filmHeight <= 0)
+		{
+			return false;
+		}
+
+		Image copy = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
+		for (int y = 0; y < _filmHeight; y++)
+		{
+			for (int x = 0; x < _filmWidth; x++)
+			{
+				copy.SetPixel(x, y, _fixtureThroatDepthImg.GetPixel(x, y));
 			}
 		}
 
@@ -6546,6 +6763,14 @@ private sealed class OverlayRollingWindow
 		if (_fixtureTransportClassificationImg != null && _filmWidth > 0 && _filmHeight > 0)
 		{
 			_fixtureTransportClassificationImg.Fill(Colors.Black);
+		}
+		if (_fixtureThroatDepthImg != null && _filmWidth > 0 && _filmHeight > 0)
+		{
+			_fixtureThroatDepthImg.Fill(FixtureThroatDepthZeroColor);
+		}
+		if (_fixtureThroatInteractionCounts.Length > 0)
+		{
+			Array.Clear(_fixtureThroatInteractionCounts, 0, _fixtureThroatInteractionCounts.Length);
 		}
 	}
 
@@ -10398,6 +10623,23 @@ private sealed class OverlayRollingWindow
 										int postRemapGeometryHitCountThisPixel = 0;
 										int maxBoundaryRemapCountThisPixel = 0;
 										bool bestHitWasPostRemap = false;
+										int bestEventCountThisPixel = 0;
+										int bestBoundaryCrossingsThisPixel = 0;
+										int bestTransformCountThisPixel = 0;
+										int bestEntryCountThisPixel = 0;
+										int bestExitCountThisPixel = 0;
+										int bestLastCrossingLayerThisPixel = -1;
+										byte bestLastCrossingKindThisPixel = (byte)RayBeamRenderer.LedgerCrossingKind.None;
+										bool bestAmbiguousOrderingThisPixel = false;
+										int terminalEventCountThisPixel = 0;
+										int terminalBoundaryCrossingsThisPixel = 0;
+										int terminalTransformCountThisPixel = 0;
+										int terminalEntryCountThisPixel = 0;
+										int terminalExitCountThisPixel = 0;
+										int terminalLastCrossingLayerThisPixel = -1;
+										byte terminalLastCrossingKindThisPixel = (byte)RayBeamRenderer.LedgerCrossingKind.None;
+										bool terminalAmbiguousOrderingThisPixel = false;
+										float terminalPathLengthThisPixel = 0f;
 										bool segmentsMonotonic = true;
 										if (segCount > 1)
 										{
@@ -10436,6 +10678,15 @@ private sealed class OverlayRollingWindow
 										}
 
 											ref readonly var seg = ref _segBuf[segOffset + si];
+											terminalPathLengthThisPixel = Mathf.Max(terminalPathLengthThisPixel, seg.TraveledB);
+											terminalEventCountThisPixel = seg.EventCount;
+											terminalBoundaryCrossingsThisPixel = seg.BoundaryCrossings;
+											terminalTransformCountThisPixel = seg.TransformCount;
+											terminalEntryCountThisPixel = seg.EntryCount;
+											terminalExitCountThisPixel = seg.ExitCount;
+											terminalLastCrossingLayerThisPixel = seg.LastCrossingLayer;
+											terminalLastCrossingKindThisPixel = seg.LastCrossingKind;
+											terminalAmbiguousOrderingThisPixel = seg.AmbiguousOrdering;
 											bool segPostRemap = seg.BoundaryRemapCount > 0;
 											if (segPostRemap)
 											{
@@ -10552,6 +10803,14 @@ private sealed class OverlayRollingWindow
 													bestHn = Vector3.Up;
 													bestCid = 0;
 													bestHitWasPostRemap = segPostRemap;
+													bestEventCountThisPixel = seg.EventCount;
+													bestBoundaryCrossingsThisPixel = seg.BoundaryCrossings;
+													bestTransformCountThisPixel = seg.TransformCount;
+													bestEntryCountThisPixel = seg.EntryCount;
+													bestExitCountThisPixel = seg.ExitCount;
+													bestLastCrossingLayerThisPixel = seg.LastCrossingLayer;
+													bestLastCrossingKindThisPixel = seg.LastCrossingKind;
+													bestAmbiguousOrderingThisPixel = seg.AmbiguousOrdering;
 												}
 												if (statsEnabled && resolveStartUsec > 0)
 													chunk.ResolveUsec += (long)(Time.GetTicksUsec() - resolveStartUsec);
@@ -10619,6 +10878,14 @@ private sealed class OverlayRollingWindow
 												bestHn = hn;
 												bestCid = cid;
 												bestHitWasPostRemap = segPostRemap;
+												bestEventCountThisPixel = seg.EventCount;
+												bestBoundaryCrossingsThisPixel = seg.BoundaryCrossings;
+												bestTransformCountThisPixel = seg.TransformCount;
+												bestEntryCountThisPixel = seg.EntryCount;
+												bestExitCountThisPixel = seg.ExitCount;
+												bestLastCrossingLayerThisPixel = seg.LastCrossingLayer;
+												bestLastCrossingKindThisPixel = seg.LastCrossingKind;
+												bestAmbiguousOrderingThisPixel = seg.AmbiguousOrdering;
 												if (needHitName)
 													hitName = cname;
 											}
@@ -10628,6 +10895,19 @@ private sealed class OverlayRollingWindow
 												break;
 										}
 
+										if (!hadHit && segCount > 0)
+										{
+											ref readonly var terminalSeg = ref _segBuf[segOffset + (segCount - 1)];
+											terminalPathLengthThisPixel = terminalSeg.TraveledB;
+											terminalEventCountThisPixel = terminalSeg.EventCount;
+											terminalBoundaryCrossingsThisPixel = terminalSeg.BoundaryCrossings;
+											terminalTransformCountThisPixel = terminalSeg.TransformCount;
+											terminalEntryCountThisPixel = terminalSeg.EntryCount;
+											terminalExitCountThisPixel = terminalSeg.ExitCount;
+											terminalLastCrossingLayerThisPixel = terminalSeg.LastCrossingLayer;
+											terminalLastCrossingKindThisPixel = terminalSeg.LastCrossingKind;
+											terminalAmbiguousOrderingThisPixel = terminalSeg.AmbiguousOrdering;
+										}
 										if (!hadHit && cfg.FixtureDebugHitColoringEnabled && segCount > 0)
 										{
 											Vector3 terminalPoint = _segBuf[segOffset + (segCount - 1)].B;
@@ -10666,7 +10946,17 @@ private sealed class OverlayRollingWindow
 											PostRemapQueryCount = postRemapQueryCountThisPixel,
 											PostRemapGeometryHitCount = postRemapGeometryHitCountThisPixel,
 											MaxBoundaryRemapCount = maxBoundaryRemapCountThisPixel,
-											BestHitWasPostRemap = bestHitWasPostRemap
+											BestHitWasPostRemap = bestHitWasPostRemap,
+											EventCount = hadHit ? bestEventCountThisPixel : terminalEventCountThisPixel,
+											BoundaryCrossings = hadHit ? bestBoundaryCrossingsThisPixel : terminalBoundaryCrossingsThisPixel,
+											TransformCount = hadHit ? bestTransformCountThisPixel : terminalTransformCountThisPixel,
+											EntryCount = hadHit ? bestEntryCountThisPixel : terminalEntryCountThisPixel,
+											ExitCount = hadHit ? bestExitCountThisPixel : terminalExitCountThisPixel,
+											LastCrossingLayer = hadHit ? bestLastCrossingLayerThisPixel : terminalLastCrossingLayerThisPixel,
+											LastCrossingKind = hadHit ? bestLastCrossingKindThisPixel : terminalLastCrossingKindThisPixel,
+											AmbiguousOrdering = hadHit ? bestAmbiguousOrderingThisPixel : terminalAmbiguousOrderingThisPixel,
+											TerminalPathLength = terminalPathLengthThisPixel,
+											ObservedPathLength = hadHit ? hitDistance : terminalPathLengthThisPixel
 										});
 									}
 								}
@@ -11047,7 +11337,27 @@ private sealed class OverlayRollingWindow
 								sample.BestCid,
 								sample.PostRemapSegmentCount > 0,
 								sample.BestHitWasPostRemap,
-								sample.MaxBoundaryRemapCount);
+								sample.MaxBoundaryRemapCount,
+								sample.EntryCount,
+								sample.ExitCount,
+								sample.TransformCount,
+								sample.LastCrossingKind,
+								out bool throatKindUsedHeuristicFallback);
+							_fixtureCausalObservedPixelsThisRun += filled;
+							_fixtureCausalBoundaryCrossingsTotalThisRun += sample.BoundaryCrossings * filled;
+							_fixtureCausalSceneTransformEventsTotalThisRun += sample.TransformCount * filled;
+							_fixtureCausalEntryEventsTotalThisRun += sample.EntryCount * filled;
+							_fixtureCausalExitEventsTotalThisRun += sample.ExitCount * filled;
+							_fixtureCausalMaxTransformCountSeenThisRun = Math.Max(_fixtureCausalMaxTransformCountSeenThisRun, sample.TransformCount);
+							if (sample.AmbiguousOrdering)
+								_fixtureCausalAmbiguousOrderingPixelsThisRun += filled;
+							if (throatKindUsedHeuristicFallback)
+								_fixtureCausalThroatClassificationInferredPixelsThisRun += filled;
+							_fixtureCausalPathLengthSumThisRun += sample.ObservedPathLength * filled;
+							_fixtureCausalPathLengthMaxThisRun = Math.Max(_fixtureCausalPathLengthMaxThisRun, sample.ObservedPathLength);
+							int throatInteractionCount = Math.Max(
+								sample.PostRemapSegmentCount,
+								sample.AbsorbedByInnerRadius ? 1 : 0);
 							FillPixelBlock(
 								_fixtureTransportClassificationImg,
 								sample.X,
@@ -11056,6 +11366,22 @@ private sealed class OverlayRollingWindow
 								ResolveFixtureTransportClassColor(transportKind),
 								filmW,
 								filmH);
+							FillPixelBlock(
+								_fixtureThroatDepthImg,
+								sample.X,
+								sample.Y,
+								sample.Stride,
+								EvaluateFixtureThroatDepthColor(throatInteractionCount),
+								filmW,
+								filmH);
+							FillIntBlock(
+								_fixtureThroatInteractionCounts,
+								sample.X,
+								sample.Y,
+								sample.Stride,
+								filmW,
+								filmH,
+								throatInteractionCount);
 							Color categoricalColor = sample.HadHit
 								? FixtureCategoricalFinalHitColor
 								: FixtureCategoricalRenderedNoHitColor;
@@ -11391,6 +11717,23 @@ private sealed class OverlayRollingWindow
 						int postRemapGeometryHitCountThisPixel = 0;
 						int maxBoundaryRemapCountThisPixel = 0;
 						bool bestHitWasPostRemap = false;
+						int bestEventCountThisPixel = 0;
+						int bestBoundaryCrossingsThisPixel = 0;
+						int bestTransformCountThisPixel = 0;
+						int bestEntryCountThisPixel = 0;
+						int bestExitCountThisPixel = 0;
+						int bestLastCrossingLayerThisPixel = -1;
+						byte bestLastCrossingKindThisPixel = (byte)RayBeamRenderer.LedgerCrossingKind.None;
+						bool bestAmbiguousOrderingThisPixel = false;
+						int terminalEventCountThisPixel = 0;
+						int terminalBoundaryCrossingsThisPixel = 0;
+						int terminalTransformCountThisPixel = 0;
+						int terminalEntryCountThisPixel = 0;
+						int terminalExitCountThisPixel = 0;
+						int terminalLastCrossingLayerThisPixel = -1;
+						byte terminalLastCrossingKindThisPixel = (byte)RayBeamRenderer.LedgerCrossingKind.None;
+						bool terminalAmbiguousOrderingThisPixel = false;
+						float terminalPathLengthThisPixel = 0f;
 						WormholePortalSectorKey bestPostRemapSectorKey = default;
 						bool bestPostRemapSectorValid = false;
 
@@ -11471,6 +11814,15 @@ private sealed class OverlayRollingWindow
 							for (int si = segStart; si <= segEnd; si++)
 							{
 								var seg = _segBuf[segOffset + si];
+								terminalPathLengthThisPixel = Mathf.Max(terminalPathLengthThisPixel, seg.TraveledB);
+								terminalEventCountThisPixel = seg.EventCount;
+								terminalBoundaryCrossingsThisPixel = seg.BoundaryCrossings;
+								terminalTransformCountThisPixel = seg.TransformCount;
+								terminalEntryCountThisPixel = seg.EntryCount;
+								terminalExitCountThisPixel = seg.ExitCount;
+								terminalLastCrossingLayerThisPixel = seg.LastCrossingLayer;
+								terminalLastCrossingKindThisPixel = seg.LastCrossingKind;
+								terminalAmbiguousOrderingThisPixel = seg.AmbiguousOrdering;
 								bool segPostRemap = seg.BoundaryRemapCount > 0;
 								if (segPostRemap)
 								{
@@ -13102,6 +13454,14 @@ private sealed class OverlayRollingWindow
 										bestHn = hn;      // ADD
 										bestCid = cid;
 										bestHitWasPostRemap = segPostRemap;
+										bestEventCountThisPixel = seg.EventCount;
+										bestBoundaryCrossingsThisPixel = seg.BoundaryCrossings;
+										bestTransformCountThisPixel = seg.TransformCount;
+										bestEntryCountThisPixel = seg.EntryCount;
+										bestExitCountThisPixel = seg.ExitCount;
+										bestLastCrossingLayerThisPixel = seg.LastCrossingLayer;
+										bestLastCrossingKindThisPixel = seg.LastCrossingKind;
+										bestAmbiguousOrderingThisPixel = seg.AmbiguousOrdering;
 										bestPostRemapSectorValid = segPostRemap && portalSectorValid;
 										if (bestPostRemapSectorValid)
 											bestPostRemapSectorKey = portalSectorKey;
@@ -13201,6 +13561,19 @@ private sealed class OverlayRollingWindow
 						ulong physEnd = Time.GetTicksUsec();
 						_perfFrame.AddPass2PhysUsec(physEnd - physStart);
 					}
+							if (!hadHit && segCount > 0)
+							{
+								ref readonly var terminalSeg = ref _segBuf[segOffset + (segCount - 1)];
+								terminalPathLengthThisPixel = terminalSeg.TraveledB;
+								terminalEventCountThisPixel = terminalSeg.EventCount;
+								terminalBoundaryCrossingsThisPixel = terminalSeg.BoundaryCrossings;
+								terminalTransformCountThisPixel = terminalSeg.TransformCount;
+								terminalEntryCountThisPixel = terminalSeg.EntryCount;
+								terminalExitCountThisPixel = terminalSeg.ExitCount;
+								terminalLastCrossingLayerThisPixel = terminalSeg.LastCrossingLayer;
+								terminalLastCrossingKindThisPixel = terminalSeg.LastCrossingKind;
+								terminalAmbiguousOrderingThisPixel = terminalSeg.AmbiguousOrdering;
+							}
 							if (!hadHit && cfg.FixtureDebugHitColoringEnabled && segCount > 0)
 							{
 								Vector3 terminalPoint = _segBuf[segOffset + (segCount - 1)].B;
@@ -13242,7 +13615,17 @@ private sealed class OverlayRollingWindow
 									PostRemapQueryCount = postRemapQueryCountThisPixel,
 									PostRemapGeometryHitCount = postRemapGeometryHitCountThisPixel,
 									MaxBoundaryRemapCount = maxBoundaryRemapCountThisPixel,
-									BestHitWasPostRemap = bestHitWasPostRemap
+									BestHitWasPostRemap = bestHitWasPostRemap,
+									EventCount = hadHit ? bestEventCountThisPixel : terminalEventCountThisPixel,
+									BoundaryCrossings = hadHit ? bestBoundaryCrossingsThisPixel : terminalBoundaryCrossingsThisPixel,
+									TransformCount = hadHit ? bestTransformCountThisPixel : terminalTransformCountThisPixel,
+									EntryCount = hadHit ? bestEntryCountThisPixel : terminalEntryCountThisPixel,
+									ExitCount = hadHit ? bestExitCountThisPixel : terminalExitCountThisPixel,
+									LastCrossingLayer = hadHit ? bestLastCrossingLayerThisPixel : terminalLastCrossingLayerThisPixel,
+									LastCrossingKind = hadHit ? bestLastCrossingKindThisPixel : terminalLastCrossingKindThisPixel,
+									AmbiguousOrdering = hadHit ? bestAmbiguousOrderingThisPixel : terminalAmbiguousOrderingThisPixel,
+									TerminalPathLength = terminalPathLengthThisPixel,
+									ObservedPathLength = hadHit ? hitDistance : terminalPathLengthThisPixel
 								});
 								rowHadWritesThisPass = true;
 								continue;
@@ -13457,7 +13840,28 @@ private sealed class OverlayRollingWindow
 							bestCid,
 							postRemapSegmentCountThisPixel > 0,
 							bestHitWasPostRemap,
-							maxBoundaryRemapCountThisPixel);
+							maxBoundaryRemapCountThisPixel,
+							bestEntryCountThisPixel,
+							bestExitCountThisPixel,
+							bestTransformCountThisPixel,
+							bestLastCrossingKindThisPixel,
+							out bool throatKindUsedHeuristicFallback);
+						_fixtureCausalObservedPixelsThisRun += filled;
+						_fixtureCausalBoundaryCrossingsTotalThisRun += bestBoundaryCrossingsThisPixel * filled;
+						_fixtureCausalSceneTransformEventsTotalThisRun += bestTransformCountThisPixel * filled;
+						_fixtureCausalEntryEventsTotalThisRun += bestEntryCountThisPixel * filled;
+						_fixtureCausalExitEventsTotalThisRun += bestExitCountThisPixel * filled;
+						_fixtureCausalMaxTransformCountSeenThisRun = Math.Max(_fixtureCausalMaxTransformCountSeenThisRun, bestTransformCountThisPixel);
+						if (bestAmbiguousOrderingThisPixel)
+							_fixtureCausalAmbiguousOrderingPixelsThisRun += filled;
+						if (throatKindUsedHeuristicFallback)
+							_fixtureCausalThroatClassificationInferredPixelsThisRun += filled;
+						float observedPathLengthThisPixel = hadHit ? hitDistance : terminalPathLengthThisPixel;
+						_fixtureCausalPathLengthSumThisRun += observedPathLengthThisPixel * filled;
+						_fixtureCausalPathLengthMaxThisRun = Math.Max(_fixtureCausalPathLengthMaxThisRun, observedPathLengthThisPixel);
+						int throatInteractionCount = Math.Max(
+							postRemapSegmentCountThisPixel,
+							absorbedByInnerRadius ? 1 : 0);
 						FillPixelBlock(
 							_fixtureTransportClassificationImg,
 							x,
@@ -13466,6 +13870,22 @@ private sealed class OverlayRollingWindow
 							ResolveFixtureTransportClassColor(transportKind),
 							filmW,
 							filmH);
+						FillPixelBlock(
+							_fixtureThroatDepthImg,
+							x,
+							y,
+							stride,
+							EvaluateFixtureThroatDepthColor(throatInteractionCount),
+							filmW,
+							filmH);
+						FillIntBlock(
+							_fixtureThroatInteractionCounts,
+							x,
+							y,
+							stride,
+							filmW,
+							filmH,
+							throatInteractionCount);
 						Color categoricalColor = hadHit
 							? FixtureCategoricalFinalHitColor
 							: FixtureCategoricalRenderedNoHitColor;
@@ -14576,8 +14996,14 @@ private sealed class OverlayRollingWindow
 		ulong colliderId,
 		bool hadThroatEvent,
 		bool bestHitWasPostRemap,
-		int maxBoundaryRemapCount)
+		int maxBoundaryRemapCount,
+		int entryCount,
+		int exitCount,
+		int transformCount,
+		byte lastCrossingKind,
+		out bool usedHeuristicFallback)
 	{
+		usedHeuristicFallback = false;
 		if (hadHit)
 		{
 			if (_fixtureDebugPortalIds.Contains(colliderId))
@@ -14585,7 +15011,7 @@ private sealed class OverlayRollingWindow
 				return "portal_hit";
 			}
 
-			if (bestHitWasPostRemap)
+			if (bestHitWasPostRemap || transformCount > 0)
 			{
 				return "throat_shell_transform";
 			}
@@ -14595,8 +15021,15 @@ private sealed class OverlayRollingWindow
 				return "throat_inner_absorb";
 			}
 
+			string explicitLedgerKind = ResolveExplicitLedgerThroatKind(entryCount, exitCount, lastCrossingKind);
+			if (!string.IsNullOrEmpty(explicitLedgerKind))
+			{
+				return explicitLedgerKind;
+			}
+
 			if (hadThroatEvent)
 			{
+				usedHeuristicFallback = true;
 				return maxBoundaryRemapCount >= 2 ? "throat_exit" : "throat_entry";
 			}
 
@@ -14613,12 +15046,50 @@ private sealed class OverlayRollingWindow
 			return "throat_inner_absorb";
 		}
 
+		string explicitNoHitLedgerKind = ResolveExplicitLedgerThroatKind(entryCount, exitCount, lastCrossingKind);
+		if (!string.IsNullOrEmpty(explicitNoHitLedgerKind))
+		{
+			return explicitNoHitLedgerKind;
+		}
+
 		if (hadThroatEvent)
 		{
+			usedHeuristicFallback = true;
 			return maxBoundaryRemapCount >= 2 ? "throat_exit" : "throat_entry";
 		}
 
 		return "escaped_no_hit";
+	}
+
+	private static string ResolveExplicitLedgerThroatKind(int entryCount, int exitCount, byte lastCrossingKind)
+	{
+		if (entryCount <= 0 && exitCount <= 0)
+		{
+			return string.Empty;
+		}
+
+		RayBeamRenderer.LedgerCrossingKind kind = (RayBeamRenderer.LedgerCrossingKind)lastCrossingKind;
+		if (kind == RayBeamRenderer.LedgerCrossingKind.Exit && exitCount > 0)
+		{
+			return "throat_exit";
+		}
+
+		if (kind == RayBeamRenderer.LedgerCrossingKind.Entry && entryCount > 0)
+		{
+			return "throat_entry";
+		}
+
+		if (exitCount > 0 && entryCount <= 0)
+		{
+			return "throat_exit";
+		}
+
+		if (entryCount > 0 && exitCount <= 0)
+		{
+			return "throat_entry";
+		}
+
+		return exitCount >= entryCount ? "throat_exit" : "throat_entry";
 	}
 
 	private static Color ResolveFixtureTransportClassColor(string kind)
@@ -14644,6 +15115,40 @@ private sealed class OverlayRollingWindow
 		return IsCategoricalVoidPixel(pixel)
 			? FixtureTransportBudgetExhaustedColor
 			: pixel;
+	}
+
+	private static Color LerpColor(Color a, Color b, float t)
+	{
+		float u = Mathf.Clamp(t, 0f, 1f);
+		return new Color(
+			Mathf.Lerp(a.R, b.R, u),
+			Mathf.Lerp(a.G, b.G, u),
+			Mathf.Lerp(a.B, b.B, u),
+			Mathf.Lerp(a.A, b.A, u));
+	}
+
+	private static Color EvaluateFixtureThroatDepthColor(int interactionCount)
+	{
+		if (interactionCount <= 0)
+		{
+			return FixtureThroatDepthZeroColor;
+		}
+
+		float normalized = Mathf.Clamp(
+			Mathf.Log(interactionCount + 1f) / Mathf.Log(17f),
+			0f,
+			1f);
+		if (normalized <= 0.33f)
+		{
+			return LerpColor(FixtureThroatDepthLowColor, FixtureThroatDepthMidColor, normalized / 0.33f);
+		}
+
+		if (normalized <= 0.66f)
+		{
+			return LerpColor(FixtureThroatDepthMidColor, FixtureThroatDepthHighColor, (normalized - 0.33f) / 0.33f);
+		}
+
+		return LerpColor(FixtureThroatDepthHighColor, FixtureThroatDepthPeakColor, (normalized - 0.66f) / 0.34f);
 	}
 
 	private static string ResolveFixtureTransportKindFromPixel(Color pixel)
@@ -15068,6 +15573,38 @@ private sealed class OverlayRollingWindow
 		return filled;
 	}
 
+	private static int FillIntBlock(int[] values, int x, int y, int stride, int filmW, int filmH, int value)
+	{
+		if (values == null || values.Length == 0)
+		{
+			return 0;
+		}
+
+		if (stride <= 1)
+		{
+			if (x >= 0 && x < filmW && y >= 0 && y < filmH)
+			{
+				values[(y * filmW) + x] = value;
+				return 1;
+			}
+			return 0;
+		}
+
+		int filled = 0;
+		int yMax = Math.Min(filmH, y + stride);
+		int xMax = Math.Min(filmW, x + stride);
+		for (int yy = y; yy < yMax; yy++)
+		{
+			for (int xx = x; xx < xMax; xx++)
+			{
+				values[(yy * filmW) + xx] = value;
+				filled++;
+			}
+		}
+
+		return filled;
+	}
+
 	private void TrackFilmPixelTouch(int pixelIndex)
 	{
 		if (pixelIndex < 0)
@@ -15254,6 +15791,15 @@ private sealed class OverlayRollingWindow
 					_fixtureTransportClassificationImg = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
 					_fixtureTransportClassificationImg.Fill(Colors.Black);
 				}
+				if (_fixtureThroatDepthImg == null)
+				{
+					_fixtureThroatDepthImg = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
+					_fixtureThroatDepthImg.Fill(FixtureThroatDepthZeroColor);
+				}
+				if (_fixtureThroatInteractionCounts.Length != targetPixels)
+				{
+					_fixtureThroatInteractionCounts = new int[targetPixels];
+				}
 				return false;
 			}
 
@@ -15270,6 +15816,9 @@ private sealed class OverlayRollingWindow
 		_fixtureCategoricalFinalImg.Fill(Colors.Black);
 		_fixtureTransportClassificationImg = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
 		_fixtureTransportClassificationImg.Fill(Colors.Black);
+		_fixtureThroatDepthImg = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
+		_fixtureThroatDepthImg.Fill(FixtureThroatDepthZeroColor);
+		_fixtureThroatInteractionCounts = new int[_filmWidth * _filmHeight];
 		_tex = ImageTexture.CreateFromImage(_img);
 		_pass2PrevHadHit = new byte[_filmWidth * _filmHeight];
 		_pass2HadHitLostThisFrame = new byte[_filmWidth * _filmHeight];
