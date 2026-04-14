@@ -871,6 +871,9 @@ public partial class GrinBasicVisualController : Node3D
 				$"maxTransformCountSeen={causalLedgerSnapshot.MaxTransformCountSeen} " +
 				$"ambiguousOrderingPixels={causalLedgerSnapshot.AmbiguousOrderingPixels} " +
 				$"throatClassificationInferredPixels={causalLedgerSnapshot.ThroatClassificationInferredPixels} " +
+				$"continuationAttemptedPixels={causalLedgerSnapshot.ContinuationAttemptedPixels} " +
+				$"continuationSuccessPixels={causalLedgerSnapshot.ContinuationSuccessPixels} " +
+				$"continuationFailedPixels={causalLedgerSnapshot.ContinuationFailedPixels} " +
 				$"pathLengthMean={causalLedgerSnapshot.PathLengthMean.ToString("0.######", CultureInfo.InvariantCulture)} " +
 				$"pathLengthMax={causalLedgerSnapshot.PathLengthMax.ToString("0.######", CultureInfo.InvariantCulture)} " +
 				$"opticalPathTracked={(causalLedgerSnapshot.OpticalPathTracked ? 1 : 0)} " +

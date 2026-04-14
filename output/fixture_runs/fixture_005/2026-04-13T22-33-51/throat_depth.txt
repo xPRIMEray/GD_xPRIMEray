@@ -1,0 +1,9 @@
+Image Path: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_005/2026-04-13T22-33-51/throat_depth_map.png
+Written: 1
+Throat Pixels: 33356
+Max Interaction Count: 106
+Mean Interaction Count: 2.48564
+Summary: throatPx=33356|max=106|mean=2.486
+Legend: 0=no_throat_interaction 1=single_transform 2=two_interactions 4=multi_interaction 8=deep_transform 16+=capped_peak
+Legend Image: output/fixture_runs/fixture_005/2026-04-13T22-33-51/throat_depth_legend.png
+Annotated Image: output/fixture_runs/fixture_005/2026-04-13T22-33-51/throat_depth_annotated.png

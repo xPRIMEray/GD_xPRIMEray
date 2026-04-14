@@ -616,6 +616,53 @@ public partial class RayBeamRenderer : Node3D
 		public ulong ColliderId;
 	}
 
+	public readonly struct LedgerContinuationSummary
+	{
+		public readonly float Traveled;
+		public readonly int BoundaryRemapCount;
+		public readonly int EventCount;
+		public readonly int BoundaryCrossings;
+		public readonly int TransformCount;
+		public readonly int EntryCount;
+		public readonly int ExitCount;
+		public readonly int LastCrossingLayer;
+		public readonly byte LastCrossingKind;
+		public readonly bool AmbiguousOrdering;
+		public readonly int SegmentsIntegrated;
+		public readonly bool ReachedExit;
+		public readonly bool TransformChanged;
+
+		public LedgerContinuationSummary(
+			float traveled,
+			int boundaryRemapCount,
+			int eventCount,
+			int boundaryCrossings,
+			int transformCount,
+			int entryCount,
+			int exitCount,
+			int lastCrossingLayer,
+			byte lastCrossingKind,
+			bool ambiguousOrdering,
+			int segmentsIntegrated,
+			bool reachedExit,
+			bool transformChanged)
+		{
+			Traveled = traveled;
+			BoundaryRemapCount = boundaryRemapCount;
+			EventCount = eventCount;
+			BoundaryCrossings = boundaryCrossings;
+			TransformCount = transformCount;
+			EntryCount = entryCount;
+			ExitCount = exitCount;
+			LastCrossingLayer = lastCrossingLayer;
+			LastCrossingKind = lastCrossingKind;
+			AmbiguousOrdering = ambiguousOrdering;
+			SegmentsIntegrated = segmentsIntegrated;
+			ReachedExit = reachedExit;
+			TransformChanged = transformChanged;
+		}
+	}
+
 	public struct FieldSourceSnap
 	{
 		public bool Enabled;
@@ -3719,6 +3766,206 @@ public partial class RayBeamRenderer : Node3D
 			turnMax = telemetryDerivativeState.TurnMax;
 			return written;
 		}
+
+	public LedgerContinuationSummary ContinueLedgerAfterPass1Stop(
+		Vector3 startPos,
+		Vector3 startDir,
+		Vector3 bendDir,
+		Vector3 center,
+		float beta,
+		float gamma,
+		FieldSourceSnap[] fieldSnaps,
+		bool hasSources,
+		float maxDistance,
+		int maxExtraSegments,
+		float startTraveled,
+		int startBoundaryRemapCount,
+		int startEventCount,
+		int startBoundaryCrossings,
+		int startTransformCount,
+		int startEntryCount,
+		int startExitCount,
+		int startLastCrossingLayer,
+		byte startLastCrossingKind,
+		bool startAmbiguousOrdering)
+	{
+		const int tier1MaxSegments = 4;
+		const int tier2AdditionalSegments = 3;
+		int maxSafeLimit = Math.Max(1, maxExtraSegments);
+		int tier1Limit = Math.Min(maxSafeLimit, tier1MaxSegments);
+		int tier2Limit = Math.Min(maxSafeLimit, tier1Limit + tier2AdditionalSegments);
+
+		if (maxSafeLimit <= 0 || maxDistance <= startTraveled)
+		{
+			return new LedgerContinuationSummary(
+				startTraveled,
+				startBoundaryRemapCount,
+				startEventCount,
+				startBoundaryCrossings,
+				startTransformCount,
+				startEntryCount,
+				startExitCount,
+				startLastCrossingLayer,
+				startLastCrossingKind,
+				startAmbiguousOrdering,
+				0,
+				false,
+				false);
+		}
+
+		Vector3 p = startPos;
+		Vector3 v = startDir.LengthSquared() > 1e-12f ? startDir.Normalized() : Vector3.Forward;
+		float traveled = startTraveled;
+		int boundaryRemapCount = startBoundaryRemapCount;
+		int ledgerEventCount = startEventCount;
+		int ledgerBoundaryCrossings = startBoundaryCrossings;
+		int ledgerTransformCount = startTransformCount;
+		int ledgerEntryCount = startEntryCount;
+		int ledgerExitCount = startExitCount;
+		int ledgerLastCrossingLayer = startLastCrossingLayer;
+		LedgerCrossingKind ledgerLastCrossingKind = (LedgerCrossingKind)startLastCrossingKind;
+		bool ledgerAmbiguousOrdering = startAmbiguousOrdering;
+		int integratedSegments = 0;
+		bool transformChanged = false;
+		int unchangedTransformSteps = 0;
+
+		BoundaryLayerSnap[] boundaryLayers = _boundaryLayerSnaps;
+		bool hasBoundaryLayers = _hasBoundaryLayers;
+		uint blvInsideMask = (hasBoundaryLayers && UseIntegratedField)
+			? ComputeInsideMask(p, boundaryLayers)
+			: 0u;
+
+		float minStep = Mathf.Max(0.0001f, Mathf.Min(MinStepLength, MaxStepLength));
+		float maxStep = Mathf.Max(MinStepLength, MaxStepLength);
+		TransportModel activeTransport = hasSources ? ResolveActiveTransportModel(fieldSnaps) : TransportModel.GRIN_Optical;
+		bool emitEveryMetricStep = UseIntegratedField && activeTransport == TransportModel.Metric_NullGeodesic;
+		DerivativeAwareStepState derivativeStepState = default;
+
+		while (integratedSegments < maxSafeLimit && traveled < maxDistance)
+		{
+			if (UseIntegratedField && hasSources && TryGetAbsorbingSourceAtPoint(p, fieldSnaps, out _))
+				break;
+
+			if (hasBoundaryLayers && UseIntegratedField)
+			{
+				int transformCountBefore = ledgerTransformCount;
+				BoundaryInteractionLedgerDelta boundaryDelta = ApplyBoundaryLayerInteractions(ref p, ref v, boundaryLayers, ref blvInsideMask);
+				boundaryRemapCount += boundaryDelta.TransformCount;
+				ledgerEventCount += boundaryDelta.EventCount;
+				ledgerBoundaryCrossings += boundaryDelta.BoundaryCrossings;
+				ledgerTransformCount += boundaryDelta.TransformCount;
+				ledgerEntryCount += boundaryDelta.EntryCount;
+				ledgerExitCount += boundaryDelta.ExitCount;
+				if (boundaryDelta.LastCrossingKind != LedgerCrossingKind.None)
+				{
+					ledgerLastCrossingKind = boundaryDelta.LastCrossingKind;
+					ledgerLastCrossingLayer = boundaryDelta.LastCrossingLayer;
+				}
+				ledgerAmbiguousOrdering |= boundaryDelta.AmbiguousOrdering;
+				if (ledgerExitCount > startExitCount)
+					break;
+				if (ledgerTransformCount != transformCountBefore)
+				{
+					transformChanged = true;
+					unchangedTransformSteps = 0;
+				}
+				else
+				{
+					unchangedTransformSteps++;
+				}
+			}
+
+			float remaining = maxDistance - traveled;
+			if (remaining <= 0f)
+				break;
+
+			Vector3 next = p;
+			if (UseIntegratedField)
+			{
+				Vector3 a = Vector3.Zero;
+				if (hasSources)
+				{
+					a = ComputeTransportAccelerationForActiveModel(activeTransport, p, v, bendDir, center, beta, gamma, fieldSnaps, hasSources);
+				}
+				else
+				{
+					a = StepTransport_GRIN(p, center, beta, gamma, fieldSnaps, hasSources);
+				}
+
+				float aLen = a.Length();
+				if (!float.IsFinite(aLen))
+				{
+					a = Vector3.Zero;
+				}
+				else if (aLen > 50f)
+				{
+					a *= 50f / aLen;
+				}
+
+				float step = ComputeAdaptiveIntegratedStepLength(
+					v,
+					a,
+					minStep,
+					maxStep,
+					applyLowCurvatureBoost: true,
+					applyMetricCurvatureGain: emitEveryMetricStep,
+					ref derivativeStepState);
+				if (step > remaining)
+					step = remaining;
+
+				if (emitEveryMetricStep)
+				{
+					v = SafeNormalized(v + a * step, v);
+					next = p + v * step;
+				}
+				else
+				{
+					v = SafeNormalized(v + a * step, v);
+					next = p + v * step;
+				}
+				traveled += step;
+			}
+			else
+			{
+				float step = Mathf.Min(Mathf.Max(0.0001f, StepLength), remaining);
+				next = p + v * step;
+				traveled += step;
+			}
+
+			if ((next - p).LengthSquared() <= 1e-12f)
+				break;
+
+			p = next;
+			integratedSegments++;
+
+			bool unresolved = ledgerExitCount <= startExitCount;
+			if (!unresolved)
+				break;
+
+			if (integratedSegments >= tier1Limit)
+			{
+				bool allowTier2 = integratedSegments < tier2Limit && (transformChanged || unchangedTransformSteps <= 1);
+				if (!allowTier2)
+					break;
+			}
+		}
+
+		FinalizeDerivativeAwareStepState(ref derivativeStepState);
+		return new LedgerContinuationSummary(
+			traveled,
+			boundaryRemapCount,
+			ledgerEventCount,
+			ledgerBoundaryCrossings,
+			ledgerTransformCount,
+			ledgerEntryCount,
+			ledgerExitCount,
+			ledgerLastCrossingLayer,
+			(byte)ledgerLastCrossingKind,
+			ledgerAmbiguousOrdering,
+			integratedSegments,
+			ledgerExitCount > startExitCount,
+			transformChanged);
+	}
 
 	public FieldSourceSnap[] SnapshotFieldSources(Godot.Collections.Array<Node> nodes)
 	{
