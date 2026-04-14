@@ -98,6 +98,14 @@ public static class LauncherAudit
 		{
 			return "einstein_ring_minimal";
 		}
+		if (normalized.Contains("test-overspace-hermetic-fixture-topology", StringComparison.OrdinalIgnoreCase))
+		{
+			return "overspace_hermetic_fixture_topology";
+		}
+		if (normalized.Contains("test-overspace-hermetic-fixture-field", StringComparison.OrdinalIgnoreCase))
+		{
+			return "overspace_hermetic_fixture_field";
+		}
 		if (normalized.Contains("test-overspace-hermetic-fixture", StringComparison.OrdinalIgnoreCase))
 		{
 			return "overspace_hermetic_fixture";
@@ -138,6 +146,8 @@ public static class LauncherAudit
 			"blackhole_minimal" => "res://test-blackhole-minimal.tscn",
 			"einstein_ring_minimal" => "res://test-einstein-ring-minimal.tscn",
 			"overspace_hermetic_fixture" => "res://test-overspace-hermetic-fixture.tscn",
+			"overspace_hermetic_fixture_topology" => "res://test-overspace-hermetic-fixture-topology.tscn",
+			"overspace_hermetic_fixture_field" => "res://test-overspace-hermetic-fixture-field.tscn",
 			"default" => "res://test.tscn",
 			_ => string.Empty
 		};
