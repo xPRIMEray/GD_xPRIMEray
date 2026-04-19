@@ -1,0 +1,418 @@
+[gd_scene load_steps=26 format=3]
+
+[ext_resource type="Script" path="res://Wormhole/WormholePortal.cs" id="1_portal"]
+[ext_resource type="Script" path="res://BoundaryLayerVolume.cs" id="2_boundary"]
+[ext_resource type="Script" path="res://FieldSource3D.cs" id="3_field"]
+[ext_resource type="Script" path="res://RayBeamRenderer.cs" id="4_rbr"]
+
+[sub_resource type="BoxMesh" id="1_floor_mesh"]
+size = Vector3(12, 0.25, 12)
+
+[sub_resource type="BoxShape3D" id="2_floor_shape"]
+size = Vector3(12, 0.25, 12)
+
+[sub_resource type="BoxMesh" id="3_side_mesh"]
+size = Vector3(0.25, 8, 12)
+
+[sub_resource type="BoxShape3D" id="4_side_shape"]
+size = Vector3(0.25, 8, 12)
+
+[sub_resource type="BoxMesh" id="5_back_mesh"]
+size = Vector3(12, 8, 0.25)
+
+[sub_resource type="BoxShape3D" id="6_back_shape"]
+size = Vector3(12, 8, 0.25)
+
+[sub_resource type="BoxMesh" id="7_frame_h_mesh"]
+size = Vector3(3.6, 0.25, 0.25)
+
+[sub_resource type="BoxShape3D" id="8_frame_h_shape"]
+size = Vector3(3.6, 0.25, 0.25)
+
+[sub_resource type="BoxMesh" id="9_frame_v_mesh"]
+size = Vector3(0.25, 3.6, 0.25)
+
+[sub_resource type="BoxShape3D" id="10_frame_v_shape"]
+size = Vector3(0.25, 3.6, 0.25)
+
+[sub_resource type="SphereMesh" id="11_portal_shell_mesh"]
+radius = 1.35
+height = 2.7
+radial_segments = 48
+rings = 24
+
+[sub_resource type="StandardMaterial3D" id="12_room_a_material"]
+albedo_color = Color(0.72, 0.73, 0.76, 1)
+emission_enabled = true
+emission = Color(0.06, 0.06, 0.07, 1)
+
+[sub_resource type="StandardMaterial3D" id="13_room_b_material"]
+albedo_color = Color(0.58, 0.7, 0.88, 1)
+emission_enabled = true
+emission = Color(0.05, 0.08, 0.14, 1)
+
+[sub_resource type="StandardMaterial3D" id="14_frame_material"]
+albedo_color = Color(0.92, 0.82, 0.36, 1)
+emission_enabled = true
+emission = Color(0.25, 0.18, 0.04, 1)
+
+[sub_resource type="StandardMaterial3D" id="15_portal_a_material"]
+albedo_color = Color(0.24, 0.9, 0.84, 0.28)
+transparency = 1
+emission_enabled = true
+emission = Color(0.06, 0.28, 0.24, 1)
+
+[sub_resource type="StandardMaterial3D" id="16_portal_b_material"]
+albedo_color = Color(0.98, 0.62, 0.3, 0.28)
+transparency = 1
+emission_enabled = true
+emission = Color(0.28, 0.11, 0.05, 1)
+
+[sub_resource type="BoxMesh" id="17_witness_box_mesh"]
+size = Vector3(0.9, 0.9, 0.9)
+
+[sub_resource type="BoxShape3D" id="18_witness_box_shape"]
+size = Vector3(0.9, 0.9, 0.9)
+
+[sub_resource type="BoxMesh" id="19_witness_panel_mesh"]
+size = Vector3(1.8, 1.1, 0.25)
+
+[sub_resource type="BoxShape3D" id="20_witness_panel_shape"]
+size = Vector3(1.8, 1.1, 0.25)
+
+[sub_resource type="StandardMaterial3D" id="21_witness_teal_material"]
+albedo_color = Color(0.22, 0.95, 0.88, 1)
+emission_enabled = true
+emission = Color(0.05, 0.26, 0.24, 1)
+
+[sub_resource type="StandardMaterial3D" id="22_witness_coral_material"]
+albedo_color = Color(0.98, 0.54, 0.32, 1)
+emission_enabled = true
+emission = Color(0.26, 0.08, 0.04, 1)
+
+[sub_resource type="StandardMaterial3D" id="23_witness_cream_material"]
+albedo_color = Color(0.98, 0.96, 0.82, 1)
+emission_enabled = true
+emission = Color(0.18, 0.16, 0.07, 1)
+
+[node name="FixtureOverspaceHermeticRoom" type="Node3D"]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(0.922063, 0, 0.387039, 0.055236, 0.989764, -0.131592, -0.383077, 0.142715, 0.912625, -1.82, 0.92, 3.38)
+current = true
+fov = 46.0
+near = 0.01
+far = 80.0
+
+[node name="RoomA_BackWall" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -6)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RoomA_BackWall"]
+mesh = SubResource("5_back_mesh")
+material_override = SubResource("12_room_a_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoomA_BackWall"]
+shape = SubResource("6_back_shape")
+
+[node name="RoomA_FrontWall" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 6)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RoomA_FrontWall"]
+mesh = SubResource("5_back_mesh")
+material_override = SubResource("12_room_a_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoomA_FrontWall"]
+shape = SubResource("6_back_shape")
+
+[node name="RoomA_LeftWall" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RoomA_LeftWall"]
+mesh = SubResource("3_side_mesh")
+material_override = SubResource("12_room_a_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoomA_LeftWall"]
+shape = SubResource("4_side_shape")
+
+[node name="RoomA_RightWall" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RoomA_RightWall"]
+mesh = SubResource("3_side_mesh")
+material_override = SubResource("12_room_a_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoomA_RightWall"]
+shape = SubResource("4_side_shape")
+
+[node name="RoomA_Floor" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -4, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RoomA_Floor"]
+mesh = SubResource("1_floor_mesh")
+material_override = SubResource("12_room_a_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoomA_Floor"]
+shape = SubResource("2_floor_shape")
+
+[node name="RoomA_Ceiling" type="StaticBody3D" parent="." groups=["fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RoomA_Ceiling"]
+mesh = SubResource("1_floor_mesh")
+material_override = SubResource("12_room_a_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoomA_Ceiling"]
+shape = SubResource("2_floor_shape")
+
+[node name="RoomB" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0, 0)
+
+[node name="BackWall" type="StaticBody3D" parent="RoomB" groups=["fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -6)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RoomB/BackWall"]
+mesh = SubResource("5_back_mesh")
+material_override = SubResource("13_room_b_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoomB/BackWall"]
+shape = SubResource("6_back_shape")
+
+[node name="FrontWall" type="StaticBody3D" parent="RoomB" groups=["fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 6)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RoomB/FrontWall"]
+mesh = SubResource("5_back_mesh")
+material_override = SubResource("13_room_b_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoomB/FrontWall"]
+shape = SubResource("6_back_shape")
+
+[node name="LeftWall" type="StaticBody3D" parent="RoomB" groups=["fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RoomB/LeftWall"]
+mesh = SubResource("3_side_mesh")
+material_override = SubResource("13_room_b_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoomB/LeftWall"]
+shape = SubResource("4_side_shape")
+
+[node name="RightWall" type="StaticBody3D" parent="RoomB" groups=["fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RoomB/RightWall"]
+mesh = SubResource("3_side_mesh")
+material_override = SubResource("13_room_b_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoomB/RightWall"]
+shape = SubResource("4_side_shape")
+
+[node name="Floor" type="StaticBody3D" parent="RoomB" groups=["fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -4, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RoomB/Floor"]
+mesh = SubResource("1_floor_mesh")
+material_override = SubResource("13_room_b_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoomB/Floor"]
+shape = SubResource("2_floor_shape")
+
+[node name="Ceiling" type="StaticBody3D" parent="RoomB" groups=["fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RoomB/Ceiling"]
+mesh = SubResource("1_floor_mesh")
+material_override = SubResource("13_room_b_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoomB/Ceiling"]
+shape = SubResource("2_floor_shape")
+
+[node name="WitnessPanel_Left" type="StaticBody3D" parent="RoomB" groups=["fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.965926, 0, 0.258819, 0, 1, 0, -0.258819, 0, 0.965926, -2.55, 1.15, -3.25)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RoomB/WitnessPanel_Left"]
+mesh = SubResource("19_witness_panel_mesh")
+material_override = SubResource("21_witness_teal_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoomB/WitnessPanel_Left"]
+shape = SubResource("20_witness_panel_shape")
+
+[node name="WitnessPanel_Right" type="StaticBody3D" parent="RoomB" groups=["fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.939693, 0, -0.34202, 0, 1, 0, 0.34202, 0, 0.939693, 2.1, -0.95, -2.95)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RoomB/WitnessPanel_Right"]
+mesh = SubResource("19_witness_panel_mesh")
+material_override = SubResource("22_witness_coral_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoomB/WitnessPanel_Right"]
+shape = SubResource("20_witness_panel_shape")
+
+[node name="WitnessCube_Center" type="StaticBody3D" parent="RoomB" groups=["fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 0.15, 2.3, -4.1)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RoomB/WitnessCube_Center"]
+mesh = SubResource("17_witness_box_mesh")
+material_override = SubResource("23_witness_cream_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoomB/WitnessCube_Center"]
+shape = SubResource("18_witness_box_shape")
+
+[node name="PortalA" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.4)
+script = ExtResource("1_portal")
+LinkedPortalPath = NodePath("../PortalB")
+WormholeId = "overspace_room_a"
+LinkedWormholeId = "overspace_room_b"
+ParentRegionId = "overspace_room_a"
+ChildRegionId = "overspace_room_b"
+ThroatRadius = 1.35
+EnablePhaseLockedRemap = true
+EnableThroatDiagnostics = true
+Radius = 1.35
+ExitOffset = 0.45
+ZoneMinZ = -2.8
+ZoneMaxZ = 2.8
+
+[node name="PortalShellVisual" type="MeshInstance3D" parent="PortalA"]
+mesh = SubResource("11_portal_shell_mesh")
+material_override = SubResource("15_portal_a_material")
+
+[node name="BoundaryShell" type="Node3D" parent="PortalA"]
+script = ExtResource("2_boundary")
+ExecutionMode = 1
+Behavior = 1
+Radius = 1.35
+LinkedBoundaryPath = NodePath("../../PortalB/BoundaryShell")
+SceneTransformExitOffset = 0.45
+
+[node name="FieldSource3D" type="Node3D" parent="PortalA"]
+script = ExtResource("3_field")
+ROuter = 2.0
+Strength = 0.0
+
+[node name="frame_top" type="StaticBody3D" parent="PortalA" groups=["fixture_geometry", "raytrace_geometry", "fixture_portal"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="PortalA/frame_top"]
+mesh = SubResource("7_frame_h_mesh")
+material_override = SubResource("14_frame_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="PortalA/frame_top"]
+shape = SubResource("8_frame_h_shape")
+
+[node name="frame_bottom" type="StaticBody3D" parent="PortalA" groups=["fixture_geometry", "raytrace_geometry", "fixture_portal"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.7, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="PortalA/frame_bottom"]
+mesh = SubResource("7_frame_h_mesh")
+material_override = SubResource("14_frame_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="PortalA/frame_bottom"]
+shape = SubResource("8_frame_h_shape")
+
+[node name="frame_left" type="StaticBody3D" parent="PortalA" groups=["fixture_geometry", "raytrace_geometry", "fixture_portal"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7, 0, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="PortalA/frame_left"]
+mesh = SubResource("9_frame_v_mesh")
+material_override = SubResource("14_frame_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="PortalA/frame_left"]
+shape = SubResource("10_frame_v_shape")
+
+[node name="frame_right" type="StaticBody3D" parent="PortalA" groups=["fixture_geometry", "raytrace_geometry", "fixture_portal"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.7, 0, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="PortalA/frame_right"]
+mesh = SubResource("9_frame_v_mesh")
+material_override = SubResource("14_frame_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="PortalA/frame_right"]
+shape = SubResource("10_frame_v_shape")
+
+[node name="PortalB" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0, 0)
+script = ExtResource("1_portal")
+LinkedPortalPath = NodePath("../PortalA")
+WormholeId = "overspace_room_b"
+LinkedWormholeId = "overspace_room_a"
+ParentRegionId = "overspace_room_b"
+ChildRegionId = "overspace_room_a"
+ThroatRadius = 1.35
+EnablePhaseLockedRemap = true
+EnableThroatDiagnostics = true
+Radius = 1.35
+ExitOffset = 0.45
+ZoneMinZ = -2.8
+ZoneMaxZ = 2.8
+
+[node name="PortalShellVisual" type="MeshInstance3D" parent="PortalB"]
+mesh = SubResource("11_portal_shell_mesh")
+material_override = SubResource("16_portal_b_material")
+
+[node name="BoundaryShell" type="Node3D" parent="PortalB"]
+script = ExtResource("2_boundary")
+ExecutionMode = 1
+Behavior = 1
+Radius = 1.35
+LinkedBoundaryPath = NodePath("../../PortalA/BoundaryShell")
+SceneTransformExitOffset = 0.45
+
+[node name="frame_top" type="StaticBody3D" parent="PortalB" groups=["fixture_geometry", "raytrace_geometry", "fixture_portal"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="PortalB/frame_top"]
+mesh = SubResource("7_frame_h_mesh")
+material_override = SubResource("14_frame_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="PortalB/frame_top"]
+shape = SubResource("8_frame_h_shape")
+
+[node name="frame_bottom" type="StaticBody3D" parent="PortalB" groups=["fixture_geometry", "raytrace_geometry", "fixture_portal"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.7, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="PortalB/frame_bottom"]
+mesh = SubResource("7_frame_h_mesh")
+material_override = SubResource("14_frame_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="PortalB/frame_bottom"]
+shape = SubResource("8_frame_h_shape")
+
+[node name="frame_left" type="StaticBody3D" parent="PortalB" groups=["fixture_geometry", "raytrace_geometry", "fixture_portal"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7, 0, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="PortalB/frame_left"]
+mesh = SubResource("9_frame_v_mesh")
+material_override = SubResource("14_frame_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="PortalB/frame_left"]
+shape = SubResource("10_frame_v_shape")
+
+[node name="frame_right" type="StaticBody3D" parent="PortalB" groups=["fixture_geometry", "raytrace_geometry", "fixture_portal"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.7, 0, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="PortalB/frame_right"]
+mesh = SubResource("9_frame_v_mesh")
+material_override = SubResource("14_frame_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="PortalB/frame_right"]
+shape = SubResource("10_frame_v_shape")
+
+[node name="RayBeamRenderer" type="Node3D" parent="."]
+visible = false
+script = ExtResource("4_rbr")
+CameraPath = NodePath("../Camera3D")
+UseIntegratedField = true
+StepsPerRay = 640
+StepLength = 0.05
+MinStepLength = 0.02
+MaxStepLength = 0.12
+StepAdaptGain = 0.15
+LowCurvaturePerpAccel = 0.3
+BendScale = 0.0
+FieldStrength = 0.0
+FieldCenterIsCamera = false
+DebugMode = 0
+DebugNormalLen = 0.295
+Alpha = 1.0
+UpdateEveryFrame = false

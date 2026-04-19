@@ -847,6 +847,10 @@ public partial class GrinFilmCamera : Node
 		public readonly long ContinuationAttemptedPixels;
 		public readonly long ContinuationSuccessPixels;
 		public readonly long ContinuationFailedPixels;
+		public readonly long FrontfaceHitPixels;
+		public readonly long BackfaceHitPixels;
+		public readonly long BackfaceOnlyPixels;
+		public readonly double FrontfaceRatio;
 		public readonly double PathLengthMean;
 		public readonly double PathLengthMax;
 		public readonly bool OpticalPathTracked;
@@ -867,6 +871,10 @@ public partial class GrinFilmCamera : Node
 			long continuationAttemptedPixels,
 			long continuationSuccessPixels,
 			long continuationFailedPixels,
+			long frontfaceHitPixels,
+			long backfaceHitPixels,
+			long backfaceOnlyPixels,
+			double frontfaceRatio,
 			double pathLengthMean,
 			double pathLengthMax,
 			bool opticalPathTracked,
@@ -886,6 +894,10 @@ public partial class GrinFilmCamera : Node
 			ContinuationAttemptedPixels = continuationAttemptedPixels;
 			ContinuationSuccessPixels = continuationSuccessPixels;
 			ContinuationFailedPixels = continuationFailedPixels;
+			FrontfaceHitPixels = frontfaceHitPixels;
+			BackfaceHitPixels = backfaceHitPixels;
+			BackfaceOnlyPixels = backfaceOnlyPixels;
+			FrontfaceRatio = frontfaceRatio;
 			PathLengthMean = pathLengthMean;
 			PathLengthMax = pathLengthMax;
 			OpticalPathTracked = opticalPathTracked;
@@ -2168,6 +2180,9 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private long _fixtureCausalContinuationAttemptedPixelsThisRun = 0;
 	private long _fixtureCausalContinuationSuccessPixelsThisRun = 0;
 	private long _fixtureCausalContinuationFailedPixelsThisRun = 0;
+	private long _fixtureCausalFrontfaceHitPixelsThisRun = 0;
+	private long _fixtureCausalBackfaceHitPixelsThisRun = 0;
+	private long _fixtureCausalBackfaceOnlyPixelsThisRun = 0;
 	private double _fixtureCausalPathLengthSumThisRun = 0.0;
 	private double _fixtureCausalPathLengthMaxThisRun = 0.0;
 	private long _wormholePostRemapPixelsThisRun = 0;
@@ -3154,6 +3169,7 @@ private sealed class OverlayRollingWindow
 		public float HitDistance;
 		public Vector3 BestHp;
 		public Vector3 BestHn;
+		public Vector3 BestRayDir;
 		public ulong BestCid;
 		public string HitName;
 		public int PostRemapSegmentCount;
@@ -4879,11 +4895,44 @@ private sealed class OverlayRollingWindow
 		_fixtureCausalContinuationAttemptedPixelsThisRun = 0;
 		_fixtureCausalContinuationSuccessPixelsThisRun = 0;
 		_fixtureCausalContinuationFailedPixelsThisRun = 0;
+		_fixtureCausalFrontfaceHitPixelsThisRun = 0;
+		_fixtureCausalBackfaceHitPixelsThisRun = 0;
+		_fixtureCausalBackfaceOnlyPixelsThisRun = 0;
 		_fixtureCausalPathLengthSumThisRun = 0.0;
 		_fixtureCausalPathLengthMaxThisRun = 0.0;
 		ResetTelemetryHeatmapsForRunStart();
 		ResetFixtureRowParticipationForRunStart();
 		ResetFixtureWriteDiagnosticsForRunStart();
+	}
+
+	public void ResetFixtureCheckpointStateForTesting()
+	{
+		ResetFixtureDebugStatsForRunStart();
+		if (_pass2PrevHadHit.Length > 0)
+		{
+			Array.Clear(_pass2PrevHadHit, 0, _pass2PrevHadHit.Length);
+		}
+		if (_pass2HadHitLostThisFrame.Length > 0)
+		{
+			Array.Clear(_pass2HadHitLostThisFrame, 0, _pass2HadHitLostThisFrame.Length);
+		}
+		if (_presentTouchedEpoch.Length > 0)
+		{
+			Array.Clear(_presentTouchedEpoch, 0, _presentTouchedEpoch.Length);
+		}
+		if (_refreshTouchedEpoch.Length > 0)
+		{
+			Array.Clear(_refreshTouchedEpoch, 0, _refreshTouchedEpoch.Length);
+		}
+		_presentTouchedEpochId = 1;
+		_refreshTouchedEpochId = 1;
+		ResetRefreshAuditTracking();
+		if (_img != null && _filmWidth > 0 && _filmHeight > 0)
+		{
+			_img.Fill(SkyColor);
+			_tex?.Update(_img);
+		}
+		ResetFilmPassManual();
 	}
 
 	public bool TryGetFixtureDebugStatsForTesting(out FixtureDebugStatsSnapshot snapshot)
@@ -5113,11 +5162,16 @@ private sealed class OverlayRollingWindow
 		double pathLengthMean = _fixtureCausalObservedPixelsThisRun > 0
 			? _fixtureCausalPathLengthSumThisRun / _fixtureCausalObservedPixelsThisRun
 			: 0.0;
+		long totalFaceHitPixels = _fixtureCausalFrontfaceHitPixelsThisRun + _fixtureCausalBackfaceHitPixelsThisRun;
+		double frontfaceRatio = totalFaceHitPixels > 0
+			? (double)_fixtureCausalFrontfaceHitPixelsThisRun / totalFaceHitPixels
+			: 0.0;
 		string summary =
 			$"obs={_fixtureCausalObservedPixelsThisRun}|cross={_fixtureCausalBoundaryCrossingsTotalThisRun}|" +
 			$"xform={_fixtureCausalSceneTransformEventsTotalThisRun}|entry={_fixtureCausalEntryEventsTotalThisRun}|exit={_fixtureCausalExitEventsTotalThisRun}|" +
 			$"ambig={_fixtureCausalAmbiguousOrderingPixelsThisRun}|infer={_fixtureCausalThroatClassificationInferredPixelsThisRun}|" +
 			$"contAttempt={_fixtureCausalContinuationAttemptedPixelsThisRun}|contSuccess={_fixtureCausalContinuationSuccessPixelsThisRun}|contFail={_fixtureCausalContinuationFailedPixelsThisRun}|" +
+			$"front={_fixtureCausalFrontfaceHitPixelsThisRun}|back={_fixtureCausalBackfaceHitPixelsThisRun}|backOnly={_fixtureCausalBackfaceOnlyPixelsThisRun}|frontRatio={frontfaceRatio.ToString("0.######", CultureInfo.InvariantCulture)}|" +
 			$"pathMean={pathLengthMean.ToString("0.###", CultureInfo.InvariantCulture)}|pathMax={_fixtureCausalPathLengthMaxThisRun.ToString("0.###", CultureInfo.InvariantCulture)}";
 
 		snapshot = new FixtureCausalLedgerSnapshot(
@@ -5132,6 +5186,10 @@ private sealed class OverlayRollingWindow
 			_fixtureCausalContinuationAttemptedPixelsThisRun,
 			_fixtureCausalContinuationSuccessPixelsThisRun,
 			_fixtureCausalContinuationFailedPixelsThisRun,
+			_fixtureCausalFrontfaceHitPixelsThisRun,
+			_fixtureCausalBackfaceHitPixelsThisRun,
+			_fixtureCausalBackfaceOnlyPixelsThisRun,
+			frontfaceRatio,
 			pathLengthMean,
 			_fixtureCausalPathLengthMaxThisRun,
 			opticalPathTracked: false,
@@ -10636,6 +10694,7 @@ private sealed class OverlayRollingWindow
 										float bestHit = float.PositiveInfinity;
 										Vector3 bestHp = Vector3.Zero;
 										Vector3 bestHn = Vector3.Up;
+										Vector3 bestRayDir = Vector3.Zero;
 										ulong bestCid = 0;
 										string hitName = "<none>";
 										bool needHitName = cfg.NeedColliderNames;
@@ -10902,6 +10961,7 @@ private sealed class OverlayRollingWindow
 												hitDistance = resolvedHitDistance;
 												bestHp = hp;
 												bestHn = hn;
+												bestRayDir = segLen > 0f ? (segB - segA).Normalized() : (hp - segA).Normalized();
 												bestCid = cid;
 												bestHitWasPostRemap = segPostRemap;
 												bestEventCountThisPixel = seg.EventCount;
@@ -11031,6 +11091,7 @@ private sealed class OverlayRollingWindow
 											HitDistance = hitDistance,
 											BestHp = bestHp,
 											BestHn = bestHn,
+											BestRayDir = bestRayDir,
 											BestCid = bestCid,
 											HitName = needHitName ? hitName : string.Empty,
 											PostRemapSegmentCount = postRemapSegmentCountThisPixel,
@@ -11438,6 +11499,18 @@ private sealed class OverlayRollingWindow
 								sample.TransformCount,
 								sample.LastCrossingKind,
 								out bool throatKindUsedHeuristicFallback);
+							bool frontfaceHitOccurred = false;
+							bool backfaceHitOccurred = false;
+							if (sample.HadHit)
+							{
+								Vector3 rayDir = sample.BestRayDir.Normalized();
+								Vector3 normal = sample.BestHn.Normalized();
+								if (rayDir.LengthSquared() > 1e-12f && normal.LengthSquared() > 1e-12f)
+								{
+									frontfaceHitOccurred = rayDir.Dot(normal) < 0f;
+									backfaceHitOccurred = !frontfaceHitOccurred;
+								}
+							}
 							_fixtureCausalObservedPixelsThisRun += filled;
 							_fixtureCausalBoundaryCrossingsTotalThisRun += sample.BoundaryCrossings * filled;
 							_fixtureCausalSceneTransformEventsTotalThisRun += sample.TransformCount * filled;
@@ -11454,6 +11527,14 @@ private sealed class OverlayRollingWindow
 								_fixtureCausalContinuationSuccessPixelsThisRun += filled;
 							if (sample.ContinuationFailed)
 								_fixtureCausalContinuationFailedPixelsThisRun += filled;
+							if (frontfaceHitOccurred)
+								_fixtureCausalFrontfaceHitPixelsThisRun += filled;
+							if (backfaceHitOccurred)
+							{
+								_fixtureCausalBackfaceHitPixelsThisRun += filled;
+								if (!frontfaceHitOccurred)
+									_fixtureCausalBackfaceOnlyPixelsThisRun += filled;
+							}
 							_fixtureCausalPathLengthSumThisRun += sample.ObservedPathLength * filled;
 							_fixtureCausalPathLengthMaxThisRun = Math.Max(_fixtureCausalPathLengthMaxThisRun, sample.ObservedPathLength);
 							int throatInteractionCount = Math.Max(
@@ -11810,6 +11891,7 @@ private sealed class OverlayRollingWindow
 						float bestHitDistAlongRay = float.PositiveInfinity;
 						Vector3 bestHp = Vector3.Zero;
 						Vector3 bestHn = Vector3.Up;
+						Vector3 bestRayDir = Vector3.Zero;
 						ulong bestCid = 0;
 						bool absorbedByInnerRadius = false;
 						int postRemapSegmentCountThisPixel = 0;
@@ -13556,6 +13638,7 @@ private sealed class OverlayRollingWindow
 										if (needHitName) hitName = cname;
 										bestHp = hp;      // ADD
 										bestHn = hn;      // ADD
+										bestRayDir = segLen > 0f ? (segB - segA).Normalized() : (hp - segA).Normalized();
 										bestCid = cid;
 										bestHitWasPostRemap = segPostRemap;
 										bestEventCountThisPixel = seg.EventCount;
@@ -13778,6 +13861,7 @@ private sealed class OverlayRollingWindow
 									HitDistance = hitDistance,
 									BestHp = bestHp,
 									BestHn = bestHn,
+									BestRayDir = bestRayDir,
 									BestCid = bestCid,
 									HitName = needHitName ? hitName : string.Empty,
 									PostRemapSegmentCount = postRemapSegmentCountThisPixel,
@@ -14027,6 +14111,18 @@ private sealed class OverlayRollingWindow
 							resolvedTransformCountThisPixel,
 							resolvedLastCrossingKindThisPixel,
 							out bool throatKindUsedHeuristicFallback);
+						bool frontfaceHitOccurred = false;
+						bool backfaceHitOccurred = false;
+						if (hadHit)
+						{
+							Vector3 rayDir = bestRayDir.Normalized();
+							Vector3 normal = bestHn.Normalized();
+							if (rayDir.LengthSquared() > 1e-12f && normal.LengthSquared() > 1e-12f)
+							{
+								frontfaceHitOccurred = rayDir.Dot(normal) < 0f;
+								backfaceHitOccurred = !frontfaceHitOccurred;
+							}
+						}
 						_fixtureCausalObservedPixelsThisRun += filled;
 						_fixtureCausalBoundaryCrossingsTotalThisRun += resolvedBoundaryCrossingsThisPixel * filled;
 						_fixtureCausalSceneTransformEventsTotalThisRun += resolvedTransformCountThisPixel * filled;
@@ -14043,6 +14139,14 @@ private sealed class OverlayRollingWindow
 							_fixtureCausalContinuationSuccessPixelsThisRun += filled;
 						if (continuationFailedThisPixel)
 							_fixtureCausalContinuationFailedPixelsThisRun += filled;
+						if (frontfaceHitOccurred)
+							_fixtureCausalFrontfaceHitPixelsThisRun += filled;
+						if (backfaceHitOccurred)
+						{
+							_fixtureCausalBackfaceHitPixelsThisRun += filled;
+							if (!frontfaceHitOccurred)
+								_fixtureCausalBackfaceOnlyPixelsThisRun += filled;
+						}
 						float observedPathLengthThisPixel = hadHit ? hitDistance : terminalPathLengthThisPixel;
 						_fixtureCausalPathLengthSumThisRun += observedPathLengthThisPixel * filled;
 						_fixtureCausalPathLengthMaxThisRun = Math.Max(_fixtureCausalPathLengthMaxThisRun, observedPathLengthThisPixel);

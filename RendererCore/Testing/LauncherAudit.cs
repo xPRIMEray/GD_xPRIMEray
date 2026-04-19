@@ -98,6 +98,26 @@ public static class LauncherAudit
 		{
 			return "einstein_ring_minimal";
 		}
+		if (normalized.Contains("test-overspace-wormhole-checkpoint-sequence-fixture", StringComparison.OrdinalIgnoreCase))
+		{
+			return "overspace_wormhole_checkpoint_sequence";
+		}
+		if (normalized.Contains("test-overspace-wormhole-witness-mouth-fixture", StringComparison.OrdinalIgnoreCase))
+		{
+			return "overspace_wormhole_witness_mouth";
+		}
+		if (normalized.Contains("test-overspace-wormhole-witness-throat-fixture", StringComparison.OrdinalIgnoreCase))
+		{
+			return "overspace_wormhole_witness_throat";
+		}
+		if (normalized.Contains("test-overspace-wormhole-witness-exit-fixture", StringComparison.OrdinalIgnoreCase))
+		{
+			return "overspace_wormhole_witness_exit";
+		}
+		if (normalized.Contains("test-overspace-wormhole-witness-fixture", StringComparison.OrdinalIgnoreCase))
+		{
+			return "overspace_wormhole_witness";
+		}
 		if (normalized.Contains("test-overspace-hermetic-fixture-topology", StringComparison.OrdinalIgnoreCase))
 		{
 			return "overspace_hermetic_fixture_topology";
@@ -146,6 +166,11 @@ public static class LauncherAudit
 			"blackhole_minimal" => "res://test-blackhole-minimal.tscn",
 			"einstein_ring_minimal" => "res://test-einstein-ring-minimal.tscn",
 			"overspace_hermetic_fixture" => "res://test-overspace-hermetic-fixture.tscn",
+			"overspace_wormhole_witness" => "res://test-overspace-wormhole-witness-fixture.tscn",
+			"overspace_wormhole_checkpoint_sequence" => "res://test-overspace-wormhole-checkpoint-sequence-fixture.tscn",
+			"overspace_wormhole_witness_mouth" => "res://test-overspace-wormhole-witness-mouth-fixture.tscn",
+			"overspace_wormhole_witness_throat" => "res://test-overspace-wormhole-witness-throat-fixture.tscn",
+			"overspace_wormhole_witness_exit" => "res://test-overspace-wormhole-witness-exit-fixture.tscn",
 			"overspace_hermetic_fixture_topology" => "res://test-overspace-hermetic-fixture-topology.tscn",
 			"overspace_hermetic_fixture_field" => "res://test-overspace-hermetic-fixture-field.tscn",
 			"default" => "res://test.tscn",
