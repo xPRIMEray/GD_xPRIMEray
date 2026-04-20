@@ -1,15 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "tEghkGUbKQI=",
+  "dgSpecHash": "ZRB9vj1WIrPKggERd+UDb6zjDWVlUyPpaDKJHcQZErvtxK5savH2ZQivJeI/NP0pAFO3jFUvycKNRDUeVAW0GA==",
   "success": true,
-  "projectFilePath": "C:\\godot\\godot_xPRIMEray\\.claude\\worktrees\\confident-lichterman-e67580\\Physical Light and Camera Units.csproj",
+  "projectFilePath": "/home/bb/code/godot_xPRIMEray/Physical Light and Camera Units.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\wmbro\\.nuget\\packages\\godot.sourcegenerators\\4.5.1\\godot.sourcegenerators.4.5.1.nupkg.sha512",
-    "C:\\Users\\wmbro\\.nuget\\packages\\godotsharp\\4.5.1\\godotsharp.4.5.1.nupkg.sha512",
-    "C:\\Users\\wmbro\\.nuget\\packages\\godotsharpeditor\\4.5.1\\godotsharpeditor.4.5.1.nupkg.sha512",
-    "C:\\Users\\wmbro\\.nuget\\packages\\microsoft.netcore.app.ref\\8.0.22\\microsoft.netcore.app.ref.8.0.22.nupkg.sha512",
-    "C:\\Users\\wmbro\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.22\\microsoft.windowsdesktop.app.ref.8.0.22.nupkg.sha512",
-    "C:\\Users\\wmbro\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\8.0.22\\microsoft.aspnetcore.app.ref.8.0.22.nupkg.sha512"
+    "/home/bb/.nuget/packages/godot.sourcegenerators/4.5.1/godot.sourcegenerators.4.5.1.nupkg.sha512",
+    "/home/bb/.nuget/packages/godotsharp/4.5.1/godotsharp.4.5.1.nupkg.sha512",
+    "/home/bb/.nuget/packages/godotsharpeditor/4.5.1/godotsharpeditor.4.5.1.nupkg.sha512"
   ],
   "logs": []
 }
