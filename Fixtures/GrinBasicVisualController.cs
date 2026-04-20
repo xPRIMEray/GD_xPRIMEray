@@ -685,6 +685,8 @@ public partial class GrinBasicVisualController : Node3D
 		bool hasThroatDepth = _filmCamera.TryGetFixtureThroatDepthForTesting(out throatDepthSnapshot);
 		GrinFilmCamera.FixtureCausalLedgerSnapshot causalLedgerSnapshot = default;
 		bool hasCausalLedger = _filmCamera.TryGetFixtureCausalLedgerForTesting(out causalLedgerSnapshot);
+		GrinFilmCamera.FixtureAdaptiveSteppingDiagnosticsSnapshot adaptiveDiagnosticsSnapshot = default;
+		bool hasAdaptiveDiagnostics = _filmCamera.TryGetFixtureAdaptiveSteppingDiagnosticsForTesting(out adaptiveDiagnosticsSnapshot);
 		FilmOverlay2D.OverlayRenderSnapshot overlaySnapshot = default;
 		bool hasOverlaySnapshot = _filmOverlay != null && GodotObject.IsInstanceValid(_filmOverlay);
 		if (hasOverlaySnapshot)
@@ -885,6 +887,28 @@ public partial class GrinBasicVisualController : Node3D
 				$"observerCameraPath={observerCameraPath} " +
 				$"observerCameraInstanceId={causalLedgerSnapshot.ObserverCameraInstanceId} " +
 				$"summary={causalLedgerSnapshot.Summary}");
+		}
+		if (hasAdaptiveDiagnostics)
+		{
+			string fmtLong(long? value) => value.HasValue ? value.Value.ToString(CultureInfo.InvariantCulture) : "na";
+			string fmtDouble(double? value) => value.HasValue ? value.Value.ToString("0.######", CultureInfo.InvariantCulture) : "na";
+			GD.Print(
+				$"[GrinBasicVisual][AdaptiveDiag] fixture={FixtureHudName} " +
+				$"totalEmittedRaySegCount={fmtLong(adaptiveDiagnosticsSnapshot.TotalEmittedRaySegCount)} " +
+				$"averageSegmentsPerRay={fmtDouble(adaptiveDiagnosticsSnapshot.AverageSegmentsPerRay)} " +
+				$"maxSegmentsPerRay={fmtLong(adaptiveDiagnosticsSnapshot.MaxSegmentsPerRay)} " +
+				$"adaptiveSubdivisionCount={fmtLong(adaptiveDiagnosticsSnapshot.AdaptiveSubdivisionCount)} " +
+				$"averageTurnAngle={fmtDouble(adaptiveDiagnosticsSnapshot.AverageTurnAngle)} " +
+				$"maxTurnAngle={fmtDouble(adaptiveDiagnosticsSnapshot.MaxTurnAngle)} " +
+				$"averageLocalGeometricError={fmtDouble(adaptiveDiagnosticsSnapshot.AverageLocalGeometricError)} " +
+				$"maxLocalGeometricError={fmtDouble(adaptiveDiagnosticsSnapshot.MaxLocalGeometricError)} " +
+				$"steeringTurns={fmtLong(adaptiveDiagnosticsSnapshot.SteeringTurns)} " +
+				$"parallelRawCount={fmtLong(adaptiveDiagnosticsSnapshot.ParallelRawCount)} " +
+				$"sourceHits={fmtLong(adaptiveDiagnosticsSnapshot.SourceHits)} " +
+				$"backgroundHits={fmtLong(adaptiveDiagnosticsSnapshot.BackgroundHits)} " +
+				$"terminatedRayCount={fmtLong(adaptiveDiagnosticsSnapshot.TerminatedRayCount)} " +
+				$"fallbackUsedCount={fmtLong(adaptiveDiagnosticsSnapshot.FallbackUsedCount)} " +
+				$"summary={adaptiveDiagnosticsSnapshot.Summary}");
 		}
 		if (hasThroatDepth && throatDepthWritten)
 		{

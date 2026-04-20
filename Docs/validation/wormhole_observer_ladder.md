@@ -1,52 +1,77 @@
 # Wormhole Observer Ladder
 
-This note presents a minimal static observer progression across the validated wormhole witness checkpoints. It is intentionally descriptive rather than cinematic: no traversal, no animation, and no extra rendering beyond the existing fixture outputs.
+This note locks the approved non-interpolated wormhole traversal baseline as a five-checkpoint fresh-instance ladder. It is intentionally sparse: no interpolation, no geometry edits, and no transport changes. Each checkpoint is a standalone-equivalent observer state inside the sequenced fixture path.
 
-## Checkpoint A: Mouth Witness
+Baseline run:
+[fixture_011_wormhole_checkpoint_sequence/2026-04-20T18-27-07](/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-20T18-27-07)
 
-![Checkpoint A capture](/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_008_wormhole_witness_mouth/2026-04-18T17-21-36/capture.png)
+The approved sparse progression is now:
 
-- Run: [fixture_008_wormhole_witness_mouth/2026-04-18T17-21-36](/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_008_wormhole_witness_mouth/2026-04-18T17-21-36)
-- Meaning: stable near-mouth witness. The observer sees the near portal boundary and far-side mapping, but not yet active throat interaction.
-- `throat_event_pixels = 0`
-- `portal_hit_pixels = 3742`
-- `boundary_crossings_total = 0`
-- `run_verified = true`
+1. `mouth`
+2. `mouth_to_throat_approach`
+3. `throat`
+4. `post_throat_exit_approach`
+5. `exit_lookback`
 
-## Checkpoint B: Throat Witness
+## Approved Checkpoints
 
-![Checkpoint B capture](/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_009_wormhole_witness_throat/2026-04-18T17-22-00/capture.png)
+### 00 Mouth
 
-- Run: [fixture_009_wormhole_witness_throat/2026-04-18T17-22-00](/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_009_wormhole_witness_throat/2026-04-18T17-22-00)
-- Meaning: throat-positive static witness. The observer still sees the portal boundary, but the pose now samples active throat transport.
-- `throat_event_pixels = 3933`
-- `portal_hit_pixels = 6242`
-- `boundary_crossings_total = 14878`
-- `run_verified = true`
+![00 mouth](/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-20T18-27-07/00_mouth_capture.png)
 
-## Checkpoint C: Exit-side Look-back
+- Meaning: near-mouth witness showing the portal boundary and mapped far-side relation.
+- Transform: `Transform3D(0.890906, 0, 0.454187, 0.062862, 0.990376, -0.123306, -0.449816, 0.138405, 0.882332, -2.35, 1.05, 3.55)`
+- `runVerified = true`
 
-![Checkpoint C capture](/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_010_wormhole_witness_exit/2026-04-18T17-22-20/capture.png)
+### 01 Mouth-To-Throat Approach
 
-- Run: [fixture_010_wormhole_witness_exit/2026-04-18T17-22-20](/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_010_wormhole_witness_exit/2026-04-18T17-22-20)
-- Meaning: far-side observer looking back through the wormhole relation. This confirms the observer ladder can be completed from the exit side without traversal animation.
-- `throat_event_pixels = 4742`
-- `portal_hit_pixels = 9181`
-- `boundary_crossings_total = 14290`
-- `run_verified = true`
+![01 mouth-to-throat approach](/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-20T18-27-07/01_mouth_to_throat_approach_capture.png)
 
-## Summary
+- Meaning: conservative densification of the highest-effort leg between the mouth and throat witnesses.
+- Transform: `Transform3D(0.907106, 0, 0.420902, 0.059122, 0.990086, -0.127417, -0.416729, 0.140466, 0.898113, -2.085, 0.985, 3.465)`
+- `runVerified = true`
 
-The causal progression is visible and numeric:
+### 02 Throat
 
-| Checkpoint | Role | throat_event_pixels | portal_hit_pixels | boundary_crossings_total | run_verified |
-|---|---|---:|---:|---:|---|
-| A | Mouth witness | 0 | 3742 | 0 | true |
-| B | Throat witness | 3933 | 6242 | 14878 | true |
-| C | Exit look-back | 4742 | 9181 | 14290 | true |
+![02 throat](/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-20T18-27-07/02_throat_capture.png)
 
-Taken together, the ladder reads as:
+- Meaning: throat-positive witness anchored at the validated observer pose.
+- Transform: `Transform3D(0.922063, 0, 0.387039, 0.055236, 0.989764, -0.131592, -0.383077, 0.142715, 0.912625, -1.82, 0.92, 3.38)`
+- `runVerified = true`
 
-1. establish the mouth and far-side mapping,
-2. move into a throat-positive static witness,
-3. confirm the exit-side observer can look back through the same causal relation.
+### 03 Post-Throat Exit Approach
+
+![03 post-throat exit approach](/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-20T18-27-07/03_post_throat_exit_approach_capture.png)
+
+- Meaning: first valid post-throat checkpoint on the far side, replacing the failed linear throat-to-exit midpoint.
+- Transform: `Transform3D(0.931609, 0, -0.363462, -0.052292, 0.989596, -0.134033, 0.35968, 0.143872, 0.921917, 23.4, 0.92, 3.35)`
+- `runVerified = true`
+
+### 04 Exit Look-back
+
+![04 exit look-back](/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-20T18-27-07/04_exit_lookback_capture.png)
+
+- Meaning: far-side look-back witness confirming the exit-side observer relation.
+- Transform: `Transform3D(0.931609, 0, -0.363462, -0.052292, 0.989596, -0.134033, 0.35968, 0.143872, 0.921917, 25.65, 0.92, 3.35)`
+- `runVerified = true`
+
+## Compact Comparison
+
+| Checkpoint | portal_hit_pixels | throat_event_pixels | boundary_crossings_total | TotalEmittedRaySegCount | AverageSegmentsPerRay | runVerified |
+|---|---:|---:|---:|---:|---:|---|
+| `mouth` | 18969 | 12559 | 84174 | 12903836 | 99.5666 | true |
+| `mouth_to_throat_approach` | 21155 | 13585 | 90554 | 12645509 | 97.5734 | true |
+| `throat` | 22684 | 14770 | 96924 | 12423032 | 95.8567 | true |
+| `post_throat_exit_approach` | 23313 | 27351 | 214410 | 10787760 | 83.2389 | true |
+| `exit_lookback` | 33148 | 28487 | 184026 | 11219542 | 86.5705 | true |
+
+## Interpretation
+
+Transport effort by emitted segment count is highest at `mouth`, then steps down steadily through `mouth_to_throat_approach` and `throat`. The strongest wormhole interaction load appears at `post_throat_exit_approach`, where `throat_event_pixels` and `boundary_crossings_total` peak before settling slightly at `exit_lookback`.
+
+## Next Step
+
+The next small step is either:
+
+1. discover one more valid sparse checkpoint between `post_throat_exit_approach` and `exit_lookback`, or
+2. introduce sparse interpolation between these approved five anchors while keeping fresh-instance parity checks available as the reference discipline.

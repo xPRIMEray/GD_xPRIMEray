@@ -21,14 +21,57 @@ public partial class WormholeCheckpointSequencer : Node3D
 		new(
 			"mouth",
 			"res://Fixtures/fixture_overspace_wormhole_witness_mouth_room.tscn",
+			new Transform3D(
+				new Basis(
+					new Vector3(0.890906f, 0f, 0.454187f),
+					new Vector3(0.062862f, 0.990376f, -0.123306f),
+					new Vector3(-0.449816f, 0.138405f, 0.882332f)),
+				new Vector3(-2.35f, 1.05f, 3.55f)),
+			46.0f,
 			"Near-mouth static witness showing portal boundary and far-side mapping."),
+		new(
+			"mouth_to_throat_approach",
+			"res://Fixtures/fixture_overspace_wormhole_witness_throat_room.tscn",
+			new Transform3D(
+				new Basis(
+					new Vector3(0.907106f, 0f, 0.420902f),
+					new Vector3(0.059122f, 0.990086f, -0.127417f),
+					new Vector3(-0.416729f, 0.140466f, 0.898113f)),
+				new Vector3(-2.085f, 0.985f, 3.465f)),
+			46.0f,
+			"Conservative approach checkpoint between the mouth and throat witnesses."),
 		new(
 			"throat",
 			"res://Fixtures/fixture_overspace_wormhole_witness_throat_room.tscn",
+			new Transform3D(
+				new Basis(
+					new Vector3(0.922063f, 0f, 0.387039f),
+					new Vector3(0.055236f, 0.989764f, -0.131592f),
+					new Vector3(-0.383077f, 0.142715f, 0.912625f)),
+				new Vector3(-1.82f, 0.92f, 3.38f)),
+			46.0f,
 			"Throat-positive static witness using the validated observer pose."),
+		new(
+			"post_throat_exit_approach",
+			"res://Fixtures/fixture_overspace_wormhole_witness_exit_room.tscn",
+			new Transform3D(
+				new Basis(
+					new Vector3(0.931609f, 0f, -0.363462f),
+					new Vector3(-0.052292f, 0.989596f, -0.134033f),
+					new Vector3(0.35968f, 0.143872f, 0.921917f)),
+				new Vector3(23.4f, 0.92f, 3.35f)),
+			46.0f,
+			"Conservative post-throat exit-side witness moved slightly back from the validated exit look-back pose."),
 		new(
 			"exit_lookback",
 			"res://Fixtures/fixture_overspace_wormhole_witness_exit_room.tscn",
+			new Transform3D(
+				new Basis(
+					new Vector3(0.931609f, 0f, -0.363462f),
+					new Vector3(-0.052292f, 0.989596f, -0.134033f),
+					new Vector3(0.35968f, 0.143872f, 0.921917f)),
+				new Vector3(25.65f, 0.92f, 3.35f)),
+			46.0f,
 			"Far-side look-back witness confirming the exit-side observer relation.")
 	};
 
@@ -181,6 +224,8 @@ public partial class WormholeCheckpointSequencer : Node3D
 			return false;
 		}
 		roomCamera.Current = true;
+		roomCamera.Transform = checkpoint.Transform;
+		roomCamera.Fov = checkpoint.Fov;
 		return true;
 	}
 
@@ -292,6 +337,7 @@ public partial class WormholeCheckpointSequencer : Node3D
 
 		_activeFilmCamera.TryGetFixtureTransportCoverageForTesting(out GrinFilmCamera.FixtureTransportCoverageSnapshot coverage);
 		_activeFilmCamera.TryGetFixtureCausalLedgerForTesting(out GrinFilmCamera.FixtureCausalLedgerSnapshot causal);
+		_activeFilmCamera.TryGetFixtureAdaptiveSteppingDiagnosticsForTesting(out GrinFilmCamera.FixtureAdaptiveSteppingDiagnosticsSnapshot adaptive);
 		bool runVerified =
 			coverage.TotalPixels > 0 &&
 			coverage.ClassifiedPixels == coverage.TotalPixels &&
@@ -325,6 +371,24 @@ public partial class WormholeCheckpointSequencer : Node3D
 			BackfaceOnlyPixels = causal.BackfaceOnlyPixels,
 			FrontfaceRatio = causal.FrontfaceRatio,
 			BoundaryCrossingsTotal = causal.BoundaryCrossingsTotal,
+			AdaptiveDiagnostics = new AdaptiveDiagnosticsResult
+			{
+				TotalEmittedRaySegCount = adaptive.TotalEmittedRaySegCount,
+				AverageSegmentsPerRay = adaptive.AverageSegmentsPerRay,
+				MaxSegmentsPerRay = adaptive.MaxSegmentsPerRay,
+				AdaptiveSubdivisionCount = adaptive.AdaptiveSubdivisionCount,
+				AverageTurnAngle = adaptive.AverageTurnAngle,
+				MaxTurnAngle = adaptive.MaxTurnAngle,
+				AverageLocalGeometricError = adaptive.AverageLocalGeometricError,
+				MaxLocalGeometricError = adaptive.MaxLocalGeometricError,
+				SteeringTurns = adaptive.SteeringTurns,
+				ParallelRawCount = adaptive.ParallelRawCount,
+				SourceHits = adaptive.SourceHits,
+				BackgroundHits = adaptive.BackgroundHits,
+				TerminatedRayCount = adaptive.TerminatedRayCount,
+				FallbackUsedCount = adaptive.FallbackUsedCount,
+				Summary = adaptive.Summary
+			},
 			RunVerified = runVerified
 		});
 
@@ -401,7 +465,7 @@ public partial class WormholeCheckpointSequencer : Node3D
 			DateTime.UtcNow.ToString("yyyy-MM-ddTHH-mm-ss", CultureInfo.InvariantCulture));
 	}
 
-	private readonly record struct CheckpointSpec(string Name, string RoomScenePath, string Description);
+	private readonly record struct CheckpointSpec(string Name, string RoomScenePath, Transform3D Transform, float Fov, string Description);
 
 	private sealed class CheckpointResult
 	{
@@ -427,7 +491,27 @@ public partial class WormholeCheckpointSequencer : Node3D
 		public long BackfaceOnlyPixels { get; set; }
 		public double FrontfaceRatio { get; set; }
 		public long BoundaryCrossingsTotal { get; set; }
+		public AdaptiveDiagnosticsResult AdaptiveDiagnostics { get; set; } = new();
 		public bool RunVerified { get; set; }
+	}
+
+	private sealed class AdaptiveDiagnosticsResult
+	{
+		public long? TotalEmittedRaySegCount { get; set; }
+		public double? AverageSegmentsPerRay { get; set; }
+		public long? MaxSegmentsPerRay { get; set; }
+		public long? AdaptiveSubdivisionCount { get; set; }
+		public double? AverageTurnAngle { get; set; }
+		public double? MaxTurnAngle { get; set; }
+		public double? AverageLocalGeometricError { get; set; }
+		public double? MaxLocalGeometricError { get; set; }
+		public long? SteeringTurns { get; set; }
+		public long? ParallelRawCount { get; set; }
+		public long? SourceHits { get; set; }
+		public long? BackgroundHits { get; set; }
+		public long? TerminatedRayCount { get; set; }
+		public long? FallbackUsedCount { get; set; }
+		public string Summary { get; set; } = string.Empty;
 	}
 
 	private sealed class SequenceSummary

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Physical Light and Camera Units")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3a2893406f3e627a7195d0b281197c499f3d30aa")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+79d9a508afb10a0c314e1090a8bee892531f80cd")]
 [assembly: System.Reflection.AssemblyProductAttribute("Physical Light and Camera Units")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Physical Light and Camera Units")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

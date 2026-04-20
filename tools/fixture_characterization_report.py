@@ -84,6 +84,7 @@ def parse_log(text: str) -> dict:
         "writeDiag": None,
         "throatDepth": None,
         "bottomRegionDiag": None,
+        "adaptiveDiag": None,
         "rows": None,
         "visual": None,
         "runtimeBuild": None,
@@ -130,6 +131,10 @@ def parse_log(text: str) -> dict:
         bottom_region_diag = parse_kv(line, "[GrinBasicVisual][BottomRegionDiag]")
         if bottom_region_diag:
             parsed["bottomRegionDiag"] = bottom_region_diag
+
+        adaptive_diag = parse_kv(line, "[GrinBasicVisual][AdaptiveDiag]")
+        if adaptive_diag:
+            parsed["adaptiveDiag"] = adaptive_diag
 
         launch = parse_kv(line, "[LaunchAudit]")
         if launch:
@@ -216,6 +221,7 @@ def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
     write_diag = parsed.get("writeDiag") or {}
     throat_depth = parsed.get("throatDepth") or {}
     bottom_region_diag = parsed.get("bottomRegionDiag") or {}
+    adaptive_diag = parsed.get("adaptiveDiag") or {}
     visual = parsed.get("visual") or {}
     runtime_build = parsed.get("runtimeBuild") or {}
     launch = parsed.get("launchAudit") or {}
@@ -337,6 +343,21 @@ def build_metrics(args: argparse.Namespace, parsed: dict) -> dict:
         "throat_depth_max_interaction_count": throat_depth.get("maxInteractionCount"),
         "throat_depth_mean_interaction_count": throat_depth.get("meanInteractionCount"),
         "throat_depth_summary": throat_depth.get("summary"),
+        "adaptive_total_emitted_rayseg_count": adaptive_diag.get("totalEmittedRaySegCount"),
+        "adaptive_average_segments_per_ray": adaptive_diag.get("averageSegmentsPerRay"),
+        "adaptive_max_segments_per_ray": adaptive_diag.get("maxSegmentsPerRay"),
+        "adaptive_subdivision_count": adaptive_diag.get("adaptiveSubdivisionCount"),
+        "adaptive_average_turn_angle": adaptive_diag.get("averageTurnAngle"),
+        "adaptive_max_turn_angle": adaptive_diag.get("maxTurnAngle"),
+        "adaptive_average_local_geometric_error": adaptive_diag.get("averageLocalGeometricError"),
+        "adaptive_max_local_geometric_error": adaptive_diag.get("maxLocalGeometricError"),
+        "adaptive_steering_turns": adaptive_diag.get("steeringTurns"),
+        "adaptive_parallel_raw_count": adaptive_diag.get("parallelRawCount"),
+        "adaptive_source_hits": adaptive_diag.get("sourceHits"),
+        "adaptive_background_hits": adaptive_diag.get("backgroundHits"),
+        "adaptive_terminated_ray_count": adaptive_diag.get("terminatedRayCount"),
+        "adaptive_fallback_used_count": adaptive_diag.get("fallbackUsedCount"),
+        "adaptive_summary": adaptive_diag.get("summary"),
         "overlay_enabled_for_analysis_capture": capture_artifacts.get("overlayEnabledForAnalysisCapture"),
         "analysis_capture_width": capture_artifacts.get("analysisWidth"),
         "analysis_capture_height": capture_artifacts.get("analysisHeight"),
@@ -2172,6 +2193,20 @@ def build_summary(metrics: dict, args: argparse.Namespace) -> str:
         f"Traversal Write Pixel Count: {metrics.get('traversal_write_pixel_count')}",
         f"Rendered Bright Rows: {metrics.get('analysis_rendered_bright_row_count')}",
         f"RenderHealth Geom Segments Queried: {metrics.get('render_health_geom_segments_queried')}",
+        f"Adaptive Total Emitted RaySeg Count: {metrics.get('adaptive_total_emitted_rayseg_count')}",
+        f"Adaptive Average Segments Per Ray: {metrics.get('adaptive_average_segments_per_ray')}",
+        f"Adaptive Max Segments Per Ray: {metrics.get('adaptive_max_segments_per_ray')}",
+        f"Adaptive Subdivision Count: {metrics.get('adaptive_subdivision_count')}",
+        f"Adaptive Average Turn Angle: {metrics.get('adaptive_average_turn_angle')}",
+        f"Adaptive Max Turn Angle: {metrics.get('adaptive_max_turn_angle')}",
+        f"Adaptive Average Local Geometric Error: {metrics.get('adaptive_average_local_geometric_error')}",
+        f"Adaptive Max Local Geometric Error: {metrics.get('adaptive_max_local_geometric_error')}",
+        f"Adaptive Steering Turns: {metrics.get('adaptive_steering_turns')}",
+        f"Adaptive Parallel Raw Count: {metrics.get('adaptive_parallel_raw_count')}",
+        f"Adaptive Source Hits: {metrics.get('adaptive_source_hits')}",
+        f"Adaptive Background Hits: {metrics.get('adaptive_background_hits')}",
+        f"Adaptive Terminated Ray Count: {metrics.get('adaptive_terminated_ray_count')}",
+        f"Adaptive Fallback Used Count: {metrics.get('adaptive_fallback_used_count')}",
         f"Bottom Region Likely Cause: {metrics.get('bottom_region_likely_cause')}",
         f"Analysis Unrendered Rows: {metrics.get('analysis_unrendered_rows')}",
         f"Analysis Band Matches Unrendered Rows: {metrics.get('analysis_band_matches_unrendered_rows')}",

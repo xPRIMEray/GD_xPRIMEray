@@ -1118,6 +1118,7 @@ public partial class RayBeamRenderer : Node3D
 		public readonly int SteeringTurnCount;
 		public readonly float MeanTurn;
 		public readonly float MaxTurn;
+		public readonly int ParallelRawCount;
 		public readonly string RadialTurnSummary;
 		public readonly string ZeroReasonSummary;
 
@@ -1134,6 +1135,7 @@ public partial class RayBeamRenderer : Node3D
 			int steeringTurnCount,
 			float meanTurn,
 			float maxTurn,
+			int parallelRawCount,
 			string radialTurnSummary,
 			string zeroReasonSummary)
 		{
@@ -1151,6 +1153,7 @@ public partial class RayBeamRenderer : Node3D
 			SteeringTurnCount = steeringTurnCount;
 			MeanTurn = meanTurn;
 			MaxTurn = maxTurn;
+			ParallelRawCount = parallelRawCount;
 			RadialTurnSummary = radialTurnSummary ?? "none";
 			ZeroReasonSummary = zeroReasonSummary ?? "none";
 		}
@@ -1307,6 +1310,7 @@ public partial class RayBeamRenderer : Node3D
 			_transportSteeringTurnCount,
 			meanTurn,
 			_transportSteeringMaxTurn,
+			_metricParallelRawCount,
 			BuildTransportSteeringRadialSummary(),
 			BuildMetricZeroReasonSummary());
 	}

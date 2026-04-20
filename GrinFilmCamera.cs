@@ -696,6 +696,7 @@ public partial class GrinFilmCamera : Node
 		public readonly long GeomRayTestsTotal;
 		public readonly long Pass2SampledSegments;
 		public readonly double AvgStepsPerTracedPixel;
+		public readonly int HybridFallbackCount;
 		public readonly string BudgetExitReason;
 		public readonly bool GeomPruneRequested;
 		public readonly bool UseGeometryTLASPruning;
@@ -710,6 +711,7 @@ public partial class GrinFilmCamera : Node
 			long geomRayTestsTotal,
 			long pass2SampledSegments,
 			double avgStepsPerTracedPixel,
+			int hybridFallbackCount,
 			string budgetExitReason,
 			bool geomPruneRequested,
 			bool useGeometryTLASPruning)
@@ -723,9 +725,63 @@ public partial class GrinFilmCamera : Node
 			GeomRayTestsTotal = geomRayTestsTotal;
 			Pass2SampledSegments = pass2SampledSegments;
 			AvgStepsPerTracedPixel = avgStepsPerTracedPixel;
+			HybridFallbackCount = hybridFallbackCount;
 			BudgetExitReason = budgetExitReason ?? string.Empty;
 			GeomPruneRequested = geomPruneRequested;
 			UseGeometryTLASPruning = useGeometryTLASPruning;
+		}
+	}
+
+	public readonly struct FixtureAdaptiveSteppingDiagnosticsSnapshot
+	{
+		public readonly long? TotalEmittedRaySegCount;
+		public readonly double? AverageSegmentsPerRay;
+		public readonly long? MaxSegmentsPerRay;
+		public readonly long? AdaptiveSubdivisionCount;
+		public readonly double? AverageTurnAngle;
+		public readonly double? MaxTurnAngle;
+		public readonly double? AverageLocalGeometricError;
+		public readonly double? MaxLocalGeometricError;
+		public readonly long? SteeringTurns;
+		public readonly long? ParallelRawCount;
+		public readonly long? SourceHits;
+		public readonly long? BackgroundHits;
+		public readonly long? TerminatedRayCount;
+		public readonly long? FallbackUsedCount;
+		public readonly string Summary;
+
+		public FixtureAdaptiveSteppingDiagnosticsSnapshot(
+			long? totalEmittedRaySegCount,
+			double? averageSegmentsPerRay,
+			long? maxSegmentsPerRay,
+			long? adaptiveSubdivisionCount,
+			double? averageTurnAngle,
+			double? maxTurnAngle,
+			double? averageLocalGeometricError,
+			double? maxLocalGeometricError,
+			long? steeringTurns,
+			long? parallelRawCount,
+			long? sourceHits,
+			long? backgroundHits,
+			long? terminatedRayCount,
+			long? fallbackUsedCount,
+			string summary)
+		{
+			TotalEmittedRaySegCount = totalEmittedRaySegCount;
+			AverageSegmentsPerRay = averageSegmentsPerRay;
+			MaxSegmentsPerRay = maxSegmentsPerRay;
+			AdaptiveSubdivisionCount = adaptiveSubdivisionCount;
+			AverageTurnAngle = averageTurnAngle;
+			MaxTurnAngle = maxTurnAngle;
+			AverageLocalGeometricError = averageLocalGeometricError;
+			MaxLocalGeometricError = maxLocalGeometricError;
+			SteeringTurns = steeringTurns;
+			ParallelRawCount = parallelRawCount;
+			SourceHits = sourceHits;
+			BackgroundHits = backgroundHits;
+			TerminatedRayCount = terminatedRayCount;
+			FallbackUsedCount = fallbackUsedCount;
+			Summary = summary ?? string.Empty;
 		}
 	}
 
@@ -4865,6 +4921,7 @@ private sealed class OverlayRollingWindow
 			latest.GeomRayTestsTotal,
 			latest.Pass2SampledSegments,
 			latest.AvgStepsPerTracedPixel,
+			latest.HybridFallbackCount,
 			string.IsNullOrWhiteSpace(latest.BudgetExitReason) ? "none" : latest.BudgetExitReason,
 			latest.GeomPruneRequested,
 			latest.UseGeometryTLASPruning);
@@ -4875,6 +4932,92 @@ private sealed class OverlayRollingWindow
 	{
 		report = _lastCompletedPerfFrame;
 		return _hasLastCompletedPerfFrame;
+	}
+
+	public bool TryGetFixtureAdaptiveSteppingDiagnosticsForTesting(out FixtureAdaptiveSteppingDiagnosticsSnapshot snapshot)
+	{
+		snapshot = default;
+		bool hasPerf = TryGetLatestPerfFrameReportForTesting(out PerfFrameReport perf);
+		bool hasRenderHealth = TryGetLatestRenderHealthDiagnosticsForTesting(out RenderHealthDiagnosticsSnapshot renderHealth);
+		bool hasFilm = TryGetFilmCaptureDiagnosticsForTesting(out FilmCaptureDiagnosticsSnapshot filmDiagnostics);
+		bool hasDebug = TryGetFixtureDebugStatsForTesting(out FixtureDebugStatsSnapshot debugStats);
+		bool hasRenderer = _rbr != null && GodotObject.IsInstanceValid(_rbr);
+
+		if (!hasPerf && !hasRenderHealth && !hasFilm && !hasDebug && !hasRenderer)
+		{
+			return false;
+		}
+
+		long? totalEmittedRaySegCount = hasPerf && perf.Segs > 0
+			? perf.Segs
+			: hasFilm && filmDiagnostics.FrameSegmentsIntegrated > 0
+				? filmDiagnostics.FrameSegmentsIntegrated
+				: null;
+		double? averageSegmentsPerRay = hasRenderHealth && renderHealth.AvgStepsPerTracedPixel > 0.0
+			? renderHealth.AvgStepsPerTracedPixel
+			: hasPerf && perf.TracedPixels > 0
+				? (double)perf.Segs / perf.TracedPixels
+				: hasFilm && filmDiagnostics.FrameRaysTraced > 0 && filmDiagnostics.FrameSegmentsIntegrated > 0
+					? (double)filmDiagnostics.FrameSegmentsIntegrated / filmDiagnostics.FrameRaysTraced
+				: null;
+		long? maxSegmentsPerRay = null;
+		long? adaptiveSubdivisionCount = hasPerf && perf.SubdividedRayCalls > 0 ? perf.SubdividedRayCalls : null;
+		double? averageTurnAngle = null;
+		double? maxTurnAngle = null;
+		double? averageLocalGeometricError = null;
+		double? maxLocalGeometricError = null;
+		long? steeringTurns = null;
+		long? parallelRawCount = null;
+		long? sourceHits = hasDebug ? debugStats.SourceHits : null;
+		long? backgroundHits = hasDebug ? debugStats.BackgroundHits : null;
+		long? terminatedRayCount = hasDebug && debugStats.TracedPixels > 0
+			? debugStats.TracedPixels
+			: hasFilm && filmDiagnostics.FrameRaysTraced > 0
+				? filmDiagnostics.FrameRaysTraced
+				: null;
+		long? fallbackUsedCount = hasRenderHealth && renderHealth.HybridFallbackCount > 0
+			? renderHealth.HybridFallbackCount
+			: null;
+
+		if (hasRenderer)
+		{
+			RayBeamRenderer.MetricTransportDiagnosticsSnapshot metricDiag = _rbr.GetMetricTransportDiagnosticsSnapshot();
+			averageTurnAngle = metricDiag.MeanTurn;
+			maxTurnAngle = metricDiag.MaxTurn;
+			steeringTurns = metricDiag.SteeringTurnCount;
+			parallelRawCount = metricDiag.ParallelRawCount;
+			if (!fallbackUsedCount.HasValue || fallbackUsedCount.Value <= 0)
+			{
+				fallbackUsedCount = metricDiag.GrinFallbackSteps;
+			}
+		}
+
+		string fmtLong(long? value) => value.HasValue ? value.Value.ToString(CultureInfo.InvariantCulture) : "na";
+		string fmtDouble(double? value) => value.HasValue ? value.Value.ToString("0.######", CultureInfo.InvariantCulture) : "na";
+		string summary =
+			$"segs={fmtLong(totalEmittedRaySegCount)}|avgSeg={fmtDouble(averageSegmentsPerRay)}|maxSeg={fmtLong(maxSegmentsPerRay)}|" +
+			$"adaptiveSubdiv={fmtLong(adaptiveSubdivisionCount)}|meanTurn={fmtDouble(averageTurnAngle)}|maxTurn={fmtDouble(maxTurnAngle)}|" +
+			$"meanErr={fmtDouble(averageLocalGeometricError)}|maxErr={fmtDouble(maxLocalGeometricError)}|steeringTurns={fmtLong(steeringTurns)}|" +
+			$"parallelRaw={fmtLong(parallelRawCount)}|sourceHits={fmtLong(sourceHits)}|backgroundHits={fmtLong(backgroundHits)}|" +
+			$"terminated={fmtLong(terminatedRayCount)}|fallbackUsed={fmtLong(fallbackUsedCount)}";
+
+		snapshot = new FixtureAdaptiveSteppingDiagnosticsSnapshot(
+			totalEmittedRaySegCount,
+			averageSegmentsPerRay,
+			maxSegmentsPerRay,
+			adaptiveSubdivisionCount,
+			averageTurnAngle,
+			maxTurnAngle,
+			averageLocalGeometricError,
+			maxLocalGeometricError,
+			steeringTurns,
+			parallelRawCount,
+			sourceHits,
+			backgroundHits,
+			terminatedRayCount,
+			fallbackUsedCount,
+			summary);
+		return true;
 	}
 
 	public void ResetFixtureDebugStatsForRunStart()
