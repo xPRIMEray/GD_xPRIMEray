@@ -29,8 +29,8 @@ The paper should repeatedly return to that claim envelope.
 Primary validated run:
 
 - fixture: `fixture_005`
-- timestamp: `2026-04-12T23-32-11`
-- run directory: `/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_005/2026-04-12T23-32-11`
+- timestamp: `2026-04-13T22-57-53`
+- run directory: `output/fixture_005/2026-04-13T22-57-53`
 
 Metrics:
 
@@ -40,16 +40,16 @@ Metrics:
 - `escaped_no_hit = 0`
 - `budget_exhausted = 0`
 - `unclassified = 0`
-- `geom_hit = 75361`
-- `portal_hit = 32418`
-- `throat_event = 21821`
+- `geom_hit = 75387`
+- `portal_hit = 32374`
+- `throat_event = 21839`
 - `throat_entry = 0`
 - `throat_exit = 132`
-- `throat_shell_transform = 21689`
+- `throat_shell_transform = 21707`
 - `throat_inner_absorb = 0`
 - `throat_pixels = 33356`
 - `max_interaction_count = 107`
-- `mean_interaction_count = 2.335472`
+- `mean_interaction_count = 2.364102`
 
 Primary figures:
 

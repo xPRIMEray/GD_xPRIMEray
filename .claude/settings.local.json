@@ -6,7 +6,11 @@
       "Bash(do echo:*)",
       "Read(//c/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/**)",
       "Bash(done)",
-      "Bash(ls C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/Fixtures/fixture_boundary_*.tscn)"
+      "Bash(ls C:/godot/godot_xPRIMEray/.claude/worktrees/vigilant-bouman/Fixtures/fixture_boundary_*.tscn)",
+      "Bash(python -c \"import yaml; y=yaml.safe_load\\(open\\('mkdocs.yml'\\)\\); print\\('nav sections:', [k for s in y['nav'] for k in \\(s if isinstance\\(s,dict\\) else {s:None}\\)]\\)\")",
+      "Bash(xargs grep *)",
+      "Bash(python -m json.tool)",
+      "Bash(python -c ' *)"
     ]
   }
 }

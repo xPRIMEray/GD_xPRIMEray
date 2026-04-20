@@ -9,7 +9,7 @@ related_fixtures: wormhole_prototype
 
 # Paper 000: Unified Summary of the Wormhole Invariant Trilogy
 
-![Wormhole DualRealityTransport](../../../output/dual_reality/wormhole_inset_baseline.png)
+![Wormhole DualRealityTransport](../../assets/wormhole_inset_baseline.png)
 
 *Current wormhole DualRealityTransport capture showing the curved main view, straight transport reference panel, and diagnostic overlays.*
 

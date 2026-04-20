@@ -1,6 +1,6 @@
 ---
 title: Low-Value Sector Budget as a Negative Invariant in Geometry-Aware Wormhole Transport
-authors: <fill or placeholder>
+authors: AetherTopologist
 date: 2026-04-05
 invariant: low_value_sector_budget
 status: draft
@@ -9,7 +9,7 @@ related_fixtures: wormhole_prototype
 
 # Paper 002: Low-Value Sector Budget as a Negative Invariant in Geometry-Aware Wormhole Transport
 
-![Wormhole DualRealityTransport](../../../output/dual_reality/wormhole_inset_baseline.png)
+![Wormhole DualRealityTransport](../../assets/wormhole_inset_baseline.png)
 
 *Current wormhole DualRealityTransport capture showing the curved main view, straight transport reference panel, and diagnostic overlays.*
 
@@ -128,25 +128,25 @@ The results should again be read as coordinated views of one underlying structur
 
 ### Figure A
 
-![Figure A — Main Render](../../../output/wormhole_test/figures/figure_A_main_render.png)
+![Figure A — Main Render](../../wormhole_test/figures/figure_A_main_render.png)
 
 Figure A shows the raw film result under the active kept low-value throttle profile. Its role here is contextual. The image must remain stable not because it is pleasing in the abstract, but because the budget contract has value only if the observer-facing output remains intact.
 
 ### Figure B
 
-![Figure B — Composed Render with Research Inset](../../../output/wormhole_test/figures/figure_B_composed_overlay.png)
+![Figure B — Composed Render with Research Inset](../../wormhole_test/figures/figure_B_composed_overlay.png)
 
 Figure B restores explanatory structure. The research inset indicates the active mode, the contract status, and the highlighted invariant ring. The low-value budget is therefore shown in its proper relation to the annulus preserved by Paper 001.
 
 ### Figure C
 
-![Figure C — Ring Density](../../../output/wormhole_test/figures/figure_C_ring_density.png)
+![Figure C — Ring Density](../../wormhole_test/figures/figure_C_ring_density.png)
 
 Figure C is especially important in the present paper. It makes visible the portal-local distribution within which the negative invariant is meaningful. The outer-ring low-value sectors appear as regions in which cost is not matched by comparable contribution to the preserved annulus, while the destination-side annular concentration remains prominent. The geometry thus distinguishes between expenditure that sustains structure and expenditure that mostly accumulates outside it.
 
 ### Figure D
 
-![Figure D — Metrics Table](../../../output/wormhole_test/figures/figure_D_metrics_table.png)
+![Figure D — Metrics Table](../../wormhole_test/figures/figure_D_metrics_table.png)
 
 Figure D closes the loop quantitatively. It records the proto-caustic invariant status, the low-value sector budget status, the active throttle profile, and the key pass-2 timing metrics. It also makes the budget margin visible. For the current kept profile, the relevant values are:
 

@@ -11,6 +11,9 @@
 \usepackage{hyperref}
 \usepackage{enumitem}
 \usepackage{xcolor}
+\usepackage{graphicx}
+
+\graphicspath{{figures/}}
 
 \hypersetup{
   colorlinks=true,
@@ -53,7 +56,7 @@ The validated fixture path used in this draft is:
 \begin{itemize}[leftmargin=1.5em]
 \item scene: \texttt{res://test-overspace-hermetic-fixture.tscn}
 \item launcher: \texttt{./scripts/run\_fixture\_005.sh}
-\item run directory: \texttt{output/fixture\_runs/fixture\_005/2026-04-12T23-32-11}
+\item run directory: \texttt{output/fixture\_005/2026-04-13T22-57-53}
 \end{itemize}
 
 \section{Hermetic Fixture Rule}
@@ -105,7 +108,7 @@ The current deterministic validation method is:
 The current additional diagnostic layer is a throat-depth map. This map records per-pixel throat interaction count derived from current renderer state and emits dedicated image, legend, and JSON/TXT artifacts.
 
 \section{Current Results}
-The evidence base for this draft is the validated \texttt{fixture\_005} run at \texttt{2026-04-12T23-32-11}. Table~\ref{tab:results} summarizes the current metrics.
+The evidence base for this draft is the validated \texttt{fixture\_005} run at \texttt{2026-04-13T22-57-53}. Table~\ref{tab:results} summarizes the current metrics.
 
 \begin{table}[h]
 \centering
@@ -119,31 +122,39 @@ Classified coverage ratio & 1.0 \\
 Escaped no-hit & 0 \\
 Budget exhausted & 0 \\
 Unclassified & 0 \\
-Geom hit & 75361 \\
-Portal hit & 32418 \\
-Throat event & 21821 \\
+Geom hit & 75387 \\
+Portal hit & 32374 \\
+Throat event & 21839 \\
 Throat entry & 0 \\
 Throat exit & 132 \\
-Throat shell transform & 21689 \\
+Throat shell transform & 21707 \\
 Throat inner absorb & 0 \\
 Throat pixels & 33356 \\
 Max interaction count & 107 \\
-Mean interaction count & 2.335472 \\
+Mean interaction count & 2.364102 \\
 \bottomrule
 \end{tabular}
-\caption{Current validated \texttt{fixture\_005} results.}
+\caption{Validated \texttt{fixture\_005} results, run \texttt{2026-04-13T22-57-53}.}
 \label{tab:results}
 \end{table}
 
-The primary figure candidates are:
-\begin{itemize}[leftmargin=1.5em]
-\item \texttt{capture.png}
-\item \texttt{coverage\_annotated.png}
-\item \texttt{coverage\_legend.png}
-\item \texttt{throat\_depth\_map.png}
-\item \texttt{throat\_depth\_annotated.png}
-\item \texttt{throat\_depth\_legend.png}
-\end{itemize}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.48\textwidth]{capture.png}
+\hfill
+\includegraphics[width=0.48\textwidth]{coverage_annotated.png}
+\caption{Left: raw transport capture. Right: per-pixel transport category overlay.}
+\label{fig:coverage}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.48\textwidth]{throat_depth_map.png}
+\hfill
+\includegraphics[width=0.48\textwidth]{throat_depth_annotated.png}
+\caption{Left: throat interaction depth map. Right: annotated depth map with legend.}
+\label{fig:throat}
+\end{figure}
 
 \section{Limitations}
 The current system has clear limits:
@@ -180,12 +191,12 @@ Direct report regeneration:
 \begin{verbatim}
 .venv/bin/python tools/fixture_005_report.py \
   --fixture-id fixture_005 \
-  --timestamp 2026-04-12T23-32-11 \
+  --timestamp 2026-04-13T22-57-53 \
   --scene res://test-overspace-hermetic-fixture.tscn \
   --launcher run_fixture_005 \
-  --run-dir output/fixture_runs/fixture_005/2026-04-12T23-32-11 \
-  --log-path output/fixture_runs/fixture_005/2026-04-12T23-32-11/run.log \
-  --capture-path output/fixture_runs/fixture_005/2026-04-12T23-32-11/capture.png \
+  --run-dir output/fixture_runs/fixture_005/2026-04-13T22-57-53 \
+  --log-path output/fixture_runs/fixture_005/2026-04-13T22-57-53/run.log \
+  --capture-path output/fixture_runs/fixture_005/2026-04-13T22-57-53/capture.png \
   --runtime-seconds 17.799335 \
   --godot-exit-code 0 \
   --settle-frames 12 \

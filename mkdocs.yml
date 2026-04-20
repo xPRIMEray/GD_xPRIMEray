@@ -1,6 +1,7 @@
-site_name: GD_xPRIMEray
-site_description: Curved Ray Transport Engine for GRIN Fields (Godot 4.x) — hybrid symbolic–numeric propagation
+site_name: xPRIMEray
+site_description: Curved Ray Transport Engine for GRIN Fields — hybrid symbolic–numeric propagation, wormhole rendering, and geometry-aware optical transport
 site_author: AetherTopologist
+site_url: https://aethertopologist.github.io/GD_xPRIMEray/
 
 repo_name: AetherTopologist/GD_xPRIMEray
 repo_url: https://github.com/AetherTopologist/GD_xPRIMEray
@@ -12,6 +13,8 @@ site_dir: site
 theme:
   name: material
   language: en
+  logo: assets/xprimeray-icon.svg
+  favicon: assets/xprimeray-icon.svg
   features:
     - navigation.instant
     - navigation.instant.progress
@@ -20,11 +23,15 @@ theme:
     - navigation.sections
     - navigation.top
     - navigation.footer
+    - navigation.indexes
     - toc.follow
+    - toc.integrate
     - content.code.copy
     - content.action.edit
     - search.suggest
     - search.highlight
+    - search.share
+    - announce.dismiss
   palette:
     - scheme: slate
       primary: black
@@ -33,37 +40,89 @@ theme:
         icon: material/weather-sunny
         name: Switch to light mode
     - scheme: default
-      primary: indigo
+      primary: black
       accent: deep purple
       toggle:
         icon: material/weather-night
         name: Switch to dark mode
   icon:
     repo: fontawesome/brands/github
+    admonition:
+      note: octicons/tag-16
+      abstract: octicons/checklist-16
+      info: octicons/info-16
+      tip: octicons/squirrel-16
+      success: octicons/check-16
+      question: octicons/question-16
+      warning: octicons/alert-16
+      failure: octicons/x-circle-16
+      danger: octicons/zap-16
+      bug: octicons/bug-16
+      example: octicons/beaker-16
+      quote: octicons/quote-16
 
 markdown_extensions:
   - admonition
   - attr_list
   - md_in_html
   - tables
+  - footnotes
+  - def_list
+  - meta
   - toc:
       permalink: true
-  - pymdownx.highlight
+      title: On this page
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
   - pymdownx.inlinehilite
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.details
-  - pymdownx.tabbed
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.mark
+  - pymdownx.critic
 
 plugins:
-  - search
+  - search:
+      lang: en
   - git-revision-date-localized:
       enable_creation_date: true
+      fallback_to_build_date: true
 
 extra_javascript:
-  - https://unpkg.com/mermaid@10/dist/mermaid.min.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
 
 extra_css:
   - stylesheets/extra.css
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/AetherTopologist/GD_xPRIMEray
+      name: xPRIMEray on GitHub
+  analytics:
+    feedback:
+      title: Was this page helpful?
+      ratings:
+        - icon: material/emoticon-happy-outline
+          name: This page was helpful
+          data: 1
+          note: Thanks for your feedback!
+        - icon: material/emoticon-sad-outline
+          name: This page could be improved
+          data: 0
+          note: Thanks for letting us know.
 
 nav:
   - Home: index.md
@@ -76,31 +135,34 @@ nav:
       - Validation Framework: validation.md
       - Boundary Layer Fixtures: BoundaryLayerFixtures.md
       - Specification Index: SPEC_INDEX.md
-      - Architecture Charter (Current): _xPRIMEray_arch_charter_v3-ChatClaudeGrokCoherencePass2.md
+      - Architecture Charter: _xPRIMEray_arch_charter_v3-ChatClaudeGrokCoherencePass2.md
 
-  - Physics and Transport:
+  - Physics & Transport:
       - Metric Parameter Map: metric_null_geodesic_param_map.md
       - Metric Transport Roadmap: metric_transport_nextgen_roadmap.md
-      - BlackHole Fast Compare: blackhole_fast_compare.md
+      - BlackHole Fast Compare (GRIN vs Metric): blackhole_fast_compare.md
+      - Black Hole Optical Texture Reference: black_hole_optical_texture_reference.md
       - Property Surface: PropertySurface.md
       - RenderStep Gate Hierarchy: RenderStep_GateHierarchy.md
+      - Overspaces: overspaces.md
+      - Curved Ray Transport Model Review: Research/curved_ray_transport_model_review.md
 
-  - Specifications — Current / Revised:
-      - SceneSnapshot Data Layout (Revised): spec_scene_snapshot_data_layout_1.md
-      - Field System GRIN (Revised): spec_field_system_grin_1.md
+  - Specifications — Current:
+      - SceneSnapshot Data Layout: spec_scene_snapshot_data_layout_1.md
+      - Field System (GRIN Evaluation): spec_field_system_grin_1.md
       - FieldSource3D Canonical Params: spec_fieldsource3d_canonical_params_1.md
-      - Metric Models (Revised): spec_metric_models_grin_vs_gordon_1.md
-      - Field Extraction Rules (Revised): spec_field_extraction_rules_1.md
-      - Curved Ray Segment Integration (Revised): spec_curved_ray_chunks_1.md
-      - BVH Acceleration (Revised): spec_bvh_acceleration_1.md
-      - Scheduler and Task Graph (Revised): spec_scheduler_task_graph_1.md
+      - Metric Models (GRIN vs Gordon): spec_metric_models_grin_vs_gordon_1.md
+      - Field Extraction Rules: spec_field_extraction_rules_1.md
+      - Curved Ray Segment Integration: spec_curved_ray_chunks_1.md
+      - BVH Acceleration: spec_bvh_acceleration_1.md
+      - Scheduler & Task Graph: spec_scheduler_task_graph_1.md
       - Rendering Backends: spec_rendering_backends_1.md
       - Telemetry / Debug / Diagnostics: spec_telemetry_debug_1.md
       - Ray Transport Interfaces: spec_ray_transport_interfaces_1.md
       - Research Mode: spec_research_mode_1.md
       - Wormhole Multi-Scene System: spec_wormhole_scene_graph_1.md
 
-  - Specifications — Legacy Baselines:
+  - Specifications — Legacy:
       - SceneSnapshot Data Layout (Legacy): spec_scene_snapshot_data_layout.md
       - Field System GRIN (Legacy): spec_field_system_grin.md
       - Metric Models (Legacy): spec_metric_models_grin_vs_gordon.md
@@ -109,16 +171,53 @@ nav:
       - BVH Acceleration (Legacy): spec_bvh_acceleration.md
       - Scheduler and Task Graph (Legacy): spec_scheduler_task_graph.md
 
+  - Research:
+      - Dual Reality Framework: Research/DualRealityFramework.md
+      - Overspace Architecture Layer: Research/overspace_architecture_layer.md
+      - Wormhole Pipeline Validation: Research/wormhole_render_pipeline_validation.md
+      - Wormhole Dual-Reality Workflow: Research/wormhole_dual_reality_transport_workflow.md
+      - GRIN Fixture Auto-Calibration: Research/grin_fixture_auto_calibration_phase_plan.md
+      - Fixture Notes:
+          - Note Pattern & Template: Research/fixture_note_pattern.md
+          - Fixture 001 — Radial GRIN Baseline: Research/fixture_001_radial_grin_baseline.md
+          - Fixture 002 — Linear Transport Baseline: Research/fixture_002_linear_transport_baseline.md
+          - Fixture 003 — Offset Field Baseline: Research/fixture_003_offset_field_baseline.md
+          - Fixture 004 — Dual Attractor Baseline: Research/fixture_004_dual_attractor_baseline.md
+      - Advanced Studies:
+          - Wormhole Curvature Heatmap Literature: Research/wormhole_curvature_heatmap_literature_crosswalk.md
+          - Wormhole Throat Phased Architecture: Research/wormhole_throat_phased_architecture_note.md
+          - TriClock DoE Sandbox Plan: Research/triclock_doe_sandbox_plan.md
+          - Subtile Granularity: Research/curved_minimal_subtile_granularity.md
+          - Experimental Subtile Scheduler: Research/experimental_subtile_scheduler_mode.md
+
+  - Papers:
+      - Paper Index: papers/index.md
+      - Paper 000 — Unified Summary (Trilogy): papers/paper_000_unified_summary/paper.md
+      - Paper 001 — Proto-Caustic Invariant: papers/paper_001_proto_caustic_invariant/paper.md
+      - Paper 002 — Low-Value Sector Budget: papers/paper_002_low_value_sector_budget/paper.md
+      - Paper 003 — Coupled Invariants & Phase Space: papers/paper_003_coupled_invariants_phase_space/paper.md
+      - Paper 004 — Hermetic Throat Validation: papers/paper_004_hermetic_throat_validation/paper.md
+      - Paper 004 — Preprint (Markdown): papers/overspace_throat_validation_preprint_v1.md
+      - Shared Related Work & Bibliography: papers/shared_related_work.md
+      - Figure Captions: papers/figure_captions.md
+
+  - arXiv:
+      - Preprint Index: Arxiv/index.md
+
+  - Validation:
+      - Hermetic Fixture Rule: validation/hermetic_fixture_rule.md
+      - Wormhole Observer Ladder: validation/wormhole_observer_ladder.md
+
   - Calibration Roadmap:
-      - C1.0 g.1 — Parse / export canonical signature fields: CalibRoadmap/PatchLogs/C1_0_g_1.md
-      - C1.7 g.X — AutoCal weak-signal stopgap: CalibRoadmap/PatchLogs/C1_7_g_X.md
+      - C1.0 g.1 — Canonical Signature Fields: CalibRoadmap/PatchLogs/C1_0_g_1.md
+      - C1.7 g.X — AutoCal Weak-Signal Stopgap: CalibRoadmap/PatchLogs/C1_7_g_X.md
 
   - Archive:
-      - Master Outline v0: _Archive/_arch_charter_MASTER_v0-Chat52.md
-      - Master Outline v1 Alt RESEARCHMODE: _Archive/_arch_charter_MASTER_v1-Alt-RESEARCHMODE.md
-      - Master Outline v1 Alt Other Updated: _Archive/_arch_charter_MASTER_v1-Alt-otherUpdated.md
-      - Master Outline v1 Baseline Gravity: _Archive/_arch_charter_MASTER_v1-Baseline-Gravity.md
-      - Master Outline v2: _Archive/_arch_charter_MASTER_v2-Chat52.md
-      - Charter Master v3 Coherence Pass 1: _Archive/_xPRIMEray_arch_charter_MASTER_v3-ChatClaudeCoherencePass1.md
-      - Charter v2 Claude45: _Archive/_xPRIMEray_arch_charter_v2-Claude45.md
-      - Charter v2 Claude46: _Archive/_xPRIMEray_arch_charter_v2-Claude46.md
+      - Master Charter v0: _Archive/_arch_charter_MASTER_v0-Chat52.md
+      - Master Charter v1 — RESEARCHMODE: _Archive/_arch_charter_MASTER_v1-Alt-RESEARCHMODE.md
+      - Master Charter v1 — Alt Updated: _Archive/_arch_charter_MASTER_v1-Alt-otherUpdated.md
+      - Master Charter v1 — Gravity Baseline: _Archive/_arch_charter_MASTER_v1-Baseline-Gravity.md
+      - Master Charter v2: _Archive/_arch_charter_MASTER_v2-Chat52.md
+      - Charter v3 — Coherence Pass 1: _Archive/_xPRIMEray_arch_charter_MASTER_v3-ChatClaudeCoherencePass1.md
+      - Charter v2 — Claude 4.5: _Archive/_xPRIMEray_arch_charter_v2-Claude45.md
+      - Charter v2 — Claude 4.6: _Archive/_xPRIMEray_arch_charter_v2-Claude46.md

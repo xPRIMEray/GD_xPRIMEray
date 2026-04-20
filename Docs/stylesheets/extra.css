@@ -1,18 +1,211 @@
-/* arXiv-ish typography */
+/* ============================================================
+   xPRIMEray Documentation Stylesheet
+   GitHub Pages · MkDocs Material
+   ============================================================ */
+
+/* ── Typography (arXiv-calibrated) ─────────────────────────── */
 .md-typeset {
   font-size: 0.95rem;
-  line-height: 1.55;
+  line-height: 1.60;
 }
 
-/* Make images look like figures */
+.md-typeset h1 {
+  font-weight: 300;
+  letter-spacing: 0.02em;
+}
+
+.md-typeset h2 {
+  font-weight: 400;
+  border-bottom: 1px solid rgba(128,128,128,0.2);
+  padding-bottom: 0.3em;
+  margin-top: 2em;
+}
+
+.md-typeset h3 {
+  font-weight: 500;
+  margin-top: 1.6em;
+}
+
+/* ── Hero / Logo block ──────────────────────────────────────── */
+.xp-hero {
+  text-align: center;
+  padding: 2.5rem 1rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.xp-hero img {
+  max-width: 280px;
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+.xp-tagline {
+  font-size: 1.25rem;
+  font-weight: 300;
+  letter-spacing: 0.12em;
+  opacity: 0.75;
+  margin-top: 0.6rem;
+  font-style: italic;
+}
+
+.xp-equation {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-style: italic;
+  font-size: 1.1rem;
+  color: #cc8844;
+  opacity: 0.8;
+  margin-top: 0.4rem;
+}
+
+/* ── Paper/figure images ────────────────────────────────────── */
 .md-typeset img {
-  border: 1px solid rgba(0,0,0,0.25);
-  padding: 8px;
-  background: white;
+  border: 1px solid rgba(100,100,100,0.3);
+  padding: 6px;
+  background: #0a0a12;
+  border-radius: 3px;
+  max-width: 100%;
 }
 
-/* Optional: caption style if you use <figcaption> */
 .md-typeset figcaption {
-  font-size: 0.85rem;
+  font-size: 0.83rem;
+  opacity: 0.75;
+  text-align: center;
+  margin-top: 0.4em;
+  font-style: italic;
+}
+
+/* Figure quartet grid */
+.figure-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.2rem;
+  margin: 1.5rem 0;
+}
+
+.figure-grid figure {
+  margin: 0;
+}
+
+/* ── Paper abstract block ───────────────────────────────────── */
+.paper-abstract {
+  border-left: 3px solid #6644aa;
+  padding: 1rem 1.2rem;
+  margin: 1.5rem 0;
+  background: rgba(102,68,170,0.06);
+  border-radius: 0 4px 4px 0;
+}
+
+.paper-abstract p:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Metadata header (papers) ──────────────────────────────── */
+.paper-meta {
+  font-size: 0.82rem;
+  opacity: 0.65;
+  margin-bottom: 1.8rem;
+  border-bottom: 1px solid rgba(128,128,128,0.15);
+  padding-bottom: 0.8rem;
+}
+
+.paper-meta strong {
   opacity: 0.9;
+}
+
+/* ── Citation / bibtex block ────────────────────────────────── */
+.md-typeset blockquote {
+  border-left: 3px solid #5566cc;
+  background: rgba(85,102,204,0.05);
+  padding: 0.8rem 1rem;
+  border-radius: 0 4px 4px 0;
+}
+
+/* ── Tables (spec / invariant tables) ──────────────────────── */
+.md-typeset table {
+  font-size: 0.88rem;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.md-typeset table th {
+  background: rgba(102,68,170,0.15);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.md-typeset table tr:hover td {
+  background: rgba(102,68,170,0.05);
+}
+
+/* ── Invariant badge ─────────────────────────────────────────── */
+.invariant-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.invariant-badge.positive {
+  background: rgba(40,180,100,0.18);
+  color: #44cc88;
+  border: 1px solid rgba(40,180,100,0.3);
+}
+
+.invariant-badge.negative {
+  background: rgba(220,80,80,0.15);
+  color: #ee6666;
+  border: 1px solid rgba(220,80,80,0.3);
+}
+
+.invariant-badge.coupled {
+  background: rgba(100,100,220,0.15);
+  color: #8899ee;
+  border: 1px solid rgba(100,100,220,0.3);
+}
+
+/* ── Code blocks ─────────────────────────────────────────────── */
+.md-typeset pre > code {
+  font-size: 0.83rem;
+  line-height: 1.5;
+}
+
+/* ── Nav — tab bar ───────────────────────────────────────────── */
+.md-tabs__link {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+}
+
+/* ── Site header ─────────────────────────────────────────────── */
+.md-header {
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+/* ── Footer ───────────────────────────────────────────────────── */
+.md-footer-meta {
+  opacity: 0.6;
+}
+
+/* ── Print / paper export ───────────────────────────────────── */
+@media print {
+  .md-header,
+  .md-tabs,
+  .md-sidebar,
+  .md-footer {
+    display: none !important;
+  }
+
+  .md-typeset {
+    font-size: 10pt;
+    line-height: 1.5;
+  }
+
+  .md-content {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
 }

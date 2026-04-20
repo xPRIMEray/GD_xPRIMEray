@@ -1,6 +1,6 @@
 ---
 title: Coupled Invariants and Stability Phase Space in Geometry-Aware Wormhole Transport
-authors: <fill>
+authors: AetherTopologist
 date: 2026-04-06
 invariant: coupled_system
 status: draft
@@ -9,7 +9,7 @@ related_fixtures: wormhole_prototype
 
 # Paper 003: Coupled Invariants and Stability Phase Space in Geometry-Aware Wormhole Transport
 
-![Wormhole DualRealityTransport](../../../output/dual_reality/wormhole_inset_baseline.png)
+![Wormhole DualRealityTransport](../../assets/wormhole_inset_baseline.png)
 
 *Current wormhole DualRealityTransport capture showing the curved main view, straight transport reference panel, and diagnostic overlays.*
 
@@ -133,31 +133,31 @@ The current measured wormhole harness already identifies a nontrivial subset of 
 
 ### Figure A
 
-![Figure A — Main Render](../../../output/wormhole_test/figures/figure_A_main_render.png)
+![Figure A — Main Render](../../wormhole_test/figures/figure_A_main_render.png)
 
 Figure A remains the observer-facing reference image. It shows what the coupled system must continue to support: not merely any image, but one whose preserved annulus remains visible in the downstream structure of the render.
 
 ### Figure B
 
-![Figure B — Composed Render with Research Inset](../../../output/wormhole_test/figures/figure_B_composed_overlay.png)
+![Figure B — Composed Render with Research Inset](../../wormhole_test/figures/figure_B_composed_overlay.png)
 
 Figure B makes the system state explicit through the overlay and contract indicators. The viewer is no longer seeing a free-running render, but a point in a constrained operating space.
 
 ### Figure C
 
-![Figure C — Ring Density](../../../output/wormhole_test/figures/figure_C_ring_density.png)
+![Figure C — Ring Density](../../wormhole_test/figures/figure_C_ring_density.png)
 
 Figure C is where the coupled description becomes legible. It shows the annular structure that `I1` protects and, by implication, the portal-local geometry relative to which `I2` limits low-value expenditure. It therefore functions as the geometric backbone of the phase-space interpretation.
 
 ### Figure D
 
-![Figure D — Metrics Table](../../../output/wormhole_test/figures/figure_D_metrics_table.png)
+![Figure D — Metrics Table](../../wormhole_test/figures/figure_D_metrics_table.png)
 
 Figure D compactly presents the current coupled operating point by placing both contracts and the active throttle profile in the same frame as the performance metrics. This turns the quartet into a system-level report: image, explanation, structure, and coupled state.
 
 ### Figure E
 
-![Figure E — Phase Space](../../../output/wormhole_test/figures/figure_E_phase_space.png)
+![Figure E — Phase Space](../../wormhole_test/figures/figure_E_phase_space.png)
 
 Figure E makes the coupled logic explicit. It distinguishes the under-constrained reference point, the retained stable operating point, and the rejected stronger-throttle boundary. The figure is intentionally simple: it does not claim a fully sampled numerical phase diagram, only a faithful rendering of the observed stability structure already present in the deterministic harness data.
 

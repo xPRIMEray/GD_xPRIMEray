@@ -10,7 +10,7 @@ related_fixtures:
 
 # Paper 001: Proto-Caustic Invariant in Geometry-Aware Wormhole Transport
 
-![Wormhole DualRealityTransport](../../../output/dual_reality/wormhole_inset_baseline.png)
+![Wormhole DualRealityTransport](../../assets/wormhole_inset_baseline.png)
 
 *Current wormhole DualRealityTransport capture showing the curved main view, straight transport reference panel, and diagnostic overlays.*
 
@@ -104,25 +104,25 @@ The four figures should be read as four projections of one structure rather than
 
 ### Figure A
 
-![Figure A — Main Render](../../../output/wormhole_test/figures/figure_A_main_render.png)
+![Figure A — Main Render](../../wormhole_test/figures/figure_A_main_render.png)
 
 Figure A isolates the accumulated film result. It answers the narrow question: what does the observer-facing film contain once remap, hit resolution, and film write have completed? No explanatory overlay is present, so the image remains a pure rendering artifact.
 
 ### Figure B
 
-![Figure B — Composed Render with Research Inset](../../../output/wormhole_test/figures/figure_B_composed_overlay.png)
+![Figure B — Composed Render with Research Inset](../../wormhole_test/figures/figure_B_composed_overlay.png)
 
 Figure B restores context. The composed render preserves the main film image while adding a research-view inset, a mode label, and contract status text. The inset makes the relation between visible film structure and underlying wormhole layout legible without disturbing the main image.
 
 ### Figure C
 
-![Figure C — Ring Density](../../../output/wormhole_test/figures/figure_C_ring_density.png)
+![Figure C — Ring Density](../../wormhole_test/figures/figure_C_ring_density.png)
 
 Figure C reveals what Figures A and B imply but do not quantify directly: the optical bundle has portal-local structure. The destination-side outer ring stands out as a stable annular band with strong continuity and a marked radial separation from its interior neighbor. This is the image of the invariant in sector space.
 
 ### Figure D
 
-![Figure D — Metrics Table](../../../output/wormhole_test/figures/figure_D_metrics_table.png)
+![Figure D — Metrics Table](../../wormhole_test/figures/figure_D_metrics_table.png)
 
 Figure D closes the loop by presenting the contract and timing state compactly. The proto-caustic invariant is shown as an explicit pass condition, the low-value budget is shown alongside it, and the active low-value throttle profile is made visible rather than implicit. The same artifact places optical metrics and pass-2 performance metrics in the same frame, which is essential if geometry-aware optimization is to remain accountable to geometry-aware correctness.
 
