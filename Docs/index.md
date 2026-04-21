@@ -4,7 +4,7 @@ description: Research-grade hybrid symbolic–numeric ray propagation for GRIN f
 ---
 
 <div class="xp-hero">
-  <img src="assets/xprimeray-logo.svg" alt="xPRIMEray logo" />
+  <img src="assets/xPRIMEray-blueprint.png" alt="xPRIMEray logo" />
   <div class="xp-tagline">Where physics performs.</div>
   <div class="xp-equation">E = mc²</div>
 </div>
@@ -113,7 +113,6 @@ Each deterministic harness run produces a figure quartet:
 
 - [Hermetic Fixture Rule](validation/hermetic_fixture_rule.md)
 - [Wormhole Observer Ladder](validation/wormhole_observer_ladder.md)
-- [Wormhole Observer Ladder Characterization](validation/wormhole_observer_ladder_characterization.md)
 - [Boundary Layer Fixtures](BoundaryLayerFixtures.md)
 
 ### Calibration roadmap
