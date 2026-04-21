@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="Docs/assets/xprimeray-logo.svg" alt="xPRIMEray" width="320" />
+  <img src="Docs/assets/xPRIMEray-LOGO.png" alt="xPRIMEray" width="320" />
 </div>
 
 <div align="center">
