@@ -33,7 +33,88 @@ Perspective Alignment Notes
 - Orch OR: the observer-facing image is treated as a disciplined reduction of possibilities, not as a metaphysical claim.
 -->
 
-## 2. Concept: Proto-Caustic Invariant
+## 2. Related Work
+
+### 2.1 Photon rings and caustic structure in relativistic optics
+
+The visual phenomenon closest to the proto-caustic annulus in the published literature
+is the *photon ring* of a black hole: the bright annular feature produced when null rays
+orbit the photon sphere one or more times before escaping toward the observer.
+**Luminet (1979)** computed the first image of a Schwarzschild black hole and identified
+the characteristic ring as a consequence of geodesic focusing, not of any surface property
+of the hole itself.
+**Bozza (2002)** classified the strong-field lensing series and showed that the $n$th
+relativistic image accumulates exponentially close to the photon-sphere critical impact
+parameter — a geometric sequence whose limiting ring is a caustic in the sense of
+Arnol'd catastrophe theory.
+The EHT's resolved image of M87* (**Event Horizon Telescope Collaboration, 2019**)
+confirmed this annular concentration observationally: the bright ring at $\sim 40\,\mu$as
+is the observer-side trace of null-geodesic families that concentrated near the Kerr
+photon sphere.
+
+The proto-caustic annulus in xPRIMEray is the GRIN-transport analogue.
+The portal mouth acts as an effective potential barrier; rays that barely clear it
+concentrate on the destination side in a dense ring.
+We call this structure *proto-caustic* rather than caustic because the GRIN effective
+metric is approximate (Gordon-metric limit of a static isotropic medium) and because we
+do not claim to resolve the full catastrophe-theoretic hierarchy of the lensing series.
+What we do claim is that the ring is geometrically stable, measurably distinct from its
+surroundings, and a necessary condition for transport fidelity — not a rendering accident.
+
+**Müller (2014)** provides the closest direct predecessor: exact null-geodesic families
+in a Morris–Thorne wormhole spacetime, with ring-density maps of exit directions on the
+downstream side of the throat. His Figure 5 is the analytic version of our Figure C.
+
+### 2.2 The Gordon metric: GRIN transport as null-geodesic tracing
+
+The physical legitimacy of treating GRIN-field transport as spacetime curvature rests on
+a result due to **Gordon (1923)**: light in a medium with refractive index $n(\mathbf{x})$
+satisfies the null-geodesic equation of the effective metric
+
+$$\tilde{g}^{\mu\nu} = g^{\mu\nu} + \left(1 - n^{-2}\right)u^\mu u^\nu,$$
+
+where $u^\mu$ is the medium's four-velocity.
+For a static medium, the spatial ray equation reduces to
+
+$$\frac{d^2\mathbf{x}}{ds^2} = \nabla n - \hat{\mathbf{x}}(\hat{\mathbf{x}} \cdot \nabla n),$$
+
+the characteristic ODE xPRIMEray integrates via RK4.
+**Plebański (1960)** showed that this correspondence is bidirectional: any static
+isotropic curved spacetime is optically equivalent to a GRIN medium.
+**Leonhardt and Philbin (2009)** and **Pendry, Schurig, and Smith (2006)** developed the
+engineering consequences — transformation optics — and **Thompson, Cummer, and Frauendiener
+(2011)** extended the framework to general linear media.
+
+The proto-caustic annulus is therefore not merely a rendering artifact; it is the
+observer-side signature of geodesic focusing in the Gordon effective spacetime defined by
+the portal's GRIN field.
+
+### 2.3 Rendering methodology and the validation gap
+
+Standard physically-based rendering (**Pharr, Jakob, and Humphreys, 2023**; **Kajiya,
+1986**) validates correctness through energy conservation, unbiasedness, and convergence
+under Monte Carlo sampling.
+These criteria are insufficient for a wormhole renderer because the transport is
+deterministic and topologically non-trivial: there is no ground-truth image against which
+to measure convergence, and stochastic correctness does not imply geometric fidelity.
+
+**James et al. (2015)** encountered the analogous problem for the *Interstellar* DNGR
+renderer and addressed it through analytic cross-checks on geodesic families rather than
+through pixel agreement.
+Their validation methodology — checking that the rendered lensing pattern matches the
+analytic photon-sphere structure — is the direct precedent for our invariant-based
+approach.
+
+**Chan, Psaltis, and Özel (2013)** similarly validated *GRay* by comparing against
+analytic Kerr geodesics rather than against a reference image.
+
+The proto-caustic invariant is our entry in this tradition: a geometric contract derived
+from the expected focusing behavior of the transport law, evaluated deterministically
+against fixed thresholds, and falsifiable by any scene change that disrupts the annulus.
+
+---
+
+## 3. Concept: Proto-Caustic Invariant
 
 The proto-caustic invariant is a portal-local, ring-indexed optical constraint. In the present harness, the target object is the destination-side annulus:
 
@@ -179,6 +260,33 @@ Perspective Alignment Notes
 We defined a proto-caustic invariant as a portal-local annular constraint expressed through density, continuity, and radial transition metrics.  
 We showed that the deterministic wormhole harness preserves this annulus under the current kept geometry-aware profile while also supporting performance-aware regression gates.  
 This matters because wormhole rendering can now be validated not only by whether it produces pixels, but by whether it preserves the optical structure those pixels are meant to represent.
+
+## References
+
+| Key | Citation |
+|-----|----------|
+| [gordon1923] | Gordon, W. (1923). Zur Lichtfortpflanzung nach der Relativitätstheorie. *Annalen der Physik*, 377(22), 421–456. |
+| [plebanski1960] | Plebański, J. (1960). Electromagnetic waves in gravitational fields. *Physical Review*, 118(5), 1396–1408. |
+| [leonhardt_philbin2009] | Leonhardt, U. & Philbin, T.G. (2009). Transformation optics and the geometry of light. *Progress in Optics*, 53, 69–152. |
+| [pendry2006] | Pendry, J.B., Schurig, D. & Smith, D.R. (2006). Controlling electromagnetic fields. *Science*, 312(5781), 1780–1782. |
+| [morris_thorne1988] | Morris, M.S. & Thorne, K.S. (1988). Wormholes in spacetime and their use for interstellar travel. *American Journal of Physics*, 56(5), 395–412. |
+| [penrose1965] | Penrose, R. (1965). Gravitational collapse and space-time singularities. *Physical Review Letters*, 14(3), 57–59. |
+| [hawking_ellis1973] | Hawking, S.W. & Ellis, G.F.R. (1973). *The Large Scale Structure of Space-Time*. Cambridge University Press. |
+| [mtw1973] | Misner, C.W., Thorne, K.S. & Wheeler, J.A. (1973). *Gravitation*. W.H. Freeman. |
+| [luminet1979] | Luminet, J.-P. (1979). Image of a spherical black hole with thin accretion disc. *Astronomy and Astrophysics*, 75, 228–235. |
+| [james2015] | James, O., von Tunzelmann, E., Franklin, P. & Thorne, K.S. (2015). Gravitational lensing by spinning black holes in astrophysics, and in the movie *Interstellar*. *Classical and Quantum Gravity*, 32(6), 065001. |
+| [chan2013] | Chan, C.-K., Psaltis, D. & Özel, F. (2013). GRay: A massively parallel GPU-based code for ray tracing in relativistic spacetimes. *Astrophysical Journal*, 777(1), 13. |
+| [muller2014] | Müller, T. (2014). Exact geometric optics in a Morris–Thorne wormhole spacetime. *Physical Review D*, 90(12), 124013. |
+| [eht2019] | Event Horizon Telescope Collaboration (2019). First M87 Event Horizon Telescope Results. I. *Astrophysical Journal Letters*, 875(1), L1. |
+| [bozza2002] | Bozza, V. (2002). Gravitational lensing in the strong field limit. *Physical Review D*, 66, 103001. |
+| [schneider1992] | Schneider, P., Ehlers, J. & Falco, E.E. (1992). *Gravitational Lenses*. Springer-Verlag. |
+| [pharr2023] | Pharr, M., Jakob, W. & Humphreys, G. (2023). *Physically Based Rendering* (4th ed.). MIT Press. |
+| [kajiya1986] | Kajiya, J.T. (1986). The rendering equation. *ACM SIGGRAPH Computer Graphics*, 20(4), 143–150. |
+| [thompson2011] | Thompson, R.T., Cummer, S.A. & Frauendiener, J. (2011). Generalized transformation optics of linear materials. *Journal of Optics*, 13(5), 055105. |
+
+*Full BibTeX: [`../shared_bibliography.bib`](../shared_bibliography.bib)*
+
+---
 
 ## Appendix A
 

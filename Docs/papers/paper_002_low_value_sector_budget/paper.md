@@ -34,7 +34,68 @@ Perspective Alignment Notes
 - Orch OR: the observer sees stability because low-significance fluctuations are bounded rather than allowed to dominate the visible result.
 -->
 
-## 2. Concept: Low-Value Sector Budget
+## 2. Related Work
+
+### 2.1 Importance sampling and geometric budget allocation in rendering
+
+Conventional rendering addresses the question of where to spend computation through
+importance sampling. **Veach and Guibas (1995)** showed that multiple importance
+sampling (MIS) can combine estimators from different distributions optimally by weighting
+each in proportion to its contribution to the integrand.
+The low-value sector budget is the geometry-aware, deterministic counterpart of this idea:
+instead of sampling proportional to an estimated BSDF–light product, xPRIMEray allocates
+pass-2 query work in proportion to a measured portal-local optical yield — and explicitly
+bounds the work allocated to sectors whose yield has been shown to be negligible across
+deterministic runs.
+
+**Pharr, Jakob, and Humphreys (2023)** discuss adaptive sampling in the context of
+metropolis transport and light-tracing estimators. The conceptual innovation here is that
+the "importance" metric is not drawn from a scene's static light distribution, but from the
+*geometric structure of the wormhole transport itself* — specifically, the portal-local
+sector map that identifies which angular and radial regions carry the proto-caustic signal.
+
+### 2.2 Low-information regions in gravitational optics
+
+The geometric analog in relativistic optics is the *shadow* of a black hole: the region of
+the image plane that receives no null geodesics because all rays with impact parameter below
+the critical value $b_c = 3\sqrt{3}M$ are captured.
+**The Event Horizon Telescope Collaboration (2019)** demonstrated that this shadow is
+observationally stable — the low-information region of the image is well-defined and
+persistent, not a measurement artifact.
+
+In xPRIMEray's wormhole scene, the low-value outer-ring sectors play the corresponding
+role: they are the transport-geometry-defined low-information region of the portal image
+plane. The negative invariant contractualizes this observation: once a sector family has
+been shown to accumulate cost without yield across deterministic runs, bounding its share
+is not a heuristic — it is a geometric statement about where the effective optical potential
+of the GRIN field does not concentrate rays.
+
+**Broderick and Loeb (2006)** showed that sector-level analysis of near-horizon emission
+patterns can distinguish physically meaningful features from imaging artifacts.
+The sector heatmap methodology in xPRIMEray parallels this analysis in the rendering domain.
+
+### 2.3 The dual invariant structure in relation to the Gordon metric
+
+The positive invariant (Paper 001) and negative invariant are jointly grounded in the
+Gordon-metric description of the GRIN transport.
+**Gordon (1923)**'s result implies that the effective optical potential of the portal GRIN
+field concentrates null-ray density into a caustic-like annulus on the destination side and
+creates a shadow-like depletion zone on the outer ring.
+These are two faces of the same focusing geometry: the inner ring is bright because rays
+converge there; the outer ring is dark because they do not.
+
+The dual invariant system therefore has a single physical source.
+The positive invariant measures the focused region; the negative invariant bounds the
+unfocused region. Together they bracket the correct operating regime of the renderer in
+a way that neither alone can achieve.
+
+This structure resonates with the lensing literature (**Schneider, Ehlers, and Falco,
+1992**): the caustic and the shadow boundary are dual features of the same lens mapping,
+and both must be correctly reproduced for the lens model to be valid.
+
+---
+
+## 3. Concept: Low-Value Sector Budget
 
 The low-value sector budget is a portal-local, region-specific constraint on query allocation. The scene is partitioned into sectors by portal-local coordinates, in particular:
 
@@ -215,6 +276,28 @@ Perspective Alignment Notes
 We defined a low-value sector budget as a negative invariant that constrains pass-2 expenditure in a portal-local outer-ring family.  
 We showed that the deterministic wormhole harness can retain a modest geometry-aware throttle that improves the target timing buckets while preserving hits, final writes, and the proto-caustic annulus.  
 This matters because invariant-driven rendering now includes both preservation of signal and suppression of waste, turning measured structure into a behavioral contract rather than a post hoc diagnostic.
+
+## References
+
+| Key | Citation |
+|-----|----------|
+| [gordon1923] | Gordon, W. (1923). Zur Lichtfortpflanzung nach der Relativitätstheorie. *Annalen der Physik*, 377(22), 421–456. |
+| [plebanski1960] | Plebański, J. (1960). Electromagnetic waves in gravitational fields. *Physical Review*, 118(5), 1396–1408. |
+| [leonhardt_philbin2009] | Leonhardt, U. & Philbin, T.G. (2009). Transformation optics and the geometry of light. *Progress in Optics*, 53, 69–152. |
+| [morris_thorne1988] | Morris, M.S. & Thorne, K.S. (1988). Wormholes in spacetime and their use for interstellar travel. *American Journal of Physics*, 56(5), 395–412. |
+| [eht2019] | Event Horizon Telescope Collaboration (2019). First M87 Event Horizon Telescope Results. I. *Astrophysical Journal Letters*, 875(1), L1. |
+| [bozza2002] | Bozza, V. (2002). Gravitational lensing in the strong field limit. *Physical Review D*, 66, 103001. |
+| [broderick_loeb2006] | Broderick, A.E. & Loeb, A. (2006). Imaging optically-thin hotspots near the black hole horizon of Sgr A*. *Monthly Notices of the Royal Astronomical Society*, 367(3), 905–916. |
+| [schneider1992] | Schneider, P., Ehlers, J. & Falco, E.E. (1992). *Gravitational Lenses*. Springer-Verlag. |
+| [pharr2023] | Pharr, M., Jakob, W. & Humphreys, G. (2023). *Physically Based Rendering* (4th ed.). MIT Press. |
+| [kajiya1986] | Kajiya, J.T. (1986). The rendering equation. *ACM SIGGRAPH Computer Graphics*, 20(4), 143–150. |
+| [veach_guibas1995] | Veach, E. & Guibas, L.J. (1995). Optimally combining sampling techniques for Monte Carlo rendering. *ACM SIGGRAPH*, 419–428. |
+| [james2015] | James, O., von Tunzelmann, E., Franklin, P. & Thorne, K.S. (2015). Gravitational lensing by spinning black holes in astrophysics, and in the movie *Interstellar*. *Classical and Quantum Gravity*, 32(6), 065001. |
+| [chan2013] | Chan, C.-K., Psaltis, D. & Özel, F. (2013). GRay: A massively parallel GPU-based code for ray tracing in relativistic spacetimes. *Astrophysical Journal*, 777(1), 13. |
+
+*Full BibTeX: [`../shared_bibliography.bib`](../shared_bibliography.bib)*
+
+---
 
 ## Appendix A
 

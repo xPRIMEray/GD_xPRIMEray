@@ -7,7 +7,15 @@ using Godot;
 
 public partial class WormholeCheckpointSequencer : Node3D
 {
+	public enum SequenceProfile
+	{
+		ApprovedBaseline = 0,
+		MouthThroatInterpolationProbe = 1,
+		ThroatExitInterpolationProbe = 2
+	}
+
 	[Export] public string FixtureHudName = "overspace_wormhole_checkpoint_sequence";
+	[Export] public SequenceProfile Profile = SequenceProfile.ApprovedBaseline;
 	[Export] public int StartupPhysicsFramesDelay = 2;
 	[Export] public int SettleFrames = 12;
 	[Export] public int CaptureTimeoutFrames = 240;
@@ -15,65 +23,6 @@ public partial class WormholeCheckpointSequencer : Node3D
 	[Export] public int MinProcessedRows = 270;
 
 	private const string RunDirectoryEnv = "WORMHOLE_CHECKPOINT_RUN_DIR";
-
-	private readonly CheckpointSpec[] _checkpoints =
-	{
-		new(
-			"mouth",
-			"res://Fixtures/fixture_overspace_wormhole_witness_mouth_room.tscn",
-			new Transform3D(
-				new Basis(
-					new Vector3(0.890906f, 0f, 0.454187f),
-					new Vector3(0.062862f, 0.990376f, -0.123306f),
-					new Vector3(-0.449816f, 0.138405f, 0.882332f)),
-				new Vector3(-2.35f, 1.05f, 3.55f)),
-			46.0f,
-			"Near-mouth static witness showing portal boundary and far-side mapping."),
-		new(
-			"mouth_to_throat_approach",
-			"res://Fixtures/fixture_overspace_wormhole_witness_throat_room.tscn",
-			new Transform3D(
-				new Basis(
-					new Vector3(0.907106f, 0f, 0.420902f),
-					new Vector3(0.059122f, 0.990086f, -0.127417f),
-					new Vector3(-0.416729f, 0.140466f, 0.898113f)),
-				new Vector3(-2.085f, 0.985f, 3.465f)),
-			46.0f,
-			"Conservative approach checkpoint between the mouth and throat witnesses."),
-		new(
-			"throat",
-			"res://Fixtures/fixture_overspace_wormhole_witness_throat_room.tscn",
-			new Transform3D(
-				new Basis(
-					new Vector3(0.922063f, 0f, 0.387039f),
-					new Vector3(0.055236f, 0.989764f, -0.131592f),
-					new Vector3(-0.383077f, 0.142715f, 0.912625f)),
-				new Vector3(-1.82f, 0.92f, 3.38f)),
-			46.0f,
-			"Throat-positive static witness using the validated observer pose."),
-		new(
-			"post_throat_exit_approach",
-			"res://Fixtures/fixture_overspace_wormhole_witness_exit_room.tscn",
-			new Transform3D(
-				new Basis(
-					new Vector3(0.931609f, 0f, -0.363462f),
-					new Vector3(-0.052292f, 0.989596f, -0.134033f),
-					new Vector3(0.35968f, 0.143872f, 0.921917f)),
-				new Vector3(23.4f, 0.92f, 3.35f)),
-			46.0f,
-			"Conservative post-throat exit-side witness moved slightly back from the validated exit look-back pose."),
-		new(
-			"exit_lookback",
-			"res://Fixtures/fixture_overspace_wormhole_witness_exit_room.tscn",
-			new Transform3D(
-				new Basis(
-					new Vector3(0.931609f, 0f, -0.363462f),
-					new Vector3(-0.052292f, 0.989596f, -0.134033f),
-					new Vector3(0.35968f, 0.143872f, 0.921917f)),
-				new Vector3(25.65f, 0.92f, 3.35f)),
-			46.0f,
-			"Far-side look-back witness confirming the exit-side observer relation.")
-	};
 
 	private readonly List<CheckpointResult> _results = new();
 
@@ -101,9 +50,10 @@ public partial class WormholeCheckpointSequencer : Node3D
 
 	private async void BeginSequenceDeferred()
 	{
-		for (int checkpointIndex = 0; checkpointIndex < _checkpoints.Length; checkpointIndex++)
+		CheckpointSpec[] checkpoints = GetCheckpointsForProfile();
+		for (int checkpointIndex = 0; checkpointIndex < checkpoints.Length; checkpointIndex++)
 		{
-			bool ok = await RunCheckpointAsync(checkpointIndex, _checkpoints[checkpointIndex]);
+			bool ok = await RunCheckpointAsync(checkpointIndex, checkpoints[checkpointIndex]);
 			if (!ok)
 			{
 				return;
@@ -112,6 +62,213 @@ public partial class WormholeCheckpointSequencer : Node3D
 
 		WriteSummary();
 		GetTree().Quit(0);
+	}
+
+	private CheckpointSpec[] GetCheckpointsForProfile()
+	{
+		return Profile switch
+		{
+			SequenceProfile.MouthThroatInterpolationProbe => BuildMouthThroatInterpolationProbeCheckpoints(),
+			SequenceProfile.ThroatExitInterpolationProbe => BuildThroatExitInterpolationProbeCheckpoints(),
+			_ => BuildApprovedBaselineCheckpoints()
+		};
+	}
+
+	private static CheckpointSpec[] BuildApprovedBaselineCheckpoints()
+	{
+		return new[]
+		{
+			new CheckpointSpec(
+				"mouth",
+				"res://Fixtures/fixture_overspace_wormhole_witness_mouth_room.tscn",
+				new Transform3D(
+					new Basis(
+						new Vector3(0.890906f, 0f, 0.454187f),
+						new Vector3(0.062862f, 0.990376f, -0.123306f),
+						new Vector3(-0.449816f, 0.138405f, 0.882332f)),
+					new Vector3(-2.35f, 1.05f, 3.55f)),
+				46.0f,
+				"Near-mouth static witness showing portal boundary and far-side mapping."),
+			new CheckpointSpec(
+				"mouth_to_throat_approach",
+				"res://Fixtures/fixture_overspace_wormhole_witness_throat_room.tscn",
+				new Transform3D(
+					new Basis(
+						new Vector3(0.907106f, 0f, 0.420902f),
+						new Vector3(0.059122f, 0.990086f, -0.127417f),
+						new Vector3(-0.416729f, 0.140466f, 0.898113f)),
+					new Vector3(-2.085f, 0.985f, 3.465f)),
+				46.0f,
+				"Conservative approach checkpoint between the mouth and throat witnesses."),
+			new CheckpointSpec(
+				"throat",
+				"res://Fixtures/fixture_overspace_wormhole_witness_throat_room.tscn",
+				new Transform3D(
+					new Basis(
+						new Vector3(0.922063f, 0f, 0.387039f),
+						new Vector3(0.055236f, 0.989764f, -0.131592f),
+						new Vector3(-0.383077f, 0.142715f, 0.912625f)),
+					new Vector3(-1.82f, 0.92f, 3.38f)),
+				46.0f,
+				"Throat-positive static witness using the validated observer pose."),
+			new CheckpointSpec(
+				"post_throat_backstep_01",
+				"res://Fixtures/fixture_overspace_wormhole_witness_exit_room.tscn",
+				new Transform3D(
+					new Basis(
+						new Vector3(0.931609f, 0f, -0.363462f),
+						new Vector3(-0.052292f, 0.989596f, -0.134033f),
+						new Vector3(0.35968f, 0.143872f, 0.921917f)),
+					new Vector3(22.2f, 0.92f, 3.35f)),
+				46.0f,
+				"Discovered hard-leg checkpoint reached by a small backstep from the validated post-throat exit approach pose."),
+			new CheckpointSpec(
+				"post_throat_exit_approach",
+				"res://Fixtures/fixture_overspace_wormhole_witness_exit_room.tscn",
+				new Transform3D(
+					new Basis(
+						new Vector3(0.931609f, 0f, -0.363462f),
+						new Vector3(-0.052292f, 0.989596f, -0.134033f),
+						new Vector3(0.35968f, 0.143872f, 0.921917f)),
+					new Vector3(23.4f, 0.92f, 3.35f)),
+				46.0f,
+				"Conservative post-throat exit-side witness moved slightly back from the validated exit look-back pose."),
+			new CheckpointSpec(
+				"exit_lookback",
+				"res://Fixtures/fixture_overspace_wormhole_witness_exit_room.tscn",
+				new Transform3D(
+					new Basis(
+						new Vector3(0.931609f, 0f, -0.363462f),
+						new Vector3(-0.052292f, 0.989596f, -0.134033f),
+						new Vector3(0.35968f, 0.143872f, 0.921917f)),
+					new Vector3(25.65f, 0.92f, 3.35f)),
+				46.0f,
+				"Far-side look-back witness confirming the exit-side observer relation.")
+		};
+	}
+
+	private static CheckpointSpec[] BuildMouthThroatInterpolationProbeCheckpoints()
+	{
+		return new[]
+		{
+			new CheckpointSpec(
+				"mouth",
+				"res://Fixtures/fixture_overspace_wormhole_witness_mouth_room.tscn",
+				new Transform3D(
+					new Basis(
+						new Vector3(0.890906f, 0f, 0.454187f),
+						new Vector3(0.062862f, 0.990376f, -0.123306f),
+						new Vector3(-0.449816f, 0.138405f, 0.882332f)),
+					new Vector3(-2.35f, 1.05f, 3.55f)),
+				46.0f,
+				"Approved mouth anchor."),
+			new CheckpointSpec(
+				"mouth_interp_00",
+				"res://Fixtures/fixture_overspace_wormhole_witness_throat_room.tscn",
+				new Transform3D(
+					new Basis(
+						new Vector3(0.896306f, 0f, 0.443092f),
+						new Vector3(0.061615333f, 0.990279333f, -0.124676333f),
+						new Vector3(-0.438787f, 0.139092f, 0.887592333f)),
+					new Vector3(-2.261666667f, 1.028333333f, 3.521666667f)),
+				46.0f,
+				"First sparse interpolated pose between mouth and mouth-to-throat approach."),
+			new CheckpointSpec(
+				"mouth_interp_01",
+				"res://Fixtures/fixture_overspace_wormhole_witness_throat_room.tscn",
+				new Transform3D(
+					new Basis(
+						new Vector3(0.899006f, 0f, 0.4375445f),
+						new Vector3(0.060992f, 0.990231f, -0.1253615f),
+						new Vector3(-0.4332725f, 0.1394355f, 0.8902225f)),
+					new Vector3(-2.2175f, 1.0175f, 3.5075f)),
+				46.0f,
+				"Sparse interpolated pose between mouth and mouth-to-throat approach."),
+			new CheckpointSpec(
+				"mouth_to_throat_approach",
+				"res://Fixtures/fixture_overspace_wormhole_witness_throat_room.tscn",
+				new Transform3D(
+					new Basis(
+						new Vector3(0.907106f, 0f, 0.420902f),
+						new Vector3(0.059122f, 0.990086f, -0.127417f),
+						new Vector3(-0.416729f, 0.140466f, 0.898113f)),
+					new Vector3(-2.085f, 0.985f, 3.465f)),
+				46.0f,
+				"Approved approach anchor."),
+			new CheckpointSpec(
+				"throat_interp_00",
+				"res://Fixtures/fixture_overspace_wormhole_witness_throat_room.tscn",
+				new Transform3D(
+					new Basis(
+						new Vector3(0.912091667f, 0f, 0.409614333f),
+						new Vector3(0.057826667f, 0.989978667f, -0.128808667f),
+						new Vector3(-0.405511667f, 0.141215667f, 0.902950333f)),
+					new Vector3(-1.996666667f, 0.963333333f, 3.436666667f)),
+				46.0f,
+				"First sparse interpolated pose between mouth-to-throat approach and throat."),
+			new CheckpointSpec(
+				"throat_interp_01",
+				"res://Fixtures/fixture_overspace_wormhole_witness_throat_room.tscn",
+				new Transform3D(
+					new Basis(
+						new Vector3(0.9145845f, 0f, 0.4039705f),
+						new Vector3(0.057179f, 0.989925f, -0.1295045f),
+						new Vector3(-0.399903f, 0.1415905f, 0.905369f)),
+					new Vector3(-1.9525f, 0.9525f, 3.4225f)),
+				46.0f,
+				"Sparse interpolated pose between mouth-to-throat approach and throat."),
+			new CheckpointSpec(
+				"throat",
+				"res://Fixtures/fixture_overspace_wormhole_witness_throat_room.tscn",
+				new Transform3D(
+					new Basis(
+						new Vector3(0.922063f, 0f, 0.387039f),
+						new Vector3(0.055236f, 0.989764f, -0.131592f),
+						new Vector3(-0.383077f, 0.142715f, 0.912625f)),
+					new Vector3(-1.82f, 0.92f, 3.38f)),
+				46.0f,
+				"Approved throat anchor.")
+		};
+	}
+
+	private static CheckpointSpec[] BuildThroatExitInterpolationProbeCheckpoints()
+	{
+		return new[]
+		{
+			new CheckpointSpec(
+				"throat",
+				"res://Fixtures/fixture_overspace_wormhole_witness_throat_room.tscn",
+				new Transform3D(
+					new Basis(
+						new Vector3(0.922063f, 0f, 0.387039f),
+						new Vector3(0.055236f, 0.989764f, -0.131592f),
+						new Vector3(-0.383077f, 0.142715f, 0.912625f)),
+					new Vector3(-1.82f, 0.92f, 3.38f)),
+				46.0f,
+				"Approved throat anchor."),
+			new CheckpointSpec(
+				"post_throat_backstep_01",
+				"res://Fixtures/fixture_overspace_wormhole_witness_exit_room.tscn",
+				new Transform3D(
+					new Basis(
+						new Vector3(0.931609f, 0f, -0.363462f),
+						new Vector3(-0.052292f, 0.989596f, -0.134033f),
+						new Vector3(0.35968f, 0.143872f, 0.921917f)),
+					new Vector3(22.2f, 0.92f, 3.35f)),
+				46.0f,
+				"Discovered hard-leg checkpoint reached by a small backstep from the validated post-throat exit approach pose."),
+			new CheckpointSpec(
+				"post_throat_exit_approach",
+				"res://Fixtures/fixture_overspace_wormhole_witness_exit_room.tscn",
+				new Transform3D(
+					new Basis(
+						new Vector3(0.931609f, 0f, -0.363462f),
+						new Vector3(-0.052292f, 0.989596f, -0.134033f),
+						new Vector3(0.35968f, 0.143872f, 0.921917f)),
+					new Vector3(23.4f, 0.92f, 3.35f)),
+				46.0f,
+				"Approved post-throat exit approach anchor."),
+		};
 	}
 
 	private async System.Threading.Tasks.Task<bool> RunCheckpointAsync(int checkpointIndex, CheckpointSpec checkpoint)
@@ -371,6 +528,8 @@ public partial class WormholeCheckpointSequencer : Node3D
 			BackfaceOnlyPixels = causal.BackfaceOnlyPixels,
 			FrontfaceRatio = causal.FrontfaceRatio,
 			BoundaryCrossingsTotal = causal.BoundaryCrossingsTotal,
+			OpticalPathLengthMean = causal.OpticalPathLengthMean,
+			OpticalPathLengthMax = causal.OpticalPathLengthMax,
 			AdaptiveDiagnostics = new AdaptiveDiagnosticsResult
 			{
 				TotalEmittedRaySegCount = adaptive.TotalEmittedRaySegCount,
@@ -491,6 +650,8 @@ public partial class WormholeCheckpointSequencer : Node3D
 		public long BackfaceOnlyPixels { get; set; }
 		public double FrontfaceRatio { get; set; }
 		public long BoundaryCrossingsTotal { get; set; }
+		public double? OpticalPathLengthMean { get; set; }
+		public double? OpticalPathLengthMax { get; set; }
 		public AdaptiveDiagnosticsResult AdaptiveDiagnostics { get; set; } = new();
 		public bool RunVerified { get; set; }
 	}

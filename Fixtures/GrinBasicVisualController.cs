@@ -882,6 +882,8 @@ public partial class GrinBasicVisualController : Node3D
 				$"frontfaceRatio={causalLedgerSnapshot.FrontfaceRatio.ToString("0.######", CultureInfo.InvariantCulture)} " +
 				$"pathLengthMean={causalLedgerSnapshot.PathLengthMean.ToString("0.######", CultureInfo.InvariantCulture)} " +
 				$"pathLengthMax={causalLedgerSnapshot.PathLengthMax.ToString("0.######", CultureInfo.InvariantCulture)} " +
+				$"opticalPathLengthMean={(causalLedgerSnapshot.OpticalPathLengthMean.HasValue ? causalLedgerSnapshot.OpticalPathLengthMean.Value.ToString("0.######", CultureInfo.InvariantCulture) : "na")} " +
+				$"opticalPathLengthMax={(causalLedgerSnapshot.OpticalPathLengthMax.HasValue ? causalLedgerSnapshot.OpticalPathLengthMax.Value.ToString("0.######", CultureInfo.InvariantCulture) : "na")} " +
 				$"opticalPathTracked={(causalLedgerSnapshot.OpticalPathTracked ? 1 : 0)} " +
 				$"phaseTracked={(causalLedgerSnapshot.PhaseTracked ? 1 : 0)} " +
 				$"observerCameraPath={observerCameraPath} " +

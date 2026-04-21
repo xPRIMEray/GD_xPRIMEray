@@ -102,6 +102,14 @@ public static class LauncherAudit
 		{
 			return "overspace_wormhole_checkpoint_sequence";
 		}
+		if (normalized.Contains("test-overspace-wormhole-mouth-throat-interpolation-fixture", StringComparison.OrdinalIgnoreCase))
+		{
+			return "overspace_wormhole_mouth_throat_interpolation_sequence";
+		}
+		if (normalized.Contains("test-overspace-wormhole-throat-exit-interpolation-fixture", StringComparison.OrdinalIgnoreCase))
+		{
+			return "overspace_wormhole_throat_exit_interpolation_sequence";
+		}
 		if (normalized.Contains("test-overspace-wormhole-witness-mouth-fixture", StringComparison.OrdinalIgnoreCase))
 		{
 			return "overspace_wormhole_witness_mouth";
@@ -168,6 +176,8 @@ public static class LauncherAudit
 			"overspace_hermetic_fixture" => "res://test-overspace-hermetic-fixture.tscn",
 			"overspace_wormhole_witness" => "res://test-overspace-wormhole-witness-fixture.tscn",
 			"overspace_wormhole_checkpoint_sequence" => "res://test-overspace-wormhole-checkpoint-sequence-fixture.tscn",
+			"overspace_wormhole_mouth_throat_interpolation_sequence" => "res://test-overspace-wormhole-mouth-throat-interpolation-fixture.tscn",
+			"overspace_wormhole_throat_exit_interpolation_sequence" => "res://test-overspace-wormhole-throat-exit-interpolation-fixture.tscn",
 			"overspace_wormhole_witness_mouth" => "res://test-overspace-wormhole-witness-mouth-fixture.tscn",
 			"overspace_wormhole_witness_throat" => "res://test-overspace-wormhole-witness-throat-fixture.tscn",
 			"overspace_wormhole_witness_exit" => "res://test-overspace-wormhole-witness-exit-fixture.tscn",

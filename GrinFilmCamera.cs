@@ -909,6 +909,8 @@ public partial class GrinFilmCamera : Node
 		public readonly double FrontfaceRatio;
 		public readonly double PathLengthMean;
 		public readonly double PathLengthMax;
+		public readonly double? OpticalPathLengthMean;
+		public readonly double? OpticalPathLengthMax;
 		public readonly bool OpticalPathTracked;
 		public readonly bool PhaseTracked;
 		public readonly string ObserverCameraPath;
@@ -933,6 +935,8 @@ public partial class GrinFilmCamera : Node
 			double frontfaceRatio,
 			double pathLengthMean,
 			double pathLengthMax,
+			double? opticalPathLengthMean,
+			double? opticalPathLengthMax,
 			bool opticalPathTracked,
 			bool phaseTracked,
 			string observerCameraPath,
@@ -956,6 +960,8 @@ public partial class GrinFilmCamera : Node
 			FrontfaceRatio = frontfaceRatio;
 			PathLengthMean = pathLengthMean;
 			PathLengthMax = pathLengthMax;
+			OpticalPathLengthMean = opticalPathLengthMean;
+			OpticalPathLengthMax = opticalPathLengthMax;
 			OpticalPathTracked = opticalPathTracked;
 			PhaseTracked = phaseTracked;
 			ObserverCameraPath = observerCameraPath ?? string.Empty;
@@ -2241,6 +2247,8 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private long _fixtureCausalBackfaceOnlyPixelsThisRun = 0;
 	private double _fixtureCausalPathLengthSumThisRun = 0.0;
 	private double _fixtureCausalPathLengthMaxThisRun = 0.0;
+	private double _fixtureCausalOpticalPathLengthSumThisRun = 0.0;
+	private double _fixtureCausalOpticalPathLengthMaxThisRun = 0.0;
 	private long _wormholePostRemapPixelsThisRun = 0;
 	private long _wormholePostRemapPixelsMultiRemapThisRun = 0;
 	private long _wormholePostRemapSegmentsThisRun = 0;
@@ -3247,6 +3255,8 @@ private sealed class OverlayRollingWindow
 		public bool ContinuationFailed;
 		public float TerminalPathLength;
 		public float ObservedPathLength;
+		public float TerminalOpticalPathLength;
+		public float ObservedOpticalPathLength;
 	}
 
 	private struct Pass2ShadedSample
@@ -5043,6 +5053,8 @@ private sealed class OverlayRollingWindow
 		_fixtureCausalBackfaceOnlyPixelsThisRun = 0;
 		_fixtureCausalPathLengthSumThisRun = 0.0;
 		_fixtureCausalPathLengthMaxThisRun = 0.0;
+		_fixtureCausalOpticalPathLengthSumThisRun = 0.0;
+		_fixtureCausalOpticalPathLengthMaxThisRun = 0.0;
 		ResetTelemetryHeatmapsForRunStart();
 		ResetFixtureRowParticipationForRunStart();
 		ResetFixtureWriteDiagnosticsForRunStart();
@@ -5305,6 +5317,13 @@ private sealed class OverlayRollingWindow
 		double pathLengthMean = _fixtureCausalObservedPixelsThisRun > 0
 			? _fixtureCausalPathLengthSumThisRun / _fixtureCausalObservedPixelsThisRun
 			: 0.0;
+		bool opticalPathTracked = _fixtureCausalObservedPixelsThisRun > 0;
+		double? opticalPathLengthMean = opticalPathTracked
+			? _fixtureCausalOpticalPathLengthSumThisRun / _fixtureCausalObservedPixelsThisRun
+			: null;
+		double? opticalPathLengthMax = opticalPathTracked
+			? _fixtureCausalOpticalPathLengthMaxThisRun
+			: null;
 		long totalFaceHitPixels = _fixtureCausalFrontfaceHitPixelsThisRun + _fixtureCausalBackfaceHitPixelsThisRun;
 		double frontfaceRatio = totalFaceHitPixels > 0
 			? (double)_fixtureCausalFrontfaceHitPixelsThisRun / totalFaceHitPixels
@@ -5315,7 +5334,8 @@ private sealed class OverlayRollingWindow
 			$"ambig={_fixtureCausalAmbiguousOrderingPixelsThisRun}|infer={_fixtureCausalThroatClassificationInferredPixelsThisRun}|" +
 			$"contAttempt={_fixtureCausalContinuationAttemptedPixelsThisRun}|contSuccess={_fixtureCausalContinuationSuccessPixelsThisRun}|contFail={_fixtureCausalContinuationFailedPixelsThisRun}|" +
 			$"front={_fixtureCausalFrontfaceHitPixelsThisRun}|back={_fixtureCausalBackfaceHitPixelsThisRun}|backOnly={_fixtureCausalBackfaceOnlyPixelsThisRun}|frontRatio={frontfaceRatio.ToString("0.######", CultureInfo.InvariantCulture)}|" +
-			$"pathMean={pathLengthMean.ToString("0.###", CultureInfo.InvariantCulture)}|pathMax={_fixtureCausalPathLengthMaxThisRun.ToString("0.###", CultureInfo.InvariantCulture)}";
+			$"pathMean={pathLengthMean.ToString("0.###", CultureInfo.InvariantCulture)}|pathMax={_fixtureCausalPathLengthMaxThisRun.ToString("0.###", CultureInfo.InvariantCulture)}|" +
+			$"oplMean={(opticalPathLengthMean.HasValue ? opticalPathLengthMean.Value.ToString("0.###", CultureInfo.InvariantCulture) : "na")}|oplMax={(opticalPathLengthMax.HasValue ? opticalPathLengthMax.Value.ToString("0.###", CultureInfo.InvariantCulture) : "na")}";
 
 		snapshot = new FixtureCausalLedgerSnapshot(
 			_fixtureCausalObservedPixelsThisRun,
@@ -5335,7 +5355,9 @@ private sealed class OverlayRollingWindow
 			frontfaceRatio,
 			pathLengthMean,
 			_fixtureCausalPathLengthMaxThisRun,
-			opticalPathTracked: false,
+			opticalPathLengthMean,
+			opticalPathLengthMax,
+			opticalPathTracked,
 			phaseTracked: false,
 			observerCameraPath,
 			observerCameraInstanceId,
@@ -11255,7 +11277,9 @@ private sealed class OverlayRollingWindow
 											ContinuationSucceeded = continuationSucceededThisPixel,
 											ContinuationFailed = continuationFailedThisPixel,
 											TerminalPathLength = terminalPathLengthThisPixel,
-											ObservedPathLength = hadHit ? hitDistance : terminalPathLengthThisPixel
+											ObservedPathLength = hadHit ? hitDistance : terminalPathLengthThisPixel,
+											TerminalOpticalPathLength = terminalPathLengthThisPixel,
+											ObservedOpticalPathLength = hadHit ? hitDistance : terminalPathLengthThisPixel
 										});
 									}
 								}
@@ -11680,6 +11704,8 @@ private sealed class OverlayRollingWindow
 							}
 							_fixtureCausalPathLengthSumThisRun += sample.ObservedPathLength * filled;
 							_fixtureCausalPathLengthMaxThisRun = Math.Max(_fixtureCausalPathLengthMaxThisRun, sample.ObservedPathLength);
+							_fixtureCausalOpticalPathLengthSumThisRun += sample.ObservedOpticalPathLength * filled;
+							_fixtureCausalOpticalPathLengthMaxThisRun = Math.Max(_fixtureCausalOpticalPathLengthMaxThisRun, sample.ObservedOpticalPathLength);
 							int throatInteractionCount = Math.Max(
 								sample.PostRemapSegmentCount,
 								sample.AbsorbedByInnerRadius ? 1 : 0);
@@ -14025,7 +14051,9 @@ private sealed class OverlayRollingWindow
 									ContinuationSucceeded = continuationSucceededThisPixel,
 									ContinuationFailed = continuationFailedThisPixel,
 									TerminalPathLength = terminalPathLengthThisPixel,
-									ObservedPathLength = hadHit ? hitDistance : terminalPathLengthThisPixel
+									ObservedPathLength = hadHit ? hitDistance : terminalPathLengthThisPixel,
+									TerminalOpticalPathLength = terminalPathLengthThisPixel,
+									ObservedOpticalPathLength = hadHit ? hitDistance : terminalPathLengthThisPixel
 								});
 								rowHadWritesThisPass = true;
 								continue;
@@ -14293,6 +14321,9 @@ private sealed class OverlayRollingWindow
 						float observedPathLengthThisPixel = hadHit ? hitDistance : terminalPathLengthThisPixel;
 						_fixtureCausalPathLengthSumThisRun += observedPathLengthThisPixel * filled;
 						_fixtureCausalPathLengthMaxThisRun = Math.Max(_fixtureCausalPathLengthMaxThisRun, observedPathLengthThisPixel);
+						float observedOpticalPathLengthThisPixel = hadHit ? hitDistance : terminalPathLengthThisPixel;
+						_fixtureCausalOpticalPathLengthSumThisRun += observedOpticalPathLengthThisPixel * filled;
+						_fixtureCausalOpticalPathLengthMaxThisRun = Math.Max(_fixtureCausalOpticalPathLengthMaxThisRun, observedOpticalPathLengthThisPixel);
 						int throatInteractionCount = Math.Max(
 							postRemapSegmentCountThisPixel,
 							absorbedByInnerRadius ? 1 : 0);

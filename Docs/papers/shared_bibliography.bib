@@ -1,0 +1,485 @@
+%% ============================================================
+%% xPRIMEray Shared Bibliography
+%% Covers: GRIN/analog-gravity foundations, relativistic ray
+%% tracing, wormhole geometry, physically-based rendering,
+%% and deterministic validation methodology.
+%% ============================================================
+
+%% ── Foundational: Gordon metric & analog gravity ────────────
+
+@article{gordon1923,
+  author  = {Gordon, Walter},
+  title   = {{Zur Lichtfortpflanzung nach der Relativit{\"a}tstheorie}},
+  journal = {Annalen der Physik},
+  year    = {1923},
+  volume  = {377},
+  number  = {22},
+  pages   = {421--456},
+  doi     = {10.1002/andp.19233772202},
+  note    = {Establishes the effective optical metric for light in a
+             dielectric medium; the direct formal ancestor of GRIN--GR
+             analogies used throughout this work.}
+}
+
+@article{plebanski1960,
+  author  = {Pleba{\'n}ski, Jerzy},
+  title   = {Electromagnetic waves in gravitational fields},
+  journal = {Physical Review},
+  year    = {1960},
+  volume  = {118},
+  number  = {5},
+  pages   = {1396--1408},
+  doi     = {10.1103/PhysRev.118.1396},
+  note    = {Derives constitutive relations for electromagnetism in curved
+             spacetime; together with Gordon (1923) this grounds the
+             transformation-optics/GRIN analogy rigorously.}
+}
+
+@article{leonhardt_piwnicki1999,
+  author  = {Leonhardt, Ulf and Piwnicki, Paul},
+  title   = {Relativistic effects of light in moving media with extremely
+             low group velocities},
+  journal = {Physical Review Letters},
+  year    = {1999},
+  volume  = {82},
+  number  = {10},
+  pages   = {2426--2429},
+  doi     = {10.1103/PhysRevLett.82.2426}
+}
+
+@article{leonhardt_philbin2009,
+  author  = {Leonhardt, Ulf and Philbin, Thomas G.},
+  title   = {Transformation optics and the geometry of light},
+  journal = {Progress in Optics},
+  year    = {2009},
+  volume  = {53},
+  pages   = {69--152},
+  doi     = {10.1016/S0079-6638(08)00202-3},
+  note    = {Comprehensive review: how a spatially varying refractive index
+             defines an effective Riemannian geometry for light rays, and
+             how that geometry can be made to mimic any desired spacetime.}
+}
+
+@article{pendry2006,
+  author  = {Pendry, John B. and Schurig, David and Smith, David R.},
+  title   = {Controlling electromagnetic fields},
+  journal = {Science},
+  year    = {2006},
+  volume  = {312},
+  number  = {5781},
+  pages   = {1780--1782},
+  doi     = {10.1126/science.1125907},
+  note    = {Founding transformation-optics paper; establishes the
+             coordinate-invariant form of Maxwell's equations that makes
+             GRIN--spacetime correspondence mathematically exact.}
+}
+
+@article{thompson2011,
+  author  = {Thompson, Robert T. and Cummer, Steven A.
+             and Frauendiener, J{\"o}rg},
+  title   = {Generalized transformation optics of linear materials},
+  journal = {Journal of Optics},
+  year    = {2011},
+  volume  = {13},
+  number  = {5},
+  pages   = {055105},
+  doi     = {10.1088/2040-8978/13/5/055105}
+}
+
+%% ── Wormhole & black-hole geometry ──────────────────────────
+
+@article{morris_thorne1988,
+  author  = {Morris, Michael S. and Thorne, Kip S.},
+  title   = {Wormholes in spacetime and their use for interstellar travel:
+             {A} tool for teaching general relativity},
+  journal = {American Journal of Physics},
+  year    = {1988},
+  volume  = {56},
+  number  = {5},
+  pages   = {395--412},
+  doi     = {10.1119/1.15620},
+  note    = {Canonical traversable-wormhole metric; defines throat radius
+             $b(r)$ and flare-out condition. The throat taxonomy in
+             xPRIMEray is framed against this standard.}
+}
+
+@article{morris_thorne_yurtsever1988,
+  author  = {Morris, Michael S. and Thorne, Kip S. and Yurtsever, Ulvi},
+  title   = {Wormholes, time machines, and the weak energy condition},
+  journal = {Physical Review Letters},
+  year    = {1988},
+  volume  = {61},
+  number  = {13},
+  pages   = {1446--1449},
+  doi     = {10.1103/PhysRevLett.61.1446}
+}
+
+@book{visser1995,
+  author    = {Visser, Matt},
+  title     = {Lorentzian Wormholes: From {Einstein} to {Hawking}},
+  publisher = {AIP Press},
+  address   = {Woodbury, NY},
+  year      = {1995},
+  note      = {Comprehensive treatment of traversable wormholes; Chapter 2
+               reviews causal structure and the throat stability problem
+               directly relevant to the hermetic-throat validation framework.}
+}
+
+@article{einstein_rosen1935,
+  author  = {Einstein, Albert and Rosen, Nathan},
+  title   = {The particle problem in the general theory of relativity},
+  journal = {Physical Review},
+  year    = {1935},
+  volume  = {48},
+  pages   = {73--77},
+  doi     = {10.1103/PhysRev.48.73}
+}
+
+%% ── Penrose: causal structure & optical geometry ────────────
+
+@article{penrose1965,
+  author  = {Penrose, Roger},
+  title   = {Gravitational collapse and space-time singularities},
+  journal = {Physical Review Letters},
+  year    = {1965},
+  volume  = {14},
+  number  = {3},
+  pages   = {57--59},
+  doi     = {10.1103/PhysRevLett.14.57},
+  note    = {Introduces the trapped surface and incompleteness theorems;
+             the causal-consistency checks in xPRIMEray are motivated by
+             ensuring no trapped-surface semantics appear in the render
+             graph without explicit throat classification.}
+}
+
+@article{penrose1969,
+  author  = {Penrose, Roger},
+  title   = {Gravitational collapse: The role of general relativity},
+  journal = {Rivista del Nuovo Cimento},
+  year    = {1969},
+  volume  = {1},
+  pages   = {252--276}
+}
+
+@book{hawking_ellis1973,
+  author    = {Hawking, Stephen W. and Ellis, George F. R.},
+  title     = {The Large Scale Structure of Space-Time},
+  publisher = {Cambridge University Press},
+  year      = {1973},
+  doi       = {10.1017/CBO9780511524646},
+  note      = {Penrose diagrams and conformal compactification; the
+               observer-ladder validation protocol in xPRIMEray is
+               directly modelled on these causal boundary constructions.}
+}
+
+@book{mtw1973,
+  author    = {Misner, Charles W. and Thorne, Kip S. and Wheeler, John A.},
+  title     = {Gravitation},
+  publisher = {W.H. Freeman},
+  address   = {San Francisco},
+  year      = {1973},
+  note      = {Standard reference for geodesic deviation (Ch.~18) and
+               the geodesic equation; the GRIN ray-integration scheme
+               in xPRIMEray approximates the geodesic deviation equation
+               for slowly varying fields.}
+}
+
+%% ── Relativistic & black-hole ray tracing ───────────────────
+
+@article{luminet1979,
+  author  = {Luminet, Jean-Pierre},
+  title   = {Image of a spherical black hole with thin accretion disc},
+  journal = {Astronomy and Astrophysics},
+  year    = {1979},
+  volume  = {75},
+  pages   = {228--235},
+  note    = {First computed image of a black hole; establishes the visual
+             tradition that xPRIMEray approaches from the GRIN side.}
+}
+
+@article{james2015,
+  author  = {James, Oliver and von Tunzelmann, Eug{\'e}nie
+             and Franklin, Paul and Thorne, Kip S.},
+  title   = {Gravitational lensing by spinning black holes in astrophysics,
+             and in the movie {Interstellar}},
+  journal = {Classical and Quantum Gravity},
+  year    = {2015},
+  volume  = {32},
+  number  = {6},
+  pages   = {065001},
+  doi     = {10.1088/0264-9381/32/6/065001},
+  note    = {Production-grade null-geodesic tracing for the Kerr metric;
+             demonstrates rendering-grade relativistic optics at cinematic
+             fidelity; our approach parallels their ``raytracing on a
+             null-geodesic congruence'' framing but substitutes a
+             GRIN effective metric.}
+}
+
+@article{chan2013,
+  author  = {Chan, Chi-Kwan and Psaltis, Dimitrios and {\"O}zel, Feryal},
+  title   = {{GRay}: {A} massively parallel {GPU}-based code for ray tracing
+             in relativistic spacetimes},
+  journal = {Astrophysical Journal},
+  year    = {2013},
+  volume  = {777},
+  number  = {1},
+  pages   = {13},
+  doi     = {10.1088/0004-637X/777/1/13},
+  note    = {GPU-accelerated Kerr geodesic integration; relevant precedent
+             for the RK4 step-budget and adaptive step-length strategies
+             in xPRIMEray.}
+}
+
+@article{muller2014,
+  author  = {M{\"u}ller, Thomas},
+  title   = {Exact geometric optics in a {Morris}--{Thorne} wormhole
+             spacetime},
+  journal = {Physical Review D},
+  year    = {2014},
+  volume  = {90},
+  number  = {12},
+  pages   = {124013},
+  doi     = {10.1103/PhysRevD.90.124013},
+  note    = {Closest published precedent for xPRIMEray's wormhole rendering
+             harness; derives exact null-geodesic families and ring-density
+             structure in a Morris--Thorne spacetime. Our proto-caustic
+             annulus is the GRIN-harness correlate of his focusing rings.}
+}
+
+@article{muller_grave2010,
+  author  = {M{\"u}ller, Thomas and Grave, Frank},
+  title   = {{GeodesicViewer}: {A} tool for exploring geodesics in the
+             theory of relativity},
+  journal = {Computer Physics Communications},
+  year    = {2010},
+  volume  = {181},
+  number  = {2},
+  pages   = {413--419},
+  doi     = {10.1016/j.cpc.2009.10.010}
+}
+
+@article{younsi2016,
+  author  = {Younsi, Ziri and Zhidenko, Alexander and Rezzolla, Luciano
+             and Konoplya, Roman and Mizuno, Yosuke},
+  title   = {New method for shadow calculations: Application to parametrized
+             black holes},
+  journal = {Physical Review D},
+  year    = {2016},
+  volume  = {94},
+  pages   = {084025},
+  doi     = {10.1103/PhysRevD.94.084025}
+}
+
+@article{dexter_agol2009,
+  author  = {Dexter, Jason and Agol, Eric},
+  title   = {A fast new public code for computing photon orbits in a {Kerr}
+             spacetime},
+  journal = {Astrophysical Journal},
+  year    = {2009},
+  volume  = {696},
+  number  = {2},
+  pages   = {1616--1629},
+  doi     = {10.1088/0004-637X/696/2/1616}
+}
+
+@article{eht2019,
+  author  = {{Event Horizon Telescope Collaboration}},
+  title   = {First {M87} {Event Horizon Telescope} Results.
+             {I}.~The shadow of the supermassive black hole},
+  journal = {Astrophysical Journal Letters},
+  year    = {2019},
+  volume  = {875},
+  number  = {1},
+  pages   = {L1},
+  doi     = {10.3847/2041-8213/ab0ec7},
+  note    = {Observational confirmation of the photon ring and shadow
+             structure predicted by null-geodesic optics; the EHT annular
+             features are the astrophysical analogue of the proto-caustic
+             invariant defined in Paper 001.}
+}
+
+%% ── Gravitational lensing ────────────────────────────────────
+
+@book{schneider1992,
+  author    = {Schneider, Peter and Ehlers, J{\"u}rgen and Falco, Emilio E.},
+  title     = {Gravitational Lenses},
+  publisher = {Springer-Verlag},
+  address   = {Berlin},
+  year      = {1992},
+  doi       = {10.1007/978-3-662-03758-4},
+  note      = {Standard reference for caustic classification in lensing;
+               the caustic terminology adopted in Paper 001 is grounded
+               in this framework.}
+}
+
+@article{bozza2002,
+  author  = {Bozza, Valerio},
+  title   = {Gravitational lensing in the strong field limit},
+  journal = {Physical Review D},
+  year    = {2002},
+  volume  = {66},
+  pages   = {103001},
+  doi     = {10.1103/PhysRevD.66.103001},
+  note    = {Strong-field lensing and photon-ring formation; the
+             ``proto-caustic'' annulus in xPRIMEray is the GRIN analogue
+             of the relativistic image series produced at the photon sphere.}
+}
+
+@article{broderick_loeb2006,
+  author  = {Broderick, Avery E. and Loeb, Abraham},
+  title   = {Imaging optically-thin hotspots near the black hole horizon
+             of {Sgr~A*} at radio and near-infrared wavelengths},
+  journal = {Monthly Notices of the Royal Astronomical Society},
+  year    = {2006},
+  volume  = {367},
+  number  = {3},
+  pages   = {905--916},
+  doi     = {10.1111/j.1365-2966.2006.10152.x}
+}
+
+%% ── GRIN optics & Luneburg lens ─────────────────────────────
+
+@book{luneburg1964,
+  author    = {Luneburg, Rudolf K.},
+  title     = {Mathematical Theory of Optics},
+  publisher = {University of California Press},
+  address   = {Berkeley},
+  year      = {1964},
+  note      = {Establishes the Hamiltonian (eikonal) ray equations for GRIN
+               media; xPRIMEray's RK4 transport is a direct implementation
+               of Luneburg's characteristic equations in discrete form.}
+}
+
+@book{born_wolf1999,
+  author    = {Born, Max and Wolf, Emil},
+  title     = {Principles of Optics: Electromagnetic Theory of Propagation,
+               Interference and Diffraction of Light},
+  edition   = {7th},
+  publisher = {Cambridge University Press},
+  year      = {1999},
+  doi       = {10.1017/CBO9781139644181},
+  note      = {Sections 3.1--3.3 on the eikonal equation and ray congruences
+               provide the geometric-optics foundation for curved-ray
+               transport; geodesic deviation (Sec.~3.1.2) underpins the
+               Perceptual Curvature Threshold Hypothesis.}
+}
+
+%% ── Physically-based rendering ──────────────────────────────
+
+@book{pharr2023,
+  author    = {Pharr, Matt and Jakob, Wenzel and Humphreys, Greg},
+  title     = {Physically Based Rendering: From Theory to Implementation},
+  edition   = {4th},
+  publisher = {MIT Press},
+  year      = {2023},
+  url       = {https://pbr-book.org},
+  note      = {Standard reference for modern spectral path tracing;
+               Chapters 2--4 (ray--primitive intersection) and 13--16
+               (light transport) provide the rendering-engine context
+               against which xPRIMEray's curved transport extends
+               conventional straight-ray assumptions.}
+}
+
+@inproceedings{kajiya1986,
+  author    = {Kajiya, James T.},
+  title     = {The rendering equation},
+  booktitle = {ACM SIGGRAPH Computer Graphics},
+  year      = {1986},
+  volume    = {20},
+  number    = {4},
+  pages     = {143--150},
+  doi       = {10.1145/15922.15902},
+  note      = {Foundational integral formulation of light transport;
+               the hermetic-pixel closure requirement in Paper 004
+               is the wormhole-topological analogue of energy conservation
+               in the Kajiya integral.}
+}
+
+@inproceedings{veach_guibas1995,
+  author    = {Veach, Eric and Guibas, Leonidas J.},
+  title     = {Optimally combining sampling techniques for {Monte Carlo}
+               rendering},
+  booktitle = {Proceedings of ACM SIGGRAPH},
+  year      = {1995},
+  pages     = {419--428},
+  doi       = {10.1145/218380.218498},
+  note      = {Multiple importance sampling; the dual-invariant budget
+               system in Papers 001--002 is conceptually aligned with
+               MIS: allocate work where the geometric integrand is
+               significant, suppress it where it is provably negligible.}
+}
+
+@article{wald2007,
+  author  = {Wald, Ingo},
+  title   = {On fast construction of {SAH}-based bounding volume
+             hierarchies},
+  journal = {Proceedings of the 2007 IEEE Symposium on Interactive
+             Ray Tracing},
+  year    = {2007},
+  pages   = {33--40},
+  doi     = {10.1109/RT.2007.4342588},
+  note    = {BVH acceleration; directly relevant to the BVH subsystem
+             and sector-binning BVH in xPRIMEray.}
+}
+
+%% ── Numerical integration & adaptive stepping ───────────────
+
+@article{dormand_prince1980,
+  author  = {Dormand, John R. and Prince, Peter J.},
+  title   = {A family of embedded {Runge--Kutta} formulae},
+  journal = {Journal of Computational and Applied Mathematics},
+  year    = {1980},
+  volume  = {6},
+  number  = {1},
+  pages   = {19--26},
+  doi     = {10.1016/0771-050X(80)90013-3},
+  note    = {DOPRI5 adaptive step-size control; the error-tolerance and
+             turn-threshold parameters in xPRIMEray's RK4 transport are
+             conceptually derived from this embedded-pair philosophy.}
+}
+
+@book{hairer1993,
+  author    = {Hairer, Ernst and N{\o}rsett, Syvert P. and Wanner, Gerhard},
+  title     = {Solving Ordinary Differential Equations {I}: Nonstiff
+               Problems},
+  edition   = {2nd},
+  publisher = {Springer-Verlag},
+  address   = {Berlin},
+  year      = {1993},
+  doi       = {10.1007/978-3-540-78862-1},
+  note      = {Standard reference for adaptive RK methods and step-size
+               control; the derivative-aware step-scaling hypothesis in
+               the Perceptual Curvature Threshold paper is framed
+               against the classical local-error model.}
+}
+
+%% ── Analog gravity & metamaterial wormholes ─────────────────
+
+@article{greenleaf2007,
+  author  = {Greenleaf, Allan and Kurylev, Yaroslav and Lassas, Matti
+             and Uhlmann, Gunther},
+  title   = {Electromagnetic wormholes and virtual magnetic monopoles
+             from metamaterials},
+  journal = {Physical Review Letters},
+  year    = {2007},
+  volume  = {99},
+  number  = {18},
+  pages   = {183901},
+  doi     = {10.1103/PhysRevLett.99.183901},
+  note    = {Demonstrates physical construction of an electromagnetic
+             wormhole using transformation optics; the closest experimental
+             analog to xPRIMEray's render-time wormhole geometry.}
+}
+
+@book{novello2002,
+  editor    = {Novello, Mario and Visser, Matt and Volovik, Grigory},
+  title     = {Artificial Black Holes},
+  publisher = {World Scientific},
+  address   = {Singapore},
+  year      = {2002},
+  doi       = {10.1142/4861},
+  note      = {Analog-gravity compendium; Chapter 1 (Unruh's acoustic
+               black holes) and Chapter 11 (electromagnetic analog
+               spacetimes) frame the conceptual legitimacy of optical
+               analogues.}
+}

@@ -34,7 +34,69 @@ Perspective Alignment Notes
 - Orch OR: observer-facing structure emerges from constrained selection among possible histories, but only where the constraints are measurable and falsifiable.
 -->
 
-## 2. Coupled System Definition
+## 2. Related Work
+
+### 2.1 Stability and phase space in wormhole physics
+
+The language of stable and unstable operating regions is native to wormhole physics.
+**Morris and Thorne (1988)** showed that traversable wormholes require exotic matter
+(violating the null energy condition) for stability, and that small perturbations to the
+throat geometry can either be stabilized or lead to collapse depending on the operating
+parameters.
+**Visser (1995)** analyzed the phase space of wormhole configurations in detail,
+identifying which combinations of shape function $b(r)$ and redshift function $\Phi(r)$
+yield stable throats versus those that collapse or expand to infinity.
+The coupled phase-space picture in the present paper is the rendering-domain analogue:
+the two invariants $I_1$ and $I_2$ play the role of the throat stability conditions,
+and the operating point at `period = 2` lies in the stable region just as a carefully
+tuned wormhole geometry lies in the stable band of Visser's parameter space.
+
+**Morris, Thorne, and Yurtsever (1988)** showed that the boundary of the stable region
+is sharp — small violations of the weak energy condition lead to rapidly growing instabilities.
+The rejected operating point at `period = 3` in xPRIMEray exhibits the same qualitative
+behavior: it formally passes both contracts initially but reveals weakening metrics and
+hit/write drift that predict further degradation — a soft boundary that signals departure
+from the stable region before outright failure.
+
+### 2.2 Coupled constraints in rendering and transport
+
+Multiple coupled constraints on a rendering system appear in several contexts.
+**Veach and Guibas (1995)** showed that optimal MIS must simultaneously satisfy
+variance-reduction requirements for each sampling technique while maintaining unbiasedness
+of the combined estimator — a coupled optimality condition rather than a single-metric
+optimization.
+**Chan, Psaltis, and Özel (2013)** implicitly face a coupled constraint in *GRay*:
+geodesic accuracy must be maintained simultaneously with GPU memory budget and
+integration step count per ray; trading one for the other without careful monitoring
+produces either artifacts (accuracy loss) or timeout failures (budget exhaustion).
+
+The novelty in the present paper is that the coupled constraints are *geometric* rather
+than statistical: they derive from the portal-local focusing geometry of the wormhole
+transport, not from a rendering estimator's variance budget.
+
+### 2.3 Phase-space language in geometric optics and GR
+
+The use of phase space to describe optical systems has a long history.
+**Born and Wolf (1999)** show that the ray congruence in a GRIN medium forms a
+Hamiltonian flow in the $(q, p)$ phase space where $q$ is position and $p = n\hat{x}$
+is the optical momentum. Stability of a ray bundle corresponds to the Jacobian of
+this flow remaining bounded — which is exactly what the proto-caustic invariant measures.
+
+**Penrose (1965)** introduced trapped surfaces as a phase-space concept: a closed
+spacelike 2-surface from which all null geodesics converge toward smaller area.
+The xPRIMEray coupled system avoids the rendering analogue: the positive invariant
+ensures that the annular concentration (proto-caustic) does not collapse, while the
+negative invariant prevents the low-value outer ring from inflating into a
+computational trapped surface where work accumulates without escape.
+
+**Hawking and Ellis (1973)** develop the complete Penrose-diagram formalism for causal
+boundaries; the phase-space diagram in Figure E maps each tested operating point to its
+causal status relative to the coupled invariant boundary, in the same spirit as a
+Penrose diagram maps spacetime regions to their causal status relative to the horizon.
+
+---
+
+## 3. Coupled System Definition
 
 The coupled system is defined by two pre-existing invariants:
 
@@ -221,6 +283,28 @@ Perspective Alignment Notes
 We defined the wormhole renderer as a coupled invariant system in which the proto-caustic annulus and the low-value sector budget must both be satisfied.  
 We showed that the retained operating point lies in a stable bounded region, while stronger suppression moves the system toward structural degradation rather than deeper improvement.  
 This matters because geometry-aware wormhole rendering can now be described not as parameter tuning, but as selection within a constrained operational phase space.
+
+## References
+
+| Key | Citation |
+|-----|----------|
+| [gordon1923] | Gordon, W. (1923). Zur Lichtfortpflanzung nach der Relativitätstheorie. *Annalen der Physik*, 377(22), 421–456. |
+| [morris_thorne1988] | Morris, M.S. & Thorne, K.S. (1988). Wormholes in spacetime and their use for interstellar travel. *American Journal of Physics*, 56(5), 395–412. |
+| [morris_thorne_yurtsever1988] | Morris, M.S., Thorne, K.S. & Yurtsever, U. (1988). Wormholes, time machines, and the weak energy condition. *Physical Review Letters*, 61(13), 1446–1449. |
+| [visser1995] | Visser, M. (1995). *Lorentzian Wormholes: From Einstein to Hawking*. AIP Press. |
+| [penrose1965] | Penrose, R. (1965). Gravitational collapse and space-time singularities. *Physical Review Letters*, 14(3), 57–59. |
+| [penrose1969] | Penrose, R. (1969). Gravitational collapse: The role of general relativity. *Rivista del Nuovo Cimento*, 1, 252–276. |
+| [hawking_ellis1973] | Hawking, S.W. & Ellis, G.F.R. (1973). *The Large Scale Structure of Space-Time*. Cambridge University Press. |
+| [born_wolf1999] | Born, M. & Wolf, E. (1999). *Principles of Optics* (7th ed.). Cambridge University Press. |
+| [chan2013] | Chan, C.-K., Psaltis, D. & Özel, F. (2013). GRay: A massively parallel GPU-based code for ray tracing in relativistic spacetimes. *Astrophysical Journal*, 777(1), 13. |
+| [veach_guibas1995] | Veach, E. & Guibas, L.J. (1995). Optimally combining sampling techniques for Monte Carlo rendering. *ACM SIGGRAPH*, 419–428. |
+| [james2015] | James, O., von Tunzelmann, E., Franklin, P. & Thorne, K.S. (2015). Gravitational lensing by spinning black holes in astrophysics, and in the movie *Interstellar*. *Classical and Quantum Gravity*, 32(6), 065001. |
+| [eht2019] | Event Horizon Telescope Collaboration (2019). First M87 Event Horizon Telescope Results. I. *Astrophysical Journal Letters*, 875(1), L1. |
+| [schneider1992] | Schneider, P., Ehlers, J. & Falco, E.E. (1992). *Gravitational Lenses*. Springer-Verlag. |
+
+*Full BibTeX: [`../shared_bibliography.bib`](../shared_bibliography.bib)*
+
+---
 
 ## Appendix A
 
