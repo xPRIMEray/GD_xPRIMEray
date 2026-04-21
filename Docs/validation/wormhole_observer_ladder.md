@@ -7,6 +7,9 @@ This note locks the approved wormhole traversal baseline as a six-checkpoint fre
 
 The ladder remains sparse: no geometry edits, no transport changes, and no continuous traversal.
 
+Derived characterization:
+[Wormhole Observer Ladder Characterization](wormhole_observer_ladder_characterization.md)
+
 Near-side baseline run:
 [fixture_011_wormhole_checkpoint_sequence/2026-04-20T18-27-07](/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-20T18-27-07)
 

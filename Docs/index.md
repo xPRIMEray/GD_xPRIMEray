@@ -113,6 +113,7 @@ Each deterministic harness run produces a figure quartet:
 
 - [Hermetic Fixture Rule](validation/hermetic_fixture_rule.md)
 - [Wormhole Observer Ladder](validation/wormhole_observer_ladder.md)
+- [Wormhole Observer Ladder Characterization](validation/wormhole_observer_ladder_characterization.md)
 - [Boundary Layer Fixtures](BoundaryLayerFixtures.md)
 
 ### Calibration roadmap
