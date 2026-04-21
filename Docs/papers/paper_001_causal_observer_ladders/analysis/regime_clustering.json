@@ -1,0 +1,62 @@
+{
+  "clusters": [
+    {
+      "checkpoint": "mouth",
+      "cluster_id": 2,
+      "cluster_label": "near-side/throat"
+    },
+    {
+      "checkpoint": "mouth_to_throat_approach",
+      "cluster_id": 2,
+      "cluster_label": "near-side/throat"
+    },
+    {
+      "checkpoint": "throat",
+      "cluster_id": 2,
+      "cluster_label": "near-side/throat"
+    },
+    {
+      "checkpoint": "post_throat_backstep_01",
+      "cluster_id": 0,
+      "cluster_label": "bridge"
+    },
+    {
+      "checkpoint": "post_throat_exit_approach",
+      "cluster_id": 1,
+      "cluster_label": "far-side"
+    },
+    {
+      "checkpoint": "exit_lookback",
+      "cluster_id": 1,
+      "cluster_label": "far-side"
+    }
+  ],
+  "cluster_name_map": {
+    "2": "near-side/throat",
+    "0": "bridge",
+    "1": "far-side"
+  },
+  "centroids_standardized": [
+    [
+      -1.5407992466992568,
+      -1.2882260435289574,
+      -1.40105859048212,
+      2.0761193616275535,
+      -1.4639181801257295
+    ],
+    [
+      1.0192804394681756,
+      1.3474463032602646,
+      1.3063655297992791,
+      -0.9030928370356087,
+      -0.6923280421644281
+    ],
+    [
+      -0.16592054407903048,
+      -0.4688888543305232,
+      -0.4038908230388126,
+      -0.08997789585211231,
+      0.9495247548181919
+    ]
+  ]
+}

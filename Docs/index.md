@@ -4,7 +4,7 @@ description: Research-grade hybrid symbolic–numeric ray propagation for GRIN f
 ---
 
 <div class="xp-hero">
-  <img src="assets/xPRIMEray-blueprint.png" alt="xPRIMEray logo" />
+  <img src="assets/xprimeray-blueprint.png" alt="xPRIMEray logo" />
   <div class="xp-tagline">Where physics performs.</div>
   <div class="xp-equation">E = mc²</div>
 </div>

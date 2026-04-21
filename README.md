@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="Docs/assets/xPRIMEray-blueprint.png" alt="xPRIMEray" />
+  <img src="Docs/assets/xprimeray-blueprint.png" alt="xPRIMEray" />
 </div>
 
 <div align="center">
