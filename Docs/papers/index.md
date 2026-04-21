@@ -41,6 +41,13 @@ destination-side ray intersections form a stable annular structure, independent 
 Establishes the hermetic throat fixture as the ground-truth harness for this invariant.
 </div>
 
+**Supplement:** [Paper 001a — Artifact Atlas for Causal Observer Ladders](paper_001a_causal_observer_ladder_artifacts/paper.md)
+
+<div class="paper-abstract">
+Artifact companion for the causal observer ladder workflow. Collects generated ladder figures, clustering plots, anomaly summaries,
+periodicity figures, and morphology references in one paper-side location, together with a minimal LaTeX shell for citation and reuse.
+</div>
+
 ---
 
 ### Paper 002 — Negative Invariant

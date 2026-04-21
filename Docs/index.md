@@ -38,6 +38,9 @@ Each paper is structured as an arXiv-facing research note with deterministic har
 | [003](papers/paper_003_coupled_invariants_phase_space/paper.md) | Coupled Invariants and Stability Phase Space | Draft |
 | [004](papers/paper_004_hermetic_throat_validation/paper.md) | Hermetic Throat Validation | Draft |
 
+Artifact companion:
+[Paper 001a — Causal Observer Ladder Artifact Atlas](papers/paper_001a_causal_observer_ladder_artifacts/paper.md)
+
 → [Full paper index with abstracts and conventions](papers/index.md)
 
 ---

@@ -1,0 +1,64 @@
+{
+  "results": [
+    {
+      "checkpoint": "mouth",
+      "apparent_radius_px": 206.24000549316406,
+      "feature_radius_px": 202.0,
+      "gradient_sign_change_radius_px": 202.0,
+      "peak_count": 9,
+      "inflection_count": 67,
+      "peak_minus_apparent_px": -4.2400054931640625,
+      "slope_steepness_near_apparent": 0.016796660941398478
+    },
+    {
+      "checkpoint": "mouth_to_throat_approach",
+      "apparent_radius_px": 204.9199981689453,
+      "feature_radius_px": 193.0,
+      "gradient_sign_change_radius_px": 205.0,
+      "peak_count": 7,
+      "inflection_count": 50,
+      "peak_minus_apparent_px": -11.919998168945312,
+      "slope_steepness_near_apparent": 0.016264169658473035
+    },
+    {
+      "checkpoint": "throat",
+      "apparent_radius_px": 202.27999877929688,
+      "feature_radius_px": 252.0,
+      "gradient_sign_change_radius_px": 194.0,
+      "peak_count": 6,
+      "inflection_count": 59,
+      "peak_minus_apparent_px": 49.720001220703125,
+      "slope_steepness_near_apparent": 0.025080246398071493
+    },
+    {
+      "checkpoint": "post_throat_backstep_01",
+      "apparent_radius_px": 206.24000549316406,
+      "feature_radius_px": 213.0,
+      "gradient_sign_change_radius_px": 203.0,
+      "peak_count": 10,
+      "inflection_count": 54,
+      "peak_minus_apparent_px": 6.7599945068359375,
+      "slope_steepness_near_apparent": 0.014886837314336543
+    },
+    {
+      "checkpoint": "post_throat_exit_approach",
+      "apparent_radius_px": 200.9600067138672,
+      "feature_radius_px": 227.0,
+      "gradient_sign_change_radius_px": 193.0,
+      "peak_count": 9,
+      "inflection_count": 56,
+      "peak_minus_apparent_px": 26.039993286132812,
+      "slope_steepness_near_apparent": 0.014006721587928983
+    },
+    {
+      "checkpoint": "exit_lookback",
+      "apparent_radius_px": 203.60000610351562,
+      "feature_radius_px": 144.0,
+      "gradient_sign_change_radius_px": 214.0,
+      "peak_count": 5,
+      "inflection_count": 64,
+      "peak_minus_apparent_px": -59.600006103515625,
+      "slope_steepness_near_apparent": 0.011660394575355504
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "fft": [
+    {
+      "name": "opl_mean",
+      "dominant_frequency": 0.16666666666666666,
+      "dominant_power_ratio": 0.7804663968154525,
+      "low_frequency_ratio": 0.7804663968154525,
+      "bridge_residual": -1.2216658319218077
+    },
+    {
+      "name": "throat_event_density",
+      "dominant_frequency": 0.16666666666666666,
+      "dominant_power_ratio": 0.5276877439500556,
+      "low_frequency_ratio": 0.5276877439500556,
+      "bridge_residual": -0.1070408950617284
+    },
+    {
+      "name": "crossings_per_pixel",
+      "dominant_frequency": 0.16666666666666666,
+      "dominant_power_ratio": 0.45246408597318755,
+      "low_frequency_ratio": 0.45246408597318755,
+      "bridge_residual": -0.9913194444444445
+    },
+    {
+      "name": "segments_per_crossing",
+      "dominant_frequency": 0.3333333333333333,
+      "dominant_power_ratio": 0.4876860156708476,
+      "low_frequency_ratio": 0.26490547812207665,
+      "bridge_residual": 276.7875287598472
+    }
+  ],
+  "wavelets": [
+    {
+      "checkpoint": "mouth",
+      "dominant_scale": 12.0,
+      "dominant_scale_power": 56.9770855650298,
+      "scale_entropy": 5.711144779768784
+    },
+    {
+      "checkpoint": "mouth_to_throat_approach",
+      "dominant_scale": 8.0,
+      "dominant_scale_power": 36.507419632304455,
+      "scale_entropy": 5.721031883338951
+    },
+    {
+      "checkpoint": "throat",
+      "dominant_scale": 20.0,
+      "dominant_scale_power": 266.6706783888979,
+      "scale_entropy": 5.568757488197619
+    },
+    {
+      "checkpoint": "post_throat_backstep_01",
+      "dominant_scale": 18.0,
+      "dominant_scale_power": 53.44812409451088,
+      "scale_entropy": 5.434109051630087
+    },
+    {
+      "checkpoint": "post_throat_exit_approach",
+      "dominant_scale": 11.0,
+      "dominant_scale_power": 29.6119586505549,
+      "scale_entropy": 5.144535451314891
+    },
+    {
+      "checkpoint": "exit_lookback",
+      "dominant_scale": 16.0,
+      "dominant_scale_power": 60.23519060547705,
+      "scale_entropy": 5.721714676772993
+    }
+  ]
+}
