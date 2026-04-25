@@ -26,3 +26,5 @@ __pycache__/
 
 .venv/
 .venv_*/
+# Windows downloaded-file metadata ghosts
+*:Zone.Identifier
