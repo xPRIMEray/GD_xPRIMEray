@@ -1,0 +1,845 @@
+{
+  "analysis_label": "exploratory_geometric_morphology_analysis",
+  "ladder_dir": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39",
+  "auxiliary_dir": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current",
+  "visible_mask_dir": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-22T18-12-54",
+  "outputs": {
+    "contact_sheet": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/geometry_structure_search_2026-04-25/annotated_shape_search_contact_sheet.png",
+    "summary_json": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/geometry_structure_search_2026-04-25/geometry_structure_summary.json",
+    "summary_md": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/geometry_structure_search_2026-04-25/geometry_structure_summary.md"
+  },
+  "method": {
+    "primary_image": "debug_normal_rgb when present, otherwise debug capture",
+    "feature_detection_preprocessing": "grayscale normalize + GaussianBlur(5x5); used only for feature detection",
+    "features": [
+      "OpenCV HoughCircles",
+      "OpenCV HoughLinesP",
+      "OpenCV Canny contours with hierarchy",
+      "scikit-image measure.label/regionprops connected components on available masks/coherence maps"
+    ]
+  },
+  "checkpoints": [
+    {
+      "checkpoint": "mouth",
+      "index": 0,
+      "artifacts": {
+        "debug": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/00_mouth_debug.png",
+        "normal_rgb": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/00_mouth_debug_normal_rgb.png",
+        "adaptive_tile_heatmap": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/00_mouth_adaptive_tile_heatmap.png",
+        "polar_coherence_heatmap": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/00_mouth_polar_coherence_heatmap.png",
+        "visible_band_mask": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-22T18-12-54/mouth_visible_band_mask.png"
+      },
+      "annotated_image": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/geometry_structure_search_2026-04-25/00_mouth_annotated_shape_search.png",
+      "metrics": {
+        "primary_image": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/00_mouth_debug_normal_rgb.png",
+        "preprocessing": "grayscale normalize + GaussianBlur(5x5) for detection only; raw artifacts preserved",
+        "edge_pixels": 6762,
+        "mean_gradient_magnitude": 32.757755279541016,
+        "detected_ring_or_circle_count": 12,
+        "detected_rings_or_circles": [
+          {
+            "center_x": 248,
+            "center_y": 76,
+            "radius": 134
+          },
+          {
+            "center_x": 462,
+            "center_y": 134,
+            "radius": 134
+          },
+          {
+            "center_x": 206,
+            "center_y": 106,
+            "radius": 133
+          },
+          {
+            "center_x": 281,
+            "center_y": 22,
+            "radius": 130
+          },
+          {
+            "center_x": 228,
+            "center_y": 16,
+            "radius": 129
+          },
+          {
+            "center_x": 239,
+            "center_y": 41,
+            "radius": 127
+          },
+          {
+            "center_x": 258,
+            "center_y": 24,
+            "radius": 123
+          },
+          {
+            "center_x": 251,
+            "center_y": 3,
+            "radius": 123
+          },
+          {
+            "center_x": 233,
+            "center_y": 106,
+            "radius": 118
+          },
+          {
+            "center_x": 256,
+            "center_y": 111,
+            "radius": 118
+          },
+          {
+            "center_x": 221,
+            "center_y": 83,
+            "radius": 118
+          },
+          {
+            "center_x": 464,
+            "center_y": 106,
+            "radius": 118
+          }
+        ],
+        "radial_band_spacing": {
+          "count": 11,
+          "mean": 1.4545454545454546,
+          "std": 1.7248787237282068,
+          "values": [
+            0.0,
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            4.0,
+            2.0,
+            1.0,
+            3.0,
+            1.0,
+            0.0
+          ]
+        },
+        "contour_count": 69,
+        "large_contour_count": 8,
+        "largest_contour_area": 126.5,
+        "nested_contour_count": 11,
+        "mean_contour_eccentricity": 0.9381106609537349,
+        "max_contour_eccentricity": 0.9912653458318279,
+        "hough_line_count": 86,
+        "dominant_orientation_angles": [
+          {
+            "angle_degrees": 5.0,
+            "line_count": 20
+          },
+          {
+            "angle_degrees": 175.0,
+            "line_count": 15
+          },
+          {
+            "angle_degrees": 95.0,
+            "line_count": 14
+          }
+        ],
+        "connected_components": {
+          "visible_band_mask": {
+            "available": true,
+            "component_count": 91,
+            "largest_area": 31665,
+            "method": "skimage.measure.label/connectivity=2 + regionprops"
+          },
+          "adaptive_tile_heatmap": {
+            "available": true,
+            "component_count": 1,
+            "largest_area": 129600,
+            "method": "skimage.measure.label/connectivity=2 + regionprops"
+          },
+          "polar_coherence_heatmap": {
+            "available": true,
+            "component_count": 1,
+            "largest_area": 129600,
+            "method": "skimage.measure.label/connectivity=2 + regionprops"
+          }
+        }
+      }
+    },
+    {
+      "checkpoint": "mouth_to_throat_approach",
+      "index": 1,
+      "artifacts": {
+        "debug": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/01_mouth_to_throat_approach_debug.png",
+        "normal_rgb": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/01_mouth_to_throat_approach_debug_normal_rgb.png"
+      },
+      "annotated_image": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/geometry_structure_search_2026-04-25/01_mouth_to_throat_approach_annotated_shape_search.png",
+      "metrics": {
+        "primary_image": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/01_mouth_to_throat_approach_debug_normal_rgb.png",
+        "preprocessing": "grayscale normalize + GaussianBlur(5x5) for detection only; raw artifacts preserved",
+        "edge_pixels": 6498,
+        "mean_gradient_magnitude": 32.49557113647461,
+        "detected_ring_or_circle_count": 12,
+        "detected_rings_or_circles": [
+          {
+            "center_x": 478,
+            "center_y": 147,
+            "radius": 134
+          },
+          {
+            "center_x": 474,
+            "center_y": 93,
+            "radius": 134
+          },
+          {
+            "center_x": 477,
+            "center_y": 121,
+            "radius": 133
+          },
+          {
+            "center_x": 232,
+            "center_y": 21,
+            "radius": 129
+          },
+          {
+            "center_x": 256,
+            "center_y": 67,
+            "radius": 127
+          },
+          {
+            "center_x": 146,
+            "center_y": 129,
+            "radius": 125
+          },
+          {
+            "center_x": 457,
+            "center_y": 136,
+            "radius": 119
+          },
+          {
+            "center_x": 118,
+            "center_y": 144,
+            "radius": 116
+          },
+          {
+            "center_x": 254,
+            "center_y": 13,
+            "radius": 114
+          },
+          {
+            "center_x": 248,
+            "center_y": 36,
+            "radius": 111
+          },
+          {
+            "center_x": 461,
+            "center_y": 166,
+            "radius": 110
+          },
+          {
+            "center_x": 191,
+            "center_y": 156,
+            "radius": 108
+          }
+        ],
+        "radial_band_spacing": {
+          "count": 11,
+          "mean": 2.3636363636363638,
+          "std": 1.5534552264213692,
+          "values": [
+            2.0,
+            1.0,
+            3.0,
+            2.0,
+            3.0,
+            6.0,
+            2.0,
+            2.0,
+            4.0,
+            1.0,
+            0.0
+          ]
+        },
+        "contour_count": 71,
+        "large_contour_count": 13,
+        "largest_contour_area": 804.5,
+        "nested_contour_count": 21,
+        "mean_contour_eccentricity": 0.9420745156032879,
+        "max_contour_eccentricity": 0.9989555269716359,
+        "hough_line_count": 85,
+        "dominant_orientation_angles": [
+          {
+            "angle_degrees": 5.0,
+            "line_count": 33
+          },
+          {
+            "angle_degrees": 175.0,
+            "line_count": 13
+          },
+          {
+            "angle_degrees": 95.0,
+            "line_count": 13
+          }
+        ],
+        "connected_components": {
+          "visible_band_mask": {
+            "available": false,
+            "component_count": 0,
+            "largest_area": 0
+          },
+          "adaptive_tile_heatmap": {
+            "available": false,
+            "component_count": 0,
+            "largest_area": 0
+          },
+          "polar_coherence_heatmap": {
+            "available": false,
+            "component_count": 0,
+            "largest_area": 0
+          }
+        }
+      }
+    },
+    {
+      "checkpoint": "throat",
+      "index": 2,
+      "artifacts": {
+        "debug": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/02_throat_debug.png",
+        "normal_rgb": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/02_throat_debug_normal_rgb.png"
+      },
+      "annotated_image": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/geometry_structure_search_2026-04-25/02_throat_annotated_shape_search.png",
+      "metrics": {
+        "primary_image": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/02_throat_debug_normal_rgb.png",
+        "preprocessing": "grayscale normalize + GaussianBlur(5x5) for detection only; raw artifacts preserved",
+        "edge_pixels": 5941,
+        "mean_gradient_magnitude": 32.31958770751953,
+        "detected_ring_or_circle_count": 12,
+        "detected_rings_or_circles": [
+          {
+            "center_x": 179,
+            "center_y": 111,
+            "radius": 134
+          },
+          {
+            "center_x": 244,
+            "center_y": 6,
+            "radius": 130
+          },
+          {
+            "center_x": 227,
+            "center_y": 99,
+            "radius": 125
+          },
+          {
+            "center_x": 474,
+            "center_y": 127,
+            "radius": 123
+          },
+          {
+            "center_x": 158,
+            "center_y": 146,
+            "radius": 122
+          },
+          {
+            "center_x": 462,
+            "center_y": 146,
+            "radius": 116
+          },
+          {
+            "center_x": 474,
+            "center_y": 167,
+            "radius": 116
+          },
+          {
+            "center_x": 181,
+            "center_y": 154,
+            "radius": 111
+          },
+          {
+            "center_x": 341,
+            "center_y": 268,
+            "radius": 107
+          },
+          {
+            "center_x": 279,
+            "center_y": 4,
+            "radius": 107
+          },
+          {
+            "center_x": 263,
+            "center_y": 66,
+            "radius": 103
+          },
+          {
+            "center_x": 202,
+            "center_y": 143,
+            "radius": 101
+          }
+        ],
+        "radial_band_spacing": {
+          "count": 11,
+          "mean": 3.0,
+          "std": 2.0,
+          "values": [
+            2.0,
+            4.0,
+            0.0,
+            4.0,
+            5.0,
+            0.0,
+            6.0,
+            1.0,
+            2.0,
+            5.0,
+            4.0
+          ]
+        },
+        "contour_count": 63,
+        "large_contour_count": 11,
+        "largest_contour_area": 256.0,
+        "nested_contour_count": 14,
+        "mean_contour_eccentricity": 0.9323055507833885,
+        "max_contour_eccentricity": 0.9996895497108669,
+        "hough_line_count": 71,
+        "dominant_orientation_angles": [
+          {
+            "angle_degrees": 5.0,
+            "line_count": 25
+          },
+          {
+            "angle_degrees": 175.0,
+            "line_count": 16
+          },
+          {
+            "angle_degrees": 95.0,
+            "line_count": 11
+          }
+        ],
+        "connected_components": {
+          "visible_band_mask": {
+            "available": false,
+            "component_count": 0,
+            "largest_area": 0
+          },
+          "adaptive_tile_heatmap": {
+            "available": false,
+            "component_count": 0,
+            "largest_area": 0
+          },
+          "polar_coherence_heatmap": {
+            "available": false,
+            "component_count": 0,
+            "largest_area": 0
+          }
+        }
+      }
+    },
+    {
+      "checkpoint": "post_throat_backstep_01",
+      "index": 3,
+      "artifacts": {
+        "debug": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/03_post_throat_backstep_01_debug.png",
+        "normal_rgb": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/03_post_throat_backstep_01_debug_normal_rgb.png",
+        "visible_band_mask": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-22T18-12-54/post_throat_backstep_01_visible_band_mask.png"
+      },
+      "annotated_image": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/geometry_structure_search_2026-04-25/03_post_throat_backstep_01_annotated_shape_search.png",
+      "metrics": {
+        "primary_image": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/03_post_throat_backstep_01_debug_normal_rgb.png",
+        "preprocessing": "grayscale normalize + GaussianBlur(5x5) for detection only; raw artifacts preserved",
+        "edge_pixels": 13658,
+        "mean_gradient_magnitude": 44.140525817871094,
+        "detected_ring_or_circle_count": 12,
+        "detected_rings_or_circles": [
+          {
+            "center_x": 292,
+            "center_y": 111,
+            "radius": 134
+          },
+          {
+            "center_x": 309,
+            "center_y": 93,
+            "radius": 133
+          },
+          {
+            "center_x": 368,
+            "center_y": 116,
+            "radius": 133
+          },
+          {
+            "center_x": 36,
+            "center_y": 116,
+            "radius": 133
+          },
+          {
+            "center_x": 6,
+            "center_y": 157,
+            "radius": 133
+          },
+          {
+            "center_x": 376,
+            "center_y": 66,
+            "radius": 132
+          },
+          {
+            "center_x": 16,
+            "center_y": 126,
+            "radius": 132
+          },
+          {
+            "center_x": 16,
+            "center_y": 91,
+            "radius": 132
+          },
+          {
+            "center_x": 301,
+            "center_y": 136,
+            "radius": 129
+          },
+          {
+            "center_x": 239,
+            "center_y": 138,
+            "radius": 127
+          },
+          {
+            "center_x": 53,
+            "center_y": 132,
+            "radius": 127
+          },
+          {
+            "center_x": 349,
+            "center_y": 63,
+            "radius": 125
+          }
+        ],
+        "radial_band_spacing": {
+          "count": 11,
+          "mean": 0.8181818181818182,
+          "std": 1.0285189544531599,
+          "values": [
+            2.0,
+            0.0,
+            2.0,
+            3.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        "contour_count": 78,
+        "large_contour_count": 5,
+        "largest_contour_area": 412.0,
+        "nested_contour_count": 8,
+        "mean_contour_eccentricity": 0.662989916720156,
+        "max_contour_eccentricity": 0.996390741320706,
+        "hough_line_count": 214,
+        "dominant_orientation_angles": [
+          {
+            "angle_degrees": 95.0,
+            "line_count": 55
+          },
+          {
+            "angle_degrees": 5.0,
+            "line_count": 52
+          },
+          {
+            "angle_degrees": 85.0,
+            "line_count": 38
+          }
+        ],
+        "connected_components": {
+          "visible_band_mask": {
+            "available": true,
+            "component_count": 190,
+            "largest_area": 19703,
+            "method": "skimage.measure.label/connectivity=2 + regionprops"
+          },
+          "adaptive_tile_heatmap": {
+            "available": false,
+            "component_count": 0,
+            "largest_area": 0
+          },
+          "polar_coherence_heatmap": {
+            "available": false,
+            "component_count": 0,
+            "largest_area": 0
+          }
+        }
+      }
+    },
+    {
+      "checkpoint": "post_throat_exit_approach",
+      "index": 4,
+      "artifacts": {
+        "debug": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/04_post_throat_exit_approach_debug.png",
+        "normal_rgb": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/04_post_throat_exit_approach_debug_normal_rgb.png"
+      },
+      "annotated_image": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/geometry_structure_search_2026-04-25/04_post_throat_exit_approach_annotated_shape_search.png",
+      "metrics": {
+        "primary_image": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/04_post_throat_exit_approach_debug_normal_rgb.png",
+        "preprocessing": "grayscale normalize + GaussianBlur(5x5) for detection only; raw artifacts preserved",
+        "edge_pixels": 7153,
+        "mean_gradient_magnitude": 37.49018859863281,
+        "detected_ring_or_circle_count": 12,
+        "detected_rings_or_circles": [
+          {
+            "center_x": 239,
+            "center_y": 131,
+            "radius": 134
+          },
+          {
+            "center_x": 21,
+            "center_y": 133,
+            "radius": 134
+          },
+          {
+            "center_x": 264,
+            "center_y": 84,
+            "radius": 134
+          },
+          {
+            "center_x": 8,
+            "center_y": 109,
+            "radius": 134
+          },
+          {
+            "center_x": 267,
+            "center_y": 181,
+            "radius": 134
+          },
+          {
+            "center_x": 244,
+            "center_y": 28,
+            "radius": 134
+          },
+          {
+            "center_x": 234,
+            "center_y": 101,
+            "radius": 133
+          },
+          {
+            "center_x": 229,
+            "center_y": 49,
+            "radius": 133
+          },
+          {
+            "center_x": 262,
+            "center_y": 12,
+            "radius": 133
+          },
+          {
+            "center_x": 194,
+            "center_y": 136,
+            "radius": 130
+          },
+          {
+            "center_x": 257,
+            "center_y": 106,
+            "radius": 130
+          },
+          {
+            "center_x": 267,
+            "center_y": 131,
+            "radius": 130
+          }
+        ],
+        "radial_band_spacing": {
+          "count": 11,
+          "mean": 0.36363636363636365,
+          "std": 0.8813963377120597,
+          "values": [
+            0.0,
+            0.0,
+            3.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "contour_count": 87,
+        "large_contour_count": 18,
+        "largest_contour_area": 725.0,
+        "nested_contour_count": 33,
+        "mean_contour_eccentricity": 0.9086827720860255,
+        "max_contour_eccentricity": 0.9986579048036559,
+        "hough_line_count": 90,
+        "dominant_orientation_angles": [
+          {
+            "angle_degrees": 5.0,
+            "line_count": 41
+          },
+          {
+            "angle_degrees": 175.0,
+            "line_count": 21
+          },
+          {
+            "angle_degrees": 95.0,
+            "line_count": 14
+          }
+        ],
+        "connected_components": {
+          "visible_band_mask": {
+            "available": false,
+            "component_count": 0,
+            "largest_area": 0
+          },
+          "adaptive_tile_heatmap": {
+            "available": false,
+            "component_count": 0,
+            "largest_area": 0
+          },
+          "polar_coherence_heatmap": {
+            "available": false,
+            "component_count": 0,
+            "largest_area": 0
+          }
+        }
+      }
+    },
+    {
+      "checkpoint": "exit_lookback",
+      "index": 5,
+      "artifacts": {
+        "debug": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/05_exit_lookback_debug.png",
+        "normal_rgb": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/05_exit_lookback_debug_normal_rgb.png"
+      },
+      "annotated_image": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/geometry_structure_search_2026-04-25/05_exit_lookback_annotated_shape_search.png",
+      "metrics": {
+        "primary_image": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/05_exit_lookback_debug_normal_rgb.png",
+        "preprocessing": "grayscale normalize + GaussianBlur(5x5) for detection only; raw artifacts preserved",
+        "edge_pixels": 7719,
+        "mean_gradient_magnitude": 32.00204849243164,
+        "detected_ring_or_circle_count": 12,
+        "detected_rings_or_circles": [
+          {
+            "center_x": 317,
+            "center_y": 136,
+            "radius": 130
+          },
+          {
+            "center_x": 348,
+            "center_y": 141,
+            "radius": 122
+          },
+          {
+            "center_x": 302,
+            "center_y": 156,
+            "radius": 114
+          },
+          {
+            "center_x": 329,
+            "center_y": 197,
+            "radius": 111
+          },
+          {
+            "center_x": 149,
+            "center_y": 106,
+            "radius": 110
+          },
+          {
+            "center_x": 239,
+            "center_y": 132,
+            "radius": 107
+          },
+          {
+            "center_x": 6,
+            "center_y": 142,
+            "radius": 107
+          },
+          {
+            "center_x": 284,
+            "center_y": 169,
+            "radius": 98
+          },
+          {
+            "center_x": 297,
+            "center_y": 119,
+            "radius": 98
+          },
+          {
+            "center_x": 203,
+            "center_y": 126,
+            "radius": 94
+          },
+          {
+            "center_x": 192,
+            "center_y": 72,
+            "radius": 92
+          },
+          {
+            "center_x": 157,
+            "center_y": 144,
+            "radius": 90
+          }
+        ],
+        "radial_band_spacing": {
+          "count": 11,
+          "mean": 3.6363636363636362,
+          "std": 3.11222595793158,
+          "values": [
+            2.0,
+            2.0,
+            4.0,
+            0.0,
+            9.0,
+            0.0,
+            3.0,
+            1.0,
+            3.0,
+            8.0,
+            8.0
+          ]
+        },
+        "contour_count": 105,
+        "large_contour_count": 11,
+        "largest_contour_area": 1101.5,
+        "nested_contour_count": 34,
+        "mean_contour_eccentricity": 0.9619614549411589,
+        "max_contour_eccentricity": 0.9993349408906781,
+        "hough_line_count": 106,
+        "dominant_orientation_angles": [
+          {
+            "angle_degrees": 5.0,
+            "line_count": 33
+          },
+          {
+            "angle_degrees": 175.0,
+            "line_count": 18
+          },
+          {
+            "angle_degrees": 55.0,
+            "line_count": 11
+          }
+        ],
+        "connected_components": {
+          "visible_band_mask": {
+            "available": false,
+            "component_count": 0,
+            "largest_area": 0
+          },
+          "adaptive_tile_heatmap": {
+            "available": false,
+            "component_count": 0,
+            "largest_area": 0
+          },
+          "polar_coherence_heatmap": {
+            "available": false,
+            "component_count": 0,
+            "largest_area": 0
+          }
+        }
+      }
+    }
+  ],
+  "interpretation": {
+    "summary": "Detected structures are recurring but not uniform: contour/edge families persist across the ladder, while the throat-to-exit side changes contour density and component structure. Treat this as morphology, not physical proof.",
+    "regime": {
+      "regime_label": "mixed regime behavior",
+      "stable_ring_count_pattern": true,
+      "bridge_distinct_from_throat_heuristic": true,
+      "noisy_artifact_heuristic": false
+    },
+    "best_next_metric": "log-polar edge-orientation persistence: compare radial/tangential edge histograms after registering each checkpoint to its aperture center"
+  }
+}

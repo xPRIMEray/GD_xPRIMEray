@@ -1,0 +1,187 @@
+{
+  "analysis_label": "exploratory_curvature_center_polar_tiling_compare",
+  "constraints": "analysis-only; no renderer changes; no reruns; metrics limited to gradient direction similarity and symmetric edge distance score",
+  "outputs": {
+    "curvature_center_candidates": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/curvature_center_polar_2026-04-25/curvature_center_candidates.png",
+    "best_center_overlay": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/curvature_center_polar_2026-04-25/best_center_overlay.png",
+    "summary_json": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/curvature_center_polar_2026-04-25/curvature_center_summary.json"
+  },
+  "checkpoints": [
+    {
+      "checkpoint": "mouth",
+      "candidates": [
+        {
+          "x": 289.0,
+          "y": 233.0,
+          "radius": 133.0,
+          "source": "hough_circle",
+          "candidate_score": 116.56490036537654,
+          "metrics": {
+            "gradient_direction_similarity": 0.6284958720207214,
+            "symmetric_edge_distance_score": 0.7569400072097778
+          }
+        },
+        {
+          "x": 242.0,
+          "y": 267.0,
+          "radius": 134.0,
+          "source": "hough_circle",
+          "candidate_score": 114.1977274031489,
+          "metrics": {
+            "gradient_direction_similarity": 0.6341713070869446,
+            "symmetric_edge_distance_score": 0.7406502962112427
+          }
+        },
+        {
+          "x": 312.0,
+          "y": 248.0,
+          "radius": 134.0,
+          "source": "hough_circle",
+          "candidate_score": 113.9016791746176,
+          "metrics": {
+            "gradient_direction_similarity": 0.6169240474700928,
+            "symmetric_edge_distance_score": 0.7321367561817169
+          }
+        },
+        {
+          "x": 273.0,
+          "y": 257.0,
+          "radius": 130.0,
+          "source": "hough_circle",
+          "candidate_score": 111.04234982915868,
+          "metrics": {
+            "gradient_direction_similarity": 0.6290847659111023,
+            "symmetric_edge_distance_score": 0.7387183308601379
+          }
+        },
+        {
+          "x": 97.0,
+          "y": 132.0,
+          "radius": 130.0,
+          "source": "hough_circle",
+          "candidate_score": 108.54528023953704,
+          "metrics": {
+            "gradient_direction_similarity": 0.6555103659629822,
+            "symmetric_edge_distance_score": 0.679193377494812
+          }
+        }
+      ],
+      "best_center": {
+        "x": 97.0,
+        "y": 132.0,
+        "radius": 130.0,
+        "source": "hough_circle"
+      },
+      "outputs": {
+        "curvature_center_candidates": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/curvature_center_polar_2026-04-25/00_mouth_curvature_center_candidates.png",
+        "best_center_overlay": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/curvature_center_polar_2026-04-25/00_mouth_best_center_overlay.png"
+      },
+      "comparison": {
+        "curvature_center_polar": {
+          "gradient_direction_similarity": 0.6555103659629822,
+          "symmetric_edge_distance_score": 0.679193377494812
+        },
+        "aperture_centered_polar": {
+          "gradient_direction_similarity": 0.628449022769928,
+          "symmetric_edge_distance_score": 0.7863852083683014
+        },
+        "incoherence_centered_polar": {
+          "gradient_direction_similarity": 0.6235631108283997,
+          "symmetric_edge_distance_score": 0.7864582240581512
+        },
+        "adaptive_square": {
+          "gradient_direction_similarity": 0.8356582522392273,
+          "symmetric_edge_distance_score": 0.7679226994514465
+        }
+      }
+    },
+    {
+      "checkpoint": "post_throat_backstep_01",
+      "candidates": [
+        {
+          "x": 310.5,
+          "y": 134.5,
+          "radius": 150.48764038085938,
+          "source": "contour_min_enclosing_circle",
+          "candidate_score": 139.91237442675686,
+          "metrics": {
+            "gradient_direction_similarity": 0.6604636907577515,
+            "symmetric_edge_distance_score": 0.7226780652999878
+          }
+        },
+        {
+          "x": 286.0,
+          "y": 138.0,
+          "radius": 134.0,
+          "source": "hough_circle",
+          "candidate_score": 127.08534165703034,
+          "metrics": {
+            "gradient_direction_similarity": 0.6598954200744629,
+            "symmetric_edge_distance_score": 0.7390220463275909
+          }
+        },
+        {
+          "x": 303.0,
+          "y": 113.0,
+          "radius": 132.0,
+          "source": "hough_circle",
+          "candidate_score": 121.99037962757828,
+          "metrics": {
+            "gradient_direction_similarity": 0.6536104083061218,
+            "symmetric_edge_distance_score": 0.7186433374881744
+          }
+        },
+        {
+          "x": 284.0,
+          "y": 267.0,
+          "radius": 134.0,
+          "source": "hough_circle",
+          "candidate_score": 113.1289674428887,
+          "metrics": {
+            "gradient_direction_similarity": 0.6488403677940369,
+            "symmetric_edge_distance_score": 0.7147727608680725
+          }
+        },
+        {
+          "x": 321.0,
+          "y": 11.0,
+          "radius": 134.0,
+          "source": "hough_circle",
+          "candidate_score": 111.7832833208865,
+          "metrics": {
+            "gradient_direction_similarity": 0.6466464400291443,
+            "symmetric_edge_distance_score": 0.6718204617500305
+          }
+        }
+      ],
+      "best_center": {
+        "x": 310.5,
+        "y": 134.5,
+        "radius": 150.48764038085938,
+        "source": "contour_min_enclosing_circle"
+      },
+      "outputs": {
+        "curvature_center_candidates": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/curvature_center_polar_2026-04-25/01_post_throat_backstep_01_curvature_center_candidates.png",
+        "best_center_overlay": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/curvature_center_polar_2026-04-25/01_post_throat_backstep_01_best_center_overlay.png"
+      },
+      "comparison": {
+        "curvature_center_polar": {
+          "gradient_direction_similarity": 0.6604636907577515,
+          "symmetric_edge_distance_score": 0.7226780652999878
+        },
+        "aperture_centered_polar": {
+          "gradient_direction_similarity": 0.6423007845878601,
+          "symmetric_edge_distance_score": 0.765038013458252
+        },
+        "incoherence_centered_polar": {
+          "gradient_direction_similarity": 0.656435489654541,
+          "symmetric_edge_distance_score": 0.7634628415107727
+        },
+        "adaptive_square": {
+          "gradient_direction_similarity": 0.8753202557563782,
+          "symmetric_edge_distance_score": 0.8034569025039673
+        }
+      }
+    }
+  ]
+}

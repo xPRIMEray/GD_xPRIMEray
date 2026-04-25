@@ -154,6 +154,88 @@ Relevant figures:
 - [sequence_fft.png](./analysis/periodicity/figures/sequence_fft.png)
 - [radial_profile_wavelets.png](./analysis/periodicity/figures/radial_profile_wavelets.png)
 
+### 5.5 Geometric Sampling Texture and Orientation Persistence
+
+Artifact-only geometric sampling analysis compared adaptive square tiles, polar/radial tiles, OpenCV/scikit-image morphology detections, and log-polar edge-orientation histograms. Adaptive square tile boundaries were the stronger directional boundary match: for the available `mouth` and `post_throat_backstep_01` diagnostics, adaptive boundary overlays reached gradient-direction similarity `0.836` and `0.875`, while polar boundary overlays reached lower direction similarity `0.628` and `0.642`. Polar/radial tiles, however, gave near-perfect visible-edge recall (`1.000` and `0.9997`), making them useful high-recall aperture diagnostics even when they sacrifice direction fidelity.
+
+The bridge remains morphologically distinct. The geometric structure search found `214` Hough line detections at `post_throat_backstep_01`, compared with `71-106` for most other checkpoints; its mean contour eccentricity dropped to `0.663`; and its visible-band mask split into `190` connected components compared with `91` at the mouth. Log-polar orientation analysis did not show a global bridge-only breakdown: the bridge-to-near-side mean orientation cosine was `0.988`, and bridge-to-rest cosine was `0.972`. Instead, near-side, throat, and bridge checkpoints remain radial-dominant, while the far-side checkpoints shift tangential (`radial/tangential = 0.754` at `post_throat_exit_approach`, `0.581` at `exit_lookback`).
+
+These results motivate a hybrid sampling texture architecture: retain raw row passes as scout truth, use adaptive square tiles for local coherence and direction-preserving boundary previews, use polar/radial tiles for high-recall aperture diagnostics, and keep future triangle, diagonal, and annular textures as separate diagnostic layers rather than replacements for raw validation.
+
+Relevant analysis:
+- [geometric_sampling_texture.md](./analysis/geometric_sampling_texture.md)
+- [orientation_histograms.png](../../../output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/log_polar_orientation_2026-04-25/orientation_histograms.png)
+- [annotated_shape_search_contact_sheet.png](../../../output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/geometry_structure_search_2026-04-25/annotated_shape_search_contact_sheet.png)
+
+### 5.6 Phase Coherence and Temporal Structure in Observer-Ladder Sampling
+
+Recent work by Anirban Bandyopadhyay on phase-coherent biological computation and time-crystal-like oscillatory systems suggests that complex systems maintain stability not through purely local rules, but through phase-aligned coherence across interacting elements.
+
+In this framework:
+
+Computation emerges from phase relationships
+Stability emerges from coherence persistence
+Discontinuities emerge from phase boundary transitions
+
+We apply this interpretation to the observed banding artifacts in xPRIMEray.
+
+🧪 Empirical Mapping
+
+From our diagnostics:
+
+Neighbor-normal discontinuity strongly aligns with visible bands
+First-hit divergence originates before stored-hit refinement
+Orientation fields remain globally persistent
+Morphology fragments locally
+Phase-coherence field shows reduced coherence at band locations
+
+This suggests:
+
+Banding artifacts correspond to phase-coherence boundaries in the ray-field
+
+📊 Supporting Results (Your actual data 🔥)
+checkpoint	band coherence	outside coherence	incoh vs band r
+mouth	0.639	0.801	0.309
+post_throat_backstep_01	0.764	0.796	0.071
+
+Interpretation:
+
+Lower coherence correlates with visible bands
+Stronger effect near observer (mouth)
+Bridge region shows weaker but still positive coherence disruption
+🧠 Interpretation
+
+Unlike classical ray tracing artifacts caused by:
+
+insufficient sampling
+numerical precision
+shading discontinuities
+
+the observed banding here appears to arise from:
+
+multiple locally valid ray-path solutions coexisting, with spatial sampling collapsing inconsistently across phase boundaries
+
+This is consistent with:
+
+multi-solution geodesic fields
+interference-like domain partitioning
+phase-coherent computation models
+🔮 Implication
+
+This reframes the renderer:
+
+from a deterministic ray solver
+to a phase-selection system over a multi-solution field
+
+🧬 Forward Direction
+
+Future work should explore:
+
+phase-coherence-guided hit selection
+tile-level phase memory propagation
+multi-scale coherence enforcement
+temporal persistence across frames
+
 ---
 
 ## 6. Discussion

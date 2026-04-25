@@ -11,6 +11,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
+from skimage import measure
 
 
 CHECKPOINT_ORDER = [
@@ -96,12 +97,14 @@ def connected_components(mask: np.ndarray | None) -> dict:
     if mask is None:
         return {"available": False, "component_count": 0, "largest_area": 0}
     binary = (mask > 32).astype(np.uint8)
-    count, _, stats, _ = cv2.connectedComponentsWithStats(binary, 8)
-    areas = [int(stats[i, cv2.CC_STAT_AREA]) for i in range(1, count)]
+    labels = measure.label(binary, connectivity=2)
+    regions = measure.regionprops(labels)
+    areas = [int(region.area) for region in regions]
     return {
         "available": True,
         "component_count": len(areas),
         "largest_area": max(areas) if areas else 0,
+        "method": "skimage.measure.label/connectivity=2 + regionprops",
     }
 
 
@@ -257,7 +260,7 @@ def write_markdown(summary: dict, path: Path) -> None:
         "## Method",
         "- Primary detection image: debug normal RGB when present, otherwise debug capture.",
         "- Detection preprocessing: grayscale normalization, Gaussian blur for feature detection only, Canny/Sobel edges.",
-        "- Features: Hough circles, Hough line orientations, contour hierarchy/eccentricity, connected components in available masks/coherence artifacts.",
+        "- Features: OpenCV Hough circles, OpenCV Hough line orientations, OpenCV contour hierarchy/eccentricity, scikit-image connected components in available masks/coherence artifacts.",
         "",
         "## Metrics",
         "| checkpoint | rings/arcs | large contours | largest contour area | mean eccentricity | spacing mean | Hough lines | dominant angles | components |",
@@ -347,7 +350,12 @@ def main() -> int:
         "method": {
             "primary_image": "debug_normal_rgb when present, otherwise debug capture",
             "feature_detection_preprocessing": "grayscale normalize + GaussianBlur(5x5); used only for feature detection",
-            "features": ["HoughCircles", "HoughLinesP", "Canny contours with hierarchy", "connected components on available masks/coherence maps"],
+            "features": [
+                "OpenCV HoughCircles",
+                "OpenCV HoughLinesP",
+                "OpenCV Canny contours with hierarchy",
+                "scikit-image measure.label/regionprops connected components on available masks/coherence maps",
+            ],
         },
         "checkpoints": results,
         "interpretation": {
