@@ -14,8 +14,18 @@ public partial class WormholeCheckpointSequencer : Node3D
 		ThroatExitInterpolationProbe = 2
 	}
 
+	public enum DebugCaptureVisualizationMode
+	{
+		ExistingOverlay = 0,
+		ExistingOverlayPlusNormalRgb = 1
+	}
+
 	[Export] public string FixtureHudName = "overspace_wormhole_checkpoint_sequence";
 	[Export] public SequenceProfile Profile = SequenceProfile.ApprovedBaseline;
+	[Export] public DebugCaptureVisualizationMode DebugCaptureMode = DebugCaptureVisualizationMode.ExistingOverlay;
+	[Export(PropertyHint.Range, "0.0,1.0,0.01")] public float DebugNormalShadingBrightnessFloor = 0.12f;
+	[Export(PropertyHint.Range, "0.0,1.0,0.01")] public float DebugNormalShadingBrightnessCeiling = 0.88f;
+	[Export] public Color DebugNormalMissColor = new(0.035f, 0.04f, 0.055f, 1.0f);
 	[Export] public int StartupPhysicsFramesDelay = 2;
 	[Export] public int SettleFrames = 12;
 	[Export] public int CaptureTimeoutFrames = 240;
@@ -23,6 +33,11 @@ public partial class WormholeCheckpointSequencer : Node3D
 	[Export] public int MinProcessedRows = 270;
 
 	private const string RunDirectoryEnv = "WORMHOLE_CHECKPOINT_RUN_DIR";
+	private const string DebugCaptureModeEnv = "WORMHOLE_CHECKPOINT_DEBUG_CAPTURE_MODE";
+	private const string DebugNormalBrightnessFloorEnv = "WORMHOLE_CHECKPOINT_NORMAL_RGB_FLOOR";
+	private const string DebugNormalBrightnessCeilingEnv = "WORMHOLE_CHECKPOINT_NORMAL_RGB_CEILING";
+	private const string CheckpointNameFilterEnv = "WORMHOLE_CHECKPOINT_NAMES";
+	private const string ExportHitDiagnosticsEnv = "WORMHOLE_CHECKPOINT_EXPORT_HIT_DIAGNOSTICS";
 
 	private readonly List<CheckpointResult> _results = new();
 
@@ -66,12 +81,13 @@ public partial class WormholeCheckpointSequencer : Node3D
 
 	private CheckpointSpec[] GetCheckpointsForProfile()
 	{
-		return Profile switch
+		CheckpointSpec[] checkpoints = Profile switch
 		{
 			SequenceProfile.MouthThroatInterpolationProbe => BuildMouthThroatInterpolationProbeCheckpoints(),
 			SequenceProfile.ThroatExitInterpolationProbe => BuildThroatExitInterpolationProbeCheckpoints(),
 			_ => BuildApprovedBaselineCheckpoints()
 		};
+		return ApplyCheckpointNameFilter(checkpoints);
 	}
 
 	private static CheckpointSpec[] BuildApprovedBaselineCheckpoints()
@@ -492,9 +508,48 @@ public partial class WormholeCheckpointSequencer : Node3D
 			return false;
 		}
 
+		DebugCaptureVisualizationMode debugCaptureMode = ResolveDebugCaptureMode();
+		string debugNormalCapturePath = string.Empty;
+		string hitDiagnosticsCsvPath = string.Empty;
+		if (debugCaptureMode == DebugCaptureVisualizationMode.ExistingOverlayPlusNormalRgb)
+		{
+			float brightnessFloor = ResolveBrightnessOverride(DebugNormalBrightnessFloorEnv, DebugNormalShadingBrightnessFloor);
+			float brightnessCeiling = ResolveBrightnessOverride(DebugNormalBrightnessCeilingEnv, DebugNormalShadingBrightnessCeiling);
+			if (!_activeFilmCamera.TryCopyDebugNormalShadedFilmImageForTesting(
+				out Image debugNormalImage,
+				brightnessFloor,
+				brightnessCeiling,
+				DebugNormalMissColor) ||
+				debugNormalImage == null)
+			{
+				GD.PrintErr($"[WormholeCheckpointSequencer][FAIL] checkpoint={checkpoint.Name} reason=missing_normal_debug_image");
+				GetTree().Quit(2);
+				return false;
+			}
+
+			debugNormalCapturePath = Path.Combine(_runDirectory, $"{checkpointIndex:00}_{checkpoint.Name}_debug_normal_rgb.png");
+			if (debugNormalImage.SavePng(debugNormalCapturePath) != Error.Ok)
+			{
+				GD.PrintErr($"[WormholeCheckpointSequencer][FAIL] checkpoint={checkpoint.Name} reason=save_normal_debug_png");
+				GetTree().Quit(2);
+				return false;
+			}
+		}
+		if (ShouldExportHitDiagnostics())
+		{
+			hitDiagnosticsCsvPath = Path.Combine(_runDirectory, $"{checkpointIndex:00}_{checkpoint.Name}_hit_diagnostics.csv");
+			if (!_activeFilmCamera.TryExportFixtureHitDiagnosticsCsvForTesting(hitDiagnosticsCsvPath))
+			{
+				GD.PrintErr($"[WormholeCheckpointSequencer][FAIL] checkpoint={checkpoint.Name} reason=save_hit_diagnostics");
+				GetTree().Quit(2);
+				return false;
+			}
+		}
+
 		_activeFilmCamera.TryGetFixtureTransportCoverageForTesting(out GrinFilmCamera.FixtureTransportCoverageSnapshot coverage);
 		_activeFilmCamera.TryGetFixtureCausalLedgerForTesting(out GrinFilmCamera.FixtureCausalLedgerSnapshot causal);
 		_activeFilmCamera.TryGetFixtureAdaptiveSteppingDiagnosticsForTesting(out GrinFilmCamera.FixtureAdaptiveSteppingDiagnosticsSnapshot adaptive);
+		_activeFilmCamera.TryGetFixtureStoredHitNearTieDiagnosticsForTesting(out GrinFilmCamera.FixtureStoredHitNearTieDiagnosticsSnapshot nearTieDiagnostics);
 		bool runVerified =
 			coverage.TotalPixels > 0 &&
 			coverage.ClassifiedPixels == coverage.TotalPixels &&
@@ -512,6 +567,9 @@ public partial class WormholeCheckpointSequencer : Node3D
 			Transform = roomCamera?.Transform ?? Transform3D.Identity,
 			CapturePath = analysisPath,
 			DebugCapturePath = debugPath,
+			DebugCaptureMode = debugCaptureMode.ToString(),
+			DebugNormalCapturePath = debugNormalCapturePath,
+			HitDiagnosticsCsvPath = hitDiagnosticsCsvPath,
 			RenderHealthStep = renderHealthStep,
 			ProcessedRows = processedRows,
 			TracedPixels = snapshot.TracedPixels,
@@ -548,11 +606,21 @@ public partial class WormholeCheckpointSequencer : Node3D
 				FallbackUsedCount = adaptive.FallbackUsedCount,
 				Summary = adaptive.Summary
 			},
+			StoredHitNearTieDiagnostics = new StoredHitNearTieDiagnosticsResult
+			{
+				CandidateComparisonsConsidered = nearTieDiagnostics.CandidateComparisonsConsidered,
+				EpsilonNearTieTriggered = nearTieDiagnostics.EpsilonNearTieTriggered,
+				ContinuityRuleChangedWinner = nearTieDiagnostics.ContinuityRuleChangedWinner,
+				SameColliderTieBreakUsed = nearTieDiagnostics.SameColliderTieBreakUsed,
+				DistanceDeltaHistogramLabels = nearTieDiagnostics.DistanceDeltaHistogramLabels,
+				DistanceDeltaHistogramCounts = nearTieDiagnostics.DistanceDeltaHistogramCounts,
+				Summary = nearTieDiagnostics.Summary
+			},
 			RunVerified = runVerified
 		});
 
 		GD.Print(
-			$"[WormholeCheckpointSequencer][Capture] checkpoint={checkpoint.Name} capturePath={analysisPath} debugPath={debugPath} " +
+			$"[WormholeCheckpointSequencer][Capture] checkpoint={checkpoint.Name} capturePath={analysisPath} debugPath={debugPath} normalDebugPath={debugNormalCapturePath} hitDiagPath={hitDiagnosticsCsvPath} " +
 			$"portalHitPixels={coverage.PortalHitPixels} throatEventPixels={coverage.ThroatEventPixels} " +
 			$"boundaryCrossingsTotal={causal.BoundaryCrossingsTotal} runVerified={(runVerified ? 1 : 0)}");
 		return true;
@@ -624,6 +692,79 @@ public partial class WormholeCheckpointSequencer : Node3D
 			DateTime.UtcNow.ToString("yyyy-MM-ddTHH-mm-ss", CultureInfo.InvariantCulture));
 	}
 
+	private DebugCaptureVisualizationMode ResolveDebugCaptureMode()
+	{
+		string env = System.Environment.GetEnvironmentVariable(DebugCaptureModeEnv) ?? string.Empty;
+		if (string.IsNullOrWhiteSpace(env))
+		{
+			return DebugCaptureMode;
+		}
+
+		string token = env.Trim().ToLowerInvariant();
+		return token switch
+		{
+			"overlay_plus_normal_rgb" => DebugCaptureVisualizationMode.ExistingOverlayPlusNormalRgb,
+			"normal_rgb" => DebugCaptureVisualizationMode.ExistingOverlayPlusNormalRgb,
+			_ => DebugCaptureMode
+		};
+	}
+
+	private static float ResolveBrightnessOverride(string envName, float fallback)
+	{
+		string env = System.Environment.GetEnvironmentVariable(envName) ?? string.Empty;
+		if (!float.TryParse(env, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsed))
+		{
+			return fallback;
+		}
+
+		return Mathf.Clamp(parsed, 0.0f, 1.0f);
+	}
+
+	private static CheckpointSpec[] ApplyCheckpointNameFilter(CheckpointSpec[] checkpoints)
+	{
+		string env = System.Environment.GetEnvironmentVariable(CheckpointNameFilterEnv) ?? string.Empty;
+		if (string.IsNullOrWhiteSpace(env))
+		{
+			return checkpoints;
+		}
+
+		HashSet<string> allowed = new(StringComparer.OrdinalIgnoreCase);
+		foreach (string token in env.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+		{
+			if (!string.IsNullOrWhiteSpace(token))
+			{
+				allowed.Add(token);
+			}
+		}
+		if (allowed.Count == 0)
+		{
+			return checkpoints;
+		}
+
+		List<CheckpointSpec> filtered = new();
+		foreach (CheckpointSpec checkpoint in checkpoints)
+		{
+			if (allowed.Contains(checkpoint.Name))
+			{
+				filtered.Add(checkpoint);
+			}
+		}
+
+		return filtered.ToArray();
+	}
+
+	private static bool ShouldExportHitDiagnostics()
+	{
+		string env = System.Environment.GetEnvironmentVariable(ExportHitDiagnosticsEnv) ?? string.Empty;
+		if (string.IsNullOrWhiteSpace(env))
+		{
+			return false;
+		}
+
+		string normalized = env.Trim().ToLowerInvariant();
+		return normalized is "1" or "true" or "on" or "yes";
+	}
+
 	private readonly record struct CheckpointSpec(string Name, string RoomScenePath, Transform3D Transform, float Fov, string Description);
 
 	private sealed class CheckpointResult
@@ -634,6 +775,9 @@ public partial class WormholeCheckpointSequencer : Node3D
 		public Transform3D Transform { get; set; }
 		public string CapturePath { get; set; } = string.Empty;
 		public string DebugCapturePath { get; set; } = string.Empty;
+		public string DebugCaptureMode { get; set; } = string.Empty;
+		public string DebugNormalCapturePath { get; set; } = string.Empty;
+		public string HitDiagnosticsCsvPath { get; set; } = string.Empty;
 		public int RenderHealthStep { get; set; }
 		public int ProcessedRows { get; set; }
 		public long TracedPixels { get; set; }
@@ -653,6 +797,7 @@ public partial class WormholeCheckpointSequencer : Node3D
 		public double? OpticalPathLengthMean { get; set; }
 		public double? OpticalPathLengthMax { get; set; }
 		public AdaptiveDiagnosticsResult AdaptiveDiagnostics { get; set; } = new();
+		public StoredHitNearTieDiagnosticsResult StoredHitNearTieDiagnostics { get; set; } = new();
 		public bool RunVerified { get; set; }
 	}
 
@@ -672,6 +817,17 @@ public partial class WormholeCheckpointSequencer : Node3D
 		public long? BackgroundHits { get; set; }
 		public long? TerminatedRayCount { get; set; }
 		public long? FallbackUsedCount { get; set; }
+		public string Summary { get; set; } = string.Empty;
+	}
+
+	private sealed class StoredHitNearTieDiagnosticsResult
+	{
+		public long CandidateComparisonsConsidered { get; set; }
+		public long EpsilonNearTieTriggered { get; set; }
+		public long ContinuityRuleChangedWinner { get; set; }
+		public long SameColliderTieBreakUsed { get; set; }
+		public string[] DistanceDeltaHistogramLabels { get; set; } = Array.Empty<string>();
+		public long[] DistanceDeltaHistogramCounts { get; set; } = Array.Empty<long>();
 		public string Summary { get; set; } = string.Empty;
 	}
 

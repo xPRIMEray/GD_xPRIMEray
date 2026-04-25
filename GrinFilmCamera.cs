@@ -181,6 +181,35 @@ public partial class GrinFilmCamera : Node
 		}
 	}
 
+	public readonly struct FixtureStoredHitNearTieDiagnosticsSnapshot
+	{
+		public readonly long CandidateComparisonsConsidered;
+		public readonly long EpsilonNearTieTriggered;
+		public readonly long ContinuityRuleChangedWinner;
+		public readonly long SameColliderTieBreakUsed;
+		public readonly string[] DistanceDeltaHistogramLabels;
+		public readonly long[] DistanceDeltaHistogramCounts;
+		public readonly string Summary;
+
+		public FixtureStoredHitNearTieDiagnosticsSnapshot(
+			long candidateComparisonsConsidered,
+			long epsilonNearTieTriggered,
+			long continuityRuleChangedWinner,
+			long sameColliderTieBreakUsed,
+			string[] distanceDeltaHistogramLabels,
+			long[] distanceDeltaHistogramCounts,
+			string summary)
+		{
+			CandidateComparisonsConsidered = candidateComparisonsConsidered;
+			EpsilonNearTieTriggered = epsilonNearTieTriggered;
+			ContinuityRuleChangedWinner = continuityRuleChangedWinner;
+			SameColliderTieBreakUsed = sameColliderTieBreakUsed;
+			DistanceDeltaHistogramLabels = distanceDeltaHistogramLabels ?? Array.Empty<string>();
+			DistanceDeltaHistogramCounts = distanceDeltaHistogramCounts ?? Array.Empty<long>();
+			Summary = summary ?? string.Empty;
+		}
+	}
+
 	public readonly struct FixtureRowParticipationSnapshot
 	{
 		public readonly int TotalRowsConsidered;
@@ -1556,6 +1585,18 @@ public partial class GrinFilmCamera : Node
 	/// <summary>Logs quick-ray misses that later subdivide and hit (per frame).</summary>
 	// CONTROL FACTOR: Log sample count for quick-ray misses; higher logs more diagnostics.
 	[Export] public int Pass2LogQuickRayMissSamples = 0;
+	/// <summary>Re-runs the first accepted pass-2 segment at a finer local subdivision before storing the hit.</summary>
+	// CONTROL FACTOR: Test-only first-hit acquisition refinement; off by default to preserve baseline behavior.
+	[Export] public bool Pass2FirstHitLocalRefinementEnabled = false;
+	/// <summary>Substeps used by first-hit local refinement.</summary>
+	// CONTROL FACTOR: Higher values refine the first accepted segment more aggressively at extra cost.
+	[Export(PropertyHint.Range, "2,64,1")] public int Pass2FirstHitLocalRefinementSubsteps = 8;
+	/// <summary>Evaluates a tiny adjacent-segment window before accepting the first hit.</summary>
+	// CONTROL FACTOR: Test-only candidate window at first-hit acquisition; off by default to preserve baseline behavior.
+	[Export] public bool Pass2FirstHitCandidateWindowEnabled = false;
+	/// <summary>Adjacent segment radius for first-hit candidate window.</summary>
+	// CONTROL FACTOR: Keep this small; 1 checks previous/current/next, 2 checks up to five segments.
+	[Export(PropertyHint.Range, "1,2,1")] public int Pass2FirstHitCandidateWindowRadius = 1;
 	public enum BroadphaseMode
 	{
 		Off = 0,
@@ -2231,6 +2272,11 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private long _fixtureDebugMissHitsThisRun = 0;
 	private long _fixtureFinalHitPixelCountThisRun = 0;
 	private long _fixtureTraversalWritePixelCountThisRun = 0;
+	private long _fixtureStoredHitNearTieComparisonsConsideredThisRun = 0;
+	private long _fixtureStoredHitNearTieEpsilonTriggeredThisRun = 0;
+	private long _fixtureStoredHitNearTieWinnerChangedThisRun = 0;
+	private long _fixtureStoredHitNearTieSameColliderTieBreakUsedThisRun = 0;
+	private long[] _fixtureStoredHitNearTieDistanceDeltaHistogramThisRun = new long[7];
 	private long _fixtureCausalObservedPixelsThisRun = 0;
 	private long _fixtureCausalBoundaryCrossingsTotalThisRun = 0;
 	private long _fixtureCausalSceneTransformEventsTotalThisRun = 0;
@@ -2288,6 +2334,22 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private Image _fixtureCategoricalFinalImg;
 	private Image _fixtureTransportClassificationImg;
 	private Image _fixtureThroatDepthImg;
+	private byte[] _fixtureDebugNormalHadHit = Array.Empty<byte>();
+	private Vector3[] _fixtureDebugNormalHitNormal = Array.Empty<Vector3>();
+	private ulong[] _fixtureDiagnosticColliderId = Array.Empty<ulong>();
+	private int[] _fixtureDiagnosticPrimitiveOrShapeId = Array.Empty<int>();
+	private float[] _fixtureDiagnosticHitDistance = Array.Empty<float>();
+	private Vector3[] _fixtureDiagnosticHitPosition = Array.Empty<Vector3>();
+	private int[] _fixtureDiagnosticSegCount = Array.Empty<int>();
+	private byte[] _fixtureDiagnosticHitClass = Array.Empty<byte>();
+	private byte[] _fixtureDiagnosticFirstAcceptedHadHit = Array.Empty<byte>();
+	private float[] _fixtureDiagnosticFirstAcceptedHitDistance = Array.Empty<float>();
+	private Vector3[] _fixtureDiagnosticFirstAcceptedHitNormal = Array.Empty<Vector3>();
+	private Vector3[] _fixtureDiagnosticFirstAcceptedHitPosition = Array.Empty<Vector3>();
+	private ulong[] _fixtureDiagnosticFirstAcceptedColliderId = Array.Empty<ulong>();
+	private int[] _fixtureDiagnosticFirstAcceptedPrimitiveOrShapeId = Array.Empty<int>();
+	private int[] _fixtureDiagnosticFirstAcceptedSegmentIndex = Array.Empty<int>();
+	private int[] _fixtureDiagnosticFirstAcceptedCandidateCount = Array.Empty<int>();
 	private int[] _fixtureThroatInteractionCounts = Array.Empty<int>();
 
 	// band hit ROI history
@@ -2774,6 +2836,10 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 		public bool Pass2ForceOnInstability;
 		public bool Pass2ForceIfPrevHitLost;
 		public int Pass2LogQuickRayMissSamples;
+		public bool Pass2FirstHitLocalRefinementEnabled;
+		public int Pass2FirstHitLocalRefinementSubsteps;
+		public bool Pass2FirstHitCandidateWindowEnabled;
+		public int Pass2FirstHitCandidateWindowRadius;
 		public bool UseSingleProbeThenSubdivide;
 		public bool NearestHitOnly;
 		public bool UseInsightPlanePass2;
@@ -3235,6 +3301,15 @@ private sealed class OverlayRollingWindow
 		public Vector3 BestHn;
 		public Vector3 BestRayDir;
 		public ulong BestCid;
+		public int BestPrimitiveOrShapeId;
+		public bool FirstAcceptedHadHit;
+		public float FirstAcceptedHitDistance;
+		public Vector3 FirstAcceptedHp;
+		public Vector3 FirstAcceptedHn;
+		public ulong FirstAcceptedCid;
+		public int FirstAcceptedPrimitiveOrShapeId;
+		public int FirstAcceptedSegmentIndex;
+		public int FirstAcceptedCandidateCount;
 		public string HitName;
 		public int PostRemapSegmentCount;
 		public int PostRemapCandidateSegmentCount;
@@ -5037,6 +5112,11 @@ private sealed class OverlayRollingWindow
 		_fixtureDebugUnclassifiedHitsThisRun = 0;
 		_fixtureDebugAbsorbedHitsThisRun = 0;
 		_fixtureDebugMissHitsThisRun = 0;
+		_fixtureStoredHitNearTieComparisonsConsideredThisRun = 0;
+		_fixtureStoredHitNearTieEpsilonTriggeredThisRun = 0;
+		_fixtureStoredHitNearTieWinnerChangedThisRun = 0;
+		_fixtureStoredHitNearTieSameColliderTieBreakUsedThisRun = 0;
+		Array.Clear(_fixtureStoredHitNearTieDistanceDeltaHistogramThisRun, 0, _fixtureStoredHitNearTieDistanceDeltaHistogramThisRun.Length);
 		_fixtureCausalObservedPixelsThisRun = 0;
 		_fixtureCausalBoundaryCrossingsTotalThisRun = 0;
 		_fixtureCausalSceneTransformEventsTotalThisRun = 0;
@@ -5105,6 +5185,30 @@ private sealed class OverlayRollingWindow
 			_fixtureDebugMissHitsThisRun,
 			tracedPixels);
 		return tracedPixels > 0;
+	}
+
+	public bool TryGetFixtureStoredHitNearTieDiagnosticsForTesting(out FixtureStoredHitNearTieDiagnosticsSnapshot snapshot)
+	{
+		long comparisons = Interlocked.Read(ref _fixtureStoredHitNearTieComparisonsConsideredThisRun);
+		long epsilonTriggered = Interlocked.Read(ref _fixtureStoredHitNearTieEpsilonTriggeredThisRun);
+		long winnerChanged = Interlocked.Read(ref _fixtureStoredHitNearTieWinnerChangedThisRun);
+		long sameColliderTieBreakUsed = Interlocked.Read(ref _fixtureStoredHitNearTieSameColliderTieBreakUsedThisRun);
+		string[] labels = BuildFixtureStoredHitNearTieHistogramLabels();
+		long[] counts = new long[_fixtureStoredHitNearTieDistanceDeltaHistogramThisRun.Length];
+		for (int i = 0; i < counts.Length; i++)
+			counts[i] = Interlocked.Read(ref _fixtureStoredHitNearTieDistanceDeltaHistogramThisRun[i]);
+		string summary =
+			$"cmp={comparisons}|eps={epsilonTriggered}|changed={winnerChanged}|sameCid={sameColliderTieBreakUsed}|" +
+			$"hist={FormatFixtureStoredHitNearTieHistogram(labels, counts)}";
+		snapshot = new FixtureStoredHitNearTieDiagnosticsSnapshot(
+			comparisons,
+			epsilonTriggered,
+			winnerChanged,
+			sameColliderTieBreakUsed,
+			labels,
+			counts,
+			summary);
+		return comparisons > 0 || epsilonTriggered > 0 || winnerChanged > 0 || sameColliderTieBreakUsed > 0;
 	}
 
 	public bool TryGetFixtureRowParticipationForTesting(out FixtureRowParticipationSnapshot snapshot)
@@ -5902,6 +6006,179 @@ private sealed class OverlayRollingWindow
 		return true;
 	}
 
+	public bool TryCopyDebugNormalShadedFilmImageForTesting(
+		out Image image,
+		float brightnessFloor = 0.12f,
+		float brightnessCeiling = 0.88f,
+		Color? missColor = null)
+	{
+		image = null;
+		if (_filmWidth <= 0 || _filmHeight <= 0)
+		{
+			return false;
+		}
+
+		int pixelCount = _filmWidth * _filmHeight;
+		if (_fixtureDebugNormalHadHit == null ||
+			_fixtureDebugNormalHitNormal == null ||
+			_fixtureDebugNormalHadHit.Length < pixelCount ||
+			_fixtureDebugNormalHitNormal.Length < pixelCount)
+		{
+			return false;
+		}
+
+		float floor = Mathf.Clamp(brightnessFloor, 0.0f, 1.0f);
+		float ceiling = Mathf.Clamp(brightnessCeiling, 0.0f, 1.0f);
+		if (ceiling < floor)
+		{
+			(floor, ceiling) = (ceiling, floor);
+		}
+		if (Mathf.IsEqualApprox(floor, ceiling))
+		{
+			ceiling = Mathf.Min(1.0f, floor + 0.01f);
+		}
+
+		Color resolvedMissColor = missColor ?? new Color(0.035f, 0.04f, 0.055f, 1.0f);
+		Image copy = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
+		for (int y = 0; y < _filmHeight; y++)
+		{
+			for (int x = 0; x < _filmWidth; x++)
+			{
+				int pixelIndex = (y * _filmWidth) + x;
+				if (_fixtureDebugNormalHadHit[pixelIndex] == 0)
+				{
+					copy.SetPixel(x, y, resolvedMissColor);
+					continue;
+				}
+
+				copy.SetPixel(
+					x,
+					y,
+					ShadeNormalRGBWithBrightnessWindow(
+						_fixtureDebugNormalHitNormal[pixelIndex],
+						floor,
+						ceiling));
+			}
+		}
+
+		image = copy;
+		return true;
+	}
+
+	public bool TryExportFixtureHitDiagnosticsCsvForTesting(string csvPath)
+	{
+		if (string.IsNullOrWhiteSpace(csvPath) ||
+			_filmWidth <= 0 ||
+			_filmHeight <= 0)
+		{
+			return false;
+		}
+
+		int pixelCount = _filmWidth * _filmHeight;
+		if (_fixtureDebugNormalHadHit == null ||
+			_fixtureDebugNormalHitNormal == null ||
+			_fixtureDiagnosticColliderId == null ||
+			_fixtureDiagnosticPrimitiveOrShapeId == null ||
+			_fixtureDiagnosticHitDistance == null ||
+			_fixtureDiagnosticHitPosition == null ||
+			_fixtureDiagnosticSegCount == null ||
+			_fixtureDiagnosticHitClass == null ||
+			_fixtureDiagnosticFirstAcceptedHadHit == null ||
+			_fixtureDiagnosticFirstAcceptedHitDistance == null ||
+			_fixtureDiagnosticFirstAcceptedHitNormal == null ||
+			_fixtureDiagnosticFirstAcceptedHitPosition == null ||
+			_fixtureDiagnosticFirstAcceptedColliderId == null ||
+			_fixtureDiagnosticFirstAcceptedPrimitiveOrShapeId == null ||
+			_fixtureDiagnosticFirstAcceptedSegmentIndex == null ||
+			_fixtureDiagnosticFirstAcceptedCandidateCount == null ||
+			_fixtureDebugNormalHadHit.Length < pixelCount ||
+			_fixtureDebugNormalHitNormal.Length < pixelCount ||
+			_fixtureDiagnosticColliderId.Length < pixelCount ||
+			_fixtureDiagnosticPrimitiveOrShapeId.Length < pixelCount ||
+			_fixtureDiagnosticHitDistance.Length < pixelCount ||
+			_fixtureDiagnosticHitPosition.Length < pixelCount ||
+			_fixtureDiagnosticSegCount.Length < pixelCount ||
+			_fixtureDiagnosticHitClass.Length < pixelCount ||
+			_fixtureDiagnosticFirstAcceptedHadHit.Length < pixelCount ||
+			_fixtureDiagnosticFirstAcceptedHitDistance.Length < pixelCount ||
+			_fixtureDiagnosticFirstAcceptedHitNormal.Length < pixelCount ||
+			_fixtureDiagnosticFirstAcceptedHitPosition.Length < pixelCount ||
+			_fixtureDiagnosticFirstAcceptedColliderId.Length < pixelCount ||
+			_fixtureDiagnosticFirstAcceptedPrimitiveOrShapeId.Length < pixelCount ||
+			_fixtureDiagnosticFirstAcceptedSegmentIndex.Length < pixelCount ||
+			_fixtureDiagnosticFirstAcceptedCandidateCount.Length < pixelCount)
+		{
+			return false;
+		}
+
+		using StreamWriter writer = new(csvPath, false, Encoding.UTF8);
+		writer.WriteLine("x,y,had_hit,hit_class,collider_id,primitive_or_shape_id,hit_distance,hit_pos_x,hit_pos_y,hit_pos_z,normal_x,normal_y,normal_z,segment_count,first_accepted_had_hit,first_accepted_hit_distance,first_accepted_hit_pos_x,first_accepted_hit_pos_y,first_accepted_hit_pos_z,first_accepted_normal_x,first_accepted_normal_y,first_accepted_normal_z,first_accepted_collider_id,first_accepted_primitive_or_shape_id,first_accepted_segment_index,first_accepted_candidate_count");
+		for (int y = 0; y < _filmHeight; y++)
+		{
+			for (int x = 0; x < _filmWidth; x++)
+			{
+				int pixelIndex = (y * _filmWidth) + x;
+				Vector3 normal = _fixtureDebugNormalHitNormal[pixelIndex];
+				Vector3 hitPosition = _fixtureDiagnosticHitPosition[pixelIndex];
+				Vector3 firstAcceptedPosition = _fixtureDiagnosticFirstAcceptedHitPosition[pixelIndex];
+				Vector3 firstAcceptedNormal = _fixtureDiagnosticFirstAcceptedHitNormal[pixelIndex];
+				writer.Write(x.ToString(CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(y.ToString(CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write((_fixtureDebugNormalHadHit[pixelIndex] != 0 ? 1 : 0).ToString(CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(DecodeFixtureHitClassCode(_fixtureDiagnosticHitClass[pixelIndex]));
+				writer.Write(',');
+				writer.Write(_fixtureDiagnosticColliderId[pixelIndex].ToString(CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(_fixtureDiagnosticPrimitiveOrShapeId[pixelIndex].ToString(CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(_fixtureDiagnosticHitDistance[pixelIndex].ToString("0.######", CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(hitPosition.X.ToString("0.######", CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(hitPosition.Y.ToString("0.######", CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(hitPosition.Z.ToString("0.######", CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(normal.X.ToString("0.######", CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(normal.Y.ToString("0.######", CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(normal.Z.ToString("0.######", CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(_fixtureDiagnosticSegCount[pixelIndex].ToString(CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write((_fixtureDiagnosticFirstAcceptedHadHit[pixelIndex] != 0 ? 1 : 0).ToString(CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(_fixtureDiagnosticFirstAcceptedHitDistance[pixelIndex].ToString("0.######", CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(firstAcceptedPosition.X.ToString("0.######", CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(firstAcceptedPosition.Y.ToString("0.######", CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(firstAcceptedPosition.Z.ToString("0.######", CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(firstAcceptedNormal.X.ToString("0.######", CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(firstAcceptedNormal.Y.ToString("0.######", CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(firstAcceptedNormal.Z.ToString("0.######", CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(_fixtureDiagnosticFirstAcceptedColliderId[pixelIndex].ToString(CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(_fixtureDiagnosticFirstAcceptedPrimitiveOrShapeId[pixelIndex].ToString(CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(_fixtureDiagnosticFirstAcceptedSegmentIndex[pixelIndex].ToString(CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.WriteLine(_fixtureDiagnosticFirstAcceptedCandidateCount[pixelIndex].ToString(CultureInfo.InvariantCulture));
+			}
+		}
+
+		return true;
+	}
+
 	public bool TryCopyFinalHitOnlyFilmImageForTesting(out Image image)
 	{
 		image = null;
@@ -6147,6 +6424,30 @@ private sealed class OverlayRollingWindow
 			"previous_pass" => "previous_pass",
 			_ => "same_pass"
 		};
+	}
+
+	private static bool ResolveBoolEnvOverride(string envName, bool fallback)
+	{
+		string env = System.Environment.GetEnvironmentVariable(envName) ?? string.Empty;
+		if (string.IsNullOrWhiteSpace(env))
+			return fallback;
+
+		string token = env.Trim().ToLowerInvariant();
+		return token switch
+		{
+			"1" or "true" or "on" or "yes" => true,
+			"0" or "false" or "off" or "no" => false,
+			_ => fallback
+		};
+	}
+
+	private static int ResolveIntEnvOverride(string envName, int fallback, int min, int max)
+	{
+		string env = System.Environment.GetEnvironmentVariable(envName) ?? string.Empty;
+		if (!int.TryParse(env, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed))
+			return Math.Clamp(fallback, min, max);
+
+		return Math.Clamp(parsed, min, max);
 	}
 
 	private static float NormalizeAdaptiveEnvelopePercentileSetting(float percentile)
@@ -7017,6 +7318,75 @@ private sealed class OverlayRollingWindow
 		if (_fixtureThroatInteractionCounts.Length > 0)
 		{
 			Array.Clear(_fixtureThroatInteractionCounts, 0, _fixtureThroatInteractionCounts.Length);
+		}
+		if (_fixtureDebugNormalHadHit.Length > 0)
+		{
+			Array.Clear(_fixtureDebugNormalHadHit, 0, _fixtureDebugNormalHadHit.Length);
+		}
+		if (_fixtureDebugNormalHitNormal.Length > 0)
+		{
+			Array.Clear(_fixtureDebugNormalHitNormal, 0, _fixtureDebugNormalHitNormal.Length);
+		}
+		if (_fixtureDiagnosticColliderId.Length > 0)
+		{
+			Array.Clear(_fixtureDiagnosticColliderId, 0, _fixtureDiagnosticColliderId.Length);
+		}
+		if (_fixtureDiagnosticPrimitiveOrShapeId.Length > 0)
+		{
+			for (int i = 0; i < _fixtureDiagnosticPrimitiveOrShapeId.Length; i++)
+				_fixtureDiagnosticPrimitiveOrShapeId[i] = -1;
+		}
+		if (_fixtureDiagnosticHitDistance.Length > 0)
+		{
+			Array.Clear(_fixtureDiagnosticHitDistance, 0, _fixtureDiagnosticHitDistance.Length);
+		}
+		if (_fixtureDiagnosticHitPosition.Length > 0)
+		{
+			Array.Clear(_fixtureDiagnosticHitPosition, 0, _fixtureDiagnosticHitPosition.Length);
+		}
+		if (_fixtureDiagnosticSegCount.Length > 0)
+		{
+			Array.Clear(_fixtureDiagnosticSegCount, 0, _fixtureDiagnosticSegCount.Length);
+		}
+		if (_fixtureDiagnosticHitClass.Length > 0)
+		{
+			Array.Clear(_fixtureDiagnosticHitClass, 0, _fixtureDiagnosticHitClass.Length);
+		}
+		if (_fixtureDiagnosticFirstAcceptedHadHit.Length > 0)
+		{
+			Array.Clear(_fixtureDiagnosticFirstAcceptedHadHit, 0, _fixtureDiagnosticFirstAcceptedHadHit.Length);
+		}
+		if (_fixtureDiagnosticFirstAcceptedHitDistance.Length > 0)
+		{
+			for (int i = 0; i < _fixtureDiagnosticFirstAcceptedHitDistance.Length; i++)
+				_fixtureDiagnosticFirstAcceptedHitDistance[i] = -1f;
+		}
+		if (_fixtureDiagnosticFirstAcceptedHitNormal.Length > 0)
+		{
+			Array.Clear(_fixtureDiagnosticFirstAcceptedHitNormal, 0, _fixtureDiagnosticFirstAcceptedHitNormal.Length);
+		}
+		if (_fixtureDiagnosticFirstAcceptedHitPosition.Length > 0)
+		{
+			Array.Clear(_fixtureDiagnosticFirstAcceptedHitPosition, 0, _fixtureDiagnosticFirstAcceptedHitPosition.Length);
+		}
+		if (_fixtureDiagnosticFirstAcceptedColliderId.Length > 0)
+		{
+			Array.Clear(_fixtureDiagnosticFirstAcceptedColliderId, 0, _fixtureDiagnosticFirstAcceptedColliderId.Length);
+		}
+		if (_fixtureDiagnosticFirstAcceptedPrimitiveOrShapeId.Length > 0)
+		{
+			for (int i = 0; i < _fixtureDiagnosticFirstAcceptedPrimitiveOrShapeId.Length; i++)
+				_fixtureDiagnosticFirstAcceptedPrimitiveOrShapeId[i] = -1;
+		}
+		if (_fixtureDiagnosticFirstAcceptedSegmentIndex.Length > 0)
+		{
+			for (int i = 0; i < _fixtureDiagnosticFirstAcceptedSegmentIndex.Length; i++)
+				_fixtureDiagnosticFirstAcceptedSegmentIndex[i] = -1;
+		}
+		if (_fixtureDiagnosticFirstAcceptedCandidateCount.Length > 0)
+		{
+			for (int i = 0; i < _fixtureDiagnosticFirstAcceptedCandidateCount.Length; i++)
+				_fixtureDiagnosticFirstAcceptedCandidateCount[i] = -1;
 		}
 	}
 
@@ -10861,6 +11231,15 @@ private sealed class OverlayRollingWindow
 										Vector3 bestHn = Vector3.Up;
 										Vector3 bestRayDir = Vector3.Zero;
 										ulong bestCid = 0;
+										int bestPrimitiveOrShapeId = -1;
+										bool firstAcceptedHadHit = false;
+										float firstAcceptedHitDistance = -1f;
+										Vector3 firstAcceptedHp = Vector3.Zero;
+										Vector3 firstAcceptedHn = Vector3.Zero;
+										ulong firstAcceptedCid = 0;
+										int firstAcceptedPrimitiveOrShapeId = -1;
+										int firstAcceptedSegmentIndex = -1;
+										int firstAcceptedCandidateCount = -1;
 										string hitName = "<none>";
 										bool needHitName = cfg.NeedColliderNames;
 										bool absorbedByInnerRadius = false;
@@ -11040,6 +11419,17 @@ private sealed class OverlayRollingWindow
 												if (!didHitSweep)
 													continue;
 												float hitDistAlongRay = seg.TraveledB - segLen + (hpSweep - segA).Length();
+												if (!firstAcceptedHadHit)
+												{
+													firstAcceptedHadHit = true;
+													firstAcceptedHitDistance = hitDistAlongRay;
+													firstAcceptedHp = hpSweep;
+													firstAcceptedHn = Vector3.Up;
+													firstAcceptedCid = 0;
+													firstAcceptedPrimitiveOrShapeId = -1;
+													firstAcceptedSegmentIndex = si;
+													firstAcceptedCandidateCount = geomCandidateCount;
+												}
 												telemetryResolveCountThisPixel += 1f;
 												if (segPostRemap)
 													postRemapGeometryHitCountThisPixel++;
@@ -11092,6 +11482,7 @@ private sealed class OverlayRollingWindow
 												out Vector3 hp,
 												out Vector3 hn,
 												out ulong cid,
+												out int primitiveOrShapeId,
 												out string cname,
 												out int rayQueries,
 												includeColliderName: needHitName,
@@ -11115,11 +11506,29 @@ private sealed class OverlayRollingWindow
 												continue;
 
 											float resolvedHitDistance = seg.TraveledB - segLen + (hp - segA).Length();
+											if (!firstAcceptedHadHit)
+											{
+												firstAcceptedHadHit = true;
+												firstAcceptedHitDistance = resolvedHitDistance;
+												firstAcceptedHp = hp;
+												firstAcceptedHn = hn;
+												firstAcceptedCid = cid;
+												firstAcceptedPrimitiveOrShapeId = primitiveOrShapeId;
+												firstAcceptedSegmentIndex = si;
+												firstAcceptedCandidateCount = geomCandidateCount;
+											}
 											telemetryResolveCountThisPixel += 1f;
 											if (segPostRemap)
 												postRemapGeometryHitCountThisPixel++;
 											ulong resolveStart = statsEnabled ? Time.GetTicksUsec() : 0;
-											if (resolvedHitDistance < bestHit)
+											if (ShouldReplaceStoredHitCandidate(
+												hadHit,
+												bestHit,
+												bestHn,
+												bestCid,
+												resolvedHitDistance,
+												hn,
+												cid))
 											{
 												bestHit = resolvedHitDistance;
 												hadHit = true;
@@ -11128,6 +11537,7 @@ private sealed class OverlayRollingWindow
 												bestHn = hn;
 												bestRayDir = segLen > 0f ? (segB - segA).Normalized() : (hp - segA).Normalized();
 												bestCid = cid;
+												bestPrimitiveOrShapeId = primitiveOrShapeId;
 												bestHitWasPostRemap = segPostRemap;
 												bestEventCountThisPixel = seg.EventCount;
 												bestBoundaryCrossingsThisPixel = seg.BoundaryCrossings;
@@ -11258,6 +11668,15 @@ private sealed class OverlayRollingWindow
 											BestHn = bestHn,
 											BestRayDir = bestRayDir,
 											BestCid = bestCid,
+											BestPrimitiveOrShapeId = bestPrimitiveOrShapeId,
+											FirstAcceptedHadHit = firstAcceptedHadHit,
+											FirstAcceptedHitDistance = firstAcceptedHitDistance,
+											FirstAcceptedHp = firstAcceptedHp,
+											FirstAcceptedHn = firstAcceptedHn,
+											FirstAcceptedCid = firstAcceptedCid,
+											FirstAcceptedPrimitiveOrShapeId = firstAcceptedPrimitiveOrShapeId,
+											FirstAcceptedSegmentIndex = firstAcceptedSegmentIndex,
+											FirstAcceptedCandidateCount = firstAcceptedCandidateCount,
 											HitName = needHitName ? hitName : string.Empty,
 											PostRemapSegmentCount = postRemapSegmentCountThisPixel,
 											PostRemapCandidateSegmentCount = postRemapCandidateSegmentCountThisPixel,
@@ -11630,7 +12049,30 @@ private sealed class OverlayRollingWindow
 								_fixtureFinalHitPixelCountThisRun += filled;
 								FillPixelBlock(_fixtureFinalHitOnlyImg, sample.X, sample.Y, sample.Stride, shaded.Color, filmW, filmH);
 							}
-							if (sample.BestHitWasPostRemap)
+							FillByteBlock(_fixtureDebugNormalHadHit, sample.X, sample.Y, sample.Stride, filmW, filmH, sample.HadHit ? (byte)1 : (byte)0);
+							FillVector3Block(
+								_fixtureDebugNormalHitNormal,
+								sample.X,
+								sample.Y,
+								sample.Stride,
+								filmW,
+								filmH,
+								sample.HadHit ? sample.BestHn : Vector3.Zero);
+							FillUlongBlock(_fixtureDiagnosticColliderId, sample.X, sample.Y, sample.Stride, filmW, filmH, sample.HadHit ? sample.BestCid : 0UL);
+							FillIntBlock(_fixtureDiagnosticPrimitiveOrShapeId, sample.X, sample.Y, sample.Stride, filmW, filmH, sample.HadHit ? sample.BestPrimitiveOrShapeId : -1);
+							FillFloatBlock(_fixtureDiagnosticHitDistance, sample.X, sample.Y, sample.Stride, filmW, filmH, sample.HadHit ? sample.HitDistance : -1f);
+							FillVector3Block(_fixtureDiagnosticHitPosition, sample.X, sample.Y, sample.Stride, filmW, filmH, sample.HadHit ? sample.BestHp : Vector3.Zero);
+						FillIntBlock(_fixtureDiagnosticSegCount, sample.X, sample.Y, sample.Stride, filmW, filmH, sample.SegCount);
+						FillByteBlock(_fixtureDiagnosticHitClass, sample.X, sample.Y, sample.Stride, filmW, filmH, EncodeFixtureHitClassCode(shaded.FixtureHitKind));
+						FillByteBlock(_fixtureDiagnosticFirstAcceptedHadHit, sample.X, sample.Y, sample.Stride, filmW, filmH, sample.FirstAcceptedHadHit ? (byte)1 : (byte)0);
+						FillFloatBlock(_fixtureDiagnosticFirstAcceptedHitDistance, sample.X, sample.Y, sample.Stride, filmW, filmH, sample.FirstAcceptedHadHit ? sample.FirstAcceptedHitDistance : -1f);
+						FillVector3Block(_fixtureDiagnosticFirstAcceptedHitNormal, sample.X, sample.Y, sample.Stride, filmW, filmH, sample.FirstAcceptedHadHit ? sample.FirstAcceptedHn : Vector3.Zero);
+						FillVector3Block(_fixtureDiagnosticFirstAcceptedHitPosition, sample.X, sample.Y, sample.Stride, filmW, filmH, sample.FirstAcceptedHadHit ? sample.FirstAcceptedHp : Vector3.Zero);
+						FillUlongBlock(_fixtureDiagnosticFirstAcceptedColliderId, sample.X, sample.Y, sample.Stride, filmW, filmH, sample.FirstAcceptedHadHit ? sample.FirstAcceptedCid : 0UL);
+						FillIntBlock(_fixtureDiagnosticFirstAcceptedPrimitiveOrShapeId, sample.X, sample.Y, sample.Stride, filmW, filmH, sample.FirstAcceptedHadHit ? sample.FirstAcceptedPrimitiveOrShapeId : -1);
+						FillIntBlock(_fixtureDiagnosticFirstAcceptedSegmentIndex, sample.X, sample.Y, sample.Stride, filmW, filmH, sample.FirstAcceptedHadHit ? sample.FirstAcceptedSegmentIndex : -1);
+						FillIntBlock(_fixtureDiagnosticFirstAcceptedCandidateCount, sample.X, sample.Y, sample.Stride, filmW, filmH, sample.FirstAcceptedHadHit ? sample.FirstAcceptedCandidateCount : -1);
+						if (sample.BestHitWasPostRemap)
 							{
 								_wormholePostRemapFinalHitPixelsThisRun++;
 								_wormholePostRemapFinalWritePixelsThisRun += filled;
@@ -12062,6 +12504,15 @@ private sealed class OverlayRollingWindow
 						Vector3 bestHn = Vector3.Up;
 						Vector3 bestRayDir = Vector3.Zero;
 						ulong bestCid = 0;
+						int bestPrimitiveOrShapeId = -1;
+						bool firstAcceptedHadHit = false;
+						float firstAcceptedHitDistance = -1f;
+						Vector3 firstAcceptedHp = Vector3.Zero;
+						Vector3 firstAcceptedHn = Vector3.Zero;
+						ulong firstAcceptedCid = 0;
+						int firstAcceptedPrimitiveOrShapeId = -1;
+						int firstAcceptedSegmentIndex = -1;
+						int firstAcceptedCandidateCount = -1;
 						bool absorbedByInnerRadius = false;
 						int postRemapSegmentCountThisPixel = 0;
 						int postRemapCandidateSegmentCountThisPixel = 0;
@@ -12259,6 +12710,7 @@ private sealed class OverlayRollingWindow
 								/// Per-segment vars with softGate
 								bool segCounted = false;
 								ulong cid = 0;
+								int primitiveOrShapeId = -1;
 								string cname = "<none>";
 								Vector3 hp = Vector3.Zero;
 								Vector3 hn = Vector3.Up; // hit normal (world-space collider)
@@ -13557,6 +14009,7 @@ private sealed class OverlayRollingWindow
 											quickRayMissCachedForSeg = !cachedHit;
 									}
 
+									int narrowphaseSubstepsUsed = 1;
 									bool TrySubdividedRayNarrowphase(out float hitDistAlongRay)
 									{
 										hitDistAlongRay = 0f;
@@ -13588,6 +14041,7 @@ private sealed class OverlayRollingWindow
 											float scaled = Mathf.Lerp(sub, minSub, t);
 											sub = Mathf.Clamp(Mathf.RoundToInt(scaled), 1, rayCfg.MaxCollisionSubsteps);
 										}
+										narrowphaseSubstepsUsed = sub;
 
 										if (softGateAttemptedRay)
 										{
@@ -13607,7 +14061,7 @@ private sealed class OverlayRollingWindow
 												space, segA, segB,
 												rayCfg.CollisionMask,
 												sub,
-											out hp, out hn, out cid, out cname,
+											out hp, out hn, out cid, out primitiveOrShapeId, out cname,
 											out int rayQueries,
 											includeColliderName: needHitName,
 											hitBackFaces: pass2Flags.HitBackFaces,
@@ -13790,35 +14244,287 @@ private sealed class OverlayRollingWindow
 									FinalizeHybridQuickRayMissCache(didHit, narrowphaseHitDistAlongRay);
 									if (budgetStop) break;
 
+									if (didHit && cfg.Pass2FirstHitLocalRefinementEnabled && !firstAcceptedHadHit)
+									{
+										int refineSubsteps = Math.Clamp(
+											Math.Max(cfg.Pass2FirstHitLocalRefinementSubsteps, narrowphaseSubstepsUsed + 1),
+											2,
+											64);
+										if (refineSubsteps > narrowphaseSubstepsUsed)
+										{
+											MarkGeomPixelProcessedForWork();
+											bool refinedHit = RayBeamRenderer.SubdividedRayHit(
+												space,
+												segA,
+												segB,
+												rayCfg.CollisionMask,
+												refineSubsteps,
+												out Vector3 refinedHp,
+												out Vector3 refinedHn,
+												out ulong refinedCid,
+												out int refinedPrimitiveOrShapeId,
+												out string refinedCname,
+												out int refineRayQueries,
+												includeColliderName: needHitName,
+												hitBackFaces: pass2Flags.HitBackFaces,
+												hitFromInside: pass2Flags.HitFromInside,
+												diagnosticSceneName: renderSceneName,
+												diagnosticFixtureName: renderFixtureName,
+												diagnosticModeToken: renderModeToken,
+												diagnosticQueryKind: "pass2_first_hit_refine");
+											if (telemetryHeatmapsEnabled)
+												telemetryQueryCountThisPixel += Math.Max(1, refineRayQueries);
+											if (segPostRemap)
+												postRemapQueryCountThisPixel += Math.Max(1, refineRayQueries);
+											if (refineRayQueries > 0)
+												_geomRayTestsTotalThisFrame += refineRayQueries;
+											if (statsEnabled)
+											{
+												_perfFrame.SubdividedRayCalls++;
+												_perfFrame.SubdividedRayQueries += refineRayQueries;
+												_perfFrame.SubdividedRaySubsteps += refineSubsteps;
+											}
+											if (bandCountersEnabled) bandPhysicsQueries += refineRayQueries;
+
+											bool sameCollider = refinedHit && refinedCid == cid && refinedCid != 0;
+											bool primitiveCompatible =
+												primitiveOrShapeId < 0 ||
+												refinedPrimitiveOrShapeId < 0 ||
+												refinedPrimitiveOrShapeId == primitiveOrShapeId;
+											if (sameCollider && primitiveCompatible)
+											{
+												hp = refinedHp;
+												hn = refinedHn;
+												cid = refinedCid;
+												primitiveOrShapeId = refinedPrimitiveOrShapeId;
+												if (needHitName)
+													cname = refinedCname;
+											}
+										}
+									}
+
 								////////////
 								if (softGateWatchdogTrippedThisPixel)
 									break;
 								if (didHit)
 								{
+									int acceptedSegmentIndex = si;
+									Vector3 acceptedHp = hp;
+									Vector3 acceptedHn = hn;
+									ulong acceptedCid = cid;
+									int acceptedPrimitiveOrShapeId = primitiveOrShapeId;
+									string acceptedCname = cname;
 									float d = seg.TraveledB - segLen + (hp - segA).Length();
+									int acceptedCandidateCount = geomCandidateInstanceCount;
+									bool acceptedSegPostRemap = segPostRemap;
+
+									if (cfg.Pass2FirstHitCandidateWindowEnabled && !firstAcceptedHadHit && !cfg.NearestHitOnly)
+									{
+										const int MaxFirstHitWindowCandidates = 5;
+										int[] candidateSegmentIndices = new int[MaxFirstHitWindowCandidates];
+										float[] candidateDistances = new float[MaxFirstHitWindowCandidates];
+										Vector3[] candidatePositions = new Vector3[MaxFirstHitWindowCandidates];
+										Vector3[] candidateNormals = new Vector3[MaxFirstHitWindowCandidates];
+										ulong[] candidateColliderIds = new ulong[MaxFirstHitWindowCandidates];
+										int[] candidatePrimitiveIds = new int[MaxFirstHitWindowCandidates];
+										string[] candidateNames = new string[MaxFirstHitWindowCandidates];
+										int[] candidateCounts = new int[MaxFirstHitWindowCandidates];
+										int candidateHitCount = 0;
+
+										void AddFirstHitWindowCandidate(
+											int candidateSi,
+											float candidateDistance,
+											Vector3 candidateHp,
+											Vector3 candidateHn,
+											ulong candidateCid,
+											int candidatePrimitiveId,
+											string candidateName,
+											int candidateCountForSegment)
+										{
+											if (candidateHitCount >= MaxFirstHitWindowCandidates)
+												return;
+											candidateSegmentIndices[candidateHitCount] = candidateSi;
+											candidateDistances[candidateHitCount] = candidateDistance;
+											candidatePositions[candidateHitCount] = candidateHp;
+											candidateNormals[candidateHitCount] = candidateHn;
+											candidateColliderIds[candidateHitCount] = candidateCid;
+											candidatePrimitiveIds[candidateHitCount] = candidatePrimitiveId;
+											candidateNames[candidateHitCount] = candidateName;
+											candidateCounts[candidateHitCount] = candidateCountForSegment;
+											candidateHitCount++;
+										}
+
+										AddFirstHitWindowCandidate(si, d, hp, hn, cid, primitiveOrShapeId, cname, geomCandidateInstanceCount);
+
+										int windowRadius = Math.Clamp(cfg.Pass2FirstHitCandidateWindowRadius, 1, 2);
+										int windowStart = Math.Max(segStart, si - windowRadius);
+										int windowEnd = Math.Min(segEnd, si + windowRadius);
+										for (int candidateSi = windowStart; candidateSi <= windowEnd; candidateSi++)
+										{
+											if (candidateSi == si)
+												continue;
+
+											ref readonly var candidateSeg = ref _segBuf[segOffset + candidateSi];
+											Vector3 candidateSegA = candidateSeg.A;
+											Vector3 candidateSegB = candidateSeg.B;
+											float candidateSegLen = (candidateSegB - candidateSegA).Length();
+											if (candidateSegLen <= 1e-6f)
+												continue;
+											if (cfg.TinySegmentSkipLen > 0f && candidateSegLen < cfg.TinySegmentSkipLen)
+												continue;
+
+											int candidateSub = 1;
+											if (candidateSegLen > rayCfg.CollisionRaySubdivideThreshold)
+												candidateSub = Mathf.CeilToInt(candidateSegLen / rayCfg.CollisionRaySubdivideThreshold);
+											candidateSub = Mathf.Clamp(candidateSub, 1, rayCfg.MaxCollisionSubsteps);
+											if (cfg.UseAdaptiveSubsteps)
+											{
+												float far = cfg.AutoRangeDepth ? _rangeFar : cfg.Film.MaxDistance;
+												float t = Mathf.Clamp(candidateSeg.TraveledB / Mathf.Max(0.001f, far), 0f, 1f);
+												float minSub = Mathf.Max(1f, candidateSub * 0.25f);
+												float scaled = Mathf.Lerp(candidateSub, minSub, t);
+												candidateSub = Mathf.Clamp(Mathf.RoundToInt(scaled), 1, rayCfg.MaxCollisionSubsteps);
+											}
+
+											MarkGeomPixelProcessedForWork();
+											bool candidateHit = RayBeamRenderer.SubdividedRayHit(
+												space,
+												candidateSegA,
+												candidateSegB,
+												rayCfg.CollisionMask,
+												candidateSub,
+												out Vector3 candidateHp,
+												out Vector3 candidateHn,
+												out ulong candidateCid,
+												out int candidatePrimitiveId,
+												out string candidateName,
+												out int candidateRayQueries,
+												includeColliderName: needHitName,
+												hitBackFaces: pass2Flags.HitBackFaces,
+												hitFromInside: pass2Flags.HitFromInside,
+												diagnosticSceneName: renderSceneName,
+												diagnosticFixtureName: renderFixtureName,
+												diagnosticModeToken: renderModeToken,
+												diagnosticQueryKind: "pass2_first_hit_candidate_window");
+											if (telemetryHeatmapsEnabled)
+												telemetryQueryCountThisPixel += Math.Max(1, candidateRayQueries);
+											if (candidateSeg.BoundaryRemapCount > 0)
+												postRemapQueryCountThisPixel += Math.Max(1, candidateRayQueries);
+											if (candidateRayQueries > 0)
+												_geomRayTestsTotalThisFrame += candidateRayQueries;
+											if (statsEnabled)
+											{
+												_perfFrame.SubdividedRayCalls++;
+												_perfFrame.SubdividedRayQueries += candidateRayQueries;
+												_perfFrame.SubdividedRaySubsteps += candidateSub;
+											}
+											if (bandCountersEnabled) bandPhysicsQueries += candidateRayQueries;
+											if (!candidateHit)
+												continue;
+
+											float candidateDistance = candidateSeg.TraveledB - candidateSegLen + (candidateHp - candidateSegA).Length();
+											int candidateRecordIndexForWindow = candidateRecordBaseForPixel >= 0
+												? candidateRecordBaseForPixel + (candidateSi - candidateVisitedSegStartForPixel)
+												: -1;
+											int candidateCountForWindow = (uint)candidateRecordIndexForWindow < (uint)pass2CandidateEvalRecords.Length
+												? pass2CandidateEvalRecords[candidateRecordIndexForWindow].CandidateCount
+												: -1;
+											AddFirstHitWindowCandidate(candidateSi, candidateDistance, candidateHp, candidateHn, candidateCid, candidatePrimitiveId, candidateName, candidateCountForWindow);
+											if (telemetryHeatmapsEnabled)
+												telemetryResolveCountThisPixel += 1f;
+											if (candidateSeg.BoundaryRemapCount > 0)
+												postRemapGeometryHitCountThisPixel++;
+										}
+
+										if (candidateHitCount > 1)
+										{
+											int bestCandidateIndex = 0;
+											float bestCandidateScore = float.PositiveInfinity;
+											for (int ci = 0; ci < candidateHitCount; ci++)
+											{
+												Vector3 normalA = candidateNormals[ci].Normalized();
+												float minNormalDiscontinuity = 2f;
+												for (int cj = 0; cj < candidateHitCount; cj++)
+												{
+													if (ci == cj)
+														continue;
+													Vector3 normalB = candidateNormals[cj].Normalized();
+													float normalDot = normalA.Dot(normalB);
+													if (!float.IsFinite(normalDot))
+														normalDot = -1f;
+													normalDot = Mathf.Clamp(normalDot, -1f, 1f);
+													minNormalDiscontinuity = Math.Min(minNormalDiscontinuity, 1f - normalDot);
+												}
+
+												float sameColliderPenalty = candidateColliderIds[ci] == cid && cid != 0UL ? 0f : 0.25f;
+												float segmentTieBreak = candidateSegmentIndices[ci] * 0.0001f;
+												float distanceTieBreak = candidateDistances[ci] * 0.000001f;
+												float score = (minNormalDiscontinuity * 10f) + sameColliderPenalty + segmentTieBreak + distanceTieBreak;
+												if (score < bestCandidateScore)
+												{
+													bestCandidateScore = score;
+													bestCandidateIndex = ci;
+												}
+											}
+
+											acceptedSegmentIndex = candidateSegmentIndices[bestCandidateIndex];
+											acceptedHp = candidatePositions[bestCandidateIndex];
+											acceptedHn = candidateNormals[bestCandidateIndex];
+											acceptedCid = candidateColliderIds[bestCandidateIndex];
+											acceptedPrimitiveOrShapeId = candidatePrimitiveIds[bestCandidateIndex];
+											acceptedCname = candidateNames[bestCandidateIndex] ?? "<none>";
+											d = candidateDistances[bestCandidateIndex];
+											acceptedCandidateCount = candidateCounts[bestCandidateIndex];
+											ref readonly var acceptedSeg = ref _segBuf[segOffset + acceptedSegmentIndex];
+											acceptedSegPostRemap = acceptedSeg.BoundaryRemapCount > 0;
+										}
+									}
+
+									if (!firstAcceptedHadHit)
+									{
+										firstAcceptedHadHit = true;
+										firstAcceptedHitDistance = d;
+										firstAcceptedHp = acceptedHp;
+										firstAcceptedHn = acceptedHn;
+										firstAcceptedCid = acceptedCid;
+										firstAcceptedPrimitiveOrShapeId = acceptedPrimitiveOrShapeId;
+										firstAcceptedSegmentIndex = acceptedSegmentIndex;
+										firstAcceptedCandidateCount = acceptedCandidateCount;
+									}
 									if (d < bestHitDistAlongRay)
 										bestHitDistAlongRay = d;
 
-									if (d < bestHit)
+									if (ShouldReplaceStoredHitCandidate(
+										hadHit,
+										bestHit,
+										bestHn,
+										bestCid,
+										d,
+										acceptedHn,
+										acceptedCid))
 									{
 										bestHit = d;
 										hitDistance = d;
 										hadHit = true;
-										if (needHitName) hitName = cname;
-										bestHp = hp;      // ADD
-										bestHn = hn;      // ADD
-										bestRayDir = segLen > 0f ? (segB - segA).Normalized() : (hp - segA).Normalized();
-										bestCid = cid;
-										bestHitWasPostRemap = segPostRemap;
-										bestEventCountThisPixel = seg.EventCount;
-										bestBoundaryCrossingsThisPixel = seg.BoundaryCrossings;
-										bestTransformCountThisPixel = seg.TransformCount;
-										bestEntryCountThisPixel = seg.EntryCount;
-										bestExitCountThisPixel = seg.ExitCount;
-										bestLastCrossingLayerThisPixel = seg.LastCrossingLayer;
-										bestLastCrossingKindThisPixel = seg.LastCrossingKind;
-										bestAmbiguousOrderingThisPixel = seg.AmbiguousOrdering;
-										bestPostRemapSectorValid = segPostRemap && portalSectorValid;
+										if (needHitName) hitName = acceptedCname;
+										bestHp = acceptedHp;      // ADD
+										bestHn = acceptedHn;      // ADD
+										ref readonly var acceptedBestSeg = ref _segBuf[segOffset + acceptedSegmentIndex];
+										Vector3 acceptedSegDelta = acceptedBestSeg.B - acceptedBestSeg.A;
+										float acceptedSegLen = acceptedSegDelta.Length();
+										bestRayDir = acceptedSegLen > 0f ? acceptedSegDelta.Normalized() : (acceptedHp - acceptedBestSeg.A).Normalized();
+										bestCid = acceptedCid;
+										bestPrimitiveOrShapeId = acceptedPrimitiveOrShapeId;
+										bestHitWasPostRemap = acceptedSegPostRemap;
+										bestEventCountThisPixel = acceptedBestSeg.EventCount;
+										bestBoundaryCrossingsThisPixel = acceptedBestSeg.BoundaryCrossings;
+										bestTransformCountThisPixel = acceptedBestSeg.TransformCount;
+										bestEntryCountThisPixel = acceptedBestSeg.EntryCount;
+										bestExitCountThisPixel = acceptedBestSeg.ExitCount;
+										bestLastCrossingLayerThisPixel = acceptedBestSeg.LastCrossingLayer;
+										bestLastCrossingKindThisPixel = acceptedBestSeg.LastCrossingKind;
+										bestAmbiguousOrderingThisPixel = acceptedBestSeg.AmbiguousOrdering;
+										bestPostRemapSectorValid = acceptedSegPostRemap && portalSectorValid;
 										if (bestPostRemapSectorValid)
 											bestPostRemapSectorKey = portalSectorKey;
 									}
@@ -14032,6 +14738,15 @@ private sealed class OverlayRollingWindow
 									BestHn = bestHn,
 									BestRayDir = bestRayDir,
 									BestCid = bestCid,
+									BestPrimitiveOrShapeId = bestPrimitiveOrShapeId,
+									FirstAcceptedHadHit = firstAcceptedHadHit,
+									FirstAcceptedHitDistance = firstAcceptedHitDistance,
+									FirstAcceptedHp = firstAcceptedHp,
+									FirstAcceptedHn = firstAcceptedHn,
+									FirstAcceptedCid = firstAcceptedCid,
+									FirstAcceptedPrimitiveOrShapeId = firstAcceptedPrimitiveOrShapeId,
+									FirstAcceptedSegmentIndex = firstAcceptedSegmentIndex,
+									FirstAcceptedCandidateCount = firstAcceptedCandidateCount,
 									HitName = needHitName ? hitName : string.Empty,
 									PostRemapSegmentCount = postRemapSegmentCountThisPixel,
 									PostRemapCandidateSegmentCount = postRemapCandidateSegmentCountThisPixel,
@@ -14238,6 +14953,29 @@ private sealed class OverlayRollingWindow
 							_fixtureFinalHitPixelCountThisRun += filled;
 							FillPixelBlock(_fixtureFinalHitOnlyImg, x, y, stride, col, filmW, filmH);
 						}
+						FillByteBlock(_fixtureDebugNormalHadHit, x, y, stride, filmW, filmH, hadHit ? (byte)1 : (byte)0);
+						FillVector3Block(
+							_fixtureDebugNormalHitNormal,
+							x,
+							y,
+							stride,
+							filmW,
+							filmH,
+							hadHit ? bestHn : Vector3.Zero);
+						FillUlongBlock(_fixtureDiagnosticColliderId, x, y, stride, filmW, filmH, hadHit ? bestCid : 0UL);
+						FillIntBlock(_fixtureDiagnosticPrimitiveOrShapeId, x, y, stride, filmW, filmH, hadHit ? bestPrimitiveOrShapeId : -1);
+						FillFloatBlock(_fixtureDiagnosticHitDistance, x, y, stride, filmW, filmH, hadHit ? hitDistance : -1f);
+						FillVector3Block(_fixtureDiagnosticHitPosition, x, y, stride, filmW, filmH, hadHit ? bestHp : Vector3.Zero);
+						FillIntBlock(_fixtureDiagnosticSegCount, x, y, stride, filmW, filmH, segCount);
+						FillByteBlock(_fixtureDiagnosticHitClass, x, y, stride, filmW, filmH, EncodeFixtureHitClassCode(fixtureHitKind));
+						FillByteBlock(_fixtureDiagnosticFirstAcceptedHadHit, x, y, stride, filmW, filmH, firstAcceptedHadHit ? (byte)1 : (byte)0);
+						FillFloatBlock(_fixtureDiagnosticFirstAcceptedHitDistance, x, y, stride, filmW, filmH, firstAcceptedHadHit ? firstAcceptedHitDistance : -1f);
+						FillVector3Block(_fixtureDiagnosticFirstAcceptedHitNormal, x, y, stride, filmW, filmH, firstAcceptedHadHit ? firstAcceptedHn : Vector3.Zero);
+						FillVector3Block(_fixtureDiagnosticFirstAcceptedHitPosition, x, y, stride, filmW, filmH, firstAcceptedHadHit ? firstAcceptedHp : Vector3.Zero);
+						FillUlongBlock(_fixtureDiagnosticFirstAcceptedColliderId, x, y, stride, filmW, filmH, firstAcceptedHadHit ? firstAcceptedCid : 0UL);
+						FillIntBlock(_fixtureDiagnosticFirstAcceptedPrimitiveOrShapeId, x, y, stride, filmW, filmH, firstAcceptedHadHit ? firstAcceptedPrimitiveOrShapeId : -1);
+						FillIntBlock(_fixtureDiagnosticFirstAcceptedSegmentIndex, x, y, stride, filmW, filmH, firstAcceptedHadHit ? firstAcceptedSegmentIndex : -1);
+						FillIntBlock(_fixtureDiagnosticFirstAcceptedCandidateCount, x, y, stride, filmW, filmH, firstAcceptedHadHit ? firstAcceptedCandidateCount : -1);
 						if (bestHitWasPostRemap)
 						{
 							_wormholePostRemapFinalHitPixelsThisRun++;
@@ -15849,6 +16587,157 @@ private sealed class OverlayRollingWindow
 		return new Color(n.X * 0.5f + 0.5f, n.Y * 0.5f + 0.5f, n.Z * 0.5f + 0.5f, 1f);
 	}
 
+	private static Color ShadeNormalRGBWithBrightnessWindow(Vector3 n, float brightnessFloor, float brightnessCeiling)
+	{
+		Color baseColor = ShadeNormalRGB(n);
+		float floor = Mathf.Clamp(brightnessFloor, 0.0f, 1.0f);
+		float ceiling = Mathf.Clamp(brightnessCeiling, 0.0f, 1.0f);
+		if (ceiling < floor)
+		{
+			(floor, ceiling) = (ceiling, floor);
+		}
+		float scale = Mathf.Max(0.0f, ceiling - floor);
+		return new Color(
+			floor + (baseColor.R * scale),
+			floor + (baseColor.G * scale),
+			floor + (baseColor.B * scale),
+			1f);
+	}
+
+	private const float FixtureStoredHitNearTieDistanceEps = 0.01f;
+	private const float FixtureStoredHitNearTieNormalDotMin = 0.9995f;
+	private static readonly float[] FixtureStoredHitNearTieHistogramUpperBounds =
+	{
+		0.0001f,
+		0.0005f,
+		0.0010f,
+		0.0025f,
+		0.0050f,
+		0.0100f
+	};
+
+	private bool ShouldReplaceStoredHitCandidate(
+		bool hadBestHit,
+		float bestDistance,
+		Vector3 bestNormal,
+		ulong bestColliderId,
+		float candidateDistance,
+		Vector3 candidateNormal,
+		ulong candidateColliderId)
+	{
+		if (!hadBestHit)
+			return true;
+
+		Interlocked.Increment(ref _fixtureStoredHitNearTieComparisonsConsideredThisRun);
+		float distanceDelta = candidateDistance - bestDistance;
+		if (distanceDelta < -FixtureStoredHitNearTieDistanceEps)
+			return true;
+		if (distanceDelta > FixtureStoredHitNearTieDistanceEps)
+			return false;
+
+		Interlocked.Increment(ref _fixtureStoredHitNearTieEpsilonTriggeredThisRun);
+		ObserveFixtureStoredHitNearTieDistanceDelta(distanceDelta);
+		bool baselineNearestWouldReplace = candidateDistance < bestDistance;
+		Vector3 incumbentNormal = bestNormal.Normalized();
+		Vector3 contenderNormal = candidateNormal.Normalized();
+		float normalDot = incumbentNormal.Dot(contenderNormal);
+		if (!float.IsFinite(normalDot))
+			normalDot = -1f;
+		if (normalDot < FixtureStoredHitNearTieNormalDotMin)
+		{
+			if (baselineNearestWouldReplace)
+				Interlocked.Increment(ref _fixtureStoredHitNearTieWinnerChangedThisRun);
+			return false;
+		}
+
+		bool incumbentColliderValid = bestColliderId != 0;
+		bool contenderColliderValid = candidateColliderId != 0;
+		bool sameCollider = incumbentColliderValid && contenderColliderValid && bestColliderId == candidateColliderId;
+		if (incumbentColliderValid && contenderColliderValid && !sameCollider)
+		{
+			if (baselineNearestWouldReplace)
+				Interlocked.Increment(ref _fixtureStoredHitNearTieWinnerChangedThisRun);
+			return false;
+		}
+
+		bool replace = candidateDistance < bestDistance;
+		if (replace && sameCollider)
+			Interlocked.Increment(ref _fixtureStoredHitNearTieSameColliderTieBreakUsedThisRun);
+		return replace;
+	}
+
+	private void ObserveFixtureStoredHitNearTieDistanceDelta(float distanceDelta)
+	{
+		float magnitude = Mathf.Abs(distanceDelta);
+		int bucket = FixtureStoredHitNearTieHistogramUpperBounds.Length;
+		for (int i = 0; i < FixtureStoredHitNearTieHistogramUpperBounds.Length; i++)
+		{
+			if (magnitude <= FixtureStoredHitNearTieHistogramUpperBounds[i])
+			{
+				bucket = i;
+				break;
+			}
+		}
+
+		Interlocked.Increment(ref _fixtureStoredHitNearTieDistanceDeltaHistogramThisRun[bucket]);
+	}
+
+	private static string[] BuildFixtureStoredHitNearTieHistogramLabels()
+	{
+		string[] labels = new string[FixtureStoredHitNearTieHistogramUpperBounds.Length + 1];
+		float lower = 0f;
+		for (int i = 0; i < FixtureStoredHitNearTieHistogramUpperBounds.Length; i++)
+		{
+			float upper = FixtureStoredHitNearTieHistogramUpperBounds[i];
+			labels[i] = $"{lower:0.####}-{upper:0.####}";
+			lower = upper;
+		}
+		labels[^1] = $">{FixtureStoredHitNearTieHistogramUpperBounds[^1]:0.####}";
+		return labels;
+	}
+
+	private static string FormatFixtureStoredHitNearTieHistogram(string[] labels, long[] counts)
+	{
+		if (labels == null || counts == null || labels.Length == 0 || counts.Length == 0)
+			return "na";
+
+		StringBuilder sb = new StringBuilder(128);
+		int n = Math.Min(labels.Length, counts.Length);
+		for (int i = 0; i < n; i++)
+		{
+			if (i > 0)
+				sb.Append(',');
+			sb.Append(labels[i]).Append(':').Append(counts[i].ToString(CultureInfo.InvariantCulture));
+		}
+		return sb.ToString();
+	}
+
+	private static byte EncodeFixtureHitClassCode(string kind)
+	{
+		return kind switch
+		{
+			"source" => 2,
+			"background" => 3,
+			"unclassified" => 4,
+			"absorbed" => 5,
+			"miss" => 1,
+			_ => 0
+		};
+	}
+
+	private static string DecodeFixtureHitClassCode(byte code)
+	{
+		return code switch
+		{
+			2 => "source",
+			3 => "background",
+			4 => "unclassified",
+			5 => "absorbed",
+			1 => "miss",
+			_ => "unknown"
+		};
+	}
+
 	private static Color ShadeNdotV(Vector3 n, Vector3 v, out float rawDot)
 	{
 		n = n.Normalized();
@@ -16039,6 +16928,134 @@ private sealed class OverlayRollingWindow
 	}
 
 	private static int FillIntBlock(int[] values, int x, int y, int stride, int filmW, int filmH, int value)
+	{
+		if (values == null || values.Length == 0)
+		{
+			return 0;
+		}
+
+		if (stride <= 1)
+		{
+			if (x >= 0 && x < filmW && y >= 0 && y < filmH)
+			{
+				values[(y * filmW) + x] = value;
+				return 1;
+			}
+			return 0;
+		}
+
+		int filled = 0;
+		int yMax = Math.Min(filmH, y + stride);
+		int xMax = Math.Min(filmW, x + stride);
+		for (int yy = y; yy < yMax; yy++)
+		{
+			for (int xx = x; xx < xMax; xx++)
+			{
+				values[(yy * filmW) + xx] = value;
+				filled++;
+			}
+		}
+
+		return filled;
+	}
+
+	private static int FillByteBlock(byte[] values, int x, int y, int stride, int filmW, int filmH, byte value)
+	{
+		if (values == null || values.Length == 0)
+		{
+			return 0;
+		}
+
+		if (stride <= 1)
+		{
+			if (x >= 0 && x < filmW && y >= 0 && y < filmH)
+			{
+				values[(y * filmW) + x] = value;
+				return 1;
+			}
+			return 0;
+		}
+
+		int filled = 0;
+		int yMax = Math.Min(filmH, y + stride);
+		int xMax = Math.Min(filmW, x + stride);
+		for (int yy = y; yy < yMax; yy++)
+		{
+			for (int xx = x; xx < xMax; xx++)
+			{
+				values[(yy * filmW) + xx] = value;
+				filled++;
+			}
+		}
+
+		return filled;
+	}
+
+	private static int FillVector3Block(Vector3[] values, int x, int y, int stride, int filmW, int filmH, Vector3 value)
+	{
+		if (values == null || values.Length == 0)
+		{
+			return 0;
+		}
+
+		if (stride <= 1)
+		{
+			if (x >= 0 && x < filmW && y >= 0 && y < filmH)
+			{
+				values[(y * filmW) + x] = value;
+				return 1;
+			}
+			return 0;
+		}
+
+		int filled = 0;
+		int yMax = Math.Min(filmH, y + stride);
+		int xMax = Math.Min(filmW, x + stride);
+		for (int yy = y; yy < yMax; yy++)
+		{
+			for (int xx = x; xx < xMax; xx++)
+			{
+				values[(yy * filmW) + xx] = value;
+				filled++;
+			}
+		}
+
+		return filled;
+	}
+
+	private static int FillUlongBlock(ulong[] values, int x, int y, int stride, int filmW, int filmH, ulong value)
+	{
+		if (values == null || values.Length == 0)
+		{
+			return 0;
+		}
+
+		if (stride <= 1)
+		{
+			if (x >= 0 && x < filmW && y >= 0 && y < filmH)
+			{
+				values[(y * filmW) + x] = value;
+				return 1;
+			}
+			return 0;
+		}
+
+		int filled = 0;
+		int yMax = Math.Min(filmH, y + stride);
+		int xMax = Math.Min(filmW, x + stride);
+		for (int yy = y; yy < yMax; yy++)
+		{
+			for (int xx = x; xx < xMax; xx++)
+			{
+				values[(yy * filmW) + xx] = value;
+				filled++;
+			}
+		}
+
+		return filled;
+	}
+
+	private static int FillFloatBlock(float[] values, int x, int y, int stride, int filmW, int filmH, float value)
 	{
 		if (values == null || values.Length == 0)
 		{
@@ -16265,6 +17282,80 @@ private sealed class OverlayRollingWindow
 				{
 					_fixtureThroatInteractionCounts = new int[targetPixels];
 				}
+				if (_fixtureDebugNormalHadHit.Length != targetPixels)
+				{
+					_fixtureDebugNormalHadHit = new byte[targetPixels];
+				}
+				if (_fixtureDebugNormalHitNormal.Length != targetPixels)
+				{
+					_fixtureDebugNormalHitNormal = new Vector3[targetPixels];
+				}
+				if (_fixtureDiagnosticColliderId.Length != targetPixels)
+				{
+					_fixtureDiagnosticColliderId = new ulong[targetPixels];
+				}
+				if (_fixtureDiagnosticPrimitiveOrShapeId.Length != targetPixels)
+				{
+					_fixtureDiagnosticPrimitiveOrShapeId = new int[targetPixels];
+					for (int i = 0; i < _fixtureDiagnosticPrimitiveOrShapeId.Length; i++)
+						_fixtureDiagnosticPrimitiveOrShapeId[i] = -1;
+				}
+				if (_fixtureDiagnosticHitDistance.Length != targetPixels)
+				{
+					_fixtureDiagnosticHitDistance = new float[targetPixels];
+				}
+				if (_fixtureDiagnosticHitPosition.Length != targetPixels)
+				{
+					_fixtureDiagnosticHitPosition = new Vector3[targetPixels];
+				}
+				if (_fixtureDiagnosticSegCount.Length != targetPixels)
+				{
+					_fixtureDiagnosticSegCount = new int[targetPixels];
+				}
+				if (_fixtureDiagnosticHitClass.Length != targetPixels)
+				{
+					_fixtureDiagnosticHitClass = new byte[targetPixels];
+				}
+				if (_fixtureDiagnosticFirstAcceptedHadHit.Length != targetPixels)
+				{
+					_fixtureDiagnosticFirstAcceptedHadHit = new byte[targetPixels];
+				}
+				if (_fixtureDiagnosticFirstAcceptedHitDistance.Length != targetPixels)
+				{
+					_fixtureDiagnosticFirstAcceptedHitDistance = new float[targetPixels];
+					for (int i = 0; i < _fixtureDiagnosticFirstAcceptedHitDistance.Length; i++)
+						_fixtureDiagnosticFirstAcceptedHitDistance[i] = -1f;
+				}
+				if (_fixtureDiagnosticFirstAcceptedHitNormal.Length != targetPixels)
+				{
+					_fixtureDiagnosticFirstAcceptedHitNormal = new Vector3[targetPixels];
+				}
+				if (_fixtureDiagnosticFirstAcceptedHitPosition.Length != targetPixels)
+				{
+					_fixtureDiagnosticFirstAcceptedHitPosition = new Vector3[targetPixels];
+				}
+				if (_fixtureDiagnosticFirstAcceptedColliderId.Length != targetPixels)
+				{
+					_fixtureDiagnosticFirstAcceptedColliderId = new ulong[targetPixels];
+				}
+				if (_fixtureDiagnosticFirstAcceptedPrimitiveOrShapeId.Length != targetPixels)
+				{
+					_fixtureDiagnosticFirstAcceptedPrimitiveOrShapeId = new int[targetPixels];
+					for (int i = 0; i < _fixtureDiagnosticFirstAcceptedPrimitiveOrShapeId.Length; i++)
+						_fixtureDiagnosticFirstAcceptedPrimitiveOrShapeId[i] = -1;
+				}
+				if (_fixtureDiagnosticFirstAcceptedSegmentIndex.Length != targetPixels)
+				{
+					_fixtureDiagnosticFirstAcceptedSegmentIndex = new int[targetPixels];
+					for (int i = 0; i < _fixtureDiagnosticFirstAcceptedSegmentIndex.Length; i++)
+						_fixtureDiagnosticFirstAcceptedSegmentIndex[i] = -1;
+				}
+				if (_fixtureDiagnosticFirstAcceptedCandidateCount.Length != targetPixels)
+				{
+					_fixtureDiagnosticFirstAcceptedCandidateCount = new int[targetPixels];
+					for (int i = 0; i < _fixtureDiagnosticFirstAcceptedCandidateCount.Length; i++)
+						_fixtureDiagnosticFirstAcceptedCandidateCount[i] = -1;
+				}
 				return false;
 			}
 
@@ -16284,6 +17375,32 @@ private sealed class OverlayRollingWindow
 		_fixtureThroatDepthImg = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
 		_fixtureThroatDepthImg.Fill(FixtureThroatDepthZeroColor);
 		_fixtureThroatInteractionCounts = new int[_filmWidth * _filmHeight];
+		_fixtureDebugNormalHadHit = new byte[_filmWidth * _filmHeight];
+		_fixtureDebugNormalHitNormal = new Vector3[_filmWidth * _filmHeight];
+		_fixtureDiagnosticColliderId = new ulong[_filmWidth * _filmHeight];
+		_fixtureDiagnosticPrimitiveOrShapeId = new int[_filmWidth * _filmHeight];
+		for (int i = 0; i < _fixtureDiagnosticPrimitiveOrShapeId.Length; i++)
+			_fixtureDiagnosticPrimitiveOrShapeId[i] = -1;
+		_fixtureDiagnosticHitDistance = new float[_filmWidth * _filmHeight];
+		_fixtureDiagnosticHitPosition = new Vector3[_filmWidth * _filmHeight];
+		_fixtureDiagnosticSegCount = new int[_filmWidth * _filmHeight];
+		_fixtureDiagnosticHitClass = new byte[_filmWidth * _filmHeight];
+		_fixtureDiagnosticFirstAcceptedHadHit = new byte[_filmWidth * _filmHeight];
+		_fixtureDiagnosticFirstAcceptedHitDistance = new float[_filmWidth * _filmHeight];
+		for (int i = 0; i < _fixtureDiagnosticFirstAcceptedHitDistance.Length; i++)
+			_fixtureDiagnosticFirstAcceptedHitDistance[i] = -1f;
+		_fixtureDiagnosticFirstAcceptedHitNormal = new Vector3[_filmWidth * _filmHeight];
+		_fixtureDiagnosticFirstAcceptedHitPosition = new Vector3[_filmWidth * _filmHeight];
+		_fixtureDiagnosticFirstAcceptedColliderId = new ulong[_filmWidth * _filmHeight];
+		_fixtureDiagnosticFirstAcceptedPrimitiveOrShapeId = new int[_filmWidth * _filmHeight];
+		for (int i = 0; i < _fixtureDiagnosticFirstAcceptedPrimitiveOrShapeId.Length; i++)
+			_fixtureDiagnosticFirstAcceptedPrimitiveOrShapeId[i] = -1;
+		_fixtureDiagnosticFirstAcceptedSegmentIndex = new int[_filmWidth * _filmHeight];
+		for (int i = 0; i < _fixtureDiagnosticFirstAcceptedSegmentIndex.Length; i++)
+			_fixtureDiagnosticFirstAcceptedSegmentIndex[i] = -1;
+		_fixtureDiagnosticFirstAcceptedCandidateCount = new int[_filmWidth * _filmHeight];
+		for (int i = 0; i < _fixtureDiagnosticFirstAcceptedCandidateCount.Length; i++)
+			_fixtureDiagnosticFirstAcceptedCandidateCount[i] = -1;
 		_tex = ImageTexture.CreateFromImage(_img);
 		_pass2PrevHadHit = new byte[_filmWidth * _filmHeight];
 		_pass2HadHitLostThisFrame = new byte[_filmWidth * _filmHeight];
@@ -16918,6 +18035,10 @@ private sealed class OverlayRollingWindow
 			Pass2ForceOnInstability = Pass2ForceOnInstability,
 			Pass2ForceIfPrevHitLost = Pass2ForceIfPrevHitLost,
 			Pass2LogQuickRayMissSamples = Pass2LogQuickRayMissSamples,
+			Pass2FirstHitLocalRefinementEnabled = ResolveBoolEnvOverride("WORMHOLE_PASS2_FIRST_HIT_REFINEMENT", Pass2FirstHitLocalRefinementEnabled),
+			Pass2FirstHitLocalRefinementSubsteps = ResolveIntEnvOverride("WORMHOLE_PASS2_FIRST_HIT_REFINEMENT_SUBSTEPS", Pass2FirstHitLocalRefinementSubsteps, 2, 64),
+			Pass2FirstHitCandidateWindowEnabled = ResolveBoolEnvOverride("WORMHOLE_PASS2_FIRST_HIT_CANDIDATE_WINDOW", Pass2FirstHitCandidateWindowEnabled),
+			Pass2FirstHitCandidateWindowRadius = ResolveIntEnvOverride("WORMHOLE_PASS2_FIRST_HIT_CANDIDATE_WINDOW_RADIUS", Pass2FirstHitCandidateWindowRadius, 1, 2),
 			UseSingleProbeThenSubdivide = UseSingleProbeThenSubdivide,
 			NearestHitOnly = NearestHitOnly,
 			UseInsightPlanePass2 = UseInsightPlanePass2,
@@ -17226,6 +18347,10 @@ private sealed class OverlayRollingWindow
 		hash.Add(cfg.Pass2ForceOnInstability);
 		hash.Add(cfg.Pass2ForceIfPrevHitLost);
 		hash.Add(cfg.Pass2LogQuickRayMissSamples);
+		hash.Add(cfg.Pass2FirstHitLocalRefinementEnabled);
+		hash.Add(cfg.Pass2FirstHitLocalRefinementSubsteps);
+		hash.Add(cfg.Pass2FirstHitCandidateWindowEnabled);
+		hash.Add(cfg.Pass2FirstHitCandidateWindowRadius);
 		hash.Add(cfg.UseSingleProbeThenSubdivide);
 		hash.Add(cfg.NearestHitOnly);
 		hash.Add(cfg.UseInsightPlanePass2);
@@ -17332,6 +18457,8 @@ private sealed class OverlayRollingWindow
 			$"stepLen={cfg.RayMarch.StepLength:0.###} collRad={cfg.RayMarch.CollisionRadius:0.###} mask=0x{cfg.RayMarch.CollisionMask:X8} " +
 			$"envRadScale={cfg.Pass2GeomEnvelopeRadiusScale:0.###} envAabbExpand={cfg.Pass2GeomEnvelopeAabbExpand:0.###} " +
 			$"adaptiveEnv={(cfg.AdaptiveTelemetryEnvelopeScalingEnabled ? 1 : 0)} adaptiveMode={cfg.AdaptiveEnvelopeControllerMode} adaptivePrior={cfg.AdaptiveEnvelopePriorSource} adaptiveStat={cfg.AdaptiveEnvelopeThresholdStatistic} adaptiveLow={cfg.AdaptiveTelemetryEnvelopeLowThreshold:0.##} adaptiveHigh={cfg.AdaptiveTelemetryEnvelopeHighThreshold:0.##} adaptivePct={cfg.AdaptiveEnvelopeHotThresholdPercentile:0.#}/{cfg.AdaptiveEnvelopeWarmThresholdPercentile:0.#}/{cfg.AdaptiveEnvelopeRelaxedThresholdPercentile:0.#} adaptiveScales={cfg.AdaptiveEnvelopeTightScale:0.##}/{cfg.AdaptiveEnvelopeWarmScale:0.##}/{cfg.AdaptiveEnvelopeNeutralScale:0.##}/{cfg.AdaptiveEnvelopeRelaxedScale:0.##} " +
+			$"firstHitRefine={(cfg.Pass2FirstHitLocalRefinementEnabled ? 1 : 0)} firstHitRefineSub={cfg.Pass2FirstHitLocalRefinementSubsteps} " +
+			$"firstHitWindow={(cfg.Pass2FirstHitCandidateWindowEnabled ? 1 : 0)} firstHitWindowRadius={cfg.Pass2FirstHitCandidateWindowRadius} " +
 			$"geomPrune={(cfg.UseGeometryTLASPruning ? 1 : 0)} maxDist={cfg.Film.MaxDistance:0.###}");
 	}
 

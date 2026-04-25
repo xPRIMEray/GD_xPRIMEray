@@ -614,6 +614,7 @@ public partial class RayBeamRenderer : Node3D
 		public Vector3 Position;
 		public Vector3 Normal;
 		public ulong ColliderId;
+		public int PrimitiveOrShapeId;
 	}
 
 	public readonly struct LedgerContinuationSummary
@@ -2334,6 +2335,20 @@ public partial class RayBeamRenderer : Node3D
 		);
 	}
 
+	public static bool SubdividedRayHit(PhysicsDirectSpaceState3D space,
+		Vector3 a, Vector3 b, uint mask, int maxSubsteps,
+		out Vector3 hitPos, out Vector3 hitNormal,
+		out ulong colliderId, out int primitiveOrShapeId, out string colliderName)
+	{
+		return SubdividedRayHit(
+			space, a, b, mask, maxSubsteps,
+			out hitPos, out hitNormal,
+			out colliderId, out primitiveOrShapeId, out colliderName,
+			out _,
+			includeColliderName: true
+		);
+	}
+
 	// ✅ ADD: normal-aware overload with optional collider name + query count
 	public static bool SubdividedRayHit(PhysicsDirectSpaceState3D space,
 		Vector3 a, Vector3 b, uint mask, int maxSubsteps,
@@ -2412,6 +2427,117 @@ public partial class RayBeamRenderer : Node3D
 		}
 
 		return false;
+	}
+
+	public static bool SubdividedRayHit(PhysicsDirectSpaceState3D space,
+		Vector3 a, Vector3 b, uint mask, int maxSubsteps,
+		out Vector3 hitPos, out Vector3 hitNormal,
+		out ulong colliderId, out int primitiveOrShapeId, out string colliderName,
+		out int rayQueryCount,
+		bool includeColliderName,
+		bool hitBackFaces = false,
+		bool hitFromInside = false,
+		string diagnosticSceneName = "",
+		string diagnosticFixtureName = "",
+		string diagnosticModeToken = "",
+		string diagnosticQueryKind = "subdivided_ray")
+	{
+		hitPos = Vector3.Zero;
+		hitNormal = Vector3.Up;
+		colliderId = 0;
+		primitiveOrShapeId = -1;
+		colliderName = "<none>";
+		rayQueryCount = 0;
+
+		Vector3 d = b - a;
+		float len = d.Length();
+		if (len <= 1e-6f) return false;
+
+		int steps = Mathf.Clamp(maxSubsteps, 1, 64);
+		Vector3 prev = a;
+
+		for (int i = 1; i <= steps; i++)
+		{
+			float t = (float)i / steps;
+			Vector3 cur = a + d * t;
+
+			var rq = PhysicsRayQueryParameters3D.Create(prev, cur, mask);
+			rq.CollideWithBodies = true;
+			rq.CollideWithAreas = true;
+			rq.HitBackFaces = hitBackFaces;
+			rq.HitFromInside = hitFromInside;
+
+			rayQueryCount++;
+			if (!TryIntersectRayWithGuard(
+				space,
+				rq,
+				pass1ProbeEnabled: false,
+				queryKind: diagnosticQueryKind,
+				renderSpaceSource: "render_space",
+				sceneName: diagnosticSceneName,
+				fixtureName: diagnosticFixtureName,
+				modeToken: diagnosticModeToken,
+				ref _subdividedRayQueryFailureWarned,
+				out var hit))
+			{
+				return false;
+			}
+
+			if (hit.Count > 0)
+			{
+				hitPos = (Vector3)hit["position"];
+				if (hit.TryGetValue("normal", out var nObj))
+					hitNormal = ((Vector3)nObj).Normalized();
+
+				colliderId = (ulong)hit["collider_id"];
+				primitiveOrShapeId = ExtractPrimitiveOrShapeId(hit);
+				if (includeColliderName)
+				{
+					var colliderObj = hit["collider"].AsGodotObject();
+					colliderName = colliderObj != null ? colliderObj.ToString() : "<null>";
+				}
+				return true;
+			}
+
+			prev = cur;
+		}
+
+		return false;
+	}
+
+	public static int ExtractPrimitiveOrShapeId(Godot.Collections.Dictionary hit)
+	{
+		if (TryReadHitInt(hit, "face_index", out int faceIndex) && faceIndex >= 0)
+			return faceIndex;
+
+		if (TryReadHitInt(hit, "shape", out int shapeIndex))
+			return shapeIndex;
+
+		return -1;
+	}
+
+	private static bool TryReadHitInt(Godot.Collections.Dictionary hit, string key, out int value)
+	{
+		value = -1;
+		if (hit == null || !hit.TryGetValue(key, out var raw))
+			return false;
+
+		try
+		{
+			Variant variant = (Variant)raw;
+			value = variant.VariantType switch
+			{
+				Variant.Type.Int => checked((int)(long)variant),
+				Variant.Type.Float => checked((int)MathF.Round((float)variant)),
+				_ => Convert.ToInt32(variant.ToString(), CultureInfo.InvariantCulture)
+			};
+			return true;
+		}
+		catch
+		{
+			value = -1;
+			return false;
+		}
 	}
 
 
@@ -3344,7 +3470,8 @@ public partial class RayBeamRenderer : Node3D
 			Distance = float.PositiveInfinity,
 			Position = Vector3.Zero,
 			Normal = Vector3.Up,
-			ColliderId = 0
+			ColliderId = 0,
+			PrimitiveOrShapeId = -1
 		};
 		stoppedEarly = false;
 		hitSegIndex = -1;
@@ -3741,6 +3868,7 @@ public partial class RayBeamRenderer : Node3D
 							// DECISION: collider_id may be absent; only read when present.
 							if (hit0.ContainsKey("collider_id"))
 								hitInfo.ColliderId = (ulong)(long)hit0["collider_id"];
+							hitInfo.PrimitiveOrShapeId = ExtractPrimitiveOrShapeId(hit0);
 						}
 						// DECISION: remember first segment index that hit.
 						if (hitSegIndex < 0)

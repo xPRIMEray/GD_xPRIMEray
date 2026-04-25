@@ -111,7 +111,52 @@ At `exit_lookback`, portal density reaches its maximum (0.2557), and OPL max rea
 
 ---
 
-## 5. Discussion
+## 5. Advanced Analysis of Observer Regimes
+
+### 5.1 Regime Clustering Results
+
+Artifact-only clustering recovered the large-scale observer-regime structure directly from the validated ladder metrics. Using standardized checkpoint features derived from optical path length, interaction density, crossing density, and transport cost, both agglomerative clustering and k-means achieved their best agreement with the manual regime labels at `k = 3` (`ARI = 0.5946`, `silhouette = 0.5547`). In this best-performing automatic partition, the near-side checkpoints `mouth`, `mouth_to_throat_approach`, and `throat` were grouped together, the bridge checkpoint `post_throat_backstep_01` was isolated as a singleton cluster, and the far-side checkpoints `post_throat_exit_approach` and `exit_lookback` formed a separate cluster. Thus, the bridge emerges automatically as a distinct transport state, whereas the throat is grouped more naturally with the near-side progression than with the bridge or far-side states.
+
+This clustering result supports a physically interpretable regime decomposition. The near-side and throat checkpoints behave as a continuous interaction-rich family, while the bridge is separated by its sparse and inefficient transport signature rather than by a purely geometric label. The far-side states then regroup into a higher-density family with strong interaction load but lower transport cost per crossing.
+
+Relevant figures:
+- [cluster_pca_scatter.png](./figures/cluster_pca_scatter.png)
+- [cluster_dendrogram.png](./figures/cluster_dendrogram.png)
+- [regime_clustering.png](./analysis/figures/regime_clustering.png)
+
+### 5.2 Bridge Anomaly Quantification
+
+Three independent anomaly measures were applied to the same normalized checkpoint feature table: Euclidean z-score distance in standardized feature space, isolation forest, and local outlier factor. All three ranked `post_throat_backstep_01` as the strongest anomaly in the ladder. In the combined ranking, the bridge checkpoint achieved the top position with `z = 4.3999`, `isolation forest = 0.6160`, and `LOF = 1.3496`, exceeding all other checkpoints across the joint anomaly assessment. The next-ranked checkpoints, such as `exit_lookback` and `mouth`, remained distinctly less extreme in the combined score.
+
+The anomaly ranking provides quantitative support for the bridge interpretation already suggested by the observer-ladder characterization. The bridge is not merely a low-density checkpoint; it is a multi-metric outlier defined simultaneously by suppressed interaction density, depressed mean optical path length, and unusually high cost per crossing. In physical terms, this supports treating the bridge as a transitional transport anomaly rather than as a weak member of either the near-side or far-side regime.
+
+Relevant figures:
+- [bridge_anomaly_scores.png](./analysis/figures/bridge_anomaly_scores.png)
+- [checkpoint_anomaly_scores.png](./analysis/anomaly_detection/figures/checkpoint_anomaly_scores.png)
+
+### 5.3 Radial Structure and Horizon-Like Features
+
+Image-derived radial structure analysis was performed using the approved debug captures and the previously estimated aperture centers. For each checkpoint, radial intensity profiles were reconstructed and differentiated to obtain first- and second-derivative structure, allowing detection of local peaks, inflection points, and sign changes near the apparent aperture radius. The resulting feature-radius comparison yielded a mixed global verdict: a single consistent feature radius does not persist across the entire ladder. However, near-side checkpoints remain relatively close to the marked aperture radius, and the throat checkpoint shows the strongest local slope magnitude near the apparent radius (`0.0251`), exceeding all other checkpoints.
+
+This pattern suggests that a horizon-like radial feature is most sharply expressed at the throat rather than at the bridge. The near-side leg preserves a relatively stable radial boundary interpretation, while post-throat checkpoints increasingly shift away from a simple single-ring model. The bridge therefore appears not as the sharpest horizon-like state, but as the point where the visible radial structure becomes harder to represent with a single near-aperture feature radius.
+
+Relevant figures:
+- [normalized_profile_overlay.png](./analysis/radial_structure/figures/normalized_profile_overlay.png)
+- [radial_derivative_panels.png](./analysis/radial_structure/figures/radial_derivative_panels.png)
+
+### 5.4 Spectral / Periodicity Analysis
+
+FFT analysis of the ordered ladder sequences was applied to `OPL mean`, `throat_event_density`, `crossings_per_pixel`, and `segments_per_crossing`. Across the first three sequences, the dominant frequency was the lowest nonzero mode (`1/6` cycles per checkpoint), indicating a slow regime-scale drift rather than a repeating oscillation. `segments_per_crossing` showed a different dominant frequency (`1/3` cycles per checkpoint), but the bridge residual remained large and localized, especially for `segments_per_crossing`, where the bridge deviation from neighbor interpolation was strongly positive. Wavelet analysis of the debug-image radial profiles also showed structured multiscale content, but the dominant scales changed across checkpoints rather than locking into a persistent repeating cadence.
+
+Taken together, the spectral evidence argues against interpreting the ladder as an oscillatory family. Instead, the observer path is better described as a sequence of regime transitions with one strongly singular bridge excursion. In physical terms, the bridge behaves like a localized topological transition state rather than one phase of a smooth repeating pattern.
+
+Relevant figures:
+- [sequence_fft.png](./analysis/periodicity/figures/sequence_fft.png)
+- [radial_profile_wavelets.png](./analysis/periodicity/figures/radial_profile_wavelets.png)
+
+---
+
+## 6. Discussion
 
 These results suggest that observer traversal through wormhole-like topology cannot be treated as a continuous world-space path. Instead, traversal must be constructed as a sequence of causally valid states.
 
@@ -119,7 +164,7 @@ The existence of a bridge regime indicates that transport efficiency and interac
 
 ---
 
-## 6. Conclusion
+## 7. Conclusion
 
 We introduce a validated observer ladder framework for wormhole ray transport and demonstrate that traversal naturally decomposes into distinct regimes. This provides a foundation for future work in curved-ray rendering, topological optics, and causal transport analysis.
 

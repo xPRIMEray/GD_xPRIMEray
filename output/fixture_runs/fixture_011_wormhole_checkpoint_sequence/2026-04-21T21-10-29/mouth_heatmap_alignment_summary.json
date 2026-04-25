@@ -1,0 +1,32 @@
+{
+  "primitive_or_shape_id_available": false,
+  "visible_band_mask_threshold": 0.12418300653594772,
+  "metrics": {
+    "neighbor_normal_delta": {
+      "pearson_to_visible_band_mask": 0.7983175407065044,
+      "iou_to_visible_band_mask": 0.64903563255966,
+      "mean_signal": 0.062256834220227306
+    },
+    "neighbor_collider_switch": {
+      "pearson_to_visible_band_mask": 0.26747347232512886,
+      "iou_to_visible_band_mask": 0.15290235234388222,
+      "mean_signal": 0.02809866233665816
+    },
+    "neighbor_primitive_switch": {
+      "pearson_to_visible_band_mask": 0.0,
+      "iou_to_visible_band_mask": 0.0,
+      "mean_signal": 0.0
+    },
+    "neighbor_hit_distance_delta": {
+      "pearson_to_visible_band_mask": 0.21667342947301982,
+      "iou_to_visible_band_mask": 0.09406543682561783,
+      "mean_signal": 0.02149995355789722
+    }
+  },
+  "best_alignment": {
+    "heatmap": "neighbor_normal_delta",
+    "pearson_to_visible_band_mask": 0.7983175407065044,
+    "iou_to_visible_band_mask": 0.64903563255966,
+    "mean_signal": 0.062256834220227306
+  }
+}

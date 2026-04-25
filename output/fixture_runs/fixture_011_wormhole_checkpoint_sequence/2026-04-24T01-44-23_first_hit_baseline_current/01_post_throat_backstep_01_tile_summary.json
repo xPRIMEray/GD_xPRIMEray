@@ -1,0 +1,211 @@
+{
+  "csv_path": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/01_post_throat_backstep_01_hit_diagnostics.csv",
+  "base_image_path": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/01_post_throat_backstep_01_debug_normal_rgb.png",
+  "debug_image_path": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/01_post_throat_backstep_01_debug_normal_rgb.png",
+  "tile_size": 16,
+  "width": 480,
+  "height": 270,
+  "outputs": {
+    "tile_coherence_heatmap": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/01_post_throat_backstep_01_tile_coherence_heatmap.png",
+    "tile_boundary_overlay": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/01_post_throat_backstep_01_tile_boundary_overlay.png",
+    "tile_summary": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/01_post_throat_backstep_01_tile_summary.json"
+  },
+  "tile_count": 510,
+  "coherence_threshold": 0.4545588713297841,
+  "hot_tile_count": 72,
+  "metrics": {
+    "normal_variance": {
+      "mean": 0.3609651692376025,
+      "p95": 0.84765625,
+      "max": 1.0
+    },
+    "collider_switch_density": {
+      "mean": 0.011382497576383025,
+      "p95": 0.05625,
+      "max": 0.11458333333333333
+    },
+    "hit_distance_variance": {
+      "mean": 0.9693969799542521,
+      "p95": 8.617005869613406,
+      "max": 13.757793110310377
+    },
+    "segment_index_variance": {
+      "mean": 97.01987590568454,
+      "p95": 855.9384155273438,
+      "max": 1385.8290405273438
+    },
+    "classification_diversity": {
+      "mean": 0.003939075630252102,
+      "p95": 0.004464285714285714,
+      "max": 0.004464285714285714
+    },
+    "coherence_score": {
+      "mean": 0.29653907770763605,
+      "p95": 0.7428336746885135,
+      "max": 0.9875000000000002
+    }
+  },
+  "visible_band_alignment": {
+    "visible_band_pixels": 18907,
+    "pearson_to_visible_band_signal": 0.03161537846976461,
+    "iou_to_visible_band_mask": 0.0692816091954023
+  },
+  "top_tiles": [
+    {
+      "x": 416,
+      "y": 128,
+      "w": 16,
+      "h": 16,
+      "coherence_score": 0.9875000000000002,
+      "normal_variance": 0.953125,
+      "collider_switch_density": 0.10833333333333334,
+      "hit_distance_variance": 9.965552954863897,
+      "segment_index_variance": 989.4559936523438,
+      "classification_diversity": 0.00390625,
+      "dominant_class": "background"
+    },
+    {
+      "x": 400,
+      "y": 176,
+      "w": 16,
+      "h": 16,
+      "coherence_score": 0.9875000000000002,
+      "normal_variance": 0.9609375,
+      "collider_switch_density": 0.07083333333333333,
+      "hit_distance_variance": 9.459982162989636,
+      "segment_index_variance": 940.7490081787109,
+      "classification_diversity": 0.00390625,
+      "dominant_class": "background"
+    },
+    {
+      "x": 448,
+      "y": 160,
+      "w": 16,
+      "h": 16,
+      "coherence_score": 0.9848864706272716,
+      "normal_variance": 0.94140625,
+      "collider_switch_density": 0.09166666666666666,
+      "hit_distance_variance": 8.589942824489254,
+      "segment_index_variance": 846.7694702148438,
+      "classification_diversity": 0.00390625,
+      "dominant_class": "background"
+    },
+    {
+      "x": 448,
+      "y": 176,
+      "w": 16,
+      "h": 16,
+      "coherence_score": 0.9722926267281106,
+      "normal_variance": 0.8046875,
+      "collider_switch_density": 0.07291666666666667,
+      "hit_distance_variance": 10.955155858223002,
+      "segment_index_variance": 1093.4903411865234,
+      "classification_diversity": 0.00390625,
+      "dominant_class": "background"
+    },
+    {
+      "x": 400,
+      "y": 192,
+      "w": 16,
+      "h": 16,
+      "coherence_score": 0.954320276497696,
+      "normal_variance": 0.75390625,
+      "collider_switch_density": 0.07916666666666666,
+      "hit_distance_variance": 9.463127238829276,
+      "segment_index_variance": 947.685302734375,
+      "classification_diversity": 0.00390625,
+      "dominant_class": "background"
+    },
+    {
+      "x": 416,
+      "y": 224,
+      "w": 16,
+      "h": 16,
+      "coherence_score": 0.9529377880184332,
+      "normal_variance": 0.75,
+      "collider_switch_density": 0.11458333333333333,
+      "hit_distance_variance": 11.753841205198968,
+      "segment_index_variance": 1172.2821655273438,
+      "classification_diversity": 0.00390625,
+      "dominant_class": "background"
+    },
+    {
+      "x": 448,
+      "y": 208,
+      "w": 16,
+      "h": 16,
+      "coherence_score": 0.9474078341013826,
+      "normal_variance": 0.734375,
+      "collider_switch_density": 0.08333333333333333,
+      "hit_distance_variance": 11.527053423245077,
+      "segment_index_variance": 1157.123031616211,
+      "classification_diversity": 0.00390625,
+      "dominant_class": "background"
+    },
+    {
+      "x": 368,
+      "y": 256,
+      "w": 16,
+      "h": 14,
+      "coherence_score": 0.9417773353840037,
+      "normal_variance": 0.8187148169263665,
+      "collider_switch_density": 0.045454545454545456,
+      "hit_distance_variance": 9.281130769786555,
+      "segment_index_variance": 915.4706632653061,
+      "classification_diversity": 0.004464285714285714,
+      "dominant_class": "background"
+    },
+    {
+      "x": 416,
+      "y": 240,
+      "w": 16,
+      "h": 16,
+      "coherence_score": 0.9360482082269609,
+      "normal_variance": 0.7022781404329496,
+      "collider_switch_density": 0.10416666666666667,
+      "hit_distance_variance": 9.837224152965023,
+      "segment_index_variance": 975.2123413085938,
+      "classification_diversity": 0.00390625,
+      "dominant_class": "background"
+    },
+    {
+      "x": 448,
+      "y": 224,
+      "w": 16,
+      "h": 16,
+      "coherence_score": 0.9335829493087558,
+      "normal_variance": 0.6953125,
+      "collider_switch_density": 0.075,
+      "hit_distance_variance": 12.465487748089929,
+      "segment_index_variance": 1238.849349975586,
+      "classification_diversity": 0.00390625,
+      "dominant_class": "background"
+    },
+    {
+      "x": 400,
+      "y": 208,
+      "w": 16,
+      "h": 16,
+      "coherence_score": 0.9131635962383536,
+      "normal_variance": 0.84765625,
+      "collider_switch_density": 0.07916666666666666,
+      "hit_distance_variance": 6.776377097359355,
+      "segment_index_variance": 674.925537109375,
+      "classification_diversity": 0.00390625,
+      "dominant_class": "background"
+    },
+    {
+      "x": 448,
+      "y": 192,
+      "w": 16,
+      "h": 16,
+      "coherence_score": 0.9031682027649769,
+      "normal_variance": 0.609375,
+      "collider_switch_density": 0.08958333333333333,
+      "hit_distance_variance": 11.36369912726194,
+      "segment_index_variance": 1123.0146484375,
+      "classification_diversity": 0.00390625,
+      "dominant_class": "background"
+    }
+  ]
+}
