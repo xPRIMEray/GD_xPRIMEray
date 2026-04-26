@@ -1,119 +1,189 @@
-# xPRIMEray — Technical Documentation
+# xPRIMEray — Documentation
 
-**xPRIMEray** is a research-grade curved-ray transport engine embedded in Godot 4.x. It replaces straight-line ray casting with physics-driven propagation through gradient-index (GRIN) fields, enabling simulation of graded refractive media, wormhole-like topological structures, and general metric-driven optical transport.
+> **The Universal Baseline for Curved Field Transport Visualization.**
+> Research-grade. Hermetically validated. Grounded in a century of peer-reviewed optics and relativity.
+
+This is the technical documentation root for xPRIMEray. For the GitHub project page and visual overview, see the [root README](../README.md). For the rendered MkDocs portal, see [index.md](index.md).
 
 ---
 
-## What Problem It Solves
+## Vision
 
-Standard ray tracers assume light travels in straight lines. This is valid in flat, uniform media but breaks down in:
+xPRIMEray is designed to become the **standard reproducible baseline** for studying, measuring, and communicating curved optical transport — the tool that plays the same role for field transport that Kajiya's rendering equation played for physically-based rendering in 1986.
 
-- **Curved spacetimes** — null geodesics bend around massive objects and through wormhole throats.
-- **GRIN media** — gradient-index materials (e.g. gravitational-lens analogues, optical fibre cores) deflect rays continuously along the path.
-- **Topological transitions** — a ray entering a wormhole mouth may exit into a physically distinct coordinate region; world-space interpolation across that boundary is undefined.
+The academic pipeline it supports:
 
-xPRIMEray addresses all three cases within a single transport framework grounded in the **Gordon effective metric**: the engine integrates the eikonal ray equations $\dot{\mathbf{x}} = \mathbf{p}/n$, $\dot{\mathbf{p}} = \nabla n$, which are the characteristic ODEs of null-geodesic transport through a spatially varying refractive-index field. This is not an approximation to GR — it is the exact null-ray law of the Gordon metric, valid for any static isotropic medium.
+```
+Nobel-level physical foundations
+    ↓
+Deterministic fixture harness (hermetic, fresh-instance, reproducible)
+    ↓
+Transport metrics + diagnostic overlays
+(OPL · coherence · phase maps · domain clustering · anomaly scores)
+    ↓
+Abstract → Hypothesis → Measurement → Paper
+    ↓
+Shared bibliography · reproducible figures · BibTeX-ready citations
+```
+
+This pipeline has already produced Papers 001–004 in the wormhole invariant trilogy. Every figure is reproducible from archived fixture outputs. Every claim is separated into: **empirical finding**, **modelling assumption**, and **conceptual analogy** — labelled explicitly.
+
+---
+
+## What xPRIMEray Is (precise statement)
+
+xPRIMEray integrates the null-geodesic ray equations of the **Gordon effective metric**:
+
+$$\dot{\mathbf{x}} = \frac{\mathbf{p}}{n(\mathbf{x})}, \qquad \dot{\mathbf{p}} = \nabla n(\mathbf{x})$$
+
+where $n(\mathbf{x})$ is a spatially varying refractive-index field. These are the characteristic ODEs of the metric $dl^2 = n^2\,d\mathbf{x}^2$, which is the exact null-ray law of a static isotropic medium (Gordon 1923; Plebański 1960). The visual output is the correct image of that effective spacetime within the eikonal limit.
+
+xPRIMEray does **not** solve the Einstein field equations. It renders null geodesics of an effective spacetime defined by $\nabla n$. This is a stronger claim than "inspired by GR" and an honester claim than "we render true wormholes."
 
 ---
 
 ## Key Innovations
 
-| Innovation | Description |
+| Innovation | Technical description |
 |---|---|
-| **Curved ray integration** | RK4 integration of the eikonal ODE, with derivative-aware adaptive step control. Rays are first-class curved primitives, not post-hoc approximations. |
-| **Domain-aware rendering** | The renderer identifies distinct transport regimes (near-side, bridge, far-side) from metric structure alone, without scene labels. Interpolation validity is assessed per-domain. |
-| **Geometric sampling textures** | Multiple tile geometries — adaptive square, polar/radial, curvature-centred — each tuned for different diagnostic goals. Hybrid architecture retains raw row-pass truth as scout reference. |
-| **Hermetic validation** | Every fixture run must satisfy `classified_coverage = 1.0`, `escaped_no_hit = 0`, `budget_exhausted = 0`. No pixel may be lost to the computational equivalent of a singularity. |
-| **Fresh-instance observer ladder** | Each checkpoint is evaluated on a fully fresh renderer instance, ensuring reported differences reflect transport structure rather than accumulated state. |
+| **Curved ray integration** | RK4 + derivative-aware adaptive step control on the eikonal ODE. Rays are first-class curved primitives. |
+| **Dual Reality rendering** | Two causally distinct scenes joined at a topological portal; each rendered with full curved-ray physics. |
+| **Hermetic fixture harness** | 100% classified pixel coverage, `escaped_no_hit = 0`, `budget_exhausted = 0` — reproducible across any run. |
+| **Causal observer ladder** | Six fresh-instance checkpoints through a wormhole; transport structure separated from simulation state. |
+| **Domain-emergent clustering** | Transport regimes recovered from metric structure alone (k=3, ARI=0.5946). No scene labels required. |
+| **Geometric sampling textures** | Hybrid adaptive-square (direction: 0.836/0.875) + polar (recall: 1.000/1.000) diagnostic tiles. |
+| **Phase-coherence field** | Per-pixel coherence score correlating visible banding with domain-boundary transitions (gap: 0.162 at mouth). |
+| **Overspace / rabbit-hole scenes** | Hermetically sealed, causally isolated wormhole universes. Each is its own complete transport domain. |
+
+---
+
+## Two Audience Streams
+
+### 🔬 Research Track
+
+The core academic infrastructure. Everything is deterministic, archived, and citable.
+
+- Fixture harness outputs: `output/fixture_runs/`
+- Derived metrics: `output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/`
+- Observer ladder paper: [papers/paper_001_causal_observer_ladders/paper.md](papers/paper_001_causal_observer_ladders/paper.md)
+- Shared bibliography: [papers/shared_bibliography.bib](papers/shared_bibliography.bib)
+
+### 🎨 Creative / Entertainment Track
+
+> ⚠️ **Artistic Capabilities Notice** — xPRIMEray produces physically motivated, not observationally validated, imagery. The visuals are correct images of an effective spacetime. They are not equivalent to data from a real astrophysical source. Use freely for creative purposes with that understanding.
+
+- Dual Reality renders: `output/dual_reality/`
+- Overspace traversal sequence: `output/overspace_first_milestone/`
+- The rabbit-hole mythos: see the [root README](../README.md#the-rabbit-hole-universe)
 
 ---
 
 ## Documentation Map
 
-### Start here
+### Core navigation
 
 | Document | Contents |
 |---|---|
-| **This file** | Entry point and orientation |
-| [architecture/overview.md](architecture/overview.md) | Render pipeline, Pass 1 vs Pass 2, stored-hit system, domain emergence |
-| [glossary.md](glossary.md) | Definitions for null geodesic, GRIN, domain boundary, phase coherence, curvature centre |
+| [glossary.md](glossary.md) | null geodesic · GRIN · Gordon metric · domain boundary · phase coherence · curvature centre · node of silence |
+| [architecture/overview.md](architecture/overview.md) | Pipeline, Pass 1 / Pass 2, stored-hit system, domain emergence, Gordon metric math |
+| [SPEC_INDEX.md](SPEC_INDEX.md) | Full spec index — active and legacy |
 
 ### Diagnostics
 
 | Document | Contents |
 |---|---|
-| [diagnostics/README.md](diagnostics/README.md) | What each diagnostic measures and when to use it |
-| [diagnostics/heatmaps.md](diagnostics/heatmaps.md) | Curvature heat maps — transport diagnostic, not flux observable |
-| [diagnostics/tile_coherence.md](diagnostics/tile_coherence.md) | Adaptive vs polar tiling, direction fidelity vs recall trade-off |
-| [diagnostics/phase_coherence.md](diagnostics/phase_coherence.md) | Phase-coherence field — band boundaries, coherence scores |
-| [diagnostics/domain_ownership.md](diagnostics/domain_ownership.md) | Curvature-domain boundary detection and regime decomposition |
+| [diagnostics/README.md](diagnostics/README.md) | Diagnostic categories, reading guide for coverage.json and derived_metrics.json |
+| [diagnostics/heatmaps.md](diagnostics/heatmaps.md) | Curvature heat maps — transport diagnostic, not observable flux; literature crosswalk |
+| [diagnostics/tile_coherence.md](diagnostics/tile_coherence.md) | Adaptive vs polar tiles — direction fidelity vs recall trade-off with all measured numbers |
+| [diagnostics/phase_coherence.md](diagnostics/phase_coherence.md) | Phase-coherence field — measured values, banding mechanism hypothesis, geometric phase memory |
+| [diagnostics/domain_ownership.md](diagnostics/domain_ownership.md) | Domain decomposition — the bridge anomaly, interpolation validity by domain |
 
 ### Research notes
 
 | Document | Contents |
 |---|---|
-| [research/geometric_sampling_texture.md](research/geometric_sampling_texture.md) | Sampling texture analysis synthesis — adaptive, polar, hybrid architecture |
-| [research/phase_coherence_field.md](research/phase_coherence_field.md) | Phase coherence as a transport-domain diagnostic |
-| [research/curvature_domain_ownership.md](research/curvature_domain_ownership.md) | Domain decomposition, clustering, and the bridge anomaly |
+| [research/geometric_sampling_texture.md](research/geometric_sampling_texture.md) | Sampling texture synthesis: adaptive, polar, bridge morphology, hybrid architecture |
+| [research/phase_coherence_field.md](research/phase_coherence_field.md) | Phase coherence as diagnostic; geometric phase memory design framework and 5-phase roadmap |
+| [research/curvature_domain_ownership.md](research/curvature_domain_ownership.md) | Domain decomposition derivation; spectral ruling-out of oscillatory model; render guidance |
 
-### Specifications
+### Physics and transport
 
-See [SPEC_INDEX.md](SPEC_INDEX.md) for the full list of active and legacy spec files.
+| Document | Contents |
+|---|---|
+| [Research/curved_ray_transport_model_review.md](Research/curved_ray_transport_model_review.md) | Model ranking: Hamiltonian, RK, Eikonal, Lie, neural — what each solves |
+| [Research/wormhole_curvature_heatmap_literature_crosswalk.md](Research/wormhole_curvature_heatmap_literature_crosswalk.md) | Where xPRIMEray aligns with and differs from astrophysics literature |
+| [Research/DualRealityFramework.md](Research/DualRealityFramework.md) | Dual-scene composition, wormhole topology, throat-side/far-side rendering |
+| [Research/overspace_architecture_layer.md](Research/overspace_architecture_layer.md) | Wormhole systems, rabbit-hole nesting, scale-clock-density transforms |
+| [metric_null_geodesic_param_map.md](metric_null_geodesic_param_map.md) | Active parameter mapping for Metric_NullGeodesic transport mode |
+| [metric_transport_nextgen_roadmap.md](metric_transport_nextgen_roadmap.md) | Next-generation transport: symplectic, Eikonal guidance, derivative-aware stepping |
+| [papers/shared_related_work.md](papers/shared_related_work.md) | Full literature survey across five research traditions |
 
-Key active specs:
+### Papers
 
-- [spec_field_system_grin_1.md](spec_field_system_grin_1.md) — GRIN field evaluation
-- [spec_curved_ray_chunks_1.md](spec_curved_ray_chunks_1.md) — curved ray segment integration
-- [spec_metric_models_grin_vs_gordon_1.md](spec_metric_models_grin_vs_gordon_1.md) — metric model framing
-- [spec_scheduler_task_graph_1.md](spec_scheduler_task_graph_1.md) — tile scheduling
-- [spec_wormhole_scene_graph_1.md](spec_wormhole_scene_graph_1.md) — multi-scene wormhole system
-
-### Research papers
-
-Papers are located in [papers/](papers/) and indexed at [papers/index.md](papers/index.md).
-
-| # | Title | Status |
+| # | Title | Location |
 |---|---|---|
-| [000](papers/paper_000_unified_summary/paper.md) | Unified Summary of the Wormhole Invariant Trilogy | Draft |
-| [001](papers/paper_001_causal_observer_ladders/paper.md) | Causal Observer Ladders for Wormhole Ray Transport | Active |
-| [002](papers/paper_002_low_value_sector_budget/paper.md) | Low-Value Sector Budget as a Negative Invariant | Draft |
-| [003](papers/paper_003_coupled_invariants_phase_space/paper.md) | Coupled Invariants and Stability Phase Space | Draft |
-| [004](papers/paper_004_hermetic_throat_validation/paper.md) | Hermetic Throat Validation | Draft |
+| 000 | Unified Summary — Wormhole Invariant Trilogy | [papers/paper_000_unified_summary/paper.md](papers/paper_000_unified_summary/paper.md) |
+| 001 | Causal Observer Ladders for Wormhole Ray Transport | [papers/paper_001_causal_observer_ladders/paper.md](papers/paper_001_causal_observer_ladders/paper.md) |
+| 001a | Causal Observer Ladder Artifact Atlas | [papers/paper_001a_causal_observer_ladder_artifacts/paper.md](papers/paper_001a_causal_observer_ladder_artifacts/paper.md) |
+| 002 | Low-Value Sector Budget as a Negative Invariant | [papers/paper_002_low_value_sector_budget/paper.md](papers/paper_002_low_value_sector_budget/paper.md) |
+| 003 | Coupled Invariants and Stability Phase Space | [papers/paper_003_coupled_invariants_phase_space/paper.md](papers/paper_003_coupled_invariants_phase_space/paper.md) |
+| 004 | Hermetic Throat Validation | [papers/paper_004_hermetic_throat_validation/paper.md](papers/paper_004_hermetic_throat_validation/paper.md) |
 
-Shared bibliography: [papers/shared_bibliography.bib](papers/shared_bibliography.bib)  
-Shared related work: [papers/shared_related_work.md](papers/shared_related_work.md)
+Shared bibliography: [papers/shared_bibliography.bib](papers/shared_bibliography.bib)
 
 ### Validation
 
 | Document | Contents |
 |---|---|
-| [validation/hermetic_fixture_rule.md](validation/hermetic_fixture_rule.md) | The hermetic coverage contract |
+| [validation/hermetic_fixture_rule.md](validation/hermetic_fixture_rule.md) | The hermetic coverage contract — what 100% classified means and why it matters |
 | [validation/wormhole_observer_ladder.md](validation/wormhole_observer_ladder.md) | Observer ladder protocol |
+| [validation/wormhole_observer_ladder_characterization.md](validation/wormhole_observer_ladder_characterization.md) | Characterisation results |
 | [validation.md](validation.md) | Validation framework overview |
+| [BoundaryLayerFixtures.md](BoundaryLayerFixtures.md) | Boundary layer fixture specifications |
 
-### Existing architecture and specification navigation
+### Active specifications
 
-The following top-level files remain the canonical home for their domains:
+| Area | Document |
+|---|---|
+| Data model | [spec_scene_snapshot_data_layout_1.md](spec_scene_snapshot_data_layout_1.md) |
+| Field evaluation | [spec_field_system_grin_1.md](spec_field_system_grin_1.md) |
+| FieldSource3D params | [spec_fieldsource3d_canonical_params_1.md](spec_fieldsource3d_canonical_params_1.md) |
+| Metric framing | [spec_metric_models_grin_vs_gordon_1.md](spec_metric_models_grin_vs_gordon_1.md) |
+| Curved transport | [spec_curved_ray_chunks_1.md](spec_curved_ray_chunks_1.md) |
+| Acceleration | [spec_bvh_acceleration_1.md](spec_bvh_acceleration_1.md) |
+| Scheduling | [spec_scheduler_task_graph_1.md](spec_scheduler_task_graph_1.md) |
+| Backends | [spec_rendering_backends_1.md](spec_rendering_backends_1.md) |
+| Telemetry | [spec_telemetry_debug_1.md](spec_telemetry_debug_1.md) |
+| Multi-scene | [spec_wormhole_scene_graph_1.md](spec_wormhole_scene_graph_1.md) |
+| Research mode | [spec_research_mode_1.md](spec_research_mode_1.md) |
 
-- [index.md](index.md) — MkDocs site index (rendered documentation portal)
-- [architecture_overview.md](architecture_overview.md) — Detailed subsystem breakdown
-- [code_map_big12.md](code_map_big12.md) — Contributor-facing code map
-- [_xPRIMEray_arch_charter_v3-ChatClaudeGrokCoherencePass2.md](_xPRIMEray_arch_charter_v3-ChatClaudeGrokCoherencePass2.md) — Working architecture charter
+### Calibration and working charter
+
+- [_xPRIMEray_arch_charter_v3-ChatClaudeGrokCoherencePass2.md](_xPRIMEray_arch_charter_v3-ChatClaudeGrokCoherencePass2.md) — current working charter
+- [CalibRoadmap/PatchLogs/C1_0_g_1.md](CalibRoadmap/PatchLogs/C1_0_g_1.md) — canonical signature fields
+- [CalibRoadmap/PatchLogs/C1_7_g_X.md](CalibRoadmap/PatchLogs/C1_7_g_X.md) — AutoCal weak-signal stopgap
 
 ---
 
 ## Epistemic Posture
 
-xPRIMEray renders null geodesics of the **Gordon effective metric**, not solutions to the Einstein field equations. This is a precise and honest claim: the physics is well-defined, the visual output is the correct image of that effective spacetime within the eikonal limit, and the approximation degrades gracefully as the medium becomes dynamic or anisotropic. Claims that go beyond this — e.g. that the engine produces observationally faithful black-hole or wormhole images — require additional ingredients (radiative transfer, thin-disk emissivity, redshift weighting) that are not yet implemented.
+Throughout all documentation, claims are separated by type:
 
-Preferred phrasing throughout the documentation:
+| Label | Meaning |
+|---|---|
+| **Empirical finding** | Measured from fixture outputs; reproducible; citable |
+| **Modelling assumption** | Chosen for tractability; stated explicitly; open to revision |
+| **Conceptual analogy** | Borrowed vocabulary; useful for organising thinking; not a physical equivalence claim |
+| **Hypothesis** | Grounded in correlation; not yet confirmed by controlled experiment |
 
-- "null geodesics of the Gordon metric" — not "physically accurate wormholes"  
-- "transport-distortion diagnostic" — not "observable intensity map"  
-- "observed," "measured," "correlated," "hypothesised" — not "proves," "demonstrates physically," "is equivalent to"
+Preferred phrasing:
+- "null geodesics of the Gordon metric" — not "physically accurate wormholes"
+- "transport-distortion diagnostic" — not "observable intensity map"
+- "observed / measured / correlated / hypothesised" — not "proves / demonstrates"
 
 ---
 
 ## License
 
-MIT — suitable for academic and creative use. If this work informs your research, cite the relevant paper from the invariant trilogy (BibTeX at [papers/shared_bibliography.bib](papers/shared_bibliography.bib)).
+MIT — academic, commercial, and creative use welcome.
+Citation templates: [papers/shared_bibliography.bib](papers/shared_bibliography.bib)
