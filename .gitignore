@@ -28,3 +28,7 @@ __pycache__/
 .venv_*/
 # Windows downloaded-file metadata ghosts
 *:Zone.Identifier
+
+# Godot generated files
+.godot/mono/temp/
+.godot/imported/

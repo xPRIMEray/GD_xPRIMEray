@@ -67,11 +67,34 @@ Each deterministic harness run produces a figure quartet:
 
 ## Documentation Hub
 
-### Start here
+### Entry points
 
+- [**README.md**](README.md) — unified entry point: what xPRIMEray is, what problem it solves, full navigation map
+- [**Glossary**](glossary.md) — definitions for null geodesic, GRIN, Gordon metric, domain boundary, phase coherence, curvature centre
+
+### Architecture
+
+- [architecture/overview.md](architecture/overview.md) — pipeline, Pass 1 vs Pass 2, stored-hit system, domain emergence, Gordon metric
+- [Architecture Overview](architecture_overview.md) — detailed subsystem contracts and data-flow diagrams
 - [System Architecture](architecture.md) — compact pipeline summary
-- [Architecture Overview](architecture_overview.md) — renderer structure and subsystem boundaries
 - [Code Map (Big 12)](code_map_big12.md) — contributor-facing code map
+
+### Diagnostics
+
+- [diagnostics/README.md](diagnostics/README.md) — what each diagnostic measures and when to use it
+- [diagnostics/heatmaps.md](diagnostics/heatmaps.md) — curvature heat maps: transport diagnostic, not observable flux
+- [diagnostics/tile_coherence.md](diagnostics/tile_coherence.md) — adaptive vs polar tile geometry trade-offs
+- [diagnostics/phase_coherence.md](diagnostics/phase_coherence.md) — phase-coherence field, band-boundary correlation
+- [diagnostics/domain_ownership.md](diagnostics/domain_ownership.md) — regime decomposition, interpolation validity by domain
+
+### Research notes
+
+- [research/geometric_sampling_texture.md](research/geometric_sampling_texture.md) — sampling texture synthesis: adaptive, polar, hybrid architecture
+- [research/phase_coherence_field.md](research/phase_coherence_field.md) — phase coherence as a transport diagnostic; geometric phase memory roadmap
+- [research/curvature_domain_ownership.md](research/curvature_domain_ownership.md) — domain decomposition, bridge anomaly, banding mechanism
+
+### Specifications and validation
+
 - [Specification Index](SPEC_INDEX.md) — full spec map, current vs legacy
 - [Validation Framework](validation.md) — validation modes and verification context
 - [Architecture Charter (Current)](_xPRIMEray_arch_charter_v3-ChatClaudeGrokCoherencePass2.md) — working charter

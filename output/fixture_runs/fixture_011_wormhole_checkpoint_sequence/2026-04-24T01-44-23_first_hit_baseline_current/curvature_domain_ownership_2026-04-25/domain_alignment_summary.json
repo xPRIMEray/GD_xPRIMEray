@@ -1,0 +1,169 @@
+{
+  "analysis_label": "exploratory_curvature_domain_ownership",
+  "constraints": "analysis-only; no renderer changes; no hit-selection changes; no simulation reruns; existing artifacts only",
+  "top_n_curvature_centers": 4,
+  "outputs": {
+    "domain_segmentation": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/curvature_domain_ownership_2026-04-25/domain_segmentation.png",
+    "domain_boundary_overlay": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/curvature_domain_ownership_2026-04-25/domain_boundary_overlay.png",
+    "domain_alignment_metrics": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/curvature_domain_ownership_2026-04-25/domain_alignment_metrics.png",
+    "summary_json": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/curvature_domain_ownership_2026-04-25/domain_alignment_summary.json"
+  },
+  "checkpoints": [
+    {
+      "checkpoint": "mouth",
+      "prefix": "00_mouth",
+      "inputs": {
+        "curvature_summary": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/curvature_center_polar_2026-04-25/curvature_center_summary.json",
+        "debug_image": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/00_mouth_debug_normal_rgb.png",
+        "hit_diagnostics": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/00_mouth_hit_diagnostics.csv",
+        "visible_band_mask": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-22T18-12-54/mouth_visible_band_mask.png",
+        "phase_coherence_summary": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/phase_coherence_field_2026-04-25/phase_coherence_summary.json"
+      },
+      "centers": [
+        {
+          "rank": 1,
+          "x": 289.0,
+          "y": 233.0,
+          "radius": 133.0,
+          "source": "hough_circle",
+          "candidate_score": 116.56490036537654,
+          "prior_direction_similarity": 0.6284958720207214,
+          "prior_distance_score": 0.7569400072097778
+        },
+        {
+          "rank": 2,
+          "x": 242.0,
+          "y": 267.0,
+          "radius": 134.0,
+          "source": "hough_circle",
+          "candidate_score": 114.1977274031489,
+          "prior_direction_similarity": 0.6341713070869446,
+          "prior_distance_score": 0.7406502962112427
+        },
+        {
+          "rank": 3,
+          "x": 312.0,
+          "y": 248.0,
+          "radius": 134.0,
+          "source": "hough_circle",
+          "candidate_score": 113.9016791746176,
+          "prior_direction_similarity": 0.6169240474700928,
+          "prior_distance_score": 0.7321367561817169
+        },
+        {
+          "rank": 4,
+          "x": 273.0,
+          "y": 257.0,
+          "radius": 130.0,
+          "source": "hough_circle",
+          "candidate_score": 111.04234982915868,
+          "prior_direction_similarity": 0.6290847659111023,
+          "prior_distance_score": 0.7387183308601379
+        }
+      ],
+      "method": {
+        "assignment": "argmax over curvature centers of radial edge-gradient similarity weighted by local edge strength, tile phase coherence, and tile normal coherence; small center-distance term only breaks flat ties",
+        "smoothing": "none; Gaussian blur is used only inside Sobel edge-gradient extraction",
+        "boundary": "domain boundary pixels are 4-neighbor assignment transitions"
+      },
+      "metrics": {
+        "center_count": 4,
+        "domain_boundary_pixels": 32949,
+        "visible_band_pixels": 38896,
+        "domain_boundary_visible_band_iou_exact": 0.17686083082164855,
+        "domain_boundary_visible_band_iou_boundary_dilated_r2": 0.3542669030134211,
+        "bands_explained_by_domain_transitions_fraction_r2": 0.8991927190456602,
+        "domain_boundaries_near_visible_bands_fraction_r2": 0.8870678928040304,
+        "average_normal_delta_across_domain_boundaries": 0.4359193229763676,
+        "average_normal_delta_inside_domains": 0.36856337406356493,
+        "normal_delta_boundary_inside_ratio": 1.1827526923529466,
+        "mean_assignment_confidence": 0.2249339371919632,
+        "mean_best_center_score": 0.261772483587265,
+        "mean_neighbor_normal_delta_on_domain_boundary": 0.43726667761802673,
+        "mean_neighbor_normal_delta_inside_domain_pixels": 0.3594866991043091
+      },
+      "outputs": {
+        "domain_segmentation": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/curvature_domain_ownership_2026-04-25/00_mouth_domain_segmentation.png",
+        "domain_boundary_overlay": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/curvature_domain_ownership_2026-04-25/00_mouth_domain_boundary_overlay.png"
+      }
+    },
+    {
+      "checkpoint": "post_throat_backstep_01",
+      "prefix": "01_post_throat_backstep_01",
+      "inputs": {
+        "curvature_summary": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/curvature_center_polar_2026-04-25/curvature_center_summary.json",
+        "debug_image": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/01_post_throat_backstep_01_debug_normal_rgb.png",
+        "hit_diagnostics": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/01_post_throat_backstep_01_hit_diagnostics.csv",
+        "visible_band_mask": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-22T18-12-54/post_throat_backstep_01_visible_band_mask.png",
+        "phase_coherence_summary": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/phase_coherence_field_2026-04-25/phase_coherence_summary.json"
+      },
+      "centers": [
+        {
+          "rank": 1,
+          "x": 310.5,
+          "y": 134.5,
+          "radius": 150.48764038085938,
+          "source": "contour_min_enclosing_circle",
+          "candidate_score": 139.91237442675686,
+          "prior_direction_similarity": 0.6604636907577515,
+          "prior_distance_score": 0.7226780652999878
+        },
+        {
+          "rank": 2,
+          "x": 286.0,
+          "y": 138.0,
+          "radius": 134.0,
+          "source": "hough_circle",
+          "candidate_score": 127.08534165703034,
+          "prior_direction_similarity": 0.6598954200744629,
+          "prior_distance_score": 0.7390220463275909
+        },
+        {
+          "rank": 3,
+          "x": 303.0,
+          "y": 113.0,
+          "radius": 132.0,
+          "source": "hough_circle",
+          "candidate_score": 121.99037962757828,
+          "prior_direction_similarity": 0.6536104083061218,
+          "prior_distance_score": 0.7186433374881744
+        },
+        {
+          "rank": 4,
+          "x": 284.0,
+          "y": 267.0,
+          "radius": 134.0,
+          "source": "hough_circle",
+          "candidate_score": 113.1289674428887,
+          "prior_direction_similarity": 0.6488403677940369,
+          "prior_distance_score": 0.7147727608680725
+        }
+      ],
+      "method": {
+        "assignment": "argmax over curvature centers of radial edge-gradient similarity weighted by local edge strength, tile phase coherence, and tile normal coherence; small center-distance term only breaks flat ties",
+        "smoothing": "none; Gaussian blur is used only inside Sobel edge-gradient extraction",
+        "boundary": "domain boundary pixels are 4-neighbor assignment transitions"
+      },
+      "metrics": {
+        "center_count": 4,
+        "domain_boundary_pixels": 29022,
+        "visible_band_pixels": 33133,
+        "domain_boundary_visible_band_iou_exact": 0.13689158786193778,
+        "domain_boundary_visible_band_iou_boundary_dilated_r2": 0.2756943306570539,
+        "bands_explained_by_domain_transitions_fraction_r2": 0.8125132043581927,
+        "domain_boundaries_near_visible_bands_fraction_r2": 0.8075942388532837,
+        "average_normal_delta_across_domain_boundaries": 0.4595399986053566,
+        "average_normal_delta_inside_domains": 0.3713091555662723,
+        "normal_delta_boundary_inside_ratio": 1.2376209735645385,
+        "mean_assignment_confidence": 0.21768537163734436,
+        "mean_best_center_score": 0.31969040632247925,
+        "mean_neighbor_normal_delta_on_domain_boundary": 0.451368123292923,
+        "mean_neighbor_normal_delta_inside_domain_pixels": 0.36421531438827515
+      },
+      "outputs": {
+        "domain_segmentation": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/curvature_domain_ownership_2026-04-25/01_post_throat_backstep_01_domain_segmentation.png",
+        "domain_boundary_overlay": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/curvature_domain_ownership_2026-04-25/01_post_throat_backstep_01_domain_boundary_overlay.png"
+      }
+    }
+  ]
+}

@@ -236,6 +236,14 @@ tile-level phase memory propagation
 multi-scale coherence enforcement
 temporal persistence across frames
 
+### 5.7 Geometric Phase Memory as Future Work
+
+The phase-coherence diagnostics in Section 5.6, combined with the geometric sampling texture results in Section 5.5, suggest a richer organizational framework for xPRIMEray sampling guidance: **geometric phase memory**. Drawing analogical inspiration from Anirban Bandyopadhyay's work on phase-coherent computation — including the Geometric Musical Language (GML), the Phase Prime Metric (PPM), and the time-crystal model of self-organizing biological systems — we propose that the renderer's sampled ray field can be interpreted not as a set of independent pixels, but as a phase-organized event grammar whose coherence structure persists across observer positions and, prospectively, across frames.
+
+In this framing, detected geometric primitives (Hough lines, arcs, circles, contour corners, annular sectors) serve as the GML event vocabulary; the per-checkpoint phase-coherence and neighbor-normal-delta scores serve as PPM proxies; curvature-center candidates and line-intersection clusters serve as nodes of silence; and the regime-clustering attractor basins (near-side, bridge, far-side) serve as a coarse phase-basin decomposition analogous to time-crystal attractors.
+
+A concrete five-phase implementation roadmap — covering primitive extraction, attractor/node detection, persistence tracking, domain-aware render guidance, and strict validation separation between raw truth and phase-memory previews — is detailed in [`analysis/geometric_phase_memory.md`](./analysis/geometric_phase_memory.md). All mappings are offered as design grammar and analogy rather than as physical or biological proof, and the raw row-pass validation truth is explicitly preserved as the sole source of classification ground truth throughout.
+
 ---
 
 ## 6. Discussion
