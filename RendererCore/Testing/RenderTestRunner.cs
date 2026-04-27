@@ -101,6 +101,8 @@ public partial class RenderTestRunner : Node
 	private const string ExportTelemetryHeatmapsCmdArgPrefix = "--export-telemetry-heatmaps=";
 	private const string TelemetryHeatmapOutputDirCmdArgPrefix = "--telemetry-heatmap-output-dir=";
 	private const string TelemetryHeatmapModeCmdArgPrefix = "--telemetry-heatmap-mode=";
+	private const string EnableDomainTelemetryCmdArgPrefix = "--enable-domain-telemetry=";
+	private const string EnableDomainAwareFirstHitResolverCmdArgPrefix = "--enable-domain-aware-first-hit-resolver=";
 	private const string TelemetryExperimentEnvelopeScaleCmdArgPrefix = "--telemetry-experiment-envelope-scale=";
 	private const string TelemetryAdaptiveEnvelopeCmdArgPrefix = "--telemetry-adaptive-envelope=";
 	private const string AdaptiveEnvelopeControllerModeCmdArgPrefix = "--adaptive-envelope-controller-mode=";
@@ -173,6 +175,10 @@ public partial class RenderTestRunner : Node
 	private string _telemetryHeatmapOutputDir = string.Empty;
 	private bool _telemetryHeatmapModeCliOverrideKnown = false;
 	private string _telemetryHeatmapMode = "basic";
+	private bool _domainTelemetryCliOverrideKnown = false;
+	private bool _enableDomainTelemetry = false;
+	private bool _domainAwareFirstHitResolverCliOverrideKnown = false;
+	private bool _enableDomainAwareFirstHitResolver = false;
 	private bool _telemetryExperimentEnvelopeScaleCliOverrideKnown = false;
 	private float _telemetryExperimentEnvelopeScale = 1.0f;
 	private bool _telemetryAdaptiveEnvelopeCliOverrideKnown = false;
@@ -483,6 +489,8 @@ public partial class RenderTestRunner : Node
 				$"telemetry_heatmaps={(ResolveTelemetryHeatmapExportEnabledForLogging() ? 1 : 0)} " +
 				$"telemetry_heatmap_dir={Sanitize(ResolveTelemetryHeatmapDirForLogging())} " +
 				$"telemetry_heatmap_mode={Sanitize(ResolveTelemetryHeatmapModeForLogging())} " +
+				$"domain_telemetry={(ResolveDomainTelemetryEnabledForLogging() ? 1 : 0)} " +
+				$"domain_aware_first_hit={(_domainAwareFirstHitResolverCliOverrideKnown ? (_enableDomainAwareFirstHitResolver ? 1 : 0) : ((_film != null && GodotObject.IsInstanceValid(_film) && _film.EnableDomainAwareFirstHitResolver) ? 1 : 0))} " +
 				$"telemetry_adaptive_envelope={(_telemetryAdaptiveEnvelopeCliOverrideKnown ? (_telemetryAdaptiveEnvelopeEnabled ? 1 : 0) : 0)} " +
 				$"adaptive_envelope_controller_mode={Sanitize(_adaptiveEnvelopeControllerModeCliOverrideKnown ? _adaptiveEnvelopeControllerMode : "three_state")} " +
 				$"adaptive_envelope_prior_source={Sanitize(_adaptiveEnvelopePriorSourceCliOverrideKnown ? _adaptiveEnvelopePriorSource : "same_pass")} " +
@@ -1083,6 +1091,16 @@ public partial class RenderTestRunner : Node
 		if (_telemetryHeatmapModeCliOverrideKnown)
 		{
 			_film.TelemetryHeatmapMode = _telemetryHeatmapMode;
+		}
+		if (_domainTelemetryCliOverrideKnown)
+		{
+			_film.EnableDomainTelemetry = _enableDomainTelemetry;
+		}
+		if (_domainAwareFirstHitResolverCliOverrideKnown)
+		{
+			_film.EnableDomainAwareFirstHitResolver = _enableDomainAwareFirstHitResolver;
+			if (_enableDomainAwareFirstHitResolver)
+				_film.EnableDomainTelemetry = true;
 		}
 		if (_telemetryAdaptiveEnvelopeCliOverrideKnown)
 		{
@@ -2374,7 +2392,8 @@ public partial class RenderTestRunner : Node
 	{
 		bool captureRgb = _renderTestCaptureEnabled;
 		bool exportTelemetryHeatmaps = ResolveTelemetryHeatmapExportEnabled();
-		if (!captureRgb && !exportTelemetryHeatmaps)
+		bool exportDomainTelemetry = ResolveDomainTelemetryEnabled();
+		if (!captureRgb && !exportTelemetryHeatmaps && !exportDomainTelemetry)
 		{
 			return;
 		}
@@ -2430,6 +2449,12 @@ public partial class RenderTestRunner : Node
 				Directory.CreateDirectory(telemetryOutputDir);
 				TryWriteTelemetryHeatmapArtifacts(capturePath, telemetryOutputDir, runExecId);
 			}
+			if (exportDomainTelemetry)
+			{
+				string domainOutputDir = ResolveTelemetryHeatmapOutputDir(captureDir);
+				Directory.CreateDirectory(domainOutputDir);
+				TryWriteDomainTelemetryArtifacts(capturePath, domainOutputDir, runExecId);
+			}
 		}
 		catch (Exception ex)
 		{
@@ -2446,6 +2471,15 @@ public partial class RenderTestRunner : Node
 			return _exportTelemetryHeatmaps;
 		}
 		return _film != null && GodotObject.IsInstanceValid(_film) && _film.ExportTelemetryHeatmaps;
+	}
+
+	private bool ResolveDomainTelemetryEnabled()
+	{
+		if (_domainTelemetryCliOverrideKnown)
+		{
+			return _enableDomainTelemetry;
+		}
+		return _film != null && GodotObject.IsInstanceValid(_film) && _film.EnableDomainTelemetry;
 	}
 
 	private string ResolveTelemetryHeatmapOutputDir(string fallbackDir)
@@ -2722,6 +2756,107 @@ public partial class RenderTestRunner : Node
 		}
 	}
 
+	private void TryWriteDomainTelemetryArtifacts(string capturePath, string outputDir, ulong runExecId)
+	{
+		if (_film == null || !GodotObject.IsInstanceValid(_film) || !_film.EnableDomainTelemetry)
+		{
+			return;
+		}
+
+		string captureStem = Path.GetFileNameWithoutExtension(capturePath);
+		string scenePath = GetTree().CurrentScene?.SceneFilePath ?? string.Empty;
+		GrinFilmCamera.DomainTelemetryMapKind[] kinds =
+		{
+			GrinFilmCamera.DomainTelemetryMapKind.DomainId,
+			GrinFilmCamera.DomainTelemetryMapKind.DomainConfidence,
+			GrinFilmCamera.DomainTelemetryMapKind.BoundaryConfidence,
+			GrinFilmCamera.DomainTelemetryMapKind.SelectionFlip
+		};
+
+		System.Text.StringBuilder summary = new System.Text.StringBuilder(768);
+		summary.Append("{");
+		summary.Append("\"fixture\":\"").Append(JsonEscape(GetHudFixtureToken(_requestedFixture))).Append("\",");
+		summary.Append("\"scene\":\"").Append(JsonEscape(scenePath)).Append("\",");
+		summary.Append("\"capture_stem\":\"").Append(JsonEscape(captureStem)).Append("\",");
+		summary.Append("\"run_id\":").Append(runExecId).Append(",");
+		summary.Append("\"image_width\":").Append(_film.FilmWidthPixels).Append(",");
+		summary.Append("\"image_height\":").Append(_film.FilmHeightRows).Append(",");
+		summary.Append("\"feature_flag\":\"EnableDomainTelemetry\",");
+		summary.Append("\"shading_behavior\":\"unchanged\",");
+		summary.Append("\"maps\":[");
+
+		bool wroteAny = false;
+		List<string> exportedPaths = new List<string>();
+		for (int i = 0; i < kinds.Length; i++)
+		{
+			GrinFilmCamera.DomainTelemetryMapKind kind = kinds[i];
+			if (!_film.TryCopyDomainTelemetryImageForTesting(kind, out Image image, out GrinFilmCamera.TelemetryHeatmapStats stats) ||
+				image == null)
+			{
+				continue;
+			}
+
+			string suffix = kind switch
+			{
+				GrinFilmCamera.DomainTelemetryMapKind.DomainId => "domain_id",
+				GrinFilmCamera.DomainTelemetryMapKind.DomainConfidence => "domain_confidence",
+				GrinFilmCamera.DomainTelemetryMapKind.BoundaryConfidence => "boundary_confidence",
+				GrinFilmCamera.DomainTelemetryMapKind.SelectionFlip => "selection_flip",
+				_ => "domain_unknown"
+			};
+			string outPath = Path.Combine(outputDir, captureStem + "." + suffix + ".png");
+			Error saveError = image.SavePng(outPath);
+			if (saveError != Error.Ok)
+			{
+				GD.PrintErr(
+					$"[RenderTestRunner][DomainTelemetry][FAIL] run_id={runExecId} fixture={GetHudFixtureToken(_requestedFixture)} " +
+					$"kind={stats.Key} path={outPath} error={saveError}");
+				continue;
+			}
+			exportedPaths.Add(outPath);
+
+			if (wroteAny)
+			{
+				summary.Append(",");
+			}
+			wroteAny = true;
+			summary.Append("{")
+				.Append("\"key\":\"").Append(JsonEscape(stats.Key)).Append("\",")
+				.Append("\"path\":\"").Append(JsonEscape(outPath)).Append("\",")
+				.Append("\"min\":").Append(FormatJsonFloat(stats.Min)).Append(",")
+				.Append("\"max\":").Append(FormatJsonFloat(stats.Max)).Append(",")
+				.Append("\"mean\":").Append(FormatJsonFloat(stats.Mean)).Append(",")
+				.Append("\"p10\":").Append(FormatJsonFloat(stats.P10)).Append(",")
+				.Append("\"p50\":").Append(FormatJsonFloat(stats.P50)).Append(",")
+				.Append("\"p90\":").Append(FormatJsonFloat(stats.P90)).Append(",")
+				.Append("\"mode\":\"").Append(JsonEscape(stats.Mode)).Append("\"")
+				.Append("}");
+
+			GD.Print(
+				$"[RenderTestRunner][DomainTelemetry] run_id={runExecId} fixture={GetHudFixtureToken(_requestedFixture)} " +
+				$"kind={stats.Key} min={stats.Min:0.###} max={stats.Max:0.###} mean={stats.Mean:0.###} path={outPath}");
+		}
+
+		summary.Append("]}");
+		if (!wroteAny)
+		{
+			return;
+		}
+
+		string summaryPath = Path.Combine(outputDir, captureStem + ".domain_telemetry_summary.json");
+		try
+		{
+			File.WriteAllText(summaryPath, summary.ToString());
+			exportedPaths.Add(summaryPath);
+			GD.Print($"[RenderTestRunner][DomainTelemetrySummary] run_id={runExecId} path={summaryPath}");
+			GD.Print($"[RenderTestRunner][DomainTelemetryPacket] run_id={runExecId} paths={string.Join(" | ", exportedPaths)}");
+		}
+		catch (Exception ex)
+		{
+			GD.PrintErr($"[RenderTestRunner][DomainTelemetrySummary][FAIL] run_id={runExecId} path={summaryPath} exception={ex.GetType().Name}");
+		}
+	}
+
 	private void TryWriteTransportDiagnosticsCapture(string capturePath)
 	{
 		if (string.IsNullOrWhiteSpace(capturePath))
@@ -2819,6 +2954,15 @@ public partial class RenderTestRunner : Node
 			return _exportTelemetryHeatmaps;
 		}
 		return _film != null && GodotObject.IsInstanceValid(_film) && _film.ExportTelemetryHeatmaps;
+	}
+
+	private bool ResolveDomainTelemetryEnabledForLogging()
+	{
+		if (_domainTelemetryCliOverrideKnown)
+		{
+			return _enableDomainTelemetry;
+		}
+		return _film != null && GodotObject.IsInstanceValid(_film) && _film.EnableDomainTelemetry;
 	}
 
 	private string ResolveTelemetryHeatmapDirForLogging()
@@ -3737,6 +3881,10 @@ public partial class RenderTestRunner : Node
 		_telemetryHeatmapOutputDir = string.Empty;
 		_telemetryHeatmapModeCliOverrideKnown = false;
 		_telemetryHeatmapMode = "basic";
+		_domainTelemetryCliOverrideKnown = false;
+		_enableDomainTelemetry = false;
+		_domainAwareFirstHitResolverCliOverrideKnown = false;
+		_enableDomainAwareFirstHitResolver = false;
 		_telemetryExperimentEnvelopeScaleCliOverrideKnown = false;
 		_telemetryExperimentEnvelopeScale = 1.0f;
 		_telemetryAdaptiveEnvelopeCliOverrideKnown = false;
@@ -3791,6 +3939,21 @@ public partial class RenderTestRunner : Node
 		{
 			_telemetryHeatmapModeCliOverrideKnown = true;
 			_telemetryHeatmapMode = telemetryHeatmapMode.Trim().ToLowerInvariant();
+		}
+		if (TryGetBoolCmdArgValue(EnableDomainTelemetryCmdArgPrefix, out bool enableDomainTelemetry))
+		{
+			_domainTelemetryCliOverrideKnown = true;
+			_enableDomainTelemetry = enableDomainTelemetry;
+		}
+		if (TryGetBoolCmdArgValue(EnableDomainAwareFirstHitResolverCmdArgPrefix, out bool enableDomainAwareFirstHitResolver))
+		{
+			_domainAwareFirstHitResolverCliOverrideKnown = true;
+			_enableDomainAwareFirstHitResolver = enableDomainAwareFirstHitResolver;
+			if (enableDomainAwareFirstHitResolver)
+			{
+				_domainTelemetryCliOverrideKnown = true;
+				_enableDomainTelemetry = true;
+			}
 		}
 		if (TryGetStringCmdArgValue(TelemetryExperimentEnvelopeScaleCmdArgPrefix, out string telemetryExperimentEnvelopeScaleRaw) &&
 			!string.IsNullOrWhiteSpace(telemetryExperimentEnvelopeScaleRaw) &&

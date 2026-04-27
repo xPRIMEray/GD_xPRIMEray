@@ -594,6 +594,14 @@ public partial class GrinFilmCamera : Node
 		TurnMax = 13
 	}
 
+	public enum DomainTelemetryMapKind
+	{
+		DomainId = 0,
+		DomainConfidence = 1,
+		BoundaryConfidence = 2,
+		SelectionFlip = 3
+	}
+
 	public readonly struct AdaptiveEnvelopeScaleStats
 	{
 		public readonly float Min;
@@ -1099,6 +1107,15 @@ public partial class GrinFilmCamera : Node
 	[Export] public string TelemetryHeatmapOutputDir = "";
 	/// <summary>Normalization mode for telemetry heatmaps. "basic" uses percentile clamping.</summary>
 	[Export] public string TelemetryHeatmapMode = "basic";
+	/// <summary>Enables renderer-integrated curvature-domain debug buffers. Observe-only; does not affect final shading.</summary>
+	[Export] public bool EnableDomainTelemetry = false;
+	/// <summary>Uses a local curvature-domain continuity heuristic to choose between plausible competing first hits. This is a rendering heuristic, not a physical model.</summary>
+	[Export] public bool EnableDomainAwareFirstHitResolver = false;
+	[Export] public float DomainAwareConfidenceWeight = 1.0f;
+	[Export] public float DomainAwareNeighborContinuityWeight = 0.75f;
+	[Export] public float DomainAwarePhaseWeight = 0.35f;
+	[Export] public float DomainAwareDiscontinuityPenalty = 0.50f;
+	[Export] public float DomainAwareFlipPenalty = 0.60f;
 	/// <summary>Enables telemetry-driven adaptive envelope scaling for pass-2 candidate gathering.</summary>
 	[Export] public bool AdaptiveTelemetryEnvelopeScalingEnabled = false;
 	/// <summary>Selects the adaptive controller layout. "three_state" preserves the current reference behavior; "four_state_warm" enables a hot/warm/neutral/relaxed split.</summary>
@@ -1881,6 +1898,11 @@ public partial class GrinFilmCamera : Node
 	private float[] _telemetryD2kMax = Array.Empty<float>();
 	private float[] _telemetryTurnSum = Array.Empty<float>();
 	private float[] _telemetryTurnMax = Array.Empty<float>();
+	public float[] DomainIdBuffer { get; private set; } = Array.Empty<float>();
+	public float[] DomainConfidenceBuffer { get; private set; } = Array.Empty<float>();
+	public float[] BoundaryConfidenceBuffer { get; private set; } = Array.Empty<float>();
+	public float[] SelectionFlipBuffer { get; private set; } = Array.Empty<float>();
+	private PixelDomainState[] _pixelDomainStates = Array.Empty<PixelDomainState>();
 	private float[] _adaptiveEnvelopeMismatchPrior = Array.Empty<float>();
 	private byte[] _adaptiveEnvelopeActiveMask = Array.Empty<byte>();
 	private float[] _adaptiveEnvelopePreviousMismatchPrior = Array.Empty<float>();
@@ -2830,6 +2852,12 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 		public float AdaptiveEnvelopeWarmScale;
 		public float AdaptiveEnvelopeNeutralScale;
 		public float AdaptiveEnvelopeRelaxedScale;
+		public bool EnableDomainAwareFirstHitResolver;
+		public float DomainAwareConfidenceWeight;
+		public float DomainAwareNeighborContinuityWeight;
+		public float DomainAwarePhaseWeight;
+		public float DomainAwareDiscontinuityPenalty;
+		public float DomainAwareFlipPenalty;
 		public bool UseGeometryTLASPruning;
 		public bool Pass2HitBackFaces;
 		public bool Pass2HitFromInside;
@@ -3332,6 +3360,34 @@ private sealed class OverlayRollingWindow
 		public float ObservedPathLength;
 		public float TerminalOpticalPathLength;
 		public float ObservedOpticalPathLength;
+		public PixelDomainState DomainState;
+		public float SelectionFlip;
+	}
+
+	private struct DomainAwareHitCandidate
+	{
+		public bool Valid;
+		public int SegmentIndex;
+		public float Distance;
+		public Vector3 Position;
+		public Vector3 Normal;
+		public Vector3 RayDir;
+		public ulong ColliderId;
+		public int PrimitiveOrShapeId;
+		public string ColliderName;
+		public int CandidateCount;
+		public bool SegmentPostRemap;
+		public int BoundaryRemapCount;
+		public int EventCount;
+		public int BoundaryCrossings;
+		public int TransformCount;
+		public int EntryCount;
+		public int ExitCount;
+		public int LastCrossingLayer;
+		public byte LastCrossingKind;
+		public bool AmbiguousOrdering;
+		public PixelDomainState DomainState;
+		public float Score;
 	}
 
 	private struct Pass2ShadedSample
@@ -5917,6 +5973,127 @@ private sealed class OverlayRollingWindow
 		return true;
 	}
 
+	public bool TryCopyDomainTelemetryImageForTesting(DomainTelemetryMapKind kind, out Image image, out TelemetryHeatmapStats stats)
+	{
+		image = null;
+		stats = default;
+		if (!DomainTelemetryEnabledForCurrentRun())
+		{
+			return false;
+		}
+		if (!TryGetDomainTelemetrySource(kind, out float[] source, out string key))
+		{
+			return false;
+		}
+
+		stats = ComputeTelemetryHeatmapStats(source, key, kind == DomainTelemetryMapKind.DomainId ? "full" : "basic");
+		image = Image.CreateEmpty(_filmWidth, _filmHeight, false, Image.Format.Rgba8);
+		for (int y = 0; y < _filmHeight; y++)
+		{
+			int rowBase = y * _filmWidth;
+			for (int x = 0; x < _filmWidth; x++)
+			{
+				float raw = source[rowBase + x];
+				Color color = kind == DomainTelemetryMapKind.DomainId
+					? EvaluateDomainIdColor((CurvatureDomainKind)Mathf.RoundToInt(raw))
+					: EvaluateDomainScalarColor(raw);
+				image.SetPixel(x, y, color);
+			}
+		}
+		return true;
+	}
+
+	public bool TryGetDomainTelemetryStatsForTesting(DomainTelemetryMapKind kind, out TelemetryHeatmapStats stats)
+	{
+		stats = default;
+		if (!DomainTelemetryEnabledForCurrentRun())
+		{
+			return false;
+		}
+		if (!TryGetDomainTelemetrySource(kind, out float[] source, out string key))
+		{
+			return false;
+		}
+
+		stats = ComputeTelemetryHeatmapStats(source, key, kind == DomainTelemetryMapKind.DomainId ? "full" : "basic");
+		return true;
+	}
+
+	public bool TryWriteDomainTelemetryArtifactsForTesting(string outputDir, string captureStem, string contextLabel, out string summaryPath)
+	{
+		summaryPath = string.Empty;
+		if (!DomainTelemetryEnabledForCurrentRun() || string.IsNullOrWhiteSpace(outputDir))
+		{
+			return false;
+		}
+
+		string safeStem = string.IsNullOrWhiteSpace(captureStem) ? "capture" : captureStem.Trim();
+		string safeContext = string.IsNullOrWhiteSpace(contextLabel) ? "unknown" : contextLabel.Trim();
+		Directory.CreateDirectory(outputDir);
+
+		DomainTelemetryMapKind[] kinds =
+		{
+			DomainTelemetryMapKind.DomainId,
+			DomainTelemetryMapKind.DomainConfidence,
+			DomainTelemetryMapKind.BoundaryConfidence,
+			DomainTelemetryMapKind.SelectionFlip
+		};
+
+		StringBuilder summary = new StringBuilder(512);
+		summary.Append("{");
+		summary.Append("\"context\":\"").Append(JsonEscapeForArtifact(safeContext)).Append("\",");
+		summary.Append("\"capture_stem\":\"").Append(JsonEscapeForArtifact(safeStem)).Append("\",");
+		summary.Append("\"image_width\":").Append(_filmWidth).Append(",");
+		summary.Append("\"image_height\":").Append(_filmHeight).Append(",");
+		summary.Append("\"feature_flag\":\"EnableDomainTelemetry\",");
+		summary.Append("\"shading_behavior\":\"unchanged\",");
+		summary.Append("\"maps\":[");
+
+		bool wroteAny = false;
+		for (int i = 0; i < kinds.Length; i++)
+		{
+			DomainTelemetryMapKind kind = kinds[i];
+			if (!TryCopyDomainTelemetryImageForTesting(kind, out Image image, out TelemetryHeatmapStats stats) || image == null)
+			{
+				continue;
+			}
+
+			string suffix = GetDomainTelemetryFileSuffix(kind);
+			string outPath = Path.Combine(outputDir, safeStem + "." + suffix + ".png");
+			if (image.SavePng(outPath) != Error.Ok)
+			{
+				continue;
+			}
+
+			if (wroteAny)
+			{
+				summary.Append(",");
+			}
+			wroteAny = true;
+			summary.Append("{")
+				.Append("\"key\":\"").Append(JsonEscapeForArtifact(stats.Key)).Append("\",")
+				.Append("\"path\":\"").Append(JsonEscapeForArtifact(outPath)).Append("\",")
+				.Append("\"min\":").Append(FormatJsonFloatForArtifact(stats.Min)).Append(",")
+				.Append("\"max\":").Append(FormatJsonFloatForArtifact(stats.Max)).Append(",")
+				.Append("\"mean\":").Append(FormatJsonFloatForArtifact(stats.Mean)).Append(",")
+				.Append("\"p10\":").Append(FormatJsonFloatForArtifact(stats.P10)).Append(",")
+				.Append("\"p50\":").Append(FormatJsonFloatForArtifact(stats.P50)).Append(",")
+				.Append("\"p90\":").Append(FormatJsonFloatForArtifact(stats.P90)).Append(",")
+				.Append("\"mode\":\"").Append(JsonEscapeForArtifact(stats.Mode)).Append("\"")
+				.Append("}");
+		}
+
+		summary.Append("]}");
+		if (!wroteAny)
+		{
+			return false;
+		}
+
+		summaryPath = Path.Combine(outputDir, safeStem + ".domain_telemetry_summary.json");
+		File.WriteAllText(summaryPath, summary.ToString());
+		return true;
+	}
+
 	public bool TryGetTelemetryCorrelationStatsForTesting(out float workVsCurvatureMean, out float queryVsCurvatureMean)
 	{
 		workVsCurvatureMean = 0f;
@@ -6363,6 +6540,22 @@ private sealed class OverlayRollingWindow
 			_adaptiveEnvelopePreviousMismatchPrior = new float[safeCount];
 		if (_adaptiveEnvelopePreviousActiveMask.Length != safeCount)
 			_adaptiveEnvelopePreviousActiveMask = new byte[safeCount];
+		EnsureDomainTelemetryCapacity(safeCount);
+	}
+
+	private void EnsureDomainTelemetryCapacity(int pixelCount)
+	{
+		int safeCount = EnableDomainTelemetry ? Math.Max(0, pixelCount) : 0;
+		if (DomainIdBuffer.Length != safeCount)
+			DomainIdBuffer = new float[safeCount];
+		if (DomainConfidenceBuffer.Length != safeCount)
+			DomainConfidenceBuffer = new float[safeCount];
+		if (BoundaryConfidenceBuffer.Length != safeCount)
+			BoundaryConfidenceBuffer = new float[safeCount];
+		if (SelectionFlipBuffer.Length != safeCount)
+			SelectionFlipBuffer = new float[safeCount];
+		if (_pixelDomainStates.Length != safeCount)
+			_pixelDomainStates = new PixelDomainState[safeCount];
 	}
 
 	private void ClearTelemetryHeatmapArrays()
@@ -6378,6 +6571,16 @@ private sealed class OverlayRollingWindow
 		Array.Clear(_telemetryTurnSum, 0, _telemetryTurnSum.Length);
 		Array.Clear(_telemetryTurnMax, 0, _telemetryTurnMax.Length);
 		Array.Clear(_adaptiveEnvelopeMismatchPrior, 0, _adaptiveEnvelopeMismatchPrior.Length);
+		ClearDomainTelemetryArrays();
+	}
+
+	private void ClearDomainTelemetryArrays()
+	{
+		Array.Clear(DomainIdBuffer, 0, DomainIdBuffer.Length);
+		Array.Clear(DomainConfidenceBuffer, 0, DomainConfidenceBuffer.Length);
+		Array.Clear(BoundaryConfidenceBuffer, 0, BoundaryConfidenceBuffer.Length);
+		Array.Clear(SelectionFlipBuffer, 0, SelectionFlipBuffer.Length);
+		Array.Clear(_pixelDomainStates, 0, _pixelDomainStates.Length);
 	}
 
 	private bool AdaptiveTelemetryEnvelopeScalingEnabledForCurrentRun()
@@ -6863,6 +7066,18 @@ private sealed class OverlayRollingWindow
 			&& _telemetryTurnMax.Length == _filmWidth * _filmHeight;
 	}
 
+	private bool DomainTelemetryEnabledForCurrentRun()
+	{
+		return EnableDomainTelemetry
+			&& _filmWidth > 0
+			&& _filmHeight > 0
+			&& DomainIdBuffer.Length == _filmWidth * _filmHeight
+			&& DomainConfidenceBuffer.Length == _filmWidth * _filmHeight
+			&& BoundaryConfidenceBuffer.Length == _filmWidth * _filmHeight
+			&& SelectionFlipBuffer.Length == _filmWidth * _filmHeight
+			&& _pixelDomainStates.Length == _filmWidth * _filmHeight;
+	}
+
 	private bool TryGetTelemetrySource(TelemetryHeatmapKind kind, out float[] source, out string key)
 	{
 		source = null;
@@ -6926,6 +7141,40 @@ private sealed class OverlayRollingWindow
 		}
 
 		return TelemetryHeatmapsEnabledForCurrentRun() && source != null;
+	}
+
+	private bool TryGetDomainTelemetrySource(DomainTelemetryMapKind kind, out float[] source, out string key)
+	{
+		source = null;
+		key = string.Empty;
+		if (!DomainTelemetryEnabledForCurrentRun())
+		{
+			return false;
+		}
+
+		switch (kind)
+		{
+			case DomainTelemetryMapKind.DomainId:
+				source = DomainIdBuffer;
+				key = "domain_id";
+				break;
+			case DomainTelemetryMapKind.DomainConfidence:
+				source = DomainConfidenceBuffer;
+				key = "domain_confidence";
+				break;
+			case DomainTelemetryMapKind.BoundaryConfidence:
+				source = BoundaryConfidenceBuffer;
+				key = "boundary_confidence";
+				break;
+			case DomainTelemetryMapKind.SelectionFlip:
+				source = SelectionFlipBuffer;
+				key = "selection_flip";
+				break;
+			default:
+				return false;
+		}
+
+		return source != null && source.Length == _filmWidth * _filmHeight;
 	}
 
 	private float[] BuildDerivedWorkScoreArray()
@@ -7204,6 +7453,426 @@ private sealed class OverlayRollingWindow
 
 		float tail = (clamped - 0.66f) / 0.34f;
 		return new Color(1f, 1f - tail, 0f, 1f);
+	}
+
+	private static Color EvaluateDomainScalarColor(float value)
+	{
+		float t = Mathf.Clamp(float.IsFinite(value) ? value : 0f, 0f, 1f);
+		return new Color(t, t, t, 1f);
+	}
+
+	private static Color EvaluateDomainIdColor(CurvatureDomainKind kind)
+	{
+		return kind switch
+		{
+			CurvatureDomainKind.MouthNear => new Color(0.95f, 0.20f, 0.18f, 1f),
+			CurvatureDomainKind.ThroatBridge => new Color(0.18f, 0.78f, 0.92f, 1f),
+			CurvatureDomainKind.FarWall => new Color(0.24f, 0.46f, 0.95f, 1f),
+			CurvatureDomainKind.TangentialFar => new Color(0.94f, 0.78f, 0.20f, 1f),
+			CurvatureDomainKind.Background => new Color(0.10f, 0.12f, 0.16f, 1f),
+			CurvatureDomainKind.BoundaryMixed => new Color(0.95f, 0.20f, 0.86f, 1f),
+			_ => new Color(0.0f, 0.0f, 0.0f, 1f),
+		};
+	}
+
+	public static string GetDomainTelemetryFileSuffix(DomainTelemetryMapKind kind)
+	{
+		return kind switch
+		{
+			DomainTelemetryMapKind.DomainId => "domain_id",
+			DomainTelemetryMapKind.DomainConfidence => "domain_confidence",
+			DomainTelemetryMapKind.BoundaryConfidence => "boundary_confidence",
+			DomainTelemetryMapKind.SelectionFlip => "selection_flip",
+			_ => "domain_unknown"
+		};
+	}
+
+	private static string FormatJsonFloatForArtifact(float value)
+	{
+		float safe = (float.IsNaN(value) || float.IsInfinity(value)) ? 0f : value;
+		return safe.ToString("0.######", CultureInfo.InvariantCulture);
+	}
+
+	private static string JsonEscapeForArtifact(string value)
+	{
+		if (string.IsNullOrEmpty(value))
+		{
+			return string.Empty;
+		}
+
+		return value
+			.Replace("\\", "\\\\")
+			.Replace("\"", "\\\"");
+	}
+
+	private bool DomainAwareFirstHitResolverEnabledForCurrentRun(in EffectiveConfig cfg)
+	{
+		return cfg.EnableDomainAwareFirstHitResolver
+			&& EnableDomainTelemetry
+			&& _filmWidth > 0
+			&& _filmHeight > 0
+			&& _pixelDomainStates.Length == _filmWidth * _filmHeight;
+	}
+
+	private bool TryGetNeighborDomainPrior(int x, int y, int filmW, int filmH, out CurvatureDomainKind priorKind, out float confidence)
+	{
+		priorKind = CurvatureDomainKind.Unknown;
+		confidence = 0f;
+		if (_pixelDomainStates == null || _pixelDomainStates.Length != filmW * filmH)
+			return false;
+
+		int[] counts = new int[Enum.GetValues(typeof(CurvatureDomainKind)).Length];
+		float[] weights = new float[counts.Length];
+		void Observe(int nx, int ny)
+		{
+			if (nx < 0 || nx >= filmW || ny < 0 || ny >= filmH)
+				return;
+			PixelDomainState neighbor = _pixelDomainStates[(ny * filmW) + nx];
+			int kind = (int)neighbor.Primary.Kind;
+			if ((uint)kind >= (uint)counts.Length || neighbor.Primary.Kind == CurvatureDomainKind.Unknown)
+				return;
+			float w = Mathf.Clamp(neighbor.Primary.Confidence, 0f, 1f);
+			if (w <= 0f)
+				return;
+			counts[kind]++;
+			weights[kind] += w;
+		}
+
+		Observe(x - 1, y);
+		Observe(x + 1, y);
+		Observe(x, y - 1);
+		Observe(x, y + 1);
+
+		int bestKind = -1;
+		float bestWeight = 0f;
+		float totalWeight = 0f;
+		for (int i = 0; i < weights.Length; i++)
+		{
+			totalWeight += weights[i];
+			if (weights[i] > bestWeight)
+			{
+				bestWeight = weights[i];
+				bestKind = i;
+			}
+		}
+
+		if (bestKind < 0 || totalWeight <= 0f)
+			return false;
+
+		priorKind = (CurvatureDomainKind)bestKind;
+		confidence = Mathf.Clamp(bestWeight / totalWeight, 0f, 1f);
+		return true;
+	}
+
+	private DomainAwareHitCandidate BuildDomainAwareHitCandidate(
+		in EffectiveConfig cfg,
+		int globalPi,
+		int x,
+		int y,
+		int filmW,
+		int filmH,
+		int segmentIndex,
+		float distance,
+		Vector3 position,
+		Vector3 normal,
+		Vector3 rayDir,
+		ulong colliderId,
+		int primitiveOrShapeId,
+		string colliderName,
+		int candidateCount,
+		bool segmentPostRemap,
+		int boundaryRemapCount,
+		int eventCount,
+		int boundaryCrossings,
+		int transformCount,
+		int entryCount,
+		int exitCount,
+		int lastCrossingLayer,
+		byte lastCrossingKind,
+		bool ambiguousOrdering,
+		bool prevHadHit,
+		bool testedAnyInPass0)
+	{
+		string fixtureHitKind = ClassifyFixtureHitKind(true, false, colliderId);
+		PixelDomainState domainState = BuildPixelDomainState(
+			globalPi,
+			true,
+			fixtureHitKind,
+			distance,
+			true,
+			distance,
+			colliderId,
+			colliderId,
+			normal,
+			normal,
+			rayDir,
+			segmentPostRemap,
+			segmentPostRemap ? 1 : 0,
+			boundaryRemapCount,
+			boundaryCrossings,
+			transformCount,
+			entryCount,
+			exitCount,
+			ambiguousOrdering,
+			prevHadHit,
+			testedAnyInPass0);
+
+		bool hasPrior = TryGetNeighborDomainPrior(x, y, filmW, filmH, out CurvatureDomainKind priorKind, out float priorConfidence);
+		bool domainFlipAgainstPrior = hasPrior
+			&& priorKind != CurvatureDomainKind.Unknown
+			&& priorKind != domainState.Primary.Kind;
+		float neighborAgreement = !hasPrior
+			? 0.5f
+			: (domainFlipAgainstPrior ? 0f : Mathf.Clamp(priorConfidence, 0f, 1f));
+
+		// Rendering heuristic only: choose among real candidate hits using local continuity signals.
+		float score = 1f
+			+ (cfg.DomainAwareConfidenceWeight * domainState.Primary.Confidence)
+			+ (cfg.DomainAwareNeighborContinuityWeight * neighborAgreement)
+			+ (cfg.DomainAwarePhaseWeight * domainState.Primary.PhaseCoherence)
+			- (cfg.DomainAwareDiscontinuityPenalty * domainState.Primary.NormalDiscontinuity)
+			- (cfg.DomainAwareFlipPenalty * (domainFlipAgainstPrior ? 1f : 0f));
+
+		return new DomainAwareHitCandidate
+		{
+			Valid = true,
+			SegmentIndex = segmentIndex,
+			Distance = distance,
+			Position = position,
+			Normal = normal,
+			RayDir = rayDir,
+			ColliderId = colliderId,
+			PrimitiveOrShapeId = primitiveOrShapeId,
+			ColliderName = colliderName ?? "<none>",
+			CandidateCount = candidateCount,
+			SegmentPostRemap = segmentPostRemap,
+			BoundaryRemapCount = boundaryRemapCount,
+			EventCount = eventCount,
+			BoundaryCrossings = boundaryCrossings,
+			TransformCount = transformCount,
+			EntryCount = entryCount,
+			ExitCount = exitCount,
+			LastCrossingLayer = lastCrossingLayer,
+			LastCrossingKind = lastCrossingKind,
+			AmbiguousOrdering = ambiguousOrdering,
+			DomainState = domainState,
+			Score = score
+		};
+	}
+
+	private bool ShouldReplaceStoredHitCandidateDomainAware(
+		in EffectiveConfig cfg,
+		in DomainAwareHitCandidate incumbent,
+		in DomainAwareHitCandidate candidate)
+	{
+		if (!candidate.Valid)
+			return false;
+		if (!incumbent.Valid)
+			return true;
+
+		const float PlausibleCompetingHitDistanceEps = 0.08f;
+		float distanceDelta = candidate.Distance - incumbent.Distance;
+		if (distanceDelta < -PlausibleCompetingHitDistanceEps)
+			return true;
+		if (distanceDelta > PlausibleCompetingHitDistanceEps)
+			return false;
+
+		float scoreDelta = candidate.Score - incumbent.Score;
+		if (scoreDelta > 0.0001f)
+			return true;
+		if (scoreDelta < -0.0001f)
+			return false;
+
+		return candidate.Distance < incumbent.Distance;
+	}
+
+	private void ApplyDomainAwareHitCandidate(
+		in DomainAwareHitCandidate candidate,
+		ref float bestHit,
+		ref float hitDistance,
+		ref bool hadHit,
+		ref string hitName,
+		bool needHitName,
+		ref Vector3 bestHp,
+		ref Vector3 bestHn,
+		ref Vector3 bestRayDir,
+		ref ulong bestCid,
+		ref int bestPrimitiveOrShapeId,
+		ref bool bestHitWasPostRemap,
+		ref int bestEventCountThisPixel,
+		ref int bestBoundaryCrossingsThisPixel,
+		ref int bestTransformCountThisPixel,
+		ref int bestEntryCountThisPixel,
+		ref int bestExitCountThisPixel,
+		ref int bestLastCrossingLayerThisPixel,
+		ref byte bestLastCrossingKindThisPixel,
+		ref bool bestAmbiguousOrderingThisPixel)
+	{
+		bestHit = candidate.Distance;
+		hitDistance = candidate.Distance;
+		hadHit = true;
+		if (needHitName)
+			hitName = candidate.ColliderName;
+		bestHp = candidate.Position;
+		bestHn = candidate.Normal;
+		bestRayDir = candidate.RayDir;
+		bestCid = candidate.ColliderId;
+		bestPrimitiveOrShapeId = candidate.PrimitiveOrShapeId;
+		bestHitWasPostRemap = candidate.SegmentPostRemap;
+		bestEventCountThisPixel = candidate.EventCount;
+		bestBoundaryCrossingsThisPixel = candidate.BoundaryCrossings;
+		bestTransformCountThisPixel = candidate.TransformCount;
+		bestEntryCountThisPixel = candidate.EntryCount;
+		bestExitCountThisPixel = candidate.ExitCount;
+		bestLastCrossingLayerThisPixel = candidate.LastCrossingLayer;
+		bestLastCrossingKindThisPixel = candidate.LastCrossingKind;
+		bestAmbiguousOrderingThisPixel = candidate.AmbiguousOrdering;
+	}
+
+	private PixelDomainState BuildPixelDomainState(
+		int globalPi,
+		bool hadHit,
+		string fixtureHitKind,
+		float hitDistance,
+		bool firstAcceptedHadHit,
+		float firstAcceptedHitDistance,
+		ulong firstAcceptedCid,
+		ulong bestCid,
+		Vector3 firstAcceptedNormal,
+		Vector3 bestNormal,
+		Vector3 bestRayDir,
+		bool bestHitWasPostRemap,
+		int postRemapSegmentCount,
+		int maxBoundaryRemapCount,
+		int boundaryCrossings,
+		int transformCount,
+		int entryCount,
+		int exitCount,
+		bool ambiguousOrdering,
+		bool prevHadHit,
+		bool testedAnyInPass0)
+	{
+		float normalDiscontinuity = 0f;
+		if (firstAcceptedHadHit && hadHit)
+		{
+			Vector3 a = firstAcceptedNormal.Normalized();
+			Vector3 b = bestNormal.Normalized();
+			if (a.LengthSquared() > 1e-12f && b.LengthSquared() > 1e-12f)
+			{
+				normalDiscontinuity = 1f - Mathf.Clamp(a.Dot(b), -1f, 1f);
+			}
+		}
+
+		Vector3 rayDir = bestRayDir.Normalized();
+		Vector3 normal = bestNormal.Normalized();
+		float radialScore = 0f;
+		if (rayDir.LengthSquared() > 1e-12f && normal.LengthSquared() > 1e-12f)
+		{
+			radialScore = Mathf.Abs(rayDir.Dot(normal));
+		}
+		float tangentialScore = 1f - radialScore;
+		float curvatureMagnitude = Mathf.Clamp(
+			(0.20f * postRemapSegmentCount) +
+			(0.25f * boundaryCrossings) +
+			(0.35f * maxBoundaryRemapCount) +
+			(0.20f * transformCount),
+			0f,
+			1f);
+		bool finalVsFirstFlip = firstAcceptedHadHit && hadHit && (
+			firstAcceptedCid != bestCid ||
+			Mathf.Abs(firstAcceptedHitDistance - hitDistance) > 1e-4f ||
+			normalDiscontinuity > 0.15f);
+		bool frameHitFlip = prevHadHit != hadHit && testedAnyInPass0;
+		float selectionFlip = finalVsFirstFlip || frameHitFlip ? 1f : 0f;
+		float boundaryConfidence = Mathf.Clamp(Mathf.Max(
+			Mathf.Max(normalDiscontinuity * 0.65f, curvatureMagnitude),
+			Mathf.Max(ambiguousOrdering ? 0.85f : 0f, selectionFlip * 0.70f)), 0f, 1f);
+
+		CurvatureDomainKind kind;
+		if (!hadHit)
+		{
+			kind = CurvatureDomainKind.Background;
+		}
+		else if (boundaryConfidence >= 0.72f || ambiguousOrdering)
+		{
+			kind = CurvatureDomainKind.BoundaryMixed;
+		}
+		else if (bestHitWasPostRemap || postRemapSegmentCount > 0 || transformCount > 0 || entryCount > 0 || exitCount > 0)
+		{
+			kind = CurvatureDomainKind.ThroatBridge;
+		}
+		else if (string.Equals(fixtureHitKind, "source", StringComparison.OrdinalIgnoreCase) ||
+			string.Equals(fixtureHitKind, "absorbed", StringComparison.OrdinalIgnoreCase))
+		{
+			kind = CurvatureDomainKind.MouthNear;
+		}
+		else if (tangentialScore >= 0.65f)
+		{
+			kind = CurvatureDomainKind.TangentialFar;
+		}
+		else if (string.Equals(fixtureHitKind, "background", StringComparison.OrdinalIgnoreCase))
+		{
+			kind = CurvatureDomainKind.FarWall;
+		}
+		else
+		{
+			kind = CurvatureDomainKind.Unknown;
+		}
+
+		float baseConfidence = hadHit ? 0.72f : 0.55f;
+		if (firstAcceptedHadHit) baseConfidence += 0.12f;
+		if (kind == CurvatureDomainKind.BoundaryMixed) baseConfidence = Math.Max(baseConfidence, boundaryConfidence);
+		float confidence = Mathf.Clamp(baseConfidence - (boundaryConfidence * 0.22f), 0f, 1f);
+		int stableFrameCount = 1;
+		if ((uint)globalPi < (uint)_pixelDomainStates.Length &&
+			_pixelDomainStates[globalPi].Primary.Kind == kind &&
+			_pixelDomainStates[globalPi].IsBoundaryPixel == (boundaryConfidence >= 0.55f))
+		{
+			stableFrameCount = Math.Min(_pixelDomainStates[globalPi].StableFrameCount + 1, int.MaxValue);
+		}
+
+		return new PixelDomainState
+		{
+			Primary = new DomainSignature
+			{
+				Kind = kind,
+				Confidence = confidence,
+				PhaseCoherence = 1f - boundaryConfidence,
+				CurvatureMagnitude = curvatureMagnitude,
+				NormalDiscontinuity = normalDiscontinuity,
+				BoundaryGradient = new Vector2(selectionFlip, boundaryConfidence),
+				RadialScore = radialScore,
+				TangentialScore = tangentialScore
+			},
+			Secondary = new DomainSignature
+			{
+				Kind = boundaryConfidence >= 0.55f ? CurvatureDomainKind.BoundaryMixed : CurvatureDomainKind.Unknown,
+				Confidence = boundaryConfidence,
+				PhaseCoherence = 1f - boundaryConfidence,
+				CurvatureMagnitude = curvatureMagnitude,
+				NormalDiscontinuity = normalDiscontinuity,
+				BoundaryGradient = new Vector2(selectionFlip, boundaryConfidence),
+				RadialScore = radialScore,
+				TangentialScore = tangentialScore
+			},
+			IsBoundaryPixel = boundaryConfidence >= 0.55f,
+			BoundaryConfidence = boundaryConfidence,
+			StableFrameCount = stableFrameCount
+		};
+	}
+
+	private void WriteDomainTelemetryBlock(int x, int y, int stride, int filmW, int filmH, in PixelDomainState state, float selectionFlip)
+	{
+		if (!DomainTelemetryEnabledForCurrentRun())
+		{
+			return;
+		}
+
+		FillFloatBlock(DomainIdBuffer, x, y, stride, filmW, filmH, (float)state.Primary.Kind);
+		FillFloatBlock(DomainConfidenceBuffer, x, y, stride, filmW, filmH, state.Primary.Confidence);
+		FillFloatBlock(BoundaryConfidenceBuffer, x, y, stride, filmW, filmH, state.BoundaryConfidence);
+		FillFloatBlock(SelectionFlipBuffer, x, y, stride, filmW, filmH, selectionFlip);
+		FillDomainStateBlock(_pixelDomainStates, x, y, stride, filmW, filmH, state);
 	}
 
 	private static float ComputePearsonCorrelation(float[] lhs, float[] rhs)
@@ -11240,6 +11909,8 @@ private sealed class OverlayRollingWindow
 										int firstAcceptedPrimitiveOrShapeId = -1;
 										int firstAcceptedSegmentIndex = -1;
 										int firstAcceptedCandidateCount = -1;
+										bool domainAwareFirstHitResolver = DomainAwareFirstHitResolverEnabledForCurrentRun(in cfg);
+										DomainAwareHitCandidate bestDomainAwareHit = default;
 										string hitName = "<none>";
 										bool needHitName = cfg.NeedColliderNames;
 										bool absorbedByInnerRadius = false;
@@ -11434,7 +12105,64 @@ private sealed class OverlayRollingWindow
 												if (segPostRemap)
 													postRemapGeometryHitCountThisPixel++;
 												ulong resolveStartUsec = statsEnabled ? Time.GetTicksUsec() : 0;
-												if (hitDistAlongRay < bestHit)
+												if (domainAwareFirstHitResolver)
+												{
+													Vector3 sweepRayDir = segLen > 0f ? (segB - segA).Normalized() : (hpSweep - segA).Normalized();
+													DomainAwareHitCandidate sweepCandidate = BuildDomainAwareHitCandidate(
+														in cfg,
+														globalPi,
+														x,
+														y,
+														filmW,
+														filmH,
+														si,
+														hitDistAlongRay,
+														hpSweep,
+														Vector3.Up,
+														sweepRayDir,
+														0,
+														-1,
+														"<none>",
+														geomCandidateCount,
+														segPostRemap,
+														seg.BoundaryRemapCount,
+														seg.EventCount,
+														seg.BoundaryCrossings,
+														seg.TransformCount,
+														seg.EntryCount,
+														seg.ExitCount,
+														seg.LastCrossingLayer,
+														seg.LastCrossingKind,
+														seg.AmbiguousOrdering,
+														prevHadHit,
+														testedAnyInPass0ThisPixel);
+													if (ShouldReplaceStoredHitCandidateDomainAware(in cfg, in bestDomainAwareHit, in sweepCandidate))
+													{
+														bestDomainAwareHit = sweepCandidate;
+														ApplyDomainAwareHitCandidate(
+															in sweepCandidate,
+															ref bestHit,
+															ref hitDistance,
+															ref hadHit,
+															ref hitName,
+															needHitName,
+															ref bestHp,
+															ref bestHn,
+															ref bestRayDir,
+															ref bestCid,
+															ref bestPrimitiveOrShapeId,
+															ref bestHitWasPostRemap,
+															ref bestEventCountThisPixel,
+															ref bestBoundaryCrossingsThisPixel,
+															ref bestTransformCountThisPixel,
+															ref bestEntryCountThisPixel,
+															ref bestExitCountThisPixel,
+															ref bestLastCrossingLayerThisPixel,
+															ref bestLastCrossingKindThisPixel,
+															ref bestAmbiguousOrderingThisPixel);
+													}
+												}
+												else if (hitDistAlongRay < bestHit)
 												{
 													bestHit = hitDistAlongRay;
 													hadHit = true;
@@ -11454,7 +12182,7 @@ private sealed class OverlayRollingWindow
 												}
 												if (statsEnabled && resolveStartUsec > 0)
 													chunk.ResolveUsec += (long)(Time.GetTicksUsec() - resolveStartUsec);
-												if (cfg.NearestHitOnly)
+												if (cfg.NearestHitOnly && !domainAwareFirstHitResolver)
 													break;
 												continue;
 											}
@@ -11521,7 +12249,64 @@ private sealed class OverlayRollingWindow
 											if (segPostRemap)
 												postRemapGeometryHitCountThisPixel++;
 											ulong resolveStart = statsEnabled ? Time.GetTicksUsec() : 0;
-											if (ShouldReplaceStoredHitCandidate(
+											if (domainAwareFirstHitResolver)
+											{
+												Vector3 candidateRayDir = segLen > 0f ? (segB - segA).Normalized() : (hp - segA).Normalized();
+												DomainAwareHitCandidate domainCandidate = BuildDomainAwareHitCandidate(
+													in cfg,
+													globalPi,
+													x,
+													y,
+													filmW,
+													filmH,
+													si,
+													resolvedHitDistance,
+													hp,
+													hn,
+													candidateRayDir,
+													cid,
+													primitiveOrShapeId,
+													cname,
+													geomCandidateCount,
+													segPostRemap,
+													seg.BoundaryRemapCount,
+													seg.EventCount,
+													seg.BoundaryCrossings,
+													seg.TransformCount,
+													seg.EntryCount,
+													seg.ExitCount,
+													seg.LastCrossingLayer,
+													seg.LastCrossingKind,
+													seg.AmbiguousOrdering,
+													prevHadHit,
+													testedAnyInPass0ThisPixel);
+												if (ShouldReplaceStoredHitCandidateDomainAware(in cfg, in bestDomainAwareHit, in domainCandidate))
+												{
+													bestDomainAwareHit = domainCandidate;
+													ApplyDomainAwareHitCandidate(
+														in domainCandidate,
+														ref bestHit,
+														ref hitDistance,
+														ref hadHit,
+														ref hitName,
+														needHitName,
+														ref bestHp,
+														ref bestHn,
+														ref bestRayDir,
+														ref bestCid,
+														ref bestPrimitiveOrShapeId,
+														ref bestHitWasPostRemap,
+														ref bestEventCountThisPixel,
+														ref bestBoundaryCrossingsThisPixel,
+														ref bestTransformCountThisPixel,
+														ref bestEntryCountThisPixel,
+														ref bestExitCountThisPixel,
+														ref bestLastCrossingLayerThisPixel,
+														ref bestLastCrossingKindThisPixel,
+														ref bestAmbiguousOrderingThisPixel);
+												}
+											}
+											else if (ShouldReplaceStoredHitCandidate(
 												hadHit,
 												bestHit,
 												bestHn,
@@ -11552,7 +12337,7 @@ private sealed class OverlayRollingWindow
 											}
 											if (statsEnabled && resolveStart > 0)
 												chunk.ResolveUsec += (long)(Time.GetTicksUsec() - resolveStart);
-											if (cfg.NearestHitOnly)
+											if (cfg.NearestHitOnly && !domainAwareFirstHitResolver)
 												break;
 										}
 
@@ -11644,6 +12429,36 @@ private sealed class OverlayRollingWindow
 										else chunk.Geom.GeomPixelNoCandidates++;
 										if (hadHit) chunk.Geom.GeomHitAccepted++;
 
+										PixelDomainState domainState = default;
+										float selectionFlip = 0f;
+										if (DomainTelemetryEnabledForCurrentRun())
+										{
+											string domainFixtureHitKind = ClassifyFixtureHitKind(hadHit, absorbedByInnerRadius, bestCid);
+											domainState = BuildPixelDomainState(
+												globalPi,
+												hadHit,
+												domainFixtureHitKind,
+												hitDistance,
+												firstAcceptedHadHit,
+												firstAcceptedHitDistance,
+												firstAcceptedCid,
+												bestCid,
+												firstAcceptedHn,
+												bestHn,
+												bestRayDir,
+												bestHitWasPostRemap,
+												postRemapSegmentCountThisPixel,
+												maxBoundaryRemapCountThisPixel,
+												hadHit ? bestBoundaryCrossingsThisPixel : terminalBoundaryCrossingsThisPixel,
+												hadHit ? bestTransformCountThisPixel : terminalTransformCountThisPixel,
+												hadHit ? bestEntryCountThisPixel : terminalEntryCountThisPixel,
+												hadHit ? bestExitCountThisPixel : terminalExitCountThisPixel,
+												hadHit ? bestAmbiguousOrderingThisPixel : terminalAmbiguousOrderingThisPixel,
+												prevHadHit,
+												testedAnyInPass0ThisPixel);
+											selectionFlip = domainState.Primary.BoundaryGradient.X;
+										}
+
 										localSamples.Add(new Pass2ResolvedSample
 										{
 											X = x,
@@ -11698,7 +12513,9 @@ private sealed class OverlayRollingWindow
 											TerminalPathLength = terminalPathLengthThisPixel,
 											ObservedPathLength = hadHit ? hitDistance : terminalPathLengthThisPixel,
 											TerminalOpticalPathLength = terminalPathLengthThisPixel,
-											ObservedOpticalPathLength = hadHit ? hitDistance : terminalPathLengthThisPixel
+											ObservedOpticalPathLength = hadHit ? hitDistance : terminalPathLengthThisPixel,
+											DomainState = domainState,
+											SelectionFlip = selectionFlip
 										});
 									}
 								}
@@ -12042,6 +12859,7 @@ private sealed class OverlayRollingWindow
 								AccumulateTelemetryBlock(_telemetryQueryCount, sample.X, sample.Y, sample.Stride, sample.QueryCount);
 								AccumulateTelemetryBlock(_telemetryResolveCount, sample.X, sample.Y, sample.Stride, sample.ResolveCount);
 							}
+							WriteDomainTelemetryBlock(sample.X, sample.Y, sample.Stride, filmW, filmH, in sample.DomainState, sample.SelectionFlip);
 							if (statsEnabled) _perfFrame.FilledPixels += filled;
 							if (framePerfEnabled) bandFilledPixels += filled;
 							if (sample.HadHit)
@@ -12513,6 +13331,8 @@ private sealed class OverlayRollingWindow
 						int firstAcceptedPrimitiveOrShapeId = -1;
 						int firstAcceptedSegmentIndex = -1;
 						int firstAcceptedCandidateCount = -1;
+						bool domainAwareFirstHitResolver = DomainAwareFirstHitResolverEnabledForCurrentRun(in cfg);
+						DomainAwareHitCandidate bestDomainAwareHit = default;
 						bool absorbedByInnerRadius = false;
 						int postRemapSegmentCountThisPixel = 0;
 						int postRemapCandidateSegmentCountThisPixel = 0;
@@ -12606,7 +13426,7 @@ private sealed class OverlayRollingWindow
 								break;
 							if (forceStride1 && !pass1StoppedEarly)
 							{
-								if (hadHit)
+								if (hadHit && !domainAwareFirstHitResolver)
 									break;
 								if (!allowInstabilityPass)
 								{
@@ -14318,7 +15138,7 @@ private sealed class OverlayRollingWindow
 									int acceptedCandidateCount = geomCandidateInstanceCount;
 									bool acceptedSegPostRemap = segPostRemap;
 
-									if (cfg.Pass2FirstHitCandidateWindowEnabled && !firstAcceptedHadHit && !cfg.NearestHitOnly)
+									if (cfg.Pass2FirstHitCandidateWindowEnabled && !firstAcceptedHadHit && (!cfg.NearestHitOnly || domainAwareFirstHitResolver))
 									{
 										const int MaxFirstHitWindowCandidates = 5;
 										int[] candidateSegmentIndices = new int[MaxFirstHitWindowCandidates];
@@ -14439,31 +15259,80 @@ private sealed class OverlayRollingWindow
 										if (candidateHitCount > 1)
 										{
 											int bestCandidateIndex = 0;
-											float bestCandidateScore = float.PositiveInfinity;
-											for (int ci = 0; ci < candidateHitCount; ci++)
+											if (domainAwareFirstHitResolver)
 											{
-												Vector3 normalA = candidateNormals[ci].Normalized();
-												float minNormalDiscontinuity = 2f;
-												for (int cj = 0; cj < candidateHitCount; cj++)
+												DomainAwareHitCandidate bestWindowCandidate = default;
+												for (int ci = 0; ci < candidateHitCount; ci++)
 												{
-													if (ci == cj)
-														continue;
-													Vector3 normalB = candidateNormals[cj].Normalized();
-													float normalDot = normalA.Dot(normalB);
-													if (!float.IsFinite(normalDot))
-														normalDot = -1f;
-													normalDot = Mathf.Clamp(normalDot, -1f, 1f);
-													minNormalDiscontinuity = Math.Min(minNormalDiscontinuity, 1f - normalDot);
+													ref readonly var candidateSegForDomain = ref _segBuf[segOffset + candidateSegmentIndices[ci]];
+													Vector3 candidateSegDelta = candidateSegForDomain.B - candidateSegForDomain.A;
+													float candidateSegLenForDomain = candidateSegDelta.Length();
+													Vector3 candidateRayDir = candidateSegLenForDomain > 0f
+														? candidateSegDelta.Normalized()
+														: (candidatePositions[ci] - candidateSegForDomain.A).Normalized();
+													DomainAwareHitCandidate domainCandidate = BuildDomainAwareHitCandidate(
+														in cfg,
+														globalPi,
+														x,
+														y,
+														filmW,
+														filmH,
+														candidateSegmentIndices[ci],
+														candidateDistances[ci],
+														candidatePositions[ci],
+														candidateNormals[ci],
+														candidateRayDir,
+														candidateColliderIds[ci],
+														candidatePrimitiveIds[ci],
+														candidateNames[ci],
+														candidateCounts[ci],
+														candidateSegForDomain.BoundaryRemapCount > 0,
+														candidateSegForDomain.BoundaryRemapCount,
+														candidateSegForDomain.EventCount,
+														candidateSegForDomain.BoundaryCrossings,
+														candidateSegForDomain.TransformCount,
+														candidateSegForDomain.EntryCount,
+														candidateSegForDomain.ExitCount,
+														candidateSegForDomain.LastCrossingLayer,
+														candidateSegForDomain.LastCrossingKind,
+														candidateSegForDomain.AmbiguousOrdering,
+														prevHadHit,
+														testedAnyInPass0ThisPixel);
+													if (ShouldReplaceStoredHitCandidateDomainAware(in cfg, in bestWindowCandidate, in domainCandidate))
+													{
+														bestWindowCandidate = domainCandidate;
+														bestCandidateIndex = ci;
+													}
 												}
-
-												float sameColliderPenalty = candidateColliderIds[ci] == cid && cid != 0UL ? 0f : 0.25f;
-												float segmentTieBreak = candidateSegmentIndices[ci] * 0.0001f;
-												float distanceTieBreak = candidateDistances[ci] * 0.000001f;
-												float score = (minNormalDiscontinuity * 10f) + sameColliderPenalty + segmentTieBreak + distanceTieBreak;
-												if (score < bestCandidateScore)
+											}
+											else
+											{
+												float bestCandidateScore = float.PositiveInfinity;
+												for (int ci = 0; ci < candidateHitCount; ci++)
 												{
-													bestCandidateScore = score;
-													bestCandidateIndex = ci;
+													Vector3 normalA = candidateNormals[ci].Normalized();
+													float minNormalDiscontinuity = 2f;
+													for (int cj = 0; cj < candidateHitCount; cj++)
+													{
+														if (ci == cj)
+															continue;
+														Vector3 normalB = candidateNormals[cj].Normalized();
+														float normalDot = normalA.Dot(normalB);
+														if (!float.IsFinite(normalDot))
+															normalDot = -1f;
+														normalDot = Mathf.Clamp(normalDot, -1f, 1f);
+														minNormalDiscontinuity = Math.Min(minNormalDiscontinuity, 1f - normalDot);
+													}
+
+													float sameColliderPenalty = candidateColliderIds[ci] == cid && cid != 0UL ? 0f : 0.25f;
+													float segmentTieBreak = candidateSegmentIndices[ci] * 0.0001f;
+													float distanceTieBreak = candidateDistances[ci] * 0.000001f;
+													float score = (minNormalDiscontinuity * 10f) + sameColliderPenalty + segmentTieBreak + distanceTieBreak;
+													if (score < bestCandidateScore)
+													{
+														bestCandidateScore = score;
+														bestCandidateIndex = ci;
+													}
 												}
 											}
 
@@ -14494,7 +15363,70 @@ private sealed class OverlayRollingWindow
 									if (d < bestHitDistAlongRay)
 										bestHitDistAlongRay = d;
 
-									if (ShouldReplaceStoredHitCandidate(
+									ref readonly var acceptedBestSeg = ref _segBuf[segOffset + acceptedSegmentIndex];
+									Vector3 acceptedSegDelta = acceptedBestSeg.B - acceptedBestSeg.A;
+									float acceptedSegLen = acceptedSegDelta.Length();
+									Vector3 acceptedRayDir = acceptedSegLen > 0f ? acceptedSegDelta.Normalized() : (acceptedHp - acceptedBestSeg.A).Normalized();
+									if (domainAwareFirstHitResolver)
+									{
+										DomainAwareHitCandidate domainCandidate = BuildDomainAwareHitCandidate(
+											in cfg,
+											globalPi,
+											x,
+											y,
+											filmW,
+											filmH,
+											acceptedSegmentIndex,
+											d,
+											acceptedHp,
+											acceptedHn,
+											acceptedRayDir,
+											acceptedCid,
+											acceptedPrimitiveOrShapeId,
+											acceptedCname,
+											acceptedCandidateCount,
+											acceptedSegPostRemap,
+											acceptedBestSeg.BoundaryRemapCount,
+											acceptedBestSeg.EventCount,
+											acceptedBestSeg.BoundaryCrossings,
+											acceptedBestSeg.TransformCount,
+											acceptedBestSeg.EntryCount,
+											acceptedBestSeg.ExitCount,
+											acceptedBestSeg.LastCrossingLayer,
+											acceptedBestSeg.LastCrossingKind,
+											acceptedBestSeg.AmbiguousOrdering,
+											prevHadHit,
+											testedAnyInPass0ThisPixel);
+										if (ShouldReplaceStoredHitCandidateDomainAware(in cfg, in bestDomainAwareHit, in domainCandidate))
+										{
+											bestDomainAwareHit = domainCandidate;
+											ApplyDomainAwareHitCandidate(
+												in domainCandidate,
+												ref bestHit,
+												ref hitDistance,
+												ref hadHit,
+												ref hitName,
+												needHitName,
+												ref bestHp,
+												ref bestHn,
+												ref bestRayDir,
+												ref bestCid,
+												ref bestPrimitiveOrShapeId,
+												ref bestHitWasPostRemap,
+												ref bestEventCountThisPixel,
+												ref bestBoundaryCrossingsThisPixel,
+												ref bestTransformCountThisPixel,
+												ref bestEntryCountThisPixel,
+												ref bestExitCountThisPixel,
+												ref bestLastCrossingLayerThisPixel,
+												ref bestLastCrossingKindThisPixel,
+												ref bestAmbiguousOrderingThisPixel);
+											bestPostRemapSectorValid = acceptedSegPostRemap && portalSectorValid;
+											if (bestPostRemapSectorValid)
+												bestPostRemapSectorKey = portalSectorKey;
+										}
+									}
+									else if (ShouldReplaceStoredHitCandidate(
 										hadHit,
 										bestHit,
 										bestHn,
@@ -14509,10 +15441,7 @@ private sealed class OverlayRollingWindow
 										if (needHitName) hitName = acceptedCname;
 										bestHp = acceptedHp;      // ADD
 										bestHn = acceptedHn;      // ADD
-										ref readonly var acceptedBestSeg = ref _segBuf[segOffset + acceptedSegmentIndex];
-										Vector3 acceptedSegDelta = acceptedBestSeg.B - acceptedBestSeg.A;
-										float acceptedSegLen = acceptedSegDelta.Length();
-										bestRayDir = acceptedSegLen > 0f ? acceptedSegDelta.Normalized() : (acceptedHp - acceptedBestSeg.A).Normalized();
+										bestRayDir = acceptedRayDir;
 										bestCid = acceptedCid;
 										bestPrimitiveOrShapeId = acceptedPrimitiveOrShapeId;
 										bestHitWasPostRemap = acceptedSegPostRemap;
@@ -14539,8 +15468,9 @@ private sealed class OverlayRollingWindow
 										continue;
 									}
 									
-									// Otherwise, first hit wins
-									break;
+									// Otherwise, first hit wins. Domain-aware mode keeps scanning plausible real hits for a local continuity choice.
+									if (!domainAwareFirstHitResolver)
+										break;
 								}
 								//////////////////
 							}
@@ -14573,7 +15503,7 @@ private sealed class OverlayRollingWindow
 							if (softGateWatchdogTrippedThisPixel)
 								break;
 
-						if (hadHit)
+						if (hadHit && !domainAwareFirstHitResolver)
 							break;
 					}
 					if (budgetStop) break;
@@ -14714,6 +15644,35 @@ private sealed class OverlayRollingWindow
 
 							if (useThreadedPass2LocalAccumulation)
 							{
+								PixelDomainState resolvedDomainState = default;
+								float resolvedSelectionFlip = 0f;
+								if (DomainTelemetryEnabledForCurrentRun())
+								{
+									string domainFixtureHitKind = ClassifyFixtureHitKind(hadHit, absorbedByInnerRadius, bestCid);
+									resolvedDomainState = BuildPixelDomainState(
+										globalPi,
+										hadHit,
+										domainFixtureHitKind,
+										hitDistance,
+										firstAcceptedHadHit,
+										firstAcceptedHitDistance,
+										firstAcceptedCid,
+										bestCid,
+										firstAcceptedHn,
+										bestHn,
+										bestRayDir,
+										bestHitWasPostRemap,
+										postRemapSegmentCountThisPixel,
+										maxBoundaryRemapCountThisPixel,
+										hadHit ? bestBoundaryCrossingsThisPixel : terminalBoundaryCrossingsThisPixel,
+										hadHit ? bestTransformCountThisPixel : terminalTransformCountThisPixel,
+										hadHit ? bestEntryCountThisPixel : terminalEntryCountThisPixel,
+										hadHit ? bestExitCountThisPixel : terminalExitCountThisPixel,
+										hadHit ? bestAmbiguousOrderingThisPixel : terminalAmbiguousOrderingThisPixel,
+										prevHadHit,
+										testedAnyInPass0ThisPixel);
+									resolvedSelectionFlip = resolvedDomainState.Primary.BoundaryGradient.X;
+								}
 								pass2ResolvedSamples!.Add(new Pass2ResolvedSample
 								{
 									X = x,
@@ -14768,7 +15727,9 @@ private sealed class OverlayRollingWindow
 									TerminalPathLength = terminalPathLengthThisPixel,
 									ObservedPathLength = hadHit ? hitDistance : terminalPathLengthThisPixel,
 									TerminalOpticalPathLength = terminalPathLengthThisPixel,
-									ObservedOpticalPathLength = hadHit ? hitDistance : terminalPathLengthThisPixel
+									ObservedOpticalPathLength = hadHit ? hitDistance : terminalPathLengthThisPixel,
+									DomainState = resolvedDomainState,
+									SelectionFlip = resolvedSelectionFlip
 								});
 								rowHadWritesThisPass = true;
 								continue;
@@ -14940,6 +15901,35 @@ private sealed class OverlayRollingWindow
 							}
 						}
 
+						PixelDomainState domainState = default;
+						float selectionFlip = 0f;
+						if (DomainTelemetryEnabledForCurrentRun())
+						{
+							domainState = BuildPixelDomainState(
+								globalPi,
+								hadHit,
+								fixtureHitKind,
+								hitDistance,
+								firstAcceptedHadHit,
+								firstAcceptedHitDistance,
+								firstAcceptedCid,
+								bestCid,
+								firstAcceptedHn,
+								bestHn,
+								bestRayDir,
+								bestHitWasPostRemap,
+								postRemapSegmentCountThisPixel,
+								maxBoundaryRemapCountThisPixel,
+								hadHit ? bestBoundaryCrossingsThisPixel : terminalBoundaryCrossingsThisPixel,
+								hadHit ? bestTransformCountThisPixel : terminalTransformCountThisPixel,
+								hadHit ? bestEntryCountThisPixel : terminalEntryCountThisPixel,
+								hadHit ? bestExitCountThisPixel : terminalExitCountThisPixel,
+								hadHit ? bestAmbiguousOrderingThisPixel : terminalAmbiguousOrderingThisPixel,
+								prevHadHit,
+								testedAnyInPass0ThisPixel);
+							selectionFlip = domainState.Primary.BoundaryGradient.X;
+						}
+
 						int filled = FillPixelBlock(x, y, stride, col, filmW, filmH);
 						if (telemetryHeatmapsEnabled)
 						{
@@ -14947,6 +15937,7 @@ private sealed class OverlayRollingWindow
 							AccumulateTelemetryBlock(_telemetryQueryCount, x, y, stride, telemetryQueryCountThisPixel);
 							AccumulateTelemetryBlock(_telemetryResolveCount, x, y, stride, telemetryResolveCountThisPixel);
 						}
+						WriteDomainTelemetryBlock(x, y, stride, filmW, filmH, in domainState, selectionFlip);
 						rowHadWritesThisPass |= filled > 0;
 						if (hadHit)
 						{
@@ -17087,6 +18078,29 @@ private sealed class OverlayRollingWindow
 		return filled;
 	}
 
+	private static int FillDomainStateBlock(PixelDomainState[] values, int x, int y, int stride, int filmW, int filmH, PixelDomainState value)
+	{
+		if (values == null || values.Length == 0)
+		{
+			return 0;
+		}
+
+		int safeStride = Math.Max(1, stride);
+		int filled = 0;
+		int yMax = Math.Min(filmH, y + safeStride);
+		int xMax = Math.Min(filmW, x + safeStride);
+		for (int yy = Math.Max(0, y); yy < yMax; yy++)
+		{
+			for (int xx = Math.Max(0, x); xx < xMax; xx++)
+			{
+				values[(yy * filmW) + xx] = value;
+				filled++;
+			}
+		}
+
+		return filled;
+	}
+
 	private void TrackFilmPixelTouch(int pixelIndex)
 	{
 		if (pixelIndex < 0)
@@ -18029,6 +19043,12 @@ private sealed class OverlayRollingWindow
 			AdaptiveEnvelopeWarmScale = Mathf.Clamp(AdaptiveEnvelopeWarmScale, 0.1f, 2.0f),
 			AdaptiveEnvelopeNeutralScale = Mathf.Clamp(AdaptiveEnvelopeNeutralScale, 0.1f, 2.0f),
 			AdaptiveEnvelopeRelaxedScale = Mathf.Clamp(AdaptiveEnvelopeRelaxedScale, 0.1f, 2.0f),
+			EnableDomainAwareFirstHitResolver = EnableDomainAwareFirstHitResolver,
+			DomainAwareConfidenceWeight = Mathf.Max(0f, DomainAwareConfidenceWeight),
+			DomainAwareNeighborContinuityWeight = Mathf.Max(0f, DomainAwareNeighborContinuityWeight),
+			DomainAwarePhaseWeight = Mathf.Max(0f, DomainAwarePhaseWeight),
+			DomainAwareDiscontinuityPenalty = Mathf.Max(0f, DomainAwareDiscontinuityPenalty),
+			DomainAwareFlipPenalty = Mathf.Max(0f, DomainAwareFlipPenalty),
 			UseGeometryTLASPruning = UseGeometryTLASPruning,
 			Pass2HitBackFaces = Pass2HitBackFaces,
 			Pass2HitFromInside = Pass2HitFromInside,
@@ -18341,6 +19361,12 @@ private sealed class OverlayRollingWindow
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.AdaptiveEnvelopeWarmScale));
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.AdaptiveEnvelopeNeutralScale));
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.AdaptiveEnvelopeRelaxedScale));
+		hash.Add(cfg.EnableDomainAwareFirstHitResolver);
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.DomainAwareConfidenceWeight));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.DomainAwareNeighborContinuityWeight));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.DomainAwarePhaseWeight));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.DomainAwareDiscontinuityPenalty));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.DomainAwareFlipPenalty));
 		hash.Add(cfg.UseGeometryTLASPruning);
 		hash.Add(cfg.Pass2HitBackFaces);
 		hash.Add(cfg.Pass2HitFromInside);

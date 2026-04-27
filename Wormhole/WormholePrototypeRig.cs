@@ -257,6 +257,8 @@ public partial class WormholePrototypeRig : Node3D
 	[Export] public string ValidationCapturePath = "res://output/wormhole_test/wormhole_validation_capture.png";
 	[Export] public bool CaptureValidationCompositeScreenshot = true;
 	[Export] public string ValidationCompositeCapturePath = "res://output/wormhole_test/wormhole_validation_composed.png";
+	[Export] public bool EnableDomainTelemetry = false;
+	[Export] public bool EnableDomainAwareFirstHitResolver = false;
 	[Export] public bool EmitBoundaryValidationSummaryAfterCapture = true;
 	[Export] public string BoundaryValidationLabel = "wormhole_validation";
 	[Export] public bool ValidationWaitForFilmWrap = true;
@@ -396,6 +398,11 @@ public partial class WormholePrototypeRig : Node3D
 		_portalB = GetNodeOrNull<WormholePortal>(PortalBPath);
 		_rayBeamRenderer = GetNodeOrNull<RayBeamRenderer>(RayBeamRendererPath);
 		_filmCamera = GetNodeOrNull<GrinFilmCamera>(FilmCameraPath);
+		if (_filmCamera != null && GodotObject.IsInstanceValid(_filmCamera))
+		{
+			_filmCamera.EnableDomainTelemetry = EnableDomainTelemetry;
+			_filmCamera.EnableDomainAwareFirstHitResolver = EnableDomainAwareFirstHitResolver;
+		}
 		_researchOverlay = GetNodeOrNull<WormholeResearchOverlay>("ResearchOverlayDebug");
 		_researchOverlayStatusLabel = GetNodeOrNull<Label>("CanvasLayer/ResearchOverlayPanel/InsetMargin/InsetVBox/OverlayStatus");
 
@@ -1718,6 +1725,23 @@ public partial class WormholePrototypeRig : Node3D
 				continue;
 			}
 
+			if (TryGetRigArgValue(arg, "--enable-domain-telemetry=", out string domainTelemetryValue))
+			{
+				EnableDomainTelemetry = ParseCliBool(domainTelemetryValue);
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--enable-domain-aware-first-hit-resolver=", out string domainAwareFirstHitValue))
+			{
+				EnableDomainAwareFirstHitResolver = ParseCliBool(domainAwareFirstHitValue);
+				if (EnableDomainAwareFirstHitResolver)
+				{
+					EnableDomainTelemetry = true;
+				}
+
+				continue;
+			}
+
 			if (TryGetRigArgValue(arg, "--dual-reality-inset=", out string insetValue))
 			{
 				DualRealityInsetEnabled = ParseCliBool(insetValue);
@@ -1919,10 +1943,30 @@ public partial class WormholePrototypeRig : Node3D
 		if (saveError == Error.Ok)
 		{
 			GD.Print($"[WormholeValidation] capture_saved path={absolutePath} source=film_buffer");
+			TryWriteDomainTelemetryArtifacts(absolutePath);
 		}
 		else
 		{
 			GD.PushWarning($"[WormholeValidation] failed to save capture path={absolutePath} error={saveError}");
+		}
+	}
+
+	private void TryWriteDomainTelemetryArtifacts(string capturePath)
+	{
+		if (_filmCamera == null || !GodotObject.IsInstanceValid(_filmCamera) || !_filmCamera.EnableDomainTelemetry)
+		{
+			return;
+		}
+
+		string outputDir = Path.GetDirectoryName(capturePath) ?? string.Empty;
+		string captureStem = Path.GetFileNameWithoutExtension(capturePath);
+		if (_filmCamera.TryWriteDomainTelemetryArtifactsForTesting(outputDir, captureStem, "wormhole_validation", out string summaryPath))
+		{
+			GD.Print($"[WormholeValidation][DomainTelemetry] summary_path={summaryPath}");
+		}
+		else
+		{
+			GD.PushWarning("[WormholeValidation][DomainTelemetry] no artifacts written");
 		}
 	}
 

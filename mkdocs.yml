@@ -130,8 +130,10 @@ nav:
   - Core Docs:
       - System Architecture: architecture.md
       - Architecture Overview: architecture_overview.md
+      - Architecture Subsystems: architecture/overview.md
       - Architecture Review: architecture_review_ray_renderer.md
       - Code Map (Big 12): code_map_big12.md
+      - Glossary: glossary.md
       - Validation Framework: validation.md
       - Boundary Layer Fixtures: BoundaryLayerFixtures.md
       - Specification Index: SPEC_INDEX.md
@@ -146,6 +148,13 @@ nav:
       - RenderStep Gate Hierarchy: RenderStep_GateHierarchy.md
       - Overspaces: overspaces.md
       - Curved Ray Transport Model Review: Research/curved_ray_transport_model_review.md
+
+  - Diagnostics:
+      - Overview: diagnostics/README.md
+      - Curvature Heatmaps: diagnostics/heatmaps.md
+      - Domain Ownership: diagnostics/domain_ownership.md
+      - Phase Coherence: diagnostics/phase_coherence.md
+      - Tile Coherence: diagnostics/tile_coherence.md
 
   - Specifications — Current:
       - SceneSnapshot Data Layout: spec_scene_snapshot_data_layout_1.md
@@ -189,11 +198,16 @@ nav:
           - TriClock DoE Sandbox Plan: Research/triclock_doe_sandbox_plan.md
           - Subtile Granularity: Research/curved_minimal_subtile_granularity.md
           - Experimental Subtile Scheduler: Research/experimental_subtile_scheduler_mode.md
+      - Domain & Geometry Analysis:
+          - Domain Ownership Analysis: Research/curvature_domain_ownership.md
+          - Geometric Sampling Texture: Research/geometric_sampling_texture.md
+          - Phase Coherence Field: Research/phase_coherence_field.md
 
   - Papers:
       - Paper Index: papers/index.md
       - Paper 000 — Unified Summary (Trilogy): papers/paper_000_unified_summary/paper.md
       - Paper 001 — Proto-Caustic Invariant: papers/paper_001_proto_caustic_invariant/paper.md
+      - Paper 001a — Causal Observer Ladders: papers/paper_001_causal_observer_ladders/paper.md
       - Paper 002 — Low-Value Sector Budget: papers/paper_002_low_value_sector_budget/paper.md
       - Paper 003 — Coupled Invariants & Phase Space: papers/paper_003_coupled_invariants_phase_space/paper.md
       - Paper 004 — Hermetic Throat Validation: papers/paper_004_hermetic_throat_validation/paper.md

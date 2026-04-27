@@ -1,0 +1,141 @@
+\documentclass[11pt]{article}
+
+\usepackage{amsmath, amssymb, graphicx, hyperref}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\title{Derivative-Aware Ray Stepping with Deadband Filtering:\\
+A Sparse Control Strategy and the Perceptual Curvature Threshold Hypothesis}
+
+\author{Anonymous Author(s)}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We introduce a deadband-filtered derivative-aware stepping method for curved-ray integration and demonstrate that it eliminates the majority of control adjustments while preserving bitwise-identical image outputs. We propose the \textit{Perceptual Curvature Threshold Hypothesis}, which posits that curvature variations below a finite threshold do not contribute to observable ray trajectory differences under discrete sampling. We connect this threshold to geodesic deviation limits in General Relativity and to Nyquist-like sampling constraints. Experimental results show $10^4$--$10^5$ reduction in applied adjustments with no change in output, suggesting that sparse, thresholded control may be a fundamental principle for efficient curved-ray transport.
+\end{abstract}
+
+\section{Introduction}
+
+Curved-ray transport appears in gradient-index (GRIN) optics, atmospheric refraction, and metric-based rendering inspired by General Relativity (GR). Numerical integration of such systems often employs derivative-aware step control to adapt to local curvature.
+
+However, these methods frequently exhibit excessive sensitivity, producing large volumes of micro-adjustments that do not influence the final rendered image.
+
+This work investigates whether a thresholded response can preserve correctness while dramatically reducing control activity.
+
+\section{Method}
+
+\subsection{Derivative-Aware Step Scaling}
+
+Given a local curvature signal $\nabla \mathcal{F}$, a raw scale factor is computed:
+
+\begin{equation}
+s_{\text{raw}} = f(\nabla \mathcal{F})
+\end{equation}
+
+\subsection{Deadband Filtering}
+
+We introduce a deadband threshold $\epsilon$:
+
+\begin{equation}
+s =
+\begin{cases}
+1.0 & \text{if } |s_{\text{raw}} - 1.0| < \epsilon \\
+s_{\text{raw}} & \text{otherwise}
+\end{cases}
+\end{equation}
+
+This suppresses sub-threshold adjustments.
+
+\section{Experimental Setup}
+
+Fixtures:
+\begin{itemize}
+\item \texttt{curved\_minimal}
+\item \texttt{curved\_minimal\_backdrop}
+\end{itemize}
+
+Metrics:
+\begin{itemize}
+\item Candidate vs applied adjustments
+\item Runtime
+\item Output image hash
+\end{itemize}
+
+\section{Results}
+
+\subsection{Adjustment Reduction}
+
+\begin{itemize}
+\item Candidate adjustments: $\sim 10^6$
+\item Applied adjustments: $\sim 10^2$
+\end{itemize}
+
+\subsection{Output Fidelity}
+
+All runs produced identical image hashes, indicating no observable deviation.
+
+\subsection{Runtime}
+
+Runtime remained approximately constant, indicating that adjustment logic is not the dominant computational cost.
+
+\section{Perceptual Curvature Threshold Hypothesis}
+
+We propose that a finite curvature threshold $\kappa_p$ exists such that:
+
+\begin{equation}
+\kappa < \kappa_p \Rightarrow \Delta x_{\text{ray}} < \Delta x_{\text{pixel}}
+\end{equation}
+
+where $\Delta x_{\text{ray}}$ is deviation in ray trajectory and $\Delta x_{\text{pixel}}$ is the sampling resolution.
+
+Thus, curvature below $\kappa_p$ is observationally irrelevant.
+
+\section{Connection to Geodesic Deviation}
+
+In GR, geodesic deviation is governed by:
+
+\begin{equation}
+\frac{D^2 \xi^\mu}{d\tau^2} = - R^\mu_{\ \nu\alpha\beta} u^\nu \xi^\alpha u^\beta
+\end{equation}
+
+Small curvature implies small deviation acceleration. Under discrete integration and finite resolution, these deviations may fall below sampling detectability.
+
+\section{Nyquist-Like Interpretation}
+
+We interpret curvature as a signal with frequency content. If curvature variation occurs below the effective sampling frequency:
+
+\begin{equation}
+\kappa < \kappa_{\text{Nyquist}} \Rightarrow \text{undetectable variation}
+\end{equation}
+
+This suggests a sampling-theoretic limit on meaningful curvature response.
+
+\section{Discussion}
+
+The deadband acts as a filter enforcing:
+
+\begin{itemize}
+\item Sparse control
+\item Noise suppression
+\item Stability
+\end{itemize}
+
+This aligns with principles from signal processing and control theory.
+
+\section{Future Work}
+
+\begin{itemize}
+\item Hysteresis-based temporal stability
+\item Adaptive threshold estimation
+\item Extension to metric-based geodesic solvers
+\end{itemize}
+
+\section{Conclusion}
+
+We demonstrate that most derivative-driven adjustments in curved-ray transport are unnecessary under discrete sampling. A simple deadband filter preserves correctness while enabling sparse control, suggesting a fundamental threshold governing observable curvature.
+
+\end{document}
