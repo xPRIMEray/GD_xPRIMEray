@@ -33,16 +33,7 @@ if [[ -f ".env.local" ]]; then
   source .env.local
 fi
 
-resolve_godot_exe() {
-  if [[ -n "${GODOT_EXE:-}" && -x "${GODOT_EXE}" ]]; then
-    printf '%s\n' "$GODOT_EXE"
-    return 0
-  fi
-  if command -v godot4 >/dev/null 2>&1; then command -v godot4; return 0; fi
-  if command -v godot  >/dev/null 2>&1; then command -v godot;  return 0; fi
-  echo "[tile_priors] ERROR: No Godot executable found. Set GODOT_EXE." >&2
-  return 1
-}
+GODOT_BIN="$ROOT/scripts/godot_local.sh"
 
 emit_build_fingerprint() {
   local dll_path="$ROOT/.godot/mono/temp/bin/Debug/Physical Light and Camera Units.dll"
@@ -57,7 +48,6 @@ emit_build_fingerprint() {
   echo "Build fingerprint: $XPRIMERAY_BUILD_FINGERPRINT"
 }
 
-GODOT_BIN="$(resolve_godot_exe)"
 VARIANT="tile_priors_active"
 SCENE_PATH="${FIXTURE_TILE_PRIORS_SCENE:-res://test-curved-minimal.tscn}"
 FRAMES="${FIXTURE_TILE_PRIORS_FRAMES:-120}"
@@ -106,13 +96,16 @@ if [[ -n "$BAND_SEED" ]]; then
   fi
 fi
 
+export APPDATA="$ROOT/.appdata"
+export LOCALAPPDATA="$ROOT/.localappdata"
+export USERPROFILE="$ROOT/.userprofile"
+
 CMD=(
   "$GODOT_BIN"
   "--path" "."
   "--scene" "$SCENE_PATH"
-  "--headless"
   "--"
-  "--render-test=1"
+  "--render-test"
   "--render-test-capture=1"
   "--render-test-capture-dir=$RUN_DIR"
   "--render-test-frames=$FRAMES"
