@@ -2455,6 +2455,12 @@ public partial class RenderTestRunner : Node
 				Directory.CreateDirectory(domainOutputDir);
 				TryWriteDomainTelemetryArtifacts(capturePath, domainOutputDir, runExecId);
 			}
+			if (_film != null && GodotObject.IsInstanceValid(_film) && _film.EnableTileMetricsScaffold)
+			{
+				string tileOutputDir = ResolveTelemetryHeatmapOutputDir(captureDir);
+				Directory.CreateDirectory(tileOutputDir);
+				TryWriteTileMetricsSummaryArtifacts(capturePath, tileOutputDir, runExecId);
+			}
 		}
 		catch (Exception ex)
 		{
@@ -2854,6 +2860,19 @@ public partial class RenderTestRunner : Node
 		catch (Exception ex)
 		{
 			GD.PrintErr($"[RenderTestRunner][DomainTelemetrySummary][FAIL] run_id={runExecId} path={summaryPath} exception={ex.GetType().Name}");
+		}
+	}
+
+	private void TryWriteTileMetricsSummaryArtifacts(string capturePath, string outputDir, ulong runExecId)
+	{
+		if (_film == null || !GodotObject.IsInstanceValid(_film) || !_film.EnableTileMetricsScaffold)
+			return;
+
+		string captureStem = Path.GetFileNameWithoutExtension(capturePath);
+		string fixtureName = GetHudFixtureToken(_requestedFixture);
+		if (_film.TryWriteTileMetricsSummary(outputDir, captureStem, fixtureName, out string summaryPath))
+		{
+			GD.Print($"[RenderTestRunner][TileMetricsSummary] run_id={runExecId} path={summaryPath}");
 		}
 	}
 

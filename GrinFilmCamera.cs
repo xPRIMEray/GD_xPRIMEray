@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using XPrimeRay.Perf; // adjust namespace new PerfScope.cs
 using RendererCore.Common;
@@ -1368,6 +1369,17 @@ public partial class GrinFilmCamera : Node
 	[Export] public bool EnableTileMetricsReorderExecution = false;
 	/// <summary>Cautious additive memory for reorder-only scheduling; blends decayed per-subtile priors into the existing ranking path.</summary>
 	[Export] public bool EnableTileMetricsPersistentPriors = false;
+	// TileMetricsBandSeed: offline-to-runtime signal bridge.
+	// band_detector.py identifies stepper attractor basins from a prior render.
+	// Those loci seed the TileMetricPersistentPrior system so the renderer
+	// enters subsequent passes with awareness of known high-band-energy regions.
+	// This is the first step toward geometric phase memory:
+	// the tile prior accumulates domain confidence across passes (decay=0.92)
+	// rather than rediscovering attractor basins from scratch each frame.
+	/// <summary>When true, loads band_tile_signals.json at startup to pre-seed tile priors with known band-energy loci. Requires EnableTileMetricsScaffold.</summary>
+	[Export] public bool EnableTileMetricsBandSeed = false;
+	/// <summary>Path to band_tile_signals.json produced by a prior band_detector.py run. Used when EnableTileMetricsBandSeed is true.</summary>
+	[Export] public string TileMetricsBandSeedPath = "";
 
 
 	[ExportGroup("Ray March")]
@@ -2202,6 +2214,14 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private long _tileMetricActualHit50OrdinalCountThisFrame = 0;
 	private readonly System.Collections.Generic.Dictionary<long, TileMetricAccumulator[]> _tileMetricBandHistory = new System.Collections.Generic.Dictionary<long, TileMetricAccumulator[]>();
 	private readonly System.Collections.Generic.Dictionary<string, TileMetricPersistentPrior> _tileMetricPersistentPriors = new System.Collections.Generic.Dictionary<string, TileMetricPersistentPrior>(StringComparer.Ordinal);
+	// Offline band seed state: populated from band_tile_signals.json at startup, keyed by subtile column x-coordinate.
+	// Distinct from _tileMetricPersistentPriors (which uses spatial band keys) — column-keyed for height-independent lookup.
+	private bool _tileMetricBandSeedLoaded = false;
+	private int _tileMetricBandSeedTilesSeeded = 0;
+	private int _tileMetricBandSeedTileGridW = 0;
+	private int _tileMetricBandSeedTileGridH = 0;
+	private int _tileMetricBandSeedTileH = 0;
+	private readonly System.Collections.Generic.Dictionary<int, TileMetricBandSeedEntry> _tileMetricColumnSeeds = new System.Collections.Generic.Dictionary<int, TileMetricBandSeedEntry>();
 	private int[] _tileMetricCurrentExecutionOrder = Array.Empty<int>();
 	private string _tileMetricCurrentExecutionSource = "baseline";
 	private double _tileMetricCurrentExecutionPriorWeight = 0.0;
@@ -2240,6 +2260,8 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private long _tileMetricExecTop1HitImprovedBandsWithHitsThisFrame = 0;
 	private bool ExperimentalSubtileSchedulerModeEnabled => EnableTileMetricsScaffold && EnableTileMetricsReorderExecution;
 	private bool ExperimentalPersistentSubtileSchedulerModeEnabled => ExperimentalSubtileSchedulerModeEnabled && EnableTileMetricsPersistentPriors;
+	// True when offline band seed is loaded and priors can be read for simulation/summary without requiring live reorder execution.
+	private bool TileMetricsBandSeedPriorReadEnabled => EnableTileMetricsScaffold && EnableTileMetricsPersistentPriors && _tileMetricBandSeedLoaded;
 	private int _geomPruneAuditSamplesTakenThisWindow = 0;
 	private double _lastFrameRenderMs = 0.0;
 	private readonly StringBuilder _overlayHudSb = new StringBuilder(256);
@@ -3068,6 +3090,9 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 		public double Hits;
 		public double NoCandidatePixels;
 		public double GeomPixelsProcessed;
+		// Offline band seed fields: set by TryLoadBandTileSeed, decayed with live data, never written by live render accumulation.
+		public double BandEnergy;       // proportional to band_pixel_fraction from band_detector output
+		public double DomainConfidence; // from mean_band_score in band_detector output
 
 		public void DecayInPlace(double decay)
 		{
@@ -3076,6 +3101,8 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 			Hits *= clamped;
 			NoCandidatePixels *= clamped;
 			GeomPixelsProcessed *= clamped;
+			BandEnergy *= clamped;
+			DomainConfidence *= clamped;
 		}
 
 		public void Add(in TileMetricAccumulator subtile)
@@ -3128,6 +3155,14 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 			HasPrior = hasPrior;
 			PriorBlendWeight = priorBlendWeight;
 		}
+	}
+
+	// Offline band seed entry: stored per subtile column x-coordinate in _tileMetricColumnSeeds.
+	// Populated from band_tile_signals.json by TryLoadBandTileSeed(); never written by live render paths.
+	private struct TileMetricBandSeedEntry
+	{
+		public double BandEnergy;   // proportional to band_pixel_fraction (0..1)
+		public double Confidence;   // from mean_band_score in band_detector output
 	}
 
 	private struct OverlayRollingSnapshot
@@ -3718,6 +3753,9 @@ private sealed class OverlayRollingWindow
 
 		// EFFECT: allocate film image/texture buffers as needed.
 		EnsureFilmImageSize(in cfg);
+
+		// EFFECT: load offline band seed after film dimensions are known.
+		TryLoadBandTileSeed();
 
 		// DECISION: if FilmViewPath is set, use it; otherwise build overlay.
 		if (_filmView != null)
@@ -9077,6 +9115,229 @@ private sealed class OverlayRollingWindow
 				string normalized = schedulerValue.Trim().ToLowerInvariant();
 				EnableTileMetricsReorderExecution = normalized is "1" or "true" or "on" or "yes";
 			}
+
+			if (TryGetHudArgValue(arg, "--tile-metrics-band-seed=", out string bandSeedValue))
+			{
+				string normalized = bandSeedValue.Trim().ToLowerInvariant();
+				EnableTileMetricsBandSeed = normalized is "1" or "true" or "on" or "yes";
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--tile-metrics-band-seed-path=", out string bandSeedPath) &&
+				!string.IsNullOrWhiteSpace(bandSeedPath))
+			{
+				TileMetricsBandSeedPath = bandSeedPath.Trim();
+			}
+		}
+	}
+
+	// Loads band_tile_signals.json produced by band_detector.py and pre-seeds _tileMetricColumnSeeds
+	// with known high-band-energy tile columns. Called once at startup after film dimensions are set.
+	// This is the "offline seed" path — distinct from live prior accumulation (SaveTileMetricBandHistoryForCurrentBand).
+	private void TryLoadBandTileSeed()
+	{
+		_tileMetricBandSeedLoaded = false;
+		_tileMetricBandSeedTilesSeeded = 0;
+		_tileMetricBandSeedTileGridW = 0;
+		_tileMetricBandSeedTileGridH = 0;
+		_tileMetricBandSeedTileH = 0;
+		_tileMetricColumnSeeds.Clear();
+
+		if (!EnableTileMetricsScaffold || !EnableTileMetricsBandSeed)
+			return;
+
+		string seedPath = TileMetricsBandSeedPath?.Trim() ?? string.Empty;
+		if (string.IsNullOrWhiteSpace(seedPath))
+		{
+			GD.Print("[TileMetricsBandSeed] EnableTileMetricsBandSeed=true but TileMetricsBandSeedPath is empty; skipping seed.");
+			return;
+		}
+		if (!File.Exists(seedPath))
+		{
+			GD.Print($"[TileMetricsBandSeed] seed file not found: {seedPath}");
+			return;
+		}
+
+		try
+		{
+			string json = File.ReadAllText(seedPath, System.Text.Encoding.UTF8);
+			using JsonDocument doc = JsonDocument.Parse(json);
+			JsonElement root = doc.RootElement;
+
+			int tileW = root.TryGetProperty("tile_width", out JsonElement twEl) && twEl.TryGetInt32(out int twVal) ? twVal : TileMetricsSubtileWidth;
+			int tileH = root.TryGetProperty("tile_height", out JsonElement thEl) && thEl.TryGetInt32(out int thVal) ? thVal : TileMetricsSubtileWidth;
+			int gridW = root.TryGetProperty("tile_grid_w", out JsonElement gwEl) && gwEl.TryGetInt32(out int gwVal) ? gwVal : 0;
+			int gridH = root.TryGetProperty("tile_grid_h", out JsonElement ghEl) && ghEl.TryGetInt32(out int ghVal) ? ghVal : 0;
+
+			_tileMetricBandSeedTileGridW = gridW;
+			_tileMetricBandSeedTileGridH = gridH;
+			_tileMetricBandSeedTileH = tileH;
+
+			if (!root.TryGetProperty("tiles", out JsonElement tilesEl) || tilesEl.ValueKind != JsonValueKind.Array)
+			{
+				GD.Print($"[TileMetricsBandSeed] no 'tiles' array found in: {seedPath}");
+				return;
+			}
+
+			const double BandFractionThreshold = 0.10;
+			int tilesConsidered = 0;
+			int tilesSeeded = 0;
+			double energyMin = double.MaxValue;
+			double energyMax = 0.0;
+
+			foreach (JsonElement tile in tilesEl.EnumerateArray())
+			{
+				tilesConsidered++;
+				if (!tile.TryGetProperty("band_pixel_fraction", out JsonElement bpfEl) || !bpfEl.TryGetDouble(out double bandFraction))
+					continue;
+				if (bandFraction <= BandFractionThreshold)
+					continue;
+
+				if (!tile.TryGetProperty("tile_x", out JsonElement txEl) || !txEl.TryGetInt32(out int tileX))
+					continue;
+				double confidence = 0.5;
+				if (tile.TryGetProperty("mean_band_score", out JsonElement mbsEl) && mbsEl.TryGetDouble(out double mbsVal))
+					confidence = Math.Clamp(mbsVal, 0.0, 1.0);
+
+				// Map tile_x to subtile column x (snap to subtile width grid).
+				int col = tileX / Math.Max(1, TileMetricsSubtileWidth);
+				int colX = col * TileMetricsSubtileWidth;
+				if (colX < 0 || ((_filmWidth > 0) && colX >= _filmWidth))
+					continue;
+
+				double bandEnergy = Math.Clamp(bandFraction, 0.0, 1.0);
+				// Apply blend constant so seed doesn't override live render data.
+				double seededEnergy = bandEnergy * TileMetricsPersistentPriorBlendWeight;
+				double seededConfidence = confidence * TileMetricsPersistentPriorBlendWeight;
+
+				if (_tileMetricColumnSeeds.TryGetValue(colX, out TileMetricBandSeedEntry existing))
+				{
+					// Accumulate: take max energy, weighted-average confidence.
+					if (seededEnergy > existing.BandEnergy)
+					{
+						_tileMetricColumnSeeds[colX] = new TileMetricBandSeedEntry
+						{
+							BandEnergy = seededEnergy,
+							Confidence = seededConfidence
+						};
+					}
+				}
+				else
+				{
+					_tileMetricColumnSeeds[colX] = new TileMetricBandSeedEntry
+					{
+						BandEnergy = seededEnergy,
+						Confidence = seededConfidence
+					};
+				}
+
+				tilesSeeded++;
+				if (seededEnergy < energyMin) energyMin = seededEnergy;
+				if (seededEnergy > energyMax) energyMax = seededEnergy;
+			}
+
+			if (tilesSeeded > 0)
+			{
+				_tileMetricBandSeedLoaded = true;
+				_tileMetricBandSeedTilesSeeded = tilesSeeded;
+				GD.Print(
+					$"[TileMetricsBandSeed] loaded seed: path={seedPath} considered={tilesConsidered} seeded={tilesSeeded} " +
+					$"columns={_tileMetricColumnSeeds.Count} energyRange=[{energyMin:0.###},{energyMax:0.###}] " +
+					$"gridW={gridW} gridH={gridH} tileH={tileH}");
+			}
+			else
+			{
+				GD.Print($"[TileMetricsBandSeed] no tiles above threshold ({BandFractionThreshold:0.##}) in: {seedPath} (considered={tilesConsidered})");
+			}
+		}
+		catch (Exception ex)
+		{
+			GD.PrintErr($"[TileMetricsBandSeed] failed to load seed from {seedPath}: {ex.GetType().Name}: {ex.Message}");
+		}
+	}
+
+	// Writes tile_metrics_summary.json alongside domain_telemetry_summary.json after a fixture run.
+	// Reports seeded columns, band energies, and simulated priority order snapshot.
+	// Only writes when EnableTileMetricsScaffold is true.
+	public bool TryWriteTileMetricsSummary(string outputDir, string captureStem, string fixtureName, out string summaryPath)
+	{
+		summaryPath = string.Empty;
+		if (!EnableTileMetricsScaffold || string.IsNullOrWhiteSpace(outputDir))
+			return false;
+
+		try
+		{
+			Directory.CreateDirectory(outputDir);
+			string safeStem = string.IsNullOrWhiteSpace(captureStem) ? "capture" : captureStem.Trim();
+			string safeFixture = string.IsNullOrWhiteSpace(fixtureName) ? "unknown" : fixtureName.Trim();
+			int subtileW = Math.Max(1, TileMetricsSubtileWidth);
+			int tileGridW = _filmWidth > 0 ? (_filmWidth + subtileW - 1) / subtileW : 0;
+
+			double energySum = 0.0;
+			var energyValues = new List<double>(_tileMetricColumnSeeds.Count);
+			int tilesWithHighEnergy = 0;
+			const double HighEnergyThreshold = 0.15;
+			foreach (var kv in _tileMetricColumnSeeds)
+			{
+				double e = kv.Value.BandEnergy;
+				energySum += e;
+				energyValues.Add(e);
+				if (e >= HighEnergyThreshold) tilesWithHighEnergy++;
+			}
+			double energyMean = energyValues.Count > 0 ? energySum / energyValues.Count : 0.0;
+			energyValues.Sort();
+			double energyP90 = energyValues.Count > 0
+				? energyValues[(int)Math.Min(energyValues.Count - 1, Math.Floor(energyValues.Count * 0.9))]
+				: 0.0;
+
+			// Build top_priority_tiles sorted by band_energy descending.
+			var topTiles = new List<(int col, double energy, double confidence, bool seeded)>();
+			foreach (var kv in _tileMetricColumnSeeds)
+			{
+				int col = _filmWidth > 0 ? kv.Key / subtileW : 0;
+				topTiles.Add((col, kv.Value.BandEnergy, kv.Value.Confidence, true));
+			}
+			topTiles.Sort((a, b) => b.energy.CompareTo(a.energy));
+			int topN = Math.Min(topTiles.Count, 20);
+
+			var sb = new StringBuilder(1024);
+			sb.Append("{");
+			sb.Append("\"fixture\":\"").Append(JsonEscapeForArtifact(safeFixture)).Append("\",");
+			sb.Append("\"tile_grid_w\":").Append(tileGridW).Append(",");
+			sb.Append("\"tile_grid_h\":").Append(_tileMetricBandSeedTileGridH).Append(",");
+			sb.Append("\"tile_count\":").Append(tileGridW).Append(",");
+			sb.Append("\"tiles_with_band_seed\":").Append(_tileMetricColumnSeeds.Count).Append(",");
+			sb.Append("\"tiles_with_high_prior_energy\":").Append(tilesWithHighEnergy).Append(",");
+			sb.Append("\"prior_energy_mean\":").Append(FormatJsonFloatForArtifact((float)energyMean)).Append(",");
+			sb.Append("\"prior_energy_p90\":").Append(FormatJsonFloatForArtifact((float)energyP90)).Append(",");
+			sb.Append("\"reorder_simulation_active\":").Append(EnableTileMetricsReorderSimulation ? "true" : "false").Append(",");
+			sb.Append("\"top_priority_tiles\":[");
+			for (int i = 0; i < topN; i++)
+			{
+				if (i > 0) sb.Append(",");
+				var t = topTiles[i];
+				sb.Append("{");
+				sb.Append("\"tile_col\":").Append(t.col).Append(",");
+				sb.Append("\"tile_row\":0,");
+				sb.Append("\"priority_score\":").Append(FormatJsonFloatForArtifact((float)t.energy)).Append(",");
+				sb.Append("\"band_energy\":").Append(FormatJsonFloatForArtifact((float)t.energy)).Append(",");
+				sb.Append("\"domain_confidence\":").Append(FormatJsonFloatForArtifact((float)t.confidence)).Append(",");
+				sb.Append("\"was_seeded\":").Append(t.seeded ? "true" : "false");
+				sb.Append("}");
+			}
+			sb.Append("]}");
+
+			summaryPath = Path.Combine(outputDir, safeStem + ".tile_metrics_summary.json");
+			File.WriteAllText(summaryPath, sb.ToString());
+			GD.Print(
+				$"[TileMetricsSummary] written: path={summaryPath} seeded_cols={_tileMetricColumnSeeds.Count} " +
+				$"highEnergy={tilesWithHighEnergy} energyMean={energyMean:0.###} p90={energyP90:0.###}");
+			return true;
+		}
+		catch (Exception ex)
+		{
+			GD.PrintErr($"[TileMetricsSummary] failed: {ex.GetType().Name}: {ex.Message}");
+			return false;
 		}
 	}
 
@@ -20661,13 +20922,25 @@ private sealed class OverlayRollingWindow
 
 		// Observe-only priority contract for the first scheduler experiment:
 		// prefer higher yield, then more hits, then fewer no-candidate pixels.
+		// When band seed is active (scaffold populated from offline band_detector output),
+		// blend seed band_energy into the simulated yield so known-band-energy columns get
+		// earlier attention even before live render data accumulates.
+		bool seedActive = TileMetricsBandSeedPriorReadEnabled;
 		simulated.Sort((a, b) =>
 		{
-			int cmp = b.HitYield.CompareTo(a.HitYield);
+			double aSeed = seedActive && _tileMetricColumnSeeds.TryGetValue(a.X, out TileMetricBandSeedEntry sa) ? sa.BandEnergy : 0.0;
+			double bSeed = seedActive && _tileMetricColumnSeeds.TryGetValue(b.X, out TileMetricBandSeedEntry sb) ? sb.BandEnergy : 0.0;
+			// Blend: seed biases starting state; live HitYield dominates when > 0.
+			double aYield = a.HitYield > 0.0 ? a.HitYield : aSeed;
+			double bYield = b.HitYield > 0.0 ? b.HitYield : bSeed;
+			int cmp = bYield.CompareTo(aYield);
 			if (cmp != 0) return cmp;
 			cmp = b.Hits.CompareTo(a.Hits);
 			if (cmp != 0) return cmp;
 			cmp = a.NoCandidateRatio.CompareTo(b.NoCandidateRatio);
+			if (cmp != 0) return cmp;
+			// Secondary: prefer higher seed energy when live signals are equal.
+			cmp = bSeed.CompareTo(aSeed);
 			if (cmp != 0) return cmp;
 			return a.SubtileIndex.CompareTo(b.SubtileIndex);
 		});
