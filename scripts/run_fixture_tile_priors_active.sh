@@ -5,12 +5,13 @@
 # Runs against curved_minimal and wormhole scenes; exports tile_metrics_summary.json
 # alongside domain_telemetry_summary.json for each capture.
 #
-# Feature flags enabled:
-#   EnableTileMetricsScaffold        = true
-#   EnableTileMetricsPersistentPriors = true
+# Observe-only default:
+#   EnableTileMetricsScaffold          = true
+#   EnableTileMetricsPersistentPriors  = true
 #   EnableTileMetricsReorderSimulation = true  (observe-only)
-#   EnableTileMetricsBandSeed         = true   (if BAND_SEED_PATH is set)
-#   EnableTileMetricsReorderExecution = false  (NOT activated — simulation only)
+#   EnableTileMetricsBandSeed          = true   (if BAND_SEED_PATH is set)
+#   EnableTileMetricsReorderExecution  = false  (NOT activated — simulation only)
+#   EnableDomainAwareFirstHitResolver  = false  (unless XPRIMERAY_ENABLE_RESOLVER=1)
 #
 # Usage:
 #   ./scripts/run_fixture_tile_priors_active.sh
@@ -20,6 +21,7 @@
 #   FIXTURE_TILE_PRIORS_FRAMES       — frames per run (default: 120)
 #   FIXTURE_TILE_PRIORS_WARMUP       — warmup frames (default: 15)
 #   FIXTURE_TILE_PRIORS_SUBTILE_W    — TileMetricsSubtileWidth (default: 64)
+#   XPRIMERAY_ENABLE_RESOLVER        — set to 1 to enable domain-aware first-hit resolver
 #   BAND_SEED_PATH                   — absolute path to band_tile_signals.json from a
 #                                       prior band_detector.py run (optional)
 #   GODOT_EXE                        — override Godot binary path
@@ -54,6 +56,7 @@ FRAMES="${FIXTURE_TILE_PRIORS_FRAMES:-120}"
 WARMUP="${FIXTURE_TILE_PRIORS_WARMUP:-15}"
 SUBTILE_W="${FIXTURE_TILE_PRIORS_SUBTILE_W:-64}"
 BAND_SEED="${BAND_SEED_PATH:-}"
+ENABLE_RESOLVER="${XPRIMERAY_ENABLE_RESOLVER:-0}"
 
 TIMESTAMP="$(date +"%Y-%m-%dT%H-%M-%S")"
 RUN_DIR="$ROOT/output/fixture_runs/$VARIANT/$TIMESTAMP"
@@ -68,6 +71,7 @@ echo "Scene:     $SCENE_PATH"
 echo "Frames:    $FRAMES (warmup=$WARMUP)"
 echo "SubtileW:  $SUBTILE_W"
 echo "BandSeed:  ${BAND_SEED:-<none>}"
+echo "Resolver:  $ENABLE_RESOLVER"
 echo "RunDir:    $RUN_DIR"
 
 echo ""
@@ -111,7 +115,7 @@ CMD=(
   "--render-test-frames=$FRAMES"
   "--render-test-warmup=$WARMUP"
   "--enable-domain-telemetry=1"
-  "--enable-domain-aware-first-hit-resolver=1"
+  "--enable-domain-aware-first-hit-resolver=$ENABLE_RESOLVER"
   "--export-telemetry-heatmaps=1"
   "${TILE_ARGS[@]}"
 )

@@ -5,14 +5,14 @@ description: Curved-ray geodesic rendering in Godot 4 C# — GRIN lensing throug
 
 # xPRIMEray
 
-xPRIMEray is a curved-ray geodesic rendering system built in Godot 4 C#, spanning interactive GRIN lensing through exotic wormhole metrics. It targets academically rigorous gravitational optics with a tiered architecture from Tier 0 GRIN through Tier 3 exotic metrics including Morris-Thorne wormholes. The transport integrator solves null-geodesic equations of the Gordon effective metric using RK4, and every render is hermetically validated — no unclassified pixels escape within the eikonal limit.
+xPRIMEray is a curved-ray geodesic rendering system built in Godot 4 C#, spanning interactive GRIN lensing through exotic wormhole metrics. It targets academically rigorous gravitational optics with a tiered architecture from Tier 0 GRIN through Tier 3 exotic metrics including Morris-Thorne wormholes. The transport integrator solves null-geodesic equations of the Gordon effective metric using RK4, and fixture renders are checked for complete pixel classification within the eikonal limit.
 
 ## Current Status
 
-Active development. The full wormhole observer ladder (six checkpoints through a Morris-Thorne wormhole) is test-complete and hermetically validated. Three feature flags gate advanced diagnostic capabilities:
+Active development. The full wormhole observer ladder (six checkpoints through a Morris-Thorne wormhole) is test-complete under the current validation fixtures. Three feature flags gate experimental diagnostic capabilities:
 
-- **`EnableDomainTelemetry`** — exports per-pixel domain classification maps: `domain_id`, `domain_confidence`, `boundary_confidence`, and `selection_flip`.
-- **`EnableDomainAwareFirstHitResolver`** — enables domain-coherent first-hit resolution (requires `EnableDomainTelemetry`).
+- **`EnableDomainTelemetry`** — exports heuristic per-pixel renderer diagnostics: `domain_id`, `domain_confidence`, `boundary_confidence`, `selection_flip`, and `normal_discontinuity`.
+- **`EnableDomainAwareFirstHitResolver`** — enables an experimental domain-aware first-hit heuristic (requires `EnableDomainTelemetry`; off by default).
 - **`EnableTileMetricsScaffold`** — gates the tile-metrics subsystem including reorder simulation, execution, and persistent-priors scheduling.
 
 The bridge (post-throat backstep) is confirmed as the transport anomaly: 366 segments/crossing vs. 50–153 at all other checkpoints (z-score 4.40). Three independent anomaly detectors agree.
@@ -23,7 +23,7 @@ xPRIMEray uses a tiered transport hierarchy: Tier 0 GRIN ray integration → Tie
 
 ## Research Notes
 
-Domain-aware rendering characterizes three transport regimes (near-side, bridge anomaly, far-side) using PCA and k-means clustering (k=3, ARI=0.595). Band detection in the bridge regime reveals anomalous transport geometry. The domain telemetry exports (`domain_id`, `domain_confidence`, `boundary_confidence`, `selection_flip` maps) are live and archive-ready. See [Research/curvature_domain_ownership.md](Research/curvature_domain_ownership.md), [Research/phase_coherence_field.md](Research/phase_coherence_field.md), and [papers/paper_001_causal_observer_ladders/paper.md](papers/paper_001_causal_observer_ladders/paper.md).
+Domain-aware analysis characterizes three transport regimes (near-side, bridge anomaly, far-side) using PCA and k-means clustering (k=3, ARI=0.595). The renderer-integrated domain maps are heuristic diagnostics for inspecting those signals during fixture runs; they are not proof of metric-only domain ownership by themselves. Penrose, Kajiya, and Bandyopadhyay references in the research notes are inspiration and positioning, not validation evidence for the integrated maps. See [Research/curvature_domain_ownership.md](Research/curvature_domain_ownership.md), [Research/phase_coherence_field.md](Research/phase_coherence_field.md), and [papers/paper_001_causal_observer_ladders/paper.md](papers/paper_001_causal_observer_ladders/paper.md).
 
 ## Repository
 

@@ -98,6 +98,10 @@ public static class LauncherAudit
 		{
 			return "einstein_ring_minimal";
 		}
+		if (normalized.Contains("test-domain-resolver-stress", StringComparison.OrdinalIgnoreCase))
+		{
+			return "domain_resolver_stress";
+		}
 		if (normalized.Contains("test-overspace-wormhole-checkpoint-sequence-fixture", StringComparison.OrdinalIgnoreCase))
 		{
 			return "overspace_wormhole_checkpoint_sequence";
@@ -173,6 +177,7 @@ public static class LauncherAudit
 			"metric_basic_visual_minimal_offaxis" => "res://test-metric-basic-visual-minimal-offaxis.tscn",
 			"blackhole_minimal" => "res://test-blackhole-minimal.tscn",
 			"einstein_ring_minimal" => "res://test-einstein-ring-minimal.tscn",
+			"domain_resolver_stress" => "res://test-domain-resolver-stress.tscn",
 			"overspace_hermetic_fixture" => "res://test-overspace-hermetic-fixture.tscn",
 			"overspace_wormhole_witness" => "res://test-overspace-wormhole-witness-fixture.tscn",
 			"overspace_wormhole_checkpoint_sequence" => "res://test-overspace-wormhole-checkpoint-sequence-fixture.tscn",

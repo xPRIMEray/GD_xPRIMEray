@@ -1,14 +1,14 @@
 # Curvature Domain Ownership
 
-Domain ownership describes which transport regime — near-side, bridge, or far-side — owns each observer position on the wormhole ladder. Domains are determined by transport-metric structure alone, not by geometric labels. The domain boundary between the bridge and the near-side/far-side regions is the primary interpolation-validity boundary.
+Domain ownership describes which transport regime — near-side, bridge, or far-side — owns each observer position on the wormhole ladder. The research analysis estimates these regimes from transport metrics; renderer-integrated domain maps are heuristic diagnostics and may include fixture/runtime signals such as hit classification, remap/crossing counts, boundary confidence, selection flips, and normal discontinuity. Treat the integrated maps as inspection aids, not proof of metric-only domain ownership.
 
 ---
 
 ## Core Finding
 
-> **Visible banding correlates with curvature-domain boundary transitions, not with final-hit selection artifacts.**
+> **Visible banding correlates with curvature-domain boundary transitions in the audited fixtures, not with final-hit selection artifacts alone.**
 
-Supporting evidence from the six-checkpoint wormhole observer ladder:
+Supporting evidence from the six-checkpoint wormhole observer ladder. These metrics motivate the diagnostics; they are not validation evidence for every renderer-integrated domain map:
 
 | Evidence type | Metric | Value |
 |---|---|---|

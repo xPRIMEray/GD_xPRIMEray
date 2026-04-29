@@ -93,7 +93,7 @@ A validation scene in which every pixel must return a classified transport resul
 - `escaped_no_hit = 0`
 - `budget_exhausted = 0`
 
-A pixel that fails to classify is a renderer gap, not a physical outcome. The hermetic fixture rule is the renderer-domain analogue of Penrose's trapped-surface theorem: no ray may be lost to the computational equivalent of a singularity.
+A pixel that fails to classify is a renderer gap, not a physical outcome. Penrose-style trapped-surface language is used here as analogy and design pressure only, not as validation evidence for the renderer diagnostics.
 
 ---
 

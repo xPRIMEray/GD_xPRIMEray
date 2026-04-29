@@ -17,7 +17,7 @@ public struct DomainSignature
 {
 	public CurvatureDomainKind Kind;
 	public float Confidence;
-	public float PhaseCoherence;
+	public float BoundaryStability;
 	public float CurvatureMagnitude;
 	public float NormalDiscontinuity;
 	public Vector2 BoundaryGradient;

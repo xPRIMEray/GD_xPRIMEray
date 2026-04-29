@@ -600,7 +600,8 @@ public partial class GrinFilmCamera : Node
 		DomainId = 0,
 		DomainConfidence = 1,
 		BoundaryConfidence = 2,
-		SelectionFlip = 3
+		SelectionFlip = 3,
+		NormalDiscontinuity = 4
 	}
 
 	public readonly struct AdaptiveEnvelopeScaleStats
@@ -1114,7 +1115,7 @@ public partial class GrinFilmCamera : Node
 	[Export] public bool EnableDomainAwareFirstHitResolver = false;
 	[Export] public float DomainAwareConfidenceWeight = 1.0f;
 	[Export] public float DomainAwareNeighborContinuityWeight = 0.75f;
-	[Export] public float DomainAwarePhaseWeight = 0.35f;
+	[Export] public float DomainAwareBoundaryStabilityWeight = 0.35f;
 	[Export] public float DomainAwareDiscontinuityPenalty = 0.50f;
 	[Export] public float DomainAwareFlipPenalty = 0.60f;
 	/// <summary>Enables telemetry-driven adaptive envelope scaling for pass-2 candidate gathering.</summary>
@@ -1914,6 +1915,19 @@ public partial class GrinFilmCamera : Node
 	public float[] DomainConfidenceBuffer { get; private set; } = Array.Empty<float>();
 	public float[] BoundaryConfidenceBuffer { get; private set; } = Array.Empty<float>();
 	public float[] SelectionFlipBuffer { get; private set; } = Array.Empty<float>();
+	public float[] NormalDiscontinuityBuffer { get; private set; } = Array.Empty<float>();
+	private float[] _domainResolverComparedBuffer = Array.Empty<float>();
+	private float[] _domainResolverChangedBuffer = Array.Empty<float>();
+	private float[] _domainResolverColliderChangedBuffer = Array.Empty<float>();
+	private float[] _domainResolverDistanceChangedBuffer = Array.Empty<float>();
+	private float[] _domainResolverDistanceDeltaBuffer = Array.Empty<float>();
+	private float[] _domainResolverScoreDeltaBuffer = Array.Empty<float>();
+	private float[] _domainResolverScoreAvailableBuffer = Array.Empty<float>();
+	private float[] _domainResolverConfidenceComponentBuffer = Array.Empty<float>();
+	private float[] _domainResolverNeighborComponentBuffer = Array.Empty<float>();
+	private float[] _domainResolverBoundaryStabilityComponentBuffer = Array.Empty<float>();
+	private float[] _domainResolverNormalDiscontinuityComponentBuffer = Array.Empty<float>();
+	private float[] _domainResolverFlipPenaltyComponentBuffer = Array.Empty<float>();
 	private PixelDomainState[] _pixelDomainStates = Array.Empty<PixelDomainState>();
 	private float[] _adaptiveEnvelopeMismatchPrior = Array.Empty<float>();
 	private byte[] _adaptiveEnvelopeActiveMask = Array.Empty<byte>();
@@ -2877,7 +2891,7 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 		public bool EnableDomainAwareFirstHitResolver;
 		public float DomainAwareConfidenceWeight;
 		public float DomainAwareNeighborContinuityWeight;
-		public float DomainAwarePhaseWeight;
+		public float DomainAwareBoundaryStabilityWeight;
 		public float DomainAwareDiscontinuityPenalty;
 		public float DomainAwareFlipPenalty;
 		public bool UseGeometryTLASPruning;
@@ -3397,6 +3411,7 @@ private sealed class OverlayRollingWindow
 		public float ObservedOpticalPathLength;
 		public PixelDomainState DomainState;
 		public float SelectionFlip;
+		public DomainResolverTelemetrySample ResolverTelemetry;
 	}
 
 	private struct DomainAwareHitCandidate
@@ -3423,6 +3438,27 @@ private sealed class OverlayRollingWindow
 		public bool AmbiguousOrdering;
 		public PixelDomainState DomainState;
 		public float Score;
+		public float ConfidenceComponent;
+		public float NeighborContinuityComponent;
+		public float BoundaryStabilityComponent;
+		public float NormalDiscontinuityComponent;
+		public float FlipPenaltyComponent;
+	}
+
+	private struct DomainResolverTelemetrySample
+	{
+		public bool Compared;
+		public bool Changed;
+		public bool ColliderChanged;
+		public bool DistanceChanged;
+		public float DistanceDelta;
+		public bool ScoreAvailable;
+		public float ScoreDelta;
+		public float ConfidenceComponent;
+		public float NeighborContinuityComponent;
+		public float BoundaryStabilityComponent;
+		public float NormalDiscontinuityComponent;
+		public float FlipPenaltyComponent;
 	}
 
 	private struct Pass2ShadedSample
@@ -6074,7 +6110,8 @@ private sealed class OverlayRollingWindow
 			DomainTelemetryMapKind.DomainId,
 			DomainTelemetryMapKind.DomainConfidence,
 			DomainTelemetryMapKind.BoundaryConfidence,
-			DomainTelemetryMapKind.SelectionFlip
+			DomainTelemetryMapKind.SelectionFlip,
+			DomainTelemetryMapKind.NormalDiscontinuity
 		};
 
 		StringBuilder summary = new StringBuilder(512);
@@ -6121,7 +6158,9 @@ private sealed class OverlayRollingWindow
 				.Append("}");
 		}
 
-		summary.Append("]}");
+		summary.Append("],");
+		summary.Append("\"resolver_change_summary\":").Append(BuildDomainResolverTelemetrySummaryJsonForTesting());
+		summary.Append("}");
 		if (!wroteAny)
 		{
 			return false;
@@ -6130,6 +6169,92 @@ private sealed class OverlayRollingWindow
 		summaryPath = Path.Combine(outputDir, safeStem + ".domain_telemetry_summary.json");
 		File.WriteAllText(summaryPath, summary.ToString());
 		return true;
+	}
+
+	public string BuildDomainResolverTelemetrySummaryJsonForTesting()
+	{
+		if (!DomainTelemetryEnabledForCurrentRun())
+		{
+			return "{}";
+		}
+
+		int comparedCount = CountPositive(_domainResolverComparedBuffer);
+		int changedCount = CountPositive(_domainResolverChangedBuffer);
+		int colliderChangedCount = CountPositive(_domainResolverColliderChangedBuffer);
+		int distanceChangedCount = CountPositive(_domainResolverDistanceChangedBuffer);
+		int scoreAvailableCount = CountPositive(_domainResolverScoreAvailableBuffer);
+		float meanDistanceDelta = MeanWherePositive(_domainResolverDistanceDeltaBuffer, _domainResolverComparedBuffer);
+		float maxDistanceDelta = MaxWherePositive(_domainResolverDistanceDeltaBuffer, _domainResolverComparedBuffer);
+		float meanScoreDelta = MeanWherePositive(_domainResolverScoreDeltaBuffer, _domainResolverScoreAvailableBuffer);
+
+		StringBuilder json = new StringBuilder(512);
+		json.Append("{");
+		json.Append("\"comparison\":\"domain_aware_selected_hit_vs_first_accepted_nearest_hit\",");
+		json.Append("\"enabled\":").Append(EnableDomainAwareFirstHitResolver ? "true" : "false").Append(",");
+		json.Append("\"compared_pixels\":").Append(comparedCount).Append(",");
+		json.Append("\"changed_pixels\":").Append(changedCount).Append(",");
+		json.Append("\"changed_collider_id_pixels\":").Append(colliderChangedCount).Append(",");
+		json.Append("\"changed_hit_distance_pixels\":").Append(distanceChangedCount).Append(",");
+		json.Append("\"mean_hit_distance_delta\":").Append(FormatJsonFloatForArtifact(meanDistanceDelta)).Append(",");
+		json.Append("\"max_hit_distance_delta\":").Append(FormatJsonFloatForArtifact(maxDistanceDelta)).Append(",");
+		json.Append("\"score_available_pixels\":").Append(scoreAvailableCount).Append(",");
+		json.Append("\"mean_score_delta\":").Append(FormatJsonFloatForArtifact(meanScoreDelta)).Append(",");
+		json.Append("\"mean_score_components\":{");
+		json.Append("\"confidence\":").Append(FormatJsonFloatForArtifact(MeanWherePositive(_domainResolverConfidenceComponentBuffer, _domainResolverScoreAvailableBuffer))).Append(",");
+		json.Append("\"neighbor_continuity\":").Append(FormatJsonFloatForArtifact(MeanWherePositive(_domainResolverNeighborComponentBuffer, _domainResolverScoreAvailableBuffer))).Append(",");
+		json.Append("\"boundary_stability\":").Append(FormatJsonFloatForArtifact(MeanWherePositive(_domainResolverBoundaryStabilityComponentBuffer, _domainResolverScoreAvailableBuffer))).Append(",");
+		json.Append("\"normal_discontinuity_penalty\":").Append(FormatJsonFloatForArtifact(MeanWherePositive(_domainResolverNormalDiscontinuityComponentBuffer, _domainResolverScoreAvailableBuffer))).Append(",");
+		json.Append("\"flip_penalty\":").Append(FormatJsonFloatForArtifact(MeanWherePositive(_domainResolverFlipPenaltyComponentBuffer, _domainResolverScoreAvailableBuffer)));
+		json.Append("}}");
+		return json.ToString();
+	}
+
+	private static int CountPositive(float[] values)
+	{
+		if (values == null)
+			return 0;
+		int count = 0;
+		for (int i = 0; i < values.Length; i++)
+		{
+			if (values[i] > 0f)
+				count++;
+		}
+		return count;
+	}
+
+	private static float MeanWherePositive(float[] values, float[] mask)
+	{
+		if (values == null || mask == null || values.Length != mask.Length)
+			return 0f;
+		double sum = 0.0;
+		int count = 0;
+		for (int i = 0; i < values.Length; i++)
+		{
+			if (mask[i] <= 0f)
+				continue;
+			float v = values[i];
+			if (!float.IsFinite(v))
+				continue;
+			sum += v;
+			count++;
+		}
+		return count > 0 ? (float)(sum / count) : 0f;
+	}
+
+	private static float MaxWherePositive(float[] values, float[] mask)
+	{
+		if (values == null || mask == null || values.Length != mask.Length)
+			return 0f;
+		float max = 0f;
+		for (int i = 0; i < values.Length; i++)
+		{
+			if (mask[i] <= 0f)
+				continue;
+			float v = values[i];
+			if (float.IsFinite(v) && v > max)
+				max = v;
+		}
+		return max;
 	}
 
 	public bool TryGetTelemetryCorrelationStatsForTesting(out float workVsCurvatureMean, out float queryVsCurvatureMean)
@@ -6592,6 +6717,32 @@ private sealed class OverlayRollingWindow
 			BoundaryConfidenceBuffer = new float[safeCount];
 		if (SelectionFlipBuffer.Length != safeCount)
 			SelectionFlipBuffer = new float[safeCount];
+		if (NormalDiscontinuityBuffer.Length != safeCount)
+			NormalDiscontinuityBuffer = new float[safeCount];
+		if (_domainResolverComparedBuffer.Length != safeCount)
+			_domainResolverComparedBuffer = new float[safeCount];
+		if (_domainResolverChangedBuffer.Length != safeCount)
+			_domainResolverChangedBuffer = new float[safeCount];
+		if (_domainResolverColliderChangedBuffer.Length != safeCount)
+			_domainResolverColliderChangedBuffer = new float[safeCount];
+		if (_domainResolverDistanceChangedBuffer.Length != safeCount)
+			_domainResolverDistanceChangedBuffer = new float[safeCount];
+		if (_domainResolverDistanceDeltaBuffer.Length != safeCount)
+			_domainResolverDistanceDeltaBuffer = new float[safeCount];
+		if (_domainResolverScoreDeltaBuffer.Length != safeCount)
+			_domainResolverScoreDeltaBuffer = new float[safeCount];
+		if (_domainResolverScoreAvailableBuffer.Length != safeCount)
+			_domainResolverScoreAvailableBuffer = new float[safeCount];
+		if (_domainResolverConfidenceComponentBuffer.Length != safeCount)
+			_domainResolverConfidenceComponentBuffer = new float[safeCount];
+		if (_domainResolverNeighborComponentBuffer.Length != safeCount)
+			_domainResolverNeighborComponentBuffer = new float[safeCount];
+		if (_domainResolverBoundaryStabilityComponentBuffer.Length != safeCount)
+			_domainResolverBoundaryStabilityComponentBuffer = new float[safeCount];
+		if (_domainResolverNormalDiscontinuityComponentBuffer.Length != safeCount)
+			_domainResolverNormalDiscontinuityComponentBuffer = new float[safeCount];
+		if (_domainResolverFlipPenaltyComponentBuffer.Length != safeCount)
+			_domainResolverFlipPenaltyComponentBuffer = new float[safeCount];
 		if (_pixelDomainStates.Length != safeCount)
 			_pixelDomainStates = new PixelDomainState[safeCount];
 	}
@@ -6618,6 +6769,19 @@ private sealed class OverlayRollingWindow
 		Array.Clear(DomainConfidenceBuffer, 0, DomainConfidenceBuffer.Length);
 		Array.Clear(BoundaryConfidenceBuffer, 0, BoundaryConfidenceBuffer.Length);
 		Array.Clear(SelectionFlipBuffer, 0, SelectionFlipBuffer.Length);
+		Array.Clear(NormalDiscontinuityBuffer, 0, NormalDiscontinuityBuffer.Length);
+		Array.Clear(_domainResolverComparedBuffer, 0, _domainResolverComparedBuffer.Length);
+		Array.Clear(_domainResolverChangedBuffer, 0, _domainResolverChangedBuffer.Length);
+		Array.Clear(_domainResolverColliderChangedBuffer, 0, _domainResolverColliderChangedBuffer.Length);
+		Array.Clear(_domainResolverDistanceChangedBuffer, 0, _domainResolverDistanceChangedBuffer.Length);
+		Array.Clear(_domainResolverDistanceDeltaBuffer, 0, _domainResolverDistanceDeltaBuffer.Length);
+		Array.Clear(_domainResolverScoreDeltaBuffer, 0, _domainResolverScoreDeltaBuffer.Length);
+		Array.Clear(_domainResolverScoreAvailableBuffer, 0, _domainResolverScoreAvailableBuffer.Length);
+		Array.Clear(_domainResolverConfidenceComponentBuffer, 0, _domainResolverConfidenceComponentBuffer.Length);
+		Array.Clear(_domainResolverNeighborComponentBuffer, 0, _domainResolverNeighborComponentBuffer.Length);
+		Array.Clear(_domainResolverBoundaryStabilityComponentBuffer, 0, _domainResolverBoundaryStabilityComponentBuffer.Length);
+		Array.Clear(_domainResolverNormalDiscontinuityComponentBuffer, 0, _domainResolverNormalDiscontinuityComponentBuffer.Length);
+		Array.Clear(_domainResolverFlipPenaltyComponentBuffer, 0, _domainResolverFlipPenaltyComponentBuffer.Length);
 		Array.Clear(_pixelDomainStates, 0, _pixelDomainStates.Length);
 	}
 
@@ -7113,6 +7277,14 @@ private sealed class OverlayRollingWindow
 			&& DomainConfidenceBuffer.Length == _filmWidth * _filmHeight
 			&& BoundaryConfidenceBuffer.Length == _filmWidth * _filmHeight
 			&& SelectionFlipBuffer.Length == _filmWidth * _filmHeight
+			&& NormalDiscontinuityBuffer.Length == _filmWidth * _filmHeight
+			&& _domainResolverComparedBuffer.Length == _filmWidth * _filmHeight
+			&& _domainResolverChangedBuffer.Length == _filmWidth * _filmHeight
+			&& _domainResolverColliderChangedBuffer.Length == _filmWidth * _filmHeight
+			&& _domainResolverDistanceChangedBuffer.Length == _filmWidth * _filmHeight
+			&& _domainResolverDistanceDeltaBuffer.Length == _filmWidth * _filmHeight
+			&& _domainResolverScoreDeltaBuffer.Length == _filmWidth * _filmHeight
+			&& _domainResolverScoreAvailableBuffer.Length == _filmWidth * _filmHeight
 			&& _pixelDomainStates.Length == _filmWidth * _filmHeight;
 	}
 
@@ -7207,6 +7379,10 @@ private sealed class OverlayRollingWindow
 			case DomainTelemetryMapKind.SelectionFlip:
 				source = SelectionFlipBuffer;
 				key = "selection_flip";
+				break;
+			case DomainTelemetryMapKind.NormalDiscontinuity:
+				source = NormalDiscontinuityBuffer;
+				key = "normal_discontinuity";
 				break;
 			default:
 				return false;
@@ -7521,6 +7697,7 @@ private sealed class OverlayRollingWindow
 			DomainTelemetryMapKind.DomainConfidence => "domain_confidence",
 			DomainTelemetryMapKind.BoundaryConfidence => "boundary_confidence",
 			DomainTelemetryMapKind.SelectionFlip => "selection_flip",
+			DomainTelemetryMapKind.NormalDiscontinuity => "normal_discontinuity",
 			_ => "domain_unknown"
 		};
 	}
@@ -7667,9 +7844,14 @@ private sealed class OverlayRollingWindow
 		float score = 1f
 			+ (cfg.DomainAwareConfidenceWeight * domainState.Primary.Confidence)
 			+ (cfg.DomainAwareNeighborContinuityWeight * neighborAgreement)
-			+ (cfg.DomainAwarePhaseWeight * domainState.Primary.PhaseCoherence)
+			+ (cfg.DomainAwareBoundaryStabilityWeight * domainState.Primary.BoundaryStability)
 			- (cfg.DomainAwareDiscontinuityPenalty * domainState.Primary.NormalDiscontinuity)
 			- (cfg.DomainAwareFlipPenalty * (domainFlipAgainstPrior ? 1f : 0f));
+		float confidenceComponent = cfg.DomainAwareConfidenceWeight * domainState.Primary.Confidence;
+		float neighborComponent = cfg.DomainAwareNeighborContinuityWeight * neighborAgreement;
+		float boundaryStabilityComponent = cfg.DomainAwareBoundaryStabilityWeight * domainState.Primary.BoundaryStability;
+		float normalDiscontinuityComponent = cfg.DomainAwareDiscontinuityPenalty * domainState.Primary.NormalDiscontinuity;
+		float flipPenaltyComponent = cfg.DomainAwareFlipPenalty * (domainFlipAgainstPrior ? 1f : 0f);
 
 		return new DomainAwareHitCandidate
 		{
@@ -7694,7 +7876,12 @@ private sealed class OverlayRollingWindow
 			LastCrossingKind = lastCrossingKind,
 			AmbiguousOrdering = ambiguousOrdering,
 			DomainState = domainState,
-			Score = score
+			Score = score,
+			ConfidenceComponent = confidenceComponent,
+			NeighborContinuityComponent = neighborComponent,
+			BoundaryStabilityComponent = boundaryStabilityComponent,
+			NormalDiscontinuityComponent = normalDiscontinuityComponent,
+			FlipPenaltyComponent = flipPenaltyComponent
 		};
 	}
 
@@ -7765,6 +7952,93 @@ private sealed class OverlayRollingWindow
 		bestLastCrossingLayerThisPixel = candidate.LastCrossingLayer;
 		bestLastCrossingKindThisPixel = candidate.LastCrossingKind;
 		bestAmbiguousOrderingThisPixel = candidate.AmbiguousOrdering;
+	}
+
+	private DomainResolverTelemetrySample BuildDomainResolverTelemetrySample(
+		in EffectiveConfig cfg,
+		bool domainAwareFirstHitResolver,
+		in DomainAwareHitCandidate selected,
+		int globalPi,
+		int x,
+		int y,
+		int filmW,
+		int filmH,
+		int segOffset,
+		int firstAcceptedSegmentIndex,
+		bool firstAcceptedHadHit,
+		float firstAcceptedHitDistance,
+		Vector3 firstAcceptedHp,
+		Vector3 firstAcceptedHn,
+		ulong firstAcceptedCid,
+		int firstAcceptedPrimitiveOrShapeId,
+		string firstAcceptedName,
+		int firstAcceptedCandidateCount,
+		bool prevHadHit,
+		bool testedAnyInPass0)
+	{
+		const float HitDistanceChangeEps = 1e-4f;
+		if (!domainAwareFirstHitResolver || !selected.Valid || !firstAcceptedHadHit || firstAcceptedSegmentIndex < 0)
+			return default;
+
+		int firstSegBufferIndex = segOffset + firstAcceptedSegmentIndex;
+		if (firstSegBufferIndex < 0 || firstSegBufferIndex >= _segBuf.Length)
+			return default;
+
+		ref readonly var firstSeg = ref _segBuf[firstSegBufferIndex];
+		Vector3 firstSegDelta = firstSeg.B - firstSeg.A;
+		float firstSegLen = firstSegDelta.Length();
+		Vector3 firstRayDir = firstSegLen > 0f
+			? firstSegDelta.Normalized()
+			: (firstAcceptedHp - firstSeg.A).Normalized();
+		DomainAwareHitCandidate firstCandidate = BuildDomainAwareHitCandidate(
+			in cfg,
+			globalPi,
+			x,
+			y,
+			filmW,
+			filmH,
+			firstAcceptedSegmentIndex,
+			firstAcceptedHitDistance,
+			firstAcceptedHp,
+			firstAcceptedHn,
+			firstRayDir,
+			firstAcceptedCid,
+			firstAcceptedPrimitiveOrShapeId,
+			firstAcceptedName,
+			firstAcceptedCandidateCount,
+			firstSeg.BoundaryRemapCount > 0,
+			firstSeg.BoundaryRemapCount,
+			firstSeg.EventCount,
+			firstSeg.BoundaryCrossings,
+			firstSeg.TransformCount,
+			firstSeg.EntryCount,
+			firstSeg.ExitCount,
+			firstSeg.LastCrossingLayer,
+			firstSeg.LastCrossingKind,
+			firstSeg.AmbiguousOrdering,
+			prevHadHit,
+			testedAnyInPass0);
+
+		float distanceDelta = Mathf.Abs(selected.Distance - firstAcceptedHitDistance);
+		bool colliderChanged = selected.ColliderId != firstAcceptedCid;
+		bool distanceChanged = distanceDelta > HitDistanceChangeEps;
+		bool primitiveChanged = selected.PrimitiveOrShapeId != firstAcceptedPrimitiveOrShapeId;
+		bool changed = colliderChanged || distanceChanged || primitiveChanged;
+		return new DomainResolverTelemetrySample
+		{
+			Compared = true,
+			Changed = changed,
+			ColliderChanged = colliderChanged,
+			DistanceChanged = distanceChanged,
+			DistanceDelta = distanceDelta,
+			ScoreAvailable = firstCandidate.Valid,
+			ScoreDelta = selected.Score - firstCandidate.Score,
+			ConfidenceComponent = selected.ConfidenceComponent,
+			NeighborContinuityComponent = selected.NeighborContinuityComponent,
+			BoundaryStabilityComponent = selected.BoundaryStabilityComponent,
+			NormalDiscontinuityComponent = selected.NormalDiscontinuityComponent,
+			FlipPenaltyComponent = selected.FlipPenaltyComponent
+		};
 	}
 
 	private PixelDomainState BuildPixelDomainState(
@@ -7875,7 +8149,7 @@ private sealed class OverlayRollingWindow
 			{
 				Kind = kind,
 				Confidence = confidence,
-				PhaseCoherence = 1f - boundaryConfidence,
+				BoundaryStability = 1f - boundaryConfidence,
 				CurvatureMagnitude = curvatureMagnitude,
 				NormalDiscontinuity = normalDiscontinuity,
 				BoundaryGradient = new Vector2(selectionFlip, boundaryConfidence),
@@ -7886,7 +8160,7 @@ private sealed class OverlayRollingWindow
 			{
 				Kind = boundaryConfidence >= 0.55f ? CurvatureDomainKind.BoundaryMixed : CurvatureDomainKind.Unknown,
 				Confidence = boundaryConfidence,
-				PhaseCoherence = 1f - boundaryConfidence,
+				BoundaryStability = 1f - boundaryConfidence,
 				CurvatureMagnitude = curvatureMagnitude,
 				NormalDiscontinuity = normalDiscontinuity,
 				BoundaryGradient = new Vector2(selectionFlip, boundaryConfidence),
@@ -7899,7 +8173,7 @@ private sealed class OverlayRollingWindow
 		};
 	}
 
-	private void WriteDomainTelemetryBlock(int x, int y, int stride, int filmW, int filmH, in PixelDomainState state, float selectionFlip)
+	private void WriteDomainTelemetryBlock(int x, int y, int stride, int filmW, int filmH, in PixelDomainState state, float selectionFlip, in DomainResolverTelemetrySample resolverTelemetry)
 	{
 		if (!DomainTelemetryEnabledForCurrentRun())
 		{
@@ -7910,6 +8184,19 @@ private sealed class OverlayRollingWindow
 		FillFloatBlock(DomainConfidenceBuffer, x, y, stride, filmW, filmH, state.Primary.Confidence);
 		FillFloatBlock(BoundaryConfidenceBuffer, x, y, stride, filmW, filmH, state.BoundaryConfidence);
 		FillFloatBlock(SelectionFlipBuffer, x, y, stride, filmW, filmH, selectionFlip);
+		FillFloatBlock(NormalDiscontinuityBuffer, x, y, stride, filmW, filmH, state.Primary.NormalDiscontinuity);
+		FillFloatBlock(_domainResolverComparedBuffer, x, y, stride, filmW, filmH, resolverTelemetry.Compared ? 1f : 0f);
+		FillFloatBlock(_domainResolverChangedBuffer, x, y, stride, filmW, filmH, resolverTelemetry.Changed ? 1f : 0f);
+		FillFloatBlock(_domainResolverColliderChangedBuffer, x, y, stride, filmW, filmH, resolverTelemetry.ColliderChanged ? 1f : 0f);
+		FillFloatBlock(_domainResolverDistanceChangedBuffer, x, y, stride, filmW, filmH, resolverTelemetry.DistanceChanged ? 1f : 0f);
+		FillFloatBlock(_domainResolverDistanceDeltaBuffer, x, y, stride, filmW, filmH, resolverTelemetry.DistanceDelta);
+		FillFloatBlock(_domainResolverScoreDeltaBuffer, x, y, stride, filmW, filmH, resolverTelemetry.ScoreDelta);
+		FillFloatBlock(_domainResolverScoreAvailableBuffer, x, y, stride, filmW, filmH, resolverTelemetry.ScoreAvailable ? 1f : 0f);
+		FillFloatBlock(_domainResolverConfidenceComponentBuffer, x, y, stride, filmW, filmH, resolverTelemetry.ConfidenceComponent);
+		FillFloatBlock(_domainResolverNeighborComponentBuffer, x, y, stride, filmW, filmH, resolverTelemetry.NeighborContinuityComponent);
+		FillFloatBlock(_domainResolverBoundaryStabilityComponentBuffer, x, y, stride, filmW, filmH, resolverTelemetry.BoundaryStabilityComponent);
+		FillFloatBlock(_domainResolverNormalDiscontinuityComponentBuffer, x, y, stride, filmW, filmH, resolverTelemetry.NormalDiscontinuityComponent);
+		FillFloatBlock(_domainResolverFlipPenaltyComponentBuffer, x, y, stride, filmW, filmH, resolverTelemetry.FlipPenaltyComponent);
 		FillDomainStateBlock(_pixelDomainStates, x, y, stride, filmW, filmH, state);
 	}
 
@@ -12692,6 +12979,7 @@ private sealed class OverlayRollingWindow
 
 										PixelDomainState domainState = default;
 										float selectionFlip = 0f;
+										DomainResolverTelemetrySample resolverTelemetry = default;
 										if (DomainTelemetryEnabledForCurrentRun())
 										{
 											string domainFixtureHitKind = ClassifyFixtureHitKind(hadHit, absorbedByInnerRadius, bestCid);
@@ -12718,6 +13006,27 @@ private sealed class OverlayRollingWindow
 												prevHadHit,
 												testedAnyInPass0ThisPixel);
 											selectionFlip = domainState.Primary.BoundaryGradient.X;
+											resolverTelemetry = BuildDomainResolverTelemetrySample(
+												in cfg,
+												domainAwareFirstHitResolver,
+												in bestDomainAwareHit,
+												globalPi,
+												x,
+												y,
+												filmW,
+												filmH,
+												segOffset,
+												firstAcceptedSegmentIndex,
+												firstAcceptedHadHit,
+												firstAcceptedHitDistance,
+												firstAcceptedHp,
+												firstAcceptedHn,
+												firstAcceptedCid,
+												firstAcceptedPrimitiveOrShapeId,
+												hitName,
+												firstAcceptedCandidateCount,
+												prevHadHit,
+												testedAnyInPass0ThisPixel);
 										}
 
 										localSamples.Add(new Pass2ResolvedSample
@@ -12776,7 +13085,8 @@ private sealed class OverlayRollingWindow
 											TerminalOpticalPathLength = terminalPathLengthThisPixel,
 											ObservedOpticalPathLength = hadHit ? hitDistance : terminalPathLengthThisPixel,
 											DomainState = domainState,
-											SelectionFlip = selectionFlip
+											SelectionFlip = selectionFlip,
+											ResolverTelemetry = resolverTelemetry
 										});
 									}
 								}
@@ -13120,7 +13430,7 @@ private sealed class OverlayRollingWindow
 								AccumulateTelemetryBlock(_telemetryQueryCount, sample.X, sample.Y, sample.Stride, sample.QueryCount);
 								AccumulateTelemetryBlock(_telemetryResolveCount, sample.X, sample.Y, sample.Stride, sample.ResolveCount);
 							}
-							WriteDomainTelemetryBlock(sample.X, sample.Y, sample.Stride, filmW, filmH, in sample.DomainState, sample.SelectionFlip);
+							WriteDomainTelemetryBlock(sample.X, sample.Y, sample.Stride, filmW, filmH, in sample.DomainState, sample.SelectionFlip, in sample.ResolverTelemetry);
 							if (statsEnabled) _perfFrame.FilledPixels += filled;
 							if (framePerfEnabled) bandFilledPixels += filled;
 							if (sample.HadHit)
@@ -15907,6 +16217,7 @@ private sealed class OverlayRollingWindow
 							{
 								PixelDomainState resolvedDomainState = default;
 								float resolvedSelectionFlip = 0f;
+								DomainResolverTelemetrySample resolvedResolverTelemetry = default;
 								if (DomainTelemetryEnabledForCurrentRun())
 								{
 									string domainFixtureHitKind = ClassifyFixtureHitKind(hadHit, absorbedByInnerRadius, bestCid);
@@ -15933,6 +16244,27 @@ private sealed class OverlayRollingWindow
 										prevHadHit,
 										testedAnyInPass0ThisPixel);
 									resolvedSelectionFlip = resolvedDomainState.Primary.BoundaryGradient.X;
+									resolvedResolverTelemetry = BuildDomainResolverTelemetrySample(
+										in cfg,
+										domainAwareFirstHitResolver,
+										in bestDomainAwareHit,
+										globalPi,
+										x,
+										y,
+										filmW,
+										filmH,
+										segOffset,
+										firstAcceptedSegmentIndex,
+										firstAcceptedHadHit,
+										firstAcceptedHitDistance,
+										firstAcceptedHp,
+										firstAcceptedHn,
+										firstAcceptedCid,
+										firstAcceptedPrimitiveOrShapeId,
+										hitName,
+										firstAcceptedCandidateCount,
+										prevHadHit,
+										testedAnyInPass0ThisPixel);
 								}
 								pass2ResolvedSamples!.Add(new Pass2ResolvedSample
 								{
@@ -15990,7 +16322,8 @@ private sealed class OverlayRollingWindow
 									TerminalOpticalPathLength = terminalPathLengthThisPixel,
 									ObservedOpticalPathLength = hadHit ? hitDistance : terminalPathLengthThisPixel,
 									DomainState = resolvedDomainState,
-									SelectionFlip = resolvedSelectionFlip
+									SelectionFlip = resolvedSelectionFlip,
+									ResolverTelemetry = resolvedResolverTelemetry
 								});
 								rowHadWritesThisPass = true;
 								continue;
@@ -16164,6 +16497,7 @@ private sealed class OverlayRollingWindow
 
 						PixelDomainState domainState = default;
 						float selectionFlip = 0f;
+						DomainResolverTelemetrySample resolverTelemetry = default;
 						if (DomainTelemetryEnabledForCurrentRun())
 						{
 							domainState = BuildPixelDomainState(
@@ -16189,6 +16523,27 @@ private sealed class OverlayRollingWindow
 								prevHadHit,
 								testedAnyInPass0ThisPixel);
 							selectionFlip = domainState.Primary.BoundaryGradient.X;
+							resolverTelemetry = BuildDomainResolverTelemetrySample(
+								in cfg,
+								domainAwareFirstHitResolver,
+								in bestDomainAwareHit,
+								globalPi,
+								x,
+								y,
+								filmW,
+								filmH,
+								segOffset,
+								firstAcceptedSegmentIndex,
+								firstAcceptedHadHit,
+								firstAcceptedHitDistance,
+								firstAcceptedHp,
+								firstAcceptedHn,
+								firstAcceptedCid,
+								firstAcceptedPrimitiveOrShapeId,
+								hitName,
+								firstAcceptedCandidateCount,
+								prevHadHit,
+								testedAnyInPass0ThisPixel);
 						}
 
 						int filled = FillPixelBlock(x, y, stride, col, filmW, filmH);
@@ -16198,7 +16553,7 @@ private sealed class OverlayRollingWindow
 							AccumulateTelemetryBlock(_telemetryQueryCount, x, y, stride, telemetryQueryCountThisPixel);
 							AccumulateTelemetryBlock(_telemetryResolveCount, x, y, stride, telemetryResolveCountThisPixel);
 						}
-						WriteDomainTelemetryBlock(x, y, stride, filmW, filmH, in domainState, selectionFlip);
+						WriteDomainTelemetryBlock(x, y, stride, filmW, filmH, in domainState, selectionFlip, in resolverTelemetry);
 						rowHadWritesThisPass |= filled > 0;
 						if (hadHit)
 						{
@@ -19307,7 +19662,7 @@ private sealed class OverlayRollingWindow
 			EnableDomainAwareFirstHitResolver = EnableDomainAwareFirstHitResolver,
 			DomainAwareConfidenceWeight = Mathf.Max(0f, DomainAwareConfidenceWeight),
 			DomainAwareNeighborContinuityWeight = Mathf.Max(0f, DomainAwareNeighborContinuityWeight),
-			DomainAwarePhaseWeight = Mathf.Max(0f, DomainAwarePhaseWeight),
+			DomainAwareBoundaryStabilityWeight = Mathf.Max(0f, DomainAwareBoundaryStabilityWeight),
 			DomainAwareDiscontinuityPenalty = Mathf.Max(0f, DomainAwareDiscontinuityPenalty),
 			DomainAwareFlipPenalty = Mathf.Max(0f, DomainAwareFlipPenalty),
 			UseGeometryTLASPruning = UseGeometryTLASPruning,
@@ -19625,7 +19980,7 @@ private sealed class OverlayRollingWindow
 		hash.Add(cfg.EnableDomainAwareFirstHitResolver);
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.DomainAwareConfidenceWeight));
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.DomainAwareNeighborContinuityWeight));
-		hash.Add(BitConverter.SingleToInt32Bits(cfg.DomainAwarePhaseWeight));
+		hash.Add(BitConverter.SingleToInt32Bits(cfg.DomainAwareBoundaryStabilityWeight));
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.DomainAwareDiscontinuityPenalty));
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.DomainAwareFlipPenalty));
 		hash.Add(cfg.UseGeometryTLASPruning);

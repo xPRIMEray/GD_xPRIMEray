@@ -1,7 +1,7 @@
 # xPRIMEray — Documentation
 
 > **The Universal Baseline for Curved Field Transport Visualization.**
-> Research-grade. Hermetically validated. Grounded in a century of peer-reviewed optics and relativity.
+> Research-grade. Fixture-validated. Grounded in a century of peer-reviewed optics and relativity.
 
 This is the technical documentation root for xPRIMEray. For the GitHub project page and visual overview, see the [root README](../README.md). For the rendered MkDocs portal, see [index.md](index.md).
 
@@ -50,7 +50,7 @@ xPRIMEray does **not** solve the Einstein field equations. It renders null geode
 | **Dual Reality rendering** | Two causally distinct scenes joined at a topological portal; each rendered with full curved-ray physics. |
 | **Hermetic fixture harness** | 100% classified pixel coverage, `escaped_no_hit = 0`, `budget_exhausted = 0` — reproducible across any run. |
 | **Causal observer ladder** | Six fresh-instance checkpoints through a wormhole; transport structure separated from simulation state. |
-| **Domain-emergent clustering** | Transport regimes recovered from metric structure alone (k=3, ARI=0.5946). No scene labels required. |
+| **Domain-emergent clustering** | Research analysis recovered transport regimes from metric structure (k=3, ARI=0.5946); renderer-integrated domain maps are heuristic diagnostics, not proof by themselves. |
 | **Geometric sampling textures** | Hybrid adaptive-square (direction: 0.836/0.875) + polar (recall: 1.000/1.000) diagnostic tiles. |
 | **Phase-coherence field** | Per-pixel coherence score correlating visible banding with domain-boundary transitions (gap: 0.162 at mouth). |
 | **Overspace / rabbit-hole scenes** | Hermetically sealed, causally isolated wormhole universes. Each is its own complete transport domain. |

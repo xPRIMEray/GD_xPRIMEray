@@ -15,7 +15,8 @@ public partial class RenderTestRunner : Node
 		CurvedMinimal = 2,
 		BlackholeMinimal = 3,
 		EinsteinRingMinimal = 4,
-		CurvedMinimalBackdrop = 5
+		CurvedMinimalBackdrop = 5,
+		DomainResolverStress = 6
 	}
 
 	public enum SmartScaleMode
@@ -76,6 +77,7 @@ public partial class RenderTestRunner : Node
 	private const string RenderTestEinsteinRingMinimalScenePath = "res://test-einstein-ring-minimal.tscn";
 	private const string RenderTestEinsteinRingMinimalMetricScenePath = "res://test-einstein-ring-minimal-metric.tscn";
 	private const string RenderTestEinsteinRingMinimalGrinScenePath = "res://test-einstein-ring-minimal-grin.tscn";
+	private const string RenderTestDomainResolverStressScenePath = "res://test-domain-resolver-stress.tscn";
 	private const string RenderTestStraightArgToken = "--render-test-straight";
 	private const string RenderTestStraightSceneHint = "straight";
 	private const string RenderTestFixtureArgPrefix = "--render-test-fixture=";
@@ -98,6 +100,9 @@ public partial class RenderTestRunner : Node
 	private const string RenderTestCaptureCmdArgPrefix = "--render-test-capture=";
 	private const string RenderTestCaptureDirCmdArgPrefix = "--render-test-capture-dir=";
 	private const string RenderTestCaptureModeCmdArgPrefix = "--render-test-capture-mode=";
+	private const string RenderTestFramesCmdArgPrefix = "--render-test-frames=";
+	private const string RenderTestWarmupCmdArgPrefix = "--render-test-warmup=";
+	private const string DomainAuditQuickCmdArgToken = "--domain-audit-quick";
 	private const string ExportTelemetryHeatmapsCmdArgPrefix = "--export-telemetry-heatmaps=";
 	private const string TelemetryHeatmapOutputDirCmdArgPrefix = "--telemetry-heatmap-output-dir=";
 	private const string TelemetryHeatmapModeCmdArgPrefix = "--telemetry-heatmap-mode=";
@@ -115,6 +120,9 @@ public partial class RenderTestRunner : Node
 	private const string AdaptiveEnvelopeWarmScaleCmdArgPrefix = "--adaptive-envelope-warm-scale=";
 	private const string AdaptiveEnvelopeNeutralScaleCmdArgPrefix = "--adaptive-envelope-neutral-scale=";
 	private const string AdaptiveEnvelopeRelaxedScaleCmdArgPrefix = "--adaptive-envelope-relaxed-scale=";
+	private const string RenderTestFilmWidthCmdArgPrefix = "--render-test-film-width=";
+	private const string RenderTestFilmHeightCmdArgPrefix = "--render-test-film-height=";
+	private const string RenderTestFilmScaleCmdArgPrefix = "--render-test-film-scale=";
 	private const int RenderTestMinFramesPerRun = 90;
 	private const string FastBlackholeComparisonProfileToken = "blackhole_compare_fast";
 	private const string FastEinsteinComparisonProfileToken = "einstein_compare_fast";
@@ -169,6 +177,7 @@ public partial class RenderTestRunner : Node
 	private bool _renderTestCaptureEnabled = false;
 	private string _renderTestCaptureDir = string.Empty;
 	private string _renderTestCaptureModeLabel = string.Empty;
+	private bool _domainAuditQuickMode = false;
 	private bool _telemetryHeatmapCliOverrideKnown = false;
 	private bool _exportTelemetryHeatmaps = false;
 	private bool _telemetryHeatmapOutputDirCliOverrideKnown = false;
@@ -203,6 +212,12 @@ public partial class RenderTestRunner : Node
 	private float _adaptiveEnvelopeNeutralScale = 1.00f;
 	private bool _adaptiveEnvelopeRelaxedScaleCliOverrideKnown = false;
 	private float _adaptiveEnvelopeRelaxedScale = 1.05f;
+	private bool _renderTestFilmWidthOverrideKnown = false;
+	private int _renderTestFilmWidthOverride = 320;
+	private bool _renderTestFilmHeightOverrideKnown = false;
+	private int _renderTestFilmHeightOverride = 180;
+	private bool _renderTestFilmScaleOverrideKnown = false;
+	private float _renderTestFilmScaleOverride = 1.0f;
 	private bool _startupDependencyErrorLogged = false;
 	private bool _baselineApplied = false;
 	private HarnessState _harnessState = HarnessState.Idle;
@@ -483,6 +498,10 @@ public partial class RenderTestRunner : Node
 				$"lifecycle_stress={(IsLifecycleStressActive() ? 1 : 0)} " +
 				$"smartscale={(IsSmartScaleActive() ? 1 : 0)} " +
 				$"smartscale_goal={_smartScaleMode.ToString().ToLowerInvariant()} " +
+				$"domain_audit_quick={(_domainAuditQuickMode ? 1 : 0)} " +
+				$"film_width_override={(_renderTestFilmWidthOverrideKnown ? _renderTestFilmWidthOverride.ToString() : "na")} " +
+				$"film_height_override={(_renderTestFilmHeightOverrideKnown ? _renderTestFilmHeightOverride.ToString() : "na")} " +
+				$"film_scale_override={(_renderTestFilmScaleOverrideKnown ? _renderTestFilmScaleOverride.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) : "na")} " +
 				$"capture={(_renderTestCaptureEnabled ? 1 : 0)} " +
 				$"capture_dir={Sanitize(string.IsNullOrWhiteSpace(_renderTestCaptureDir) ? "auto" : _renderTestCaptureDir)} " +
 				$"capture_mode={Sanitize(string.IsNullOrWhiteSpace(_renderTestCaptureModeLabel) ? "auto" : _renderTestCaptureModeLabel)} " +
@@ -833,6 +852,9 @@ public partial class RenderTestRunner : Node
 			_renderTestResolutionScaleCaptured = true;
 		}
 		_film.FilmResolutionScale = MathF.Max(RenderTestBbNewResolutionScale, 0.01f);
+		if (_renderTestFilmWidthOverrideKnown) _film.Width = _renderTestFilmWidthOverride;
+		if (_renderTestFilmHeightOverrideKnown) _film.Height = _renderTestFilmHeightOverride;
+		if (_renderTestFilmScaleOverrideKnown) _film.FilmResolutionScale = MathF.Max(_renderTestFilmScaleOverride, 0.01f);
 		float effectiveScale = MathF.Max(_film.FilmResolutionScale, 0.01f);
 		_film.RenderHealthRollingWindowSec = RenderTestTrustRollingWindowSec;
 		int scaledFilmW = Mathf.Max(8, Mathf.CeilToInt(_film.Width * effectiveScale));
@@ -852,7 +874,9 @@ public partial class RenderTestRunner : Node
 			_renderTestOriginalFramesPerRun = FramesPerRun;
 			_renderTestFramesPerRunCaptured = true;
 		}
-		FramesPerRun = Math.Max(FramesPerRun, RenderTestMinFramesPerRun);
+		FramesPerRun = _domainAuditQuickMode
+			? Math.Max(1, FramesPerRun)
+			: Math.Max(FramesPerRun, RenderTestMinFramesPerRun);
 		_film.SkyColor = new Color(0.15517181f, 0.13225737f, 0.33741817f, 1.0f);
 		_film.FilmOpacity = 0.8f;
 		_film.ShadingMode = GrinFilmCamera.FilmShadingMode.NormalRGB;
@@ -1102,6 +1126,25 @@ public partial class RenderTestRunner : Node
 			if (_enableDomainAwareFirstHitResolver)
 				_film.EnableDomainTelemetry = true;
 		}
+		if (_requestedFixture == RenderTestFixture.DomainResolverStress)
+		{
+			_film.ApplyPresetOnReady = false;
+			_film.BroadphaseControlMode = GrinFilmCamera.BroadphaseMode.Policy;
+			_film.BroadphasePolicy = GrinFilmCamera.BroadphasePolicyMode.OverlapOnly;
+			_film.BroadphaseMaxResults = Math.Max(_film.BroadphaseMaxResults, 16);
+			_film.UsePass2CollisionStride = false;
+			_film.UpdateEveryFrameBudgetMs = Math.Max(_film.UpdateEveryFrameBudgetMs, 4000f);
+			_film.RenderStepMaxMs = Math.Max(_film.RenderStepMaxMs, 4000);
+			if (TryGetSharedRayBeamRenderer(out RayBeamRenderer stressRbr) && GodotObject.IsInstanceValid(stressRbr))
+			{
+				stressRbr.StepsPerRay = Math.Max(stressRbr.StepsPerRay, 700);
+				stressRbr.StepLength = 0.0125f;
+				stressRbr.MinStepLength = 0.001f;
+				stressRbr.MaxStepLength = 0.025f;
+				stressRbr.CollisionRaySubdivideThreshold = 0.0125f;
+				stressRbr.MaxCollisionSubsteps = Math.Max(stressRbr.MaxCollisionSubsteps, 4);
+			}
+		}
 		if (_telemetryAdaptiveEnvelopeCliOverrideKnown)
 		{
 			_film.AdaptiveTelemetryEnvelopeScalingEnabled = _telemetryAdaptiveEnvelopeEnabled;
@@ -1165,6 +1208,24 @@ public partial class RenderTestRunner : Node
 			RefreshRenderTestTrustTargetsForCurrentFilm(
 				profileToken: CurvedMinimalVisualCheckProfileToken,
 				runName: _activeRunConfig.Name);
+		}
+		// Re-apply film size overrides after quality-mode preset flush (Barebones resets scale to 0.25).
+		if (_renderTestFilmWidthOverrideKnown) _film.Width = _renderTestFilmWidthOverride;
+		if (_renderTestFilmHeightOverrideKnown) _film.Height = _renderTestFilmHeightOverride;
+		if (_renderTestFilmScaleOverrideKnown) _film.FilmResolutionScale = MathF.Max(_renderTestFilmScaleOverride, 0.01f);
+		if (_renderTestFilmWidthOverrideKnown || _renderTestFilmHeightOverrideKnown || _renderTestFilmScaleOverrideKnown)
+		{
+			float overrideEffectiveScale = MathF.Max(_film.FilmResolutionScale, 0.01f);
+			int overrideScaledFilmW = Mathf.Max(8, Mathf.CeilToInt(_film.Width * overrideEffectiveScale));
+			int overrideScaledFilmH = Mathf.Max(8, Mathf.CeilToInt(_film.Height * overrideEffectiveScale));
+			_renderTestStatsScaledFilmW = overrideScaledFilmW;
+			_renderTestStatsScaledFilmH = overrideScaledFilmH;
+			int overrideStatsRowsPerStep = ComputeStatsFriendlyRowsPerStep(overrideScaledFilmH);
+			_renderTestStatsRowsPerStep = overrideStatsRowsPerStep;
+			_film.UpdateEveryFrameMaxRowsPerStep = overrideStatsRowsPerStep;
+			_film.RowsPerFrame = overrideStatsRowsPerStep;
+			_film.MaxRowsPerFrameCap = overrideStatsRowsPerStep;
+			_film.MinRowsPerFrame = Math.Min(_film.MinRowsPerFrame, overrideStatsRowsPerStep);
 		}
 		bool runWantsUpdateEveryFrame = _activeRunConfig.UpdateEveryFrame ?? (_defaultsCaptured ? _defaults.UpdateEveryFrame : true);
 		_film.UpdateEveryFrame = runWantsUpdateEveryFrame;
@@ -2776,7 +2837,8 @@ public partial class RenderTestRunner : Node
 			GrinFilmCamera.DomainTelemetryMapKind.DomainId,
 			GrinFilmCamera.DomainTelemetryMapKind.DomainConfidence,
 			GrinFilmCamera.DomainTelemetryMapKind.BoundaryConfidence,
-			GrinFilmCamera.DomainTelemetryMapKind.SelectionFlip
+			GrinFilmCamera.DomainTelemetryMapKind.SelectionFlip,
+			GrinFilmCamera.DomainTelemetryMapKind.NormalDiscontinuity
 		};
 
 		System.Text.StringBuilder summary = new System.Text.StringBuilder(768);
@@ -2808,6 +2870,7 @@ public partial class RenderTestRunner : Node
 				GrinFilmCamera.DomainTelemetryMapKind.DomainConfidence => "domain_confidence",
 				GrinFilmCamera.DomainTelemetryMapKind.BoundaryConfidence => "boundary_confidence",
 				GrinFilmCamera.DomainTelemetryMapKind.SelectionFlip => "selection_flip",
+				GrinFilmCamera.DomainTelemetryMapKind.NormalDiscontinuity => "normal_discontinuity",
 				_ => "domain_unknown"
 			};
 			string outPath = Path.Combine(outputDir, captureStem + "." + suffix + ".png");
@@ -2843,7 +2906,9 @@ public partial class RenderTestRunner : Node
 				$"kind={stats.Key} min={stats.Min:0.###} max={stats.Max:0.###} mean={stats.Mean:0.###} path={outPath}");
 		}
 
-		summary.Append("]}");
+		summary.Append("],");
+		summary.Append("\"resolver_change_summary\":").Append(_film.BuildDomainResolverTelemetrySummaryJsonForTesting());
+		summary.Append("}");
 		if (!wroteAny)
 		{
 			return;
@@ -3483,6 +3548,11 @@ public partial class RenderTestRunner : Node
 			}
 		};
 
+		if (_domainAuditQuickMode)
+		{
+			return new List<GrinFilmCamera.TestRunConfig> { runs[0] };
+		}
+
 		if (_straightFixtureSceneActive)
 		{
 			Vector3 straightCamPos = new Vector3(0f, 0f, 5f);
@@ -3900,6 +3970,7 @@ public partial class RenderTestRunner : Node
 		_telemetryHeatmapOutputDir = string.Empty;
 		_telemetryHeatmapModeCliOverrideKnown = false;
 		_telemetryHeatmapMode = "basic";
+		_domainAuditQuickMode = HasCmdArg(DomainAuditQuickCmdArgToken);
 		_domainTelemetryCliOverrideKnown = false;
 		_enableDomainTelemetry = false;
 		_domainAwareFirstHitResolverCliOverrideKnown = false;
@@ -3928,6 +3999,12 @@ public partial class RenderTestRunner : Node
 		_adaptiveEnvelopeNeutralScale = 1.00f;
 		_adaptiveEnvelopeRelaxedScaleCliOverrideKnown = false;
 		_adaptiveEnvelopeRelaxedScale = 1.05f;
+		_renderTestFilmWidthOverrideKnown = false;
+		_renderTestFilmWidthOverride = 320;
+		_renderTestFilmHeightOverrideKnown = false;
+		_renderTestFilmHeightOverride = 180;
+		_renderTestFilmScaleOverrideKnown = false;
+		_renderTestFilmScaleOverride = 1.0f;
 		if (TryGetBoolCmdArgValue(RenderTestCaptureCmdArgPrefix, out bool renderTestCaptureEnabled))
 		{
 			_renderTestCaptureEnabled = renderTestCaptureEnabled;
@@ -3941,6 +4018,14 @@ public partial class RenderTestRunner : Node
 			!string.IsNullOrWhiteSpace(renderTestCaptureMode))
 		{
 			_renderTestCaptureModeLabel = SanitizeTokenForFilename(renderTestCaptureMode);
+		}
+		if (TryGetIntCmdArgValue(RenderTestFramesCmdArgPrefix, out int renderTestFrames))
+		{
+			FramesPerRun = Math.Max(1, renderTestFrames);
+		}
+		if (TryGetIntCmdArgValue(RenderTestWarmupCmdArgPrefix, out int renderTestWarmup))
+		{
+			WarmupFrames = Math.Max(0, renderTestWarmup);
 		}
 		if (TryGetBoolCmdArgValue(ExportTelemetryHeatmapsCmdArgPrefix, out bool exportTelemetryHeatmaps))
 		{
@@ -4085,6 +4170,23 @@ public partial class RenderTestRunner : Node
 		if (TryGetIntCmdArgValue(ShadowPruneOffTargetMsCmdArgPrefix, out int shadowPruneOffTargetMs))
 		{
 			_shadowPruneOffTargetMsOverride = Math.Max(1, shadowPruneOffTargetMs);
+		}
+		if (TryGetIntCmdArgValue(RenderTestFilmWidthCmdArgPrefix, out int renderTestFilmWidth) && renderTestFilmWidth >= 8)
+		{
+			_renderTestFilmWidthOverrideKnown = true;
+			_renderTestFilmWidthOverride = renderTestFilmWidth;
+		}
+		if (TryGetIntCmdArgValue(RenderTestFilmHeightCmdArgPrefix, out int renderTestFilmHeight) && renderTestFilmHeight >= 8)
+		{
+			_renderTestFilmHeightOverrideKnown = true;
+			_renderTestFilmHeightOverride = renderTestFilmHeight;
+		}
+		if (TryGetStringCmdArgValue(RenderTestFilmScaleCmdArgPrefix, out string renderTestFilmScaleRaw) &&
+			!string.IsNullOrWhiteSpace(renderTestFilmScaleRaw) &&
+			float.TryParse(renderTestFilmScaleRaw.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float renderTestFilmScale))
+		{
+			_renderTestFilmScaleOverrideKnown = true;
+			_renderTestFilmScaleOverride = Mathf.Clamp(renderTestFilmScale, 0.01f, 4.0f);
 		}
 	}
 
@@ -4406,6 +4508,11 @@ public partial class RenderTestRunner : Node
 				fixture = RenderTestFixture.EinsteinRingMinimal;
 				return true;
 			}
+			if (string.Equals(value, "domain_resolver_stress", StringComparison.OrdinalIgnoreCase))
+			{
+				fixture = RenderTestFixture.DomainResolverStress;
+				return true;
+			}
 			if (string.Equals(value, "default", StringComparison.OrdinalIgnoreCase))
 			{
 				fixture = RenderTestFixture.Default;
@@ -4670,6 +4777,7 @@ public partial class RenderTestRunner : Node
 			RenderTestFixture.CurvedMinimalBackdrop => "curved_minimal_backdrop",
 			RenderTestFixture.BlackholeMinimal => "blackhole_minimal",
 			RenderTestFixture.EinsteinRingMinimal => "einstein_ring_minimal",
+			RenderTestFixture.DomainResolverStress => "domain_resolver_stress",
 			_ => string.Empty
 		};
 	}
@@ -4703,6 +4811,7 @@ public partial class RenderTestRunner : Node
 				RenderTestEinsteinRingMinimalScenePath,
 				RenderTestEinsteinRingMinimalMetricScenePath,
 				RenderTestEinsteinRingMinimalGrinScenePath),
+			RenderTestFixture.DomainResolverStress => RenderTestDomainResolverStressScenePath,
 			_ => RenderTestDefaultScenePath
 		};
 	}
@@ -5025,6 +5134,7 @@ public partial class RenderTestRunner : Node
 			RenderTestFixture.CurvedMinimalBackdrop => "curved_minimal_backdrop",
 			RenderTestFixture.BlackholeMinimal => "blackhole_minimal",
 			RenderTestFixture.EinsteinRingMinimal => "einstein_ring_minimal",
+			RenderTestFixture.DomainResolverStress => "domain_resolver_stress",
 			_ => "default"
 		};
 	}

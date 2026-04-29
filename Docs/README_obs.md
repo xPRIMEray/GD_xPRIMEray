@@ -21,7 +21,7 @@ xPRIMEray addresses all three cases within a single transport framework grounded
 | Innovation | Description |
 |---|---|
 | **Curved ray integration** | RK4 integration of the eikonal ODE, with derivative-aware adaptive step control. Rays are first-class curved primitives, not post-hoc approximations. |
-| **Domain-aware rendering** | The renderer identifies distinct transport regimes (near-side, bridge, far-side) from metric structure alone, without scene labels. Interpolation validity is assessed per-domain. |
+| **Domain-aware rendering** | Research analysis estimates distinct transport regimes (near-side, bridge, far-side); renderer-integrated maps are heuristic diagnostics and may include runtime/fixture signals. |
 | **Geometric sampling textures** | Multiple tile geometries — adaptive square, polar/radial, curvature-centred — each tuned for different diagnostic goals. Hybrid architecture retains raw row-pass truth as scout reference. |
 | **Hermetic validation** | Every fixture run must satisfy `classified_coverage = 1.0`, `escaped_no_hit = 0`, `budget_exhausted = 0`. No pixel may be lost to the computational equivalent of a singularity. |
 | **Fresh-instance observer ladder** | Each checkpoint is evaluated on a fully fresh renderer instance, ensuring reported differences reflect transport structure rather than accumulated state. |

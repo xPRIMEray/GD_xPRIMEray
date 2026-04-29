@@ -1,0 +1,95 @@
+[gd_scene load_steps=8 format=3]
+
+; Fixture: domain resolver stress
+; Purpose: controlled competing first-hit case for EnableDomainAwareFirstHitResolver.
+;   A narrow near source plate sits just in front of a background plate.
+;   The source plate is slightly rotated so pixels that switch to the background
+;   report a nonzero normal_discontinuity. No smoothing or post-processing is used.
+
+[ext_resource type="Script" path="res://RayBeamRenderer.cs" id="1_rbr"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_background"]
+size = Vector3(6, 4, 0.02)
+
+[sub_resource type="BoxShape3D" id="BoxShape_background"]
+size = Vector3(6, 4, 0.02)
+
+[sub_resource type="BoxMesh" id="BoxMesh_source"]
+size = Vector3(0.8, 3.2, 0.02)
+
+[sub_resource type="BoxShape3D" id="BoxShape_source"]
+size = Vector3(0.8, 3.2, 0.02)
+
+[sub_resource type="SphereMesh" id="SphereMesh_marker"]
+radius = 0.08
+height = 0.16
+
+[sub_resource type="SphereShape3D" id="SphereShape_marker"]
+radius = 0.08
+
+[node name="FixtureDomainResolverStress" type="Node3D"]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 4)
+current = true
+fov = 38.0
+near = 0.01
+
+[node name="background_plate" type="StaticBody3D" parent="." groups=["raytrace_geometry", "fixture_background"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -4.055)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="background_plate"]
+mesh = SubResource("BoxMesh_background")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="background_plate"]
+shape = SubResource("BoxShape_background")
+
+; Narrow near plate. The Y-axis rotation gives the source hit a different normal
+; from the background while keeping the competing hit distance within 0.08 near
+; the center columns.
+[node name="near_source_plate" type="StaticBody3D" parent="." groups=["raytrace_geometry", "fixture_source"]]
+transform = Transform3D(0.990268, 0, -0.139173, 0, 1, 0, 0.139173, 0, 0.990268, 0, 0, -4)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="near_source_plate"]
+mesh = SubResource("BoxMesh_source")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="near_source_plate"]
+shape = SubResource("BoxShape_source")
+
+; Tiny off-axis markers make any global blur obvious without changing the resolver setup.
+[node name="marker_left" type="StaticBody3D" parent="." groups=["raytrace_geometry", "fixture_background"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.6, 0.9, -4.02)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="marker_left"]
+mesh = SubResource("SphereMesh_marker")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="marker_left"]
+shape = SubResource("SphereShape_marker")
+
+[node name="marker_right" type="StaticBody3D" parent="." groups=["raytrace_geometry", "fixture_background"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6, -0.9, -4.02)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="marker_right"]
+mesh = SubResource("SphereMesh_marker")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="marker_right"]
+shape = SubResource("SphereShape_marker")
+
+[node name="RayBeamRenderer" type="Node3D" parent="."]
+visible = false
+script = ExtResource("1_rbr")
+CameraPath = NodePath("../Camera3D")
+StepsPerRay = 700
+StepLength = 0.0125
+MinStepLength = 0.001
+MaxStepLength = 0.025
+CollisionRaySubdivideThreshold = 0.0125
+MaxCollisionSubsteps = 4
+CollisionRadius = 0.004
+LowCurvaturePerpAccel = 0.3
+BendScale = 0.0
+FieldCenterIsCamera = false
+DebugMode = 0
+DebugNormalLen = 0.295
+Alpha = 1.0
+UpdateEveryFrame = false

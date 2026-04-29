@@ -1,0 +1,76 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://Fixtures/fixture_domain_resolver_stress.tscn" id="1_fixture"]
+[ext_resource type="Script" path="res://GrinFilmCamera.cs" id="2_grin"]
+[ext_resource type="Script" path="res://RendererCore/Testing/RenderTestRunner.cs" id="3_runner"]
+[ext_resource type="Script" path="res://FilmOverlay2D.cs" id="4_overlay"]
+
+[node name="TestDomainResolverStressHarness" type="Node3D"]
+
+[node name="FixtureDomainResolverStress" parent="." instance=ExtResource("1_fixture")]
+
+[node name="GrinFilmCamera" type="Node" parent="."]
+script = ExtResource("2_grin")
+Width = 320
+Height = 180
+FilmResolutionScale = 0.25
+SkyColor = Color(0.04, 0.045, 0.055, 1)
+FilmOpacity = 1.0
+ShadingMode = 1
+FlipNormalToCamera = true
+UpdateEveryFrame = true
+UpdateEveryFrameBudgetMs = 1000.0
+UpdateEveryFrameMaxRowsPerStep = 64
+RenderStepMaxMs = 1000
+RenderStepMaxSegmentsPerFrame = 200000000
+TargetMsPerFrame = 50
+MaxRowsPerFrameCap = 64
+EnableFramePerf = false
+RenderStepPhaseLog = false
+RenderStepBandLog = false
+DebugSnapshotLog = false
+DebugProbeLog = false
+DebugGeomPruneAuditEnabled = true
+AutoRangeMin = 0.01
+BroadphasePolicy = 2
+NeedColliderNames = true
+FixtureDebugHitColoringEnabled = true
+FixtureDebugColorAuthorityEnabled = true
+RayBeamRendererPath = NodePath("../FixtureDomainResolverStress/RayBeamRenderer")
+FilmViewPath = NodePath("../CanvasLayer/FilmView")
+FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+layer = -2
+
+[node name="FilmView" type="TextureRect" parent="CanvasLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_behavior_recursive = 1
+metadata/_edit_use_anchors_ = true
+
+[node name="FilmOverlay2D" type="TextureRect" parent="CanvasLayer"]
+modulate = Color(1, 1, 1, 0.75)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_behavior_recursive = 1
+script = ExtResource("4_overlay")
+CameraPath = NodePath("../../FixtureDomainResolverStress/Camera3D")
+DrawFilmGradientNormals = false
+RayWidth = 2.0
+FilmGradientScale = 30.0
+metadata/_edit_use_anchors_ = true
+
+[node name="RenderTestRunner" type="Node" parent="."]
+script = ExtResource("3_runner")
+StartWhenCmdArgPresent = true
+Fixture = 6
+FramesPerRun = 30
+WarmupFrames = 3
+TargetCameraPath = NodePath("../FixtureDomainResolverStress/Camera3D")
