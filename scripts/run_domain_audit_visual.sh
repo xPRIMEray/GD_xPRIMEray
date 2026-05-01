@@ -3,14 +3,25 @@ set -euo pipefail
 
 # High-resolution visual validation path for the domain resolver stress fixture.
 # Runs: OFF / telemetry ON / resolver ON at full film resolution (FilmResolutionScale=1.0).
-# Default: 320x180 (16x the quick-audit effective 80x45).
+# Default: 320x180 (16x the quick-audit effective 80x45), 90 frames, fixed camera.
 # Optional: --medres (640x360) or --hires (1280x720).
 # Keeps the low-res quick audit path intact; this script adds a separate visual path.
 #
+# Fixed camera (--render-test-camera-fixed=1) is always enabled to eliminate
+# orbit-camera temporal nondeterminism from OFF vs telemetry ON hash comparisons.
+#
+# Passive step-convergence diagnostics:
+#   Pass --step-convergence to enable EnableStepConvergenceTelemetry on the telemetry_on run.
+#   Produces step_convergence_confidence.png, step_sensitivity.png, precision_required.png
+#   in the telemetry_on/ output folder. These maps are passive: they do not alter the
+#   beauty result and do not affect the OFF vs telemetry ON hash comparison.
+#   Cost: ~3× extra pass2 physics queries per hit pixel for the telemetry_on run.
+#
 # Usage:
-#   scripts/run_domain_audit_visual.sh            # 320x180
-#   scripts/run_domain_audit_visual.sh --medres   # 640x360
-#   scripts/run_domain_audit_visual.sh --hires    # 1280x720
+#   scripts/run_domain_audit_visual.sh                          # 320x180
+#   scripts/run_domain_audit_visual.sh --medres                 # 640x360
+#   scripts/run_domain_audit_visual.sh --hires                  # 1280x720
+#   scripts/run_domain_audit_visual.sh --step-convergence       # 320x180 + convergence maps
 #
 # Output: output/domain_audit_visual/<timestamp>/
 
@@ -20,7 +31,7 @@ cd "$ROOT"
 GODOT_BIN="${GODOT_BIN:-$ROOT/scripts/godot_local.sh}"
 SCENE="${DOMAIN_AUDIT_VISUAL_SCENE:-res://test-domain-resolver-stress.tscn}"
 FIXTURE="${DOMAIN_AUDIT_VISUAL_FIXTURE:-domain_resolver_stress}"
-FRAMES="${DOMAIN_AUDIT_VISUAL_FRAMES:-30}"
+FRAMES="${DOMAIN_AUDIT_VISUAL_FRAMES:-90}"
 WARMUP="${DOMAIN_AUDIT_VISUAL_WARMUP:-3}"
 OUTPUT_ROOT="${DOMAIN_AUDIT_VISUAL_OUTPUT_ROOT:-$ROOT/output/domain_audit_visual}"
 RUN_ROOT="$OUTPUT_ROOT/$(date -u +%Y%m%dT%H%M%SZ)"
@@ -29,6 +40,8 @@ FILM_W=320
 FILM_H=180
 FILM_SCALE=1.0
 RES_LABEL="320x180"
+
+STEP_CONVERGENCE=0
 
 for arg in "$@"; do
   case "$arg" in
@@ -44,6 +57,9 @@ for arg in "$@"; do
       FILM_SCALE=1.0
       RES_LABEL="1280x720"
       ;;
+    --step-convergence)
+      STEP_CONVERGENCE=1
+      ;;
   esac
 done
 
@@ -58,10 +74,11 @@ run_case() {
   local label="$1"
   local telemetry="$2"
   local resolver="$3"
+  local step_conv="$4"
   local case_dir="$RUN_ROOT/$label"
   mkdir -p "$case_dir"
 
-  echo "[domain-audit-visual] run label=$label telemetry=$telemetry resolver=$resolver res=$RES_LABEL"
+  echo "[domain-audit-visual] run label=$label telemetry=$telemetry resolver=$resolver step_convergence=$step_conv res=$RES_LABEL"
   set +e
   "$GODOT_BIN" --headless --path "$ROOT" --scene "$SCENE" -- \
     --render-test \
@@ -75,7 +92,9 @@ run_case() {
     "--render-test-film-width=$FILM_W" \
     "--render-test-film-height=$FILM_H" \
     "--render-test-film-scale=$FILM_SCALE" \
+    --render-test-camera-fixed=1 \
     "--enable-domain-telemetry=$telemetry" \
+    "--enable-step-convergence-telemetry=$step_conv" \
     "--enable-domain-aware-first-hit-resolver=$resolver" \
     > "$case_dir/run.log" 2>&1
   local exit_code=$?
@@ -92,9 +111,9 @@ run_case() {
 }
 
 overall_status=0
-run_case "off"          0 0 || overall_status=1
-run_case "telemetry_on" 1 0 || overall_status=1
-run_case "resolver_on"  1 1 || overall_status=1
+run_case "off"          0 0 0 || overall_status=1
+run_case "telemetry_on" 1 0 "$STEP_CONVERGENCE" || overall_status=1
+run_case "resolver_on"  1 1 0 || overall_status=1
 
 # ── Beauty comparison: OFF vs telemetry ON ────────────────────────────────────
 
@@ -106,6 +125,9 @@ find_beauty_png() {
     ! -name "*.boundary_confidence.png" \
     ! -name "*.selection_flip.png" \
     ! -name "*.normal_discontinuity.png" \
+    ! -name "*.step_convergence_confidence.png" \
+    ! -name "*.step_sensitivity.png" \
+    ! -name "*.precision_required.png" \
     | sort | head -n 1
 }
 
@@ -147,6 +169,58 @@ PY
   fi
 else
   echo "[domain-audit-visual] resolver_summary=missing"
+fi
+
+# ── Step convergence diagnostics summary ─────────────────────────────────────
+
+if [[ "$STEP_CONVERGENCE" -eq 1 ]] && command -v python3 >/dev/null 2>&1; then
+  tel_dir="$RUN_ROOT/telemetry_on"
+  sconv_map="$(find "$tel_dir" -maxdepth 1 -name "*.step_convergence_confidence.png" | sort | head -n 1)"
+  ssens_map="$(find "$tel_dir" -maxdepth 1 -name "*.step_sensitivity.png" | sort | head -n 1)"
+  sprec_map="$(find "$tel_dir" -maxdepth 1 -name "*.precision_required.png" | sort | head -n 1)"
+  if [[ -n "$sconv_map" ]]; then
+    echo "[domain-audit-visual] step_convergence_confidence_map=$sconv_map"
+  fi
+  if [[ -n "$ssens_map" ]]; then
+    echo "[domain-audit-visual] step_sensitivity_map=$ssens_map"
+  fi
+  if [[ -n "$sprec_map" ]]; then
+    echo "[domain-audit-visual] precision_required_map=$sprec_map"
+  fi
+  # Compute per-map pixel statistics
+  if [[ -n "$sconv_map" || -n "$ssens_map" || -n "$sprec_map" ]]; then
+    python3 - "$sconv_map" "$ssens_map" "$sprec_map" <<'PY'
+import sys
+try:
+    from PIL import Image
+except ImportError:
+    print("[step-convergence] PIL not available, skipping map stats")
+    sys.exit(0)
+
+def map_stats(path, label):
+    if not path:
+        return
+    try:
+        img = Image.open(path).convert('L')
+        vals = [v / 255.0 for v in img.getdata()]
+        if not vals:
+            return
+        mn = min(vals); mx = max(vals); mean = sum(vals) / len(vals)
+        low = sorted(vals)[len(vals) // 10]
+        mid = sorted(vals)[len(vals) // 2]
+        high = sorted(vals)[min(len(vals)-1, (9*len(vals))//10)]
+        nonzero = sum(1 for v in vals if v > 0.01)
+        print(f"[step-convergence] {label}: min={mn:.4f} mean={mean:.4f} max={mx:.4f} p10={low:.4f} p50={mid:.4f} p90={high:.4f} nonzero_pixels={nonzero}")
+    except Exception as e:
+        print(f"[step-convergence] {label}: error={e}")
+
+map_stats(sys.argv[1] if sys.argv[1] else None, "step_convergence_confidence")
+map_stats(sys.argv[2] if sys.argv[2] else None, "step_sensitivity")
+map_stats(sys.argv[3] if sys.argv[3] else None, "precision_required")
+PY
+  fi
+else
+  echo "[domain-audit-visual] step_convergence=disabled (pass --step-convergence to enable)"
 fi
 
 # ── Contact sheet ─────────────────────────────────────────────────────────────
@@ -250,6 +324,14 @@ sflip = find_map(run_root / 'resolver_on', '.selection_flip.png')
 if bconf: panels.append(bconf); labels.append('boundary_confidence')
 if ndisc: panels.append(ndisc); labels.append('normal_discontinuity')
 if sflip: panels.append(sflip); labels.append('selection_flip')
+
+# Passive convergence diagnostics (from telemetry_on case, if EnableStepConvergenceTelemetry is on)
+sconv = find_map(run_root / 'telemetry_on', '.step_convergence_confidence.png')
+ssens = find_map(run_root / 'telemetry_on', '.step_sensitivity.png')
+sprec = find_map(run_root / 'telemetry_on', '.precision_required.png')
+if sconv: panels.append(sconv); labels.append('step_convergence_confidence')
+if ssens: panels.append(ssens); labels.append('step_sensitivity')
+if sprec: panels.append(sprec); labels.append('precision_required')
 
 if not panels:
     print('[contact-sheet] no panels found, skipping')

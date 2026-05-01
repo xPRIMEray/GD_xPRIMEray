@@ -107,6 +107,7 @@ public partial class RenderTestRunner : Node
 	private const string TelemetryHeatmapOutputDirCmdArgPrefix = "--telemetry-heatmap-output-dir=";
 	private const string TelemetryHeatmapModeCmdArgPrefix = "--telemetry-heatmap-mode=";
 	private const string EnableDomainTelemetryCmdArgPrefix = "--enable-domain-telemetry=";
+	private const string EnableStepConvergenceTelemetryCmdArgPrefix = "--enable-step-convergence-telemetry=";
 	private const string EnableDomainAwareFirstHitResolverCmdArgPrefix = "--enable-domain-aware-first-hit-resolver=";
 	private const string TelemetryExperimentEnvelopeScaleCmdArgPrefix = "--telemetry-experiment-envelope-scale=";
 	private const string TelemetryAdaptiveEnvelopeCmdArgPrefix = "--telemetry-adaptive-envelope=";
@@ -123,6 +124,7 @@ public partial class RenderTestRunner : Node
 	private const string RenderTestFilmWidthCmdArgPrefix = "--render-test-film-width=";
 	private const string RenderTestFilmHeightCmdArgPrefix = "--render-test-film-height=";
 	private const string RenderTestFilmScaleCmdArgPrefix = "--render-test-film-scale=";
+	private const string RenderTestCameraFixedCmdArgPrefix = "--render-test-camera-fixed=";
 	private const int RenderTestMinFramesPerRun = 90;
 	private const string FastBlackholeComparisonProfileToken = "blackhole_compare_fast";
 	private const string FastEinsteinComparisonProfileToken = "einstein_compare_fast";
@@ -186,6 +188,8 @@ public partial class RenderTestRunner : Node
 	private string _telemetryHeatmapMode = "basic";
 	private bool _domainTelemetryCliOverrideKnown = false;
 	private bool _enableDomainTelemetry = false;
+	private bool _stepConvergenceTelemetryCliOverrideKnown = false;
+	private bool _enableStepConvergenceTelemetry = false;
 	private bool _domainAwareFirstHitResolverCliOverrideKnown = false;
 	private bool _enableDomainAwareFirstHitResolver = false;
 	private bool _telemetryExperimentEnvelopeScaleCliOverrideKnown = false;
@@ -218,6 +222,8 @@ public partial class RenderTestRunner : Node
 	private int _renderTestFilmHeightOverride = 180;
 	private bool _renderTestFilmScaleOverrideKnown = false;
 	private float _renderTestFilmScaleOverride = 1.0f;
+	private bool _renderTestCameraFixedCliOverrideKnown = false;
+	private bool _renderTestCameraFixed = false;
 	private bool _startupDependencyErrorLogged = false;
 	private bool _baselineApplied = false;
 	private HarnessState _harnessState = HarnessState.Idle;
@@ -502,6 +508,7 @@ public partial class RenderTestRunner : Node
 				$"film_width_override={(_renderTestFilmWidthOverrideKnown ? _renderTestFilmWidthOverride.ToString() : "na")} " +
 				$"film_height_override={(_renderTestFilmHeightOverrideKnown ? _renderTestFilmHeightOverride.ToString() : "na")} " +
 				$"film_scale_override={(_renderTestFilmScaleOverrideKnown ? _renderTestFilmScaleOverride.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) : "na")} " +
+				$"camera_fixed={(_renderTestCameraFixedCliOverrideKnown ? (_renderTestCameraFixed ? 1 : 0) : "na")} " +
 				$"capture={(_renderTestCaptureEnabled ? 1 : 0)} " +
 				$"capture_dir={Sanitize(string.IsNullOrWhiteSpace(_renderTestCaptureDir) ? "auto" : _renderTestCaptureDir)} " +
 				$"capture_mode={Sanitize(string.IsNullOrWhiteSpace(_renderTestCaptureModeLabel) ? "auto" : _renderTestCaptureModeLabel)} " +
@@ -509,6 +516,7 @@ public partial class RenderTestRunner : Node
 				$"telemetry_heatmap_dir={Sanitize(ResolveTelemetryHeatmapDirForLogging())} " +
 				$"telemetry_heatmap_mode={Sanitize(ResolveTelemetryHeatmapModeForLogging())} " +
 				$"domain_telemetry={(ResolveDomainTelemetryEnabledForLogging() ? 1 : 0)} " +
+				$"step_convergence_telemetry={(_stepConvergenceTelemetryCliOverrideKnown ? (_enableStepConvergenceTelemetry ? 1 : 0) : "na")} " +
 				$"domain_aware_first_hit={(_domainAwareFirstHitResolverCliOverrideKnown ? (_enableDomainAwareFirstHitResolver ? 1 : 0) : ((_film != null && GodotObject.IsInstanceValid(_film) && _film.EnableDomainAwareFirstHitResolver) ? 1 : 0))} " +
 				$"telemetry_adaptive_envelope={(_telemetryAdaptiveEnvelopeCliOverrideKnown ? (_telemetryAdaptiveEnvelopeEnabled ? 1 : 0) : 0)} " +
 				$"adaptive_envelope_controller_mode={Sanitize(_adaptiveEnvelopeControllerModeCliOverrideKnown ? _adaptiveEnvelopeControllerMode : "three_state")} " +
@@ -1119,6 +1127,10 @@ public partial class RenderTestRunner : Node
 		if (_domainTelemetryCliOverrideKnown)
 		{
 			_film.EnableDomainTelemetry = _enableDomainTelemetry;
+		}
+		if (_stepConvergenceTelemetryCliOverrideKnown)
+		{
+			_film.EnableStepConvergenceTelemetry = _enableStepConvergenceTelemetry;
 		}
 		if (_domainAwareFirstHitResolverCliOverrideKnown)
 		{
@@ -3781,6 +3793,13 @@ public partial class RenderTestRunner : Node
 			return;
 		}
 
+		// Fixed-camera override: freeze at captured initial transform, suppressing orbit advancement.
+		if (_renderTestCameraFixed && _cameraTransformCaptured)
+		{
+			_camera.GlobalTransform = _cameraOriginalTransform;
+			return;
+		}
+
 		if (run.CameraMode == GrinFilmCamera.TestCameraMode.Fixed)
 		{
 			_camera.GlobalPosition = run.CameraFixedPosition;
@@ -3973,6 +3992,8 @@ public partial class RenderTestRunner : Node
 		_domainAuditQuickMode = HasCmdArg(DomainAuditQuickCmdArgToken);
 		_domainTelemetryCliOverrideKnown = false;
 		_enableDomainTelemetry = false;
+		_stepConvergenceTelemetryCliOverrideKnown = false;
+		_enableStepConvergenceTelemetry = false;
 		_domainAwareFirstHitResolverCliOverrideKnown = false;
 		_enableDomainAwareFirstHitResolver = false;
 		_telemetryExperimentEnvelopeScaleCliOverrideKnown = false;
@@ -4005,6 +4026,8 @@ public partial class RenderTestRunner : Node
 		_renderTestFilmHeightOverride = 180;
 		_renderTestFilmScaleOverrideKnown = false;
 		_renderTestFilmScaleOverride = 1.0f;
+		_renderTestCameraFixedCliOverrideKnown = false;
+		_renderTestCameraFixed = false;
 		if (TryGetBoolCmdArgValue(RenderTestCaptureCmdArgPrefix, out bool renderTestCaptureEnabled))
 		{
 			_renderTestCaptureEnabled = renderTestCaptureEnabled;
@@ -4048,6 +4071,11 @@ public partial class RenderTestRunner : Node
 		{
 			_domainTelemetryCliOverrideKnown = true;
 			_enableDomainTelemetry = enableDomainTelemetry;
+		}
+		if (TryGetBoolCmdArgValue(EnableStepConvergenceTelemetryCmdArgPrefix, out bool enableStepConvergenceTelemetry))
+		{
+			_stepConvergenceTelemetryCliOverrideKnown = true;
+			_enableStepConvergenceTelemetry = enableStepConvergenceTelemetry;
 		}
 		if (TryGetBoolCmdArgValue(EnableDomainAwareFirstHitResolverCmdArgPrefix, out bool enableDomainAwareFirstHitResolver))
 		{
@@ -4187,6 +4215,11 @@ public partial class RenderTestRunner : Node
 		{
 			_renderTestFilmScaleOverrideKnown = true;
 			_renderTestFilmScaleOverride = Mathf.Clamp(renderTestFilmScale, 0.01f, 4.0f);
+		}
+		if (TryGetBoolCmdArgValue(RenderTestCameraFixedCmdArgPrefix, out bool renderTestCameraFixed))
+		{
+			_renderTestCameraFixedCliOverrideKnown = true;
+			_renderTestCameraFixed = renderTestCameraFixed;
 		}
 	}
 
@@ -4995,7 +5028,7 @@ public partial class RenderTestRunner : Node
 
 	private void RestoreCapturedCameraTransformIfNeeded()
 	{
-		if (!_renderTestMode || !_cameraTransformCaptured || _camera == null || !GodotObject.IsInstanceValid(_camera))
+		if ((!_renderTestMode && !_renderTestCameraFixed) || !_cameraTransformCaptured || _camera == null || !GodotObject.IsInstanceValid(_camera))
 		{
 			return;
 		}

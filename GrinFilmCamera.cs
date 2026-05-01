@@ -601,7 +601,10 @@ public partial class GrinFilmCamera : Node
 		DomainConfidence = 1,
 		BoundaryConfidence = 2,
 		SelectionFlip = 3,
-		NormalDiscontinuity = 4
+		NormalDiscontinuity = 4,
+		StepConvergenceConfidence = 5,
+		StepSensitivity = 6,
+		PrecisionRequired = 7,
 	}
 
 	public readonly struct AdaptiveEnvelopeScaleStats
@@ -1111,6 +1114,8 @@ public partial class GrinFilmCamera : Node
 	[Export] public string TelemetryHeatmapMode = "basic";
 	/// <summary>Enables renderer-integrated curvature-domain debug buffers. Observe-only; does not affect final shading.</summary>
 	[Export] public bool EnableDomainTelemetry = false;
+	/// <summary>Passive convergence diagnostics: re-probes the first-hit segment at finer/coarser step counts and measures collider stability. Read-only; does not alter bestHit or shading inputs. Only active when EnableDomainTelemetry=true and EnableDomainAwareFirstHitResolver=false.</summary>
+	[Export] public bool EnableStepConvergenceTelemetry = false;
 	/// <summary>Uses a local curvature-domain continuity heuristic to choose between plausible competing first hits. This is a rendering heuristic, not a physical model.</summary>
 	[Export] public bool EnableDomainAwareFirstHitResolver = false;
 	[Export] public float DomainAwareConfidenceWeight = 1.0f;
@@ -1916,6 +1921,9 @@ public partial class GrinFilmCamera : Node
 	public float[] BoundaryConfidenceBuffer { get; private set; } = Array.Empty<float>();
 	public float[] SelectionFlipBuffer { get; private set; } = Array.Empty<float>();
 	public float[] NormalDiscontinuityBuffer { get; private set; } = Array.Empty<float>();
+	public float[] StepConvergenceConfidenceBuffer { get; private set; } = Array.Empty<float>();
+	public float[] StepSensitivityBuffer { get; private set; } = Array.Empty<float>();
+	public float[] PrecisionRequiredBuffer { get; private set; } = Array.Empty<float>();
 	private float[] _domainResolverComparedBuffer = Array.Empty<float>();
 	private float[] _domainResolverChangedBuffer = Array.Empty<float>();
 	private float[] _domainResolverColliderChangedBuffer = Array.Empty<float>();
@@ -6111,7 +6119,10 @@ private sealed class OverlayRollingWindow
 			DomainTelemetryMapKind.DomainConfidence,
 			DomainTelemetryMapKind.BoundaryConfidence,
 			DomainTelemetryMapKind.SelectionFlip,
-			DomainTelemetryMapKind.NormalDiscontinuity
+			DomainTelemetryMapKind.NormalDiscontinuity,
+			DomainTelemetryMapKind.StepConvergenceConfidence,
+			DomainTelemetryMapKind.StepSensitivity,
+			DomainTelemetryMapKind.PrecisionRequired,
 		};
 
 		StringBuilder summary = new StringBuilder(512);
@@ -6719,6 +6730,12 @@ private sealed class OverlayRollingWindow
 			SelectionFlipBuffer = new float[safeCount];
 		if (NormalDiscontinuityBuffer.Length != safeCount)
 			NormalDiscontinuityBuffer = new float[safeCount];
+		if (StepConvergenceConfidenceBuffer.Length != safeCount)
+			StepConvergenceConfidenceBuffer = new float[safeCount];
+		if (StepSensitivityBuffer.Length != safeCount)
+			StepSensitivityBuffer = new float[safeCount];
+		if (PrecisionRequiredBuffer.Length != safeCount)
+			PrecisionRequiredBuffer = new float[safeCount];
 		if (_domainResolverComparedBuffer.Length != safeCount)
 			_domainResolverComparedBuffer = new float[safeCount];
 		if (_domainResolverChangedBuffer.Length != safeCount)
@@ -6770,6 +6787,9 @@ private sealed class OverlayRollingWindow
 		Array.Clear(BoundaryConfidenceBuffer, 0, BoundaryConfidenceBuffer.Length);
 		Array.Clear(SelectionFlipBuffer, 0, SelectionFlipBuffer.Length);
 		Array.Clear(NormalDiscontinuityBuffer, 0, NormalDiscontinuityBuffer.Length);
+		Array.Clear(StepConvergenceConfidenceBuffer, 0, StepConvergenceConfidenceBuffer.Length);
+		Array.Clear(StepSensitivityBuffer, 0, StepSensitivityBuffer.Length);
+		Array.Clear(PrecisionRequiredBuffer, 0, PrecisionRequiredBuffer.Length);
 		Array.Clear(_domainResolverComparedBuffer, 0, _domainResolverComparedBuffer.Length);
 		Array.Clear(_domainResolverChangedBuffer, 0, _domainResolverChangedBuffer.Length);
 		Array.Clear(_domainResolverColliderChangedBuffer, 0, _domainResolverColliderChangedBuffer.Length);
@@ -7384,6 +7404,18 @@ private sealed class OverlayRollingWindow
 				source = NormalDiscontinuityBuffer;
 				key = "normal_discontinuity";
 				break;
+			case DomainTelemetryMapKind.StepConvergenceConfidence:
+				source = StepConvergenceConfidenceBuffer;
+				key = "step_convergence_confidence";
+				break;
+			case DomainTelemetryMapKind.StepSensitivity:
+				source = StepSensitivityBuffer;
+				key = "step_sensitivity";
+				break;
+			case DomainTelemetryMapKind.PrecisionRequired:
+				source = PrecisionRequiredBuffer;
+				key = "precision_required";
+				break;
 			default:
 				return false;
 		}
@@ -7698,6 +7730,9 @@ private sealed class OverlayRollingWindow
 			DomainTelemetryMapKind.BoundaryConfidence => "boundary_confidence",
 			DomainTelemetryMapKind.SelectionFlip => "selection_flip",
 			DomainTelemetryMapKind.NormalDiscontinuity => "normal_discontinuity",
+			DomainTelemetryMapKind.StepConvergenceConfidence => "step_convergence_confidence",
+			DomainTelemetryMapKind.StepSensitivity => "step_sensitivity",
+			DomainTelemetryMapKind.PrecisionRequired => "precision_required",
 			_ => "domain_unknown"
 		};
 	}
@@ -8198,6 +8233,73 @@ private sealed class OverlayRollingWindow
 		FillFloatBlock(_domainResolverNormalDiscontinuityComponentBuffer, x, y, stride, filmW, filmH, resolverTelemetry.NormalDiscontinuityComponent);
 		FillFloatBlock(_domainResolverFlipPenaltyComponentBuffer, x, y, stride, filmW, filmH, resolverTelemetry.FlipPenaltyComponent);
 		FillDomainStateBlock(_pixelDomainStates, x, y, stride, filmW, filmH, state);
+	}
+
+	// Passive step-convergence diagnostics.
+	// Re-probes the first-accepted hit segment at 2× and 4× finer substep counts (0.5× and 0.25×
+	// step size) and one coarser probe (0.5× substeps = 2.0× step size), then measures collider
+	// stability vs the finalized baseline hit. Isolated local variables only; no bestHit mutation.
+	private void ComputeStepConvergenceProbe(
+		PhysicsDirectSpaceState3D space,
+		Vector3 segA, Vector3 segB, float segLen, float segTraveledB,
+		int baselineSub, ulong baselineCid, float baselineDist,
+		uint collisionMask, bool hitBackFaces, bool hitFromInside,
+		out float confidence, out float sensitivity, out float precisionRequired)
+	{
+		confidence = 1f;
+		sensitivity = 0f;
+		precisionRequired = 0f;
+
+		if (space == null || !IsUsablePhysicsSpaceState(space) || segLen <= 1e-6f)
+			return;
+
+		// 0.5× step = 2× substeps (finer)
+		int sub2x = Mathf.Clamp(baselineSub * 2, 1, 64);
+		bool p2Hit = RayBeamRenderer.SubdividedRayHit(
+			space, segA, segB, collisionMask, sub2x,
+			out Vector3 p2Hp, out ulong p2Cid, out string _);
+		float p2Dist = p2Hit ? (segTraveledB - segLen + (p2Hp - segA).Length()) : -1f;
+
+		// 0.25× step = 4× substeps (finest)
+		int sub4x = Mathf.Clamp(baselineSub * 4, 1, 64);
+		bool p4Hit = RayBeamRenderer.SubdividedRayHit(
+			space, segA, segB, collisionMask, sub4x,
+			out Vector3 p4Hp, out ulong p4Cid, out string _);
+		float p4Dist = p4Hit ? (segTraveledB - segLen + (p4Hp - segA).Length()) : -1f;
+
+		// 2.0× step = 0.5× substeps (coarser)
+		int subHalf = Mathf.Max(1, baselineSub / 2);
+		bool phHit = RayBeamRenderer.SubdividedRayHit(
+			space, segA, segB, collisionMask, subHalf,
+			out Vector3 phHp, out ulong phCid, out string _);
+		float phDist = phHit ? (segTraveledB - segLen + (phHp - segA).Length()) : -1f;
+
+		bool p2Agrees = p2Hit && p2Cid == baselineCid;
+		bool p4Agrees = p4Hit && p4Cid == baselineCid;
+		bool phAgrees = phHit && phCid == baselineCid;
+
+		confidence = ((p2Agrees ? 1 : 0) + (p4Agrees ? 1 : 0) + (phAgrees ? 1 : 0)) / 3f;
+
+		float maxDelta = 0f;
+		if (p2Hit && baselineDist >= 0f) maxDelta = Mathf.Max(maxDelta, Mathf.Abs(p2Dist - baselineDist));
+		if (p4Hit && baselineDist >= 0f) maxDelta = Mathf.Max(maxDelta, Mathf.Abs(p4Dist - baselineDist));
+		if (phHit && baselineDist >= 0f) maxDelta = Mathf.Max(maxDelta, Mathf.Abs(phDist - baselineDist));
+		// Normalize by 0.05 world units; values above that saturate to 1.
+		sensitivity = Mathf.Clamp(maxDelta / 0.05f, 0f, 1f);
+
+		// 0.0 = stable across all probes; 0.5 = 2× substeps needed; 1.0 = still unstable at 4×
+		if (!p2Agrees || !phAgrees)
+			precisionRequired = p4Agrees ? 0.5f : 1.0f;
+	}
+
+	private void WriteStepConvergenceBlock(int x, int y, int stride, int filmW, int filmH,
+		float confidence, float sensitivity, float precisionRequired)
+	{
+		if (!DomainTelemetryEnabledForCurrentRun())
+			return;
+		FillFloatBlock(StepConvergenceConfidenceBuffer, x, y, stride, filmW, filmH, confidence);
+		FillFloatBlock(StepSensitivityBuffer, x, y, stride, filmW, filmH, sensitivity);
+		FillFloatBlock(PrecisionRequiredBuffer, x, y, stride, filmW, filmH, precisionRequired);
 	}
 
 	private static float ComputePearsonCorrelation(float[] lhs, float[] rhs)
@@ -16544,6 +16646,29 @@ private sealed class OverlayRollingWindow
 								firstAcceptedCandidateCount,
 								prevHadHit,
 								testedAnyInPass0ThisPixel);
+						}
+
+						// Passive step-convergence probe: read-only re-query of the first-accepted hit
+						// segment at finer and coarser subdivision counts. Does not alter bestHit,
+						// bestHp, bestHn, bestCid, or any shading input.
+						if (EnableStepConvergenceTelemetry && DomainTelemetryEnabledForCurrentRun()
+							&& !domainAwareFirstHitResolver && firstAcceptedHadHit
+							&& firstAcceptedSegmentIndex >= 0
+							&& (uint)(segOffset + firstAcceptedSegmentIndex) < (uint)_segBuf.Length)
+						{
+							ref readonly var scSeg = ref _segBuf[segOffset + firstAcceptedSegmentIndex];
+							Vector3 scSegA = scSeg.A;
+							Vector3 scSegB = scSeg.B;
+							float scSegLen = (scSegB - scSegA).Length();
+							int scBaselineSub = 1;
+							if (scSegLen > rayCfg.CollisionRaySubdivideThreshold)
+								scBaselineSub = Mathf.Clamp(Mathf.CeilToInt(scSegLen / rayCfg.CollisionRaySubdivideThreshold), 1, rayCfg.MaxCollisionSubsteps);
+							ComputeStepConvergenceProbe(
+								space, scSegA, scSegB, scSegLen, scSeg.TraveledB,
+								scBaselineSub, firstAcceptedCid, firstAcceptedHitDistance,
+								rayCfg.CollisionMask, pass2Flags.HitBackFaces, pass2Flags.HitFromInside,
+								out float scConf, out float scSens, out float scPrec);
+							WriteStepConvergenceBlock(x, y, stride, filmW, filmH, scConf, scSens, scPrec);
 						}
 
 						int filled = FillPixelBlock(x, y, stride, col, filmW, filmH);
