@@ -2548,11 +2548,12 @@ public partial class RenderTestRunner : Node
 				Directory.CreateDirectory(domainOutputDir);
 				TryWriteDomainTelemetryArtifacts(capturePath, domainOutputDir, runExecId);
 			}
-			if (_film != null && GodotObject.IsInstanceValid(_film) && _film.EnableTileMetricsScaffold)
+			if (_film != null && GodotObject.IsInstanceValid(_film) && (_film.EnableTileMetricsScaffold || _film.EnableObjectSeededTileScheduler || _film.EnableReferenceGeodesicProbe))
 			{
 				string tileOutputDir = ResolveTelemetryHeatmapOutputDir(captureDir);
 				Directory.CreateDirectory(tileOutputDir);
 				TryWriteTileMetricsSummaryArtifacts(capturePath, tileOutputDir, runExecId);
+				TryWriteReferenceGeodesicProbeArtifacts(capturePath, tileOutputDir, runExecId);
 			}
 		}
 		catch (Exception ex)
@@ -2984,7 +2985,7 @@ public partial class RenderTestRunner : Node
 
 	private void TryWriteTileMetricsSummaryArtifacts(string capturePath, string outputDir, ulong runExecId)
 	{
-		if (_film == null || !GodotObject.IsInstanceValid(_film) || !_film.EnableTileMetricsScaffold)
+		if (_film == null || !GodotObject.IsInstanceValid(_film) || (!_film.EnableTileMetricsScaffold && !_film.EnableObjectSeededTileScheduler))
 			return;
 
 		string captureStem = Path.GetFileNameWithoutExtension(capturePath);
@@ -2992,6 +2993,19 @@ public partial class RenderTestRunner : Node
 		if (_film.TryWriteTileMetricsSummary(outputDir, captureStem, fixtureName, out string summaryPath))
 		{
 			GD.Print($"[RenderTestRunner][TileMetricsSummary] run_id={runExecId} path={summaryPath}");
+		}
+	}
+
+	private void TryWriteReferenceGeodesicProbeArtifacts(string capturePath, string outputDir, ulong runExecId)
+	{
+		if (_film == null || !GodotObject.IsInstanceValid(_film) || !_film.EnableReferenceGeodesicProbe)
+			return;
+
+		string captureStem = Path.GetFileNameWithoutExtension(capturePath);
+		string fixtureName = GetHudFixtureToken(_requestedFixture);
+		if (_film.TryWriteReferenceGeodesicProbeDiagnostics(outputDir, captureStem, fixtureName, out string jsonPath, out string csvPath))
+		{
+			GD.Print($"[RenderTestRunner][ReferenceGeodesicProbe] run_id={runExecId} json={jsonPath} csv={csvPath}");
 		}
 	}
 
@@ -3182,6 +3196,21 @@ public partial class RenderTestRunner : Node
 			&& tileMetricsPersistentPriors;
 		bool simulateReorder = TryGetBoolCmdArgValue("--tile-metrics-simulate-reorder=", out bool tileMetricsSimulateReorder)
 			&& tileMetricsSimulateReorder;
+		bool objectSeeded = TryGetBoolCmdArgValue("--object-seeded-tile-scheduler=", out bool objectSeededTileScheduler)
+			&& objectSeededTileScheduler;
+		if (!objectSeeded && TryGetStringCmdArgValue("--render-test-traversal=", out string traversalRaw) && !string.IsNullOrWhiteSpace(traversalRaw))
+		{
+			string traversal = traversalRaw.Trim().ToLowerInvariant().Replace("-", "_");
+			objectSeeded = traversal is "object_seeded_tile" or "object_seeded";
+			if (traversal is "tile" or "normal_tile")
+				return "normal-tile";
+			if (traversal is "shuffled_row")
+				return "shuffled-row";
+		}
+		if (objectSeeded)
+		{
+			return "object-seeded-tile";
+		}
 		if (experimentalScheduler)
 		{
 			return persistentPriors ? "reorder-only-persistent-priors" : "reorder-only";

@@ -12,6 +12,7 @@ using RendererCore.Common;
 using RendererCore.SceneSnapshot;
 using RendererCore.Fields;
 using RendererCore.Config;
+using RendererCore.Scheduling;
 
 public partial class GrinFilmCamera : Node
 {
@@ -1389,6 +1390,26 @@ public partial class GrinFilmCamera : Node
 	[Export] public bool EnableTileMetricsBandSeed = false;
 	/// <summary>Path to band_tile_signals.json produced by a prior band_detector.py run. Used when EnableTileMetricsBandSeed is true.</summary>
 	[Export] public string TileMetricsBandSeedPath = "";
+	/// <summary>Research scheduler: uses scene transport anchors as deterministic subtile priors. Scheduling/diagnostics only; never changes final hit or shading state.</summary>
+	[Export] public bool EnableObjectSeededTileScheduler = false;
+	/// <summary>Fixed seed for object-seeded tile order. Keeps OFF renders reproducible under the same scene/camera.</summary>
+	[Export(PropertyHint.Range, "0,2147483647,1")] public int ObjectSeededTileSchedulerSeed = 1337;
+	/// <summary>Maximum object/domain observers considered by the object-seeded scheduler per band.</summary>
+	[Export(PropertyHint.Range, "0,4096,1")] public int ObjectSeededMaxObservers = 128;
+	/// <summary>Maximum lightweight camera-to-anchor probes considered by the object-seeded scheduler per band.</summary>
+	[Export(PropertyHint.Range, "0,16384,1")] public int ObjectSeededMaxProbes = 512;
+	/// <summary>Minimum decayed observer confidence required before an object can seed tile order; stale observers fall back to normal coverage.</summary>
+	[Export(PropertyHint.Range, "0,1,0.01")] public float ObjectSeededMinConfidence = 0.25f;
+	/// <summary>Decision-risk epsilon used by the diagnostic stepper precision profile. V1 records this only.</summary>
+	[Export(PropertyHint.Range, "0,10,0.001")] public float ObjectSeededRiskEpsilon = 0.05f;
+	/// <summary>Research-only local convergence probe. Writes diagnostics only; does not alter final render state.</summary>
+	[Export] public bool EnableReferenceGeodesicProbe = false;
+	/// <summary>Maximum object/domain anchors sampled by the reference-precision probe.</summary>
+	[Export(PropertyHint.Range, "1,256,1")] public int ReferenceGeodesicProbeMaxAnchors = 64;
+	/// <summary>Maximum integration steps per reference probe after clamping by step length and max distance.</summary>
+	[Export(PropertyHint.Range, "64,32768,1")] public int ReferenceGeodesicProbeMaxSteps = 2048;
+	/// <summary>When true, include diagonal radial micro-search offsets in the reference probe.</summary>
+	[Export] public bool ReferenceGeodesicProbeIncludeDiagonals = false;
 
 
 	[ExportGroup("Ray March")]
@@ -2253,6 +2274,8 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private int[] _tileMetricCurrentExecutionOrder = Array.Empty<int>();
 	private string _tileMetricCurrentExecutionSource = "baseline";
 	private double _tileMetricCurrentExecutionPriorWeight = 0.0;
+	private readonly ObjectSeededTileScheduler _objectSeededTileScheduler = new ObjectSeededTileScheduler();
+	private ObjectSeededTileScheduler.BandScheduleResult _objectSeededLastBandSchedule = new ObjectSeededTileScheduler.BandScheduleResult();
 	private long _tileMetricExecBandsWithHitsThisFrame = 0;
 	private long _tileMetricExecTotalHitsThisFrame = 0;
 	private long _tileMetricExecSegmentsTracedThisFrame = 0;
@@ -9736,6 +9759,90 @@ private sealed class OverlayRollingWindow
 			{
 				TileMetricsBandSeedPath = bandSeedPath.Trim();
 			}
+
+			if (TryGetHudArgValue(arg, "--object-seeded-tile-scheduler=", out string objectSeededValue))
+			{
+				string normalized = objectSeededValue.Trim().ToLowerInvariant();
+				EnableObjectSeededTileScheduler = normalized is "1" or "true" or "on" or "yes";
+				if (EnableObjectSeededTileScheduler)
+					EnableTileMetricsScaffold = true;
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--render-test-traversal=", out string traversalValue))
+			{
+				string normalized = traversalValue.Trim().ToLowerInvariant().Replace("-", "_");
+				if (normalized is "object_seeded_tile" or "object_seeded")
+				{
+					EnableObjectSeededTileScheduler = true;
+					EnableTileMetricsScaffold = true;
+				}
+				else if (normalized is "tile" or "normal_tile")
+				{
+					EnableTileMetricsScaffold = true;
+				}
+				else if (normalized is "shuffled_row" or "experimental_subtile")
+				{
+					EnableTileMetricsScaffold = true;
+					EnableTileMetricsReorderExecution = true;
+				}
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--object-seeded-seed=", out string seedValue)
+				&& int.TryParse(seedValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedSeed))
+			{
+				ObjectSeededTileSchedulerSeed = Math.Max(0, parsedSeed);
+			}
+
+			if (TryGetHudArgValue(arg, "--object-seeded-max-observers=", out string maxObserversValue)
+				&& int.TryParse(maxObserversValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedMaxObservers))
+			{
+				ObjectSeededMaxObservers = Math.Max(0, parsedMaxObservers);
+			}
+
+			if (TryGetHudArgValue(arg, "--object-seeded-max-probes=", out string maxProbesValue)
+				&& int.TryParse(maxProbesValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedMaxProbes))
+			{
+				ObjectSeededMaxProbes = Math.Max(0, parsedMaxProbes);
+			}
+
+			if (TryGetHudArgValue(arg, "--object-seeded-min-confidence=", out string minConfidenceValue)
+				&& float.TryParse(minConfidenceValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedMinConfidence))
+			{
+				ObjectSeededMinConfidence = Math.Clamp(parsedMinConfidence, 0.0f, 1.0f);
+			}
+
+			if (TryGetHudArgValue(arg, "--object-seeded-risk-epsilon=", out string riskEpsilonValue)
+				&& float.TryParse(riskEpsilonValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedRiskEpsilon))
+			{
+				ObjectSeededRiskEpsilon = Math.Max(0.0f, parsedRiskEpsilon);
+			}
+
+			if (TryGetHudArgValue(arg, "--reference-geodesic-probe=", out string referenceProbeValue))
+			{
+				string normalized = referenceProbeValue.Trim().ToLowerInvariant();
+				EnableReferenceGeodesicProbe = normalized is "1" or "true" or "on" or "yes";
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--reference-geodesic-probe-max-anchors=", out string refMaxAnchorsValue)
+				&& int.TryParse(refMaxAnchorsValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedRefMaxAnchors))
+			{
+				ReferenceGeodesicProbeMaxAnchors = Math.Max(1, parsedRefMaxAnchors);
+			}
+
+			if (TryGetHudArgValue(arg, "--reference-geodesic-probe-max-steps=", out string refMaxStepsValue)
+				&& int.TryParse(refMaxStepsValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedRefMaxSteps))
+			{
+				ReferenceGeodesicProbeMaxSteps = Math.Max(64, parsedRefMaxSteps);
+			}
+
+			if (TryGetHudArgValue(arg, "--reference-geodesic-probe-diagonals=", out string refDiagValue))
+			{
+				string normalized = refDiagValue.Trim().ToLowerInvariant();
+				ReferenceGeodesicProbeIncludeDiagonals = normalized is "1" or "true" or "on" or "yes";
+			}
 		}
 	}
 
@@ -9870,7 +9977,7 @@ private sealed class OverlayRollingWindow
 	public bool TryWriteTileMetricsSummary(string outputDir, string captureStem, string fixtureName, out string summaryPath)
 	{
 		summaryPath = string.Empty;
-		if (!EnableTileMetricsScaffold || string.IsNullOrWhiteSpace(outputDir))
+		if ((!EnableTileMetricsScaffold && !EnableObjectSeededTileScheduler) || string.IsNullOrWhiteSpace(outputDir))
 			return false;
 
 		try
@@ -9919,6 +10026,19 @@ private sealed class OverlayRollingWindow
 			sb.Append("\"prior_energy_mean\":").Append(FormatJsonFloatForArtifact((float)energyMean)).Append(",");
 			sb.Append("\"prior_energy_p90\":").Append(FormatJsonFloatForArtifact((float)energyP90)).Append(",");
 			sb.Append("\"reorder_simulation_active\":").Append(EnableTileMetricsReorderSimulation ? "true" : "false").Append(",");
+			sb.Append("\"object_seeded_scheduler_active\":").Append(EnableObjectSeededTileScheduler ? "true" : "false").Append(",");
+			sb.Append("\"object_seeded_seed\":").Append(ObjectSeededTileSchedulerSeed).Append(",");
+			sb.Append("\"object_seeded_observer_count\":").Append(_objectSeededLastBandSchedule.ObserverCount).Append(",");
+			sb.Append("\"object_seeded_anchor_count\":").Append(_objectSeededLastBandSchedule.AnchorCount).Append(",");
+			sb.Append("\"object_seeded_probe_count\":").Append(_objectSeededLastBandSchedule.ProbeCount).Append(",");
+			sb.Append("\"object_seeded_seeded_tile_count\":").Append(_objectSeededLastBandSchedule.SeededTileCount).Append(",");
+			sb.Append("\"object_seeded_fallback_tile_count\":").Append(_objectSeededLastBandSchedule.FallbackTileCount).Append(",");
+			sb.Append("\"object_seeded_stale_observer_fallback_count\":").Append(_objectSeededLastBandSchedule.StaleObserverFallbackCount).Append(",");
+			sb.Append("\"object_seeded_probe_cache_hits\":").Append(_objectSeededLastBandSchedule.CacheHits).Append(",");
+			sb.Append("\"object_seeded_probe_cache_misses\":").Append(_objectSeededLastBandSchedule.CacheMisses).Append(",");
+			sb.Append("\"object_seeded_max_risk\":").Append(FormatJsonFloatForArtifact((float)_objectSeededLastBandSchedule.MaxRisk)).Append(",");
+			sb.Append("\"object_seeded_max_confidence\":").Append(FormatJsonFloatForArtifact((float)_objectSeededLastBandSchedule.MaxConfidence)).Append(",");
+			sb.Append("\"object_seeded_diagnostics\":").Append(EnableObjectSeededTileScheduler ? _objectSeededTileScheduler.BuildDiagnosticsJson() : "{}").Append(",");
 			sb.Append("\"top_priority_tiles\":[");
 			for (int i = 0; i < topN; i++)
 			{
@@ -9947,6 +10067,686 @@ private sealed class OverlayRollingWindow
 			GD.PrintErr($"[TileMetricsSummary] failed: {ex.GetType().Name}: {ex.Message}");
 			return false;
 		}
+	}
+
+	private readonly struct ReferenceProbeSample
+	{
+		public readonly string AnchorId;
+		public readonly string ObjectId;
+		public readonly float StepLength;
+		public readonly float ReferenceStepLength;
+		public readonly int ProjectedX;
+		public readonly int ProjectedY;
+		public readonly int ProjectedTile;
+		public readonly int ObjectCentroidProjectedX;
+		public readonly int ObjectCentroidProjectedY;
+		public readonly float RadialDistFromObjectCentroid;
+		public readonly float RadialAngleFromObjectCentroid;
+		public readonly string NearestAnchorKind;
+		public readonly float NearestCornerDist;
+		public readonly float NearestEdgeDist;
+		public readonly int OffsetX;
+		public readonly int OffsetY;
+		public readonly bool Hit;
+		public readonly ulong ColliderId;
+		public readonly int DomainId;
+		public readonly int BoundaryEvents;
+		public readonly int PortalEvents;
+		public readonly float HitDistance;
+		public readonly Vector3 Normal;
+		public readonly float PathLength;
+		public readonly double DecisionRisk;
+		public readonly bool MatchedReference;
+		public readonly string RequiredPrecisionLabel;
+
+		public ReferenceProbeSample(
+			string anchorId,
+			string objectId,
+			float stepLength,
+			float referenceStepLength,
+			int projectedX,
+			int projectedY,
+			int projectedTile,
+			int objectCentroidProjectedX,
+			int objectCentroidProjectedY,
+			float radialDistFromObjectCentroid,
+			float radialAngleFromObjectCentroid,
+			string nearestAnchorKind,
+			float nearestCornerDist,
+			float nearestEdgeDist,
+			int offsetX,
+			int offsetY,
+			bool hit,
+			ulong colliderId,
+			int domainId,
+			int boundaryEvents,
+			int portalEvents,
+			float hitDistance,
+			Vector3 normal,
+			float pathLength,
+			double decisionRisk,
+			bool matchedReference,
+			string requiredPrecisionLabel)
+		{
+			AnchorId = anchorId ?? "";
+			ObjectId = objectId ?? "";
+			StepLength = stepLength;
+			ReferenceStepLength = referenceStepLength;
+			ProjectedX = projectedX;
+			ProjectedY = projectedY;
+			ProjectedTile = projectedTile;
+			ObjectCentroidProjectedX = objectCentroidProjectedX;
+			ObjectCentroidProjectedY = objectCentroidProjectedY;
+			RadialDistFromObjectCentroid = radialDistFromObjectCentroid;
+			RadialAngleFromObjectCentroid = radialAngleFromObjectCentroid;
+			NearestAnchorKind = nearestAnchorKind ?? "";
+			NearestCornerDist = nearestCornerDist;
+			NearestEdgeDist = nearestEdgeDist;
+			OffsetX = offsetX;
+			OffsetY = offsetY;
+			Hit = hit;
+			ColliderId = colliderId;
+			DomainId = domainId;
+			BoundaryEvents = boundaryEvents;
+			PortalEvents = portalEvents;
+			HitDistance = hitDistance;
+			Normal = normal;
+			PathLength = pathLength;
+			DecisionRisk = decisionRisk;
+			MatchedReference = matchedReference;
+			RequiredPrecisionLabel = requiredPrecisionLabel ?? "reference";
+		}
+	}
+
+	private sealed class ReferenceProbeObjectGeometry
+	{
+		public Vector2I CentroidPixel = new(-1, -1);
+		public readonly List<(Vector2I Pixel, TransportAnchorMode Mode)> Anchors = new();
+		public readonly List<Vector2I> Corners = new();
+		public readonly List<Vector2I> EdgeMidpoints = new();
+	}
+
+	public bool TryWriteReferenceGeodesicProbeDiagnostics(string outputDir, string captureStem, string fixtureName, out string jsonPath, out string csvPath)
+	{
+		jsonPath = string.Empty;
+		csvPath = string.Empty;
+		if (!EnableReferenceGeodesicProbe || string.IsNullOrWhiteSpace(outputDir))
+			return false;
+		if (_rbr == null || !GodotObject.IsInstanceValid(_rbr) || _cam == null || !GodotObject.IsInstanceValid(_cam))
+			return false;
+		if (!TryResolveRenderSpaceState(out PhysicsDirectSpaceState3D space, out string renderSpaceSource))
+			return false;
+
+		SceneSnapshot snap = FrameSnapshotBus.CurrentSnapshot;
+		if (snap == null)
+			return false;
+
+		ResolveEffectiveConfig(out EffectiveConfig cfg);
+		RayBeamRenderer.FieldSourceSnap[] fieldSnaps = GetFieldSourceSnaps(in cfg, _frameIndex, out bool hasSources, out _);
+		float beta = 0f;
+		float gamma = 2f;
+		if (cfg.UseCameraPropsBetaGamma)
+		{
+			beta = ReadFloat(_cam, "Beta", 0f);
+			gamma = ReadFloat(_cam, "Gamma", 2f);
+		}
+		Vector3 center = cfg.RayMarch.FieldCenterIsCamera ? _cam.GlobalPosition : cfg.RayMarch.FieldCenter;
+		Vector3 bendDir = _cam.GlobalTransform.Basis.X;
+		float pxPerRad = 0f;
+		if (cfg.RayMarch.UseScreenSpaceCollisionCadence)
+		{
+			float fovY = Mathf.DegToRad(_cam.Fov);
+			float vpHeight = Mathf.Max(1f, _cam.GetViewport()?.GetVisibleRect().Size.Y ?? 720f);
+			pxPerRad = (vpHeight * 0.5f) / Mathf.Max(1e-6f, Mathf.Tan(fovY * 0.5f));
+		}
+
+		var fingerprint = new SceneTransportFingerprint();
+		fingerprint.Rebuild(snap, Math.Max(1, ReferenceGeodesicProbeMaxAnchors));
+		Dictionary<string, ReferenceProbeObjectGeometry> objectGeometry = BuildReferenceProbeObjectGeometry(fingerprint, _cam, _filmWidth, _filmHeight);
+		var anchors = SelectReferenceProbeAnchors(fingerprint, _cam, _filmWidth, _filmHeight, Math.Max(1, ReferenceGeodesicProbeMaxAnchors));
+		if (anchors.Count > ReferenceGeodesicProbeMaxAnchors)
+			anchors.RemoveRange(ReferenceGeodesicProbeMaxAnchors, anchors.Count - ReferenceGeodesicProbeMaxAnchors);
+		if (anchors.Count == 0)
+			return false;
+
+		float[] stepLengths = { 0.015f, 0.0125f, 0.00625f, 0.003125f };
+		float referenceStep = stepLengths[^1];
+		int tileWidth = Math.Max(1, TileMetricsSubtileWidth);
+		var rows = new List<ReferenceProbeSample>(anchors.Count * 48 * stepLengths.Length);
+
+		int savedStepsPerRay = _rbr.StepsPerRay;
+		float savedStepLength = _rbr.StepLength;
+		float savedMinStepLength = _rbr.MinStepLength;
+		float savedMaxStepLength = _rbr.MaxStepLength;
+		try
+		{
+			foreach (TransportAnchor anchor in anchors)
+			{
+				if (!TryProjectWorldToFilmPixel(_cam, anchor.WorldPosition, _filmWidth, _filmHeight, out Vector2I anchorPixel))
+					continue;
+				objectGeometry.TryGetValue(anchor.StableObjectId, out ReferenceProbeObjectGeometry geom);
+				Vector2I[] offsets = BuildReferenceProbeOffsets(anchorPixel, geom?.CentroidPixel ?? new Vector2I(-1, -1));
+
+				foreach (Vector2I offset in offsets)
+				{
+					Vector2I probePixel = new Vector2I(anchorPixel.X + offset.X, anchorPixel.Y + offset.Y);
+					if (probePixel.X < 0 || probePixel.Y < 0 || probePixel.X >= _filmWidth || probePixel.Y >= _filmHeight)
+						continue;
+
+					var raw = new List<ReferenceProbeSample>(stepLengths.Length);
+					ReferenceProbeSample reference = default;
+					for (int si = 0; si < stepLengths.Length; si++)
+					{
+						float step = stepLengths[si];
+						ReferenceProbeSample sample = RunReferenceProbeSample(
+							space,
+							renderSpaceSource,
+							fixtureName,
+							anchor,
+							step,
+							referenceStep,
+							probePixel,
+							geom,
+							offset,
+							tileWidth,
+							center,
+							beta,
+							gamma,
+							bendDir,
+							fieldSnaps,
+							hasSources,
+							pxPerRad,
+							in cfg);
+						raw.Add(sample);
+						if (Math.Abs(step - referenceStep) <= 1e-8f)
+							reference = sample;
+					}
+
+					string requiredPrecision = ResolveRequiredReferencePrecisionLabel(raw, reference, ObjectSeededRiskEpsilon);
+					foreach (ReferenceProbeSample sample in raw)
+					{
+						double risk = ComputeReferenceDecisionRisk(sample, reference);
+						rows.Add(new ReferenceProbeSample(
+							sample.AnchorId,
+							sample.ObjectId,
+							sample.StepLength,
+							sample.ReferenceStepLength,
+							sample.ProjectedX,
+							sample.ProjectedY,
+							sample.ProjectedTile,
+							sample.ObjectCentroidProjectedX,
+							sample.ObjectCentroidProjectedY,
+							sample.RadialDistFromObjectCentroid,
+							sample.RadialAngleFromObjectCentroid,
+							sample.NearestAnchorKind,
+							sample.NearestCornerDist,
+							sample.NearestEdgeDist,
+							sample.OffsetX,
+							sample.OffsetY,
+							sample.Hit,
+							sample.ColliderId,
+							sample.DomainId,
+							sample.BoundaryEvents,
+							sample.PortalEvents,
+							sample.HitDistance,
+							sample.Normal,
+							sample.PathLength,
+							risk,
+							risk <= ObjectSeededRiskEpsilon,
+							requiredPrecision));
+					}
+				}
+			}
+		}
+		finally
+		{
+			_rbr.StepsPerRay = savedStepsPerRay;
+			_rbr.StepLength = savedStepLength;
+			_rbr.MinStepLength = savedMinStepLength;
+			_rbr.MaxStepLength = savedMaxStepLength;
+		}
+
+		if (rows.Count == 0)
+			return false;
+
+		Directory.CreateDirectory(outputDir);
+		string safeStem = string.IsNullOrWhiteSpace(captureStem) ? "capture" : captureStem.Trim();
+		csvPath = Path.Combine(outputDir, safeStem + ".reference_geodesic_probe.csv");
+		jsonPath = Path.Combine(outputDir, safeStem + ".reference_geodesic_probe.json");
+		File.WriteAllText(csvPath, BuildReferenceProbeCsv(rows));
+		File.WriteAllText(jsonPath, BuildReferenceProbeJson(rows, fixtureName, fingerprint.VersionStamp, referenceStep));
+		GD.Print($"[ReferenceGeodesicProbe] written rows={rows.Count} csv={csvPath} json={jsonPath}");
+		return true;
+	}
+
+	private ReferenceProbeSample RunReferenceProbeSample(
+		PhysicsDirectSpaceState3D space,
+		string renderSpaceSource,
+		string fixtureName,
+		TransportAnchor anchor,
+		float stepLength,
+		float referenceStep,
+		Vector2I filmPixel,
+		ReferenceProbeObjectGeometry geom,
+		Vector2I offset,
+		int tileWidth,
+		Vector3 center,
+		float beta,
+		float gamma,
+		Vector3 bendDir,
+		RayBeamRenderer.FieldSourceSnap[] fieldSnaps,
+		bool hasSources,
+		float pxPerRad,
+		in EffectiveConfig cfg)
+	{
+		_rbr.StepLength = stepLength;
+		_rbr.MinStepLength = stepLength;
+		_rbr.MaxStepLength = stepLength;
+		int requestedSteps = Mathf.CeilToInt(Mathf.Max(0.001f, cfg.Film.MaxDistance) / Mathf.Max(0.0001f, stepLength));
+		_rbr.StepsPerRay = Math.Max(1, Math.Min(Math.Max(64, ReferenceGeodesicProbeMaxSteps), requestedSteps));
+
+		Vector2 viewportPixel = FilmPixelToViewportPixel(_cam, filmPixel, _filmWidth, _filmHeight);
+		Vector3 origin = _cam.ProjectRayOrigin(viewportPixel);
+		Vector3 dir = _cam.ProjectRayNormal(viewportPixel).Normalized();
+		int maxSeg = Math.Max(4, ReferenceGeodesicProbeMaxSteps + 4);
+		var segs = new RayBeamRenderer.RaySeg[maxSeg];
+		var quickRayParams = new PhysicsRayQueryParameters3D
+		{
+			CollisionMask = cfg.RayMarch.CollisionMask,
+			CollideWithBodies = true,
+			CollideWithAreas = true,
+			HitFromInside = false,
+			HitBackFaces = false
+		};
+
+		int segCount = _rbr.BuildRaySegmentsCamera_Pass1(
+			space,
+			ref quickRayParams,
+			_cam,
+			pxPerRad,
+			_cam.GlobalPosition,
+			origin,
+			dir,
+			bendDir,
+			center,
+			beta,
+			gamma,
+			fieldSnaps,
+			hasSources,
+			cfg.Film.MaxDistance,
+			segs,
+			0,
+			segs.Length,
+			default,
+			false,
+			0f,
+			true,
+			true,
+			1,
+			0f,
+			renderSpaceSource,
+			"",
+			fixtureName,
+			"reference_geodesic_probe",
+			out RayBeamRenderer.Pass1HitInfo hitInfo,
+			out _,
+			out _,
+			out _,
+			out _,
+			out _,
+			out _,
+			out _,
+			out _,
+			out _,
+			out _,
+			out _,
+			out _,
+			out _,
+			out _,
+			out _,
+			out _,
+			FrameSnapshotBus.CurrentSnapshot?.CurvatureGrid,
+			null);
+
+		float pathLength = 0f;
+		if (segCount > 0)
+		{
+			ref readonly RayBeamRenderer.RaySeg last = ref segs[Math.Min(segCount - 1, segs.Length - 1)];
+			pathLength = origin.DistanceTo(last.B);
+		}
+		int tile = tileWidth > 0 ? Math.Clamp(filmPixel.X / tileWidth, 0, Math.Max(0, (_filmWidth + tileWidth - 1) / tileWidth - 1)) : -1;
+		int centroidX = geom?.CentroidPixel.X ?? -1;
+		int centroidY = geom?.CentroidPixel.Y ?? -1;
+		float radialDist = -1f;
+		float radialAngle = 0f;
+		if (centroidX >= 0 && centroidY >= 0)
+		{
+			float dx = filmPixel.X - centroidX;
+			float dy = filmPixel.Y - centroidY;
+			radialDist = Mathf.Sqrt(dx * dx + dy * dy);
+			radialAngle = Mathf.Atan2(dy, dx);
+		}
+		string nearestAnchorKind = anchor.Mode.ToString();
+		float nearestAnchorDist = float.PositiveInfinity;
+		float nearestCornerDist = float.PositiveInfinity;
+		float nearestEdgeDist = float.PositiveInfinity;
+		if (geom != null)
+		{
+			foreach ((Vector2I Pixel, TransportAnchorMode Mode) candidate in geom.Anchors)
+			{
+				float d = FilmPixelDistance(filmPixel, candidate.Pixel);
+				if (d < nearestAnchorDist)
+				{
+					nearestAnchorDist = d;
+					nearestAnchorKind = candidate.Mode.ToString();
+				}
+			}
+			foreach (Vector2I corner in geom.Corners)
+				nearestCornerDist = Math.Min(nearestCornerDist, FilmPixelDistance(filmPixel, corner));
+			foreach (Vector2I edge in geom.EdgeMidpoints)
+				nearestEdgeDist = Math.Min(nearestEdgeDist, FilmPixelDistance(filmPixel, edge));
+		}
+		return new ReferenceProbeSample(
+			anchor.AnchorId,
+			anchor.StableObjectId,
+			stepLength,
+			referenceStep,
+			filmPixel.X,
+			filmPixel.Y,
+			tile,
+			centroidX,
+			centroidY,
+			radialDist,
+			radialAngle,
+			nearestAnchorKind,
+			float.IsFinite(nearestCornerDist) ? nearestCornerDist : -1f,
+			float.IsFinite(nearestEdgeDist) ? nearestEdgeDist : -1f,
+			offset.X,
+			offset.Y,
+			hitInfo.Found,
+			hitInfo.ColliderId,
+			anchor.ObserverKind == TransportObserverKind.Domain ? StableReferenceDomainId(anchor.StableObjectId) : -1,
+			anchor.Mode == TransportAnchorMode.DomainBoundarySample ? 1 : 0,
+			anchor.Mode == TransportAnchorMode.PortalThroatCenter ? 1 : 0,
+			hitInfo.Found ? hitInfo.Distance : -1f,
+			hitInfo.Found ? hitInfo.Normal : Vector3.Up,
+			pathLength,
+			0.0,
+			true,
+			"reference");
+	}
+
+	private static Dictionary<string, ReferenceProbeObjectGeometry> BuildReferenceProbeObjectGeometry(SceneTransportFingerprint fingerprint, Camera3D camera, int filmWidth, int filmHeight)
+	{
+		var map = new Dictionary<string, ReferenceProbeObjectGeometry>(StringComparer.Ordinal);
+		foreach (ObjectTransportObserver observer in fingerprint.Observers)
+		{
+			var geom = new ReferenceProbeObjectGeometry();
+			TryProjectWorldToFilmPixel(camera, observer.Centroid, filmWidth, filmHeight, out geom.CentroidPixel);
+			foreach (TransportAnchor anchor in observer.AnchorSamples)
+			{
+				if (!TryProjectWorldToFilmPixel(camera, anchor.WorldPosition, filmWidth, filmHeight, out Vector2I pixel))
+					continue;
+				geom.Anchors.Add((pixel, anchor.Mode));
+				if (anchor.Mode == TransportAnchorMode.AabbCorner || (anchor.Mode == TransportAnchorMode.DomainBoundarySample && anchor.AnchorId.Contains(":corner:", StringComparison.Ordinal)))
+					geom.Corners.Add(pixel);
+				if (anchor.Mode == TransportAnchorMode.EdgeMidpoint || anchor.AnchorId.Contains(":edge_midpoint:", StringComparison.Ordinal))
+					geom.EdgeMidpoints.Add(pixel);
+			}
+			map[observer.StableObjectId] = geom;
+		}
+		return map;
+	}
+
+	private static List<TransportAnchor> SelectReferenceProbeAnchors(SceneTransportFingerprint fingerprint, Camera3D camera, int filmWidth, int filmHeight, int maxAnchors)
+	{
+		var selected = new List<TransportAnchor>(Math.Max(1, maxAnchors));
+		var seen = new HashSet<string>(StringComparer.Ordinal);
+
+		void AddAnchor(TransportAnchor anchor)
+		{
+			if (selected.Count >= maxAnchors || anchor == null || !seen.Add(anchor.AnchorId))
+				return;
+			selected.Add(anchor);
+		}
+
+		foreach (ObjectTransportObserver observer in fingerprint.Observers)
+		{
+			foreach (TransportAnchor anchor in observer.AnchorSamples)
+			{
+				if (anchor.Mode == TransportAnchorMode.Centroid)
+					AddAnchor(anchor);
+			}
+
+			var projectedCorners = new List<(TransportAnchor anchor, float score)>();
+			foreach (TransportAnchor anchor in observer.AnchorSamples)
+			{
+				if (anchor.Mode != TransportAnchorMode.AabbCorner && anchor.Mode != TransportAnchorMode.DomainBoundarySample)
+					continue;
+				if (!TryProjectWorldToFilmPixel(camera, anchor.WorldPosition, filmWidth, filmHeight, out Vector2I pixel))
+					continue;
+				float dx = pixel.X - filmWidth * 0.5f;
+				float dy = pixel.Y - filmHeight * 0.5f;
+				projectedCorners.Add((anchor, dx * dx + dy * dy));
+			}
+			projectedCorners.Sort((a, b) => b.score.CompareTo(a.score));
+			for (int i = 0; i < Math.Min(4, projectedCorners.Count); i++)
+				AddAnchor(projectedCorners[i].anchor);
+
+			foreach (TransportAnchor anchor in observer.AnchorSamples)
+			{
+				if (anchor.Mode == TransportAnchorMode.EdgeMidpoint || anchor.AnchorId.Contains(":edge_midpoint:", StringComparison.Ordinal))
+					AddAnchor(anchor);
+			}
+
+			foreach (TransportAnchor anchor in observer.AnchorSamples)
+			{
+				if (anchor.Mode == TransportAnchorMode.PrincipalAxis)
+					AddAnchor(anchor);
+			}
+		}
+
+		foreach (ObjectTransportObserver observer in fingerprint.Observers)
+		foreach (TransportAnchor anchor in observer.AnchorSamples)
+			AddAnchor(anchor);
+
+		return selected;
+	}
+
+	private static Vector2I[] BuildReferenceProbeOffsets(Vector2I anchorPixel, Vector2I centroidPixel)
+	{
+		var offsets = new List<Vector2I>
+		{
+			new Vector2I(0, 0)
+		};
+		var seen = new HashSet<(int X, int Y)> { (0, 0) };
+		void AddOffset(int x, int y)
+		{
+			if (seen.Add((x, y)))
+				offsets.Add(new Vector2I(x, y));
+		}
+
+		Vector2 radial = Vector2.Zero;
+		if (centroidPixel.X >= 0 && centroidPixel.Y >= 0)
+		{
+			radial = new Vector2(anchorPixel.X - centroidPixel.X, anchorPixel.Y - centroidPixel.Y);
+			if (radial.LengthSquared() > 1e-6f)
+				radial = radial.Normalized();
+		}
+
+		int[] radii = { 1, 2, 4, 8, 16 };
+		foreach (int r in radii)
+		{
+			AddOffset(r, 0);
+			AddOffset(-r, 0);
+			AddOffset(0, r);
+			AddOffset(0, -r);
+			AddOffset(r, r);
+			AddOffset(r, -r);
+			AddOffset(-r, r);
+			AddOffset(-r, -r);
+			if (radial != Vector2.Zero)
+			{
+				int rx = Mathf.RoundToInt(radial.X * r);
+				int ry = Mathf.RoundToInt(radial.Y * r);
+				if (rx != 0 || ry != 0)
+				{
+					AddOffset(rx, ry);
+					AddOffset(-rx, -ry);
+				}
+			}
+		}
+		return offsets.ToArray();
+	}
+
+	private static float FilmPixelDistance(Vector2I a, Vector2I b)
+	{
+		float dx = a.X - b.X;
+		float dy = a.Y - b.Y;
+		return Mathf.Sqrt(dx * dx + dy * dy);
+	}
+
+	private static bool TryProjectWorldToFilmPixel(Camera3D camera, Vector3 worldPosition, int filmWidth, int filmHeight, out Vector2I pixel)
+	{
+		pixel = new Vector2I(-1, -1);
+		if (camera == null || !GodotObject.IsInstanceValid(camera) || camera.IsPositionBehind(worldPosition))
+			return false;
+		Vector2 viewportSize = camera.GetViewport()?.GetVisibleRect().Size ?? Vector2.Zero;
+		if (viewportSize.X <= 0f || viewportSize.Y <= 0f)
+			return false;
+		Vector2 viewportPixel = camera.UnprojectPosition(worldPosition);
+		int x = Mathf.FloorToInt(viewportPixel.X / viewportSize.X * Math.Max(1, filmWidth));
+		int y = Mathf.FloorToInt(viewportPixel.Y / viewportSize.Y * Math.Max(1, filmHeight));
+		if (x < 0 || y < 0 || x >= filmWidth || y >= filmHeight)
+			return false;
+		pixel = new Vector2I(x, y);
+		return true;
+	}
+
+	private static Vector2 FilmPixelToViewportPixel(Camera3D camera, Vector2I filmPixel, int filmWidth, int filmHeight)
+	{
+		Vector2 viewportSize = camera.GetViewport()?.GetVisibleRect().Size ?? new Vector2(filmWidth, filmHeight);
+		float x = (filmPixel.X + 0.5f) / Math.Max(1, filmWidth) * viewportSize.X;
+		float y = (filmPixel.Y + 0.5f) / Math.Max(1, filmHeight) * viewportSize.Y;
+		return new Vector2(x, y);
+	}
+
+	private static double ComputeReferenceDecisionRisk(in ReferenceProbeSample sample, in ReferenceProbeSample reference)
+	{
+		double risk = 0.0;
+		risk += sample.Hit == reference.Hit ? 0.0 : 1.0;
+		risk += sample.ColliderId == reference.ColliderId ? 0.0 : 1.0;
+		risk += sample.DomainId == reference.DomainId ? 0.0 : 1.0;
+		risk += sample.BoundaryEvents == reference.BoundaryEvents ? 0.0 : 1.0;
+		risk += sample.PortalEvents == reference.PortalEvents ? 0.0 : 1.0;
+		if (sample.Hit && reference.Hit)
+		{
+			float hitScale = Math.Max(1f, Math.Abs(reference.HitDistance));
+			risk += Math.Abs(sample.HitDistance - reference.HitDistance) / hitScale;
+			float normalDot = Mathf.Clamp(sample.Normal.Normalized().Dot(reference.Normal.Normalized()), -1f, 1f);
+			risk += Math.Acos(normalDot) / Math.PI;
+		}
+		float pathScale = Math.Max(1f, reference.PathLength);
+		risk += Math.Abs(sample.PathLength - reference.PathLength) / pathScale;
+		return risk;
+	}
+
+	private static string ResolveRequiredReferencePrecisionLabel(List<ReferenceProbeSample> samples, in ReferenceProbeSample reference, double epsilon)
+	{
+		foreach (ReferenceProbeSample sample in samples)
+		{
+			if (ComputeReferenceDecisionRisk(sample, reference) <= epsilon)
+				return sample.StepLength.ToString("0.######", CultureInfo.InvariantCulture);
+		}
+		return "reference";
+	}
+
+	private static int StableReferenceDomainId(string stableId)
+	{
+		unchecked
+		{
+			int hash = 23;
+			foreach (char c in stableId ?? "")
+				hash = (hash * 31) ^ c;
+			return hash & 0x7fffffff;
+		}
+	}
+
+	private static string BuildReferenceProbeCsv(List<ReferenceProbeSample> rows)
+	{
+		var sb = new StringBuilder(rows.Count * 160);
+		sb.AppendLine("anchor_id,object_id,step_length,reference_step_length,projected_x,projected_y,projected_tile,object_centroid_projected_x,object_centroid_projected_y,radial_dist_from_object_centroid,radial_angle_from_object_centroid,nearest_anchor_kind,nearest_corner_dist,nearest_edge_dist,radial_offset_x,radial_offset_y,hit,collider_id,domain_id,boundary_events,portal_events,hit_distance,path_length,decision_risk,matched_reference_decision,required_precision_label");
+		foreach (ReferenceProbeSample row in rows)
+		{
+			sb.Append(JsonEscapeForArtifact(row.AnchorId)).Append(',')
+				.Append(JsonEscapeForArtifact(row.ObjectId)).Append(',')
+				.Append(FormatJsonFloatForArtifact(row.StepLength)).Append(',')
+				.Append(FormatJsonFloatForArtifact(row.ReferenceStepLength)).Append(',')
+				.Append(row.ProjectedX).Append(',')
+				.Append(row.ProjectedY).Append(',')
+				.Append(row.ProjectedTile).Append(',')
+				.Append(row.ObjectCentroidProjectedX).Append(',')
+				.Append(row.ObjectCentroidProjectedY).Append(',')
+				.Append(FormatJsonFloatForArtifact(row.RadialDistFromObjectCentroid)).Append(',')
+				.Append(FormatJsonFloatForArtifact(row.RadialAngleFromObjectCentroid)).Append(',')
+				.Append(JsonEscapeForArtifact(row.NearestAnchorKind)).Append(',')
+				.Append(FormatJsonFloatForArtifact(row.NearestCornerDist)).Append(',')
+				.Append(FormatJsonFloatForArtifact(row.NearestEdgeDist)).Append(',')
+				.Append(row.OffsetX).Append(',')
+				.Append(row.OffsetY).Append(',')
+				.Append(row.Hit ? "1" : "0").Append(',')
+				.Append(row.ColliderId).Append(',')
+				.Append(row.DomainId).Append(',')
+				.Append(row.BoundaryEvents).Append(',')
+				.Append(row.PortalEvents).Append(',')
+				.Append(FormatJsonFloatForArtifact(row.HitDistance)).Append(',')
+				.Append(FormatJsonFloatForArtifact(row.PathLength)).Append(',')
+				.Append(FormatJsonFloatForArtifact((float)row.DecisionRisk)).Append(',')
+				.Append(row.MatchedReference ? "1" : "0").Append(',')
+				.Append(JsonEscapeForArtifact(row.RequiredPrecisionLabel))
+				.AppendLine();
+		}
+		return sb.ToString();
+	}
+
+	private static string BuildReferenceProbeJson(List<ReferenceProbeSample> rows, string fixtureName, string fingerprintVersion, float referenceStep)
+	{
+		var sb = new StringBuilder(rows.Count * 180);
+		sb.Append("{");
+		sb.Append("\"fixture\":\"").Append(JsonEscapeForArtifact(fixtureName)).Append("\",");
+		sb.Append("\"scene_fingerprint\":\"").Append(JsonEscapeForArtifact(fingerprintVersion)).Append("\",");
+		sb.Append("\"reference_step_length\":").Append(FormatJsonFloatForArtifact(referenceStep)).Append(",");
+		sb.Append("\"row_count\":").Append(rows.Count).Append(",");
+		sb.Append("\"schema\":[\"anchor_id\",\"object_id\",\"step_length\",\"reference_step_length\",\"projected_pixel\",\"projected_tile\",\"object_centroid_projected_pixel\",\"radial_dist_from_object_centroid\",\"radial_angle_from_object_centroid\",\"nearest_anchor_kind\",\"nearest_corner_dist\",\"nearest_edge_dist\",\"radial_offset\",\"decision_risk\",\"matched_reference_decision\",\"required_precision_label\"],");
+		sb.Append("\"rows\":[");
+		for (int i = 0; i < rows.Count; i++)
+		{
+			if (i > 0) sb.Append(",");
+			ReferenceProbeSample row = rows[i];
+			sb.Append("{");
+			sb.Append("\"anchor_id\":\"").Append(JsonEscapeForArtifact(row.AnchorId)).Append("\",");
+			sb.Append("\"object_id\":\"").Append(JsonEscapeForArtifact(row.ObjectId)).Append("\",");
+			sb.Append("\"step_length\":").Append(FormatJsonFloatForArtifact(row.StepLength)).Append(",");
+			sb.Append("\"reference_step_length\":").Append(FormatJsonFloatForArtifact(row.ReferenceStepLength)).Append(",");
+			sb.Append("\"projected_x\":").Append(row.ProjectedX).Append(",");
+			sb.Append("\"projected_y\":").Append(row.ProjectedY).Append(",");
+			sb.Append("\"projected_tile\":").Append(row.ProjectedTile).Append(",");
+			sb.Append("\"object_centroid_projected_x\":").Append(row.ObjectCentroidProjectedX).Append(",");
+			sb.Append("\"object_centroid_projected_y\":").Append(row.ObjectCentroidProjectedY).Append(",");
+			sb.Append("\"radial_dist_from_object_centroid\":").Append(FormatJsonFloatForArtifact(row.RadialDistFromObjectCentroid)).Append(",");
+			sb.Append("\"radial_angle_from_object_centroid\":").Append(FormatJsonFloatForArtifact(row.RadialAngleFromObjectCentroid)).Append(",");
+			sb.Append("\"nearest_anchor_kind\":\"").Append(JsonEscapeForArtifact(row.NearestAnchorKind)).Append("\",");
+			sb.Append("\"nearest_corner_dist\":").Append(FormatJsonFloatForArtifact(row.NearestCornerDist)).Append(",");
+			sb.Append("\"nearest_edge_dist\":").Append(FormatJsonFloatForArtifact(row.NearestEdgeDist)).Append(",");
+			sb.Append("\"radial_offset_x\":").Append(row.OffsetX).Append(",");
+			sb.Append("\"radial_offset_y\":").Append(row.OffsetY).Append(",");
+			sb.Append("\"decision_risk\":").Append(FormatJsonFloatForArtifact((float)row.DecisionRisk)).Append(",");
+			sb.Append("\"matched_reference_decision\":").Append(row.MatchedReference ? "true" : "false").Append(",");
+			sb.Append("\"required_precision_label\":\"").Append(JsonEscapeForArtifact(row.RequiredPrecisionLabel)).Append("\"");
+			sb.Append("}");
+		}
+		sb.Append("]}");
+		return sb.ToString();
 	}
 
 	private void ApplyThreadingCmdArgs()
@@ -21254,6 +22054,9 @@ private sealed class OverlayRollingWindow
 		_tileMetricCurrentExecutionSource = "baseline";
 		_tileMetricCurrentExecutionPriorWeight = 0.0;
 
+		if (TryApplyObjectSeededTileSchedulerOrderForCurrentBand())
+			return;
+
 		if (!ExperimentalSubtileSchedulerModeEnabled || _tileMetricCurrentSubtileCount <= 1)
 			return;
 		long historyKey = BuildTileMetricBandHistoryKey(_tileMetricCurrentBandY, _tileMetricCurrentBandHeight);
@@ -21325,6 +22128,45 @@ private sealed class OverlayRollingWindow
 			_tileMetricCurrentExecutionSource = "persistent_prior";
 		if (prioritized.Count > 0)
 			_tileMetricCurrentExecutionPriorWeight = Math.Clamp(prioritized[0].PriorBlendWeight, 0.0, 1.0);
+	}
+
+	private bool TryApplyObjectSeededTileSchedulerOrderForCurrentBand()
+	{
+		if (!EnableObjectSeededTileScheduler || _tileMetricCurrentSubtileCount <= 1 || _cam == null || !GodotObject.IsInstanceValid(_cam))
+			return false;
+
+		SceneSnapshot snap = FrameSnapshotBus.CurrentSnapshot;
+		if (snap == null)
+			return false;
+
+		var options = new ObjectSeededTileScheduler.Options
+		{
+			FilmWidth = _filmWidth,
+			FilmHeight = _filmHeight,
+			TileWidth = Math.Max(1, _tileMetricCurrentSubtileWidth),
+			BandY = _tileMetricCurrentBandY,
+			BandHeight = Math.Max(0, _tileMetricCurrentBandHeight),
+			Seed = ObjectSeededTileSchedulerSeed,
+			MaxObservers = Math.Max(0, ObjectSeededMaxObservers),
+			MaxProbes = Math.Max(0, ObjectSeededMaxProbes),
+			RiskEpsilon = Math.Max(0.0f, ObjectSeededRiskEpsilon),
+			MinSeedConfidence = Math.Clamp(ObjectSeededMinConfidence, 0.0f, 1.0f)
+		};
+
+		ObjectSeededTileScheduler.BandScheduleResult result = _objectSeededTileScheduler.BuildBandSchedule(snap, _cam, options);
+		_objectSeededLastBandSchedule = result;
+		if (result.ExecutionOrder == null || result.ExecutionOrder.Length <= 0)
+			return false;
+
+		int count = Math.Min(_tileMetricCurrentSubtileCount, result.ExecutionOrder.Length);
+		for (int i = 0; i < count; i++)
+			_tileMetricCurrentExecutionOrder[i] = Math.Clamp(result.ExecutionOrder[i], 0, _tileMetricCurrentSubtileCount - 1);
+		for (int i = count; i < _tileMetricCurrentSubtileCount; i++)
+			_tileMetricCurrentExecutionOrder[i] = i;
+
+		_tileMetricCurrentExecutionSource = result.SeededTileCount > 0 ? "object_seeded" : "object_seeded_fallback";
+		_tileMetricCurrentExecutionPriorWeight = Math.Clamp(result.MaxConfidence, 0.0, 1.0);
+		return true;
 	}
 
 	private void SaveTileMetricBandHistoryForCurrentBand()
