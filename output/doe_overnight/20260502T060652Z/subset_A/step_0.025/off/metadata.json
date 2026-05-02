@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-05-02T06:21:27Z",
+  "subset": "A",
+  "step_length": "0.025",
+  "mode": "off",
+  "stride": "",
+  "cell_dir": "/home/bb/code/godot_xPRIMEray/output/doe_overnight/20260502T060652Z/subset_A/step_0.025/off",
+  "exit_code": 134,
+  "effective_status": 0,
+  "notes": "godot_shutdown_abort_after_harness_success;default_stride"
+}

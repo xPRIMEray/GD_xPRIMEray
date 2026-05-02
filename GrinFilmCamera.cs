@@ -605,6 +605,9 @@ public partial class GrinFilmCamera : Node
 		StepConvergenceConfidence = 5,
 		StepSensitivity = 6,
 		PrecisionRequired = 7,
+		ProbeHitDistanceDelta = 8,
+		ProbeNormalDelta = 9,
+		ProbeColliderMismatch = 10,
 	}
 
 	public readonly struct AdaptiveEnvelopeScaleStats
@@ -1924,6 +1927,9 @@ public partial class GrinFilmCamera : Node
 	public float[] StepConvergenceConfidenceBuffer { get; private set; } = Array.Empty<float>();
 	public float[] StepSensitivityBuffer { get; private set; } = Array.Empty<float>();
 	public float[] PrecisionRequiredBuffer { get; private set; } = Array.Empty<float>();
+	public float[] ProbeHitDistanceDeltaBuffer { get; private set; } = Array.Empty<float>();
+	public float[] ProbeNormalDeltaBuffer { get; private set; } = Array.Empty<float>();
+	public float[] ProbeColliderMismatchBuffer { get; private set; } = Array.Empty<float>();
 	private float[] _domainResolverComparedBuffer = Array.Empty<float>();
 	private float[] _domainResolverChangedBuffer = Array.Empty<float>();
 	private float[] _domainResolverColliderChangedBuffer = Array.Empty<float>();
@@ -6113,17 +6119,30 @@ private sealed class OverlayRollingWindow
 		string safeContext = string.IsNullOrWhiteSpace(contextLabel) ? "unknown" : contextLabel.Trim();
 		Directory.CreateDirectory(outputDir);
 
-		DomainTelemetryMapKind[] kinds =
-		{
-			DomainTelemetryMapKind.DomainId,
-			DomainTelemetryMapKind.DomainConfidence,
-			DomainTelemetryMapKind.BoundaryConfidence,
-			DomainTelemetryMapKind.SelectionFlip,
-			DomainTelemetryMapKind.NormalDiscontinuity,
-			DomainTelemetryMapKind.StepConvergenceConfidence,
-			DomainTelemetryMapKind.StepSensitivity,
-			DomainTelemetryMapKind.PrecisionRequired,
-		};
+		bool writeProbeKinds = EnableStepConvergenceTelemetry && !EnableDomainAwareFirstHitResolver;
+		DomainTelemetryMapKind[] kinds = writeProbeKinds
+			? new[]
+			{
+				DomainTelemetryMapKind.DomainId,
+				DomainTelemetryMapKind.DomainConfidence,
+				DomainTelemetryMapKind.BoundaryConfidence,
+				DomainTelemetryMapKind.SelectionFlip,
+				DomainTelemetryMapKind.NormalDiscontinuity,
+				DomainTelemetryMapKind.StepConvergenceConfidence,
+				DomainTelemetryMapKind.StepSensitivity,
+				DomainTelemetryMapKind.PrecisionRequired,
+				DomainTelemetryMapKind.ProbeHitDistanceDelta,
+				DomainTelemetryMapKind.ProbeNormalDelta,
+				DomainTelemetryMapKind.ProbeColliderMismatch,
+			}
+			: new[]
+			{
+				DomainTelemetryMapKind.DomainId,
+				DomainTelemetryMapKind.DomainConfidence,
+				DomainTelemetryMapKind.BoundaryConfidence,
+				DomainTelemetryMapKind.SelectionFlip,
+				DomainTelemetryMapKind.NormalDiscontinuity,
+			};
 
 		StringBuilder summary = new StringBuilder(512);
 		summary.Append("{");
@@ -6736,6 +6755,12 @@ private sealed class OverlayRollingWindow
 			StepSensitivityBuffer = new float[safeCount];
 		if (PrecisionRequiredBuffer.Length != safeCount)
 			PrecisionRequiredBuffer = new float[safeCount];
+		if (ProbeHitDistanceDeltaBuffer.Length != safeCount)
+			ProbeHitDistanceDeltaBuffer = new float[safeCount];
+		if (ProbeNormalDeltaBuffer.Length != safeCount)
+			ProbeNormalDeltaBuffer = new float[safeCount];
+		if (ProbeColliderMismatchBuffer.Length != safeCount)
+			ProbeColliderMismatchBuffer = new float[safeCount];
 		if (_domainResolverComparedBuffer.Length != safeCount)
 			_domainResolverComparedBuffer = new float[safeCount];
 		if (_domainResolverChangedBuffer.Length != safeCount)
@@ -7416,6 +7441,18 @@ private sealed class OverlayRollingWindow
 				source = PrecisionRequiredBuffer;
 				key = "precision_required";
 				break;
+			case DomainTelemetryMapKind.ProbeHitDistanceDelta:
+				source = ProbeHitDistanceDeltaBuffer;
+				key = "probe_hit_distance_delta";
+				break;
+			case DomainTelemetryMapKind.ProbeNormalDelta:
+				source = ProbeNormalDeltaBuffer;
+				key = "probe_normal_delta";
+				break;
+			case DomainTelemetryMapKind.ProbeColliderMismatch:
+				source = ProbeColliderMismatchBuffer;
+				key = "probe_collider_mismatch";
+				break;
 			default:
 				return false;
 		}
@@ -7733,6 +7770,9 @@ private sealed class OverlayRollingWindow
 			DomainTelemetryMapKind.StepConvergenceConfidence => "step_convergence_confidence",
 			DomainTelemetryMapKind.StepSensitivity => "step_sensitivity",
 			DomainTelemetryMapKind.PrecisionRequired => "precision_required",
+			DomainTelemetryMapKind.ProbeHitDistanceDelta => "probe_hit_distance_delta",
+			DomainTelemetryMapKind.ProbeNormalDelta => "probe_normal_delta",
+			DomainTelemetryMapKind.ProbeColliderMismatch => "probe_collider_mismatch",
 			_ => "domain_unknown"
 		};
 	}
@@ -8235,71 +8275,250 @@ private sealed class OverlayRollingWindow
 		FillDomainStateBlock(_pixelDomainStates, x, y, stride, filmW, filmH, state);
 	}
 
-	// Passive step-convergence diagnostics.
-	// Re-probes the first-accepted hit segment at 2× and 4× finer substep counts (0.5× and 0.25×
-	// step size) and one coarser probe (0.5× substeps = 2.0× step size), then measures collider
-	// stability vs the finalized baseline hit. Isolated local variables only; no bestHit mutation.
+	// Passive step-convergence probe using position-shifted step phases.
+	// Re-runs an isolated first-hit acquisition over the finalized legacy segment list
+	// after shifting the step windows along the ray direction. This measures phase
+	// sensitivity instead of subdividing the already-known hit segment.
 	private void ComputeStepConvergenceProbe(
 		PhysicsDirectSpaceState3D space,
-		Vector3 segA, Vector3 segB, float segLen, float segTraveledB,
-		int baselineSub, ulong baselineCid, float baselineDist,
-		uint collisionMask, bool hitBackFaces, bool hitFromInside,
-		out float confidence, out float sensitivity, out float precisionRequired)
+		int maxSeg,
+		Camera3D pass1Cam, float pass1PxPerRad, Vector3 pass1CamPos,
+		Vector3 rayOrigin, Vector3 rayDir, Vector3 bendDir,
+		Vector3 center, float beta, float gamma,
+		RayBeamRenderer.FieldSourceSnap[] fieldSnaps, bool hasSources,
+		float farForSim,
+		Plane insightPlane, bool useInsightPlane, float insightEps,
+		bool pass1StopOnHit, bool pass1ProbeEnabledForRay,
+		int pass1ProbeEveryNSegments, float pass1ProbeMinTravelDelta,
+		string renderSpaceSource, string renderSceneName, string renderFixtureName, string renderModeToken,
+		CurvatureBoundGrid curvatureGridForPass1, FieldGrid3D fieldGridForPass1,
+		float stepLength,
+		bool baselineHadHit, ulong baselineCid, float baselineDist, Vector3 baselineNormal,
+		uint collisionMask, float collisionRaySubdivideThreshold, int maxCollisionSubsteps,
+		bool hitBackFaces, bool hitFromInside,
+		bool nearestHitOnly, float earlyOutDistanceEps,
+		out float confidence, out float sensitivity, out float precisionRequired,
+		out float hitDistanceDelta, out float normalDelta, out float colliderMismatch)
 	{
 		confidence = 1f;
 		sensitivity = 0f;
 		precisionRequired = 0f;
+		hitDistanceDelta = 0f;
+		normalDelta = 0f;
+		colliderMismatch = 0f;
 
-		if (space == null || !IsUsablePhysicsSpaceState(space) || segLen <= 1e-6f)
+		if (space == null || !IsUsablePhysicsSpaceState(space) || _rbr == null || !GodotObject.IsInstanceValid(_rbr))
+			return;
+		if (maxSeg <= 0 || rayDir.LengthSquared() <= 1e-10f)
 			return;
 
-		// 0.5× step = 2× substeps (finer)
-		int sub2x = Mathf.Clamp(baselineSub * 2, 1, 64);
-		bool p2Hit = RayBeamRenderer.SubdividedRayHit(
-			space, segA, segB, collisionMask, sub2x,
-			out Vector3 p2Hp, out ulong p2Cid, out string _);
-		float p2Dist = p2Hit ? (segTraveledB - segLen + (p2Hp - segA).Length()) : -1f;
+		RayBeamRenderer.RaySeg[] probeSegs = new RayBeamRenderer.RaySeg[Math.Max(1, maxSeg)];
+		PhysicsRayQueryParameters3D probeQuickRayParams = new PhysicsRayQueryParameters3D
+		{
+			CollisionMask = collisionMask,
+			CollideWithBodies = true,
+			CollideWithAreas = true,
+			HitFromInside = hitFromInside,
+			HitBackFaces = hitBackFaces
+		};
 
-		// 0.25× step = 4× substeps (finest)
-		int sub4x = Mathf.Clamp(baselineSub * 4, 1, 64);
-		bool p4Hit = RayBeamRenderer.SubdividedRayHit(
-			space, segA, segB, collisionMask, sub4x,
-			out Vector3 p4Hp, out ulong p4Cid, out string _);
-		float p4Dist = p4Hit ? (segTraveledB - segLen + (p4Hp - segA).Length()) : -1f;
+		bool ProbeFirstHit(float offsetFraction, out float probeDist, out Vector3 probePos, out Vector3 probeNormal, out ulong probeCid)
+		{
+			probeDist = -1f;
+			probePos = Vector3.Zero;
+			probeNormal = Vector3.Zero;
+			probeCid = 0;
+			bool probeHadHit = false;
+			float bestProbeDist = float.PositiveInfinity;
+			Vector3 bestProbePos = Vector3.Zero;
+			Vector3 bestProbeNormal = Vector3.Zero;
+			ulong bestProbeCid = 0;
+			float offsetLen = offsetFraction * stepLength;
+			float farEarlyOutEps = Mathf.Max(0f, earlyOutDistanceEps);
+			Vector3 shiftedOrigin = rayOrigin + rayDir.Normalized() * offsetLen;
 
-		// 2.0× step = 0.5× substeps (coarser)
-		int subHalf = Mathf.Max(1, baselineSub / 2);
-		bool phHit = RayBeamRenderer.SubdividedRayHit(
-			space, segA, segB, collisionMask, subHalf,
-			out Vector3 phHp, out ulong phCid, out string _);
-		float phDist = phHit ? (segTraveledB - segLen + (phHp - segA).Length()) : -1f;
+			int probeSegCount = _rbr.BuildRaySegmentsCamera_Pass1(
+				space,
+				ref probeQuickRayParams,
+				pass1Cam,
+				pass1PxPerRad,
+				pass1CamPos,
+				shiftedOrigin,
+				rayDir,
+				bendDir,
+				center,
+				beta,
+				gamma,
+				fieldSnaps,
+				hasSources,
+				farForSim,
+				probeSegs,
+				0,
+				probeSegs.Length,
+				insightPlane,
+				useInsightPlane,
+				insightEps,
+				pass1StopOnHit,
+				pass1ProbeEnabledForRay,
+				pass1ProbeEveryNSegments,
+				pass1ProbeMinTravelDelta,
+				renderSpaceSource,
+				renderSceneName,
+				renderFixtureName,
+				renderModeToken,
+				out _,
+				out _,
+				out _,
+				out _,
+				out _,
+				out _,
+				out _,
+				out _,
+				out _,
+				out _,
+				out _,
+				out _,
+				out _,
+				out _,
+				out _,
+				out _,
+				out _,
+				curvatureGridForPass1,
+				fieldGridForPass1);
 
-		bool p2Agrees = p2Hit && p2Cid == baselineCid;
-		bool p4Agrees = p4Hit && p4Cid == baselineCid;
-		bool phAgrees = phHit && phCid == baselineCid;
+			for (int si = 0; si < probeSegCount; si++)
+			{
+				ref readonly var seg = ref probeSegs[si];
+				Vector3 segA = seg.A;
+				Vector3 segB = seg.B;
+				Vector3 segDelta = segB - segA;
+				float segLen = segDelta.Length();
+				if (segLen <= 1e-6f)
+					continue;
 
-		confidence = ((p2Agrees ? 1 : 0) + (p4Agrees ? 1 : 0) + (phAgrees ? 1 : 0)) / 3f;
+				if (nearestHitOnly && probeHadHit)
+				{
+					float segStartDist = seg.TraveledB - segLen;
+					if (segStartDist > bestProbeDist + farEarlyOutEps)
+						break;
+				}
 
-		float maxDelta = 0f;
-		if (p2Hit && baselineDist >= 0f) maxDelta = Mathf.Max(maxDelta, Mathf.Abs(p2Dist - baselineDist));
-		if (p4Hit && baselineDist >= 0f) maxDelta = Mathf.Max(maxDelta, Mathf.Abs(p4Dist - baselineDist));
-		if (phHit && baselineDist >= 0f) maxDelta = Mathf.Max(maxDelta, Mathf.Abs(phDist - baselineDist));
-		// Normalize by 0.05 world units; values above that saturate to 1.
-		sensitivity = Mathf.Clamp(maxDelta / 0.05f, 0f, 1f);
+				int sub = 1;
+				if (segLen > collisionRaySubdivideThreshold)
+					sub = Mathf.CeilToInt(segLen / Mathf.Max(1e-6f, collisionRaySubdivideThreshold));
+				sub = Mathf.Clamp(sub, 1, Math.Max(1, maxCollisionSubsteps));
 
-		// 0.0 = stable across all probes; 0.5 = 2× substeps needed; 1.0 = still unstable at 4×
-		if (!p2Agrees || !phAgrees)
-			precisionRequired = p4Agrees ? 0.5f : 1.0f;
+				bool didHit = RayBeamRenderer.SubdividedRayHit(
+					space,
+					segA,
+					segB,
+					collisionMask,
+					sub,
+					out Vector3 hp,
+					out Vector3 hn,
+					out ulong cid,
+					out string _,
+					out int _,
+					includeColliderName: false,
+					hitBackFaces: hitBackFaces,
+					hitFromInside: hitFromInside,
+					diagnosticQueryKind: "step_convergence_shifted_probe");
+				if (!didHit)
+					continue;
+
+				Vector3 segDir = segDelta / segLen;
+				float resolvedDist = seg.TraveledB - segLen + (hp - segA).Dot(segDir);
+				if (!probeHadHit || resolvedDist < bestProbeDist)
+				{
+					probeHadHit = true;
+					bestProbeDist = resolvedDist;
+					bestProbePos = hp;
+					bestProbeNormal = hn;
+					bestProbeCid = cid;
+				}
+				if (nearestHitOnly)
+					break;
+			}
+
+			if (!probeHadHit)
+				return false;
+			probeDist = bestProbeDist;
+			probePos = bestProbePos;
+			probeNormal = bestProbeNormal;
+			probeCid = bestProbeCid;
+			return true;
+		}
+
+		float[] offsets = { -0.5f, -0.125f, 0.125f, 0.5f };
+		int probeCount = offsets.Length;
+		int mismatchCount = 0;
+		int hitMissTransitionCount = 0;
+		bool fineDisagrees = false;
+		bool coarseDisagrees = false;
+		float maxDistDelta = 0f;
+		float maxNormDelta = 0f;
+
+		for (int pi = 0; pi < offsets.Length; pi++)
+		{
+			float offFrac = offsets[pi];
+			bool phit = ProbeFirstHit(offFrac, out float phDist, out Vector3 _, out Vector3 phNorm, out ulong phCid);
+			if (phit != baselineHadHit)
+			{
+				hitMissTransitionCount++;
+				mismatchCount++;
+				if (Mathf.Abs(offFrac) >= 0.5f) coarseDisagrees = true;
+				else fineDisagrees = true;
+				continue;
+			}
+			if (!phit)
+				continue;
+
+			bool colliderDisagrees = phCid != baselineCid;
+			float distDelta = baselineHadHit && baselineDist >= 0f
+				? Mathf.Abs(phDist - baselineDist) / Mathf.Max(1e-6f, stepLength)
+				: 0f;
+			bool distanceDisagrees = distDelta >= 0.25f;
+			float nDelta = 0f;
+			if (baselineNormal.LengthSquared() > 0.25f && phNorm.LengthSquared() > 0.25f)
+			{
+				float dot = baselineNormal.Normalized().Dot(phNorm.Normalized());
+				nDelta = (1f - Mathf.Clamp(dot, -1f, 1f)) * 0.5f;
+			}
+			bool disagrees = colliderDisagrees || distanceDisagrees;
+			if (disagrees)
+			{
+				mismatchCount++;
+				if (Mathf.Abs(offFrac) >= 0.5f) coarseDisagrees = true;
+				else fineDisagrees = true;
+			}
+			maxDistDelta = Mathf.Max(maxDistDelta, distDelta);
+			maxNormDelta = Mathf.Max(maxNormDelta, nDelta);
+		}
+
+		colliderMismatch = probeCount > 0 ? (float)mismatchCount / probeCount : 0f;
+		confidence = 1f - colliderMismatch;
+		float hitMissSensitivity = hitMissTransitionCount > 0 ? 1f : 0f;
+		sensitivity = Mathf.Clamp(Mathf.Max(colliderMismatch, Mathf.Max(maxDistDelta, hitMissSensitivity)), 0f, 1f);
+
+		if (fineDisagrees) precisionRequired = 1.0f;
+		else if (coarseDisagrees) precisionRequired = 0.5f;
+
+		hitDistanceDelta = Mathf.Clamp(maxDistDelta, 0f, 1f);
+		normalDelta = Mathf.Clamp(maxNormDelta, 0f, 1f);
 	}
 
 	private void WriteStepConvergenceBlock(int x, int y, int stride, int filmW, int filmH,
-		float confidence, float sensitivity, float precisionRequired)
+		float confidence, float sensitivity, float precisionRequired,
+		float hitDistanceDelta, float normalDelta, float colliderMismatch)
 	{
 		if (!DomainTelemetryEnabledForCurrentRun())
 			return;
 		FillFloatBlock(StepConvergenceConfidenceBuffer, x, y, stride, filmW, filmH, confidence);
 		FillFloatBlock(StepSensitivityBuffer, x, y, stride, filmW, filmH, sensitivity);
 		FillFloatBlock(PrecisionRequiredBuffer, x, y, stride, filmW, filmH, precisionRequired);
+		FillFloatBlock(ProbeHitDistanceDeltaBuffer, x, y, stride, filmW, filmH, hitDistanceDelta);
+		FillFloatBlock(ProbeNormalDeltaBuffer, x, y, stride, filmW, filmH, normalDelta);
+		FillFloatBlock(ProbeColliderMismatchBuffer, x, y, stride, filmW, filmH, colliderMismatch);
 	}
 
 	private static float ComputePearsonCorrelation(float[] lhs, float[] rhs)
@@ -16648,27 +16867,68 @@ private sealed class OverlayRollingWindow
 								testedAnyInPass0ThisPixel);
 						}
 
-						// Passive step-convergence probe: read-only re-query of the first-accepted hit
-						// segment at finer and coarser subdivision counts. Does not alter bestHit,
-						// bestHp, bestHn, bestCid, or any shading input.
+						// Passive step-convergence probe: position-shifted first-hit acquisitions.
+						// Does not alter bestHit, bestHp, bestHn, bestCid, candidate lists, or
+						// any shading input.
 						if (EnableStepConvergenceTelemetry && DomainTelemetryEnabledForCurrentRun()
-							&& !domainAwareFirstHitResolver && firstAcceptedHadHit
-							&& firstAcceptedSegmentIndex >= 0
-							&& (uint)(segOffset + firstAcceptedSegmentIndex) < (uint)_segBuf.Length)
+							&& !domainAwareFirstHitResolver
+							&& segCount > 0)
 						{
-							ref readonly var scSeg = ref _segBuf[segOffset + firstAcceptedSegmentIndex];
-							Vector3 scSegA = scSeg.A;
-							Vector3 scSegB = scSeg.B;
-							float scSegLen = (scSegB - scSegA).Length();
-							int scBaselineSub = 1;
-							if (scSegLen > rayCfg.CollisionRaySubdivideThreshold)
-								scBaselineSub = Mathf.Clamp(Mathf.CeilToInt(scSegLen / rayCfg.CollisionRaySubdivideThreshold), 1, rayCfg.MaxCollisionSubsteps);
+							float probeV = ((y + 0.5f) / filmH) * 2f - 1f;
+							probeV = -probeV;
+							float probeU = ((x + 0.5f) / filmW) * 2f - 1f;
+							Vector3 probeDirCam = new Vector3(
+								probeU * tanHalf * aspect,
+								probeV * tanHalf,
+								-1f
+							).Normalized();
+							Vector3 probeDirWorld = (basisLocal * probeDirCam).Normalized();
+							Vector3 probeBendDir = basisLocal.X;
+							bool probePass1EnabledForRay = cfg.Pass1DoHitTest && IsUsablePhysicsSpaceState(space);
 							ComputeStepConvergenceProbe(
-								space, scSegA, scSegB, scSegLen, scSeg.TraveledB,
-								scBaselineSub, firstAcceptedCid, firstAcceptedHitDistance,
-								rayCfg.CollisionMask, pass2Flags.HitBackFaces, pass2Flags.HitFromInside,
-								out float scConf, out float scSens, out float scPrec);
-							WriteStepConvergenceBlock(x, y, stride, filmW, filmH, scConf, scSens, scPrec);
+								space,
+								maxSeg,
+								pass1Cam,
+								pass1PxPerRad,
+								pass1CamPos,
+								pass1CamPos,
+								probeDirWorld,
+								probeBendDir,
+								center,
+								beta,
+								gamma,
+								fieldSnaps,
+								hasSources,
+								farForSim,
+								insightPlane,
+								useInsightPlane,
+								insightEps,
+								pass1StopOnHit,
+								probePass1EnabledForRay,
+								cfg.Pass1ProbeEveryNSegments,
+								cfg.Pass1ProbeMinTravelDelta,
+								renderSpaceSource,
+								renderSceneName,
+								renderFixtureName,
+								renderModeToken,
+								curvatureGridForPass1,
+								fieldGridForPass1,
+								Mathf.Max(1e-6f, rayCfg.StepLength),
+								hadHit,
+								bestCid,
+								hadHit ? hitDistance : -1f,
+								hadHit ? bestHn : Vector3.Zero,
+								rayCfg.CollisionMask,
+								rayCfg.CollisionRaySubdivideThreshold,
+								rayCfg.MaxCollisionSubsteps,
+								pass2Flags.HitBackFaces,
+								pass2Flags.HitFromInside,
+								cfg.NearestHitOnly,
+								cfg.EarlyOutDistanceEps,
+								out float scConf, out float scSens, out float scPrec,
+								out float scDistDelta, out float scNormDelta, out float scMismatch);
+							WriteStepConvergenceBlock(x, y, stride, filmW, filmH,
+								scConf, scSens, scPrec, scDistDelta, scNormDelta, scMismatch);
 						}
 
 						int filled = FillPixelBlock(x, y, stride, col, filmW, filmH);

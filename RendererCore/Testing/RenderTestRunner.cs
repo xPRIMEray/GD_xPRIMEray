@@ -125,6 +125,8 @@ public partial class RenderTestRunner : Node
 	private const string RenderTestFilmHeightCmdArgPrefix = "--render-test-film-height=";
 	private const string RenderTestFilmScaleCmdArgPrefix = "--render-test-film-scale=";
 	private const string RenderTestCameraFixedCmdArgPrefix = "--render-test-camera-fixed=";
+	private const string RenderTestStepLengthCmdArgPrefix = "--render-test-step-length=";
+	private const string RenderTestPixelStrideCmdArgPrefix = "--render-test-pixel-stride=";
 	private const int RenderTestMinFramesPerRun = 90;
 	private const string FastBlackholeComparisonProfileToken = "blackhole_compare_fast";
 	private const string FastEinsteinComparisonProfileToken = "einstein_compare_fast";
@@ -224,6 +226,10 @@ public partial class RenderTestRunner : Node
 	private float _renderTestFilmScaleOverride = 1.0f;
 	private bool _renderTestCameraFixedCliOverrideKnown = false;
 	private bool _renderTestCameraFixed = false;
+	private bool _renderTestStepLengthOverrideKnown = false;
+	private float _renderTestStepLengthOverride = 0.0125f;
+	private bool _renderTestPixelStrideOverrideKnown = false;
+	private int _renderTestPixelStrideOverride = 2;
 	private bool _startupDependencyErrorLogged = false;
 	private bool _baselineApplied = false;
 	private HarnessState _harnessState = HarnessState.Idle;
@@ -517,6 +523,8 @@ public partial class RenderTestRunner : Node
 				$"telemetry_heatmap_mode={Sanitize(ResolveTelemetryHeatmapModeForLogging())} " +
 				$"domain_telemetry={(ResolveDomainTelemetryEnabledForLogging() ? 1 : 0)} " +
 				$"step_convergence_telemetry={(_stepConvergenceTelemetryCliOverrideKnown ? (_enableStepConvergenceTelemetry ? 1 : 0) : "na")} " +
+				$"step_length_override={(_renderTestStepLengthOverrideKnown ? _renderTestStepLengthOverride.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture) : "na")} " +
+				$"pixel_stride_override={(_renderTestPixelStrideOverrideKnown ? _renderTestPixelStrideOverride.ToString() : "na")} " +
 				$"domain_aware_first_hit={(_domainAwareFirstHitResolverCliOverrideKnown ? (_enableDomainAwareFirstHitResolver ? 1 : 0) : ((_film != null && GodotObject.IsInstanceValid(_film) && _film.EnableDomainAwareFirstHitResolver) ? 1 : 0))} " +
 				$"telemetry_adaptive_envelope={(_telemetryAdaptiveEnvelopeCliOverrideKnown ? (_telemetryAdaptiveEnvelopeEnabled ? 1 : 0) : 0)} " +
 				$"adaptive_envelope_controller_mode={Sanitize(_adaptiveEnvelopeControllerModeCliOverrideKnown ? _adaptiveEnvelopeControllerMode : "three_state")} " +
@@ -1138,6 +1146,10 @@ public partial class RenderTestRunner : Node
 			if (_enableDomainAwareFirstHitResolver)
 				_film.EnableDomainTelemetry = true;
 		}
+		if (_renderTestPixelStrideOverrideKnown)
+		{
+			_film.PixelStride = Mathf.Clamp(_renderTestPixelStrideOverride, 1, 16);
+		}
 		if (_requestedFixture == RenderTestFixture.DomainResolverStress)
 		{
 			_film.ApplyPresetOnReady = false;
@@ -1155,6 +1167,14 @@ public partial class RenderTestRunner : Node
 				stressRbr.MaxStepLength = 0.025f;
 				stressRbr.CollisionRaySubdivideThreshold = 0.0125f;
 				stressRbr.MaxCollisionSubsteps = Math.Max(stressRbr.MaxCollisionSubsteps, 4);
+				if (_renderTestStepLengthOverrideKnown)
+				{
+					float sl = Mathf.Clamp(_renderTestStepLengthOverride, 0.0001f, 1.0f);
+					stressRbr.StepLength = sl;
+					stressRbr.MinStepLength = Mathf.Min(0.001f, sl);
+					stressRbr.MaxStepLength = sl * 2f;
+					stressRbr.CollisionRaySubdivideThreshold = sl;
+				}
 			}
 		}
 		if (_telemetryAdaptiveEnvelopeCliOverrideKnown)
@@ -2844,14 +2864,30 @@ public partial class RenderTestRunner : Node
 
 		string captureStem = Path.GetFileNameWithoutExtension(capturePath);
 		string scenePath = GetTree().CurrentScene?.SceneFilePath ?? string.Empty;
-		GrinFilmCamera.DomainTelemetryMapKind[] kinds =
-		{
-			GrinFilmCamera.DomainTelemetryMapKind.DomainId,
-			GrinFilmCamera.DomainTelemetryMapKind.DomainConfidence,
-			GrinFilmCamera.DomainTelemetryMapKind.BoundaryConfidence,
-			GrinFilmCamera.DomainTelemetryMapKind.SelectionFlip,
-			GrinFilmCamera.DomainTelemetryMapKind.NormalDiscontinuity
-		};
+		bool writeStepConv = _film.EnableStepConvergenceTelemetry && !_film.EnableDomainAwareFirstHitResolver;
+		GrinFilmCamera.DomainTelemetryMapKind[] kinds = writeStepConv
+			? new[]
+			{
+				GrinFilmCamera.DomainTelemetryMapKind.DomainId,
+				GrinFilmCamera.DomainTelemetryMapKind.DomainConfidence,
+				GrinFilmCamera.DomainTelemetryMapKind.BoundaryConfidence,
+				GrinFilmCamera.DomainTelemetryMapKind.SelectionFlip,
+				GrinFilmCamera.DomainTelemetryMapKind.NormalDiscontinuity,
+				GrinFilmCamera.DomainTelemetryMapKind.StepConvergenceConfidence,
+				GrinFilmCamera.DomainTelemetryMapKind.StepSensitivity,
+				GrinFilmCamera.DomainTelemetryMapKind.PrecisionRequired,
+				GrinFilmCamera.DomainTelemetryMapKind.ProbeHitDistanceDelta,
+				GrinFilmCamera.DomainTelemetryMapKind.ProbeNormalDelta,
+				GrinFilmCamera.DomainTelemetryMapKind.ProbeColliderMismatch,
+			}
+			: new[]
+			{
+				GrinFilmCamera.DomainTelemetryMapKind.DomainId,
+				GrinFilmCamera.DomainTelemetryMapKind.DomainConfidence,
+				GrinFilmCamera.DomainTelemetryMapKind.BoundaryConfidence,
+				GrinFilmCamera.DomainTelemetryMapKind.SelectionFlip,
+				GrinFilmCamera.DomainTelemetryMapKind.NormalDiscontinuity,
+			};
 
 		System.Text.StringBuilder summary = new System.Text.StringBuilder(768);
 		summary.Append("{");
@@ -2883,6 +2919,12 @@ public partial class RenderTestRunner : Node
 				GrinFilmCamera.DomainTelemetryMapKind.BoundaryConfidence => "boundary_confidence",
 				GrinFilmCamera.DomainTelemetryMapKind.SelectionFlip => "selection_flip",
 				GrinFilmCamera.DomainTelemetryMapKind.NormalDiscontinuity => "normal_discontinuity",
+				GrinFilmCamera.DomainTelemetryMapKind.StepConvergenceConfidence => "step_convergence_confidence",
+				GrinFilmCamera.DomainTelemetryMapKind.StepSensitivity => "step_sensitivity",
+				GrinFilmCamera.DomainTelemetryMapKind.PrecisionRequired => "precision_required",
+				GrinFilmCamera.DomainTelemetryMapKind.ProbeHitDistanceDelta => "probe_hit_distance_delta",
+				GrinFilmCamera.DomainTelemetryMapKind.ProbeNormalDelta => "probe_normal_delta",
+				GrinFilmCamera.DomainTelemetryMapKind.ProbeColliderMismatch => "probe_collider_mismatch",
 				_ => "domain_unknown"
 			};
 			string outPath = Path.Combine(outputDir, captureStem + "." + suffix + ".png");
@@ -4028,6 +4070,10 @@ public partial class RenderTestRunner : Node
 		_renderTestFilmScaleOverride = 1.0f;
 		_renderTestCameraFixedCliOverrideKnown = false;
 		_renderTestCameraFixed = false;
+		_renderTestStepLengthOverrideKnown = false;
+		_renderTestStepLengthOverride = 0.0125f;
+		_renderTestPixelStrideOverrideKnown = false;
+		_renderTestPixelStrideOverride = 2;
 		if (TryGetBoolCmdArgValue(RenderTestCaptureCmdArgPrefix, out bool renderTestCaptureEnabled))
 		{
 			_renderTestCaptureEnabled = renderTestCaptureEnabled;
@@ -4220,6 +4266,20 @@ public partial class RenderTestRunner : Node
 		{
 			_renderTestCameraFixedCliOverrideKnown = true;
 			_renderTestCameraFixed = renderTestCameraFixed;
+		}
+		if (TryGetStringCmdArgValue(RenderTestStepLengthCmdArgPrefix, out string renderTestStepLengthRaw) &&
+			!string.IsNullOrWhiteSpace(renderTestStepLengthRaw) &&
+			float.TryParse(renderTestStepLengthRaw.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float renderTestStepLength) &&
+			renderTestStepLength > 0f)
+		{
+			_renderTestStepLengthOverrideKnown = true;
+			_renderTestStepLengthOverride = renderTestStepLength;
+		}
+		if (TryGetIntCmdArgValue(RenderTestPixelStrideCmdArgPrefix, out int renderTestPixelStride) &&
+			renderTestPixelStride > 0)
+		{
+			_renderTestPixelStrideOverrideKnown = true;
+			_renderTestPixelStrideOverride = Mathf.Clamp(renderTestPixelStride, 1, 16);
 		}
 	}
 
