@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-05-02T16:26:03Z",
+  "phase": "A_off_stride",
+  "step_length": "0.016",
+  "mode": "off",
+  "stride": "4",
+  "cell_dir": "/home/bb/code/godot_xPRIMEray/output/doe_scheduler_resonance/20260502T155725Z/phase_A_off_stride/step_0.016/off_stride_4",
+  "exit_code": 134,
+  "effective_status": 0,
+  "notes": "godot_shutdown_abort_after_harness_success"
+}
