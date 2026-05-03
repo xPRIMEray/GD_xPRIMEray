@@ -73,10 +73,38 @@ The analyzer writes:
 - `radial_risk_profile_by_node.png`
 - `risk_region_overlay.png`
 - `radial_dist_vs_required_precision.png`
+- `transport_coherence_basins.csv`
+- `unstable_seams.csv`
+- `scene_transport_memory.json`
+- `coherence_basin_map.png`
+- `transport_entropy_heatmap.png`
+- `basin_boundary_overlay.png`
+- `unstable_seam_overlay.png`
+- `coherence_decay_profile.png`
+- `transport_coherence_basin_summary.md`
+- `transport_coherence_basin_summary.json`
 
 `TransportRiskNodes` are diagnostic screen-space samples flagged by local decision-risk maxima, persistent mismatch at `0.00625`, or threshold-snap behavior that only matches the reference-precision baseline at `0.003125`.
 
 `TransportRiskRegions` expand each node into nearby sampled pixels and centroid-radial corridors. They estimate the high-risk radius, first stable outer bound where risk falls below epsilon, required precision inside the region, and classify the sampled region as `CORE_STABLE`, `EDGE_TRANSITION`, `CORNER_CURVATURE_SNAP`, `OUTER_STABLE_BOUND`, or `UNSEALED_NONCONVERGENT`.
+
+`TransportCoherenceBasins` are passive local transport-field neighborhoods sampled around high-risk centers. They measure collider/domain/event agreement, normal continuity, hit-distance continuity, path-length continuity, entropy, fragmentation, and local precision floors. `SceneTransportMemory` is diagnostic-only: it must not feed render scheduling, hit selection, shading, resolver decisions, or adaptive precision until a separate future plan explicitly approves that feedback path.
+
+Enable the basin experiment with:
+
+```bash
+--transport-coherence-basin=1
+--transport-coherence-basin-radii=4,8,16
+--transport-coherence-basin-max-centers=32
+```
+
+Every basin run records probe budget metrics in the probe JSON and analyzer summary JSON/Markdown. `scene_transport_memory.json` intentionally excludes nondeterministic runtime/path metadata so fixed-camera repeatability can compare its hash directly.
+
+- `probe_sample_count`
+- `probe_runtime_ms`
+- `max_centers_used`
+- `centers_skipped_due_to_budget`
+- `rows_written`
 
 ## Decision Risk
 

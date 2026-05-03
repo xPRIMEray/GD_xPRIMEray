@@ -20,12 +20,22 @@ Outputs:
     radial_risk_profile_by_node.png
     risk_region_overlay.png
     radial_dist_vs_required_precision.png
+    transport_coherence_basins.csv
+    unstable_seams.csv
+    scene_transport_memory.json
+    coherence_basin_map.png
+    transport_entropy_heatmap.png
+    basin_boundary_overlay.png
+    unstable_seam_overlay.png
+    coherence_decay_profile.png
 """
 
 from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
+import json
 import math
 from collections import Counter, defaultdict
 from dataclasses import dataclass
@@ -83,8 +93,23 @@ class ProbeRow:
     nearest_anchor_kind: str
     nearest_corner_dist: float
     nearest_edge_dist: float
+    sample_phase: str
+    neighborhood_center_x: int
+    neighborhood_center_y: int
+    neighborhood_radius: int
+    neighborhood_direction: str
     offset_x: int
     offset_y: int
+    hit: bool
+    collider_id: str
+    domain_id: str
+    boundary_events: int
+    portal_events: int
+    hit_distance: float
+    path_length: float
+    normal_x: float
+    normal_y: float
+    normal_z: float
     decision_risk: float
     matched_reference: bool
     required_precision_label: str
@@ -162,8 +187,23 @@ def load_rows(paths: list[Path]) -> list[ProbeRow]:
                         nearest_anchor_kind=raw.get("nearest_anchor_kind", ""),
                         nearest_corner_dist=parse_float(raw.get("nearest_corner_dist", "-1"), -1.0),
                         nearest_edge_dist=parse_float(raw.get("nearest_edge_dist", "-1"), -1.0),
+                        sample_phase=raw.get("sample_phase", "anchor_probe") or "anchor_probe",
+                        neighborhood_center_x=parse_int(raw.get("neighborhood_center_x", raw.get("projected_x", ""))),
+                        neighborhood_center_y=parse_int(raw.get("neighborhood_center_y", raw.get("projected_y", ""))),
+                        neighborhood_radius=parse_int(raw.get("neighborhood_radius", "0")),
+                        neighborhood_direction=raw.get("neighborhood_direction", "center") or "center",
                         offset_x=parse_int(raw.get("radial_offset_x", "")),
                         offset_y=parse_int(raw.get("radial_offset_y", "")),
+                        hit=parse_bool(raw.get("hit", raw.get("matched_reference_decision", ""))),
+                        collider_id=raw.get("collider_id", ""),
+                        domain_id=raw.get("domain_id", ""),
+                        boundary_events=parse_int(raw.get("boundary_events", "0")),
+                        portal_events=parse_int(raw.get("portal_events", "0")),
+                        hit_distance=parse_float(raw.get("hit_distance", "-1"), -1.0),
+                        path_length=parse_float(raw.get("path_length", "-1"), -1.0),
+                        normal_x=parse_float(raw.get("normal_x", "0"), 0.0),
+                        normal_y=parse_float(raw.get("normal_y", "1"), 1.0),
+                        normal_z=parse_float(raw.get("normal_z", "0"), 0.0),
                         decision_risk=risk,
                         matched_reference=parse_bool(raw.get("matched_reference_decision", "")),
                         required_precision_label=raw.get("required_precision_label", ""),
@@ -850,6 +890,422 @@ def build_region_report(regions: list[dict[str, Any]], epsilon: float) -> str:
     return "\n".join(lines) + "\n"
 
 
+BASIN_COLS = [
+    "basin_id",
+    "object_id",
+    "center_x",
+    "center_y",
+    "sample_count",
+    "local_coherence_score",
+    "transport_divergence_score",
+    "local_transport_entropy",
+    "coherence_decay_radius",
+    "first_stable_outer_bound",
+    "manifold_fragmentation_count",
+    "recommended_step_length",
+    "precision_floor",
+    "stability_confidence",
+    "revisit_frequency_recommendation",
+    "basin_stability_class",
+]
+
+SEAM_COLS = [
+    "seam_id",
+    "object_id",
+    "center_x",
+    "center_y",
+    "sample_count",
+    "seam_class",
+    "local_coherence_score",
+    "transport_divergence_score",
+    "local_transport_entropy",
+    "manifold_fragmentation_count",
+    "precision_floor",
+    "scheduler_resonance_hint",
+]
+
+
+def transport_signature(row: ProbeRow) -> str:
+    return f"{int(row.hit)}:{row.collider_id}:{row.domain_id}:{row.boundary_events}:{row.portal_events}"
+
+
+def normal_continuity(rows: list[ProbeRow]) -> float:
+    normals = []
+    for row in rows:
+        length = math.sqrt(row.normal_x * row.normal_x + row.normal_y * row.normal_y + row.normal_z * row.normal_z)
+        if length > 1e-8:
+            normals.append((row.normal_x / length, row.normal_y / length, row.normal_z / length))
+    if len(normals) <= 1:
+        return 1.0
+    mx = sum(n[0] for n in normals) / len(normals)
+    my = sum(n[1] for n in normals) / len(normals)
+    mz = sum(n[2] for n in normals) / len(normals)
+    mlen = max(1e-8, math.sqrt(mx * mx + my * my + mz * mz))
+    mean_n = (mx / mlen, my / mlen, mz / mlen)
+    vals = []
+    for n in normals:
+        dot = max(-1.0, min(1.0, n[0] * mean_n[0] + n[1] * mean_n[1] + n[2] * mean_n[2]))
+        vals.append(1.0 - math.acos(dot) / math.pi)
+    return mean(vals)
+
+
+def continuity_from_values(values: list[float]) -> float:
+    vals = [v for v in values if math.isfinite(v) and v >= 0.0]
+    if len(vals) <= 1:
+        return 1.0
+    mu = mean(vals)
+    var = mean([(v - mu) * (v - mu) for v in vals])
+    scale = max(1.0, abs(mu))
+    return max(0.0, min(1.0, 1.0 - math.sqrt(var) / scale))
+
+
+def agreement_score(values: list[Any]) -> float:
+    if not values:
+        return 1.0
+    counts = Counter(values)
+    return counts.most_common(1)[0][1] / len(values)
+
+
+def entropy_from_signatures(signatures: list[str]) -> float:
+    if not signatures:
+        return 0.0
+    counts = Counter(signatures)
+    if len(counts) <= 1:
+        return 0.0
+    total = len(signatures)
+    ent = -sum((count / total) * math.log(count / total) for count in counts.values())
+    return ent / math.log(len(counts))
+
+
+def precision_floor(labels: list[str]) -> str:
+    labels = [label for label in labels if label]
+    if not labels:
+        return "none"
+    return max(labels, key=required_precision_rank)
+
+
+def neighborhood_groups(rows: list[ProbeRow]) -> dict[tuple[str, int, int], list[ProbeRow]]:
+    groups: dict[tuple[str, int, int], list[ProbeRow]] = defaultdict(list)
+    for row in rows:
+        if row.sample_phase != "basin_neighborhood":
+            continue
+        if abs(row.step_length - row.reference_step_length) > 1e-8:
+            continue
+        groups[(row.object_id, row.neighborhood_center_x, row.neighborhood_center_y)].append(row)
+    return groups
+
+
+def manifold_fragmentation_count(rows: list[ProbeRow]) -> int:
+    # Sparse radial samples rarely form full pixel-contiguous components; count
+    # distinct local transport signatures as the passive fragmentation proxy.
+    return len({transport_signature(row) for row in rows})
+
+
+def coherence_metrics(rows: list[ProbeRow], epsilon: float) -> dict[str, Any]:
+    signatures = [transport_signature(row) for row in rows]
+    coherence_parts = [
+        agreement_score([row.collider_id for row in rows]),
+        agreement_score([row.domain_id for row in rows]),
+        agreement_score([row.boundary_events for row in rows]),
+        agreement_score([row.portal_events for row in rows]),
+        normal_continuity(rows),
+        continuity_from_values([row.hit_distance for row in rows]),
+        continuity_from_values([row.path_length for row in rows]),
+    ]
+    local_coherence = mean(coherence_parts)
+    by_radius: dict[int, list[ProbeRow]] = defaultdict(list)
+    for row in rows:
+        by_radius[row.neighborhood_radius].append(row)
+    stable_bound = None
+    decay_radius = None
+    for radius in sorted(by_radius):
+        group = by_radius[radius]
+        risk = mean([row.decision_risk for row in group])
+        c = mean([
+            agreement_score([row.collider_id for row in group]),
+            normal_continuity(group),
+            continuity_from_values([row.hit_distance for row in group]),
+            continuity_from_values([row.path_length for row in group]),
+        ])
+        if risk <= epsilon and c >= 0.85:
+            stable_bound = radius
+            decay_radius = radius
+            break
+    return {
+        "local_coherence_score": local_coherence,
+        "transport_divergence_score": 1.0 - local_coherence,
+        "local_transport_entropy": entropy_from_signatures(signatures),
+        "coherence_decay_radius": decay_radius,
+        "first_stable_outer_bound": stable_bound,
+        "manifold_fragmentation_count": manifold_fragmentation_count(rows),
+        "mean_risk": mean([row.decision_risk for row in rows]),
+        "precision_floor": precision_floor([row.required_precision_label for row in rows]),
+    }
+
+
+def recommended_step_for_precision(label: str) -> str:
+    return "0.003125" if label in {"reference", "none"} else label
+
+
+def build_coherence_basins_and_seams(rows: list[ProbeRow], epsilon: float) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    basins: list[dict[str, Any]] = []
+    seams: list[dict[str, Any]] = []
+    seam_candidates: list[dict[str, Any]] = []
+    for (object_id, cx, cy), group in sorted(neighborhood_groups(rows).items()):
+        metrics = coherence_metrics(group, epsilon)
+        stable = metrics["mean_risk"] <= epsilon and metrics["local_coherence_score"] >= 0.85
+        precision = str(metrics["precision_floor"])
+        if stable:
+            basin_id = len(basins) + 1
+            basins.append({
+                "basin_id": basin_id,
+                "object_id": object_id,
+                "center_x": cx,
+                "center_y": cy,
+                "sample_count": len(group),
+                "local_coherence_score": metrics["local_coherence_score"],
+                "transport_divergence_score": metrics["transport_divergence_score"],
+                "local_transport_entropy": metrics["local_transport_entropy"],
+                "coherence_decay_radius": metrics["coherence_decay_radius"],
+                "first_stable_outer_bound": metrics["first_stable_outer_bound"],
+                "manifold_fragmentation_count": metrics["manifold_fragmentation_count"],
+                "recommended_step_length": recommended_step_for_precision(precision),
+                "precision_floor": precision,
+                "stability_confidence": max(0.0, min(1.0, metrics["local_coherence_score"] * (1.0 - metrics["local_transport_entropy"]))),
+                "revisit_frequency_recommendation": "low" if metrics["local_coherence_score"] >= 0.95 else "medium",
+                "basin_stability_class": "STABLE_COHERENT_BASIN" if metrics["local_coherence_score"] >= 0.95 else "MARGINAL_COHERENT_BASIN",
+                "_rows": group,
+            })
+        else:
+            nearest_kind = Counter(row.nearest_anchor_kind for row in group).most_common(1)[0][0] if group else ""
+            seam_class = "SEAM_TRANSITION"
+            if metrics["manifold_fragmentation_count"] >= 3:
+                seam_class = "PERSISTENT_NONCONVERGENT_MANIFOLD"
+            elif "Edge" in nearest_kind:
+                seam_class = "UNSTABLE_EDGE_TRANSITION"
+            elif "Corner" in nearest_kind or metrics["local_transport_entropy"] > 0.5:
+                seam_class = "UNRESOLVED_CURVATURE_CORRIDOR"
+            seam_candidates.append({
+                "seam_id": 0,
+                "object_id": object_id,
+                "center_x": cx,
+                "center_y": cy,
+                "sample_count": len(group),
+                "seam_class": seam_class,
+                "local_coherence_score": metrics["local_coherence_score"],
+                "transport_divergence_score": metrics["transport_divergence_score"],
+                "local_transport_entropy": metrics["local_transport_entropy"],
+                "manifold_fragmentation_count": metrics["manifold_fragmentation_count"],
+                "precision_floor": precision,
+                "scheduler_resonance_hint": "no",
+                "_rows": group,
+            })
+
+    y_counts = Counter(int(round(float(s["center_y"]))) for s in seam_candidates)
+    resonant_y = {y for y, count in y_counts.items() if count >= 3}
+    for seam in seam_candidates:
+        if int(seam["center_y"]) in resonant_y:
+            seam["seam_class"] = "SCHEDULER_RESONANCE_STRIPE"
+            seam["scheduler_resonance_hint"] = "yes"
+        seam["seam_id"] = len(seams) + 1
+        seams.append(seam)
+    return basins, seams
+
+
+def write_coherence_csv(path: Path, rows: list[dict[str, Any]], cols: list[str]) -> None:
+    with path.open("w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=cols)
+        writer.writeheader()
+        for row in rows:
+            out = dict(row)
+            out.pop("_rows", None)
+            for key, value in list(out.items()):
+                if isinstance(value, float):
+                    out[key] = fmt_float(value)
+                elif value is None:
+                    out[key] = ""
+            writer.writerow({key: out.get(key, "") for key in cols})
+
+
+def draw_coherence_maps(out_dir: Path, basins: list[dict[str, Any]], seams: list[dict[str, Any]], canvas: tuple[int, int]) -> None:
+    basin_img = Image.new("RGB", canvas, (0, 0, 0))
+    entropy_img = Image.new("RGB", canvas, (0, 0, 0))
+    boundary_img = Image.new("RGB", canvas, (0, 0, 0))
+    seam_img = Image.new("RGB", canvas, (0, 0, 0))
+    basin_draw = ImageDraw.Draw(basin_img)
+    entropy_draw = ImageDraw.Draw(entropy_img)
+    boundary_draw = ImageDraw.Draw(boundary_img)
+    seam_draw = ImageDraw.Draw(seam_img)
+    all_items = [*basins, *seams]
+    max_entropy = max((float(item["local_transport_entropy"]) for item in all_items), default=1.0)
+    max_entropy = max(max_entropy, 1e-6)
+    for basin in basins:
+        x, y = int(basin["center_x"]), int(basin["center_y"])
+        color = (40, 180, 90) if float(basin["local_coherence_score"]) >= 0.95 else (70, 145, 210)
+        r = max(4, int(basin.get("first_stable_outer_bound") or basin.get("coherence_decay_radius") or 4))
+        basin_draw.ellipse((x - r, y - r, x + r, y + r), outline=color, fill=color)
+        boundary_draw.ellipse((x - r, y - r, x + r, y + r), outline=(90, 230, 120), width=1)
+        splat(entropy_draw, x, y, risk_color(float(basin["local_transport_entropy"]), max_entropy), radius=3)
+    for seam in seams:
+        x, y = int(seam["center_x"]), int(seam["center_y"])
+        color = (230, 60, 70) if seam["scheduler_resonance_hint"] == "no" else (255, 190, 40)
+        seam_draw.rectangle((x - 4, y - 4, x + 4, y + 4), outline=(255, 255, 255), fill=color)
+        boundary_draw.rectangle((x - 5, y - 5, x + 5, y + 5), outline=color)
+        splat(entropy_draw, x, y, risk_color(float(seam["local_transport_entropy"]), max_entropy), radius=3)
+    basin_img.save(out_dir / "coherence_basin_map.png")
+    entropy_img.save(out_dir / "transport_entropy_heatmap.png")
+    boundary_img.save(out_dir / "basin_boundary_overlay.png")
+    seam_img.save(out_dir / "unstable_seam_overlay.png")
+
+
+def draw_coherence_decay_profile(path: Path, basins: list[dict[str, Any]], seams: list[dict[str, Any]], epsilon: float) -> None:
+    width, height = 1000, 560
+    ml, mr, mt, mb = 80, 220, 48, 78
+    pw, ph = width - ml - mr, height - mt - mb
+    img = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(img)
+    items = [*basins[:8], *seams[:8]]
+    points_by_item = []
+    for item in items:
+        by_radius: dict[int, list[float]] = defaultdict(list)
+        for row in item.get("_rows", []):
+            by_radius[row.neighborhood_radius].append(row.decision_risk)
+        points_by_item.append((item, [(r, mean(vals)) for r, vals in sorted(by_radius.items())]))
+    max_r = max((r for _, pts in points_by_item for r, _ in pts), default=1)
+    max_y = max([epsilon * 1.25, *(risk for _, pts in points_by_item for _, risk in pts), 1e-6])
+    draw.rectangle((ml, mt, ml + pw, mt + ph), outline=(30, 30, 30))
+    y_eps = int(mt + (1.0 - min(epsilon / max_y, 1.0)) * ph)
+    draw.line((ml, y_eps, ml + pw, y_eps), fill=(180, 40, 40), width=2)
+    draw.text((ml, 18), "Coherence basin/seam decay profile", fill=(0, 0, 0))
+    for idx, (item, pts) in enumerate(points_by_item):
+        color = palette(idx)
+        xy = [(int(ml + (r / max(max_r, 1)) * pw), int(mt + (1.0 - min(v / max_y, 1.0)) * ph)) for r, v in pts]
+        if len(xy) >= 2:
+            draw.line(xy, fill=color, width=2)
+        for p in xy:
+            draw.ellipse((p[0] - 3, p[1] - 3, p[0] + 3, p[1] + 3), fill=color)
+        label = f"B{item['basin_id']}" if "basin_id" in item else f"S{item['seam_id']}"
+        draw.rectangle((ml + pw + 20, mt + idx * 24 + 4, ml + pw + 32, mt + idx * 24 + 16), fill=color)
+        draw.text((ml + pw + 40, mt + idx * 24), label, fill=(20, 20, 20))
+    img.save(path)
+
+
+def load_probe_budget(input_files: list[Path]) -> dict[str, Any]:
+    totals = {
+        "probe_sample_count": 0,
+        "probe_runtime_ms": 0,
+        "max_centers_used": 0,
+        "centers_skipped_due_to_budget": 0,
+        "rows_written": 0,
+    }
+    found = False
+    for csv_path in input_files:
+        json_path = csv_path.with_suffix(".json")
+        if not json_path.exists():
+            continue
+        try:
+            data = json.loads(json_path.read_text())
+            budget = data.get("probe_budget") or {}
+        except Exception:
+            continue
+        found = True
+        for key in totals:
+            try:
+                totals[key] += int(budget.get(key, 0))
+            except Exception:
+                pass
+    totals["budget_metadata_found"] = found
+    return totals
+
+
+def write_scene_transport_memory(path: Path, basins: list[dict[str, Any]], seams: list[dict[str, Any]]) -> None:
+	payload = {
+		"diagnostic_only_guardrail": "SceneTransportMemory is diagnostic-only and must not feed render scheduling, hit selection, shading, resolver decisions, or adaptive precision yet.",
+		"basin_count": len(basins),
+		"unstable_seam_count": len(seams),
+        "stable_basins": [
+            {key: value for key, value in basin.items() if not key.startswith("_")}
+            for basin in basins
+        ],
+        "unstable_seams": [
+            {key: value for key, value in seam.items() if not key.startswith("_")}
+            for seam in seams
+        ],
+        "required_precision_regions": [
+            {
+                "region_id": f"precision:{idx + 1}",
+                "object_id": item["object_id"],
+                "center_x": item.get("center_x"),
+                "center_y": item.get("center_y"),
+                "precision_floor": item.get("precision_floor"),
+            }
+            for idx, item in enumerate([*basins, *seams])
+        ],
+        "local_transport_fingerprints": [
+            {
+                "fingerprint_id": f"basin:{basin['basin_id']}",
+                "object_id": basin["object_id"],
+                "pixel_x": basin["center_x"],
+                "pixel_y": basin["center_y"],
+                "local_coherence_score": basin["local_coherence_score"],
+                "transport_entropy": basin["local_transport_entropy"],
+            }
+            for basin in basins
+        ],
+	}
+	path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+
+
+def write_coherence_summary_json(path: Path, basins: list[dict[str, Any]], seams: list[dict[str, Any]], budget: dict[str, Any], input_files: list[Path]) -> None:
+	payload = {
+		"diagnostic_only_guardrail": "Analysis only. SceneTransportMemory must not feed render scheduling, hit selection, shading, resolver decisions, or adaptive precision yet.",
+		"input_files": [str(p) for p in input_files],
+		"input_hash": hashlib.sha256("|".join(str(p.resolve()) for p in input_files).encode("utf-8")).hexdigest(),
+		"probe_budget": budget,
+		"basin_count": len(basins),
+		"unstable_seam_count": len(seams),
+		"mean_local_coherence_score": mean([float(b["local_coherence_score"]) for b in basins]) if basins else 0.0,
+		"mean_transport_entropy": mean([float(b["local_transport_entropy"]) for b in basins]) if basins else 0.0,
+		"max_manifold_fragmentation_count": max([int(s["manifold_fragmentation_count"]) for s in seams] or [0]),
+		"scheduler_resonance_seam_count": sum(1 for s in seams if str(s.get("seam_class")) == "SCHEDULER_RESONANCE_STRIPE"),
+	}
+	path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+
+
+def build_coherence_summary_report(basins: list[dict[str, Any]], seams: list[dict[str, Any]], budget: dict[str, Any]) -> str:
+    class_counter = Counter(str(seam["seam_class"]) for seam in seams)
+    lines = [
+        "# Transport Coherence Basin Summary",
+        "",
+        "SceneTransportMemory is diagnostic-only and must not feed render scheduling, hit selection, shading, resolver decisions, or adaptive precision yet.",
+        "",
+        "## Probe Budget",
+        "",
+        "| metric | value |",
+        "|---|---:|",
+    ]
+    for key in ("probe_sample_count", "probe_runtime_ms", "max_centers_used", "centers_skipped_due_to_budget", "rows_written"):
+        lines.append(f"| `{key}` | {budget.get(key, '')} |")
+    lines.extend([
+        "",
+        "## Basin Counts",
+        "",
+        f"- Basins: {len(basins)}",
+        f"- Unstable seams: {len(seams)}",
+        f"- Mean local coherence: {fmt_float(mean([float(b['local_coherence_score']) for b in basins]) if basins else math.nan)}",
+        f"- Mean transport entropy: {fmt_float(mean([float(b['local_transport_entropy']) for b in basins]) if basins else math.nan)}",
+        "",
+        "## Seam Classes",
+        "",
+        "| class | count |",
+        "|---|---:|",
+    ])
+    for cls, count in class_counter.most_common():
+        lines.append(f"| `{cls}` | {count} |")
+    lines.extend(["", "## Guardrail", "", "Analysis only. No beauty, hit, shading, resolver, scheduler, or precision-step feedback is permitted."])
+    return "\n".join(lines) + "\n"
+
+
 def build_node_report(nodes: list[dict[str, Any]], metric_rows: list[dict[str, Any]], epsilon: float) -> str:
     object_counter = Counter(str(n["object_id"]) for n in nodes)
     tile_counter = Counter(str(n["projected_tile"]) for n in nodes)
@@ -1000,6 +1456,11 @@ def main() -> int:
     node_report_path = out_dir / "risk_node_report.md"
     regions_path = out_dir / "transport_risk_regions.csv"
     region_report_path = out_dir / "risk_region_report.md"
+    basins_path = out_dir / "transport_coherence_basins.csv"
+    seams_path = out_dir / "unstable_seams.csv"
+    memory_path = out_dir / "scene_transport_memory.json"
+    coherence_report_path = out_dir / "transport_coherence_basin_summary.md"
+    coherence_summary_json_path = out_dir / "transport_coherence_basin_summary.json"
 
     write_summary_csv(summary_path, summary)
     draw_plot(plot_path, rows, args.epsilon)
@@ -1017,6 +1478,15 @@ def main() -> int:
     draw_region_overlay(out_dir / "risk_region_overlay.png", regions, metric_rows, canvas, args.epsilon)
     draw_radial_precision(out_dir / "radial_dist_vs_required_precision.png", metric_rows, args.epsilon)
     region_report_path.write_text(build_region_report(regions, args.epsilon))
+    basins, seams = build_coherence_basins_and_seams(rows, args.epsilon)
+    write_coherence_csv(basins_path, basins, BASIN_COLS)
+    write_coherence_csv(seams_path, seams, SEAM_COLS)
+    draw_coherence_maps(out_dir, basins, seams, canvas)
+    draw_coherence_decay_profile(out_dir / "coherence_decay_profile.png", basins, seams, args.epsilon)
+    budget = load_probe_budget(input_files)
+    write_scene_transport_memory(memory_path, basins, seams)
+    write_coherence_summary_json(coherence_summary_json_path, basins, seams, budget, input_files)
+    coherence_report_path.write_text(build_coherence_summary_report(basins, seams, budget))
 
     print(f"[reference-probe-analyzer] inputs={len(input_files)} rows={len(rows)}")
     print(f"[reference-probe-analyzer] wrote {summary_path}")
@@ -1033,6 +1503,16 @@ def main() -> int:
     print(f"[reference-probe-analyzer] wrote {out_dir / 'radial_risk_profile_by_node.png'}")
     print(f"[reference-probe-analyzer] wrote {out_dir / 'risk_region_overlay.png'}")
     print(f"[reference-probe-analyzer] wrote {out_dir / 'radial_dist_vs_required_precision.png'}")
+    print(f"[reference-probe-analyzer] wrote {basins_path}")
+    print(f"[reference-probe-analyzer] wrote {seams_path}")
+    print(f"[reference-probe-analyzer] wrote {memory_path}")
+    print(f"[reference-probe-analyzer] wrote {coherence_summary_json_path}")
+    print(f"[reference-probe-analyzer] wrote {coherence_report_path}")
+    print(f"[reference-probe-analyzer] wrote {out_dir / 'coherence_basin_map.png'}")
+    print(f"[reference-probe-analyzer] wrote {out_dir / 'transport_entropy_heatmap.png'}")
+    print(f"[reference-probe-analyzer] wrote {out_dir / 'basin_boundary_overlay.png'}")
+    print(f"[reference-probe-analyzer] wrote {out_dir / 'unstable_seam_overlay.png'}")
+    print(f"[reference-probe-analyzer] wrote {out_dir / 'coherence_decay_profile.png'}")
     return 0
 
 

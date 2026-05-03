@@ -32,6 +32,7 @@ FILM_W="${RES%x*}"
 FILM_H="${RES#*x}"
 FILM_SCALE="${DOE_FILM_SCALE:-1.0}"
 SMOKE_ONE_CELL="${DOE_SMOKE_ONE_CELL:-0}"
+ENABLE_COHERENCE_BASIN="${DOE_ENABLE_COHERENCE_BASIN:-0}"
 
 START_EPOCH="$(date +%s)"
 MAX_SECONDS="$(awk -v h="$MAX_HOURS" 'BEGIN { printf "%d", h * 3600 }')"
@@ -107,6 +108,7 @@ mode_flags() {
     case "$mode" in
         off)          echo "0 0 0" ;;
         telemetry_on) echo "1 0 0" ;;
+        coherence_basin_on) echo "0 0 0" ;;
         *) echo "[scheduler-doe] unknown mode: $mode" >&2; return 1 ;;
     esac
 }
@@ -134,6 +136,17 @@ run_cell() {
     read -r telemetry resolver step_conv <<< "$flags"
 
     echo "[scheduler-doe] run phase=$phase sl=$step_len mode=$mode stride=$stride"
+    local coherence_args=()
+    if [[ "$mode" == "coherence_basin_on" ]]; then
+        coherence_args=(
+            "--reference-geodesic-probe=1"
+            "--reference-geodesic-probe-max-anchors=${DOE_COHERENCE_MAX_ANCHORS:-2}"
+            "--reference-geodesic-probe-max-steps=${DOE_COHERENCE_MAX_STEPS:-2048}"
+            "--transport-coherence-basin=1"
+            "--transport-coherence-basin-max-centers=${DOE_COHERENCE_MAX_CENTERS:-8}"
+            "--transport-coherence-basin-radii=${DOE_COHERENCE_RADII:-4,8,16}"
+        )
+    fi
     set +e
     "$GODOT_BIN" --headless --path "$ROOT" --scene "$SCENE" -- \
         --render-test \
@@ -153,6 +166,7 @@ run_cell() {
         "--enable-domain-telemetry=$telemetry" \
         "--enable-domain-aware-first-hit-resolver=$resolver" \
         "--enable-step-convergence-telemetry=$step_conv" \
+        "${coherence_args[@]}" \
         > "$cell_dir/run.log" 2>&1
     local exit_code=$?
     set -e
@@ -171,6 +185,9 @@ run_cell() {
 
     echo "$exit_code" > "$cell_dir/status.txt"
     echo "$effective" > "$cell_dir/effective_status.txt"
+    if [[ "$mode" == "coherence_basin_on" ]]; then
+        "$PYTHON" "$ROOT/tools/reference_probe_analyzer.py" "$cell_dir" >> "$cell_dir/run.log" 2>&1 || true
+    fi
     write_metadata "$cell_dir" "$phase" "$step_len" "$mode" "$stride" "$exit_code" "$effective" "$notes"
     echo "[scheduler-doe] status phase=$phase sl=$step_len mode=$mode stride=$stride exit=$exit_code effective=$effective notes=$notes"
     refresh_summary
@@ -192,7 +209,13 @@ fi
 
 for sl in "${STEP_LENGTHS[@]}"; do
     for stride in "${STRIDES[@]}"; do
-        run_cell "A_off_stride" "$sl" "off" "$stride"
+        smoke_mode="off"
+        smoke_phase="A_off_stride"
+        if [[ "$SMOKE_ONE_CELL" == "1" && "$ENABLE_COHERENCE_BASIN" == "1" ]]; then
+            smoke_mode="coherence_basin_on"
+            smoke_phase="C_coherence_basin_if_time"
+        fi
+        run_cell "$smoke_phase" "$sl" "$smoke_mode" "$stride"
         should_stop_before_next_cell && { refresh_summary; echo "[scheduler-doe] complete output=$OUTPUT_DIR"; exit 0; }
         [[ "$SMOKE_ONE_CELL" == "1" ]] && { refresh_summary; echo "[scheduler-doe] complete output=$OUTPUT_DIR"; exit 0; }
     done
@@ -204,6 +227,16 @@ for sl in "${TELEMETRY_STEPS[@]}"; do
         should_stop_before_next_cell && { refresh_summary; echo "[scheduler-doe] complete output=$OUTPUT_DIR"; exit 0; }
     done
 done
+
+if [[ "$ENABLE_COHERENCE_BASIN" == "1" ]]; then
+    COHERENCE_STEPS=("0.015" "0.0125" "0.00625")
+    for sl in "${COHERENCE_STEPS[@]}"; do
+        for stride in "${STRIDES[@]}"; do
+            run_cell "C_coherence_basin_if_time" "$sl" "coherence_basin_on" "$stride"
+            should_stop_before_next_cell && { refresh_summary; echo "[scheduler-doe] complete output=$OUTPUT_DIR"; exit 0; }
+        done
+    done
+fi
 
 refresh_summary
 echo "[scheduler-doe] complete output=$OUTPUT_DIR"

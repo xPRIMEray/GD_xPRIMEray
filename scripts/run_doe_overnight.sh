@@ -37,6 +37,7 @@ FILM_H="${RES#*x}"
 FILM_SCALE="${DOE_FILM_SCALE:-1.0}"
 DEFAULT_STRIDE="${DOE_STRIDE:-2}"
 SMOKE_ONE_CELL="${DOE_SMOKE_ONE_CELL:-0}"
+ENABLE_COHERENCE_BASIN="${DOE_ENABLE_COHERENCE_BASIN:-0}"
 
 START_EPOCH="$(date +%s)"
 MAX_SECONDS="$(awk -v h="$MAX_HOURS" 'BEGIN { printf "%d", h * 3600 }')"
@@ -128,6 +129,7 @@ mode_flags() {
         telemetry_on) echo "1 0 0" ;;
         resolver_on)  echo "1 1 0" ;;
         sconv_on)     echo "1 0 1" ;;
+        coherence_basin_on) echo "0 0 0" ;;
         *) echo "[overnight] unknown mode: $mode" >&2; return 1 ;;
     esac
 }
@@ -164,6 +166,17 @@ run_cell() {
     fi
 
     echo "[overnight] run subset=$subset sl=$step_len mode=$mode stride=${stride:-na} telemetry=$telemetry resolver=$resolver sconv=$step_conv"
+    local coherence_args=()
+    if [[ "$mode" == "coherence_basin_on" ]]; then
+        coherence_args=(
+            "--reference-geodesic-probe=1"
+            "--reference-geodesic-probe-max-anchors=${DOE_COHERENCE_MAX_ANCHORS:-2}"
+            "--reference-geodesic-probe-max-steps=${DOE_COHERENCE_MAX_STEPS:-2048}"
+            "--transport-coherence-basin=1"
+            "--transport-coherence-basin-max-centers=${DOE_COHERENCE_MAX_CENTERS:-8}"
+            "--transport-coherence-basin-radii=${DOE_COHERENCE_RADII:-4,8,16}"
+        )
+    fi
 
     set +e
     "$GODOT_BIN" --headless --path "$ROOT" --scene "$SCENE" -- \
@@ -184,6 +197,7 @@ run_cell() {
         "--enable-domain-aware-first-hit-resolver=$resolver" \
         "--enable-step-convergence-telemetry=$step_conv" \
         "${stride_args[@]}" \
+        "${coherence_args[@]}" \
         > "$cell_dir/run.log" 2>&1
     local exit_code=$?
     set -e
@@ -202,6 +216,9 @@ run_cell() {
 
     echo "$exit_code" > "$cell_dir/status.txt"
     echo "$effective" > "$cell_dir/effective_status.txt"
+    if [[ "$mode" == "coherence_basin_on" ]]; then
+        "$PYTHON" "$ROOT/tools/reference_probe_analyzer.py" "$cell_dir" >> "$cell_dir/run.log" 2>&1 || true
+    fi
     write_metadata "$cell_dir" "$subset" "$step_len" "$mode" "$stride" "$exit_code" "$effective" "$notes"
     echo "[overnight] status subset=$subset sl=$step_len mode=$mode stride=${stride:-na} exit=$exit_code effective=$effective notes=$notes"
     refresh_summary
@@ -255,10 +272,20 @@ run_subset_d() {
     done
 }
 
+run_subset_e() {
+    [[ "$ENABLE_COHERENCE_BASIN" == "1" ]] || return 0
+    local steps=("0.015" "0.0125" "0.00625")
+    for sl in "${steps[@]}"; do
+        run_cell "E" "$sl" "coherence_basin_on" ""
+        should_stop_before_next_cell && return 0
+    done
+}
+
 run_subset_a
 if ! should_stop_before_next_cell && [[ "$SMOKE_ONE_CELL" != "1" ]]; then run_subset_b; fi
 if ! should_stop_before_next_cell && [[ "$SMOKE_ONE_CELL" != "1" ]]; then run_subset_c; fi
 if ! should_stop_before_next_cell && [[ "$SMOKE_ONE_CELL" != "1" ]]; then run_subset_d; fi
+if ! should_stop_before_next_cell && [[ "$SMOKE_ONE_CELL" != "1" ]]; then run_subset_e; fi
 
 refresh_summary
 echo "[overnight] complete output=$OUTPUT_DIR"

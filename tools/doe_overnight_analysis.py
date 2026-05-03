@@ -55,6 +55,19 @@ CSV_COLS = [
     "band_pixels",
     "band_percent",
     "changed_bbox",
+    "basin_count",
+    "stable_basin_count",
+    "unstable_seam_count",
+    "mean_local_coherence_score",
+    "mean_transport_entropy",
+    "max_manifold_fragmentation_count",
+    "scheduler_resonance_seam_count",
+    "minimum_precision_floor",
+    "probe_sample_count",
+    "probe_runtime_ms",
+    "max_centers_used",
+    "centers_skipped_due_to_budget",
+    "rows_written",
     "notes",
 ]
 
@@ -122,6 +135,39 @@ def load_metadata(path: Path) -> dict[str, Any]:
         return {"cell_dir": str(path.parent), "notes": f"metadata_read_error:{exc}"}
 
 
+def attach_coherence_memory(row: dict[str, Any], cell_dir: Path) -> None:
+    memory_path = cell_dir / "scene_transport_memory.json"
+    summary_path = cell_dir / "transport_coherence_basin_summary.json"
+    if not memory_path.exists():
+        return
+    try:
+        data = json.loads(memory_path.read_text())
+    except Exception as exc:
+        row["notes"] = f"{row.get('notes', '')};coherence_memory_error:{exc}"
+        return
+    basins = data.get("stable_basins") or []
+    seams = data.get("unstable_seams") or []
+    summary = {}
+    if summary_path.exists():
+        try:
+            summary = json.loads(summary_path.read_text())
+        except Exception:
+            summary = {}
+    budget = summary.get("probe_budget") or {}
+    row["basin_count"] = int(data.get("basin_count", len(basins)))
+    row["stable_basin_count"] = len(basins)
+    row["unstable_seam_count"] = int(data.get("unstable_seam_count", len(seams)))
+    row["mean_local_coherence_score"] = round(float(np.mean([float(b.get("local_coherence_score", 0.0)) for b in basins])) if basins else 0.0, 6)
+    row["mean_transport_entropy"] = round(float(np.mean([float(b.get("local_transport_entropy", 0.0)) for b in basins])) if basins else 0.0, 6)
+    row["max_manifold_fragmentation_count"] = max([int(s.get("manifold_fragmentation_count", 0)) for s in seams] or [0])
+    row["scheduler_resonance_seam_count"] = sum(1 for s in seams if str(s.get("seam_class")) == "SCHEDULER_RESONANCE_STRIPE")
+    precision_values = [str(item.get("precision_floor", "")) for item in [*basins, *seams] if item.get("precision_floor")]
+    rank = {"0.015": 0, "0.0125": 1, "0.00625": 2, "0.003125": 3, "reference": 3, "none": 4}
+    row["minimum_precision_floor"] = max(precision_values, key=lambda v: rank.get(v, 5)) if precision_values else ""
+    for key in ("probe_sample_count", "probe_runtime_ms", "max_centers_used", "centers_skipped_due_to_budget", "rows_written"):
+        row[key] = budget.get(key, "")
+
+
 def discover_rows(root: Path, sensitivity: float, min_score: float) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for meta_path in sorted(root.glob("subset_*/step_*/*/metadata.json")):
@@ -147,6 +193,7 @@ def discover_rows(root: Path, sensitivity: float, min_score: float) -> list[dict
             row["band_pixels"] = int(band.sum())
             row["band_percent"] = round(100.0 * int(band.sum()) / (img.shape[0] * img.shape[1]), 3)
             row["_beauty_path"] = str(beauty)
+        attach_coherence_memory(row, cell_dir)
         rows.append(row)
     return rows
 

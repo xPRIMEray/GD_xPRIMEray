@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -1410,6 +1411,12 @@ public partial class GrinFilmCamera : Node
 	[Export(PropertyHint.Range, "64,32768,1")] public int ReferenceGeodesicProbeMaxSteps = 2048;
 	/// <summary>When true, include diagonal radial micro-search offsets in the reference probe.</summary>
 	[Export] public bool ReferenceGeodesicProbeIncludeDiagonals = false;
+	/// <summary>Research-only transport coherence basin diagnostics. Exports passive probe facts only; never feeds render scheduling, hit selection, shading, resolver, or step precision.</summary>
+	[Export] public bool EnableTransportCoherenceBasin = false;
+	/// <summary>Comma-separated screen-space radii for passive basin-neighborhood probe samples.</summary>
+	[Export] public string TransportCoherenceBasinRadii = "4,8,16";
+	/// <summary>Maximum passive basin seed centers sampled per diagnostic capture.</summary>
+	[Export(PropertyHint.Range, "0,256,1")] public int TransportCoherenceBasinMaxCenters = 32;
 
 
 	[ExportGroup("Ray March")]
@@ -9843,6 +9850,27 @@ private sealed class OverlayRollingWindow
 				string normalized = refDiagValue.Trim().ToLowerInvariant();
 				ReferenceGeodesicProbeIncludeDiagonals = normalized is "1" or "true" or "on" or "yes";
 			}
+
+			if (TryGetHudArgValue(arg, "--transport-coherence-basin=", out string basinValue))
+			{
+				string normalized = basinValue.Trim().ToLowerInvariant();
+				EnableTransportCoherenceBasin = normalized is "1" or "true" or "on" or "yes";
+				if (EnableTransportCoherenceBasin)
+					EnableReferenceGeodesicProbe = true;
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--transport-coherence-basin-radii=", out string basinRadiiValue)
+				&& !string.IsNullOrWhiteSpace(basinRadiiValue))
+			{
+				TransportCoherenceBasinRadii = basinRadiiValue.Trim();
+			}
+
+			if (TryGetHudArgValue(arg, "--transport-coherence-basin-max-centers=", out string basinMaxCentersValue)
+				&& int.TryParse(basinMaxCentersValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedBasinMaxCenters))
+			{
+				TransportCoherenceBasinMaxCenters = Math.Max(0, parsedBasinMaxCenters);
+			}
 		}
 	}
 
@@ -10085,6 +10113,11 @@ private sealed class OverlayRollingWindow
 		public readonly string NearestAnchorKind;
 		public readonly float NearestCornerDist;
 		public readonly float NearestEdgeDist;
+		public readonly string SamplePhase;
+		public readonly int NeighborhoodCenterX;
+		public readonly int NeighborhoodCenterY;
+		public readonly int NeighborhoodRadius;
+		public readonly string NeighborhoodDirection;
 		public readonly int OffsetX;
 		public readonly int OffsetY;
 		public readonly bool Hit;
@@ -10114,6 +10147,11 @@ private sealed class OverlayRollingWindow
 			string nearestAnchorKind,
 			float nearestCornerDist,
 			float nearestEdgeDist,
+			string samplePhase,
+			int neighborhoodCenterX,
+			int neighborhoodCenterY,
+			int neighborhoodRadius,
+			string neighborhoodDirection,
 			int offsetX,
 			int offsetY,
 			bool hit,
@@ -10142,6 +10180,11 @@ private sealed class OverlayRollingWindow
 			NearestAnchorKind = nearestAnchorKind ?? "";
 			NearestCornerDist = nearestCornerDist;
 			NearestEdgeDist = nearestEdgeDist;
+			SamplePhase = samplePhase ?? "anchor_probe";
+			NeighborhoodCenterX = neighborhoodCenterX;
+			NeighborhoodCenterY = neighborhoodCenterY;
+			NeighborhoodRadius = neighborhoodRadius;
+			NeighborhoodDirection = neighborhoodDirection ?? "center";
 			OffsetX = offsetX;
 			OffsetY = offsetY;
 			Hit = hit;
@@ -10166,8 +10209,43 @@ private sealed class OverlayRollingWindow
 		public readonly List<Vector2I> EdgeMidpoints = new();
 	}
 
+	private readonly struct ReferenceProbeOffsetInfo
+	{
+		public readonly Vector2I Offset;
+		public readonly int Radius;
+		public readonly string Direction;
+
+		public ReferenceProbeOffsetInfo(Vector2I offset, int radius, string direction)
+		{
+			Offset = offset;
+			Radius = radius;
+			Direction = direction ?? "center";
+		}
+	}
+
+	private readonly struct ReferenceProbeBudgetMetrics
+	{
+		public readonly int ProbeSampleCount;
+		public readonly long ProbeRuntimeMs;
+		public readonly int MaxCentersUsed;
+		public readonly int CentersSkippedDueToBudget;
+		public readonly int RowsWritten;
+
+		public ReferenceProbeBudgetMetrics(int probeSampleCount, long probeRuntimeMs, int maxCentersUsed, int centersSkippedDueToBudget, int rowsWritten)
+		{
+			ProbeSampleCount = probeSampleCount;
+			ProbeRuntimeMs = probeRuntimeMs;
+			MaxCentersUsed = maxCentersUsed;
+			CentersSkippedDueToBudget = centersSkippedDueToBudget;
+			RowsWritten = rowsWritten;
+		}
+	}
+
 	public bool TryWriteReferenceGeodesicProbeDiagnostics(string outputDir, string captureStem, string fixtureName, out string jsonPath, out string csvPath)
 	{
+		// Transport coherence basin data is diagnostic-only. Nothing written here is
+		// consumed by render scheduling, hit selection, shading, resolver, or precision stepping.
+		Stopwatch probeStopwatch = Stopwatch.StartNew();
 		jsonPath = string.Empty;
 		csvPath = string.Empty;
 		if (!EnableReferenceGeodesicProbe || string.IsNullOrWhiteSpace(outputDir))
@@ -10213,6 +10291,11 @@ private sealed class OverlayRollingWindow
 		float referenceStep = stepLengths[^1];
 		int tileWidth = Math.Max(1, TileMetricsSubtileWidth);
 		var rows = new List<ReferenceProbeSample>(anchors.Count * 48 * stepLengths.Length);
+		var anchorById = new Dictionary<string, TransportAnchor>(StringComparer.Ordinal);
+		foreach (TransportAnchor anchor in anchors)
+			anchorById[anchor.AnchorId] = anchor;
+		int maxCentersUsed = 0;
+		int centersSkippedDueToBudget = 0;
 
 		int savedStepsPerRay = _rbr.StepsPerRay;
 		float savedStepLength = _rbr.StepLength;
@@ -10247,6 +10330,10 @@ private sealed class OverlayRollingWindow
 							referenceStep,
 							probePixel,
 							geom,
+							"anchor_probe",
+							anchorPixel,
+							ReferenceProbeOffsetRadius(offset),
+							ClassifyReferenceProbeOffset(offset),
 							offset,
 							tileWidth,
 							center,
@@ -10281,6 +10368,11 @@ private sealed class OverlayRollingWindow
 							sample.NearestAnchorKind,
 							sample.NearestCornerDist,
 							sample.NearestEdgeDist,
+							sample.SamplePhase,
+							sample.NeighborhoodCenterX,
+							sample.NeighborhoodCenterY,
+							sample.NeighborhoodRadius,
+							sample.NeighborhoodDirection,
 							sample.OffsetX,
 							sample.OffsetY,
 							sample.Hit,
@@ -10297,6 +10389,100 @@ private sealed class OverlayRollingWindow
 					}
 				}
 			}
+
+			if (EnableTransportCoherenceBasin && TransportCoherenceBasinMaxCenters > 0)
+			{
+				List<ReferenceProbeSample> centers = SelectTransportCoherenceBasinCenters(rows, TransportCoherenceBasinMaxCenters, ObjectSeededRiskEpsilon, out centersSkippedDueToBudget);
+				maxCentersUsed = centers.Count;
+				int[] basinRadii = ParseTransportCoherenceBasinRadii(TransportCoherenceBasinRadii);
+				foreach (ReferenceProbeSample centerSample in centers)
+				{
+					if (!anchorById.TryGetValue(centerSample.AnchorId, out TransportAnchor anchor))
+						continue;
+					objectGeometry.TryGetValue(anchor.StableObjectId, out ReferenceProbeObjectGeometry geom);
+					Vector2I centerPixel = new(centerSample.ProjectedX, centerSample.ProjectedY);
+					ReferenceProbeOffsetInfo[] offsets = BuildTransportCoherenceBasinOffsets(centerPixel, geom?.CentroidPixel ?? new Vector2I(-1, -1), basinRadii);
+
+					foreach (ReferenceProbeOffsetInfo offsetInfo in offsets)
+					{
+						Vector2I probePixel = new(centerPixel.X + offsetInfo.Offset.X, centerPixel.Y + offsetInfo.Offset.Y);
+						if (probePixel.X < 0 || probePixel.Y < 0 || probePixel.X >= _filmWidth || probePixel.Y >= _filmHeight)
+							continue;
+
+						var raw = new List<ReferenceProbeSample>(stepLengths.Length);
+						ReferenceProbeSample reference = default;
+						for (int si = 0; si < stepLengths.Length; si++)
+						{
+							float step = stepLengths[si];
+							ReferenceProbeSample sample = RunReferenceProbeSample(
+								space,
+								renderSpaceSource,
+								fixtureName,
+								anchor,
+								step,
+								referenceStep,
+								probePixel,
+								geom,
+								"basin_neighborhood",
+								centerPixel,
+								offsetInfo.Radius,
+								offsetInfo.Direction,
+								offsetInfo.Offset,
+								tileWidth,
+								center,
+								beta,
+								gamma,
+								bendDir,
+								fieldSnaps,
+								hasSources,
+								pxPerRad,
+								in cfg);
+							raw.Add(sample);
+							if (Math.Abs(step - referenceStep) <= 1e-8f)
+								reference = sample;
+						}
+
+						string requiredPrecision = ResolveRequiredReferencePrecisionLabel(raw, reference, ObjectSeededRiskEpsilon);
+						foreach (ReferenceProbeSample sample in raw)
+						{
+							double risk = ComputeReferenceDecisionRisk(sample, reference);
+							rows.Add(new ReferenceProbeSample(
+								sample.AnchorId,
+								sample.ObjectId,
+								sample.StepLength,
+								sample.ReferenceStepLength,
+								sample.ProjectedX,
+								sample.ProjectedY,
+								sample.ProjectedTile,
+								sample.ObjectCentroidProjectedX,
+								sample.ObjectCentroidProjectedY,
+								sample.RadialDistFromObjectCentroid,
+								sample.RadialAngleFromObjectCentroid,
+								sample.NearestAnchorKind,
+								sample.NearestCornerDist,
+								sample.NearestEdgeDist,
+								sample.SamplePhase,
+								sample.NeighborhoodCenterX,
+								sample.NeighborhoodCenterY,
+								sample.NeighborhoodRadius,
+								sample.NeighborhoodDirection,
+								sample.OffsetX,
+								sample.OffsetY,
+								sample.Hit,
+								sample.ColliderId,
+								sample.DomainId,
+								sample.BoundaryEvents,
+								sample.PortalEvents,
+								sample.HitDistance,
+								sample.Normal,
+								sample.PathLength,
+								risk,
+								risk <= ObjectSeededRiskEpsilon,
+								requiredPrecision));
+						}
+					}
+				}
+			}
 		}
 		finally
 		{
@@ -10310,12 +10496,14 @@ private sealed class OverlayRollingWindow
 			return false;
 
 		Directory.CreateDirectory(outputDir);
+		probeStopwatch.Stop();
+		var budget = new ReferenceProbeBudgetMetrics(rows.Count, probeStopwatch.ElapsedMilliseconds, maxCentersUsed, centersSkippedDueToBudget, rows.Count);
 		string safeStem = string.IsNullOrWhiteSpace(captureStem) ? "capture" : captureStem.Trim();
 		csvPath = Path.Combine(outputDir, safeStem + ".reference_geodesic_probe.csv");
 		jsonPath = Path.Combine(outputDir, safeStem + ".reference_geodesic_probe.json");
 		File.WriteAllText(csvPath, BuildReferenceProbeCsv(rows));
-		File.WriteAllText(jsonPath, BuildReferenceProbeJson(rows, fixtureName, fingerprint.VersionStamp, referenceStep));
-		GD.Print($"[ReferenceGeodesicProbe] written rows={rows.Count} csv={csvPath} json={jsonPath}");
+		File.WriteAllText(jsonPath, BuildReferenceProbeJson(rows, fixtureName, fingerprint.VersionStamp, referenceStep, budget));
+		GD.Print($"[ReferenceGeodesicProbe] written rows={rows.Count} basin={EnableTransportCoherenceBasin} runtime_ms={budget.ProbeRuntimeMs} csv={csvPath} json={jsonPath}");
 		return true;
 	}
 
@@ -10328,6 +10516,10 @@ private sealed class OverlayRollingWindow
 		float referenceStep,
 		Vector2I filmPixel,
 		ReferenceProbeObjectGeometry geom,
+		string samplePhase,
+		Vector2I neighborhoodCenter,
+		int neighborhoodRadius,
+		string neighborhoodDirection,
 		Vector2I offset,
 		int tileWidth,
 		Vector3 center,
@@ -10461,6 +10653,11 @@ private sealed class OverlayRollingWindow
 			nearestAnchorKind,
 			float.IsFinite(nearestCornerDist) ? nearestCornerDist : -1f,
 			float.IsFinite(nearestEdgeDist) ? nearestEdgeDist : -1f,
+			samplePhase,
+			neighborhoodCenter.X,
+			neighborhoodCenter.Y,
+			neighborhoodRadius,
+			neighborhoodDirection,
 			offset.X,
 			offset.Y,
 			hitInfo.Found,
@@ -10599,6 +10796,117 @@ private sealed class OverlayRollingWindow
 		return offsets.ToArray();
 	}
 
+	private static ReferenceProbeOffsetInfo[] BuildTransportCoherenceBasinOffsets(Vector2I centerPixel, Vector2I centroidPixel, int[] radii)
+	{
+		var offsets = new List<ReferenceProbeOffsetInfo>
+		{
+			new ReferenceProbeOffsetInfo(new Vector2I(0, 0), 0, "center")
+		};
+		var seen = new HashSet<(int X, int Y)> { (0, 0) };
+		void AddOffset(int x, int y, int radius, string direction)
+		{
+			if (seen.Add((x, y)))
+				offsets.Add(new ReferenceProbeOffsetInfo(new Vector2I(x, y), radius, direction));
+		}
+
+		Vector2 radial = Vector2.Zero;
+		if (centroidPixel.X >= 0 && centroidPixel.Y >= 0)
+		{
+			radial = new Vector2(centerPixel.X - centroidPixel.X, centerPixel.Y - centroidPixel.Y);
+			if (radial.LengthSquared() > 1e-6f)
+				radial = radial.Normalized();
+		}
+		Vector2 tangent = radial == Vector2.Zero ? Vector2.Zero : new Vector2(-radial.Y, radial.X);
+
+		foreach (int rawRadius in radii)
+		{
+			int r = Math.Max(1, rawRadius);
+			AddOffset(r, 0, r, "cardinal_east");
+			AddOffset(-r, 0, r, "cardinal_west");
+			AddOffset(0, r, r, "cardinal_south");
+			AddOffset(0, -r, r, "cardinal_north");
+			AddOffset(r, r, r, "diagonal_southeast");
+			AddOffset(r, -r, r, "diagonal_northeast");
+			AddOffset(-r, r, r, "diagonal_southwest");
+			AddOffset(-r, -r, r, "diagonal_northwest");
+			if (radial != Vector2.Zero)
+			{
+				int rx = Mathf.RoundToInt(radial.X * r);
+				int ry = Mathf.RoundToInt(radial.Y * r);
+				if (rx != 0 || ry != 0)
+				{
+					AddOffset(rx, ry, r, "radial_outward");
+					AddOffset(-rx, -ry, r, "radial_inward");
+				}
+				int tx = Mathf.RoundToInt(tangent.X * r);
+				int ty = Mathf.RoundToInt(tangent.Y * r);
+				if (tx != 0 || ty != 0)
+				{
+					AddOffset(tx, ty, r, "tangent_cw");
+					AddOffset(-tx, -ty, r, "tangent_ccw");
+				}
+			}
+		}
+		return offsets.ToArray();
+	}
+
+	private static int ReferenceProbeOffsetRadius(Vector2I offset)
+	{
+		return Mathf.RoundToInt(Mathf.Sqrt(offset.X * offset.X + offset.Y * offset.Y));
+	}
+
+	private static string ClassifyReferenceProbeOffset(Vector2I offset)
+	{
+		if (offset.X == 0 && offset.Y == 0)
+			return "center";
+		if (offset.X == 0)
+			return offset.Y > 0 ? "cardinal_south" : "cardinal_north";
+		if (offset.Y == 0)
+			return offset.X > 0 ? "cardinal_east" : "cardinal_west";
+		if (offset.X > 0 && offset.Y > 0)
+			return "diagonal_southeast";
+		if (offset.X > 0 && offset.Y < 0)
+			return "diagonal_northeast";
+		if (offset.X < 0 && offset.Y > 0)
+			return "diagonal_southwest";
+		return "diagonal_northwest";
+	}
+
+	private static int[] ParseTransportCoherenceBasinRadii(string raw)
+	{
+		var radii = new List<int>();
+		foreach (string part in (raw ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+		{
+			if (int.TryParse(part, NumberStyles.Integer, CultureInfo.InvariantCulture, out int r) && r > 0)
+				radii.Add(Math.Min(128, r));
+		}
+		return radii.Count > 0 ? radii.ToArray() : new[] { 4, 8, 16 };
+	}
+
+	private static List<ReferenceProbeSample> SelectTransportCoherenceBasinCenters(List<ReferenceProbeSample> rows, int maxCenters, double epsilon, out int skippedDueToBudget)
+	{
+		var bestByPixel = new Dictionary<(string AnchorId, int X, int Y), ReferenceProbeSample>();
+		foreach (ReferenceProbeSample row in rows)
+		{
+			if (row.SamplePhase != "anchor_probe")
+				continue;
+			bool candidate = row.DecisionRisk > epsilon || !row.MatchedReference || (Math.Abs(row.StepLength - 0.00625f) <= 1e-8f && row.DecisionRisk > epsilon);
+			if (!candidate)
+				continue;
+			var key = (row.AnchorId, row.ProjectedX, row.ProjectedY);
+			if (!bestByPixel.TryGetValue(key, out ReferenceProbeSample prior) || row.DecisionRisk > prior.DecisionRisk)
+				bestByPixel[key] = row;
+		}
+
+		List<ReferenceProbeSample> candidates = bestByPixel.Values.ToList();
+		candidates.Sort((a, b) => b.DecisionRisk.CompareTo(a.DecisionRisk));
+		int take = Math.Min(Math.Max(0, maxCenters), candidates.Count);
+		skippedDueToBudget = Math.Max(0, candidates.Count - take);
+		if (take < candidates.Count)
+			candidates.RemoveRange(take, candidates.Count - take);
+		return candidates;
+	}
+
 	private static float FilmPixelDistance(Vector2I a, Vector2I b)
 	{
 		float dx = a.X - b.X;
@@ -10675,7 +10983,7 @@ private sealed class OverlayRollingWindow
 	private static string BuildReferenceProbeCsv(List<ReferenceProbeSample> rows)
 	{
 		var sb = new StringBuilder(rows.Count * 160);
-		sb.AppendLine("anchor_id,object_id,step_length,reference_step_length,projected_x,projected_y,projected_tile,object_centroid_projected_x,object_centroid_projected_y,radial_dist_from_object_centroid,radial_angle_from_object_centroid,nearest_anchor_kind,nearest_corner_dist,nearest_edge_dist,radial_offset_x,radial_offset_y,hit,collider_id,domain_id,boundary_events,portal_events,hit_distance,path_length,decision_risk,matched_reference_decision,required_precision_label");
+		sb.AppendLine("anchor_id,object_id,step_length,reference_step_length,projected_x,projected_y,projected_tile,object_centroid_projected_x,object_centroid_projected_y,radial_dist_from_object_centroid,radial_angle_from_object_centroid,nearest_anchor_kind,nearest_corner_dist,nearest_edge_dist,sample_phase,neighborhood_center_x,neighborhood_center_y,neighborhood_radius,neighborhood_direction,radial_offset_x,radial_offset_y,hit,collider_id,domain_id,boundary_events,portal_events,hit_distance,path_length,normal_x,normal_y,normal_z,decision_risk,matched_reference_decision,required_precision_label");
 		foreach (ReferenceProbeSample row in rows)
 		{
 			sb.Append(JsonEscapeForArtifact(row.AnchorId)).Append(',')
@@ -10692,6 +11000,11 @@ private sealed class OverlayRollingWindow
 				.Append(JsonEscapeForArtifact(row.NearestAnchorKind)).Append(',')
 				.Append(FormatJsonFloatForArtifact(row.NearestCornerDist)).Append(',')
 				.Append(FormatJsonFloatForArtifact(row.NearestEdgeDist)).Append(',')
+				.Append(JsonEscapeForArtifact(row.SamplePhase)).Append(',')
+				.Append(row.NeighborhoodCenterX).Append(',')
+				.Append(row.NeighborhoodCenterY).Append(',')
+				.Append(row.NeighborhoodRadius).Append(',')
+				.Append(JsonEscapeForArtifact(row.NeighborhoodDirection)).Append(',')
 				.Append(row.OffsetX).Append(',')
 				.Append(row.OffsetY).Append(',')
 				.Append(row.Hit ? "1" : "0").Append(',')
@@ -10701,6 +11014,9 @@ private sealed class OverlayRollingWindow
 				.Append(row.PortalEvents).Append(',')
 				.Append(FormatJsonFloatForArtifact(row.HitDistance)).Append(',')
 				.Append(FormatJsonFloatForArtifact(row.PathLength)).Append(',')
+				.Append(FormatJsonFloatForArtifact(row.Normal.X)).Append(',')
+				.Append(FormatJsonFloatForArtifact(row.Normal.Y)).Append(',')
+				.Append(FormatJsonFloatForArtifact(row.Normal.Z)).Append(',')
 				.Append(FormatJsonFloatForArtifact((float)row.DecisionRisk)).Append(',')
 				.Append(row.MatchedReference ? "1" : "0").Append(',')
 				.Append(JsonEscapeForArtifact(row.RequiredPrecisionLabel))
@@ -10709,15 +11025,23 @@ private sealed class OverlayRollingWindow
 		return sb.ToString();
 	}
 
-	private static string BuildReferenceProbeJson(List<ReferenceProbeSample> rows, string fixtureName, string fingerprintVersion, float referenceStep)
+	private static string BuildReferenceProbeJson(List<ReferenceProbeSample> rows, string fixtureName, string fingerprintVersion, float referenceStep, ReferenceProbeBudgetMetrics budget)
 	{
 		var sb = new StringBuilder(rows.Count * 180);
 		sb.Append("{");
 		sb.Append("\"fixture\":\"").Append(JsonEscapeForArtifact(fixtureName)).Append("\",");
 		sb.Append("\"scene_fingerprint\":\"").Append(JsonEscapeForArtifact(fingerprintVersion)).Append("\",");
 		sb.Append("\"reference_step_length\":").Append(FormatJsonFloatForArtifact(referenceStep)).Append(",");
+		sb.Append("\"transport_coherence_basin_enabled\":").Append(rows.Any(r => r.SamplePhase == "basin_neighborhood") ? "true" : "false").Append(",");
+		sb.Append("\"probe_budget\":{");
+		sb.Append("\"probe_sample_count\":").Append(budget.ProbeSampleCount).Append(",");
+		sb.Append("\"probe_runtime_ms\":").Append(budget.ProbeRuntimeMs).Append(",");
+		sb.Append("\"max_centers_used\":").Append(budget.MaxCentersUsed).Append(",");
+		sb.Append("\"centers_skipped_due_to_budget\":").Append(budget.CentersSkippedDueToBudget).Append(",");
+		sb.Append("\"rows_written\":").Append(budget.RowsWritten);
+		sb.Append("},");
 		sb.Append("\"row_count\":").Append(rows.Count).Append(",");
-		sb.Append("\"schema\":[\"anchor_id\",\"object_id\",\"step_length\",\"reference_step_length\",\"projected_pixel\",\"projected_tile\",\"object_centroid_projected_pixel\",\"radial_dist_from_object_centroid\",\"radial_angle_from_object_centroid\",\"nearest_anchor_kind\",\"nearest_corner_dist\",\"nearest_edge_dist\",\"radial_offset\",\"decision_risk\",\"matched_reference_decision\",\"required_precision_label\"],");
+		sb.Append("\"schema\":[\"anchor_id\",\"object_id\",\"step_length\",\"reference_step_length\",\"projected_pixel\",\"projected_tile\",\"object_centroid_projected_pixel\",\"radial_dist_from_object_centroid\",\"radial_angle_from_object_centroid\",\"nearest_anchor_kind\",\"nearest_corner_dist\",\"nearest_edge_dist\",\"sample_phase\",\"neighborhood_center\",\"neighborhood_radius\",\"neighborhood_direction\",\"radial_offset\",\"hit\",\"collider_id\",\"domain_id\",\"boundary_events\",\"portal_events\",\"hit_distance\",\"path_length\",\"normal\",\"decision_risk\",\"matched_reference_decision\",\"required_precision_label\"],");
 		sb.Append("\"rows\":[");
 		for (int i = 0; i < rows.Count; i++)
 		{
@@ -10738,8 +11062,23 @@ private sealed class OverlayRollingWindow
 			sb.Append("\"nearest_anchor_kind\":\"").Append(JsonEscapeForArtifact(row.NearestAnchorKind)).Append("\",");
 			sb.Append("\"nearest_corner_dist\":").Append(FormatJsonFloatForArtifact(row.NearestCornerDist)).Append(",");
 			sb.Append("\"nearest_edge_dist\":").Append(FormatJsonFloatForArtifact(row.NearestEdgeDist)).Append(",");
+			sb.Append("\"sample_phase\":\"").Append(JsonEscapeForArtifact(row.SamplePhase)).Append("\",");
+			sb.Append("\"neighborhood_center_x\":").Append(row.NeighborhoodCenterX).Append(",");
+			sb.Append("\"neighborhood_center_y\":").Append(row.NeighborhoodCenterY).Append(",");
+			sb.Append("\"neighborhood_radius\":").Append(row.NeighborhoodRadius).Append(",");
+			sb.Append("\"neighborhood_direction\":\"").Append(JsonEscapeForArtifact(row.NeighborhoodDirection)).Append("\",");
 			sb.Append("\"radial_offset_x\":").Append(row.OffsetX).Append(",");
 			sb.Append("\"radial_offset_y\":").Append(row.OffsetY).Append(",");
+			sb.Append("\"hit\":").Append(row.Hit ? "true" : "false").Append(",");
+			sb.Append("\"collider_id\":").Append(row.ColliderId).Append(",");
+			sb.Append("\"domain_id\":").Append(row.DomainId).Append(",");
+			sb.Append("\"boundary_events\":").Append(row.BoundaryEvents).Append(",");
+			sb.Append("\"portal_events\":").Append(row.PortalEvents).Append(",");
+			sb.Append("\"hit_distance\":").Append(FormatJsonFloatForArtifact(row.HitDistance)).Append(",");
+			sb.Append("\"path_length\":").Append(FormatJsonFloatForArtifact(row.PathLength)).Append(",");
+			sb.Append("\"normal_x\":").Append(FormatJsonFloatForArtifact(row.Normal.X)).Append(",");
+			sb.Append("\"normal_y\":").Append(FormatJsonFloatForArtifact(row.Normal.Y)).Append(",");
+			sb.Append("\"normal_z\":").Append(FormatJsonFloatForArtifact(row.Normal.Z)).Append(",");
 			sb.Append("\"decision_risk\":").Append(FormatJsonFloatForArtifact((float)row.DecisionRisk)).Append(",");
 			sb.Append("\"matched_reference_decision\":").Append(row.MatchedReference ? "true" : "false").Append(",");
 			sb.Append("\"required_precision_label\":\"").Append(JsonEscapeForArtifact(row.RequiredPrecisionLabel)).Append("\"");

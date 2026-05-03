@@ -1,0 +1,21 @@
+{
+  "basin_count": 8,
+  "diagnostic_only_guardrail": "Analysis only. SceneTransportMemory must not feed render scheduling, hit selection, shading, resolver decisions, or adaptive precision yet.",
+  "input_files": [
+    "output/transport_coherence_basin_smoke/20260503T001944Z/domain_resolver_stress__transport_coherence_basin_smoke__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1.reference_geodesic_probe.csv"
+  ],
+  "input_hash": "aa81e90cd079b59eef14ec4738b478068ad417ce357e4f745dd0a374150f5e85",
+  "max_manifold_fragmentation_count": 0,
+  "mean_local_coherence_score": 0.9999988762933888,
+  "mean_transport_entropy": 0.0,
+  "probe_budget": {
+    "budget_metadata_found": true,
+    "centers_skipped_due_to_budget": 33,
+    "max_centers_used": 8,
+    "probe_runtime_ms": 3988,
+    "probe_sample_count": 1156,
+    "rows_written": 1156
+  },
+  "scheduler_resonance_seam_count": 0,
+  "unstable_seam_count": 0
+}
