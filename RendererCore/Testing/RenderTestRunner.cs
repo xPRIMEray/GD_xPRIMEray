@@ -133,6 +133,7 @@ public partial class RenderTestRunner : Node
 	private const string DiagnosticWireframeTransportCmdArgPrefix = "--diagnostic-wireframe-transport=";
 	private const string DiagnosticWireframeRiskCmdArgPrefix = "--diagnostic-wireframe-risk=";
 	private const string DiagnosticWireframeSpacetimeCmdArgPrefix = "--diagnostic-wireframe-spacetime=";
+	private const string DiagnosticWireframeContinuityCmdArgPrefix = "--diagnostic-wireframe-continuity=";
 	private const string DiagnosticWireframeLabelsCmdArgPrefix = "--diagnostic-wireframe-labels=";
 	private const string DiagnosticWireframeManualRoisCmdArgPrefix = "--diagnostic-wireframe-manual-rois=";
 	private const int RenderTestMinFramesPerRun = 90;
@@ -245,6 +246,7 @@ public partial class RenderTestRunner : Node
 	private bool _diagnosticWireframeTransportEnabled = false;
 	private bool _diagnosticWireframeRiskEnabled = false;
 	private bool _diagnosticWireframeSpacetimeEnabled = false;
+	private bool _diagnosticWireframeContinuityEnabled = false;
 	private bool _diagnosticWireframeLabelsEnabled = false;
 	private string _diagnosticWireframeManualRois = "40,35;280,35;40,145;280,145";
 	private bool _startupDependencyErrorLogged = false;
@@ -3063,6 +3065,7 @@ public partial class RenderTestRunner : Node
 				_diagnosticWireframeTransportEnabled,
 				_diagnosticWireframeRiskEnabled,
 				_diagnosticWireframeSpacetimeEnabled,
+				_diagnosticWireframeContinuityEnabled,
 				_diagnosticWireframeLabelsEnabled,
 				out string primitivePath,
 				out string hitCsvPath))
@@ -3223,6 +3226,7 @@ public partial class RenderTestRunner : Node
 		if (_diagnosticWireframeTransportEnabled) layers.Add("transport");
 		if (_diagnosticWireframeRiskEnabled) layers.Add("risk");
 		if (_diagnosticWireframeSpacetimeEnabled) layers.Add("spacetime");
+		if (_diagnosticWireframeContinuityEnabled) layers.Add("continuity");
 		if (_diagnosticWireframeLabelsEnabled) layers.Add("labels");
 		return layers.Count > 0 ? string.Join("+", layers) : "none";
 	}
@@ -4194,6 +4198,7 @@ public partial class RenderTestRunner : Node
 		_diagnosticWireframeTransportEnabled = false;
 		_diagnosticWireframeRiskEnabled = false;
 		_diagnosticWireframeSpacetimeEnabled = false;
+		_diagnosticWireframeContinuityEnabled = false;
 		_diagnosticWireframeLabelsEnabled = false;
 		_diagnosticWireframeManualRois = "40,35;280,35;40,145;280,145";
 		if (TryGetBoolCmdArgValue(RenderTestCaptureCmdArgPrefix, out bool renderTestCaptureEnabled))
@@ -4426,19 +4431,22 @@ public partial class RenderTestRunner : Node
 		bool transportKnown = TryGetBoolCmdArgValue(DiagnosticWireframeTransportCmdArgPrefix, out bool transportEnabled);
 		bool riskKnown = TryGetBoolCmdArgValue(DiagnosticWireframeRiskCmdArgPrefix, out bool riskEnabled);
 		bool spacetimeKnown = TryGetBoolCmdArgValue(DiagnosticWireframeSpacetimeCmdArgPrefix, out bool spacetimeEnabled);
+		bool continuityKnown = TryGetBoolCmdArgValue(DiagnosticWireframeContinuityCmdArgPrefix, out bool continuityEnabled);
 		bool labelsKnown = TryGetBoolCmdArgValue(DiagnosticWireframeLabelsCmdArgPrefix, out bool labelsEnabled);
 		_diagnosticWireframeOverlayEnabled =
 			(overlayKnown && overlayEnabled) ||
 			(cartesianKnown && cartesianEnabled) ||
 			(transportKnown && transportEnabled) ||
 			(riskKnown && riskEnabled) ||
-			(spacetimeKnown && spacetimeEnabled);
+			(spacetimeKnown && spacetimeEnabled) ||
+			(continuityKnown && continuityEnabled);
 		if (_diagnosticWireframeOverlayEnabled)
 		{
 			_diagnosticWireframeCartesianEnabled = cartesianKnown ? cartesianEnabled : overlayEnabled;
 			_diagnosticWireframeTransportEnabled = transportKnown ? transportEnabled : overlayEnabled;
 			_diagnosticWireframeRiskEnabled = riskKnown ? riskEnabled : overlayEnabled;
 			_diagnosticWireframeSpacetimeEnabled = spacetimeKnown && spacetimeEnabled;
+			_diagnosticWireframeContinuityEnabled = continuityKnown ? continuityEnabled : false;
 			_diagnosticWireframeLabelsEnabled = labelsKnown ? labelsEnabled : overlayEnabled;
 		}
 		if (TryGetStringCmdArgValue(DiagnosticWireframeManualRoisCmdArgPrefix, out string diagnosticWireframeManualRois) &&

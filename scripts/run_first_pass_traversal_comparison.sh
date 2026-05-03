@@ -39,6 +39,7 @@ DIAGNOSTIC_WIREFRAME_CARTESIAN="${DIAGNOSTIC_WIREFRAME_CARTESIAN:-$DIAGNOSTIC_WI
 DIAGNOSTIC_WIREFRAME_TRANSPORT="${DIAGNOSTIC_WIREFRAME_TRANSPORT:-$DIAGNOSTIC_WIREFRAME_OVERLAY}"
 DIAGNOSTIC_WIREFRAME_RISK="${DIAGNOSTIC_WIREFRAME_RISK:-$DIAGNOSTIC_WIREFRAME_OVERLAY}"
 DIAGNOSTIC_WIREFRAME_SPACETIME="${DIAGNOSTIC_WIREFRAME_SPACETIME:-0}"
+DIAGNOSTIC_WIREFRAME_CONTINUITY="${DIAGNOSTIC_WIREFRAME_CONTINUITY:-0}"
 DIAGNOSTIC_WIREFRAME_LABELS="${DIAGNOSTIC_WIREFRAME_LABELS:-$DIAGNOSTIC_WIREFRAME_OVERLAY}"
 DIAGNOSTIC_WIREFRAME_MANUAL_ROIS="${DIAGNOSTIC_WIREFRAME_MANUAL_ROIS:-40,35;280,35;40,145;280,145}"
 
@@ -68,7 +69,7 @@ echo "[traversal] output=$OUTPUT_DIR"
 echo "[traversal] frames=$FRAMES warmup=$WARMUP res=${FILM_W}x${FILM_H} stride=$PIXEL_STRIDE"
 echo "[traversal] steps=$STEPS_RAW modes=$MODES_RAW"
 echo "[traversal] corner_rois=$CORNER_ROIS corner_steps=$CORNER_STEPS max_rois=$CORNER_MAX_ROIS"
-echo "[traversal] diagnostic_wireframe_overlay=$DIAGNOSTIC_WIREFRAME_OVERLAY rois=$DIAGNOSTIC_WIREFRAME_MANUAL_ROIS"
+echo "[traversal] diagnostic_wireframe_overlay=$DIAGNOSTIC_WIREFRAME_OVERLAY continuity=$DIAGNOSTIC_WIREFRAME_CONTINUITY rois=$DIAGNOSTIC_WIREFRAME_MANUAL_ROIS"
 
 refresh_summary() {
 	"$PYTHON" "$ROOT/tools/first_pass_traversal_analysis.py" "$OUTPUT_DIR" || true
@@ -96,6 +97,7 @@ write_metadata() {
   "traversal": "$traversal",
   "mode": "off",
   "diagnostic_wireframe_overlay": $DIAGNOSTIC_WIREFRAME_OVERLAY,
+  "diagnostic_wireframe_continuity": $DIAGNOSTIC_WIREFRAME_CONTINUITY,
   "diagnostic_wireframe_manual_rois": "$DIAGNOSTIC_WIREFRAME_MANUAL_ROIS",
   "cell_dir": "$cell_dir",
   "exit_code": $exit_code,
@@ -141,6 +143,7 @@ run_cell() {
 		"--diagnostic-wireframe-transport=$DIAGNOSTIC_WIREFRAME_TRANSPORT" \
 		"--diagnostic-wireframe-risk=$DIAGNOSTIC_WIREFRAME_RISK" \
 		"--diagnostic-wireframe-spacetime=$DIAGNOSTIC_WIREFRAME_SPACETIME" \
+		"--diagnostic-wireframe-continuity=$DIAGNOSTIC_WIREFRAME_CONTINUITY" \
 		"--diagnostic-wireframe-labels=$DIAGNOSTIC_WIREFRAME_LABELS" \
 		"--diagnostic-wireframe-manual-rois=$DIAGNOSTIC_WIREFRAME_MANUAL_ROIS" \
 		--enable-domain-telemetry=0 \
@@ -172,7 +175,7 @@ run_cell() {
 	"$PYTHON" "$ROOT/tools/corner_transport_probe_analyzer.py" "$cell_dir" >> "$cell_dir/run.log" 2>&1 || true
 	write_metadata "$cell_dir" "$step_len" "$traversal" "$exit_code" "$effective" "$notes"
 	if [[ "$DIAGNOSTIC_WIREFRAME_OVERLAY" == "1" ]]; then
-		"$PYTHON" "$ROOT/tools/diagnostic_wireframe_overlay.py" "$cell_dir" --manual-rois "$DIAGNOSTIC_WIREFRAME_MANUAL_ROIS" >> "$cell_dir/run.log" 2>&1 || true
+		"$PYTHON" "$ROOT/tools/diagnostic_wireframe_overlay.py" "$cell_dir" --manual-rois "$DIAGNOSTIC_WIREFRAME_MANUAL_ROIS" --continuity "$DIAGNOSTIC_WIREFRAME_CONTINUITY" >> "$cell_dir/run.log" 2>&1 || true
 	fi
 	echo "[traversal] status step=$step_len traversal=$traversal exit=$exit_code effective=$effective notes=$notes"
 	refresh_summary

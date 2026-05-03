@@ -34,6 +34,7 @@ DIAGNOSTIC_WIREFRAME_CARTESIAN="${DIAGNOSTIC_WIREFRAME_CARTESIAN:-$DIAGNOSTIC_WI
 DIAGNOSTIC_WIREFRAME_TRANSPORT="${DIAGNOSTIC_WIREFRAME_TRANSPORT:-$DIAGNOSTIC_WIREFRAME_OVERLAY}"
 DIAGNOSTIC_WIREFRAME_RISK="${DIAGNOSTIC_WIREFRAME_RISK:-$DIAGNOSTIC_WIREFRAME_OVERLAY}"
 DIAGNOSTIC_WIREFRAME_SPACETIME="${DIAGNOSTIC_WIREFRAME_SPACETIME:-0}"
+DIAGNOSTIC_WIREFRAME_CONTINUITY="${DIAGNOSTIC_WIREFRAME_CONTINUITY:-0}"
 DIAGNOSTIC_WIREFRAME_LABELS="${DIAGNOSTIC_WIREFRAME_LABELS:-$DIAGNOSTIC_WIREFRAME_OVERLAY}"
 DIAGNOSTIC_WIREFRAME_MANUAL_ROIS="${DIAGNOSTIC_WIREFRAME_MANUAL_ROIS:-40,35;280,35;40,145;280,145}"
 
@@ -59,7 +60,7 @@ exec > >(tee -a "$LOG") 2>&1
 echo "[tile-commit] output=$OUTPUT_DIR"
 echo "[tile-commit] flag=--render-test-first-pass-traversal controls pass1_acquisition+pass2_commit in render-test mode"
 echo "[tile-commit] frames=$FRAMES warmup=$WARMUP res=${FILM_W}x${FILM_H} stride=$STRIDE steps=$STEPS_RAW modes=$MODES_RAW"
-echo "[tile-commit] diagnostic_wireframe_overlay=$DIAGNOSTIC_WIREFRAME_OVERLAY rois=$DIAGNOSTIC_WIREFRAME_MANUAL_ROIS"
+echo "[tile-commit] diagnostic_wireframe_overlay=$DIAGNOSTIC_WIREFRAME_OVERLAY continuity=$DIAGNOSTIC_WIREFRAME_CONTINUITY rois=$DIAGNOSTIC_WIREFRAME_MANUAL_ROIS"
 
 refresh_summary() {
 	"$PYTHON" "$ROOT/tools/tile_commit_traversal_analysis.py" "$OUTPUT_DIR" || true
@@ -95,6 +96,7 @@ write_metadata() {
   "stride": $STRIDE,
   "traversal_flag_scope": "render-test pass1 acquisition + pass2 commit/write order",
   "diagnostic_wireframe_overlay": $DIAGNOSTIC_WIREFRAME_OVERLAY,
+  "diagnostic_wireframe_continuity": $DIAGNOSTIC_WIREFRAME_CONTINUITY,
   "diagnostic_wireframe_manual_rois": "$DIAGNOSTIC_WIREFRAME_MANUAL_ROIS",
   "cell_dir": "$cell_dir",
   "exit_code": $exit_code,
@@ -152,6 +154,7 @@ run_beauty_cell() {
 		"--diagnostic-wireframe-transport=$DIAGNOSTIC_WIREFRAME_TRANSPORT" \
 		"--diagnostic-wireframe-risk=$DIAGNOSTIC_WIREFRAME_RISK" \
 		"--diagnostic-wireframe-spacetime=$DIAGNOSTIC_WIREFRAME_SPACETIME" \
+		"--diagnostic-wireframe-continuity=$DIAGNOSTIC_WIREFRAME_CONTINUITY" \
 		"--diagnostic-wireframe-labels=$DIAGNOSTIC_WIREFRAME_LABELS" \
 		"--diagnostic-wireframe-manual-rois=$DIAGNOSTIC_WIREFRAME_MANUAL_ROIS" \
 		--enable-domain-telemetry=0 \
@@ -165,7 +168,7 @@ run_beauty_cell() {
 	echo "$effective" > "$cell_dir/effective_status.txt"
 	write_metadata "$cell_dir" "$step" "$mode" "beauty" "$exit_code" "$effective" "$notes"
 	if [[ "$DIAGNOSTIC_WIREFRAME_OVERLAY" == "1" ]]; then
-		"$PYTHON" "$ROOT/tools/diagnostic_wireframe_overlay.py" "$cell_dir" --manual-rois "$DIAGNOSTIC_WIREFRAME_MANUAL_ROIS" >> "$cell_dir/run.log" 2>&1 || true
+		"$PYTHON" "$ROOT/tools/diagnostic_wireframe_overlay.py" "$cell_dir" --manual-rois "$DIAGNOSTIC_WIREFRAME_MANUAL_ROIS" --continuity "$DIAGNOSTIC_WIREFRAME_CONTINUITY" >> "$cell_dir/run.log" 2>&1 || true
 	fi
 	echo "[tile-commit] beauty status step=$step mode=$mode exit=$exit_code effective=$effective notes=$notes"
 	refresh_summary
@@ -202,6 +205,7 @@ run_corner_cell() {
 		"--diagnostic-wireframe-transport=$DIAGNOSTIC_WIREFRAME_TRANSPORT" \
 		"--diagnostic-wireframe-risk=$DIAGNOSTIC_WIREFRAME_RISK" \
 		"--diagnostic-wireframe-spacetime=$DIAGNOSTIC_WIREFRAME_SPACETIME" \
+		"--diagnostic-wireframe-continuity=$DIAGNOSTIC_WIREFRAME_CONTINUITY" \
 		"--diagnostic-wireframe-labels=$DIAGNOSTIC_WIREFRAME_LABELS" \
 		"--diagnostic-wireframe-manual-rois=$DIAGNOSTIC_WIREFRAME_MANUAL_ROIS" \
 		--enable-domain-telemetry=0 \
@@ -224,7 +228,7 @@ run_corner_cell() {
 	"$PYTHON" "$ROOT/tools/corner_transport_probe_analyzer.py" "$cell_dir" >> "$cell_dir/run.log" 2>&1 || true
 	write_metadata "$cell_dir" "$step" "$mode" "corner_probe_after_beauty" "$exit_code" "$effective" "$notes"
 	if [[ "$DIAGNOSTIC_WIREFRAME_OVERLAY" == "1" ]]; then
-		"$PYTHON" "$ROOT/tools/diagnostic_wireframe_overlay.py" "$cell_dir" --manual-rois "$DIAGNOSTIC_WIREFRAME_MANUAL_ROIS" >> "$cell_dir/run.log" 2>&1 || true
+		"$PYTHON" "$ROOT/tools/diagnostic_wireframe_overlay.py" "$cell_dir" --manual-rois "$DIAGNOSTIC_WIREFRAME_MANUAL_ROIS" --continuity "$DIAGNOSTIC_WIREFRAME_CONTINUITY" >> "$cell_dir/run.log" 2>&1 || true
 	fi
 }
 
