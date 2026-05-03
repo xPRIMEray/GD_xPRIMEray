@@ -1,0 +1,38 @@
+[
+  {
+    "band_percent": 0.1181,
+    "band_pixels": 68,
+    "beauty_hash": "e2030f1e467494ccffcb62bc8cdd0d8ccac68ecd4291025f1980c9962f3707d1",
+    "cell_dir": "/home/bb/code/godot_xPRIMEray/output/first_pass_traversal_comparison/20260503T134229Z/step_0.015/column",
+    "changed_pixels_vs_row_baseline": 448,
+    "corner_roi_collider_flip_samples": 360,
+    "corner_roi_mean_max_risk": 3.839575,
+    "corner_roi_ownership_change_samples": 360,
+    "corner_roi_required_precision": 0.003125,
+    "effective_status": 0,
+    "horizontal_band_score": 0.10625,
+    "notes": "clean_exit",
+    "step_length": "0.015",
+    "timestamp": "2026-05-03T13:43:19Z",
+    "traversal": "column",
+    "vertical_band_score": 0.04321
+  },
+  {
+    "band_percent": 0.059,
+    "band_pixels": 34,
+    "beauty_hash": "934b0ed824af31b9ee9c40e2eaf8b63695e74c64e0f05c756774d60f7af8f222",
+    "cell_dir": "/home/bb/code/godot_xPRIMEray/output/first_pass_traversal_comparison/20260503T134229Z/step_0.015/row",
+    "changed_pixels_vs_row_baseline": 0,
+    "corner_roi_collider_flip_samples": 360,
+    "corner_roi_mean_max_risk": 3.839575,
+    "corner_roi_ownership_change_samples": 360,
+    "corner_roi_required_precision": 0.003125,
+    "effective_status": 0,
+    "horizontal_band_score": 0.10625,
+    "notes": "clean_exit",
+    "step_length": "0.015",
+    "timestamp": "2026-05-03T13:42:53Z",
+    "traversal": "row",
+    "vertical_band_score": 0.047531
+  }
+]

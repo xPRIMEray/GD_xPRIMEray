@@ -1,0 +1,46 @@
+{
+  "beauty_hash": "7fd936dafe1b3b1b4f0fc7158f10be5a0ebe74dba8823254808db847cabe3b4e",
+  "beauty_path": "output/tile_commit_traversal_comparison/20260503T202623Z/beauty/step_0.015/row/domain_resolver_stress__tilecommit_row__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+  "capture_stem": "domain_resolver_stress__tilecommit_row__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1",
+  "enabled_layers": {
+    "cartesian": true,
+    "labels": true,
+    "risk": true,
+    "spacetime": true,
+    "transport": true
+  },
+  "hit_diagnostics_csv": "output/tile_commit_traversal_comparison/20260503T202623Z/beauty/step_0.015/row/domain_resolver_stress__tilecommit_row__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+  "hit_region_count": 2,
+  "manual_rois": [
+    {
+      "x": 40,
+      "y": 35
+    },
+    {
+      "x": 280,
+      "y": 35
+    },
+    {
+      "x": 40,
+      "y": 145
+    },
+    {
+      "x": 280,
+      "y": 145
+    }
+  ],
+  "missing_inputs": [],
+  "object_count": 6,
+  "opencv_requested": false,
+  "opencv_used": false,
+  "post_process_only": true,
+  "primitive_count_by_layer": {
+    "cartesian_lines": 60,
+    "cartesian_points": 120,
+    "manual_rois": 4,
+    "spacetime_events": 85,
+    "spacetime_polylines": 85
+  },
+  "primitive_path": "output/tile_commit_traversal_comparison/20260503T202623Z/beauty/step_0.015/row/domain_resolver_stress__tilecommit_row__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.diagnostic_wireframe_primitives.json",
+  "schema_version": 1
+}

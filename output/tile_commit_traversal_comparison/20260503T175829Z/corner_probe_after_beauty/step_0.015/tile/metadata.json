@@ -1,0 +1,10 @@
+{
+  "timestamp": "2026-05-03T18:00:27Z",
+  "phase": "corner_probe_after_beauty",
+  "step_length": "0.015",
+  "traversal": "tile",
+  "cell_dir": "/home/bb/code/godot_xPRIMEray/output/tile_commit_traversal_comparison/20260503T175829Z/corner_probe_after_beauty/step_0.015/tile",
+  "exit_code": 0,
+  "effective_status": 0,
+  "notes": "clean_exit"
+}

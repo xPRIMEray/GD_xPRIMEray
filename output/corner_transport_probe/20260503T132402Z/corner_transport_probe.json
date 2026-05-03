@@ -1,0 +1,15 @@
+{
+  "epsilon": 0.05,
+  "roi_summary": [
+    {
+      "collider_flip_samples": 39,
+      "mean_max_risk": 4.038818966292134,
+      "ownership_change_samples": 39,
+      "required_precision": 0.003125,
+      "roi_id": "geometry:25836914057:edge_midpoint:6",
+      "sample_count": 89
+    }
+  ],
+  "row_count": 267,
+  "sample_count": 89
+}

@@ -127,6 +127,14 @@ public partial class RenderTestRunner : Node
 	private const string RenderTestCameraFixedCmdArgPrefix = "--render-test-camera-fixed=";
 	private const string RenderTestStepLengthCmdArgPrefix = "--render-test-step-length=";
 	private const string RenderTestPixelStrideCmdArgPrefix = "--render-test-pixel-stride=";
+	private const string RenderTestFirstPassTraversalCmdArgPrefix = "--render-test-first-pass-traversal=";
+	private const string DiagnosticWireframeOverlayCmdArgPrefix = "--diagnostic-wireframe-overlay=";
+	private const string DiagnosticWireframeCartesianCmdArgPrefix = "--diagnostic-wireframe-cartesian=";
+	private const string DiagnosticWireframeTransportCmdArgPrefix = "--diagnostic-wireframe-transport=";
+	private const string DiagnosticWireframeRiskCmdArgPrefix = "--diagnostic-wireframe-risk=";
+	private const string DiagnosticWireframeSpacetimeCmdArgPrefix = "--diagnostic-wireframe-spacetime=";
+	private const string DiagnosticWireframeLabelsCmdArgPrefix = "--diagnostic-wireframe-labels=";
+	private const string DiagnosticWireframeManualRoisCmdArgPrefix = "--diagnostic-wireframe-manual-rois=";
 	private const int RenderTestMinFramesPerRun = 90;
 	private const string FastBlackholeComparisonProfileToken = "blackhole_compare_fast";
 	private const string FastEinsteinComparisonProfileToken = "einstein_compare_fast";
@@ -230,6 +238,15 @@ public partial class RenderTestRunner : Node
 	private float _renderTestStepLengthOverride = 0.0125f;
 	private bool _renderTestPixelStrideOverrideKnown = false;
 	private int _renderTestPixelStrideOverride = 2;
+	private bool _renderTestFirstPassTraversalOverrideKnown = false;
+	private string _renderTestFirstPassTraversalMode = "row";
+	private bool _diagnosticWireframeOverlayEnabled = false;
+	private bool _diagnosticWireframeCartesianEnabled = false;
+	private bool _diagnosticWireframeTransportEnabled = false;
+	private bool _diagnosticWireframeRiskEnabled = false;
+	private bool _diagnosticWireframeSpacetimeEnabled = false;
+	private bool _diagnosticWireframeLabelsEnabled = false;
+	private string _diagnosticWireframeManualRois = "40,35;280,35;40,145;280,145";
 	private bool _startupDependencyErrorLogged = false;
 	private bool _baselineApplied = false;
 	private HarnessState _harnessState = HarnessState.Idle;
@@ -525,6 +542,9 @@ public partial class RenderTestRunner : Node
 				$"step_convergence_telemetry={(_stepConvergenceTelemetryCliOverrideKnown ? (_enableStepConvergenceTelemetry ? 1 : 0) : "na")} " +
 				$"step_length_override={(_renderTestStepLengthOverrideKnown ? _renderTestStepLengthOverride.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture) : "na")} " +
 				$"pixel_stride_override={(_renderTestPixelStrideOverrideKnown ? _renderTestPixelStrideOverride.ToString() : "na")} " +
+				$"render_test_traversal_pass1_pass2={(_renderTestFirstPassTraversalOverrideKnown ? Sanitize(_renderTestFirstPassTraversalMode) : "row")} " +
+				$"diagnostic_wireframe_overlay={(_diagnosticWireframeOverlayEnabled ? 1 : 0)} " +
+				$"diagnostic_wireframe_layers={BuildDiagnosticWireframeLayerToken()} " +
 				$"domain_aware_first_hit={(_domainAwareFirstHitResolverCliOverrideKnown ? (_enableDomainAwareFirstHitResolver ? 1 : 0) : ((_film != null && GodotObject.IsInstanceValid(_film) && _film.EnableDomainAwareFirstHitResolver) ? 1 : 0))} " +
 				$"telemetry_adaptive_envelope={(_telemetryAdaptiveEnvelopeCliOverrideKnown ? (_telemetryAdaptiveEnvelopeEnabled ? 1 : 0) : 0)} " +
 				$"adaptive_envelope_controller_mode={Sanitize(_adaptiveEnvelopeControllerModeCliOverrideKnown ? _adaptiveEnvelopeControllerMode : "three_state")} " +
@@ -1149,6 +1169,10 @@ public partial class RenderTestRunner : Node
 		if (_renderTestPixelStrideOverrideKnown)
 		{
 			_film.PixelStride = Mathf.Clamp(_renderTestPixelStrideOverride, 1, 16);
+		}
+		if (_renderTestFirstPassTraversalOverrideKnown)
+		{
+			_film.RenderTestFirstPassTraversalMode = _renderTestFirstPassTraversalMode;
 		}
 		if (_requestedFixture == RenderTestFixture.DomainResolverStress)
 		{
@@ -2251,6 +2275,12 @@ public partial class RenderTestRunner : Node
 			string p95MsStr = sampleCount > 0 ? p95Ms.ToString("0.###") : "na";
 			string meanSegStr = _runSegsPerPxCount > 0 ? (_runSegsPerPxSum / _runSegsPerPxCount).ToString("0.###") : "na";
 			bool hasFixtureStats = _film.TryGetFixtureDebugStatsForTesting(out GrinFilmCamera.FixtureDebugStatsSnapshot fixtureStats);
+			bool hasWriteDiag = _film.TryGetFixtureWriteDiagnosticsForTesting(out GrinFilmCamera.FixtureWriteDiagnosticsSnapshot writeDiag);
+			bool beautyExactOnce = hasWriteDiag
+				&& writeDiag.BeautyExpectedPixels > 0
+				&& writeDiag.BeautyPixelsWrittenOnce == writeDiag.BeautyExpectedPixels
+				&& writeDiag.BeautyPixelsUnwritten == 0
+				&& writeDiag.BeautyPixelsMultiWritten == 0;
 			long fixtureVisibleHits = fixtureStats.SourceHits + fixtureStats.BackgroundHits + fixtureStats.UnclassifiedHits;
 			bool fixtureHitRateKnown = hasFixtureStats && fixtureStats.TracedPixels > 0;
 			double fixtureHitRate = fixtureHitRateKnown
@@ -2284,6 +2314,8 @@ public partial class RenderTestRunner : Node
 				$"[RenderTest][RUN DETAIL] matrix={_runSeriesId} idx={_runIndex + 1}/{_runs.Count} name={Sanitize(run.Name)} " +
 				$"fixtureStatsKnown={(hasFixtureStats ? 1 : 0)} sourceHits={fixtureStats.SourceHits} backgroundHits={fixtureStats.BackgroundHits} " +
 				$"unclassifiedHits={fixtureStats.UnclassifiedHits} absorbedHits={fixtureStats.AbsorbedHits} missHits={fixtureStats.MissHits} traced={fixtureStats.TracedPixels} " +
+				$"beautyWriteAuditKnown={(hasWriteDiag ? 1 : 0)} beautyExpected={writeDiag.BeautyExpectedPixels} beautyOnce={writeDiag.BeautyPixelsWrittenOnce} " +
+				$"beautyUnwritten={writeDiag.BeautyPixelsUnwritten} beautyMulti={writeDiag.BeautyPixelsMultiWritten} beautyExactOnce={(beautyExactOnce ? 1 : 0)} " +
 				$"hitRate={(fixtureHitRateKnown ? fixtureHitRate.ToString("0.######") : "na")} " +
 				$"metricDiagKnown={(hasMetricDiag ? 1 : 0)} metricDeltaZeroCount={(hasMetricDiag ? metricDiag.MetricDeltaZeroCount.ToString() : "na")} " +
 				$"metricDeltaNonzeroCount={(hasMetricDiag ? metricDiag.MetricDeltaNonzeroCount.ToString() : "na")} " +
@@ -2524,6 +2556,7 @@ public partial class RenderTestRunner : Node
 				}
 
 				TryWriteTransportDiagnosticsCapture(capturePath);
+				TryWriteDiagnosticWireframeArtifacts(capturePath, runExecId);
 			}
 
 			string modeToken = ResolveRenderTestCaptureModeToken(in run);
@@ -3009,6 +3042,42 @@ public partial class RenderTestRunner : Node
 		}
 	}
 
+	private void TryWriteDiagnosticWireframeArtifacts(string capturePath, ulong runExecId)
+	{
+		if (!_diagnosticWireframeOverlayEnabled || _film == null || !GodotObject.IsInstanceValid(_film))
+			return;
+		if (string.IsNullOrWhiteSpace(capturePath))
+			return;
+
+		string outputDir = Path.GetDirectoryName(capturePath) ?? ResolveRenderTestCaptureDir();
+		string captureStem = Path.GetFileNameWithoutExtension(capturePath);
+		try
+		{
+			Directory.CreateDirectory(outputDir);
+			if (_film.TryWriteDiagnosticWireframePrimitivePacket(
+				outputDir,
+				captureStem,
+				GetHudFixtureToken(_requestedFixture),
+				_diagnosticWireframeManualRois,
+				_diagnosticWireframeCartesianEnabled,
+				_diagnosticWireframeTransportEnabled,
+				_diagnosticWireframeRiskEnabled,
+				_diagnosticWireframeSpacetimeEnabled,
+				_diagnosticWireframeLabelsEnabled,
+				out string primitivePath,
+				out string hitCsvPath))
+			{
+				GD.Print(
+					$"[RenderTestRunner][DiagnosticWireframe] run_id={runExecId} primitives={primitivePath} " +
+					$"hit_csv={(string.IsNullOrWhiteSpace(hitCsvPath) ? "none" : hitCsvPath)} post_process_only=1");
+			}
+		}
+		catch (Exception ex)
+		{
+			GD.PrintErr($"[RenderTestRunner][DiagnosticWireframe][FAIL] run_id={runExecId} path={capturePath} exception={ex.GetType().Name}");
+		}
+	}
+
 	private void TryWriteTransportDiagnosticsCapture(string capturePath)
 	{
 		if (string.IsNullOrWhiteSpace(capturePath))
@@ -3141,6 +3210,21 @@ public partial class RenderTestRunner : Node
 			return _film.TelemetryHeatmapMode;
 		}
 		return "basic";
+	}
+
+	private string BuildDiagnosticWireframeLayerToken()
+	{
+		if (!_diagnosticWireframeOverlayEnabled)
+		{
+			return "off";
+		}
+		List<string> layers = new List<string>();
+		if (_diagnosticWireframeCartesianEnabled) layers.Add("cartesian");
+		if (_diagnosticWireframeTransportEnabled) layers.Add("transport");
+		if (_diagnosticWireframeRiskEnabled) layers.Add("risk");
+		if (_diagnosticWireframeSpacetimeEnabled) layers.Add("spacetime");
+		if (_diagnosticWireframeLabelsEnabled) layers.Add("labels");
+		return layers.Count > 0 ? string.Join("+", layers) : "none";
 	}
 
 	private string BuildRenderTestCapturePath(in GrinFilmCamera.TestRunConfig run, ulong runExecId, string captureDir)
@@ -4103,6 +4187,15 @@ public partial class RenderTestRunner : Node
 		_renderTestStepLengthOverride = 0.0125f;
 		_renderTestPixelStrideOverrideKnown = false;
 		_renderTestPixelStrideOverride = 2;
+		_renderTestFirstPassTraversalOverrideKnown = false;
+		_renderTestFirstPassTraversalMode = "row";
+		_diagnosticWireframeOverlayEnabled = false;
+		_diagnosticWireframeCartesianEnabled = false;
+		_diagnosticWireframeTransportEnabled = false;
+		_diagnosticWireframeRiskEnabled = false;
+		_diagnosticWireframeSpacetimeEnabled = false;
+		_diagnosticWireframeLabelsEnabled = false;
+		_diagnosticWireframeManualRois = "40,35;280,35;40,145;280,145";
 		if (TryGetBoolCmdArgValue(RenderTestCaptureCmdArgPrefix, out bool renderTestCaptureEnabled))
 		{
 			_renderTestCaptureEnabled = renderTestCaptureEnabled;
@@ -4309,6 +4402,49 @@ public partial class RenderTestRunner : Node
 		{
 			_renderTestPixelStrideOverrideKnown = true;
 			_renderTestPixelStrideOverride = Mathf.Clamp(renderTestPixelStride, 1, 16);
+		}
+		if (TryGetStringCmdArgValue(RenderTestFirstPassTraversalCmdArgPrefix, out string renderTestFirstPassTraversal) &&
+			!string.IsNullOrWhiteSpace(renderTestFirstPassTraversal))
+		{
+			string token = renderTestFirstPassTraversal.Trim().ToLowerInvariant();
+			if (token == "row_baseline" || token == "baseline")
+				token = "row";
+			else if (token == "column_major" || token == "col")
+				token = "column";
+			else if (token == "square_tile" || token == "square")
+				token = "tile";
+			else if (token == "checkerboard_tile" || token == "checker")
+				token = "checkerboard";
+			if (token == "row" || token == "column" || token == "tile" || token == "checkerboard")
+			{
+				_renderTestFirstPassTraversalOverrideKnown = true;
+				_renderTestFirstPassTraversalMode = token;
+			}
+		}
+		bool overlayKnown = TryGetBoolCmdArgValue(DiagnosticWireframeOverlayCmdArgPrefix, out bool overlayEnabled);
+		bool cartesianKnown = TryGetBoolCmdArgValue(DiagnosticWireframeCartesianCmdArgPrefix, out bool cartesianEnabled);
+		bool transportKnown = TryGetBoolCmdArgValue(DiagnosticWireframeTransportCmdArgPrefix, out bool transportEnabled);
+		bool riskKnown = TryGetBoolCmdArgValue(DiagnosticWireframeRiskCmdArgPrefix, out bool riskEnabled);
+		bool spacetimeKnown = TryGetBoolCmdArgValue(DiagnosticWireframeSpacetimeCmdArgPrefix, out bool spacetimeEnabled);
+		bool labelsKnown = TryGetBoolCmdArgValue(DiagnosticWireframeLabelsCmdArgPrefix, out bool labelsEnabled);
+		_diagnosticWireframeOverlayEnabled =
+			(overlayKnown && overlayEnabled) ||
+			(cartesianKnown && cartesianEnabled) ||
+			(transportKnown && transportEnabled) ||
+			(riskKnown && riskEnabled) ||
+			(spacetimeKnown && spacetimeEnabled);
+		if (_diagnosticWireframeOverlayEnabled)
+		{
+			_diagnosticWireframeCartesianEnabled = cartesianKnown ? cartesianEnabled : overlayEnabled;
+			_diagnosticWireframeTransportEnabled = transportKnown ? transportEnabled : overlayEnabled;
+			_diagnosticWireframeRiskEnabled = riskKnown ? riskEnabled : overlayEnabled;
+			_diagnosticWireframeSpacetimeEnabled = spacetimeKnown && spacetimeEnabled;
+			_diagnosticWireframeLabelsEnabled = labelsKnown ? labelsEnabled : overlayEnabled;
+		}
+		if (TryGetStringCmdArgValue(DiagnosticWireframeManualRoisCmdArgPrefix, out string diagnosticWireframeManualRois) &&
+			!string.IsNullOrWhiteSpace(diagnosticWireframeManualRois))
+		{
+			_diagnosticWireframeManualRois = diagnosticWireframeManualRois.Trim();
 		}
 	}
 

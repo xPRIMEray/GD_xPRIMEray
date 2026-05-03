@@ -840,6 +840,10 @@ public partial class GrinFilmCamera : Node
 		public readonly int RowsEarlyTerminated;
 		public readonly long FinalHitPixelCount;
 		public readonly long TraversalWritePixelCount;
+		public readonly int BeautyExpectedPixels;
+		public readonly int BeautyPixelsWrittenOnce;
+		public readonly int BeautyPixelsUnwritten;
+		public readonly int BeautyPixelsMultiWritten;
 
 		public FixtureWriteDiagnosticsSnapshot(
 			int rowsStarted,
@@ -847,7 +851,11 @@ public partial class GrinFilmCamera : Node
 			int rowsPartiallyWritten,
 			int rowsEarlyTerminated,
 			long finalHitPixelCount,
-			long traversalWritePixelCount)
+			long traversalWritePixelCount,
+			int beautyExpectedPixels,
+			int beautyPixelsWrittenOnce,
+			int beautyPixelsUnwritten,
+			int beautyPixelsMultiWritten)
 		{
 			RowsStarted = rowsStarted;
 			RowsCompleted = rowsCompleted;
@@ -855,6 +863,10 @@ public partial class GrinFilmCamera : Node
 			RowsEarlyTerminated = rowsEarlyTerminated;
 			FinalHitPixelCount = finalHitPixelCount;
 			TraversalWritePixelCount = traversalWritePixelCount;
+			BeautyExpectedPixels = beautyExpectedPixels;
+			BeautyPixelsWrittenOnce = beautyPixelsWrittenOnce;
+			BeautyPixelsUnwritten = beautyPixelsUnwritten;
+			BeautyPixelsMultiWritten = beautyPixelsMultiWritten;
 		}
 	}
 
@@ -1417,6 +1429,20 @@ public partial class GrinFilmCamera : Node
 	[Export] public string TransportCoherenceBasinRadii = "4,8,16";
 	/// <summary>Maximum passive basin seed centers sampled per diagnostic capture.</summary>
 	[Export(PropertyHint.Range, "0,256,1")] public int TransportCoherenceBasinMaxCenters = 32;
+	/// <summary>Research-only corner/edge microscope probe. Exports diagnostics only; never changes beauty, scheduling, hit selection, shading, resolver, or step precision.</summary>
+	[Export] public bool EnableCornerTransportProbe = false;
+	/// <summary>Comma-separated step sweep for the corner transport probe. Smallest value is treated as the local reference.</summary>
+	[Export] public string CornerTransportProbeSteps = "0.03,0.025,0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125";
+	/// <summary>Comma-separated screen-space radii for focused corner/edge ROI sampling.</summary>
+	[Export] public string CornerTransportProbeRadii = "2,4,8,16,32";
+	/// <summary>Dense odd-sized grid patch around each corner ROI. Use 0 or 1 to disable; smoke commonly uses 9.</summary>
+	[Export(PropertyHint.Range, "0,33,2")] public int CornerTransportProbePatchSize = 17;
+	/// <summary>Maximum projected corner/edge ROIs sampled by the focused corner probe.</summary>
+	[Export(PropertyHint.Range, "1,128,1")] public int CornerTransportProbeMaxRois = 8;
+	/// <summary>Optional manual screen-space ROI centers for corner probe, formatted "x,y;x,y". Uses nearest projected transport anchor for object metadata only.</summary>
+	[Export] public string CornerTransportProbeManualRois = "";
+	/// <summary>Render-test-only first-pass traversal experiment. Changes pass1 visitation order only; it does not alter hit, shading, resolver, or post-processing math.</summary>
+	[Export(PropertyHint.Enum, "row,column,tile,checkerboard")] public string RenderTestFirstPassTraversalMode = "row";
 
 
 	[ExportGroup("Ray March")]
@@ -2467,6 +2493,7 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private bool _hasLastCompletedPerfFrame = false;
 	private uint[] _presentTouchedEpoch = Array.Empty<uint>();
 	private uint[] _refreshTouchedEpoch = Array.Empty<uint>();
+	private int[] _beautyWriteCountsThisRun = Array.Empty<int>();
 	private uint _presentTouchedEpochId = 1;
 	private uint _refreshTouchedEpochId = 1;
 	private int _presentTouchedPixels = 0;
@@ -2912,6 +2939,7 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 		public bool Pass1DoHitTest;
 		public int Pass1ProbeEveryNSegments;
 		public float Pass1ProbeMinTravelDelta;
+		public string RenderTestFirstPassTraversalMode;
 		public bool UsePass2CollisionStride;
 		public int Pass2CollisionStrideNear;
 		public int Pass2CollisionStrideFar;
@@ -5416,19 +5444,41 @@ private sealed class OverlayRollingWindow
 
 	public bool TryGetFixtureWriteDiagnosticsForTesting(out FixtureWriteDiagnosticsSnapshot snapshot)
 	{
+		int expectedBeautyPixels = Math.Max(0, _filmWidth) * Math.Max(0, _filmHeight);
+		int writtenOnce = 0;
+		int unwritten = 0;
+		int multiWritten = 0;
+		int auditCount = Math.Min(expectedBeautyPixels, _beautyWriteCountsThisRun?.Length ?? 0);
+		for (int i = 0; i < auditCount; i++)
+		{
+			int count = _beautyWriteCountsThisRun[i];
+			if (count == 0) unwritten++;
+			else if (count == 1) writtenOnce++;
+			else multiWritten++;
+		}
+		if (auditCount < expectedBeautyPixels)
+			unwritten += expectedBeautyPixels - auditCount;
+
 		snapshot = new FixtureWriteDiagnosticsSnapshot(
 			CountMarkedRows(_fixtureRowsStarted),
 			CountMarkedRows(_fixtureRowsCompleted),
 			CountMarkedRows(_fixtureRowsPartiallyWritten),
 			CountMarkedRows(_fixtureRowsEarlyTerminated),
 			_fixtureFinalHitPixelCountThisRun,
-			_fixtureTraversalWritePixelCountThisRun);
+			_fixtureTraversalWritePixelCountThisRun,
+			expectedBeautyPixels,
+			writtenOnce,
+			unwritten,
+			multiWritten);
 		return snapshot.RowsStarted > 0 ||
 			snapshot.RowsCompleted > 0 ||
 			snapshot.RowsPartiallyWritten > 0 ||
 			snapshot.RowsEarlyTerminated > 0 ||
 			snapshot.FinalHitPixelCount > 0 ||
-			snapshot.TraversalWritePixelCount > 0;
+			snapshot.TraversalWritePixelCount > 0 ||
+			snapshot.BeautyPixelsWrittenOnce > 0 ||
+			snapshot.BeautyPixelsUnwritten > 0 ||
+			snapshot.BeautyPixelsMultiWritten > 0;
 	}
 
 	public bool TryGetFixtureTransportCoverageForTesting(out FixtureTransportCoverageSnapshot snapshot)
@@ -8615,6 +8665,14 @@ private sealed class OverlayRollingWindow
 	{
 		_fixtureFinalHitPixelCountThisRun = 0;
 		_fixtureTraversalWritePixelCountThisRun = 0;
+		int expectedBeautyPixels = Math.Max(0, _filmWidth) * Math.Max(0, _filmHeight);
+		if (expectedBeautyPixels > 0)
+		{
+			if (_beautyWriteCountsThisRun.Length != expectedBeautyPixels)
+				_beautyWriteCountsThisRun = new int[expectedBeautyPixels];
+			else
+				Array.Clear(_beautyWriteCountsThisRun, 0, _beautyWriteCountsThisRun.Length);
+		}
 		_wormholePostRemapPixelsThisRun = 0;
 		_wormholePostRemapPixelsMultiRemapThisRun = 0;
 		_wormholePostRemapSegmentsThisRun = 0;
@@ -9871,7 +9929,64 @@ private sealed class OverlayRollingWindow
 			{
 				TransportCoherenceBasinMaxCenters = Math.Max(0, parsedBasinMaxCenters);
 			}
+
+			if (TryGetHudArgValue(arg, "--corner-transport-probe=", out string cornerProbeValue))
+			{
+				string normalized = cornerProbeValue.Trim().ToLowerInvariant();
+				EnableCornerTransportProbe = normalized is "1" or "true" or "on" or "yes";
+				if (EnableCornerTransportProbe)
+					EnableReferenceGeodesicProbe = true;
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--corner-transport-probe-steps=", out string cornerStepsValue)
+				&& !string.IsNullOrWhiteSpace(cornerStepsValue))
+			{
+				CornerTransportProbeSteps = cornerStepsValue.Trim();
+			}
+
+			if (TryGetHudArgValue(arg, "--corner-transport-probe-radii=", out string cornerRadiiValue)
+				&& !string.IsNullOrWhiteSpace(cornerRadiiValue))
+			{
+				CornerTransportProbeRadii = cornerRadiiValue.Trim();
+			}
+
+			if (TryGetHudArgValue(arg, "--corner-transport-probe-patch-size=", out string cornerPatchValue)
+				&& int.TryParse(cornerPatchValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedCornerPatch))
+			{
+				CornerTransportProbePatchSize = Math.Max(0, parsedCornerPatch);
+			}
+
+			if (TryGetHudArgValue(arg, "--corner-transport-probe-max-rois=", out string cornerMaxRoisValue)
+				&& int.TryParse(cornerMaxRoisValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedCornerMaxRois))
+			{
+				CornerTransportProbeMaxRois = Math.Max(1, parsedCornerMaxRois);
+			}
+
+			if (TryGetHudArgValue(arg, "--corner-transport-probe-manual-rois=", out string manualRoisValue))
+			{
+				CornerTransportProbeManualRois = manualRoisValue.Trim();
+			}
+
+			if (TryGetHudArgValue(arg, "--render-test-first-pass-traversal=", out string firstPassTraversalValue)
+				&& !string.IsNullOrWhiteSpace(firstPassTraversalValue))
+			{
+				RenderTestFirstPassTraversalMode = NormalizeRenderTestFirstPassTraversalMode(firstPassTraversalValue);
+			}
 		}
+	}
+
+	private static string NormalizeRenderTestFirstPassTraversalMode(string mode)
+	{
+		string token = (mode ?? string.Empty).Trim().ToLowerInvariant();
+		return token switch
+		{
+			"row" or "row_baseline" or "baseline" => "row",
+			"column" or "column_major" or "col" => "column",
+			"tile" or "square_tile" or "square" => "tile",
+			"checkerboard" or "checkerboard_tile" or "checker" => "checkerboard",
+			_ => "row"
+		};
 	}
 
 	// Loads band_tile_signals.json produced by band_detector.py and pre-seeds _tileMetricColumnSeeds
@@ -10097,6 +10212,270 @@ private sealed class OverlayRollingWindow
 		}
 	}
 
+	public bool TryWriteDiagnosticWireframePrimitivePacket(
+		string outputDir,
+		string captureStem,
+		string fixtureName,
+		string manualRois,
+		bool cartesianEnabled,
+		bool transportEnabled,
+		bool riskEnabled,
+		bool spacetimeEnabled,
+		bool labelsEnabled,
+		out string primitivePath,
+		out string hitCsvPath)
+	{
+		// Diagnostic overlay packets are post-capture instrumentation only. Rendering,
+		// scheduling, hit selection, shading, resolver scoring, and precision stepping
+		// never consume this file or the hit diagnostics CSV.
+		primitivePath = string.Empty;
+		hitCsvPath = string.Empty;
+		if (string.IsNullOrWhiteSpace(outputDir) || _cam == null || !GodotObject.IsInstanceValid(_cam))
+			return false;
+
+		SceneSnapshot snap = FrameSnapshotBus.CurrentSnapshot;
+		if (snap == null)
+			return false;
+
+		Directory.CreateDirectory(outputDir);
+		string safeStem = string.IsNullOrWhiteSpace(captureStem) ? "capture" : captureStem.Trim();
+		string safeFixture = string.IsNullOrWhiteSpace(fixtureName) ? "unknown" : fixtureName.Trim();
+		primitivePath = Path.Combine(outputDir, safeStem + ".diagnostic_wireframe_primitives.json");
+		if (transportEnabled || riskEnabled)
+		{
+			hitCsvPath = Path.Combine(outputDir, safeStem + ".hit_diagnostics.csv");
+			if (!TryExportFixtureHitDiagnosticsCsvForTesting(hitCsvPath))
+				hitCsvPath = string.Empty;
+		}
+
+		var fingerprint = new SceneTransportFingerprint();
+		fingerprint.Rebuild(snap, 512);
+		var manualPoints = ParseCornerTransportProbeManualRois(manualRois);
+		var sb = new StringBuilder(16384);
+		int objectCount = 0;
+		int cartesianPointCount = 0;
+		int cartesianLineCount = 0;
+		int spacetimePolylineCount = 0;
+		int spacetimeEventCount = 0;
+
+		static int TryParseAnchorIndex(string anchorId, string token)
+		{
+			int idx = anchorId.IndexOf(token, StringComparison.Ordinal);
+			if (idx < 0)
+				return -1;
+			string suffix = anchorId[(idx + token.Length)..];
+			int colon = suffix.IndexOf(':', StringComparison.Ordinal);
+			if (colon >= 0)
+				suffix = suffix[..colon];
+			return int.TryParse(suffix, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) ? parsed : -1;
+		}
+
+		void AppendPointObject(StringBuilder target, int x, int y)
+		{
+			target.Append("{\"x\":").Append(x).Append(",\"y\":").Append(y).Append("}");
+		}
+
+		void AppendProjectedPoint(
+			StringBuilder target,
+			string layer,
+			string kind,
+			string objectId,
+			string anchorId,
+			TransportAnchorMode mode,
+			Vector2I pixel,
+			Vector3 world,
+			bool label)
+		{
+			target.Append("{")
+				.Append("\"layer\":\"").Append(JsonEscapeForArtifact(layer)).Append("\",")
+				.Append("\"kind\":\"").Append(JsonEscapeForArtifact(kind)).Append("\",")
+				.Append("\"object_id\":\"").Append(JsonEscapeForArtifact(objectId)).Append("\",")
+				.Append("\"anchor_id\":\"").Append(JsonEscapeForArtifact(anchorId)).Append("\",")
+				.Append("\"anchor_mode\":\"").Append(JsonEscapeForArtifact(mode.ToString())).Append("\",")
+				.Append("\"x\":").Append(pixel.X).Append(",")
+				.Append("\"y\":").Append(pixel.Y).Append(",")
+				.Append("\"world_x\":").Append(FormatJsonFloatForArtifact(world.X)).Append(",")
+				.Append("\"world_y\":").Append(FormatJsonFloatForArtifact(world.Y)).Append(",")
+				.Append("\"world_z\":").Append(FormatJsonFloatForArtifact(world.Z)).Append(",")
+				.Append("\"label\":\"").Append(label ? JsonEscapeForArtifact(objectId) : "").Append("\"")
+				.Append("}");
+		}
+
+		void AppendLineObject(StringBuilder target, string objectId, string kind, Vector2I a, Vector2I b)
+		{
+			target.Append("{")
+				.Append("\"layer\":\"cartesian\",")
+				.Append("\"kind\":\"").Append(JsonEscapeForArtifact(kind)).Append("\",")
+				.Append("\"object_id\":\"").Append(JsonEscapeForArtifact(objectId)).Append("\",")
+				.Append("\"x0\":").Append(a.X).Append(",")
+				.Append("\"y0\":").Append(a.Y).Append(",")
+				.Append("\"x1\":").Append(b.X).Append(",")
+				.Append("\"y1\":").Append(b.Y)
+				.Append("}");
+		}
+
+		sb.Append("{");
+		sb.Append("\"schema_version\":1,");
+		sb.Append("\"capture_stem\":\"").Append(JsonEscapeForArtifact(safeStem)).Append("\",");
+		sb.Append("\"fixture\":\"").Append(JsonEscapeForArtifact(safeFixture)).Append("\",");
+		sb.Append("\"image_width\":").Append(_filmWidth).Append(",");
+		sb.Append("\"image_height\":").Append(_filmHeight).Append(",");
+		sb.Append("\"scene_fingerprint\":\"").Append(JsonEscapeForArtifact(fingerprint.VersionStamp)).Append("\",");
+		sb.Append("\"post_process_only\":true,");
+		sb.Append("\"enabled_layers\":{")
+			.Append("\"cartesian\":").Append(cartesianEnabled ? "true" : "false").Append(",")
+			.Append("\"transport\":").Append(transportEnabled ? "true" : "false").Append(",")
+			.Append("\"risk\":").Append(riskEnabled ? "true" : "false").Append(",")
+			.Append("\"spacetime\":").Append(spacetimeEnabled ? "true" : "false").Append(",")
+			.Append("\"labels\":").Append(labelsEnabled ? "true" : "false")
+			.Append("},");
+		sb.Append("\"manual_rois\":[");
+		for (int i = 0; i < manualPoints.Length; i++)
+		{
+			if (i > 0) sb.Append(",");
+			AppendPointObject(sb, manualPoints[i].X, manualPoints[i].Y);
+		}
+		sb.Append("],");
+
+		var objectJson = new StringBuilder(8192);
+		var pointJson = new StringBuilder(8192);
+		var lineJson = new StringBuilder(8192);
+		var spacetimeJson = new StringBuilder(8192);
+		var eventJson = new StringBuilder(8192);
+		bool objectAny = false;
+		bool pointAny = false;
+		bool lineAny = false;
+		bool spacetimeAny = false;
+		bool eventAny = false;
+		int[,] edgePairs =
+		{
+			{0, 1}, {0, 2}, {0, 4}, {1, 3}, {1, 5}, {2, 3},
+			{2, 6}, {3, 7}, {4, 5}, {4, 6}, {5, 7}, {6, 7}
+		};
+
+		foreach (ObjectTransportObserver observer in fingerprint.Observers)
+		{
+			var corners = new Dictionary<int, Vector2I>();
+			var projectedAnchors = new List<(TransportAnchor Anchor, Vector2I Pixel)>();
+			foreach (TransportAnchor anchor in observer.AnchorSamples)
+			{
+				if (!TryProjectWorldToFilmPixel(_cam, anchor.WorldPosition, _filmWidth, _filmHeight, out Vector2I pixel))
+					continue;
+				projectedAnchors.Add((anchor, pixel));
+				if (anchor.AnchorId.Contains(":corner:", StringComparison.Ordinal))
+				{
+					int idx = TryParseAnchorIndex(anchor.AnchorId, ":corner:");
+					if (idx >= 0)
+						corners[idx] = pixel;
+				}
+			}
+			if (projectedAnchors.Count == 0)
+				continue;
+
+			if (objectAny) objectJson.Append(",");
+			objectAny = true;
+			objectCount++;
+			objectJson.Append("{")
+				.Append("\"object_id\":\"").Append(JsonEscapeForArtifact(observer.StableObjectId)).Append("\",")
+				.Append("\"kind\":\"").Append(JsonEscapeForArtifact(observer.Kind.ToString())).Append("\",")
+				.Append("\"anchor_count\":").Append(projectedAnchors.Count).Append(",")
+				.Append("\"centroid_world_x\":").Append(FormatJsonFloatForArtifact(observer.Centroid.X)).Append(",")
+				.Append("\"centroid_world_y\":").Append(FormatJsonFloatForArtifact(observer.Centroid.Y)).Append(",")
+				.Append("\"centroid_world_z\":").Append(FormatJsonFloatForArtifact(observer.Centroid.Z))
+				.Append("}");
+
+			if (cartesianEnabled)
+			{
+				foreach ((TransportAnchor anchor, Vector2I pixel) in projectedAnchors)
+				{
+					if (pointAny) pointJson.Append(",");
+					pointAny = true;
+					cartesianPointCount++;
+					string kind = anchor.Mode switch
+					{
+						TransportAnchorMode.Centroid => "centroid",
+						TransportAnchorMode.AabbCorner => "corner",
+						TransportAnchorMode.EdgeMidpoint => "edge_midpoint",
+						TransportAnchorMode.PrincipalAxis => "principal_axis",
+						TransportAnchorMode.DomainBoundarySample => anchor.AnchorId.Contains(":corner:", StringComparison.Ordinal) ? "corner" : "domain_boundary",
+						_ => "anchor"
+					};
+					AppendProjectedPoint(pointJson, "cartesian", kind, observer.StableObjectId, anchor.AnchorId, anchor.Mode, pixel, anchor.WorldPosition, labelsEnabled && anchor.Mode == TransportAnchorMode.Centroid);
+				}
+
+				for (int i = 0; i < edgePairs.GetLength(0); i++)
+				{
+					if (!corners.TryGetValue(edgePairs[i, 0], out Vector2I a) || !corners.TryGetValue(edgePairs[i, 1], out Vector2I b))
+						continue;
+					if (lineAny) lineJson.Append(",");
+					lineAny = true;
+					cartesianLineCount++;
+					AppendLineObject(lineJson, observer.StableObjectId, "aabb_edge", a, b);
+				}
+			}
+
+			if (spacetimeEnabled)
+			{
+				Vector2I screenCenter = new(Math.Max(0, _filmWidth / 2), Math.Max(0, _filmHeight / 2));
+				foreach ((TransportAnchor anchor, Vector2I pixel) in projectedAnchors.Take(16))
+				{
+					if (spacetimeAny) spacetimeJson.Append(",");
+					spacetimeAny = true;
+					spacetimePolylineCount++;
+					spacetimeJson.Append("{")
+						.Append("\"kind\":\"ray_segment_polyline\",")
+						.Append("\"object_id\":\"").Append(JsonEscapeForArtifact(observer.StableObjectId)).Append("\",")
+						.Append("\"anchor_id\":\"").Append(JsonEscapeForArtifact(anchor.AnchorId)).Append("\",")
+						.Append("\"path_length\":").Append(FormatJsonFloatForArtifact((observer.Centroid - anchor.WorldPosition).Length())).Append(",")
+						.Append("\"order_index\":").Append(spacetimePolylineCount).Append(",")
+						.Append("\"points\":[");
+					AppendPointObject(spacetimeJson, screenCenter.X, screenCenter.Y);
+					spacetimeJson.Append(",");
+					AppendPointObject(spacetimeJson, pixel.X, pixel.Y);
+					spacetimeJson.Append("]}");
+
+					if (eventAny) eventJson.Append(",");
+					eventAny = true;
+					spacetimeEventCount++;
+					eventJson.Append("{")
+						.Append("\"kind\":\"first_hit_event\",")
+						.Append("\"object_id\":\"").Append(JsonEscapeForArtifact(observer.StableObjectId)).Append("\",")
+						.Append("\"anchor_id\":\"").Append(JsonEscapeForArtifact(anchor.AnchorId)).Append("\",")
+						.Append("\"x\":").Append(pixel.X).Append(",")
+						.Append("\"y\":").Append(pixel.Y).Append(",")
+						.Append("\"order_index\":").Append(spacetimeEventCount)
+						.Append("}");
+				}
+			}
+		}
+
+		sb.Append("\"objects\":[");
+		sb.Append(objectJson);
+		sb.Append("],");
+		sb.Append("\"primitives\":{");
+		sb.Append("\"cartesian\":{")
+			.Append("\"points\":[").Append(pointJson).Append("],")
+			.Append("\"lines\":[").Append(lineJson).Append("]")
+			.Append("},");
+		sb.Append("\"spacetime\":{")
+			.Append("\"polylines\":[").Append(spacetimeJson).Append("],")
+			.Append("\"events\":[").Append(eventJson).Append("]")
+			.Append("}");
+		sb.Append("},");
+		sb.Append("\"primitive_count_by_layer\":{")
+			.Append("\"cartesian_points\":").Append(cartesianPointCount).Append(",")
+			.Append("\"cartesian_lines\":").Append(cartesianLineCount).Append(",")
+			.Append("\"spacetime_polylines\":").Append(spacetimePolylineCount).Append(",")
+			.Append("\"spacetime_events\":").Append(spacetimeEventCount).Append(",")
+			.Append("\"manual_rois\":").Append(manualPoints.Length)
+			.Append("},");
+		sb.Append("\"object_count\":").Append(objectCount);
+		sb.Append("}");
+
+		File.WriteAllText(primitivePath, sb.ToString());
+		return true;
+	}
+
 	private readonly struct ReferenceProbeSample
 	{
 		public readonly string AnchorId;
@@ -10281,13 +10660,20 @@ private sealed class OverlayRollingWindow
 		var fingerprint = new SceneTransportFingerprint();
 		fingerprint.Rebuild(snap, Math.Max(1, ReferenceGeodesicProbeMaxAnchors));
 		Dictionary<string, ReferenceProbeObjectGeometry> objectGeometry = BuildReferenceProbeObjectGeometry(fingerprint, _cam, _filmWidth, _filmHeight);
-		var anchors = SelectReferenceProbeAnchors(fingerprint, _cam, _filmWidth, _filmHeight, Math.Max(1, ReferenceGeodesicProbeMaxAnchors));
-		if (anchors.Count > ReferenceGeodesicProbeMaxAnchors)
-			anchors.RemoveRange(ReferenceGeodesicProbeMaxAnchors, anchors.Count - ReferenceGeodesicProbeMaxAnchors);
+		var anchors = EnableCornerTransportProbe
+			? SelectCornerTransportProbeAnchors(fingerprint, _cam, _filmWidth, _filmHeight, Math.Max(1, CornerTransportProbeMaxRois))
+			: SelectReferenceProbeAnchors(fingerprint, _cam, _filmWidth, _filmHeight, Math.Max(1, ReferenceGeodesicProbeMaxAnchors));
+		int anchorLimit = EnableCornerTransportProbe ? CornerTransportProbeMaxRois : ReferenceGeodesicProbeMaxAnchors;
+		if (anchors.Count > anchorLimit)
+			anchors.RemoveRange(anchorLimit, anchors.Count - anchorLimit);
 		if (anchors.Count == 0)
 			return false;
 
-		float[] stepLengths = { 0.015f, 0.0125f, 0.00625f, 0.003125f };
+		float[] stepLengths = EnableCornerTransportProbe
+			? ParseReferenceProbeStepLengths(CornerTransportProbeSteps, new[] { 0.02f, 0.0125f, 0.003125f })
+			: new[] { 0.015f, 0.0125f, 0.00625f, 0.003125f };
+		Array.Sort(stepLengths);
+		Array.Reverse(stepLengths);
 		float referenceStep = stepLengths[^1];
 		int tileWidth = Math.Max(1, TileMetricsSubtileWidth);
 		var rows = new List<ReferenceProbeSample>(anchors.Count * 48 * stepLengths.Length);
@@ -10303,12 +10689,50 @@ private sealed class OverlayRollingWindow
 		float savedMaxStepLength = _rbr.MaxStepLength;
 		try
 		{
+			var anchorCenters = new List<(TransportAnchor Anchor, Vector2I Pixel)>();
 			foreach (TransportAnchor anchor in anchors)
 			{
-				if (!TryProjectWorldToFilmPixel(_cam, anchor.WorldPosition, _filmWidth, _filmHeight, out Vector2I anchorPixel))
-					continue;
+				if (TryProjectWorldToFilmPixel(_cam, anchor.WorldPosition, _filmWidth, _filmHeight, out Vector2I projectedPixel))
+					anchorCenters.Add((anchor, projectedPixel));
+			}
+			if (EnableCornerTransportProbe)
+			{
+				foreach (Vector2I manualPixel in ParseCornerTransportProbeManualRois(CornerTransportProbeManualRois))
+				{
+					if (manualPixel.X < 0 || manualPixel.Y < 0 || manualPixel.X >= _filmWidth || manualPixel.Y >= _filmHeight || anchorCenters.Count == 0)
+						continue;
+					(TransportAnchor Anchor, Vector2I Pixel) nearest = anchorCenters[0];
+					float nearestDist = FilmPixelDistance(manualPixel, nearest.Pixel);
+					foreach ((TransportAnchor Anchor, Vector2I Pixel) candidate in anchorCenters)
+					{
+						float d = FilmPixelDistance(manualPixel, candidate.Pixel);
+						if (d < nearestDist)
+						{
+							nearest = candidate;
+							nearestDist = d;
+						}
+					}
+					var manualAnchor = new TransportAnchor
+					{
+						AnchorId = $"manual_roi:{manualPixel.X}:{manualPixel.Y}:{nearest.Anchor.AnchorId}",
+						StableObjectId = nearest.Anchor.StableObjectId,
+						ObserverKind = nearest.Anchor.ObserverKind,
+						Mode = nearest.Anchor.Mode,
+						WorldPosition = nearest.Anchor.WorldPosition,
+						WorldNormalOrAxis = nearest.Anchor.WorldNormalOrAxis,
+						InfluenceRadius = nearest.Anchor.InfluenceRadius
+					};
+					anchorCenters.Add((manualAnchor, manualPixel));
+					anchorById[manualAnchor.AnchorId] = manualAnchor;
+				}
+			}
+
+			foreach ((TransportAnchor anchor, Vector2I anchorPixel) in anchorCenters)
+			{
 				objectGeometry.TryGetValue(anchor.StableObjectId, out ReferenceProbeObjectGeometry geom);
-				Vector2I[] offsets = BuildReferenceProbeOffsets(anchorPixel, geom?.CentroidPixel ?? new Vector2I(-1, -1));
+				Vector2I[] offsets = EnableCornerTransportProbe
+					? BuildCornerTransportProbeOffsets(anchorPixel, geom?.CentroidPixel ?? new Vector2I(-1, -1), ParseTransportCoherenceBasinRadii(CornerTransportProbeRadii), CornerTransportProbePatchSize)
+					: BuildReferenceProbeOffsets(anchorPixel, geom?.CentroidPixel ?? new Vector2I(-1, -1));
 
 				foreach (Vector2I offset in offsets)
 				{
@@ -10503,6 +10927,11 @@ private sealed class OverlayRollingWindow
 		jsonPath = Path.Combine(outputDir, safeStem + ".reference_geodesic_probe.json");
 		File.WriteAllText(csvPath, BuildReferenceProbeCsv(rows));
 		File.WriteAllText(jsonPath, BuildReferenceProbeJson(rows, fixtureName, fingerprint.VersionStamp, referenceStep, budget));
+		if (EnableCornerTransportProbe)
+		{
+			File.WriteAllText(Path.Combine(outputDir, safeStem + ".corner_transport_probe.csv"), BuildReferenceProbeCsv(rows));
+			File.WriteAllText(Path.Combine(outputDir, safeStem + ".corner_transport_probe.json"), BuildReferenceProbeJson(rows, fixtureName, fingerprint.VersionStamp, referenceStep, budget));
+		}
 		GD.Print($"[ReferenceGeodesicProbe] written rows={rows.Count} basin={EnableTransportCoherenceBasin} runtime_ms={budget.ProbeRuntimeMs} csv={csvPath} json={jsonPath}");
 		return true;
 	}
@@ -10750,6 +11179,53 @@ private sealed class OverlayRollingWindow
 		return selected;
 	}
 
+	private static List<TransportAnchor> SelectCornerTransportProbeAnchors(SceneTransportFingerprint fingerprint, Camera3D camera, int filmWidth, int filmHeight, int maxAnchors)
+	{
+		var selected = new List<TransportAnchor>(Math.Max(1, maxAnchors));
+		var seen = new HashSet<string>(StringComparer.Ordinal);
+		void AddAnchor(TransportAnchor anchor)
+		{
+			if (selected.Count >= maxAnchors || anchor == null || !seen.Add(anchor.AnchorId))
+				return;
+			selected.Add(anchor);
+		}
+
+		foreach (ObjectTransportObserver observer in fingerprint.Observers)
+		{
+			var candidates = new List<(TransportAnchor Anchor, float Score)>();
+			foreach (TransportAnchor anchor in observer.AnchorSamples)
+			{
+				bool isCornerOrEdge =
+					anchor.Mode == TransportAnchorMode.AabbCorner ||
+					anchor.Mode == TransportAnchorMode.EdgeMidpoint ||
+					anchor.AnchorId.Contains(":corner:", StringComparison.Ordinal) ||
+					anchor.AnchorId.Contains(":edge_midpoint:", StringComparison.Ordinal);
+				if (!isCornerOrEdge)
+					continue;
+				if (!TryProjectWorldToFilmPixel(camera, anchor.WorldPosition, filmWidth, filmHeight, out Vector2I pixel))
+					continue;
+				float dx = pixel.X - filmWidth * 0.5f;
+				float dy = pixel.Y - filmHeight * 0.5f;
+				float cornerBias = anchor.Mode == TransportAnchorMode.AabbCorner ? filmWidth * filmWidth : 0f;
+				candidates.Add((anchor, cornerBias + dx * dx + dy * dy));
+			}
+			candidates.Sort((a, b) => b.Score.CompareTo(a.Score));
+			foreach ((TransportAnchor anchor, _) in candidates)
+				AddAnchor(anchor);
+		}
+
+		if (selected.Count == 0)
+		{
+			foreach (ObjectTransportObserver observer in fingerprint.Observers)
+			foreach (TransportAnchor anchor in observer.AnchorSamples)
+			{
+				if (anchor.Mode == TransportAnchorMode.Centroid || anchor.Mode == TransportAnchorMode.PrincipalAxis)
+					AddAnchor(anchor);
+			}
+		}
+		return selected;
+	}
+
 	private static Vector2I[] BuildReferenceProbeOffsets(Vector2I anchorPixel, Vector2I centroidPixel)
 	{
 		var offsets = new List<Vector2I>
@@ -10848,6 +11324,96 @@ private sealed class OverlayRollingWindow
 			}
 		}
 		return offsets.ToArray();
+	}
+
+	private static Vector2I[] BuildCornerTransportProbeOffsets(Vector2I centerPixel, Vector2I centroidPixel, int[] radii, int patchSize)
+	{
+		var offsets = new List<Vector2I> { Vector2I.Zero };
+		var seen = new HashSet<(int X, int Y)> { (0, 0) };
+		void AddOffset(int x, int y)
+		{
+			if (seen.Add((x, y)))
+				offsets.Add(new Vector2I(x, y));
+		}
+
+		Vector2 radial = Vector2.Zero;
+		if (centroidPixel.X >= 0 && centroidPixel.Y >= 0)
+		{
+			radial = new Vector2(centerPixel.X - centroidPixel.X, centerPixel.Y - centroidPixel.Y);
+			if (radial.LengthSquared() > 1e-6f)
+				radial = radial.Normalized();
+		}
+		Vector2 tangent = radial == Vector2.Zero ? Vector2.Zero : new Vector2(-radial.Y, radial.X);
+
+		foreach (int rawRadius in radii)
+		{
+			int r = Math.Max(1, rawRadius);
+			AddOffset(r, 0);
+			AddOffset(-r, 0);
+			AddOffset(0, r);
+			AddOffset(0, -r);
+			AddOffset(r, r);
+			AddOffset(r, -r);
+			AddOffset(-r, r);
+			AddOffset(-r, -r);
+			if (radial != Vector2.Zero)
+			{
+				int rx = Mathf.RoundToInt(radial.X * r);
+				int ry = Mathf.RoundToInt(radial.Y * r);
+				if (rx != 0 || ry != 0)
+				{
+					AddOffset(rx, ry);
+					AddOffset(-rx, -ry);
+				}
+				int tx = Mathf.RoundToInt(tangent.X * r);
+				int ty = Mathf.RoundToInt(tangent.Y * r);
+				if (tx != 0 || ty != 0)
+				{
+					AddOffset(tx, ty);
+					AddOffset(-tx, -ty);
+				}
+			}
+		}
+
+		if (patchSize >= 3)
+		{
+			int size = patchSize % 2 == 0 ? patchSize + 1 : patchSize;
+			int half = Math.Min(32, size / 2);
+			for (int y = -half; y <= half; y++)
+			for (int x = -half; x <= half; x++)
+				AddOffset(x, y);
+		}
+		return offsets.ToArray();
+	}
+
+	private static float[] ParseReferenceProbeStepLengths(string raw, float[] fallback)
+	{
+		var steps = new List<float>();
+		foreach (string part in (raw ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+		{
+			if (float.TryParse(part, NumberStyles.Float, CultureInfo.InvariantCulture, out float step) && step > 0f)
+				steps.Add(step);
+		}
+		if (steps.Count == 0)
+			steps.AddRange(fallback);
+		return steps.Distinct().ToArray();
+	}
+
+	private static Vector2I[] ParseCornerTransportProbeManualRois(string raw)
+	{
+		var rois = new List<Vector2I>();
+		foreach (string item in (raw ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+		{
+			string[] parts = item.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+			if (parts.Length != 2)
+				continue;
+			if (int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int x) &&
+				int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int y))
+			{
+				rois.Add(new Vector2I(x, y));
+			}
+		}
+		return rois.ToArray();
 	}
 
 	private static int ReferenceProbeOffsetRadius(Vector2I offset)
@@ -12521,6 +13087,28 @@ private sealed class OverlayRollingWindow
 			long pass1FieldGridMisses = 0;
 			long pass1FieldGridFallbacks = 0;
 			long pass1FieldSourceEvals = 0;
+			string renderTestPassTraversalMode = NormalizeRenderTestFirstPassTraversalMode(cfg.RenderTestFirstPassTraversalMode);
+			const int renderTestPassTraversalTileSize = 16;
+			int Pass2TraversalOrderKey(int x, int y)
+			{
+				string mode = renderTestPassTraversalMode;
+				int localY = Math.Max(0, y - yStart);
+				if (mode == "column")
+					return x * Math.Max(1, bandH) + localY;
+				if (mode == "tile" || mode == "checkerboard")
+				{
+					int tileSize = renderTestPassTraversalTileSize;
+					int tileCols = Math.Max(1, (filmW + tileSize - 1) / tileSize);
+					int tileRows = Math.Max(1, (bandH + tileSize - 1) / tileSize);
+					int tileX = Math.Clamp(x / tileSize, 0, tileCols - 1);
+					int tileY = Math.Clamp(localY / tileSize, 0, tileRows - 1);
+					int phase = mode == "checkerboard" ? ((tileX + tileY) & 1) : 0;
+					int tileOrdinal = tileY * tileCols + tileX;
+					int inTileOrdinal = (localY - tileY * tileSize) * tileSize + (x - tileX * tileSize);
+					return phase * tileRows * tileCols * tileSize * tileSize + tileOrdinal * tileSize * tileSize + inTileOrdinal;
+				}
+				return localY * Math.Max(1, filmW) + x;
+			}
 			// DECISION: skip pass1 when we are resuming a pending pass2 band.
 			if (!pendingPass2)
 			{
@@ -12719,6 +13307,92 @@ private sealed class OverlayRollingWindow
 					}
 				}
 
+				string renderTestTraversalMode = NormalizeRenderTestFirstPassTraversalMode(cfg.RenderTestFirstPassTraversalMode);
+				const int renderTestTraversalTileSize = 16;
+				int TraversalSubtileIndexForX(int x)
+				{
+					if (_tileMetricCurrentSubtileCount <= 0 || _tileMetricCurrentSubtileWidth <= 0)
+						return 0;
+					return Math.Clamp(x / Math.Max(1, _tileMetricCurrentSubtileWidth), 0, _tileMetricCurrentSubtileCount - 1);
+				}
+
+				void ForEachTraversalSampleOrigin(string traversalMode, Action<int, int, int, int> visit)
+				{
+					string mode = NormalizeRenderTestFirstPassTraversalMode(traversalMode);
+					int yAlignedStartLocal = yStart + ((stride - (yStart % stride)) % stride);
+					if (mode == "column")
+					{
+						for (int x = 0; x < filmW; x += stride)
+						{
+							int subtileIndex = TraversalSubtileIndexForX(x);
+							for (int y = yAlignedStartLocal; y < yEnd; y += stride)
+								visit(x, y, y - yStart, subtileIndex);
+						}
+						return;
+					}
+
+					if (mode == "tile" || mode == "checkerboard")
+					{
+						int tileSize = renderTestTraversalTileSize;
+						int tileCols = Math.Max(1, (filmW + tileSize - 1) / tileSize);
+						int tileRows = Math.Max(1, (bandH + tileSize - 1) / tileSize);
+						int phaseCount = mode == "checkerboard" ? 2 : 1;
+						for (int phase = 0; phase < phaseCount; phase++)
+						{
+							for (int tileY = 0; tileY < tileRows; tileY++)
+							{
+								int localY0 = tileY * tileSize;
+								int localY1 = Math.Min(bandH, localY0 + tileSize);
+								for (int tileX = 0; tileX < tileCols; tileX++)
+								{
+									if (mode == "checkerboard" && (((tileX + tileY) & 1) != phase))
+										continue;
+									int x0 = tileX * tileSize;
+									int x1 = Math.Min(filmW, x0 + tileSize);
+									int xAlignedStartLocal = x0 + ((stride - (x0 % stride)) % stride);
+									for (int localY = localY0; localY < localY1; localY++)
+									{
+										int y = yStart + localY;
+										if ((y % stride) != 0)
+											continue;
+										for (int x = xAlignedStartLocal; x < x1; x += stride)
+											visit(x, y, localY, TraversalSubtileIndexForX(x));
+									}
+								}
+							}
+						}
+						return;
+					}
+
+					for (int y = yAlignedStartLocal; y < yEnd; y += stride)
+					{
+						int localY = y - yStart;
+						for (int execIndex = 0; execIndex < _tileMetricCurrentSubtileCount; execIndex++)
+						{
+							int subtileIndex = _tileMetricCurrentExecutionOrder[execIndex];
+							int subtileXStart = subtileIndex * _tileMetricCurrentSubtileWidth;
+							int subtileXEnd = Math.Max(0, Math.Min(filmW, subtileXStart + _tileMetricCurrentSubtileWidth));
+							if (subtileXStart >= subtileXEnd)
+								continue;
+							int xAlignedStartLocal = subtileXStart + ((stride - (subtileXStart % stride)) % stride);
+							for (int x = xAlignedStartLocal; x < subtileXEnd; x += stride)
+								visit(x, y, localY, subtileIndex);
+						}
+					}
+				}
+
+				void ProcessPass1PixelsInTraversalOrder(string traversalMode)
+				{
+					string mode = NormalizeRenderTestFirstPassTraversalMode(traversalMode);
+					Pass1ThreadLocal local = CreatePass1ThreadLocal();
+					ForEachTraversalSampleOrigin(mode, (x, y, localY, subtileIndex) =>
+					{
+						local = ProcessPass1Pixel(localY * filmW + x, local);
+					});
+
+					MergePass1ThreadLocal(in local);
+				}
+
 				bool useThreadedPass1Bands = cfg.UseThreadedBands;
 				int threadedBandWorkerCount = Math.Max(1, cfg.ThreadedBandWorkerCount);
 				int threadedBandRowsPerChunk = Math.Max(1, cfg.ThreadedBandRowsPerChunk);
@@ -12728,7 +13402,11 @@ private sealed class OverlayRollingWindow
 					GD.PushWarning("[ThreadedBands] Deterministic mode with workerCount>1 preserves stable chunk assignment and merge order, but exact execution interleaving still differs. Use workerCount=1 for the single-thread deterministic anchor.");
 				}
 
-				if (useThreadedPass1Bands)
+				if (renderTestTraversalMode != "row")
+				{
+					ProcessPass1PixelsInTraversalOrder(renderTestTraversalMode);
+				}
+				else if (useThreadedPass1Bands)
 				{
 					int chunkCount = Math.Max(1, (bandH + threadedBandRowsPerChunk - 1) / threadedBandRowsPerChunk);
 					Pass1ThreadLocal[] chunkResults = new Pass1ThreadLocal[chunkCount];
@@ -12987,7 +13665,8 @@ private sealed class OverlayRollingWindow
 					&& useGeomTlasPruningForStep;
 				int threadedPass2CandidateWorkers = Math.Max(1, cfg.ThreadedPass2CandidateWorkers);
 				int threadedPass2CandidateRowsPerChunk = Math.Max(1, cfg.ThreadedPass2CandidateRowsPerChunk);
-				bool useThreadedPass2LocalAccumulation = cfg.UseThreadedPass2LocalAccumulation
+				bool renderTestTraversalReordersPass2Commit = renderTestPassTraversalMode != "row";
+				bool useThreadedPass2LocalAccumulation = (cfg.UseThreadedPass2LocalAccumulation || renderTestTraversalReordersPass2Commit)
 					&& !skipBandPhysics
 					&& !useThreadedPass2QueryResolve;
 				int threadedPass2WorkerCount = Math.Max(1, cfg.ThreadedPass2WorkerCount);
@@ -14634,6 +15313,19 @@ private sealed class OverlayRollingWindow
 					{
 					if (!useThreadedPass2ResolvedSampleCommit || pass2ResolvedSamples == null || pass2ResolvedSamples.Count == 0)
 						return;
+
+					if (renderTestTraversalReordersPass2Commit)
+					{
+						pass2ResolvedSamples.Sort((a, b) =>
+						{
+							int ka = Pass2TraversalOrderKey(a.X, a.Y);
+							int kb = Pass2TraversalOrderKey(b.X, b.Y);
+							if (ka != kb) return ka.CompareTo(kb);
+							int yc = a.Y.CompareTo(b.Y);
+							return yc != 0 ? yc : a.X.CompareTo(b.X);
+						});
+						pass2ChunkSampleStarts = new System.Collections.Generic.List<int> { 0 };
+					}
 
 					if (pass2ChunkSampleStarts == null || pass2ChunkSampleStarts.Count == 0)
 						pass2ChunkSampleStarts = new System.Collections.Generic.List<int> { 0 };
@@ -20245,6 +20937,14 @@ private sealed class OverlayRollingWindow
 	{
 		if (pixelIndex < 0)
 			return;
+		if ((uint)pixelIndex >= (uint)_beautyWriteCountsThisRun.Length)
+		{
+			int expectedBeautyPixels = Math.Max(0, _filmWidth) * Math.Max(0, _filmHeight);
+			if (expectedBeautyPixels > pixelIndex)
+				_beautyWriteCountsThisRun = new int[expectedBeautyPixels];
+		}
+		if ((uint)pixelIndex < (uint)_beautyWriteCountsThisRun.Length)
+			_beautyWriteCountsThisRun[pixelIndex]++;
 		if ((uint)pixelIndex >= (uint)_presentTouchedEpoch.Length || (uint)pixelIndex >= (uint)_refreshTouchedEpoch.Length)
 			return;
 
@@ -21163,6 +21863,7 @@ private sealed class OverlayRollingWindow
 			Pass1DoHitTest = Pass1DoHitTest,
 			Pass1ProbeEveryNSegments = Pass1ProbeEveryNSegments,
 			Pass1ProbeMinTravelDelta = Pass1ProbeMinTravelDelta,
+			RenderTestFirstPassTraversalMode = NormalizeRenderTestFirstPassTraversalMode(RenderTestFirstPassTraversalMode),
 			UsePass2CollisionStride = UsePass2CollisionStride,
 			Pass2CollisionStrideNear = Pass2CollisionStrideNear,
 			Pass2CollisionStrideFar = Pass2CollisionStrideFar,
@@ -21481,6 +22182,7 @@ private sealed class OverlayRollingWindow
 		hash.Add(cfg.Pass1DoHitTest);
 		hash.Add(cfg.Pass1ProbeEveryNSegments);
 		hash.Add(BitConverter.SingleToInt32Bits(cfg.Pass1ProbeMinTravelDelta));
+		hash.Add(cfg.RenderTestFirstPassTraversalMode ?? "row");
 		hash.Add(cfg.UsePass2CollisionStride);
 		hash.Add(cfg.Pass2CollisionStrideNear);
 		hash.Add(cfg.Pass2CollisionStrideFar);
