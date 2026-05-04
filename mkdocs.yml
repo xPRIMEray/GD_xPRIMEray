@@ -180,7 +180,16 @@ nav:
       - BVH Acceleration (Legacy): spec_bvh_acceleration.md
       - Scheduler and Task Graph (Legacy): spec_scheduler_task_graph.md
 
+  - Cathedral Probe:
+      - Architecture Paper: Research/cathedral_probe_architecture.md
+      - Scheduler Decorrelation & Local Coherence: Research/scheduler_decorrelation_and_local_coherence.md
+      - Traversal Council Review: Research/architecture_design_council_traversal_review.md
+      - Object-Seeded Null Geodesic Scheduler: Research/object_seeded_null_geodesic_tiling_scheduler.md
+      - Reference Precision Null Geodesic Probe: Research/reference_precision_null_geodesic_probe.md
+      - README & Navigation Proposal: Research/readme_and_navigation_proposal.md
+
   - Research:
+      - Cathedral Probe Architecture: Research/cathedral_probe_architecture.md
       - Dual Reality Framework: Research/DualRealityFramework.md
       - Overspace Architecture Layer: Research/overspace_architecture_layer.md
       - Wormhole Pipeline Validation: Research/wormhole_render_pipeline_validation.md
