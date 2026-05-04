@@ -1,0 +1,22 @@
+{
+  "beauty_hash": "99ee7647611d68d44c5599d13f931e9351665fd4e0f3630a2e0642844c065e76",
+  "cell_dir": "/home/bb/code/godot_xPRIMEray/output/transport_ownership_graph_precision_sweep/20260504T043955Z/cells/step_0.016/checkerboard_stride_1",
+  "diagnostic_only_guardrail": "Transport ownership graphs are analysis only and must not feed render scheduling, hit selection, shading, resolver decisions, or adaptive precision.",
+  "epsilon_stable_area_percent": 0.0,
+  "graph_edge_count": 149,
+  "graph_node_count": 92,
+  "high_discontinuity_edge_count": 147,
+  "missing_optional_fields": [
+    "portal_event_count"
+  ],
+  "precision_floor_histogram": {},
+  "reference_step_length": "0.003125",
+  "roi_label": "full_frame_control_plus_roi_seeds",
+  "seam_length_px_total": 13181,
+  "stable_basin_count": 89,
+  "step_length": "0.016",
+  "stride": 1,
+  "threshold_snap_count": 0,
+  "traversal": "checkerboard",
+  "unsealed_region_count": 147
+}
