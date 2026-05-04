@@ -3,7 +3,28 @@
 > **The Universal Baseline for Curved Field Transport Visualization.**
 > Research-grade. Fixture-validated. Grounded in a century of peer-reviewed optics and relativity.
 
-This is the technical documentation root for xPRIMEray. For the GitHub project page and visual overview, see the [root README](../README.md). For the rendered MkDocs portal, see [index.md](index.md).
+This is the technical documentation root for xPRIMEray. For the MkDocs portal, see [index.md](index.md).
+
+---
+
+## Visual Evidence
+
+![Cathedral Probe contact sheet](assets/cathedral_probe/cathedral_probe_contact_sheet_row_0015.png)
+
+*Six-layer Cathedral Probe diagnostic contact sheet. Domain resolver stress scene, step_length=0.015, row traversal. Layers: beauty · wireframe · ownership · risk markers · transport diagram · continuity vectors.*
+
+| Finding | Measured value |
+|---|---|
+| Stride 1 band% at step 0.015 | 31.2% |
+| Stride 4 band% at step 0.015 | 0.67% |
+| Tile traversal band% at step 0.015 | 0.0% |
+| Corner probe: samples requiring precision 0.003125 | 89 / 89 |
+| Transport discontinuity vectors | 6,619 high-discontinuity pixels |
+| Phase coherence gap at band locations | 0.162 |
+
+**Key result:** transport instability is topological and localized, not globally smoothable. Scheduler decorrelation (tile traversal) eliminates row-global banding; local corner instability requires separate treatment.
+
+→ [Cathedral Probe architecture paper](Research/cathedral_probe_architecture.md)
 
 ---
 

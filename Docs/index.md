@@ -7,6 +7,24 @@ description: Curved-ray geodesic rendering in Godot 4 C# — GRIN lensing throug
 
 xPRIMEray is a curved-ray geodesic rendering system built in Godot 4 C#, spanning interactive GRIN lensing through exotic wormhole metrics. It targets academically rigorous gravitational optics with a tiered architecture from Tier 0 GRIN through Tier 3 exotic metrics including Morris-Thorne wormholes. The transport integrator solves null-geodesic equations of the Gordon effective metric using RK4, and fixture renders are checked for complete pixel classification within the eikonal limit.
 
+## Visual Evidence
+
+![Cathedral Probe contact sheet](assets/cathedral_probe/cathedral_probe_contact_sheet_row_0015.png)
+
+*Six-layer Cathedral Probe diagnostic contact sheet — domain resolver stress scene, step_length=0.015, row traversal. From left: beauty render, geometric wireframe, transport ownership map, risk probe markers, spacetime transport diagram, transport continuity vectors.*
+
+![Scheduler resonance stride plot](assets/cathedral_probe/scheduler_resonance_stride_plot.png)
+
+*Scheduler stride sweep (56-cell DOE). Stride 1: ~31% band coverage across all step lengths. Stride 4: < 0.7%. Traversal cadence — not physics precision — is the primary amplifier of row-global banding.*
+
+![Four-mode traversal comparison](assets/cathedral_probe/traversal_contact_sheet_4mode_0015.png)
+
+*Traversal mode comparison at step_length=0.015. Scheduler decorrelation (tile, checkerboard) reduces banding. Local corner instability persists unchanged across all modes — two independent failure layers confirmed.*
+
+The most important finding: **transport instability is topological and localized, not globally smoothable**. The fix is scheduler decorrelation, not precision increase or post-process smoothing. See the [Cathedral Probe architecture paper](Research/cathedral_probe_architecture.md) for the full methodology, evidence, and open questions.
+
+---
+
 ## Current Status
 
 Active development. The full wormhole observer ladder (six checkpoints through a Morris-Thorne wormhole) is test-complete under the current validation fixtures. Three feature flags gate experimental diagnostic capabilities:

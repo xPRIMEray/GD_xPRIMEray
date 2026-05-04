@@ -45,6 +45,10 @@ When debugging these renders using standard raster inspection — scanning pixel
 
 The Cathedral Probe framework evolved from repeated confrontations with this failure. It is a layered observatory: multiple passive instrumentation passes, each measuring a distinct aspect of the transport field, assembled into a composite diagnostic that lets a developer read transport coherence structure the same way a physicist reads a field diagram.
 
+![Cathedral Probe six-layer composite overlay](../assets/cathedral_probe/cathedral_probe_overlay_row_0015.png)
+
+*Six-layer Cathedral Probe composite overlay. Domain resolver stress scene, step_length=0.015, row traversal. Transport ownership boundaries are visible as high-density continuity vector clusters.*
+
 **The most important architectural finding:** transport instability is not globally smoothable. It is localized, topological, and scheduler-amplified. The right response is scheduler decorrelation first, local precision management second, global smoothing never.
 
 ---
@@ -110,6 +114,10 @@ The scheduler resonance Design of Experiments (DOE) is the strongest single piec
 
 ### 4.1 Measured Results
 
+![Scheduler resonance stride plot](../assets/cathedral_probe/scheduler_resonance_stride_plot.png)
+
+*Band percentage vs scheduler stride across all tested step lengths. Stride 1 produces ~20–32% band coverage regardless of step length. Strides 4 and 8 collapse to noise (< 0.7%).*
+
 | Step | Stride 1 band% | Stride 2 band% | Stride 4 band% | Stride 8 band% |
 |---:|---:|---:|---:|---:|
 | 0.00625 | 21.9 | 25.4 | 0.56 | 0.28 |
@@ -121,6 +129,14 @@ The scheduler resonance Design of Experiments (DOE) is the strongest single piec
 | 0.018 | 32.1 | 0.46 | 0.56 | 0.19 |
 | 0.025 | — | — | — | 0.19 |
 
+![Scheduler resonance band score plot](../assets/cathedral_probe/scheduler_resonance_band_score_plot.png)
+
+*Horizontal band score vs step length, coloured by stride. Stride 1 is flat; stride 2 shows non-monotonic sensitivity; strides 4/8 are suppressed across all step lengths.*
+
+![Scheduler resonance row-mod-stride heatmap](../assets/cathedral_probe/scheduler_resonance_stride_heatmap.png)
+
+*Band pixels by row-modulo-stride class. At stride 1, band pixels distribute across all row classes (global resonance). At stride 4, residuals concentrate in a small number of classes (localized artifact support).*
+
 The stride 1 column shows that band coverage is essentially constant across all step lengths between 0.0075 and 0.018 — approximately 20–32% regardless of how finely the transport geometry is sampled. This rules out step-length precision as the primary driver of the row-global bands.
 
 The stride 4 and stride 8 columns show that row coverage drops to noise levels across the entire step range. This confirms that the traversal cadence — not the physics — is generating the global bands.
@@ -131,11 +147,33 @@ The stride 2 column shows unusual step-length sensitivity: 25.4% band at step 0.
 
 **Interpretation (hypothesis):** The spacing of unstable transport boundaries in screen space changes with step length. When that spacing aligns with the stride-2 sampling phase, resonance is strong. This hypothesis requires a controlled screen-space boundary location measurement to confirm.
 
+### 4.2b Step-Length DOE Context
+
+![Step sensitivity band plot](../assets/cathedral_probe/doe_step_sensitivity_band_plot.png)
+
+*Band percentage vs step length at default stride. Banding increases from 0.3% at step 0.025 to 26.1% at step 0.00625 — the opposite of the expected precision benefit. Finer steps expose more transport boundary structure, creating more pixels vulnerable to scheduler resonance.*
+
 ### 4.3 Architectural Reading
 
 The DOE establishes that row-major raster traversal with stride-1 or stride-2 is a **dangerous default** for curved transport rendering. It is not dangerous because the physics is wrong — the step-length independence of the stride-1 columns shows the physics is being computed correctly. It is dangerous because it reliably amplifies whatever local instability exists into frame-scale horizontal artifacts.
 
 The correct architectural response is scheduler decorrelation — traversal patterns that break the row-phase alignment without changing the per-pixel transport computation.
+
+![Four-mode traversal contact sheet](../assets/cathedral_probe/traversal_contact_sheet_4mode_0015.png)
+
+*Four-mode traversal comparison at step_length=0.015. Checkerboard (7.9% band) and tile (10.1%) both improve over row (20.2%). Corner ROI instability (precision 0.003125) is unchanged across all modes.*
+
+![Row vs tile diff](../assets/cathedral_probe/row_vs_tile_diff_0015.png) ![Row vs checkerboard diff](../assets/cathedral_probe/row_vs_checkerboard_diff_0015.png)
+
+*Pixel difference maps: row vs tile (left) and row vs checkerboard (right) at step_length=0.015. Differences cluster at transport ownership boundaries.*
+
+![Band support by traversal mode](../assets/cathedral_probe/band_support_by_mode_0015.png)
+
+*Band support area by traversal mode. Scheduler decorrelation progressively reduces row-global artifact coverage.*
+
+![First-pass row vs column contact sheet](../assets/cathedral_probe/first_pass_traversal_contact_sheet.png)
+
+*First-pass traversal comparison: row vs column at step_length=0.015. Column changed 448 pixels but increased band% (0.118% vs 0.059%). Establishes that traversal order affects output without showing column as a fix.*
 
 ---
 
@@ -166,6 +204,15 @@ The phase coherence gap of 0.162 confirms that band locations are structurally d
 The corner transport probe is a passive microscope pass targeting geometry edge and corner regions — locations where two or more collider surfaces meet, where the transport resolver must decide which surface owns the hit. These are the highest-risk locations for transport ambiguity.
 
 ### 6.1 Measured Results
+
+![Corner required precision map](../assets/cathedral_probe/corner_required_precision_map.png)
+![Corner collider flip map](../assets/cathedral_probe/corner_collider_flip_map.png)
+
+*Left: required precision map — all 89 samples require step 0.003125. Right: collider ownership flip map — 39 flips (44% of samples) when changing from step 0.00625 to 0.003125.*
+
+![Corner convergence profile](../assets/cathedral_probe/corner_convergence_profile.png)
+
+*Decision risk profile across step sizes at the edge ROI. Mean maximum risk: 4.04. Risk does not converge to zero at any tested step size.*
 
 Corner probe `20260503T132655Z` sampled ROI `geometry:25836914057:edge_midpoint:6` at 89 points. Every sampled point required reference precision (step 0.003125) or showed ownership changes. 39 of 89 samples exhibited collider/ownership flips — locations where changing from step 0.00625 to 0.003125 changed which collider was recorded as the hit owner.
 
@@ -241,6 +288,14 @@ Transport Continuity Vectors are the newest and most precise diagnostic layer. F
 
 This vector field makes transport ownership boundaries visible as spatial structures. Where adjacent pixels hit the same collider via similar paths, continuity vectors are near-zero. Where adjacent pixels hit different colliders, or the same collider via qualitatively different paths, vectors are large.
 
+![Transport continuity vectors](../assets/cathedral_probe/continuity_vectors_row_0015.png)
+
+*Layer 5: Transport continuity vector field, step_length=0.015, row traversal. Each point encodes pixel-to-pixel ownership disagreement. 6,619 high-discontinuity vectors; all shape regions confirm `boundary_aligns_with_high_vector_density = true`.*
+
+![Transport shape regions overlay](../assets/cathedral_probe/transport_shape_regions_row_0015.png)
+
+*Transport ownership shape regions, identified by collider boundary analysis. All regions align spatially with high-density continuity vector clusters.*
+
 ### 8.1 Measured Results
 
 In the most recent row-mode capture (`20260503T231337Z`, step 0.015), 6,619 pixels showed high discontinuity (score ≥ 1.0). The maximum score was 3.0; the mean was 2.93. Every identified shape region correlated with high discontinuity vector density — all 6 shape regions confirmed `boundary_aligns_with_high_vector_density: true`.
@@ -278,6 +333,10 @@ This means:
 The Cathedral Probe is not a single tool. It is a layered methodology: a set of passive instrumentation passes assembled into a structured observatory for transport coherence behavior.
 
 The name "Cathedral" is descriptive. A cathedral is built in layers — foundation, structure, windows, decoration — each layer making a different kind of structural information legible. The probe works the same way: each layer adds a different channel of transport evidence on top of the previous, until the full transport field becomes readable.
+
+![Cathedral Probe diagnostic contact sheet](../assets/cathedral_probe/cathedral_probe_contact_sheet_row_0015.png)
+
+*All six Cathedral Probe diagnostic layers rendered individually in a contact sheet. Progressive layering: beauty → wireframe → ownership → probe markers → transport diagram → continuity vectors.*
 
 ### 9.1 Instrumentation Layers
 
@@ -502,49 +561,49 @@ The current RK4 integrator does not preserve the Hamiltonian structure of the op
 
 ## 15. Hero Image Inventory
 
-The following images are identified as the strongest visual evidence artifacts for documentation, papers, and repository narrative. All paths are relative to `output/`.
+All images below are repo-tracked at `Docs/assets/cathedral_probe/`. See [image_manifest.md](../assets/cathedral_probe/image_manifest.md) for source output paths, experiment timestamps, and full captions.
 
 ### Tier 1: Strongest Standalone Evidence
 
-| Image | Path | Caption |
+| Docs asset | Stable embed path | Evidence value |
 |---|---|---|
-| Scheduler stride DOE band plot | `doe_overnight/20260502T060652Z/DOE_overnight_band_plot.png` | Band percentage vs step length at default stride; shows non-monotonic relationship between precision and artifact severity |
-| DOE scheduler resonance summary | `doe_scheduler_resonance/20260502T155725Z/` (band_plot PNG) | Stride sweep: stride 1 → 31%, stride 4 → 0.4%, demonstrating scheduler as primary global band amplifier |
-| Tile vs row beauty comparison | `tile_commit_traversal_comparison/20260503T175829Z/beauty/step_0.015/row/*.png` and `tile/*.png` | Side-by-side: row traversal shows banding; tile traversal eliminates it; corner probe unchanged |
-| Band support by mode | `tile_commit_traversal_comparison/20260503T175829Z/band_support_by_mode.png` | Contact sheet showing band structure across all traversal modes |
-| Corner collider flip map | `corner_transport_probe/20260503T132655Z/corner_collider_flip_map.png` | 39 ownership flips in edge ROI at production step lengths |
-| Corner required precision map | `corner_transport_probe/20260503T132655Z/corner_required_precision_map.png` | All 89 samples require reference precision |
-| Transport continuity vectors | `tile_commit_traversal_comparison/20260503T202623Z/beauty/step_0.015/row/layer5_transport_continuity_vectors.png` | Vector field showing ownership disagreement topology |
-| Combined diagnostic overlay | `tile_commit_traversal_comparison/20260503T202623Z/beauty/step_0.015/row/combined_diagnostic_overlay.png` | Full six-layer composite overlay |
-| Diagnostic contact sheet | `tile_commit_traversal_comparison/20260503T202623Z/beauty/step_0.015/row/diagnostic_overlay_contact_sheet.png` | Contact sheet of all diagnostic layers |
+| `cathedral_probe_contact_sheet_row_0015.png` | `../assets/cathedral_probe/cathedral_probe_contact_sheet_row_0015.png` | Shows all six diagnostic layers in one frame |
+| `cathedral_probe_overlay_row_0015.png` | `../assets/cathedral_probe/cathedral_probe_overlay_row_0015.png` | Six-layer composite; transport boundaries visible as vector clusters |
+| `scheduler_resonance_stride_plot.png` | `../assets/cathedral_probe/scheduler_resonance_stride_plot.png` | Core quantitative finding: stride controls banding, not step size |
+| `scheduler_resonance_band_score_plot.png` | `../assets/cathedral_probe/scheduler_resonance_band_score_plot.png` | Stride 1 flat; strides 4/8 suppressed across all step lengths |
+| `traversal_contact_sheet_4mode_0015.png` | `../assets/cathedral_probe/traversal_contact_sheet_4mode_0015.png` | All four traversal modes at a glance |
+| `row_vs_tile_diff_0015.png` | `../assets/cathedral_probe/row_vs_tile_diff_0015.png` | Pixel differences cluster at ownership boundaries |
+| `continuity_vectors_row_0015.png` | `../assets/cathedral_probe/continuity_vectors_row_0015.png` | 6,619 high-discontinuity vectors; topology confirmed |
+| `transport_shape_regions_row_0015.png` | `../assets/cathedral_probe/transport_shape_regions_row_0015.png` | Ownership contours aligned with continuity vector clusters |
 
 ### Tier 2: Supporting Evidence
 
-| Image | Path | Caption |
-|---|---|---|
-| Domain confidence telemetry | `doe_overnight/20260502T060652Z/subset_A/step_0.00625/telemetry_on/*.domain_confidence.png` | Per-pixel domain confidence from telemetry pass |
-| Normal discontinuity map | `doe_overnight/20260502T060652Z/subset_A/step_0.00625/telemetry_on/*.normal_discontinuity.png` | Normal direction discontinuities at high-instability step sizes |
-| Selection flip map | `doe_overnight/20260502T060652Z/subset_A/step_0.00625/telemetry_on/*.selection_flip.png` | Per-pixel selection flip indicators |
-| Corner hit distance delta | `corner_transport_probe/20260503T132655Z/corner_hit_distance_delta.png` | Hit distance variation across step sizes at corner ROI |
-| Corner normal delta | `corner_transport_probe/20260503T132655Z/corner_normal_delta.png` | Normal direction variation at corner samples |
-| Corner convergence profile | `corner_transport_probe/20260503T132655Z/corner_convergence_profile.png` | Convergence behavior across step size sweep |
+| Docs asset | Evidence value |
+|---|---|
+| `scheduler_resonance_stride_heatmap.png` | Row-mod-stride band distribution; global vs local resonance |
+| `doe_step_sensitivity_band_plot.png` | Non-monotonic step-size response; precision ≠ artifact reduction |
+| `corner_collider_flip_map.png` | 39 ownership flips in edge ROI; genuine local ambiguity |
+| `corner_required_precision_map.png` | 89/89 require 0.003125; instability invariant to traversal mode |
+| `corner_convergence_profile.png` | Risk profile across step sizes; does not converge at any tested size |
+| `row_vs_checkerboard_diff_0015.png` | Checkerboard provides greater decorrelation than tile |
+| `band_support_by_mode_0015.png` | Quantified band-area reduction across traversal modes |
 
 ### Tier 3: Narrative Context
 
-| Image | Path | Caption |
-|---|---|---|
-| Camera distance sweep (fine-grained) | `camera_dist_sweep/fine_grained/` | Step-length sensitivity across camera distances |
-| Dual reality wormhole baseline | `dual_reality/wormhole_inset_baseline.png` (if exists) | Clean curved transport reference |
+| Docs asset | Evidence value |
+|---|---|
+| `first_pass_traversal_contact_sheet.png` | Row vs column first-pass; establishes order-dependence |
+| `row_vs_column_diff.png` | 448-pixel difference; order matters, column is not a fix |
 
-### Proposed Front Page Visual Layout
+### Front Page Visual Ordering
 
-For the repository landing page, recommended ordering:
+For `Docs/index.md` and `Docs/README.md`:
 
-1. **Combined diagnostic overlay** (hero image) — shows the full system in one image
-2. **Scheduler resonance DOE table or plot** — establishes the core quantitative finding
-3. **Tile vs row beauty side-by-side** — shows the architectural insight visually
-4. **Transport continuity vector overlay** — introduces the newest instrumentation layer
-5. **Corner required precision map** — shows localized instability persisting after scheduler fix
+1. `cathedral_probe_contact_sheet_row_0015.png` — hero: full system in one image
+2. `scheduler_resonance_stride_plot.png` — core quantitative finding
+3. `traversal_contact_sheet_4mode_0015.png` — architectural insight
+4. `continuity_vectors_row_0015.png` — newest instrumentation layer
+5. `corner_required_precision_map.png` — localized instability persists after scheduler fix
 
 ---
 
