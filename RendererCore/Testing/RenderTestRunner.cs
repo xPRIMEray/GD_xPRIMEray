@@ -2583,12 +2583,13 @@ public partial class RenderTestRunner : Node
 				Directory.CreateDirectory(domainOutputDir);
 				TryWriteDomainTelemetryArtifacts(capturePath, domainOutputDir, runExecId);
 			}
-			if (_film != null && GodotObject.IsInstanceValid(_film) && (_film.EnableTileMetricsScaffold || _film.EnableObjectSeededTileScheduler || _film.EnableReferenceGeodesicProbe))
+			if (_film != null && GodotObject.IsInstanceValid(_film) && (_film.EnableTileMetricsScaffold || _film.EnableObjectSeededTileScheduler || _film.EnableReferenceGeodesicProbe || _film.EnableReferenceTransportOracle))
 			{
 				string tileOutputDir = ResolveTelemetryHeatmapOutputDir(captureDir);
 				Directory.CreateDirectory(tileOutputDir);
 				TryWriteTileMetricsSummaryArtifacts(capturePath, tileOutputDir, runExecId);
 				TryWriteReferenceGeodesicProbeArtifacts(capturePath, tileOutputDir, runExecId);
+				TryWriteReferenceTransportOracleArtifacts(capturePath, tileOutputDir, runExecId);
 			}
 		}
 		catch (Exception ex)
@@ -3041,6 +3042,19 @@ public partial class RenderTestRunner : Node
 		if (_film.TryWriteReferenceGeodesicProbeDiagnostics(outputDir, captureStem, fixtureName, out string jsonPath, out string csvPath))
 		{
 			GD.Print($"[RenderTestRunner][ReferenceGeodesicProbe] run_id={runExecId} json={jsonPath} csv={csvPath}");
+		}
+	}
+
+	private void TryWriteReferenceTransportOracleArtifacts(string capturePath, string outputDir, ulong runExecId)
+	{
+		if (_film == null || !GodotObject.IsInstanceValid(_film) || !_film.EnableReferenceTransportOracle)
+			return;
+
+		string captureStem = Path.GetFileNameWithoutExtension(capturePath);
+		string fixtureName = GetHudFixtureToken(_requestedFixture);
+		if (_film.TryWriteReferenceTransportOracleDiagnostics(outputDir, captureStem, fixtureName, out string jsonPath))
+		{
+			GD.Print($"[RenderTestRunner][ReferenceTransportOracle] run_id={runExecId} json={jsonPath} diagnostic_only=1");
 		}
 	}
 

@@ -14,6 +14,7 @@ using RendererCore.SceneSnapshot;
 using RendererCore.Fields;
 using RendererCore.Config;
 using RendererCore.Scheduling;
+using RendererCore.Validation;
 
 public partial class GrinFilmCamera : Node
 {
@@ -1443,6 +1444,28 @@ public partial class GrinFilmCamera : Node
 	[Export] public string CornerTransportProbeManualRois = "";
 	/// <summary>Render-test-only first-pass traversal experiment. Changes pass1 visitation order only; it does not alter hit, shading, resolver, or post-processing math.</summary>
 	[Export(PropertyHint.Enum, "row,column,tile,checkerboard")] public string RenderTestFirstPassTraversalMode = "row";
+	/// <summary>Slow offline renderer-reference trajectory validation. Diagnostic-only; never feeds beauty, hit selection, shading, resolver, traversal, scheduling, or adaptive precision.</summary>
+	[Export] public bool EnableReferenceTransportOracle = false;
+	/// <summary>Manual ROI centers for ReferenceTransportOracle, formatted "x,y;x,y".</summary>
+	[Export] public string ReferenceTransportOracleManualRois = "40,35;280,35;40,145;280,145";
+	/// <summary>Maximum ROI pixels sampled by ReferenceTransportOracle.</summary>
+	[Export(PropertyHint.Range, "1,4096,1")] public int ReferenceTransportOracleMaxPixels = 64;
+	/// <summary>Odd grid patch around each ROI sampled before max-pixel capping.</summary>
+	[Export(PropertyHint.Range, "1,65,2")] public int ReferenceTransportOraclePatchSize = 9;
+	/// <summary>Comma-separated production step lengths compared against the renderer-reference trajectory.</summary>
+	[Export] public string ReferenceTransportOracleProductionSteps = "0.02,0.015,0.0125,0.00625,0.003125";
+	/// <summary>Strict oracle step length for best-known renderer-reference transport paths.</summary>
+	[Export(PropertyHint.Range, "0.0001,0.01,0.0001")] public float ReferenceTransportOracleStepLength = 0.0015625f;
+	/// <summary>Numerical tolerance used for oracle replay and epsilon-stability classification.</summary>
+	[Export(PropertyHint.Range, "0.000001,0.1,0.000001")] public float ReferenceTransportOracleTolerance = 0.0001f;
+	/// <summary>Maximum integration steps for ReferenceTransportOracle probes.</summary>
+	[Export(PropertyHint.Range, "64,262144,1")] public int ReferenceTransportOracleMaxSteps = 65536;
+	/// <summary>Same-config oracle replays per sample for trajectory replay determinism checks.</summary>
+	[Export(PropertyHint.Range, "1,8,1")] public int ReferenceTransportOracleReplayCount = 2;
+	/// <summary>Enables local refinement diagnostics around sharp transport changes. Diagnostic-only.</summary>
+	[Export] public bool ReferenceTransportOracleAdaptiveRefinement = true;
+	/// <summary>Enables neighboring-pixel trajectory-family diagnostics around oracle samples.</summary>
+	[Export] public bool ReferenceTransportOracleFamilySamples = true;
 
 
 	[ExportGroup("Ray March")]
@@ -10031,6 +10054,82 @@ private sealed class OverlayRollingWindow
 			{
 				RenderTestFirstPassTraversalMode = NormalizeRenderTestFirstPassTraversalMode(firstPassTraversalValue);
 			}
+
+			if (TryGetHudArgValue(arg, "--reference-transport-oracle=", out string transportOracleValue))
+			{
+				string normalized = transportOracleValue.Trim().ToLowerInvariant();
+				EnableReferenceTransportOracle = normalized is "1" or "true" or "on" or "yes";
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--reference-transport-oracle-manual-rois=", out string transportOracleRoisValue))
+			{
+				ReferenceTransportOracleManualRois = transportOracleRoisValue.Trim();
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--reference-transport-oracle-max-pixels=", out string transportOracleMaxPixelsValue)
+				&& int.TryParse(transportOracleMaxPixelsValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedOracleMaxPixels))
+			{
+				ReferenceTransportOracleMaxPixels = Math.Max(1, parsedOracleMaxPixels);
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--reference-transport-oracle-patch-size=", out string transportOraclePatchValue)
+				&& int.TryParse(transportOraclePatchValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedOraclePatch))
+			{
+				ReferenceTransportOraclePatchSize = Math.Max(1, parsedOraclePatch);
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--reference-transport-oracle-production-steps=", out string transportOracleStepsValue)
+				&& !string.IsNullOrWhiteSpace(transportOracleStepsValue))
+			{
+				ReferenceTransportOracleProductionSteps = transportOracleStepsValue.Trim();
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--reference-transport-oracle-step-length=", out string transportOracleStepValue)
+				&& float.TryParse(transportOracleStepValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedOracleStep))
+			{
+				ReferenceTransportOracleStepLength = Math.Max(0.00001f, parsedOracleStep);
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--reference-transport-oracle-tolerance=", out string transportOracleToleranceValue)
+				&& float.TryParse(transportOracleToleranceValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedOracleTolerance))
+			{
+				ReferenceTransportOracleTolerance = Math.Max(0.0f, parsedOracleTolerance);
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--reference-transport-oracle-max-steps=", out string transportOracleMaxStepsValue)
+				&& int.TryParse(transportOracleMaxStepsValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedOracleMaxSteps))
+			{
+				ReferenceTransportOracleMaxSteps = Math.Max(64, parsedOracleMaxSteps);
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--reference-transport-oracle-replay-count=", out string transportOracleReplayValue)
+				&& int.TryParse(transportOracleReplayValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedOracleReplay))
+			{
+				ReferenceTransportOracleReplayCount = Math.Clamp(parsedOracleReplay, 1, 8);
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--reference-transport-oracle-adaptive-refinement=", out string transportOracleAdaptiveValue))
+			{
+				string normalized = transportOracleAdaptiveValue.Trim().ToLowerInvariant();
+				ReferenceTransportOracleAdaptiveRefinement = normalized is "1" or "true" or "on" or "yes";
+				continue;
+			}
+
+			if (TryGetHudArgValue(arg, "--reference-transport-oracle-family-samples=", out string transportOracleFamilyValue))
+			{
+				string normalized = transportOracleFamilyValue.Trim().ToLowerInvariant();
+				ReferenceTransportOracleFamilySamples = normalized is "1" or "true" or "on" or "yes";
+				continue;
+			}
 		}
 	}
 
@@ -11711,6 +11810,776 @@ private sealed class OverlayRollingWindow
 			sb.Append("}");
 		}
 		sb.Append("]}");
+		return sb.ToString();
+	}
+
+	private sealed class ReferenceTransportOracleSample
+	{
+		public string SampleId = "";
+		public string RoiId = "";
+		public Vector2I Pixel;
+		public string Source = "manual_roi";
+	}
+
+	private sealed class ReferenceTransportOraclePathResult
+	{
+		public string SampleId = "";
+		public string RoiId = "";
+		public Vector2I Pixel;
+		public float StepLength;
+		public int RepeatIndex;
+		public bool Hit;
+		public ulong ColliderId;
+		public int DomainId = -1;
+		public Vector3 HitPosition = Vector3.Zero;
+		public Vector3 HitNormal = Vector3.Up;
+		public float HitDistance = -1f;
+		public float PathLength;
+		public int StepCount;
+		public int BoundaryEventCount;
+		public int PortalEventCount;
+		public int RefinementCount;
+		public string RefinementReason = "";
+		public string TerminationReason = "";
+		public long RuntimeMs;
+		public float CurvatureMax;
+		public float CurvatureMean;
+		public float DkMax;
+		public float D2kMax;
+		public float TurnMax;
+		public readonly List<RayBeamRenderer.RaySeg> Segments = new();
+		public readonly List<Vector2I> ScreenPolyline = new();
+	}
+
+	private readonly struct ReferenceTransportOracleComparison
+	{
+		public readonly ReferenceTransportOracleSample Sample;
+		public readonly float ProductionStep;
+		public readonly ReferenceTransportOraclePathResult Production;
+		public readonly ReferenceTransportOraclePathResult Oracle;
+		public readonly bool OracleRepeatMatch;
+		public readonly float OracleSelfPathDelta;
+		public readonly float OracleSelfGraphDelta;
+		public readonly string EpsilonClass;
+		public readonly string SecondaryTags;
+		public readonly float DecisionRisk;
+
+		public ReferenceTransportOracleComparison(
+			ReferenceTransportOracleSample sample,
+			float productionStep,
+			ReferenceTransportOraclePathResult production,
+			ReferenceTransportOraclePathResult oracle,
+			bool oracleRepeatMatch,
+			float oracleSelfPathDelta,
+			float oracleSelfGraphDelta,
+			string epsilonClass,
+			string secondaryTags,
+			float decisionRisk)
+		{
+			Sample = sample;
+			ProductionStep = productionStep;
+			Production = production;
+			Oracle = oracle;
+			OracleRepeatMatch = oracleRepeatMatch;
+			OracleSelfPathDelta = oracleSelfPathDelta;
+			OracleSelfGraphDelta = oracleSelfGraphDelta;
+			EpsilonClass = epsilonClass ?? "unresolved";
+			SecondaryTags = secondaryTags ?? "";
+			DecisionRisk = decisionRisk;
+		}
+	}
+
+	public bool TryWriteReferenceTransportOracleDiagnostics(string outputDir, string captureStem, string fixtureName, out string jsonPath)
+	{
+		// ReferenceTransportOracle is a renderer-validation instrument only. Its
+		// outputs are never consumed by beauty rendering, traversal, hit selection,
+		// shading, resolver scoring, scheduling, or adaptive precision.
+		jsonPath = string.Empty;
+		if (!EnableReferenceTransportOracle || string.IsNullOrWhiteSpace(outputDir))
+			return false;
+		if (_rbr == null || !GodotObject.IsInstanceValid(_rbr) || _cam == null || !GodotObject.IsInstanceValid(_cam))
+			return false;
+		if (!TryResolveRenderSpaceState(out PhysicsDirectSpaceState3D space, out string renderSpaceSource))
+			return false;
+
+		SceneSnapshot snap = FrameSnapshotBus.CurrentSnapshot;
+		if (snap == null)
+			return false;
+
+		ResolveEffectiveConfig(out EffectiveConfig cfg);
+		RayBeamRenderer.FieldSourceSnap[] fieldSnaps = GetFieldSourceSnaps(in cfg, _frameIndex, out bool hasSources, out _);
+		float beta = 0f;
+		float gamma = 2f;
+		if (cfg.UseCameraPropsBetaGamma)
+		{
+			beta = ReadFloat(_cam, "Beta", 0f);
+			gamma = ReadFloat(_cam, "Gamma", 2f);
+		}
+		Vector3 center = cfg.RayMarch.FieldCenterIsCamera ? _cam.GlobalPosition : cfg.RayMarch.FieldCenter;
+		Vector3 bendDir = _cam.GlobalTransform.Basis.X;
+		float pxPerRad = 0f;
+		if (cfg.RayMarch.UseScreenSpaceCollisionCadence)
+		{
+			float fovY = Mathf.DegToRad(_cam.Fov);
+			float vpHeight = Mathf.Max(1f, _cam.GetViewport()?.GetVisibleRect().Size.Y ?? 720f);
+			pxPerRad = (vpHeight * 0.5f) / Mathf.Max(1e-6f, Mathf.Tan(fovY * 0.5f));
+		}
+
+		List<ReferenceTransportOracleSample> samples = SelectReferenceTransportOracleSamples();
+		if (samples.Count == 0)
+			return false;
+
+		float oracleStep = Math.Max(0.00001f, ReferenceTransportOracleStepLength);
+		float tolerance = Math.Max(0.0f, ReferenceTransportOracleTolerance);
+		int replayCount = Math.Clamp(ReferenceTransportOracleReplayCount, 1, 8);
+		float[] productionSteps = ParseReferenceProbeStepLengths(ReferenceTransportOracleProductionSteps, new[] { 0.015f });
+		Array.Sort(productionSteps);
+		Array.Reverse(productionSteps);
+
+		int savedStepsPerRay = _rbr.StepsPerRay;
+		float savedStepLength = _rbr.StepLength;
+		float savedMinStepLength = _rbr.MinStepLength;
+		float savedMaxStepLength = _rbr.MaxStepLength;
+		int savedCollisionEvery = _rbr.CollisionEveryNSteps;
+		int savedMinCollisionEvery = _rbr.MinCollisionEveryNSteps;
+		float savedMetricTolerance = _rbr.MetricAdaptiveErrorTolerance;
+		int savedMetricSubdivisions = _rbr.MetricAdaptiveMaxSubdivisions;
+		var oracleRuns = new List<ReferenceTransportOraclePathResult>(samples.Count * replayCount);
+		var primaryOracleBySample = new Dictionary<string, ReferenceTransportOraclePathResult>(StringComparer.Ordinal);
+		var oracleRepeatBySample = new Dictionary<string, (bool Match, float PathDelta, float GraphDelta)>(StringComparer.Ordinal);
+		var comparisons = new List<ReferenceTransportOracleComparison>(samples.Count * productionSteps.Length);
+		var familyRows = new List<(string FamilyId, string SampleId, int PixelX, int PixelY, int OffsetX, int OffsetY, string FamilyClass, ulong ColliderId, int BoundaryEvents, float PathLength)>();
+		var costRows = new List<(string SampleId, float StepLength, long RuntimeMs, int StepCount, int EventCount, int RefinementCount, float GraphStability, float DecisionRisk)>();
+		Stopwatch totalWatch = Stopwatch.StartNew();
+
+		try
+		{
+			foreach (ReferenceTransportOracleSample sample in samples)
+			{
+				var replays = new List<ReferenceTransportOraclePathResult>(replayCount);
+				for (int repeat = 0; repeat < replayCount; repeat++)
+				{
+					ReferenceTransportOraclePathResult oracle = RunReferenceTransportOraclePath(
+						space,
+						renderSpaceSource,
+						fixtureName,
+						sample,
+						oracleStep,
+						repeat,
+						Math.Max(64, ReferenceTransportOracleMaxSteps),
+						true,
+						center,
+						beta,
+						gamma,
+						bendDir,
+						fieldSnaps,
+						hasSources,
+						pxPerRad,
+						in cfg);
+					replays.Add(oracle);
+					oracleRuns.Add(oracle);
+				}
+
+				ReferenceTransportOraclePathResult primary = replays[0];
+				primaryOracleBySample[sample.SampleId] = primary;
+				float selfPathDelta = 0f;
+				float selfGraphDelta = 0f;
+				bool replayMatch = true;
+				for (int i = 1; i < replays.Count; i++)
+				{
+					selfPathDelta = Math.Max(selfPathDelta, Math.Abs(replays[i].PathLength - primary.PathLength));
+					selfGraphDelta = Math.Max(selfGraphDelta, ComputeReferenceTransportGraphDelta(replays[i], primary));
+					replayMatch &= selfPathDelta <= Math.Max(0.01f, tolerance) && selfGraphDelta <= 0f;
+				}
+				oracleRepeatBySample[sample.SampleId] = (replayMatch, selfPathDelta, selfGraphDelta);
+				costRows.Add((sample.SampleId, oracleStep, primary.RuntimeMs, primary.StepCount, primary.BoundaryEventCount, primary.RefinementCount, replayMatch ? 1f : 0f, 0f));
+
+				foreach (float productionStep in productionSteps)
+				{
+					int maxSteps = Math.Max(64, Math.Min(ReferenceTransportOracleMaxSteps, Mathf.CeilToInt(Mathf.Max(0.001f, cfg.Film.MaxDistance) / Math.Max(0.0001f, productionStep)) + 4));
+					ReferenceTransportOraclePathResult production = RunReferenceTransportOraclePath(
+						space,
+						renderSpaceSource,
+						fixtureName,
+						sample,
+						productionStep,
+						0,
+						maxSteps,
+						false,
+						center,
+						beta,
+						gamma,
+						bendDir,
+						fieldSnaps,
+						hasSources,
+						pxPerRad,
+						in cfg);
+					float risk = ComputeReferenceTransportDecisionRisk(production, primary);
+					string epsilonClass = ClassifyReferenceTransportEpsilon(production, primary, replayMatch, tolerance);
+					string secondaryTags = BuildReferenceTransportSecondaryTags(production, primary);
+					comparisons.Add(new ReferenceTransportOracleComparison(
+						sample,
+						productionStep,
+						production,
+						primary,
+						replayMatch,
+						selfPathDelta,
+						selfGraphDelta,
+						epsilonClass,
+						secondaryTags,
+						risk));
+					costRows.Add((sample.SampleId, productionStep, production.RuntimeMs, production.StepCount, production.BoundaryEventCount, production.RefinementCount, 1f - Math.Min(1f, risk), risk));
+				}
+
+				if (ReferenceTransportOracleFamilySamples)
+				{
+					foreach (Vector2I offset in BuildReferenceTransportFamilyOffsets())
+					{
+						Vector2I familyPixel = new(sample.Pixel.X + offset.X, sample.Pixel.Y + offset.Y);
+						if (familyPixel.X < 0 || familyPixel.Y < 0 || familyPixel.X >= _filmWidth || familyPixel.Y >= _filmHeight)
+							continue;
+						var familySample = new ReferenceTransportOracleSample
+						{
+							SampleId = sample.SampleId + $":family:{offset.X}:{offset.Y}",
+							RoiId = sample.RoiId,
+							Pixel = familyPixel,
+							Source = "trajectory_family"
+						};
+						ReferenceTransportOraclePathResult family = RunReferenceTransportOraclePath(
+							space,
+							renderSpaceSource,
+							fixtureName,
+							familySample,
+							oracleStep,
+							0,
+							Math.Max(64, ReferenceTransportOracleMaxSteps),
+							true,
+							center,
+							beta,
+							gamma,
+							bendDir,
+							fieldSnaps,
+							hasSources,
+							pxPerRad,
+							in cfg);
+						string familyClass = ClassifyReferenceTransportFamily(primary, family, tolerance, oracleRepeatBySample[sample.SampleId].Match);
+						familyRows.Add((sample.SampleId + $":family:{offset.X}:{offset.Y}", sample.SampleId, familyPixel.X, familyPixel.Y, offset.X, offset.Y, familyClass, family.ColliderId, family.BoundaryEventCount, family.PathLength));
+					}
+				}
+			}
+		}
+		finally
+		{
+			_rbr.StepsPerRay = savedStepsPerRay;
+			_rbr.StepLength = savedStepLength;
+			_rbr.MinStepLength = savedMinStepLength;
+			_rbr.MaxStepLength = savedMaxStepLength;
+			_rbr.CollisionEveryNSteps = savedCollisionEvery;
+			_rbr.MinCollisionEveryNSteps = savedMinCollisionEvery;
+			_rbr.MetricAdaptiveErrorTolerance = savedMetricTolerance;
+			_rbr.MetricAdaptiveMaxSubdivisions = savedMetricSubdivisions;
+		}
+
+		totalWatch.Stop();
+		Directory.CreateDirectory(outputDir);
+		string safeStem = string.IsNullOrWhiteSpace(captureStem) ? "capture" : captureStem.Trim();
+		jsonPath = Path.Combine(outputDir, safeStem + ".reference_transport_oracle.json");
+		string parentJsonlPath = Path.Combine(outputDir, safeStem + ".reference_transport_oracle_parent_paths.jsonl");
+		string segmentCsvPath = Path.Combine(outputDir, safeStem + ".reference_transport_oracle_segments.csv");
+		string comparisonCsvPath = Path.Combine(outputDir, safeStem + ".reference_transport_oracle_comparisons.csv");
+		string familyCsvPath = Path.Combine(outputDir, safeStem + ".reference_transport_oracle_family.csv");
+		string costCsvPath = Path.Combine(outputDir, safeStem + ".reference_transport_oracle_cost_curves.csv");
+		File.WriteAllText(parentJsonlPath, BuildReferenceTransportOracleParentJsonl(oracleRuns));
+		File.WriteAllText(segmentCsvPath, BuildReferenceTransportOracleSegmentsCsv(oracleRuns));
+		File.WriteAllText(comparisonCsvPath, BuildReferenceTransportOracleComparisonsCsv(comparisons));
+		File.WriteAllText(familyCsvPath, BuildReferenceTransportOracleFamilyCsv(familyRows));
+		File.WriteAllText(costCsvPath, BuildReferenceTransportOracleCostCsv(costRows));
+		File.WriteAllText(jsonPath, BuildReferenceTransportOracleJson(fixtureName, snap, safeStem, oracleStep, tolerance, samples.Count, oracleRuns.Count, comparisons.Count, familyRows.Count, totalWatch.ElapsedMilliseconds, parentJsonlPath, segmentCsvPath, comparisonCsvPath, familyCsvPath, costCsvPath));
+		GD.Print($"[ReferenceTransportOracle] written samples={samples.Count} oracle_runs={oracleRuns.Count} comparisons={comparisons.Count} runtime_ms={totalWatch.ElapsedMilliseconds} json={jsonPath}");
+		return true;
+	}
+
+	private List<ReferenceTransportOracleSample> SelectReferenceTransportOracleSamples()
+	{
+		var samples = new List<ReferenceTransportOracleSample>();
+		var seen = new HashSet<(int X, int Y)>();
+		Vector2I[] rois = ParseCornerTransportProbeManualRois(ReferenceTransportOracleManualRois);
+		if (rois.Length == 0)
+			rois = ParseCornerTransportProbeManualRois("40,35;280,35;40,145;280,145");
+		int patchSize = ReferenceTransportOraclePatchSize % 2 == 0 ? ReferenceTransportOraclePatchSize + 1 : ReferenceTransportOraclePatchSize;
+		int half = Math.Max(0, Math.Min(32, patchSize / 2));
+		int maxPixels = Math.Max(1, ReferenceTransportOracleMaxPixels);
+		for (int r = 0; r < rois.Length && samples.Count < maxPixels; r++)
+		{
+			Vector2I roi = rois[r];
+			for (int dy = -half; dy <= half && samples.Count < maxPixels; dy++)
+			for (int dx = -half; dx <= half && samples.Count < maxPixels; dx++)
+			{
+				int x = roi.X + dx;
+				int y = roi.Y + dy;
+				if (x < 0 || y < 0 || x >= _filmWidth || y >= _filmHeight)
+					continue;
+				if (!seen.Add((x, y)))
+					continue;
+				samples.Add(new ReferenceTransportOracleSample
+				{
+					SampleId = $"oracle_px_{samples.Count:0000}_{x}_{y}",
+					RoiId = $"manual_roi_{r}",
+					Pixel = new Vector2I(x, y),
+					Source = "manual_roi"
+				});
+			}
+		}
+		return samples;
+	}
+
+	private ReferenceTransportOraclePathResult RunReferenceTransportOraclePath(
+		PhysicsDirectSpaceState3D space,
+		string renderSpaceSource,
+		string fixtureName,
+		ReferenceTransportOracleSample sample,
+		float stepLength,
+		int repeatIndex,
+		int maxSteps,
+		bool oracleMode,
+		Vector3 center,
+		float beta,
+		float gamma,
+		Vector3 bendDir,
+		RayBeamRenderer.FieldSourceSnap[] fieldSnaps,
+		bool hasSources,
+		float pxPerRad,
+		in EffectiveConfig cfg)
+	{
+		Stopwatch sw = Stopwatch.StartNew();
+		_rbr.StepLength = stepLength;
+		_rbr.MinStepLength = stepLength;
+		_rbr.MaxStepLength = stepLength;
+		_rbr.CollisionEveryNSteps = 1;
+		_rbr.MinCollisionEveryNSteps = 1;
+		if (oracleMode && ReferenceTransportOracleAdaptiveRefinement)
+		{
+			_rbr.MetricAdaptiveErrorTolerance = Math.Min(_rbr.MetricAdaptiveErrorTolerance, Math.Max(1e-6f, ReferenceTransportOracleTolerance));
+			_rbr.MetricAdaptiveMaxSubdivisions = Math.Max(_rbr.MetricAdaptiveMaxSubdivisions, 6);
+		}
+		int requestedSteps = Mathf.CeilToInt(Mathf.Max(0.001f, cfg.Film.MaxDistance) / Math.Max(0.0001f, stepLength));
+		_rbr.StepsPerRay = Math.Max(1, Math.Min(Math.Max(64, maxSteps), requestedSteps));
+
+		Vector2 viewportPixel = FilmPixelToViewportPixel(_cam, sample.Pixel, _filmWidth, _filmHeight);
+		Vector3 origin = _cam.ProjectRayOrigin(viewportPixel);
+		Vector3 dir = _cam.ProjectRayNormal(viewportPixel).Normalized();
+		int maxSeg = Math.Max(4, maxSteps + 4);
+		var segs = new RayBeamRenderer.RaySeg[maxSeg];
+		var quickRayParams = new PhysicsRayQueryParameters3D
+		{
+			CollisionMask = cfg.RayMarch.CollisionMask,
+			CollideWithBodies = true,
+			CollideWithAreas = true,
+			HitFromInside = false,
+			HitBackFaces = false
+		};
+
+		int segCount = _rbr.BuildRaySegmentsCamera_Pass1(
+			space,
+			ref quickRayParams,
+			_cam,
+			pxPerRad,
+			_cam.GlobalPosition,
+			origin,
+			dir,
+			bendDir,
+			center,
+			beta,
+			gamma,
+			fieldSnaps,
+			hasSources,
+			cfg.Film.MaxDistance,
+			segs,
+			0,
+			segs.Length,
+			default,
+			false,
+			0f,
+			true,
+			true,
+			1,
+			0f,
+			renderSpaceSource,
+			"",
+			fixtureName,
+			oracleMode ? "reference_transport_oracle" : "reference_transport_oracle_production_compare",
+			out RayBeamRenderer.Pass1HitInfo hitInfo,
+			out bool stoppedEarly,
+			out _,
+			out int stepsIntegrated,
+			out _,
+			out _,
+			out _,
+			out _,
+			out _,
+			out _,
+			out _,
+			out float curvatureMax,
+			out float curvatureMean,
+			out float dkMax,
+			out float d2kMax,
+			out _,
+			out float turnMax,
+			FrameSnapshotBus.CurrentSnapshot?.CurvatureGrid,
+			null);
+
+		sw.Stop();
+		var result = new ReferenceTransportOraclePathResult
+		{
+			SampleId = sample.SampleId,
+			RoiId = sample.RoiId,
+			Pixel = sample.Pixel,
+			StepLength = stepLength,
+			RepeatIndex = repeatIndex,
+			Hit = hitInfo.Found,
+			ColliderId = hitInfo.ColliderId,
+			DomainId = -1,
+			HitPosition = hitInfo.Found ? hitInfo.Position : Vector3.Zero,
+			HitNormal = hitInfo.Found ? hitInfo.Normal : Vector3.Up,
+			HitDistance = hitInfo.Found ? hitInfo.Distance : -1f,
+			StepCount = stepsIntegrated,
+			TerminationReason = stoppedEarly ? (hitInfo.Found ? "hit" : "stopped_early") : "max_distance_or_step_budget",
+			RuntimeMs = sw.ElapsedMilliseconds,
+			CurvatureMax = curvatureMax,
+			CurvatureMean = curvatureMean,
+			DkMax = dkMax,
+			D2kMax = d2kMax,
+			TurnMax = turnMax
+		};
+		for (int i = 0; i < segCount; i++)
+		{
+			result.Segments.Add(segs[i]);
+			if (TryProjectWorldToFilmPixel(_cam, segs[i].B, _filmWidth, _filmHeight, out Vector2I screen))
+				result.ScreenPolyline.Add(screen);
+		}
+		if (segCount > 0)
+		{
+			RayBeamRenderer.RaySeg last = segs[segCount - 1];
+			result.PathLength = last.TraveledB;
+			result.BoundaryEventCount = last.EventCount;
+			result.PortalEventCount = last.TransformCount;
+			if (oracleMode && ReferenceTransportOracleAdaptiveRefinement)
+			{
+				result.RefinementCount = CountReferenceTransportRefinementTriggers(segs, segCount);
+				result.RefinementReason = result.RefinementCount > 0 ? "boundary_or_curvature_spike" : "";
+			}
+		}
+		else
+		{
+			result.PathLength = 0f;
+		}
+		return result;
+	}
+
+	private static int CountReferenceTransportRefinementTriggers(RayBeamRenderer.RaySeg[] segs, int count)
+	{
+		int triggers = 0;
+		for (int i = 1; i < count; i++)
+		{
+			if (segs[i].EventCount != segs[i - 1].EventCount ||
+				segs[i].BoundaryCrossings != segs[i - 1].BoundaryCrossings ||
+				segs[i].RadiusBound > Math.Max(0.05f, segs[i - 1].RadiusBound * 4f))
+			{
+				triggers++;
+			}
+		}
+		return triggers;
+	}
+
+	private static Vector2I[] BuildReferenceTransportFamilyOffsets()
+	{
+		return new[]
+		{
+			Vector2I.Zero,
+			new Vector2I(1, 0),
+			new Vector2I(-1, 0),
+			new Vector2I(0, 1),
+			new Vector2I(0, -1),
+			new Vector2I(1, 1),
+			new Vector2I(1, -1),
+			new Vector2I(-1, 1),
+			new Vector2I(-1, -1)
+		};
+	}
+
+	private static float ComputeReferenceTransportGraphDelta(ReferenceTransportOraclePathResult a, ReferenceTransportOraclePathResult b)
+	{
+		float delta = 0f;
+		if (a.Hit != b.Hit) delta += 1f;
+		if (a.ColliderId != b.ColliderId) delta += 1f;
+		if (a.DomainId != b.DomainId) delta += 1f;
+		if (a.BoundaryEventCount != b.BoundaryEventCount) delta += 1f;
+		if (a.PortalEventCount != b.PortalEventCount) delta += 1f;
+		return delta;
+	}
+
+	private static float ComputeReferenceTransportDecisionRisk(ReferenceTransportOraclePathResult production, ReferenceTransportOraclePathResult oracle)
+	{
+		float risk = ComputeReferenceTransportGraphDelta(production, oracle);
+		if (production.Hit && oracle.Hit)
+		{
+			float hitScale = Math.Max(1f, Math.Abs(oracle.HitDistance));
+			risk += Math.Abs(production.HitDistance - oracle.HitDistance) / hitScale;
+			float normalDot = Mathf.Clamp(production.HitNormal.Normalized().Dot(oracle.HitNormal.Normalized()), -1f, 1f);
+			risk += (float)(Math.Acos(normalDot) / Math.PI);
+		}
+		float pathScale = Math.Max(1f, oracle.PathLength);
+		risk += Math.Abs(production.PathLength - oracle.PathLength) / pathScale;
+		return risk;
+	}
+
+	private static string ClassifyReferenceTransportEpsilon(ReferenceTransportOraclePathResult production, ReferenceTransportOraclePathResult oracle, bool replayStable, float tolerance)
+	{
+		if (!replayStable)
+			return "multi_solution";
+		float eps = Math.Max(0.01f, tolerance);
+		bool ownershipMatch = production.Hit == oracle.Hit && production.ColliderId == oracle.ColliderId && production.DomainId == oracle.DomainId;
+		bool eventMatch = production.BoundaryEventCount == oracle.BoundaryEventCount && production.PortalEventCount == oracle.PortalEventCount;
+		float pathDelta = Math.Abs(production.PathLength - oracle.PathLength);
+		float hitDelta = production.Hit && oracle.Hit ? Math.Abs(production.HitDistance - oracle.HitDistance) : 0f;
+		if (ownershipMatch && eventMatch && pathDelta <= eps && hitDelta <= eps)
+			return "stable";
+		if (!ownershipMatch || !eventMatch)
+			return pathDelta <= Math.Max(0.25f, eps * 8f) ? "threshold_snap" : "unresolved";
+		return "unresolved";
+	}
+
+	private static string BuildReferenceTransportSecondaryTags(ReferenceTransportOraclePathResult production, ReferenceTransportOraclePathResult oracle)
+	{
+		var tags = new List<string>();
+		if (production.Hit != oracle.Hit)
+			tags.Add("trajectory_escape");
+		if (production.ColliderId != oracle.ColliderId || production.DomainId != oracle.DomainId)
+			tags.Add("phase_flip");
+		if (production.BoundaryEventCount != oracle.BoundaryEventCount || production.PortalEventCount != oracle.PortalEventCount)
+			tags.Add("boundary_chatter");
+		float pathScale = Math.Max(1f, oracle.PathLength);
+		if (Math.Abs(production.PathLength - oracle.PathLength) / pathScale > 0.05f)
+			tags.Add("plateau_oscillation");
+		return string.Join("|", tags);
+	}
+
+	private static string ClassifyReferenceTransportFamily(ReferenceTransportOraclePathResult center, ReferenceTransportOraclePathResult family, float tolerance, bool replayStable)
+	{
+		if (!replayStable)
+			return "multi_solution_basin";
+		if (center.Hit != family.Hit)
+			return "trajectory_collapse";
+		if (center.ColliderId != family.ColliderId || center.DomainId != family.DomainId)
+			return "ownership_split";
+		if (center.BoundaryEventCount != family.BoundaryEventCount || center.PortalEventCount != family.PortalEventCount)
+			return "bifurcation";
+		if (Math.Abs(center.PathLength - family.PathLength) <= Math.Max(0.02f, tolerance * 4f))
+			return "stable_family";
+		return "bifurcation";
+	}
+
+	private static string BuildReferenceTransportOracleParentJsonl(List<ReferenceTransportOraclePathResult> rows)
+	{
+		var sb = new StringBuilder(rows.Count * 512);
+		foreach (ReferenceTransportOraclePathResult row in rows)
+		{
+			sb.Append("{");
+			sb.Append("\"sample_id\":\"").Append(JsonEscapeForArtifact(row.SampleId)).Append("\",");
+			sb.Append("\"roi_id\":\"").Append(JsonEscapeForArtifact(row.RoiId)).Append("\",");
+			sb.Append("\"repeat_index\":").Append(row.RepeatIndex).Append(",");
+			sb.Append("\"pixel_x\":").Append(row.Pixel.X).Append(",");
+			sb.Append("\"pixel_y\":").Append(row.Pixel.Y).Append(",");
+			sb.Append("\"oracle_step_length\":").Append(FormatJsonFloatForArtifact(row.StepLength)).Append(",");
+			sb.Append("\"hit\":").Append(row.Hit ? "true" : "false").Append(",");
+			sb.Append("\"collider_id\":").Append(row.ColliderId).Append(",");
+			sb.Append("\"domain_id\":").Append(row.DomainId).Append(",");
+			sb.Append("\"hit_distance\":").Append(FormatJsonFloatForArtifact(row.HitDistance)).Append(",");
+			sb.Append("\"hit_normal_x\":").Append(FormatJsonFloatForArtifact(row.HitNormal.X)).Append(",");
+			sb.Append("\"hit_normal_y\":").Append(FormatJsonFloatForArtifact(row.HitNormal.Y)).Append(",");
+			sb.Append("\"hit_normal_z\":").Append(FormatJsonFloatForArtifact(row.HitNormal.Z)).Append(",");
+			sb.Append("\"path_length\":").Append(FormatJsonFloatForArtifact(row.PathLength)).Append(",");
+			sb.Append("\"step_count\":").Append(row.StepCount).Append(",");
+			sb.Append("\"boundary_event_count\":").Append(row.BoundaryEventCount).Append(",");
+			sb.Append("\"portal_event_count\":").Append(row.PortalEventCount).Append(",");
+			sb.Append("\"termination_reason\":\"").Append(JsonEscapeForArtifact(row.TerminationReason)).Append("\",");
+			sb.Append("\"screen_polyline\":[");
+			for (int i = 0; i < row.ScreenPolyline.Count; i++)
+			{
+				if (i > 0) sb.Append(",");
+				sb.Append("{\"x\":").Append(row.ScreenPolyline[i].X).Append(",\"y\":").Append(row.ScreenPolyline[i].Y).Append("}");
+			}
+			sb.Append("]}");
+			sb.AppendLine();
+		}
+		return sb.ToString();
+	}
+
+	private static string BuildReferenceTransportOracleSegmentsCsv(List<ReferenceTransportOraclePathResult> rows)
+	{
+		var sb = new StringBuilder(rows.Count * 512);
+		sb.AppendLine("sample_id,repeat_index,segment_index,a_x,a_y,a_z,b_x,b_y,b_z,traveled_b,radius_bound,boundary_event_count,domain_event_count,portal_event_count,curvature_kmax_a,curvature_kmax_mid,curvature_kmax_b,field_accel_mag_mid");
+		foreach (ReferenceTransportOraclePathResult row in rows)
+		{
+			for (int i = 0; i < row.Segments.Count; i++)
+			{
+				RayBeamRenderer.RaySeg seg = row.Segments[i];
+				sb.Append(JsonEscapeForArtifact(row.SampleId)).Append(',')
+					.Append(row.RepeatIndex).Append(',')
+					.Append(i).Append(',')
+					.Append(FormatJsonFloatForArtifact(seg.A.X)).Append(',')
+					.Append(FormatJsonFloatForArtifact(seg.A.Y)).Append(',')
+					.Append(FormatJsonFloatForArtifact(seg.A.Z)).Append(',')
+					.Append(FormatJsonFloatForArtifact(seg.B.X)).Append(',')
+					.Append(FormatJsonFloatForArtifact(seg.B.Y)).Append(',')
+					.Append(FormatJsonFloatForArtifact(seg.B.Z)).Append(',')
+					.Append(FormatJsonFloatForArtifact(seg.TraveledB)).Append(',')
+					.Append(FormatJsonFloatForArtifact(seg.RadiusBound)).Append(',')
+					.Append(seg.EventCount).Append(',')
+					.Append(seg.BoundaryCrossings).Append(',')
+					.Append(seg.TransformCount).Append(',')
+					.Append(FormatJsonFloatForArtifact(seg.RadiusBound)).Append(',')
+					.Append(FormatJsonFloatForArtifact(seg.RadiusBound)).Append(',')
+					.Append(FormatJsonFloatForArtifact(seg.RadiusBound)).Append(',')
+					.AppendLine();
+			}
+		}
+		return sb.ToString();
+	}
+
+	private static string BuildReferenceTransportOracleComparisonsCsv(List<ReferenceTransportOracleComparison> rows)
+	{
+		var sb = new StringBuilder(rows.Count * 256);
+		sb.AppendLine("sample_id,roi_id,pixel_x,pixel_y,production_step_length,oracle_step_length,collider_match,domain_match,normal_angle_delta,hit_distance_delta,path_length_delta,boundary_event_delta,step_count_delta,ownership_graph_agreement,epsilon_stability_class,secondary_tags,decision_risk,oracle_repeat_match,oracle_self_path_delta,oracle_self_graph_delta,comparison_confidence");
+		foreach (ReferenceTransportOracleComparison row in rows)
+		{
+			float normalDelta = 0f;
+			if (row.Production.Hit && row.Oracle.Hit)
+			{
+				float dot = Mathf.Clamp(row.Production.HitNormal.Normalized().Dot(row.Oracle.HitNormal.Normalized()), -1f, 1f);
+				normalDelta = Mathf.RadToDeg((float)Math.Acos(dot));
+			}
+			float hitDelta = row.Production.Hit && row.Oracle.Hit ? Math.Abs(row.Production.HitDistance - row.Oracle.HitDistance) : -1f;
+			float pathDelta = Math.Abs(row.Production.PathLength - row.Oracle.PathLength);
+			int boundaryDelta = Math.Abs(row.Production.BoundaryEventCount - row.Oracle.BoundaryEventCount) + Math.Abs(row.Production.PortalEventCount - row.Oracle.PortalEventCount);
+			int stepDelta = Math.Abs(row.Production.StepCount - row.Oracle.StepCount);
+			bool colliderMatch = row.Production.Hit == row.Oracle.Hit && row.Production.ColliderId == row.Oracle.ColliderId;
+			bool domainMatch = row.Production.DomainId == row.Oracle.DomainId;
+			float agreement = 1f - Math.Min(1f, row.DecisionRisk);
+			sb.Append(JsonEscapeForArtifact(row.Sample.SampleId)).Append(',')
+				.Append(JsonEscapeForArtifact(row.Sample.RoiId)).Append(',')
+				.Append(row.Sample.Pixel.X).Append(',')
+				.Append(row.Sample.Pixel.Y).Append(',')
+				.Append(FormatJsonFloatForArtifact(row.ProductionStep)).Append(',')
+				.Append(FormatJsonFloatForArtifact(row.Oracle.StepLength)).Append(',')
+				.Append(colliderMatch ? "1" : "0").Append(',')
+				.Append(domainMatch ? "1" : "0").Append(',')
+				.Append(FormatJsonFloatForArtifact(normalDelta)).Append(',')
+				.Append(FormatJsonFloatForArtifact(hitDelta)).Append(',')
+				.Append(FormatJsonFloatForArtifact(pathDelta)).Append(',')
+				.Append(boundaryDelta).Append(',')
+				.Append(stepDelta).Append(',')
+				.Append(FormatJsonFloatForArtifact(agreement)).Append(',')
+				.Append(JsonEscapeForArtifact(row.EpsilonClass)).Append(',')
+				.Append(JsonEscapeForArtifact(row.SecondaryTags)).Append(',')
+				.Append(FormatJsonFloatForArtifact(row.DecisionRisk)).Append(',')
+				.Append(row.OracleRepeatMatch ? "1" : "0").Append(',')
+				.Append(FormatJsonFloatForArtifact(row.OracleSelfPathDelta)).Append(',')
+				.Append(FormatJsonFloatForArtifact(row.OracleSelfGraphDelta)).Append(',')
+				.Append(row.OracleRepeatMatch ? "high" : "low")
+				.AppendLine();
+		}
+		return sb.ToString();
+	}
+
+	private static string BuildReferenceTransportOracleFamilyCsv(List<(string FamilyId, string SampleId, int PixelX, int PixelY, int OffsetX, int OffsetY, string FamilyClass, ulong ColliderId, int BoundaryEvents, float PathLength)> rows)
+	{
+		var sb = new StringBuilder(rows.Count * 96);
+		sb.AppendLine("family_id,sample_id,pixel_x,pixel_y,offset_x,offset_y,family_class,collider_id,boundary_event_count,path_length");
+		foreach (var row in rows)
+		{
+			sb.Append(JsonEscapeForArtifact(row.FamilyId)).Append(',')
+				.Append(JsonEscapeForArtifact(row.SampleId)).Append(',')
+				.Append(row.PixelX).Append(',')
+				.Append(row.PixelY).Append(',')
+				.Append(row.OffsetX).Append(',')
+				.Append(row.OffsetY).Append(',')
+				.Append(JsonEscapeForArtifact(row.FamilyClass)).Append(',')
+				.Append(row.ColliderId).Append(',')
+				.Append(row.BoundaryEvents).Append(',')
+				.Append(FormatJsonFloatForArtifact(row.PathLength))
+				.AppendLine();
+		}
+		return sb.ToString();
+	}
+
+	private static string BuildReferenceTransportOracleCostCsv(List<(string SampleId, float StepLength, long RuntimeMs, int StepCount, int EventCount, int RefinementCount, float GraphStability, float DecisionRisk)> rows)
+	{
+		var sb = new StringBuilder(rows.Count * 96);
+		sb.AppendLine("sample_id,step_length,runtime_ms,step_count,event_count,refinement_count,graph_stability,decision_risk");
+		foreach (var row in rows)
+		{
+			sb.Append(JsonEscapeForArtifact(row.SampleId)).Append(',')
+				.Append(FormatJsonFloatForArtifact(row.StepLength)).Append(',')
+				.Append(row.RuntimeMs).Append(',')
+				.Append(row.StepCount).Append(',')
+				.Append(row.EventCount).Append(',')
+				.Append(row.RefinementCount).Append(',')
+				.Append(FormatJsonFloatForArtifact(row.GraphStability)).Append(',')
+				.Append(FormatJsonFloatForArtifact(row.DecisionRisk))
+				.AppendLine();
+		}
+		return sb.ToString();
+	}
+
+	private string BuildReferenceTransportOracleJson(
+		string fixtureName,
+		SceneSnapshot snap,
+		string captureStem,
+		float oracleStep,
+		float tolerance,
+		int sampleCount,
+		int oracleRunCount,
+		int comparisonCount,
+		int familyCount,
+		long runtimeMs,
+		string parentJsonlPath,
+		string segmentCsvPath,
+		string comparisonCsvPath,
+		string familyCsvPath,
+		string costCsvPath)
+	{
+		var sb = new StringBuilder(2048);
+		sb.Append("{");
+		sb.Append("\"schema_version\":1,");
+		sb.Append("\"feature\":\"ReferenceTransportOracle\",");
+		sb.Append("\"wording\":\"best-known renderer-reference transport path\",");
+		sb.Append("\"diagnostic_only\":true,");
+		sb.Append("\"guardrail\":\"").Append(JsonEscapeForArtifact(ReferenceTransportOracle.DiagnosticOnlyGuardrail)).Append("\",");
+		sb.Append("\"not_physical_gr_validation\":true,");
+		sb.Append("\"capture_stem\":\"").Append(JsonEscapeForArtifact(captureStem)).Append("\",");
+		sb.Append("\"fixture\":\"").Append(JsonEscapeForArtifact(fixtureName)).Append("\",");
+		sb.Append("\"scene_fingerprint\":\"").Append(JsonEscapeForArtifact(snap?.DebugSummary() ?? "")).Append("\",");
+		sb.Append("\"oracle_step_length\":").Append(FormatJsonFloatForArtifact(oracleStep)).Append(",");
+		sb.Append("\"tolerance\":").Append(FormatJsonFloatForArtifact(tolerance)).Append(",");
+		sb.Append("\"max_steps\":").Append(Math.Max(64, ReferenceTransportOracleMaxSteps)).Append(",");
+		sb.Append("\"replay_count\":").Append(Math.Clamp(ReferenceTransportOracleReplayCount, 1, 8)).Append(",");
+		sb.Append("\"adaptive_local_refinement\":").Append(ReferenceTransportOracleAdaptiveRefinement ? "true" : "false").Append(",");
+		sb.Append("\"trajectory_family_samples\":").Append(ReferenceTransportOracleFamilySamples ? "true" : "false").Append(",");
+		sb.Append("\"sample_count\":").Append(sampleCount).Append(",");
+		sb.Append("\"oracle_run_count\":").Append(oracleRunCount).Append(",");
+		sb.Append("\"comparison_count\":").Append(comparisonCount).Append(",");
+		sb.Append("\"family_count\":").Append(familyCount).Append(",");
+		sb.Append("\"runtime_ms\":").Append(runtimeMs).Append(",");
+		sb.Append("\"missing_optional_fields\":[\"domain_events\",\"field_accel_mag_mid\"],");
+		sb.Append("\"outputs\":{");
+		sb.Append("\"parent_paths_jsonl\":\"").Append(JsonEscapeForArtifact(parentJsonlPath)).Append("\",");
+		sb.Append("\"segments_csv\":\"").Append(JsonEscapeForArtifact(segmentCsvPath)).Append("\",");
+		sb.Append("\"comparisons_csv\":\"").Append(JsonEscapeForArtifact(comparisonCsvPath)).Append("\",");
+		sb.Append("\"family_csv\":\"").Append(JsonEscapeForArtifact(familyCsvPath)).Append("\",");
+		sb.Append("\"cost_curves_csv\":\"").Append(JsonEscapeForArtifact(costCsvPath)).Append("\"");
+		sb.Append("}");
+		sb.Append("}");
 		return sb.ToString();
 	}
 
