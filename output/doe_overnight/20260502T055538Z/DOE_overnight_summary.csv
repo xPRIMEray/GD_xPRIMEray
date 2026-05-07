@@ -1,2 +1,0 @@
-timestamp,subset,step_length,mode,stride,cell_dir,effective_status,beauty_hash,hash_matches_off,changed_pixels,band_pixels,band_percent,changed_bbox,notes
-2026-05-02T05:56:04Z,A,0.025,off,,/home/bb/code/godot_xPRIMEray/output/doe_overnight/20260502T055538Z/subset_A/step_0.025/off,0,1149d6dd4071b43c2a394c68b62b1aca4113ea48e10d26a0a75717e4879b6717,true,0,572,0.9930,none,godot_shutdown_abort_after_harness_success;default_stride

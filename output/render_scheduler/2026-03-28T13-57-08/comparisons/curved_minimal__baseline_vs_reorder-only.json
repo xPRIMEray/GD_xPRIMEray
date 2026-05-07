@@ -1,9 +1,0 @@
-{
-  "fixture": "curved_minimal",
-  "leftMode": "baseline",
-  "rightMode": "reorder-only",
-  "status": "ok",
-  "leftPath": "/home/bb/code/godot_xPRIMEray/output/render_test_scheduler_compare/2026-03-28T13-57-08/images/curved_minimal__baseline__baseline_prune_off__scheduler-baseline-observe-only__subtile-8__targetms-1000__stride-2__runid-1.png",
-  "rightPath": "/home/bb/code/godot_xPRIMEray/output/render_test_scheduler_compare/2026-03-28T13-57-08/images/curved_minimal__reorder-only__baseline_prune_off__scheduler-reorder-only__subtile-8__targetms-1000__stride-2__runid-1.png",
-  "ssim": 1.0,
-  "meanAbsDiff": 

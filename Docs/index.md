@@ -35,6 +35,19 @@ Active development. The full wormhole observer ladder (six checkpoints through a
 
 The bridge (post-throat backstep) is confirmed as the transport anomaly: 366 segments/crossing vs. 50–153 at all other checkpoints (z-score 4.40). Three independent anomaly detectors agree.
 
+Following scheduler decorrelation, a ReferenceTransportOracle ROI sweep identified a compact unresolved transport island in the domain resolver stress scene (x=36..44, y=31..37). Dense island microscopy (289 samples) confirmed precision closure: all pixels seal at step 0.00625, with zero oracle replay failures. The island was not independently flagged by the Cathedral Probe continuity vectors at step 0.015 — demonstrating that oracle microscopy surfaces transport topology that phase-space diagnostics miss.
+
+| Island measurement | Value |
+|---|---|
+| ROI sweep unresolved pixels | 54 / 320 comparisons (16.9%) |
+| Island bbox | x=36..44, y=31..37 |
+| Dense pass samples | 289 |
+| Sealed at step 0.00625 | true (289/289) |
+| Mean decision-risk delta (0.00625 vs 0.003125) | 0.000189 |
+| Oracle replay failures | 0 |
+
+→ [Transport Island Microscopy paper](Research/transport_island_microscopy.md)
+
 ## Architecture
 
 xPRIMEray uses a tiered transport hierarchy: Tier 0 GRIN ray integration → Tier 1 metric parameter extraction → Tier 2 Gordon Metric bridge → Tier 3 exotic metrics. The multi-scene wormhole system joins two causally isolated overspaces at the wormhole throat. The hermetic fixture rule (`escaped_no_hit = 0`) enforces complete pixel classification. See [architecture/overview.md](architecture/overview.md) for the pipeline, stored-hit system, and domain emergence, and [architecture_overview.md](architecture_overview.md) for subsystem contracts and data-flow diagrams.

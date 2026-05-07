@@ -1,9 +1,0 @@
-Image Path: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_009_wormhole_witness_throat/2026-04-19T15-16-50/throat_depth_map.png
-Written: 1
-Throat Pixels: 5291
-Max Interaction Count: 69
-Mean Interaction Count: 1.382158
-Summary: throatPx=5291|max=69|mean=1.382
-Legend: 0=no_throat_interaction 1=single_transform 2=two_interactions 4=multi_interaction 8=deep_transform 16+=capped_peak
-Legend Image: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_009_wormhole_witness_throat/2026-04-19T15-16-50/throat_depth_legend.png
-Annotated Image: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_009_wormhole_witness_throat/2026-04-19T15-16-50/throat_depth_annotated.png

@@ -1,1 +1,0 @@
-Field Radial Profile: unavailable (analysis_capture_mode_not_supported:transport_classification)

@@ -1,5 +1,0 @@
-{
-  "enabled": false,
-  "reason": "analysis_capture_mode_not_supported:transport_classification",
-  "analysis_capture_mode": "transport_classification"
-}

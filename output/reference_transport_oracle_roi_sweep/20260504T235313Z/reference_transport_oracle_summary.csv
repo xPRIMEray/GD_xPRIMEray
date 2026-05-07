@@ -1,2 +1,0 @@
-timestamp,traversal,stride,effective_status,cell_dir,sample_count,comparison_count,stable_count,threshold_snap_count,unresolved_count,multi_solution_count,oracle_repeat_fail_count,runtime_ms,report,notes
-2026-05-04T23:53:37Z,row,1,0,/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_roi_sweep/20260504T235313Z/cells/row_stride_1,8,8,0,0,8,0,0,1336,/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_roi_sweep/20260504T235313Z/cells/row_stride_1/reference_transport_oracle_report.md,clean_exit
