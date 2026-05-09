@@ -25,6 +25,27 @@ xPRIMEray is an experimental curved-ray transport engine built in Godot 4 C#. It
 
 ---
 
+## Current Milestone: Curved-Field Validation Ladder
+
+![Curved-field diagnostic quad panel](assets/curved_field_validation_ladder/curved_field_validation_quad_panel.png)
+
+*Four-panel diagnostic layout: rendered frame with curved transport active · hit-normal vector overlay · camera cross-section minimap showing field geometry in the vertical camera plane · transport/field overlay with ownership seams and oracle comparison context. Oracle replay failures: 0. All 64 sampled pixels sealed at step 0.02.*
+
+The curved-field validation ladder is the first end-to-end validation packet for curved ray transport in xPRIMEray. It runs the complete diagnostic stack — ReferenceTransportOracle step-size convergence, six-layer Cathedral Probe overlay, camera cross-section minimap, and curved-vs-control storyboard — against a GRIN field scene with curved transport active. The result confirms that the oracle, diagnostic infrastructure, and transport ownership machinery operate correctly under non-trivial geodesic curvature.
+
+| Measurement | Value |
+|---|---|
+| Oracle step | 0.0015625 (8× finer than production floor) |
+| Sampled pixels | 64 |
+| Oracle replay failures | 0 |
+| Sealed at step 0.02 | 64 / 64 |
+| Mean decision-risk delta (0.00625 vs 0.003125) | 0.000090 |
+| Comparability status | `warning` — control scene differs by camera pose key |
+
+All 64 sampled pixels achieve `Stable` classification at the coarsest tested step, with near-zero risk delta between the two finest steps. No transport topology anomalies were identified in this scene. The comparability warning records that the baseline used the `domain_resolver_stress` scene while the curved run used `curved_minimal_backdrop`; a matched-pose control was not available at run time — the storyboard is evidence that the ladder infrastructure wires correctly under this constraint, not a head-to-head geometry comparison.
+
+---
+
 ## Core Capabilities
 
 ### Transport

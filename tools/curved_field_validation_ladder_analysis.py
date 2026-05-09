@@ -307,6 +307,207 @@ def infer_diminishing_returns(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def step_key(value: Any) -> str:
+    parsed = parse_float(value)
+    if math.isfinite(parsed):
+        return f"{parsed:.10g}"
+    return str(value)
+
+
+def load_oracle_agreement_by_step(root: Path, role: str) -> dict[str, dict[str, Any]]:
+    grouped: dict[str, dict[str, Any]] = {}
+    oracle_root = root / role / "oracle"
+    for path in sorted(oracle_root.glob("*.reference_transport_oracle_comparisons.csv")):
+        for row in load_csv(path):
+            key = step_key(row.get("production_step_length", ""))
+            if not key:
+                continue
+            bucket = grouped.setdefault(key, {
+                "oracle_comparison_count": 0,
+                "oracle_stable_count": 0,
+                "oracle_unresolved_count": 0,
+                "oracle_agreement_sum": 0.0,
+                "oracle_agreement_rows": 0,
+            })
+            bucket["oracle_comparison_count"] += 1
+            phase = str(row.get("epsilon_stability_class", "")).strip().lower()
+            if phase == "stable":
+                bucket["oracle_stable_count"] += 1
+            elif phase:
+                bucket["oracle_unresolved_count"] += 1
+            agreement = parse_float(row.get("ownership_graph_agreement"))
+            if math.isfinite(agreement):
+                bucket["oracle_agreement_sum"] += agreement
+                bucket["oracle_agreement_rows"] += 1
+    for bucket in grouped.values():
+        total = max(1, int(bucket["oracle_comparison_count"]))
+        agreement_rows = int(bucket["oracle_agreement_rows"])
+        bucket["oracle_stability_rate"] = round(float(bucket["oracle_stable_count"]) / total, 6)
+        bucket["oracle_agreement_rate"] = round(float(bucket["oracle_agreement_sum"]) / agreement_rows, 6) if agreement_rows else ""
+    return grouped
+
+
+def classify_transport_quality_phase(row: dict[str, Any], prev: dict[str, Any] | None) -> str:
+    budget_pct = parse_float(row.get("budget_exhaustion_percent"), 0.0)
+    budget_count = parse_int(row.get("budget_exhausted_pixel_count"), 0)
+    if budget_count > 0 or budget_pct > 0.0:
+        return "budget_saturated"
+
+    unresolved = parse_int(row.get("unresolved_count"), 0)
+    oracle_stability = parse_float(row.get("oracle_stability_rate"))
+    oracle_agreement = parse_float(row.get("oracle_agreement_rate"))
+    if unresolved > 0:
+        return "underresolved"
+    if math.isfinite(oracle_stability) and oracle_stability < 0.75:
+        return "underresolved"
+    if math.isfinite(oracle_agreement) and oracle_agreement < 0.75:
+        return "underresolved"
+
+    if prev is None:
+        return "converging"
+
+    node_delta = abs(parse_int(row.get("graph_node_delta_prev"), 0))
+    edge_delta = abs(parse_int(row.get("graph_edge_delta_prev"), 0))
+    seam_delta = abs(parse_int(row.get("seam_length_delta_prev"), 0))
+    unresolved_delta = abs(parse_int(row.get("unresolved_delta_prev"), 0))
+    merge_delta = abs(parse_int(row.get("merge_split_delta_prev"), 0))
+    hit_delta = abs(parse_int(row.get("hit_count_delta_prev"), 0))
+    oracle_stability_delta = parse_float(row.get("oracle_stability_delta_prev"), 0.0)
+    oracle_agreement_delta = parse_float(row.get("oracle_agreement_delta_prev"), 0.0)
+
+    topology_changed = node_delta > 0 or edge_delta > 0 or seam_delta > 0 or merge_delta > 0
+    scalar_improved = oracle_stability_delta > 0.05 or oracle_agreement_delta > 0.05 or unresolved_delta > 0
+    hit_changed = hit_delta > 0
+    if topology_changed or scalar_improved or hit_changed:
+        return "converging"
+    return "plateau"
+
+
+def recommended_action_for_phase(phase: str) -> str:
+    return {
+        "budget_saturated": "increase max traversal/step budget or use adaptive budget scaling",
+        "underresolved": "reduce step size or improve oracle/island focus",
+        "converging": "continue ladder around neighboring steps",
+        "plateau": "candidate operating window / diminishing returns region",
+    }.get(phase, "")
+
+
+def annotate_transport_quality_phases(root: Path, rows: list[dict[str, Any]], steps: list[str]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    annotated: list[dict[str, Any]] = []
+    summary: dict[str, Any] = {}
+    for role in ("control", "curved"):
+        oracle = load_oracle_agreement_by_step(root, role)
+        role_by_step = {str(r.get("step_length")): r for r in rows if r.get("role") == role}
+        role_rows: list[dict[str, Any]] = []
+        prev: dict[str, Any] | None = None
+        for step in steps:
+            base = dict(role_by_step.get(step, {"role": role, "step_length": step}))
+            oracle_bucket = oracle.get(step_key(step), {})
+            base.update({
+                "oracle_comparison_count": oracle_bucket.get("oracle_comparison_count", ""),
+                "oracle_stable_count": oracle_bucket.get("oracle_stable_count", ""),
+                "oracle_unresolved_count": oracle_bucket.get("oracle_unresolved_count", ""),
+                "oracle_stability_rate": oracle_bucket.get("oracle_stability_rate", ""),
+                "oracle_agreement_rate": oracle_bucket.get("oracle_agreement_rate", ""),
+                "node_persistence_rate": read_role_step_metrics(root, role, step).get("node_persistence_rate", ""),
+            })
+            if prev is None:
+                base.update({
+                    "hit_count_delta_prev": "",
+                    "graph_node_delta_prev": "",
+                    "graph_edge_delta_prev": "",
+                    "seam_length_delta_prev": "",
+                    "unresolved_delta_prev": "",
+                    "merge_split_delta_prev": "",
+                    "oracle_stability_delta_prev": "",
+                    "oracle_agreement_delta_prev": "",
+                })
+            else:
+                base.update({
+                    "hit_count_delta_prev": parse_int(base.get("hit_count"), 0) - parse_int(prev.get("hit_count"), 0),
+                    "graph_node_delta_prev": parse_int(base.get("graph_node_count"), 0) - parse_int(prev.get("graph_node_count"), 0),
+                    "graph_edge_delta_prev": parse_int(base.get("graph_edge_count"), 0) - parse_int(prev.get("graph_edge_count"), 0),
+                    "seam_length_delta_prev": parse_int(base.get("seam_length_px_total"), 0) - parse_int(prev.get("seam_length_px_total"), 0),
+                    "unresolved_delta_prev": parse_int(base.get("unresolved_count"), 0) - parse_int(prev.get("unresolved_count"), 0),
+                    "merge_split_delta_prev": parse_int(base.get("merge_split_count"), 0) - parse_int(prev.get("merge_split_count"), 0),
+                    "oracle_stability_delta_prev": round(parse_float(base.get("oracle_stability_rate"), 0.0) - parse_float(prev.get("oracle_stability_rate"), 0.0), 6)
+                        if math.isfinite(parse_float(base.get("oracle_stability_rate"))) and math.isfinite(parse_float(prev.get("oracle_stability_rate"))) else "",
+                    "oracle_agreement_delta_prev": round(parse_float(base.get("oracle_agreement_rate"), 0.0) - parse_float(prev.get("oracle_agreement_rate"), 0.0), 6)
+                        if math.isfinite(parse_float(base.get("oracle_agreement_rate"))) and math.isfinite(parse_float(prev.get("oracle_agreement_rate"))) else "",
+                })
+            phase = classify_transport_quality_phase(base, prev)
+            base["transport_quality_phase"] = phase
+            base["recommended_next_action"] = recommended_action_for_phase(phase)
+            role_rows.append(base)
+            annotated.append(base)
+            prev = base
+
+        phase_counts: dict[str, int] = {}
+        for row in role_rows:
+            phase_counts[str(row.get("transport_quality_phase", ""))] = phase_counts.get(str(row.get("transport_quality_phase", "")), 0) + 1
+        plateau_start = next((str(r.get("step_length")) for r in role_rows if r.get("transport_quality_phase") == "plateau"), "")
+        budget_start = next((str(r.get("step_length")) for r in role_rows if r.get("transport_quality_phase") == "budget_saturated"), "")
+        summary[role] = {
+            "phase_counts": phase_counts,
+            "plateau_start_step": plateau_start,
+            "budget_saturation_start_step": budget_start,
+        }
+    return annotated, summary
+
+
+def draw_transport_quality_phase_plot(path: Path, phase_rows: list[dict[str, Any]], steps: list[str]) -> None:
+    roles = ["control", "curved"]
+    colors = {
+        "underresolved": (210, 70, 70, 255),
+        "converging": (255, 190, 40, 255),
+        "plateau": (60, 180, 90, 255),
+        "budget_saturated": (145, 85, 230, 255),
+    }
+    cell_w = 86
+    cell_h = 54
+    left = 118
+    top = 64
+    width = left + cell_w * max(1, len(steps)) + 24
+    height = top + cell_h * len(roles) + 88
+    img = Image.new("RGBA", (width, height), (14, 16, 22, 255))
+    draw = ImageDraw.Draw(img)
+    font = ImageFont.load_default()
+    draw.text((16, 14), "Transport Quality Phase Ladder", fill=(245, 248, 255, 255), font=font)
+    draw.text((16, 30), "passive classifier: graph/seam/oracle/budget diagnostics", fill=(200, 205, 215, 255), font=font)
+    row_by_key = {(r.get("role"), str(r.get("step_length"))): r for r in phase_rows}
+    for i, step in enumerate(steps):
+        x = left + i * cell_w
+        draw.text((x + 4, top - 22), str(step), fill=(235, 235, 235, 255), font=font)
+    for j, role in enumerate(roles):
+        y = top + j * cell_h
+        draw.text((16, y + 18), role, fill=(245, 248, 255, 255), font=font)
+        for i, step in enumerate(steps):
+            x = left + i * cell_w
+            row = row_by_key.get((role, step), {})
+            phase = str(row.get("transport_quality_phase", ""))
+            color = colors.get(phase, (80, 80, 90, 255))
+            draw.rectangle((x, y, x + cell_w - 8, y + cell_h - 10), fill=color, outline=(255, 255, 255, 90), width=1)
+            label = phase.replace("_", "\n")
+            draw.multiline_text((x + 6, y + 8), label, fill=(0, 0, 0, 235), font=font, spacing=1)
+            budget = parse_float(row.get("budget_exhaustion_percent"))
+            oracle = parse_float(row.get("oracle_stability_rate"))
+            note = ""
+            if math.isfinite(budget) and budget > 0:
+                note = f"budget {budget:.2f}%"
+            elif math.isfinite(oracle):
+                note = f"oracle {oracle:.2f}"
+            if note:
+                draw.text((x + 4, y + cell_h - 22), note, fill=(20, 20, 25, 230), font=font)
+    legend_x = 18
+    legend_y = height - 58
+    for idx, (name, color) in enumerate(colors.items()):
+        x = legend_x + idx * 155
+        draw.rectangle((x, legend_y, x + 14, legend_y + 10), fill=color)
+        draw.text((x + 20, legend_y - 2), name, fill=(235, 238, 245, 255), font=font)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    img.convert("RGB").save(path)
+
+
 def graph_delta_vs_control(root: Path, primary_step: str) -> dict[str, Any]:
     curved = read_role_step_metrics(root, "curved", primary_step)
     control = read_role_step_metrics(root, "control", primary_step)
@@ -517,9 +718,40 @@ def analyze(root: Path, repo_root: Path) -> dict[str, Any]:
     curved_metrics = read_role_step_metrics(root, "curved", primary_step)
     control_metrics = read_role_step_metrics(root, "control", primary_step)
     ladder_budget_rows = collect_ladder_step_metrics(root, "control", steps) + collect_ladder_step_metrics(root, "curved", steps)
-    write_csv(root / "curved_ladder_budget_saturation.csv", ladder_budget_rows, [
+    phase_rows, phase_summary = annotate_transport_quality_phases(root, ladder_budget_rows, steps)
+    draw_transport_quality_phase_plot(root / "transport_quality_phase_plot.png", phase_rows, steps)
+    write_csv(root / "transport_quality_phase.csv", phase_rows, [
         "role",
         "step_length",
+        "transport_quality_phase",
+        "recommended_next_action",
+        "hit_count",
+        "hit_count_delta_prev",
+        "unresolved_count",
+        "unresolved_delta_prev",
+        "graph_node_count",
+        "graph_node_delta_prev",
+        "graph_edge_count",
+        "graph_edge_delta_prev",
+        "seam_length_px_total",
+        "seam_length_delta_prev",
+        "merge_split_count",
+        "merge_split_delta_prev",
+        "node_persistence_rate",
+        "budget_exhausted_pixel_count",
+        "budget_exhaustion_percent",
+        "oracle_comparison_count",
+        "oracle_stable_count",
+        "oracle_unresolved_count",
+        "oracle_stability_rate",
+        "oracle_stability_delta_prev",
+        "oracle_agreement_rate",
+        "oracle_agreement_delta_prev",
+    ])
+    write_csv(root / "curved_ladder_budget_saturation.csv", phase_rows, [
+        "role",
+        "step_length",
+        "transport_quality_phase",
         "hit_count",
         "unresolved_count",
         "graph_node_count",
@@ -624,6 +856,9 @@ def analyze(root: Path, repo_root: Path) -> dict[str, Any]:
         "graph_delta_vs_control": delta,
         "budget_saturation_ladder_csv": str(root / "curved_ladder_budget_saturation.csv"),
         "budget_diminishing_returns": budget_diminishing_returns,
+        "transport_quality_phase_csv": str(root / "transport_quality_phase.csv"),
+        "transport_quality_phase_plot": str(root / "transport_quality_phase_plot.png"),
+        "transport_quality_phase_summary": phase_summary,
         "beauty_hashes": beauty_hashes,
         "curved_metrics": curved_metrics,
         "control_metrics": control_metrics,
@@ -664,8 +899,17 @@ def analyze(root: Path, repo_root: Path) -> dict[str, Any]:
         f"- diagnostics changed vs control: {diagnostics_changed}",
         f"- graph_delta_vs_control: `{json.dumps(delta, sort_keys=True)}`",
         f"- budget diminishing returns: `{json.dumps(budget_diminishing_returns, sort_keys=True)}`",
+        f"- transport quality phases: `{json.dumps(phase_summary, sort_keys=True)}`",
         f"- oracle comparisons: {oracle_json.get('comparison_count', '')}",
         f"- budget saturation ladder: `curved_ladder_budget_saturation.csv`",
+        f"- transport quality phase plot: `transport_quality_phase_plot.png`",
+        "",
+        "## Phase Interpretation",
+        "",
+        "- `underresolved`: transport evidence is still missing or disagrees with oracle/sample diagnostics; reduce step size or focus the oracle/island microscope.",
+        "- `converging`: graph, seam, hit, or oracle metrics are still changing; continue the ladder around neighboring step values.",
+        "- `plateau`: metrics are locally stable without budget saturation; treat this as a candidate operating window or diminishing-returns region.",
+        "- `budget_saturated`: traversal budget exhaustion is present; increase max traversal/step budget or use adaptive budget scaling before trusting smaller-step conclusions.",
         "",
         "## Comparability Warnings",
         "",
