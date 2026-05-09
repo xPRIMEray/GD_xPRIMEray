@@ -26,6 +26,7 @@ CURVED_SCENE="${CURVED_LADDER_CURVED_SCENE:-res://test-curved-minimal-backdrop.t
 CURVED_FIXTURE="${CURVED_LADDER_CURVED_FIXTURE:-curved_minimal_backdrop}"
 CONTROL_SCENE="${CURVED_LADDER_CONTROL_SCENE:-res://test-domain-resolver-stress.tscn}"
 CONTROL_FIXTURE="${CURVED_LADDER_CONTROL_FIXTURE:-domain_resolver_stress}"
+CONTROL_MODE="${CURVED_LADDER_CONTROL_MODE:-scene_control}"
 FRAMES="${CURVED_LADDER_FRAMES:-90}"
 WARMUP="${CURVED_LADDER_WARMUP:-5}"
 RES="${CURVED_LADDER_RES:-320x180}"
@@ -56,6 +57,29 @@ if [[ "$SMOKE" == "1" ]]; then
 	ORACLE_MAX_STEPS="${CURVED_LADDER_ORACLE_MAX_STEPS:-4096}"
 fi
 
+CONTROL_COMPARISON_TYPE="scene_control"
+CONTROL_COMPARISON_REASON="configured scene-control fixture"
+MATCHED_CONTROL_ATTEMPTED=false
+MATCHED_CONTROL_SAFE_CURVATURE_BYPASS_SUPPORTED=false
+case "$CONTROL_MODE" in
+	scene_control|"")
+		CONTROL_COMPARISON_TYPE="scene_control"
+		CONTROL_COMPARISON_REASON="configured scene-control fixture"
+		;;
+	matched_pose)
+		MATCHED_CONTROL_ATTEMPTED=true
+		# The current curved minimal fixtures validate curvature engagement through
+		# CurvedMinimalFingerprint and do not expose a render-test CLI that safely
+		# disables only curvature while preserving the same scene/camera pose.
+		CONTROL_COMPARISON_TYPE="scene_control"
+		CONTROL_COMPARISON_REASON="matched_pose requested, but no safe fixture-level curvature bypass or matched-pose flat variant is available; using configured scene-control, not matched-control"
+		;;
+	*)
+		echo "[curved-ladder] unsupported CURVED_LADDER_CONTROL_MODE=$CONTROL_MODE" >&2
+		exit 2
+		;;
+esac
+
 mkdir -p "$OUTPUT_DIR"
 LOG="$OUTPUT_DIR/curved_field_validation_ladder.log"
 exec > >(tee -a "$LOG") 2>&1
@@ -63,6 +87,8 @@ exec > >(tee -a "$LOG") 2>&1
 echo "[curved-ladder] output=$OUTPUT_DIR"
 echo "[curved-ladder] curved=$CURVED_FIXTURE scene=$CURVED_SCENE"
 echo "[curved-ladder] control=$CONTROL_FIXTURE scene=$CONTROL_SCENE"
+echo "[curved-ladder] control_mode=$CONTROL_MODE control_comparison_type=$CONTROL_COMPARISON_TYPE"
+echo "[curved-ladder] control_comparison_reason=$CONTROL_COMPARISON_REASON"
 echo "[curved-ladder] frames=$FRAMES warmup=$WARMUP res=$RES traversal=$TRAVERSAL stride=$STRIDE"
 echo "[curved-ladder] steps=$STEPS_RAW primary=$PRIMARY_STEP reference=$REFERENCE_STEP"
 echo "[curved-ladder] diagnostic-only: outputs never feed rendering, scheduling, hit selection, shading, resolver decisions, traversal, or adaptive precision"
@@ -89,6 +115,11 @@ cat > "$OUTPUT_DIR/run_metadata.json" <<EOF
   "curved_fixture": "$CURVED_FIXTURE",
   "control_scene": "$CONTROL_SCENE",
   "control_fixture": "$CONTROL_FIXTURE",
+  "requested_control_mode": "$CONTROL_MODE",
+  "control_comparison_type": "$CONTROL_COMPARISON_TYPE",
+  "control_comparison_reason": "$CONTROL_COMPARISON_REASON",
+  "matched_control_attempted": $MATCHED_CONTROL_ATTEMPTED,
+  "matched_control_safe_curvature_bypass_supported": $MATCHED_CONTROL_SAFE_CURVATURE_BYPASS_SUPPORTED,
   "resolution": "$RES",
   "frames": $FRAMES,
   "warmup": $WARMUP,
@@ -197,6 +228,11 @@ write_cell_metadata() {
   "phase": "$phase",
   "fixture": "$fixture",
   "scene": "$scene",
+  "requested_control_mode": "$CONTROL_MODE",
+  "control_comparison_type": "$CONTROL_COMPARISON_TYPE",
+  "control_comparison_reason": "$CONTROL_COMPARISON_REASON",
+  "matched_control_attempted": $MATCHED_CONTROL_ATTEMPTED,
+  "matched_control_safe_curvature_bypass_supported": $MATCHED_CONTROL_SAFE_CURVATURE_BYPASS_SUPPORTED,
   "step_length": "$step",
   "source_step_length": "$step",
   "reference_step_length": "$REFERENCE_STEP",

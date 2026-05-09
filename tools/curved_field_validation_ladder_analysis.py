@@ -267,7 +267,12 @@ def metadata_for(root: Path, role: str, step: str) -> dict[str, Any]:
     return load_json(root / role / "steps" / f"step_{step}" / "metadata.json")
 
 
-def compare_configs(root: Path, steps: list[str]) -> dict[str, Any]:
+def compare_configs(
+    root: Path,
+    steps: list[str],
+    control_comparison_type: str = "",
+    control_comparison_reason: str = "",
+) -> dict[str, Any]:
     keys = [
         "resolution",
         "camera_pose_key",
@@ -296,7 +301,13 @@ def compare_configs(root: Path, steps: list[str]) -> dict[str, Any]:
             if not matched:
                 warnings.append({"step": step, "field": key, "control": cv, "curved": uv})
     status = "matched" if not warnings else "warning"
-    return {"comparability_status": status, "warnings": warnings, "comparisons": comparisons}
+    return {
+        "comparability_status": status,
+        "control_comparison_type": control_comparison_type,
+        "control_comparison_reason": control_comparison_reason,
+        "warnings": warnings,
+        "comparisons": comparisons,
+    }
 
 
 def fit_image(path: Path | None, size: tuple[int, int] = PANEL_SIZE) -> Image.Image:
@@ -402,6 +413,8 @@ def write_readme(root: Path, summary: dict[str, Any]) -> None:
         "## Current status",
         "",
         f"- Comparability status: {summary.get('comparability_status', '')}",
+        f"- Control comparison type: {summary.get('control_comparison_type', '')}",
+        f"- Control comparison reason: {summary.get('control_comparison_reason', '')}",
         f"- Curved validation status: {summary.get('curved_validation_status', '')}",
     ]
     (root / "README.md").write_text("\n".join(lines) + "\n")
@@ -412,6 +425,9 @@ def analyze(root: Path, repo_root: Path) -> dict[str, Any]:
     run_meta = load_json(root / "run_metadata.json")
     steps = [s for s in str(run_meta.get("step_ladder", "")).split(",") if s]
     primary_step = str(run_meta.get("primary_step", steps[0] if steps else "0.015"))
+    requested_control_mode = str(run_meta.get("requested_control_mode", "scene_control"))
+    control_comparison_type = str(run_meta.get("control_comparison_type", "scene_control"))
+    control_comparison_reason = str(run_meta.get("control_comparison_reason", "configured scene-control fixture"))
     inventory = candidate_inventory(repo_root, root)
     write_csv(root / "curved_fixture_inventory.csv", inventory, [
         "scene_path",
@@ -437,7 +453,7 @@ def analyze(root: Path, repo_root: Path) -> dict[str, Any]:
 
     curved_primary_log = root / "curved" / "steps" / f"step_{primary_step}" / "run.log"
     curvature_evidence = parse_curvature_evidence(curved_primary_log)
-    comparability = compare_configs(root, steps)
+    comparability = compare_configs(root, steps, control_comparison_type, control_comparison_reason)
     if not curvature_evidence["valid"]:
         comparability["comparability_status"] = "invalid"
     delta = graph_delta_vs_control(root, primary_step)
@@ -473,12 +489,18 @@ def analyze(root: Path, repo_root: Path) -> dict[str, Any]:
         {
             "role": "control",
             "primary_step": primary_step,
+            "requested_control_mode": requested_control_mode,
+            "control_comparison_type": control_comparison_type,
+            "control_comparison_reason": control_comparison_reason,
             "beauty_hash": beauty_hashes["control"],
             **control_metrics,
         },
         {
             "role": "curved",
             "primary_step": primary_step,
+            "requested_control_mode": requested_control_mode,
+            "control_comparison_type": control_comparison_type,
+            "control_comparison_reason": control_comparison_reason,
             "beauty_hash": beauty_hashes["curved"],
             **curved_metrics,
         },
@@ -486,6 +508,9 @@ def analyze(root: Path, repo_root: Path) -> dict[str, Any]:
     write_csv(root / "curved_ladder_summary.csv", rows, [
         "role",
         "primary_step",
+        "requested_control_mode",
+        "control_comparison_type",
+        "control_comparison_reason",
         "beauty_hash",
         "step_dir",
         "graph_node_count",
@@ -504,6 +529,9 @@ def analyze(root: Path, repo_root: Path) -> dict[str, Any]:
         "visible_support_wording": VISIBLE_SUPPORT_WORDING,
         "curved_validation_status": validation_status,
         "comparability_status": comparability["comparability_status"],
+        "requested_control_mode": requested_control_mode,
+        "control_comparison_type": control_comparison_type,
+        "control_comparison_reason": control_comparison_reason,
         "comparability_warnings": comparability["warnings"],
         "curvature_evidence": curvature_evidence,
         "validation_inference": {
@@ -529,6 +557,9 @@ def analyze(root: Path, repo_root: Path) -> dict[str, Any]:
         "",
         f"- Curved validation status: **{validation_status}**",
         f"- Comparability status: **{comparability['comparability_status']}**",
+        f"- Requested control mode: **{requested_control_mode}**",
+        f"- Control comparison type: **{control_comparison_type}**",
+        f"- Control comparison reason: {control_comparison_reason}",
         f"- Storyboard: `curved_vs_control_storyboard.png`",
         "",
         "## Evidence Tiers",

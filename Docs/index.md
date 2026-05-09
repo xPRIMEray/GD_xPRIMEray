@@ -1,13 +1,80 @@
 ---
 title: xPRIMEray
-description: Curved-ray geodesic rendering in Godot 4 C# — GRIN lensing through exotic wormhole metrics
+description: Experimental curved-ray transport engine — GRIN field integration, wormhole metric rendering, and topology-aware transport diagnostics in Godot 4 C#
 ---
 
-# xPRIMEray
+<div align="center">
+  <img src="assets/xprimeray-logo-dark.png" alt="xPRIMEray" width="460">
+  <br>
+  <em>Where physics performs.</em>
+</div>
 
-xPRIMEray is a curved-ray geodesic rendering system built in Godot 4 C#, spanning interactive GRIN lensing through exotic wormhole metrics. It targets academically rigorous gravitational optics with a tiered architecture from Tier 0 GRIN through Tier 3 exotic metrics including Morris-Thorne wormholes. The transport integrator solves null-geodesic equations of the Gordon effective metric using RK4, and fixture renders are checked for complete pixel classification within the eikonal limit.
+---
 
-## Visual Evidence
+xPRIMEray is an experimental curved-ray transport engine built in Godot 4 C#. It integrates null geodesics of the Gordon effective metric — `ẋ = p/n(x)`, `ṗ = ∇n(x)` — using RK4 with derivative-aware adaptive step control, and validates every render against a hermetic fixture contract: 100% pixel classification, zero unresolved exits. It is a benchmarkable visual physics platform, not a game renderer.
+
+---
+
+## What This Is
+
+- **A null-geodesic integrator** — curved rays are first-class primitives. Transport is solved, not faked with lens shaders or post-process distortion.
+- **A GRIN and Gordon-metric renderer** — refractive-index fields define an effective spacetime; the renderer solves the correct eikonal transport through it.
+- **A hermetic validation harness** — every render run is classified: source hit, background hit, portal, absorbed, escaped. `escaped_no_hit = 0` is the contract.
+- **A multi-scene wormhole system** — two causally isolated overspaces joined at a topological throat, each rendered with full curved-ray physics.
+- **A transport diagnostics platform** — six-layer Cathedral Probe overlays, scheduler resonance DOE, domain telemetry, oracle reference comparison, and transport island microscopy.
+
+---
+
+## Core Capabilities
+
+### Transport
+
+| Capability | Status |
+|---|---|
+| RK4 null-geodesic integration (eikonal ODE) | ✅ Production |
+| GRIN field sources (`FieldSource3D`, spatially varying n(x)) | ✅ Production |
+| Gordon effective metric framing | ✅ Production |
+| Tiered metric hierarchy (Tier 0 GRIN → Tier 3 exotic) | ✅ Production |
+| Morris-Thorne wormhole topology (causal observer ladder) | ✅ Production |
+| Dual-scene overspace composition | ✅ Production |
+| Derivative-aware adaptive step control | ✅ Production |
+
+### In-Game Overlays (live, no render pass required)
+
+| Overlay | Toggle |
+|---|---|
+| Dual-reality straight-reference inset | `EnableDualRealityResearchMode` |
+| Curvature heatmap (5 metric modes) | `DualRealityOverlayMode` |
+| Semantic wireframe glyphs (portals, fields, BLVs) | `WireframeReferenceOverlay` |
+| Collision radar (projected AABB/sphere bounds) | `DualRealityCollisionRadarOverlayEnabled` |
+| Hit normal vectors + film gradient normals | `FilmOverlay2D` |
+| Debug ray polylines | `DebugOverlayOwnedByFilm` |
+| Top-down / oblique research overlay | `WormholeResearchOverlay` |
+
+### Experimental Feature Flags
+
+- **`EnableDomainTelemetry`** — exports per-pixel renderer diagnostics: `domain_id`, `domain_confidence`, `boundary_confidence`, `selection_flip`, `normal_discontinuity`.
+- **`EnableDomainAwareFirstHitResolver`** — experimental domain-aware first-hit heuristic. Off by default. Requires `EnableDomainTelemetry`.
+- **`EnableTileMetricsScaffold`** — tile-metrics subsystem: reorder simulation, execution, and persistent-priors scheduling.
+- **`EnableObjectSeededTileScheduler`** — tile ordering seeded from projected scene object centroids.
+
+---
+
+## Validation and Diagnostics
+
+The hermetic fixture rule enforces complete pixel classification on every run. Fixture 011 (six-checkpoint wormhole observer ladder) is the canonical validation sequence.
+
+The bridge (post-throat backstep) is the confirmed transport anomaly: 366 segments/crossing vs. 50–153 at all other checkpoints (z-score 4.40). Three independent anomaly detectors agree. Domain-aware analysis separates three transport regimes (near-side, bridge anomaly, far-side) via PCA and k-means clustering (k=3, ARI=0.595).
+
+The Cathedral Probe framework — six passive diagnostic layers composited over a single render — separates scheduler-induced global banding from localized topology failure. The key finding: transport instability is topological and localized, not globally smoothable. Scheduler decorrelation (tile traversal) eliminates horizontal banding; it does not eliminate local geometry seam instability. Those are two independent failure layers.
+
+The ReferenceTransportOracle measures transport stability against a fine-step reference (0.0015625) without feeding results back into the renderer — a guardrail enforced in code, not by convention. Oracle microscopy surfaces transport topology that phase-space diagnostics miss.
+
+---
+
+## Current Research Frontier
+
+### Cathedral Probe — Scheduler Resonance and Dual-Layer Transport Failure
 
 ![Cathedral Probe contact sheet](assets/cathedral_probe/cathedral_probe_contact_sheet_row_0015.png)
 
@@ -19,23 +86,13 @@ xPRIMEray is a curved-ray geodesic rendering system built in Godot 4 C#, spannin
 
 ![Four-mode traversal comparison](assets/cathedral_probe/traversal_contact_sheet_4mode_0015.png)
 
-*Traversal mode comparison at step_length=0.015. Scheduler decorrelation (tile, checkerboard) reduces banding. Local corner instability persists unchanged across all modes — two independent failure layers confirmed.*
+*Traversal mode comparison at step_length=0.015. Scheduler decorrelation reduces banding across modes. Local corner instability persists unchanged — two independent failure layers confirmed.*
 
-The most important finding: **transport instability is topological and localized, not globally smoothable**. The fix is scheduler decorrelation, not precision increase or post-process smoothing. See the [Cathedral Probe architecture paper](Research/cathedral_probe_architecture.md) for the full methodology, evidence, and open questions.
+→ [Cathedral Probe architecture paper](Research/cathedral_probe_architecture.md)
 
----
+### Transport Island Microscopy — Oracle-Guided Precision Closure
 
-## Current Status
-
-Active development. The full wormhole observer ladder (six checkpoints through a Morris-Thorne wormhole) is test-complete under the current validation fixtures. Three feature flags gate experimental diagnostic capabilities:
-
-- **`EnableDomainTelemetry`** — exports heuristic per-pixel renderer diagnostics: `domain_id`, `domain_confidence`, `boundary_confidence`, `selection_flip`, and `normal_discontinuity`.
-- **`EnableDomainAwareFirstHitResolver`** — enables an experimental domain-aware first-hit heuristic (requires `EnableDomainTelemetry`; off by default).
-- **`EnableTileMetricsScaffold`** — gates the tile-metrics subsystem including reorder simulation, execution, and persistent-priors scheduling.
-
-The bridge (post-throat backstep) is confirmed as the transport anomaly: 366 segments/crossing vs. 50–153 at all other checkpoints (z-score 4.40). Three independent anomaly detectors agree.
-
-Following scheduler decorrelation, a ReferenceTransportOracle ROI sweep identified a compact unresolved transport island in the domain resolver stress scene (x=36..44, y=31..37). Dense island microscopy (289 samples) confirmed precision closure: all pixels seal at step 0.00625, with zero oracle replay failures. The island was not independently flagged by the Cathedral Probe continuity vectors at step 0.015 — demonstrating that oracle microscopy surfaces transport topology that phase-space diagnostics miss.
+Following scheduler decorrelation, a ReferenceTransportOracle ROI sweep identified a compact unresolved transport island (x=36..44, y=31..37). Dense island microscopy (289 samples) confirmed precision closure: all pixels seal at step 0.00625, with zero oracle replay failures. The island was not independently flagged by the Cathedral Probe continuity vectors — demonstrating that oracle microscopy surfaces transport topology that phase-space diagnostics miss.
 
 | Island measurement | Value |
 |---|---|
@@ -48,14 +105,47 @@ Following scheduler decorrelation, a ReferenceTransportOracle ROI sweep identifi
 
 → [Transport Island Microscopy paper](Research/transport_island_microscopy.md)
 
+---
+
 ## Architecture
 
-xPRIMEray uses a tiered transport hierarchy: Tier 0 GRIN ray integration → Tier 1 metric parameter extraction → Tier 2 Gordon Metric bridge → Tier 3 exotic metrics. The multi-scene wormhole system joins two causally isolated overspaces at the wormhole throat. The hermetic fixture rule (`escaped_no_hit = 0`) enforces complete pixel classification. See [architecture/overview.md](architecture/overview.md) for the pipeline, stored-hit system, and domain emergence, and [architecture_overview.md](architecture_overview.md) for subsystem contracts and data-flow diagrams.
+xPRIMEray uses a tiered transport hierarchy: Tier 0 GRIN ray integration → Tier 1 metric parameter extraction → Tier 2 Gordon Metric bridge → Tier 3 exotic metrics. The multi-scene wormhole system joins two causally isolated overspaces at the wormhole throat. The hermetic fixture rule (`escaped_no_hit = 0`) enforces complete pixel classification.
 
-## Research Notes
+→ [Architecture overview](architecture/overview.md) — pipeline, stored-hit system, domain emergence, Gordon metric math  
+→ [Architecture subsystems](architecture_overview.md) — subsystem contracts and data-flow diagrams
 
-Domain-aware analysis characterizes three transport regimes (near-side, bridge anomaly, far-side) using PCA and k-means clustering (k=3, ARI=0.595). The renderer-integrated domain maps are heuristic diagnostics for inspecting those signals during fixture runs; they are not proof of metric-only domain ownership by themselves. Penrose, Kajiya, and Bandyopadhyay references in the research notes are inspiration and positioning, not validation evidence for the integrated maps. See [Research/curvature_domain_ownership.md](Research/curvature_domain_ownership.md), [Research/phase_coherence_field.md](Research/phase_coherence_field.md), and [papers/paper_001_causal_observer_ladders/paper.md](papers/paper_001_causal_observer_ladders/paper.md).
+---
+
+## Read Next
+
+### Research papers
+| Paper | Description |
+|---|---|
+| [Cathedral Probe architecture](Research/cathedral_probe_architecture.md) | Scheduler resonance DOE, dual-layer failure model, six-layer overlay methodology |
+| [Transport Island Microscopy](Research/transport_island_microscopy.md) | Oracle-guided precision closure, island identification, convergence ladders |
+| [Paper 001 — Causal Observer Ladders](papers/paper_001_causal_observer_ladders/paper.md) | Six-checkpoint wormhole fixture, transport anomaly z-scores, regime clustering |
+| [Paper 004 — Hermetic Throat Validation](papers/paper_004_hermetic_throat_validation/paper.md) | Coverage contract, bridge anomaly evidence, throat-depth maps |
+
+### Diagnostics and analysis
+| Document | Description |
+|---|---|
+| [Phase coherence field](Research/phase_coherence_field.md) | Per-pixel coherence scores correlating banding with domain-boundary transitions |
+| [Domain ownership analysis](Research/curvature_domain_ownership.md) | Transport regime decomposition, spectral ruling-out of oscillatory model |
+| [Feature maturity matrix](Research/xprimeray_feature_maturity_matrix.md) | What is live in-game vs. harness-only vs. post-process only |
+| [Visual milestone inventory](Research/xprimeray_visual_milestone_inventory.md) | Chronological archaeology of all rendered output artifacts |
+
+### Reference
+| Document | Description |
+|---|---|
+| [Glossary](glossary.md) | Null geodesic · GRIN · Gordon metric · domain boundary · phase coherence |
+| [Hermetic fixture rule](validation/hermetic_fixture_rule.md) | What 100% pixel classification means and why it matters |
+| [Spec index](SPEC_INDEX.md) | All active specifications |
+
+---
 
 ## Repository
 
-[https://github.com/AetherTopologist/GD_xPRIMEray](https://github.com/AetherTopologist/GD_xPRIMEray)
+[github.com/AetherTopologist/GD_xPRIMEray](https://github.com/AetherTopologist/GD_xPRIMEray)
+
+**License:** MIT — academic, commercial, and creative use welcome.  
+**Citation templates:** [papers/shared_bibliography.bib](papers/shared_bibliography.bib)
