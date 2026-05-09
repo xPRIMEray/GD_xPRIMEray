@@ -183,6 +183,9 @@ nav:
   - Cathedral Probe:
       - Architecture Paper: Research/cathedral_probe_architecture.md
       - Transport Island Microscopy: Research/transport_island_microscopy.md
+      - Visual Milestone Inventory: Research/xprimeray_visual_milestone_inventory.md
+      - Feature Maturity Matrix: Research/xprimeray_feature_maturity_matrix.md
+      - Logo Usage Recommendations: Research/xprimeray_logo_usage_recommendation.md
       - Scheduler Decorrelation & Local Coherence: Research/scheduler_decorrelation_and_local_coherence.md
       - Traversal Council Review: Research/architecture_design_council_traversal_review.md
       - Object-Seeded Null Geodesic Scheduler: Research/object_seeded_null_geodesic_tiling_scheduler.md
