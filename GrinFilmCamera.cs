@@ -2076,8 +2076,10 @@ public partial class GrinFilmCamera : Node
 	private RenderBackends.CoreBackend _coreBackend;
 	private RayBeamRenderer.RaySeg[] _segBuf;
 	private int[] _segCountPerPixel;
+	private int[] _pass1StepsIntegrated = Array.Empty<int>();
 	private bool[] _pass1HitFound = Array.Empty<bool>();
 	private bool[] _pass1StoppedEarly = Array.Empty<bool>();
+	private bool[] _pass1MaxStepsReached = Array.Empty<bool>();
 	private int[] _pass1HitSegIndex = Array.Empty<int>();
 	private float[] _pass1HitDist = Array.Empty<float>();
 	private Vector3[] _pass1HitPos = Array.Empty<Vector3>();
@@ -2497,6 +2499,10 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private int[] _fixtureDiagnosticBoundaryEventCount = Array.Empty<int>();
 	private int[] _fixtureDiagnosticPortalEventCount = Array.Empty<int>();
 	private int[] _fixtureDiagnosticThroatEventCount = Array.Empty<int>();
+	private byte[] _fixtureDiagnosticMaxStepsReached = Array.Empty<byte>();
+	private byte[] _fixtureDiagnosticBudgetExhaustedWithoutHit = Array.Empty<byte>();
+	private byte[] _fixtureDiagnosticHitFoundAfterBudgetWarning = Array.Empty<byte>();
+	private int[] _fixtureDiagnosticFinalStepCount = Array.Empty<int>();
 	private byte[] _fixtureDiagnosticHitClass = Array.Empty<byte>();
 	private byte[] _fixtureDiagnosticFirstAcceptedHadHit = Array.Empty<byte>();
 	private float[] _fixtureDiagnosticFirstAcceptedHitDistance = Array.Empty<float>();
@@ -3462,6 +3468,10 @@ private sealed class OverlayRollingWindow
 		public int GlobalPi;
 		public int SubtileIndex;
 		public int SegCount;
+		public int FinalStepCount;
+		public bool MaxStepsReached;
+		public bool BudgetExhaustedWithoutHit;
+		public bool HitFoundAfterBudgetWarning;
 		public int SegOffset;
 		public bool HadHit;
 		public bool AbsorbedByInnerRadius;
@@ -6565,6 +6575,10 @@ private sealed class OverlayRollingWindow
 			_fixtureDiagnosticBoundaryEventCount == null ||
 			_fixtureDiagnosticPortalEventCount == null ||
 			_fixtureDiagnosticThroatEventCount == null ||
+			_fixtureDiagnosticMaxStepsReached == null ||
+			_fixtureDiagnosticBudgetExhaustedWithoutHit == null ||
+			_fixtureDiagnosticHitFoundAfterBudgetWarning == null ||
+			_fixtureDiagnosticFinalStepCount == null ||
 			_fixtureDiagnosticHitClass == null ||
 			_fixtureDiagnosticFirstAcceptedHadHit == null ||
 			_fixtureDiagnosticFirstAcceptedHitDistance == null ||
@@ -6586,6 +6600,10 @@ private sealed class OverlayRollingWindow
 			_fixtureDiagnosticBoundaryEventCount.Length < pixelCount ||
 			_fixtureDiagnosticPortalEventCount.Length < pixelCount ||
 			_fixtureDiagnosticThroatEventCount.Length < pixelCount ||
+			_fixtureDiagnosticMaxStepsReached.Length < pixelCount ||
+			_fixtureDiagnosticBudgetExhaustedWithoutHit.Length < pixelCount ||
+			_fixtureDiagnosticHitFoundAfterBudgetWarning.Length < pixelCount ||
+			_fixtureDiagnosticFinalStepCount.Length < pixelCount ||
 			_fixtureDiagnosticHitClass.Length < pixelCount ||
 			_fixtureDiagnosticFirstAcceptedHadHit.Length < pixelCount ||
 			_fixtureDiagnosticFirstAcceptedHitDistance.Length < pixelCount ||
@@ -6600,7 +6618,7 @@ private sealed class OverlayRollingWindow
 		}
 
 		using StreamWriter writer = new(csvPath, false, Encoding.UTF8);
-		writer.WriteLine("x,y,had_hit,hit_class,collider_id,current_collider_id,primitive_or_shape_id,hit_distance,hit_pos_x,hit_pos_y,hit_pos_z,normal_x,normal_y,normal_z,segment_count,step_count,domain_id,curvature_domain_id,path_length,accumulated_transport_length,boundary_event_count,portal_event_count,throat_event_count,first_accepted_had_hit,first_accepted_hit_distance,first_accepted_hit_pos_x,first_accepted_hit_pos_y,first_accepted_hit_pos_z,first_accepted_normal_x,first_accepted_normal_y,first_accepted_normal_z,first_accepted_collider_id,first_accepted_primitive_or_shape_id,first_accepted_segment_index,first_accepted_candidate_count");
+		writer.WriteLine("x,y,had_hit,hit_class,collider_id,current_collider_id,primitive_or_shape_id,hit_distance,hit_pos_x,hit_pos_y,hit_pos_z,normal_x,normal_y,normal_z,segment_count,step_count,domain_id,curvature_domain_id,path_length,accumulated_transport_length,boundary_event_count,portal_event_count,throat_event_count,max_steps_reached,budget_exhausted_without_hit,final_step_count,final_path_length,hit_found_after_budget_warning,first_accepted_had_hit,first_accepted_hit_distance,first_accepted_hit_pos_x,first_accepted_hit_pos_y,first_accepted_hit_pos_z,first_accepted_normal_x,first_accepted_normal_y,first_accepted_normal_z,first_accepted_collider_id,first_accepted_primitive_or_shape_id,first_accepted_segment_index,first_accepted_candidate_count");
 		for (int y = 0; y < _filmHeight; y++)
 		{
 			for (int x = 0; x < _filmWidth; x++)
@@ -6658,6 +6676,17 @@ private sealed class OverlayRollingWindow
 					writer.Write(_fixtureDiagnosticPortalEventCount[pixelIndex].ToString(CultureInfo.InvariantCulture));
 				writer.Write(',');
 				writer.Write(_fixtureDiagnosticThroatEventCount[pixelIndex].ToString(CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write((_fixtureDiagnosticMaxStepsReached[pixelIndex] != 0 ? 1 : 0).ToString(CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write((_fixtureDiagnosticBudgetExhaustedWithoutHit[pixelIndex] != 0 ? 1 : 0).ToString(CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write(_fixtureDiagnosticFinalStepCount[pixelIndex].ToString(CultureInfo.InvariantCulture));
+				writer.Write(',');
+				if (float.IsFinite(_fixtureDiagnosticPathLength[pixelIndex]))
+					writer.Write(_fixtureDiagnosticPathLength[pixelIndex].ToString("0.######", CultureInfo.InvariantCulture));
+				writer.Write(',');
+				writer.Write((_fixtureDiagnosticHitFoundAfterBudgetWarning[pixelIndex] != 0 ? 1 : 0).ToString(CultureInfo.InvariantCulture));
 				writer.Write(',');
 				writer.Write((_fixtureDiagnosticFirstAcceptedHadHit[pixelIndex] != 0 ? 1 : 0).ToString(CultureInfo.InvariantCulture));
 				writer.Write(',');
@@ -8522,6 +8551,7 @@ private sealed class OverlayRollingWindow
 				out _,
 				out _,
 				out _,
+				out _,
 				curvatureGridForPass1,
 				fieldGridForPass1);
 
@@ -8831,6 +8861,22 @@ private sealed class OverlayRollingWindow
 		if (_fixtureDiagnosticThroatEventCount.Length > 0)
 		{
 			Array.Clear(_fixtureDiagnosticThroatEventCount, 0, _fixtureDiagnosticThroatEventCount.Length);
+		}
+		if (_fixtureDiagnosticMaxStepsReached.Length > 0)
+		{
+			Array.Clear(_fixtureDiagnosticMaxStepsReached, 0, _fixtureDiagnosticMaxStepsReached.Length);
+		}
+		if (_fixtureDiagnosticBudgetExhaustedWithoutHit.Length > 0)
+		{
+			Array.Clear(_fixtureDiagnosticBudgetExhaustedWithoutHit, 0, _fixtureDiagnosticBudgetExhaustedWithoutHit.Length);
+		}
+		if (_fixtureDiagnosticHitFoundAfterBudgetWarning.Length > 0)
+		{
+			Array.Clear(_fixtureDiagnosticHitFoundAfterBudgetWarning, 0, _fixtureDiagnosticHitFoundAfterBudgetWarning.Length);
+		}
+		if (_fixtureDiagnosticFinalStepCount.Length > 0)
+		{
+			Array.Clear(_fixtureDiagnosticFinalStepCount, 0, _fixtureDiagnosticFinalStepCount.Length);
 		}
 		if (_fixtureDiagnosticHitClass.Length > 0)
 		{
@@ -11185,6 +11231,7 @@ private sealed class OverlayRollingWindow
 			out _,
 			out _,
 			out _,
+			out _,
 			FrameSnapshotBus.CurrentSnapshot?.CurvatureGrid,
 			null);
 
@@ -12210,6 +12257,7 @@ private sealed class OverlayRollingWindow
 			oracleMode ? "reference_transport_oracle" : "reference_transport_oracle_production_compare",
 			out RayBeamRenderer.Pass1HitInfo hitInfo,
 			out bool stoppedEarly,
+			out bool maxStepsReached,
 			out _,
 			out int stepsIntegrated,
 			out _,
@@ -13914,10 +13962,14 @@ private sealed class OverlayRollingWindow
 			_segCountPerPixel ??= new int[pixelCount];
 			// DECISION: grow per-pixel segment counts buffer when needed.
 			if (_segCountPerPixel.Length < pixelCount) _segCountPerPixel = new int[pixelCount];
+			// DECISION: grow per-pixel final step count buffer when needed.
+			if (_pass1StepsIntegrated.Length < pixelCount) _pass1StepsIntegrated = new int[pixelCount];
 			// DECISION: grow pass1 hit-found buffer when needed.
 			if (_pass1HitFound.Length < pixelCount) _pass1HitFound = new bool[pixelCount];
 			// DECISION: grow pass1 stopped-early buffer when needed.
 			if (_pass1StoppedEarly.Length < pixelCount) _pass1StoppedEarly = new bool[pixelCount];
+			// DECISION: grow pass1 max-step budget buffer when needed.
+			if (_pass1MaxStepsReached.Length < pixelCount) _pass1MaxStepsReached = new bool[pixelCount];
 			// DECISION: grow pass1 hit index buffer when needed.
 			if (_pass1HitSegIndex.Length < pixelCount) _pass1HitSegIndex = new int[pixelCount];
 			// DECISION: grow pass1 hit distance buffer when needed.
@@ -14078,8 +14130,10 @@ private sealed class OverlayRollingWindow
 					if ((x % stride) != 0 || (y % stride) != 0)
 					{
 						_segCountPerPixel[pi] = 0;
+						_pass1StepsIntegrated[pi] = 0;
 						_pass1HitFound[pi] = false;
 						_pass1StoppedEarly[pi] = false;
+						_pass1MaxStepsReached[pi] = false;
 						_pass1HitSegIndex[pi] = -1;
 						_pass1HitDist[pi] = float.PositiveInfinity;
 						_pass1HitPos[pi] = Vector3.Zero;
@@ -14145,6 +14199,7 @@ private sealed class OverlayRollingWindow
 						renderModeToken,
 						out RayBeamRenderer.Pass1HitInfo hitInfo,
 						out bool stoppedEarly,
+						out bool maxStepsReached,
 						out int hitSegIndex,
 						out int stepsIntegrated,
 						out int fieldEvals,
@@ -14204,8 +14259,10 @@ private sealed class OverlayRollingWindow
 					}
 
 					_segCountPerPixel[pi] = count;
+					_pass1StepsIntegrated[pi] = stepsIntegrated;
 					_pass1HitFound[pi] = hitInfo.Found;
 					_pass1StoppedEarly[pi] = stoppedEarly;
+					_pass1MaxStepsReached[pi] = maxStepsReached;
 					_pass1HitSegIndex[pi] = hitSegIndex;
 					_pass1HitDist[pi] = hitInfo.Distance;
 					_pass1HitPos[pi] = hitInfo.Position;
@@ -16106,6 +16163,10 @@ private sealed class OverlayRollingWindow
 											SubtileIndex = subtileIndex,
 											SegCount = segCount,
 											SegOffset = segOffset,
+											FinalStepCount = _pass1StepsIntegrated.Length > pi ? _pass1StepsIntegrated[pi] : segCount,
+											MaxStepsReached = _pass1MaxStepsReached.Length > pi && _pass1MaxStepsReached[pi],
+											BudgetExhaustedWithoutHit = (_pass1MaxStepsReached.Length > pi && _pass1MaxStepsReached[pi]) && !hadHit,
+											HitFoundAfterBudgetWarning = (_pass1MaxStepsReached.Length > pi && _pass1MaxStepsReached[pi]) && hadHit,
 											HadHit = hadHit,
 											AbsorbedByInnerRadius = absorbedByInnerRadius,
 											NeedHitName = needHitName,
@@ -16546,6 +16607,10 @@ private sealed class OverlayRollingWindow
 						FillFloatBlock(_fixtureDiagnosticPathLength, sample.X, sample.Y, sample.Stride, filmW, filmH, sample.ObservedPathLength);
 						FillIntBlock(_fixtureDiagnosticBoundaryEventCount, sample.X, sample.Y, sample.Stride, filmW, filmH, sample.BoundaryCrossings);
 						FillIntBlock(_fixtureDiagnosticThroatEventCount, sample.X, sample.Y, sample.Stride, filmW, filmH, Math.Max(0, sample.EntryCount) + Math.Max(0, sample.ExitCount));
+						FillByteBlock(_fixtureDiagnosticMaxStepsReached, sample.X, sample.Y, sample.Stride, filmW, filmH, sample.MaxStepsReached ? (byte)1 : (byte)0);
+						FillByteBlock(_fixtureDiagnosticBudgetExhaustedWithoutHit, sample.X, sample.Y, sample.Stride, filmW, filmH, sample.BudgetExhaustedWithoutHit ? (byte)1 : (byte)0);
+						FillByteBlock(_fixtureDiagnosticHitFoundAfterBudgetWarning, sample.X, sample.Y, sample.Stride, filmW, filmH, sample.HitFoundAfterBudgetWarning ? (byte)1 : (byte)0);
+						FillIntBlock(_fixtureDiagnosticFinalStepCount, sample.X, sample.Y, sample.Stride, filmW, filmH, sample.FinalStepCount);
 						if (sample.BestHitWasPostRemap)
 							{
 								_wormholePostRemapFinalHitPixelsThisRun++;
@@ -19360,6 +19425,10 @@ private sealed class OverlayRollingWindow
 									SubtileIndex = subtileIndexThisPixel,
 									SegCount = segCount,
 									SegOffset = segOffset,
+									FinalStepCount = _pass1StepsIntegrated.Length > pi ? _pass1StepsIntegrated[pi] : segCount,
+									MaxStepsReached = _pass1MaxStepsReached.Length > pi && _pass1MaxStepsReached[pi],
+									BudgetExhaustedWithoutHit = (_pass1MaxStepsReached.Length > pi && _pass1MaxStepsReached[pi]) && !hadHit,
+									HitFoundAfterBudgetWarning = (_pass1MaxStepsReached.Length > pi && _pass1MaxStepsReached[pi]) && hadHit,
 									HadHit = hadHit,
 									AbsorbedByInnerRadius = absorbedByInnerRadius,
 									NeedHitName = needHitName,
@@ -19735,6 +19804,11 @@ private sealed class OverlayRollingWindow
 						FillIntBlock(_fixtureDiagnosticDomainId, x, y, stride, filmW, filmH, (int)domainState.Primary.Kind);
 						FillIntBlock(_fixtureDiagnosticBoundaryEventCount, x, y, stride, filmW, filmH, hadHit ? bestBoundaryCrossingsThisPixel : terminalBoundaryCrossingsThisPixel);
 						FillIntBlock(_fixtureDiagnosticThroatEventCount, x, y, stride, filmW, filmH, Math.Max(0, hadHit ? bestEntryCountThisPixel : terminalEntryCountThisPixel) + Math.Max(0, hadHit ? bestExitCountThisPixel : terminalExitCountThisPixel));
+						bool maxStepsReachedThisPixel = _pass1MaxStepsReached.Length > pi && _pass1MaxStepsReached[pi];
+						FillByteBlock(_fixtureDiagnosticMaxStepsReached, x, y, stride, filmW, filmH, maxStepsReachedThisPixel ? (byte)1 : (byte)0);
+						FillByteBlock(_fixtureDiagnosticBudgetExhaustedWithoutHit, x, y, stride, filmW, filmH, maxStepsReachedThisPixel && !hadHit ? (byte)1 : (byte)0);
+						FillByteBlock(_fixtureDiagnosticHitFoundAfterBudgetWarning, x, y, stride, filmW, filmH, maxStepsReachedThisPixel && hadHit ? (byte)1 : (byte)0);
+						FillIntBlock(_fixtureDiagnosticFinalStepCount, x, y, stride, filmW, filmH, _pass1StepsIntegrated.Length > pi ? _pass1StepsIntegrated[pi] : segCount);
 						if (bestHitWasPostRemap)
 						{
 							_wormholePostRemapFinalHitPixelsThisRun++;
@@ -22127,6 +22201,22 @@ private sealed class OverlayRollingWindow
 				{
 					_fixtureDiagnosticThroatEventCount = new int[targetPixels];
 				}
+				if (_fixtureDiagnosticMaxStepsReached.Length != targetPixels)
+				{
+					_fixtureDiagnosticMaxStepsReached = new byte[targetPixels];
+				}
+				if (_fixtureDiagnosticBudgetExhaustedWithoutHit.Length != targetPixels)
+				{
+					_fixtureDiagnosticBudgetExhaustedWithoutHit = new byte[targetPixels];
+				}
+				if (_fixtureDiagnosticHitFoundAfterBudgetWarning.Length != targetPixels)
+				{
+					_fixtureDiagnosticHitFoundAfterBudgetWarning = new byte[targetPixels];
+				}
+				if (_fixtureDiagnosticFinalStepCount.Length != targetPixels)
+				{
+					_fixtureDiagnosticFinalStepCount = new int[targetPixels];
+				}
 				if (_fixtureDiagnosticHitClass.Length != targetPixels)
 				{
 					_fixtureDiagnosticHitClass = new byte[targetPixels];
@@ -22208,6 +22298,10 @@ private sealed class OverlayRollingWindow
 		for (int i = 0; i < _fixtureDiagnosticPortalEventCount.Length; i++)
 			_fixtureDiagnosticPortalEventCount[i] = -1;
 		_fixtureDiagnosticThroatEventCount = new int[_filmWidth * _filmHeight];
+		_fixtureDiagnosticMaxStepsReached = new byte[_filmWidth * _filmHeight];
+		_fixtureDiagnosticBudgetExhaustedWithoutHit = new byte[_filmWidth * _filmHeight];
+		_fixtureDiagnosticHitFoundAfterBudgetWarning = new byte[_filmWidth * _filmHeight];
+		_fixtureDiagnosticFinalStepCount = new int[_filmWidth * _filmHeight];
 		_fixtureDiagnosticHitClass = new byte[_filmWidth * _filmHeight];
 		_fixtureDiagnosticFirstAcceptedHadHit = new byte[_filmWidth * _filmHeight];
 		_fixtureDiagnosticFirstAcceptedHitDistance = new float[_filmWidth * _filmHeight];

@@ -237,6 +237,7 @@ def read_role_step_metrics(root: Path, role: str, primary_step: str) -> dict[str
     step_dir = root / role / "steps" / f"step_{primary_step}"
     metrics = graph_metrics(step_dir)
     ladder_metrics = graph_metrics(root / role / "graph_ladder")
+    budget = load_json(step_dir / "budget_exhaustion_summary.json")
     return {
         "step_dir": str(step_dir),
         "graph_node_count": parse_int(metrics.get("graph_node_count"), 0),
@@ -244,9 +245,65 @@ def read_role_step_metrics(root: Path, role: str, primary_step: str) -> dict[str
         "seam_length_px_total": parse_int(metrics.get("seam_length_px_total"), 0),
         "unresolved_pixel_count": parse_int(metrics.get("unresolved_pixel_count"), 0),
         "high_discontinuity_edge_count": parse_int(metrics.get("high_discontinuity_edge_count"), 0),
+        "budget_exhausted_pixel_count": parse_int(budget.get("budget_exhausted_pixel_count"), 0),
+        "budget_exhausted_hit_count": parse_int(budget.get("budget_exhausted_hit_count"), 0),
+        "budget_exhausted_no_hit_count": parse_int(budget.get("budget_exhausted_no_hit_count"), 0),
+        "budget_exhaustion_percent": budget.get("budget_exhaustion_percent", ""),
+        "step_quality_plateau_candidate": budget.get("step_quality_plateau_candidate", ""),
         "merge_split_count": count_rows(root / role / "graph_ladder" / "transport_ownership_graph_merges_splits.csv"),
         "ladder_persistence_basis": ladder_metrics.get("persistence_basis", ""),
         "node_persistence_rate": ladder_metrics.get("node_persistence_rate", ""),
+    }
+
+
+def collect_ladder_step_metrics(root: Path, role: str, steps: list[str]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for step in steps:
+        step_dir = root / role / "steps" / f"step_{step}"
+        metrics = graph_metrics(step_dir)
+        budget = load_json(step_dir / "budget_exhaustion_summary.json")
+        hit_csv = find_one(step_dir, "*.hit_diagnostics.csv")
+        hit_count = 0
+        if hit_csv:
+            for row in load_csv(hit_csv):
+                if parse_bool(row.get("had_hit")):
+                    hit_count += 1
+        rows.append({
+            "role": role,
+            "step_length": step,
+            "hit_count": hit_count,
+            "unresolved_count": parse_int(metrics.get("unresolved_pixel_count"), 0),
+            "graph_node_count": parse_int(metrics.get("graph_node_count"), 0),
+            "graph_edge_count": parse_int(metrics.get("graph_edge_count"), 0),
+            "seam_length_px_total": parse_int(metrics.get("seam_length_px_total"), 0),
+            "merge_split_count": count_rows(root / role / "graph_ladder" / "transport_ownership_graph_merges_splits.csv"),
+            "budget_exhausted_pixel_count": parse_int(budget.get("budget_exhausted_pixel_count"), 0),
+            "budget_exhaustion_percent": budget.get("budget_exhaustion_percent", ""),
+            "step_quality_plateau_candidate": budget.get("step_quality_plateau_candidate", ""),
+        })
+    return rows
+
+
+def infer_diminishing_returns(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    if not rows:
+        return {"likely_point_of_diminishing_returns": "", "reason": "no rows"}
+    # Steps are supplied coarse -> fine in the runner. The first fine step with
+    # budget exhaustion is where more precision may stop buying quality.
+    previous: dict[str, Any] | None = None
+    for row in rows:
+        budget = parse_int(row.get("budget_exhausted_pixel_count"), 0)
+        if budget > 0:
+            prior_step = previous.get("step_length", "") if previous else ""
+            return {
+                "likely_point_of_diminishing_returns": row.get("step_length", ""),
+                "last_pre_budget_step": prior_step,
+                "reason": f"quality improves until step {prior_step or 'before first sampled step'}, then budget exhaustion appears at step {row.get('step_length', '')}",
+            }
+        previous = row
+    return {
+        "likely_point_of_diminishing_returns": "",
+        "last_pre_budget_step": rows[-1].get("step_length", ""),
+        "reason": "no traversal budget exhaustion detected across sampled steps",
     }
 
 
@@ -459,6 +516,24 @@ def analyze(root: Path, repo_root: Path) -> dict[str, Any]:
     delta = graph_delta_vs_control(root, primary_step)
     curved_metrics = read_role_step_metrics(root, "curved", primary_step)
     control_metrics = read_role_step_metrics(root, "control", primary_step)
+    ladder_budget_rows = collect_ladder_step_metrics(root, "control", steps) + collect_ladder_step_metrics(root, "curved", steps)
+    write_csv(root / "curved_ladder_budget_saturation.csv", ladder_budget_rows, [
+        "role",
+        "step_length",
+        "hit_count",
+        "unresolved_count",
+        "graph_node_count",
+        "graph_edge_count",
+        "seam_length_px_total",
+        "merge_split_count",
+        "budget_exhausted_pixel_count",
+        "budget_exhaustion_percent",
+        "step_quality_plateau_candidate",
+    ])
+    budget_diminishing_returns = {
+        "control": infer_diminishing_returns([r for r in ladder_budget_rows if r.get("role") == "control"]),
+        "curved": infer_diminishing_returns([r for r in ladder_budget_rows if r.get("role") == "curved"]),
+    }
     curved_oracle_summary = load_json(root / "curved" / "oracle" / "unresolved_island_summary.json")
     oracle_packet = next(iter(sorted((root / "curved" / "oracle").glob("*.reference_transport_oracle.json"))), None)
     oracle_json = load_json(oracle_packet)
@@ -518,6 +593,11 @@ def analyze(root: Path, repo_root: Path) -> dict[str, Any]:
         "seam_length_px_total",
         "unresolved_pixel_count",
         "high_discontinuity_edge_count",
+        "budget_exhausted_pixel_count",
+        "budget_exhausted_hit_count",
+        "budget_exhausted_no_hit_count",
+        "budget_exhaustion_percent",
+        "step_quality_plateau_candidate",
         "merge_split_count",
         "ladder_persistence_basis",
         "node_persistence_rate",
@@ -542,6 +622,8 @@ def analyze(root: Path, repo_root: Path) -> dict[str, Any]:
         },
         "evidence_tiers": evidence_tiers,
         "graph_delta_vs_control": delta,
+        "budget_saturation_ladder_csv": str(root / "curved_ladder_budget_saturation.csv"),
+        "budget_diminishing_returns": budget_diminishing_returns,
         "beauty_hashes": beauty_hashes,
         "curved_metrics": curved_metrics,
         "control_metrics": control_metrics,
@@ -581,7 +663,9 @@ def analyze(root: Path, repo_root: Path) -> dict[str, Any]:
         "",
         f"- diagnostics changed vs control: {diagnostics_changed}",
         f"- graph_delta_vs_control: `{json.dumps(delta, sort_keys=True)}`",
+        f"- budget diminishing returns: `{json.dumps(budget_diminishing_returns, sort_keys=True)}`",
         f"- oracle comparisons: {oracle_json.get('comparison_count', '')}",
+        f"- budget saturation ladder: `curved_ladder_budget_saturation.csv`",
         "",
         "## Comparability Warnings",
         "",

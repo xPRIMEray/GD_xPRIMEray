@@ -28,6 +28,8 @@ GENERATED_NAMES = {
     "combined_diagnostic_overlay.png",
     "diagnostic_overlay_contact_sheet.png",
     "transport_shape_regions_overlay.png",
+    "budget_exhaustion_overlay.png",
+    "budget_exhaustion_heatmap.png",
 }
 DIAGNOSTIC_SUFFIXES = (
     ".boundary_confidence.png",
@@ -70,6 +72,24 @@ def find_beauty_png(folder: Path) -> Path | None:
     candidates: list[Path] = []
     for path in sorted(folder.glob("*.png")):
         if path.name in GENERATED_NAMES:
+            continue
+        if path.name.startswith((
+            "diagnostic_",
+            "budget_",
+            "camera_",
+            "ownership_",
+            "unstable_",
+            "graph_",
+            "merge_",
+            "hit_normal_",
+            "full_frame_hit_normals",
+            "roi_hit_normals",
+            "unstable_subgraph_hit_normals",
+            "merge_split_hit_normals",
+            "transport_",
+            "layer",
+            "combined_",
+        )):
             continue
         if path.name.startswith("corner_"):
             continue
@@ -133,6 +153,11 @@ def load_hit_fields(path: Path | None, width: int, height: int) -> dict[str, Any
     path_length = np.full((height, width), np.nan, dtype=np.float32)
     boundary_events = np.zeros((height, width), dtype=np.int64)
     step_count = np.full((height, width), -1, dtype=np.int64)
+    max_steps_reached = np.zeros((height, width), dtype=bool)
+    budget_exhausted_without_hit = np.zeros((height, width), dtype=bool)
+    hit_found_after_budget_warning = np.zeros((height, width), dtype=bool)
+    final_step_count = np.full((height, width), -1, dtype=np.int64)
+    final_path_length = np.full((height, width), np.nan, dtype=np.float32)
     normal = np.zeros((height, width, 3), dtype=np.float32)
     present_fields: set[str] = set()
     valued_fields: set[str] = set()
@@ -145,6 +170,11 @@ def load_hit_fields(path: Path | None, width: int, height: int) -> dict[str, Any
             "path_length": path_length,
             "boundary_events": boundary_events,
             "step_count": step_count,
+            "max_steps_reached": max_steps_reached,
+            "budget_exhausted_without_hit": budget_exhausted_without_hit,
+            "hit_found_after_budget_warning": hit_found_after_budget_warning,
+            "final_step_count": final_step_count,
+            "final_path_length": final_path_length,
             "normal": normal,
             "present_fields": present_fields,
             "missing_fields": ["hit_diagnostics_csv"],
@@ -181,6 +211,26 @@ def load_hit_fields(path: Path | None, width: int, height: int) -> dict[str, Any
                 if step_value != "":
                     step_count[y, x] = int(step_value or 0)
                     valued_fields.add("step_count")
+                max_steps_value = row.get("max_steps_reached", "")
+                if max_steps_value != "":
+                    max_steps_reached[y, x] = max_steps_value in {"1", "true", "True"}
+                    valued_fields.add("max_steps_reached")
+                budget_no_hit_value = row.get("budget_exhausted_without_hit", "")
+                if budget_no_hit_value != "":
+                    budget_exhausted_without_hit[y, x] = budget_no_hit_value in {"1", "true", "True"}
+                    valued_fields.add("budget_exhausted_without_hit")
+                hit_after_budget_value = row.get("hit_found_after_budget_warning", "")
+                if hit_after_budget_value != "":
+                    hit_found_after_budget_warning[y, x] = hit_after_budget_value in {"1", "true", "True"}
+                    valued_fields.add("hit_found_after_budget_warning")
+                final_step_value = row.get("final_step_count", "")
+                if final_step_value != "":
+                    final_step_count[y, x] = int(final_step_value or 0)
+                    valued_fields.add("final_step_count")
+                final_path_value = row.get("final_path_length", "")
+                if final_path_value not in {"", "nan", "NaN"}:
+                    final_path_length[y, x] = float(final_path_value)
+                    valued_fields.add("final_path_length")
                 if "hit_distance" in present_fields:
                     value = row.get("hit_distance", "")
                     if value not in {"", "nan", "NaN"}:
@@ -190,7 +240,19 @@ def load_hit_fields(path: Path | None, width: int, height: int) -> dict[str, Any
                         normal[y, x, idx] = float(row.get(name, "0") or 0)
             except Exception:
                 continue
-    optional = ["domain_id", "path_length", "boundary_event_count", "portal_event_count", "throat_event_count", "step_count"]
+    optional = [
+        "domain_id",
+        "path_length",
+        "boundary_event_count",
+        "portal_event_count",
+        "throat_event_count",
+        "step_count",
+        "max_steps_reached",
+        "budget_exhausted_without_hit",
+        "final_step_count",
+        "final_path_length",
+        "hit_found_after_budget_warning",
+    ]
     missing_fields = [name for name in optional if name not in valued_fields]
     return {
         "had": had,
@@ -200,6 +262,11 @@ def load_hit_fields(path: Path | None, width: int, height: int) -> dict[str, Any
         "path_length": path_length,
         "boundary_events": boundary_events,
         "step_count": step_count,
+        "max_steps_reached": max_steps_reached,
+        "budget_exhausted_without_hit": budget_exhausted_without_hit,
+        "hit_found_after_budget_warning": hit_found_after_budget_warning,
+        "final_step_count": final_step_count,
+        "final_path_length": final_path_length,
         "normal": normal,
         "present_fields": present_fields,
         "valued_fields": valued_fields,
@@ -655,6 +722,126 @@ def write_regions_csv(path: Path, regions: list[dict[str, Any]]) -> None:
             writer.writerow({c: row.get(c, "") for c in cols})
 
 
+def build_budget_exhaustion_summary(hit_fields: dict[str, Any], width: int, height: int) -> dict[str, Any]:
+    had = hit_fields["had"]
+    max_steps = hit_fields["max_steps_reached"]
+    no_hit_budget = hit_fields["budget_exhausted_without_hit"]
+    hit_after_budget = hit_fields["hit_found_after_budget_warning"]
+    final_steps = hit_fields["final_step_count"]
+    final_path = hit_fields["final_path_length"]
+    exhausted = np.logical_or(no_hit_budget, hit_after_budget)
+    # Backward-compatible fallback: if only max_steps_reached is populated, treat
+    # it as budget exhaustion and split hit/no-hit from had_hit.
+    if not np.any(exhausted) and np.any(max_steps):
+        exhausted = max_steps
+        no_hit_budget = np.logical_and(max_steps, np.logical_not(had))
+        hit_after_budget = np.logical_and(max_steps, had)
+    total = max(1, width * height)
+    exhausted_count = int(np.count_nonzero(exhausted))
+    hit_count = int(np.count_nonzero(np.logical_and(exhausted, had)))
+    no_hit_count = int(np.count_nonzero(np.logical_and(exhausted, np.logical_not(had))))
+    valid_steps = final_steps[final_steps >= 0]
+    valid_path = final_path[np.isfinite(final_path)]
+    return {
+        "budget_exhausted_pixel_count": exhausted_count,
+        "budget_exhausted_hit_count": hit_count,
+        "budget_exhausted_no_hit_count": no_hit_count,
+        "budget_exhaustion_percent": round(100.0 * exhausted_count / total, 6),
+        "max_steps_reached_pixel_count": int(np.count_nonzero(max_steps)),
+        "hit_found_after_budget_warning_count": int(np.count_nonzero(hit_after_budget)),
+        "final_step_count_mean": round(float(np.mean(valid_steps)), 6) if valid_steps.size else "",
+        "final_step_count_max": int(np.max(valid_steps)) if valid_steps.size else "",
+        "final_path_length_mean": round(float(np.mean(valid_path)), 6) if valid_path.size else "",
+        "final_path_length_max": round(float(np.max(valid_path)), 6) if valid_path.size else "",
+        "step_quality_plateau_candidate": bool(exhausted_count > 0),
+        "budget_fields_present": sorted(
+            name for name in (
+                "max_steps_reached",
+                "budget_exhausted_without_hit",
+                "final_step_count",
+                "final_path_length",
+                "hit_found_after_budget_warning",
+            )
+            if name in hit_fields.get("valued_fields", set())
+        ),
+    }
+
+
+def draw_budget_exhaustion(base: Image.Image, hit_fields: dict[str, Any], summary: dict[str, Any]) -> tuple[Image.Image, Image.Image]:
+    width, height = base.size
+    had = hit_fields["had"]
+    max_steps = hit_fields["max_steps_reached"]
+    no_hit_budget = hit_fields["budget_exhausted_without_hit"]
+    hit_after_budget = hit_fields["hit_found_after_budget_warning"]
+    exhausted = np.logical_or(no_hit_budget, hit_after_budget)
+    if not np.any(exhausted) and np.any(max_steps):
+        exhausted = max_steps
+        no_hit_budget = np.logical_and(max_steps, np.logical_not(had))
+        hit_after_budget = np.logical_and(max_steps, had)
+
+    overlay = base.convert("RGBA")
+    alpha = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    px = alpha.load()
+    ys, xs = np.nonzero(exhausted)
+    for x, y in zip(xs, ys):
+        if bool(hit_after_budget[y, x]):
+            px[int(x), int(y)] = (255, 220, 40, 190)
+        elif bool(no_hit_budget[y, x]):
+            px[int(x), int(y)] = (255, 35, 35, 190)
+        else:
+            px[int(x), int(y)] = (255, 120, 0, 150)
+    overlay = Image.alpha_composite(overlay, alpha)
+    overlay = add_legend(overlay, [
+        ("Budget exhausted no-hit", (255, 35, 35, 230)),
+        ("Hit after budget warning", (255, 220, 40, 230)),
+    ])
+
+    heatmap = Image.new("RGBA", (width, height), (0, 0, 0, 255))
+    hpx = heatmap.load()
+    final_steps = hit_fields["final_step_count"]
+    max_step_value = int(np.max(final_steps[final_steps >= 0])) if np.any(final_steps >= 0) else 1
+    for x, y in zip(xs, ys):
+        step_v = int(final_steps[y, x]) if int(final_steps[y, x]) >= 0 else max_step_value
+        intensity = max(80, min(255, int(255 * step_v / max(1, max_step_value))))
+        if bool(no_hit_budget[y, x]):
+            hpx[int(x), int(y)] = (intensity, 20, 20, 255)
+        elif bool(hit_after_budget[y, x]):
+            hpx[int(x), int(y)] = (intensity, intensity, 20, 255)
+        else:
+            hpx[int(x), int(y)] = (intensity, 100, 0, 255)
+    heatmap = add_legend(heatmap, [
+        (f"Budget exhaustion: {summary.get('budget_exhaustion_percent', 0)}%", (255, 80, 80, 230)),
+        ("Brightness tracks final_step_count", (255, 255, 255, 230)),
+    ])
+    return overlay, heatmap
+
+
+def write_budget_summary_md(path: Path, summary: dict[str, Any]) -> None:
+    lines = [
+        "# Traversal Budget Saturation Summary",
+        "",
+        "Passive diagnostic only. These fields report traversal budget saturation and do not alter rendering.",
+        "",
+        "| Metric | Value |",
+        "|---|---:|",
+    ]
+    for key in (
+        "budget_exhausted_pixel_count",
+        "budget_exhausted_hit_count",
+        "budget_exhausted_no_hit_count",
+        "budget_exhaustion_percent",
+        "max_steps_reached_pixel_count",
+        "hit_found_after_budget_warning_count",
+        "final_step_count_mean",
+        "final_step_count_max",
+        "final_path_length_mean",
+        "final_path_length_max",
+        "step_quality_plateau_candidate",
+    ):
+        lines.append(f"| `{key}` | {summary.get(key, '')} |")
+    path.write_text("\n".join(lines) + "\n")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("capture_folder", type=Path)
@@ -703,6 +890,17 @@ def main() -> int:
     layer1.save(folder / "layer1_cartesian_wireframe.png")
 
     hit_fields = load_hit_fields(hit_csv if hit_csv.exists() else None, width, height)
+    budget_summary = build_budget_exhaustion_summary(hit_fields, width, height)
+    for field in ("max_steps_reached", "budget_exhausted_without_hit", "final_step_count", "final_path_length", "hit_found_after_budget_warning"):
+        if field not in hit_fields.get("valued_fields", set()):
+            token = f"budget_optional_field_{field}"
+            if token not in missing:
+                missing.append(token)
+    budget_overlay, budget_heatmap = draw_budget_exhaustion(beauty, hit_fields, budget_summary)
+    budget_overlay.save(folder / "budget_exhaustion_overlay.png")
+    budget_heatmap.save(folder / "budget_exhaustion_heatmap.png")
+    (folder / "budget_exhaustion_summary.json").write_text(json.dumps(budget_summary, indent=2, sort_keys=True) + "\n")
+    write_budget_summary_md(folder / "budget_exhaustion_summary.md", budget_summary)
     if bool(args.continuity or enabled.get("continuity", False)):
         for field in hit_fields.get("missing_fields", []):
             token = f"continuity_optional_field_{field}"
@@ -766,6 +964,7 @@ def main() -> int:
         "layer3_risk_probe_markers.png",
         "layer4_spacetime_transport_diagram.png",
         "layer5_transport_continuity_vectors.png",
+        "budget_exhaustion_overlay.png",
     ):
         p = folder / layer_path
         if p.exists():
@@ -789,6 +988,7 @@ def main() -> int:
         ("transport", folder / "layer2_transport_ownership.png"),
         ("risk/probe", folder / "layer3_risk_probe_markers.png"),
         ("continuity", folder / "layer5_transport_continuity_vectors.png"),
+        ("budget", folder / "budget_exhaustion_overlay.png"),
         ("combined", folder / "combined_diagnostic_overlay.png"),
     ]
     save_contact_sheet(folder, contact_items)
@@ -818,6 +1018,9 @@ def main() -> int:
         "post_process_only": True,
         "transport_continuity_vectors_csv": str(folder / "transport_continuity_vectors.csv") if (folder / "transport_continuity_vectors.csv").exists() else "",
         "transport_continuity_summary": continuity_summary,
+        "budget_exhaustion_overlay": str(folder / "budget_exhaustion_overlay.png"),
+        "budget_exhaustion_heatmap": str(folder / "budget_exhaustion_heatmap.png"),
+        "budget_exhaustion_summary": budget_summary,
         "opencv_requested": bool(args.use_opencv_contours),
         "opencv_used": False,
     }

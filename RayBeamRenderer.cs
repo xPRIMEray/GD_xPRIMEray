@@ -3405,6 +3405,7 @@ public partial class RayBeamRenderer : Node3D
 		string diagnosticModeToken,
 		out Pass1HitInfo hitInfo,
 		out bool stoppedEarly,
+		out bool maxStepsReached,
 		out int hitSegIndex,
 		out int stepsIntegrated,
 		out int fieldEvals,
@@ -3474,6 +3475,7 @@ public partial class RayBeamRenderer : Node3D
 			PrimitiveOrShapeId = -1
 		};
 		stoppedEarly = false;
+		maxStepsReached = false;
 		hitSegIndex = -1;
 
 		// Precompute for non-integrated mode
@@ -3887,6 +3889,7 @@ public partial class RayBeamRenderer : Node3D
 			p = next;
 		}
 
+			maxStepsReached = !stoppedEarly && stepsIntegrated >= maxIntegrationSteps + 1 && traveled < maxDistance - 1e-4f;
 			FinalizeDerivativeAwareStepState(ref derivativeStepState);
 			curvatureMax = telemetryDerivativeState.CurvatureMax;
 			curvatureMean = telemetryDerivativeState.SampleCount > 0

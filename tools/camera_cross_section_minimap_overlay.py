@@ -448,6 +448,8 @@ def make_hit_normal_panel(
 
 def find_transport_graph_overlay(args: argparse.Namespace) -> Path | None:
     names = [
+        "budget_exhaustion_heatmap.png",
+        "budget_exhaustion_overlay.png",
         "ownership_graph_seam_map.png",
         "ownership_graph_node_map.png",
         "layer2_transport_ownership.png",
@@ -480,8 +482,10 @@ def make_transport_panel(args: argparse.Namespace, panel_size: tuple[int, int]) 
         with Image.open(graph_overlay) as graph_image:
             panel = fit_panel(graph_image.convert("RGBA"), panel_size)
         draw = ImageDraw.Draw(panel)
-        draw_panel_title(draw, "D: transport / field", graph_overlay.name)
-        return panel, {"source": str(graph_overlay), "mode": "ownership_or_seam_overlay"}
+        mode = "budget_exhaustion" if graph_overlay.name.startswith("budget_exhaustion") else "ownership_or_seam_overlay"
+        title = "D: budget saturation" if mode == "budget_exhaustion" else "D: transport / field"
+        draw_panel_title(draw, title, graph_overlay.name)
+        return panel, {"source": str(graph_overlay), "mode": mode}
     return make_placeholder_panel(panel_size, "D: transport / field", "field arrows / GRIN overlay unavailable"), {
         "source": "",
         "mode": "placeholder",
