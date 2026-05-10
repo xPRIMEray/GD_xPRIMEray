@@ -1443,7 +1443,7 @@ public partial class GrinFilmCamera : Node
 	/// <summary>Optional manual screen-space ROI centers for corner probe, formatted "x,y;x,y". Uses nearest projected transport anchor for object metadata only.</summary>
 	[Export] public string CornerTransportProbeManualRois = "";
 	/// <summary>Render-test-only first-pass traversal experiment. Changes pass1 visitation order only; it does not alter hit, shading, resolver, or post-processing math.</summary>
-	[Export(PropertyHint.Enum, "row,column,tile,checkerboard")] public string RenderTestFirstPassTraversalMode = "row";
+	[Export(PropertyHint.Enum, "row,reverse_row,column,tile,checkerboard")] public string RenderTestFirstPassTraversalMode = "row";
 	/// <summary>Slow offline renderer-reference trajectory validation. Diagnostic-only; never feeds beauty, hit selection, shading, resolver, traversal, scheduling, or adaptive precision.</summary>
 	[Export] public bool EnableReferenceTransportOracle = false;
 	/// <summary>Manual ROI centers for ReferenceTransportOracle, formatted "x,y;x,y".</summary>
@@ -10185,6 +10185,7 @@ private sealed class OverlayRollingWindow
 		return token switch
 		{
 			"row" or "row_baseline" or "baseline" => "row",
+			"reverse_row" or "reverse-row" or "row_reverse" => "reverse_row",
 			"column" or "column_major" or "col" => "column",
 			"tile" or "square_tile" or "square" => "tile",
 			"checkerboard" or "checkerboard_tile" or "checker" => "checkerboard",
@@ -14070,12 +14071,14 @@ private sealed class OverlayRollingWindow
 			long pass1FieldSourceEvals = 0;
 			string renderTestPassTraversalMode = NormalizeRenderTestFirstPassTraversalMode(cfg.RenderTestFirstPassTraversalMode);
 			const int renderTestPassTraversalTileSize = 16;
-			int Pass2TraversalOrderKey(int x, int y)
-			{
-				string mode = renderTestPassTraversalMode;
-				int localY = Math.Max(0, y - yStart);
-				if (mode == "column")
-					return x * Math.Max(1, bandH) + localY;
+				int Pass2TraversalOrderKey(int x, int y)
+				{
+					string mode = renderTestPassTraversalMode;
+					int localY = Math.Max(0, y - yStart);
+					if (mode == "reverse_row")
+						return (Math.Max(1, bandH) - 1 - localY) * Math.Max(1, filmW) + x;
+					if (mode == "column")
+						return x * Math.Max(1, bandH) + localY;
 				if (mode == "tile" || mode == "checkerboard")
 				{
 					int tileSize = renderTestPassTraversalTileSize;
@@ -14306,6 +14309,27 @@ private sealed class OverlayRollingWindow
 				{
 					string mode = NormalizeRenderTestFirstPassTraversalMode(traversalMode);
 					int yAlignedStartLocal = yStart + ((stride - (yStart % stride)) % stride);
+					if (mode == "reverse_row")
+					{
+						for (int y = yEnd - 1; y >= yStart; y--)
+						{
+							if ((y % stride) != 0)
+								continue;
+							int localY = y - yStart;
+							for (int execIndex = 0; execIndex < _tileMetricCurrentSubtileCount; execIndex++)
+							{
+								int subtileIndex = _tileMetricCurrentExecutionOrder[execIndex];
+								int subtileXStart = subtileIndex * _tileMetricCurrentSubtileWidth;
+								int subtileXEnd = Math.Max(0, Math.Min(filmW, subtileXStart + _tileMetricCurrentSubtileWidth));
+								if (subtileXStart >= subtileXEnd)
+									continue;
+								int xAlignedStartLocal = subtileXStart + ((stride - (subtileXStart % stride)) % stride);
+								for (int x = xAlignedStartLocal; x < subtileXEnd; x += stride)
+									visit(x, y, localY, subtileIndex);
+							}
+						}
+						return;
+					}
 					if (mode == "column")
 					{
 						for (int x = 0; x < filmW; x += stride)

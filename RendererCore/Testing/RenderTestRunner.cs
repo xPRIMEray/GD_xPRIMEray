@@ -16,7 +16,8 @@ public partial class RenderTestRunner : Node
 		BlackholeMinimal = 3,
 		EinsteinRingMinimal = 4,
 		CurvedMinimalBackdrop = 5,
-		DomainResolverStress = 6
+		DomainResolverStress = 6,
+		HermeticCurvedRoom = 7
 	}
 
 	public enum SmartScaleMode
@@ -78,6 +79,7 @@ public partial class RenderTestRunner : Node
 	private const string RenderTestEinsteinRingMinimalMetricScenePath = "res://test-einstein-ring-minimal-metric.tscn";
 	private const string RenderTestEinsteinRingMinimalGrinScenePath = "res://test-einstein-ring-minimal-grin.tscn";
 	private const string RenderTestDomainResolverStressScenePath = "res://test-domain-resolver-stress.tscn";
+	private const string RenderTestHermeticCurvedRoomScenePath = "res://test-hermetic-curved-room.tscn";
 	private const string RenderTestStraightArgToken = "--render-test-straight";
 	private const string RenderTestStraightSceneHint = "straight";
 	private const string RenderTestFixtureArgPrefix = "--render-test-fixture=";
@@ -126,6 +128,7 @@ public partial class RenderTestRunner : Node
 	private const string RenderTestFilmScaleCmdArgPrefix = "--render-test-film-scale=";
 	private const string RenderTestCameraFixedCmdArgPrefix = "--render-test-camera-fixed=";
 	private const string RenderTestStepLengthCmdArgPrefix = "--render-test-step-length=";
+	private const string RenderTestStepsPerRayCmdArgPrefix = "--render-test-steps-per-ray=";
 	private const string RenderTestPixelStrideCmdArgPrefix = "--render-test-pixel-stride=";
 	private const string RenderTestFirstPassTraversalCmdArgPrefix = "--render-test-first-pass-traversal=";
 	private const string DiagnosticWireframeOverlayCmdArgPrefix = "--diagnostic-wireframe-overlay=";
@@ -237,6 +240,8 @@ public partial class RenderTestRunner : Node
 	private bool _renderTestCameraFixed = false;
 	private bool _renderTestStepLengthOverrideKnown = false;
 	private float _renderTestStepLengthOverride = 0.0125f;
+	private bool _renderTestStepsPerRayOverrideKnown = false;
+	private int _renderTestStepsPerRayOverride = 700;
 	private bool _renderTestPixelStrideOverrideKnown = false;
 	private int _renderTestPixelStrideOverride = 2;
 	private bool _renderTestFirstPassTraversalOverrideKnown = false;
@@ -543,6 +548,7 @@ public partial class RenderTestRunner : Node
 				$"domain_telemetry={(ResolveDomainTelemetryEnabledForLogging() ? 1 : 0)} " +
 				$"step_convergence_telemetry={(_stepConvergenceTelemetryCliOverrideKnown ? (_enableStepConvergenceTelemetry ? 1 : 0) : "na")} " +
 				$"step_length_override={(_renderTestStepLengthOverrideKnown ? _renderTestStepLengthOverride.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture) : "na")} " +
+				$"steps_per_ray_override={(_renderTestStepsPerRayOverrideKnown ? _renderTestStepsPerRayOverride.ToString() : "na")} " +
 				$"pixel_stride_override={(_renderTestPixelStrideOverrideKnown ? _renderTestPixelStrideOverride.ToString() : "na")} " +
 				$"render_test_traversal_pass1_pass2={(_renderTestFirstPassTraversalOverrideKnown ? Sanitize(_renderTestFirstPassTraversalMode) : "row")} " +
 				$"diagnostic_wireframe_overlay={(_diagnosticWireframeOverlayEnabled ? 1 : 0)} " +
@@ -1176,6 +1182,38 @@ public partial class RenderTestRunner : Node
 		{
 			_film.RenderTestFirstPassTraversalMode = _renderTestFirstPassTraversalMode;
 		}
+		if (_requestedFixture == RenderTestFixture.HermeticCurvedRoom)
+		{
+			_film.ApplyPresetOnReady = false;
+			_film.BroadphaseControlMode = GrinFilmCamera.BroadphaseMode.Policy;
+			_film.BroadphasePolicy = GrinFilmCamera.BroadphasePolicyMode.OverlapOnly;
+			_film.BroadphaseMaxResults = Math.Max(_film.BroadphaseMaxResults, 24);
+			_film.UsePass2CollisionStride = false;
+			_film.Pass2HitBackFaces = true;
+			_film.UpdateEveryFrameBudgetMs = Math.Max(_film.UpdateEveryFrameBudgetMs, 4000f);
+			_film.RenderStepMaxMs = Math.Max(_film.RenderStepMaxMs, 4000);
+			if (TryGetSharedRayBeamRenderer(out RayBeamRenderer hermeticRbr) && GodotObject.IsInstanceValid(hermeticRbr))
+			{
+				hermeticRbr.StepsPerRay = Math.Max(hermeticRbr.StepsPerRay, 700);
+				hermeticRbr.StepLength = 0.015f;
+				hermeticRbr.MinStepLength = 0.001f;
+				hermeticRbr.MaxStepLength = 0.03f;
+				hermeticRbr.CollisionRaySubdivideThreshold = 0.015f;
+				hermeticRbr.MaxCollisionSubsteps = Math.Max(hermeticRbr.MaxCollisionSubsteps, 4);
+				if (_renderTestStepLengthOverrideKnown)
+				{
+					float sl = Mathf.Clamp(_renderTestStepLengthOverride, 0.0001f, 1.0f);
+					hermeticRbr.StepLength = sl;
+					hermeticRbr.MinStepLength = Mathf.Min(0.001f, sl);
+					hermeticRbr.MaxStepLength = sl * 2f;
+					hermeticRbr.CollisionRaySubdivideThreshold = sl;
+				}
+				if (_renderTestStepsPerRayOverrideKnown)
+				{
+					hermeticRbr.StepsPerRay = Math.Max(1, _renderTestStepsPerRayOverride);
+				}
+			}
+		}
 		if (_requestedFixture == RenderTestFixture.DomainResolverStress)
 		{
 			_film.ApplyPresetOnReady = false;
@@ -1200,6 +1238,10 @@ public partial class RenderTestRunner : Node
 					stressRbr.MinStepLength = Mathf.Min(0.001f, sl);
 					stressRbr.MaxStepLength = sl * 2f;
 					stressRbr.CollisionRaySubdivideThreshold = sl;
+				}
+				if (_renderTestStepsPerRayOverrideKnown)
+				{
+					stressRbr.StepsPerRay = Math.Max(1, _renderTestStepsPerRayOverride);
 				}
 			}
 		}
@@ -4203,6 +4245,8 @@ public partial class RenderTestRunner : Node
 		_renderTestCameraFixed = false;
 		_renderTestStepLengthOverrideKnown = false;
 		_renderTestStepLengthOverride = 0.0125f;
+		_renderTestStepsPerRayOverrideKnown = false;
+		_renderTestStepsPerRayOverride = 700;
 		_renderTestPixelStrideOverrideKnown = false;
 		_renderTestPixelStrideOverride = 2;
 		_renderTestFirstPassTraversalOverrideKnown = false;
@@ -4416,6 +4460,12 @@ public partial class RenderTestRunner : Node
 			_renderTestStepLengthOverrideKnown = true;
 			_renderTestStepLengthOverride = renderTestStepLength;
 		}
+		if (TryGetIntCmdArgValue(RenderTestStepsPerRayCmdArgPrefix, out int renderTestStepsPerRay) &&
+			renderTestStepsPerRay > 0)
+		{
+			_renderTestStepsPerRayOverrideKnown = true;
+			_renderTestStepsPerRayOverride = Math.Max(1, renderTestStepsPerRay);
+		}
 		if (TryGetIntCmdArgValue(RenderTestPixelStrideCmdArgPrefix, out int renderTestPixelStride) &&
 			renderTestPixelStride > 0)
 		{
@@ -4434,7 +4484,9 @@ public partial class RenderTestRunner : Node
 				token = "tile";
 			else if (token == "checkerboard_tile" || token == "checker")
 				token = "checkerboard";
-			if (token == "row" || token == "column" || token == "tile" || token == "checkerboard")
+			else if (token == "reverse-row" || token == "reverse_row" || token == "row_reverse")
+				token = "reverse_row";
+			if (token == "row" || token == "reverse_row" || token == "column" || token == "tile" || token == "checkerboard")
 			{
 				_renderTestFirstPassTraversalOverrideKnown = true;
 				_renderTestFirstPassTraversalMode = token;
@@ -4793,6 +4845,13 @@ public partial class RenderTestRunner : Node
 				fixture = RenderTestFixture.DomainResolverStress;
 				return true;
 			}
+			if (string.Equals(value, "hermetic_curved_room", StringComparison.OrdinalIgnoreCase) ||
+				string.Equals(value, "hermetic", StringComparison.OrdinalIgnoreCase) ||
+				string.Equals(value, "hermetic_room", StringComparison.OrdinalIgnoreCase))
+			{
+				fixture = RenderTestFixture.HermeticCurvedRoom;
+				return true;
+			}
 			if (string.Equals(value, "default", StringComparison.OrdinalIgnoreCase))
 			{
 				fixture = RenderTestFixture.Default;
@@ -5058,6 +5117,7 @@ public partial class RenderTestRunner : Node
 			RenderTestFixture.BlackholeMinimal => "blackhole_minimal",
 			RenderTestFixture.EinsteinRingMinimal => "einstein_ring_minimal",
 			RenderTestFixture.DomainResolverStress => "domain_resolver_stress",
+			RenderTestFixture.HermeticCurvedRoom => "hermetic_curved_room",
 			_ => string.Empty
 		};
 	}
@@ -5092,6 +5152,7 @@ public partial class RenderTestRunner : Node
 				RenderTestEinsteinRingMinimalMetricScenePath,
 				RenderTestEinsteinRingMinimalGrinScenePath),
 			RenderTestFixture.DomainResolverStress => RenderTestDomainResolverStressScenePath,
+			RenderTestFixture.HermeticCurvedRoom => RenderTestHermeticCurvedRoomScenePath,
 			_ => RenderTestDefaultScenePath
 		};
 	}

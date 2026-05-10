@@ -102,6 +102,10 @@ public static class LauncherAudit
 		{
 			return "domain_resolver_stress";
 		}
+		if (normalized.Contains("test-hermetic-curved-room", StringComparison.OrdinalIgnoreCase))
+		{
+			return "hermetic_curved_room";
+		}
 		if (normalized.Contains("test-overspace-wormhole-checkpoint-sequence-fixture", StringComparison.OrdinalIgnoreCase))
 		{
 			return "overspace_wormhole_checkpoint_sequence";
@@ -178,6 +182,7 @@ public static class LauncherAudit
 			"blackhole_minimal" => "res://test-blackhole-minimal.tscn",
 			"einstein_ring_minimal" => "res://test-einstein-ring-minimal.tscn",
 			"domain_resolver_stress" => "res://test-domain-resolver-stress.tscn",
+			"hermetic_curved_room" => "res://test-hermetic-curved-room.tscn",
 			"overspace_hermetic_fixture" => "res://test-overspace-hermetic-fixture.tscn",
 			"overspace_wormhole_witness" => "res://test-overspace-wormhole-witness-fixture.tscn",
 			"overspace_wormhole_checkpoint_sequence" => "res://test-overspace-wormhole-checkpoint-sequence-fixture.tscn",

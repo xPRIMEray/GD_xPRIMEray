@@ -26,6 +26,25 @@ GUARDRAIL = (
     "fixture under tested settings.'"
 )
 PANEL_SIZE = (320, 180)
+STORYBOARD_SCHEMA_VERSION = 1
+VISUAL_HIERARCHY = [
+    "cartesian_geometry_projection",
+    "hit_normals_and_transport_vectors",
+    "ownership_topology_and_seams",
+    "budget_saturation_and_unresolved_islands",
+    "graph_lineage_and_phase_evolution",
+]
+STORYBOARD_TAGLINE = (
+    "geometry -> transport -> topology -> quality/budget"
+)
+EVOLUTION_PANEL_SIZE = (240, 135)
+PHASE_COLORS = {
+    "underresolved": (220, 70, 70),
+    "converging": (255, 196, 50),
+    "plateau": (70, 190, 95),
+    "budget_saturated": (155, 95, 235),
+    "": (120, 125, 145),
+}
 
 
 def load_json(path: Path | None) -> dict[str, Any]:
@@ -580,26 +599,105 @@ def fit_image(path: Path | None, size: tuple[int, int] = PANEL_SIZE) -> Image.Im
     return base
 
 
-def draw_label(panel: Image.Image, title: str, subtitle: str = "") -> None:
+def draw_label(
+    panel: Image.Image,
+    title: str,
+    subtitle: str = "",
+    layer: str = "",
+    accent: tuple[int, int, int] = (120, 220, 255),
+    number: int | None = None,
+) -> None:
     draw = ImageDraw.Draw(panel)
     font = ImageFont.load_default()
-    for y, text in ((8, title), (24, subtitle)):
-        if not text:
-            continue
-        box = draw.textbbox((8, y), text, font=font)
-        draw.rectangle((box[0] - 3, box[1] - 2, box[2] + 3, box[3] + 2), fill=(0, 0, 0, 190))
-        draw.text((8, y), text, fill=(245, 248, 255, 255), font=font)
+    draw.rectangle((0, 0, panel.width, 42), fill=(0, 0, 0, 165))
+    if number is not None:
+        draw.rounded_rectangle((8, 7, 27, 27), radius=3, outline=accent + (255,), width=1, fill=(12, 12, 22, 230))
+        draw.text((14, 11), str(number), fill=accent + (255,), font=font)
+        x0 = 36
+    else:
+        x0 = 8
+    draw.text((x0, 8), title.upper(), fill=accent + (255,), font=font)
+    if subtitle:
+        draw.text((x0, 23), subtitle, fill=(232, 228, 245, 255), font=font)
+    if layer:
+        box = draw.textbbox((0, 0), layer, font=font)
+        lx = max(x0, panel.width - (box[2] - box[0]) - 10)
+        draw.text((lx, 8), layer, fill=(185, 190, 215, 220), font=font)
+    draw.rectangle((0, 0, panel.width - 1, panel.height - 1), outline=accent + (180,), width=1)
 
 
-def make_storyboard(path: Path, panels: list[tuple[str, str, Path | None]]) -> None:
+def draw_storyboard_background(size: tuple[int, int], title: str, subtitle: str) -> Image.Image:
+    img = Image.new("RGBA", size, (3, 4, 12, 255))
+    draw = ImageDraw.Draw(img)
+    font = ImageFont.load_default()
+    # Subtle observatory grid: diagnostic atmosphere without hiding data.
+    for x in range(0, size[0], 48):
+        draw.line((x, 0, x, size[1]), fill=(22, 34, 58, 90), width=1)
+    for y in range(0, size[1], 48):
+        draw.line((0, y, size[0], y), fill=(22, 34, 58, 90), width=1)
+    draw.rectangle((0, 0, size[0], 78), fill=(5, 6, 16, 245))
+    draw.text((24, 14), title.upper(), fill=(245, 248, 255, 255), font=font)
+    draw.text((24, 34), "Grant Sanderson geometry alignment  |  transport observability  |  topology first", fill=(194, 194, 215, 255), font=font)
+    draw.text((24, 54), subtitle, fill=(120, 230, 255, 255), font=font)
+    return img
+
+
+def normalize_panel(panel: Any) -> dict[str, Any]:
+    if isinstance(panel, dict):
+        return panel
+    title, subtitle, image_path = panel
+    return {
+        "title": title,
+        "subtitle": subtitle,
+        "image_path": image_path,
+        "layer": "",
+        "accent": (120, 220, 255),
+    }
+
+
+def make_storyboard(
+    path: Path,
+    panels: list[Any],
+    title: str = "xPRIMEray diagnostic storyboard",
+    subtitle: str = STORYBOARD_TAGLINE,
+) -> None:
     cols, rows = 3, 2
-    sheet = Image.new("RGBA", (PANEL_SIZE[0] * cols, PANEL_SIZE[1] * rows), (0, 0, 0, 255))
-    for idx, (title, subtitle, image_path) in enumerate(panels[: cols * rows]):
-        panel = fit_image(image_path)
-        draw_label(panel, title, subtitle)
-        sheet.alpha_composite(panel, ((idx % cols) * PANEL_SIZE[0], (idx // cols) * PANEL_SIZE[1]))
+    pad = 18
+    gap = 10
+    header = 82
+    footer = 58
+    width = pad * 2 + PANEL_SIZE[0] * cols + gap * (cols - 1)
+    height = header + PANEL_SIZE[1] * rows + gap * (rows - 1) + footer
+    sheet = draw_storyboard_background((width, height), title, subtitle)
+    draw = ImageDraw.Draw(sheet)
+    font = ImageFont.load_default()
+    for idx, raw_panel in enumerate(panels[: cols * rows]):
+        panel_data = normalize_panel(raw_panel)
+        x = pad + (idx % cols) * (PANEL_SIZE[0] + gap)
+        y = header + (idx // cols) * (PANEL_SIZE[1] + gap)
+        accent = tuple(panel_data.get("accent") or (120, 220, 255))
+        panel = fit_image(panel_data.get("image_path"))
+        draw_label(
+            panel,
+            str(panel_data.get("title", "")),
+            str(panel_data.get("subtitle", "")),
+            str(panel_data.get("layer", "")),
+            accent,  # type: ignore[arg-type]
+            idx + 1,
+        )
+        sheet.alpha_composite(panel, (x, y))
+    footer_y = height - footer + 12
+    principles = [
+        "1. establish geometry",
+        "2. add transport vectors",
+        "3. reveal ownership topology",
+        "4. diagnose budget/islands",
+        "5. track lineage/phase",
+    ]
+    draw.text((pad, footer_y), "Visual hierarchy: " + "  |  ".join(principles), fill=(215, 215, 235, 255), font=font)
+    draw.text((pad, footer_y + 18), "Post-process only. No render scheduling, hit selection, shading, resolver, or adaptive precision consumes these images.", fill=(165, 170, 190, 255), font=font)
     path.parent.mkdir(parents=True, exist_ok=True)
-    sheet.save(path)
+    sheet.convert("RGB").save(path)
 
 
 def first_existing(paths: list[Path | None]) -> Path | None:
@@ -609,38 +707,511 @@ def first_existing(paths: list[Path | None]) -> Path | None:
     return None
 
 
-def make_cell_storyboard(cell_dir: Path, role_root: Path) -> None:
+def storyboard_image_metrics(path: Path | None) -> dict[str, Any]:
+    if not path or not path.exists():
+        return {"exists": False, "mean_luma": 0.0, "contrast": 0.0}
+    try:
+        with Image.open(path) as img:
+            gray = img.convert("L").resize((64, 36))
+            if hasattr(gray, "get_flattened_data"):
+                vals = list(gray.get_flattened_data())  # Pillow 14+
+            else:
+                vals = list(gray.getdata())
+    except Exception:
+        return {"exists": True, "mean_luma": 0.0, "contrast": 0.0}
+    if not vals:
+        return {"exists": True, "mean_luma": 0.0, "contrast": 0.0}
+    mean = sum(vals) / len(vals)
+    variance = sum((v - mean) ** 2 for v in vals) / len(vals)
+    return {"exists": True, "mean_luma": round(mean, 3), "contrast": round(math.sqrt(variance), 3)}
+
+
+def representative_cell_score(root: Path, role: str, step: str) -> dict[str, Any]:
+    cell_dir = root / role / "steps" / f"step_{step}"
+    metrics = graph_metrics(cell_dir)
+    budget = load_json(cell_dir / "budget_exhaustion_summary.json")
+    hit_csv = find_one(cell_dir, "*.hit_diagnostics.csv")
+    hit_count = 0
+    total_rows = 0
+    if hit_csv:
+        for row in load_csv(hit_csv):
+            total_rows += 1
+            if parse_bool(row.get("had_hit")):
+                hit_count += 1
+    overlays = {
+        "cartesian": (cell_dir / "layer1_cartesian_wireframe.png").exists(),
+        "hit_normals": (cell_dir / "hit_normal_vector_overlay.png").exists(),
+        "continuity": (cell_dir / "layer5_transport_continuity_vectors.png").exists(),
+        "ownership": (cell_dir / "ownership_graph_seam_map.png").exists(),
+        "budget": (cell_dir / "budget_exhaustion_heatmap.png").exists(),
+        "unresolved": (cell_dir / "unstable_subgraph_overlay.png").exists(),
+        "quad_panel": (cell_dir / "diagnostic_quad_panel.png").exists(),
+    }
+    beauty = find_beauty(cell_dir)
+    image_metrics = storyboard_image_metrics(beauty)
+    graph_nodes = parse_int(metrics.get("graph_node_count"), 0)
+    graph_edges = parse_int(metrics.get("graph_edge_count"), 0)
+    seam_length = parse_int(metrics.get("seam_length_px_total"), 0)
+    unresolved = parse_int(metrics.get("unresolved_pixel_count"), 0)
+    budget_pct = parse_float(budget.get("budget_exhaustion_percent"), 0.0)
+
+    score = 0.0
+    reasons: list[str] = []
+    if beauty and image_metrics["contrast"] > 2.0:
+        score += 12.0
+        reasons.append("visible_render")
+    if hit_count > 0:
+        score += min(30.0, math.log10(hit_count + 1.0) * 9.0)
+        reasons.append("visible_hits")
+    else:
+        score -= 35.0
+        reasons.append("low_hit_cell")
+    if graph_nodes > 0:
+        score += min(18.0, graph_nodes * 3.0)
+        reasons.append("ownership_nodes")
+    if graph_edges > 0:
+        score += min(20.0, graph_edges * 5.0)
+        reasons.append("seam_edges")
+    if seam_length > 0:
+        score += min(14.0, math.log10(seam_length + 1.0) * 4.0)
+        reasons.append("seam_support")
+    overlay_count = sum(1 for ok in overlays.values() if ok)
+    score += overlay_count * 4.0
+    if overlay_count:
+        reasons.append("nonempty_overlays")
+    if unresolved > 0 and hit_count > 0:
+        score += 5.0
+        reasons.append("informative_unresolved_signal")
+    if budget_pct >= 75.0:
+        score -= 40.0
+        reasons.append("mostly_budget_exhausted")
+    elif budget_pct > 0.0:
+        score -= min(18.0, budget_pct * 1.5)
+        reasons.append("budget_exhaustion_penalty")
+
+    return {
+        "role": role,
+        "step_length": step,
+        "cell_dir": str(cell_dir),
+        "score": round(score, 4),
+        "hit_count": hit_count,
+        "hit_row_count": total_rows,
+        "graph_node_count": graph_nodes,
+        "graph_edge_count": graph_edges,
+        "seam_length_px_total": seam_length,
+        "unresolved_pixel_count": unresolved,
+        "budget_exhaustion_percent": budget_pct if math.isfinite(budget_pct) else "",
+        "overlay_availability": overlays,
+        "image_metrics": image_metrics,
+        "selection_reasons": reasons,
+    }
+
+
+def choose_representative_step(root: Path, role: str, steps: list[str], fallback_step: str) -> dict[str, Any]:
+    candidates = [representative_cell_score(root, role, step) for step in steps]
+    candidates = [row for row in candidates if Path(row["cell_dir"]).exists()]
+    if not candidates:
+        return {
+            "role": role,
+            "selected_step": fallback_step,
+            "score": 0.0,
+            "selection_reasons": ["fallback_primary_step"],
+            "candidates": [],
+        }
+    selected = max(candidates, key=lambda row: (parse_float(row.get("score"), -9999.0), -parse_float(row.get("budget_exhaustion_percent"), 0.0)))
+    return {
+        "role": role,
+        "selected_step": selected["step_length"],
+        "score": selected["score"],
+        "selection_reasons": selected["selection_reasons"],
+        "candidates": candidates,
+    }
+
+
+def panel_item(title: str, subtitle: str, image_path: Path | None, layer: str, accent: tuple[int, int, int]) -> dict[str, Any]:
+    return {
+        "title": title,
+        "subtitle": subtitle,
+        "image_path": image_path,
+        "layer": layer,
+        "accent": accent,
+    }
+
+
+def make_cell_storyboard(cell_dir: Path, role_root: Path, root: Path | None = None) -> None:
+    phase_plot = root / "transport_quality_phase_plot.png" if root else None
     panels = [
-        ("render", cell_dir.name, find_beauty(cell_dir)),
-        ("hit normals", "x/z projection", cell_dir / "hit_normal_vector_overlay.png"),
-        ("graph seams", "ownership edges", cell_dir / "ownership_graph_seam_map.png"),
-        ("unstable overlay", "if detected", first_existing([cell_dir / "unstable_subgraph_overlay.png", cell_dir / "layer3_risk_probe_markers.png"])),
-        ("lineage", "role step ladder", role_root / "graph_ladder" / "graph_persistence_lineage.png"),
-        ("quad panel", "diagnostic cockpit", cell_dir / "diagnostic_quad_panel.png"),
+        panel_item("Rendered Frame", "what the camera sees", find_beauty(cell_dir), "Level 0 Beauty", (170, 120, 255)),
+        panel_item("Cartesian Wireframe", "Layer 1 geometry anchor", cell_dir / "layer1_cartesian_wireframe.png", "Level 1 Geometry", (20, 230, 255)),
+        panel_item("Hit Normals / Vectors", "surface orientation and local transport", first_existing([
+            cell_dir / "hit_normal_vector_overlay.png",
+            cell_dir / "layer5_transport_continuity_vectors.png",
+        ]), "Level 2 Transport", (100, 255, 170)),
+        panel_item("Ownership Graph Seams", "topology boundaries and domains", cell_dir / "ownership_graph_seam_map.png", "Level 3 Topology", (255, 215, 30)),
+        panel_item("Budget / Islands", "quality limits and unresolved support", first_existing([
+            cell_dir / "budget_exhaustion_heatmap.png",
+            cell_dir / "budget_exhaustion_overlay.png",
+            cell_dir / "unstable_subgraph_overlay.png",
+            cell_dir / "layer3_risk_probe_markers.png",
+        ]), "Level 4 Quality", (255, 80, 120)),
+        panel_item("Lineage / Phase", "evolution across step levels", first_existing([
+            role_root / "graph_ladder" / "graph_persistence_lineage.png",
+            phase_plot,
+            role_root / "graph_ladder" / "graph_persistence_ladder.png",
+        ]), "Step Evolution", (170, 90, 255)),
     ]
-    make_storyboard(cell_dir / "diagnostic_storyboard.png", panels)
+    make_storyboard(
+        cell_dir / "diagnostic_storyboard.png",
+        panels,
+        title="xPRIMEray diagnostic storyboard",
+        subtitle=f"{cell_dir.parent.parent.name} / {cell_dir.name} - {STORYBOARD_TAGLINE}",
+    )
 
 
-def make_root_storyboard(root: Path, primary_step: str) -> None:
-    control_step = root / "control" / "steps" / f"step_{primary_step}"
-    curved_step = root / "curved" / "steps" / f"step_{primary_step}"
+def make_root_storyboard(root: Path, primary_step: str, storyboard_selection: dict[str, Any] | None = None) -> None:
+    curved_step_value = primary_step
+    control_step_value = primary_step
+    if storyboard_selection:
+        curved_step_value = str((storyboard_selection.get("curved") or {}).get("selected_step") or primary_step)
+        control_step_value = str((storyboard_selection.get("control") or {}).get("selected_step") or primary_step)
+    control_step = root / "control" / "steps" / f"step_{control_step_value}"
+    curved_step = root / "curved" / "steps" / f"step_{curved_step_value}"
     curved_oracle = root / "curved" / "oracle"
     panels = [
-        ("1 control render", primary_step, find_beauty(control_step)),
-        ("2 curved render", primary_step, find_beauty(curved_step)),
-        ("3 curved hit normals", "x/z projection", curved_step / "hit_normal_vector_overlay.png"),
-        ("4 ownership graph seams", "curved", curved_step / "ownership_graph_seam_map.png"),
-        ("5 unresolved island", "oracle/island overlay", first_existing([
+        panel_item("Rendered Reference", f"control step {control_step_value}", find_beauty(control_step), "Level 0 Beauty", (170, 120, 255)),
+        panel_item("Cartesian Wireframe", f"curved step {curved_step_value}", curved_step / "layer1_cartesian_wireframe.png", "Level 1 Geometry", (20, 230, 255)),
+        panel_item("Hit Normals / Vectors", "curved transport orientation", first_existing([
+            curved_step / "hit_normal_vector_overlay.png",
+            curved_step / "layer5_transport_continuity_vectors.png",
+        ]), "Level 2 Transport", (100, 255, 170)),
+        panel_item("Ownership Graph Seams", "curved topology boundaries", curved_step / "ownership_graph_seam_map.png", "Level 3 Topology", (255, 215, 30)),
+        panel_item("Budget / Islands", "constraints and unresolved support", first_existing([
+            curved_step / "budget_exhaustion_heatmap.png",
             curved_oracle / "epsilon_stability_map.png",
             curved_oracle / "unstable_subgraph_overlay.png",
             curved_step / "unstable_subgraph_overlay.png",
-        ])),
-        ("6 graph lineage", "merge/split view", first_existing([
+        ]), "Level 4 Quality", (255, 80, 120)),
+        panel_item("Graph Lineage / Phase", "step evolution", first_existing([
             root / "curved" / "graph_ladder" / "graph_persistence_lineage.png",
             root / "curved" / "graph_ladder" / "merge_split_overlay.png",
-        ])),
+            root / "transport_quality_phase_plot.png",
+        ]), "Step Evolution", (170, 90, 255)),
     ]
-    make_storyboard(root / "curved_vs_control_storyboard.png", panels)
+    make_storyboard(
+        root / "curved_vs_control_storyboard.png",
+        panels,
+        title="xPRIMEray curved/control diagnostic storyboard",
+        subtitle=(
+            f"representative steps: control={control_step_value}, curved={curved_step_value} - "
+            f"{STORYBOARD_TAGLINE}"
+        ),
+    )
+
+
+def phase_lookup(phase_rows: list[dict[str, Any]]) -> dict[tuple[str, str], dict[str, Any]]:
+    return {(str(row.get("role", "")), str(row.get("step_length", ""))): row for row in phase_rows}
+
+
+def evolution_artifact(root: Path, role: str, step: str, kind: str) -> Path | None:
+    cell = root / role / "steps" / f"step_{step}"
+    if kind == "topology":
+        return first_existing([
+            cell / "ownership_graph_seam_map.png",
+            cell / "layer2_transport_ownership.png",
+            cell / "transport_shape_regions_overlay.png",
+        ])
+    if kind == "transport_phase":
+        return first_existing([
+            cell / "layer5_transport_continuity_vectors.png",
+            cell / "hit_normal_vector_overlay.png",
+            cell / "diagnostic_overlay_contact_sheet.png",
+        ])
+    if kind == "budget":
+        return first_existing([
+            cell / "budget_exhaustion_heatmap.png",
+            cell / "budget_exhaustion_overlay.png",
+            cell / "unstable_subgraph_overlay.png",
+            cell / "layer3_risk_probe_markers.png",
+        ])
+    if kind == "storyboard":
+        return first_existing([
+            cell / "diagnostic_storyboard.png",
+            cell / "diagnostic_quad_panel.png",
+            cell / "diagnostic_overlay_contact_sheet.png",
+        ])
+    return None
+
+
+def annotated_evolution_frame(
+    image_path: Path | None,
+    role: str,
+    step: str,
+    kind: str,
+    phase_row: dict[str, Any],
+    size: tuple[int, int] = EVOLUTION_PANEL_SIZE,
+) -> Image.Image:
+    panel = fit_image(image_path, size)
+    draw = ImageDraw.Draw(panel)
+    font = ImageFont.load_default()
+    phase = str(phase_row.get("transport_quality_phase", ""))
+    color = PHASE_COLORS.get(phase, PHASE_COLORS[""])
+    budget = parse_float(phase_row.get("budget_exhaustion_percent"), 0.0)
+    unresolved = parse_int(phase_row.get("unresolved_count"), 0)
+    meta = load_json(image_path.parent / "metadata.json") if image_path and image_path.exists() else {}
+    frames = meta.get("frames", "")
+    marker = ""
+    if budget > 0:
+        marker = f" budget {budget:.2f}%"
+    elif unresolved > 0:
+        marker = f" unresolved {unresolved}"
+    elif phase:
+        marker = f" {phase}"
+    draw.rectangle((0, 0, size[0], 34), fill=(0, 0, 0, 190))
+    draw.text((8, 6), f"{role} step {step}", fill=(245, 248, 255, 255), font=font)
+    draw.rounded_rectangle((8, 20, min(size[0] - 8, 112), 31), radius=2, fill=color + (230,))
+    draw.text((14, 20), phase or "unclassified", fill=(0, 0, 0, 235), font=font)
+    if marker:
+        draw.text((118, 20), marker.strip(), fill=(240, 235, 245, 255), font=font)
+    if frames != "":
+        draw.rectangle((size[0] - 68, size[1] - 18, size[0] - 5, size[1] - 5), fill=(0, 0, 0, 170))
+        draw.text((size[0] - 64, size[1] - 17), f"frames {frames}", fill=(210, 218, 240, 255), font=font)
+    draw.rectangle((0, 0, size[0] - 1, size[1] - 1), outline=color + (190,), width=1)
+    if not image_path or not image_path.exists():
+        draw.text((28, size[1] // 2), f"{kind} unavailable", fill=(225, 225, 230, 255), font=font)
+    return panel
+
+
+def make_evolution_strip(
+    path: Path,
+    root: Path,
+    roles: list[str],
+    steps: list[str],
+    kind: str,
+    phase_rows: list[dict[str, Any]],
+    title: str,
+) -> dict[str, Any]:
+    lookup = phase_lookup(phase_rows)
+    pad = 16
+    gap = 8
+    header = 58
+    label_w = 76
+    cols = max(1, len(steps))
+    rows = max(1, len(roles))
+    width = pad * 2 + label_w + cols * EVOLUTION_PANEL_SIZE[0] + (cols - 1) * gap
+    height = header + rows * EVOLUTION_PANEL_SIZE[1] + (rows - 1) * gap + 24
+    sheet = draw_storyboard_background((width, height), title, STORYBOARD_TAGLINE)
+    draw = ImageDraw.Draw(sheet)
+    font = ImageFont.load_default()
+    frames_used = 0
+    missing: list[str] = []
+    for col, step in enumerate(steps):
+        x = pad + label_w + col * (EVOLUTION_PANEL_SIZE[0] + gap)
+        draw.text((x + 8, header - 18), f"step {step}", fill=(210, 230, 255, 255), font=font)
+    for row_idx, role in enumerate(roles):
+        y = header + row_idx * (EVOLUTION_PANEL_SIZE[1] + gap)
+        draw.text((pad, y + 8), role, fill=(245, 248, 255, 255), font=font)
+        for col, step in enumerate(steps):
+            artifact = evolution_artifact(root, role, step, kind)
+            if artifact and artifact.exists():
+                frames_used += 1
+            else:
+                missing.append(f"{role}/step_{step}/{kind}")
+            frame = annotated_evolution_frame(artifact, role, step, kind, lookup.get((role, step), {}))
+            x = pad + label_w + col * (EVOLUTION_PANEL_SIZE[0] + gap)
+            sheet.alpha_composite(frame, (x, y))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    sheet.convert("RGB").save(path)
+    return {
+        "path": str(path),
+        "kind": kind,
+        "roles": roles,
+        "steps": steps,
+        "frames_used": frames_used,
+        "missing": missing,
+    }
+
+
+def image_difference_score(prev: Path | None, cur: Path | None) -> float:
+    if not prev or not cur or not prev.exists() or not cur.exists():
+        return 0.0
+    try:
+        with Image.open(prev) as a, Image.open(cur) as b:
+            aa = a.convert("L").resize((48, 27))
+            bb = b.convert("L").resize((48, 27))
+            av = list(aa.getdata())
+            bv = list(bb.getdata())
+    except Exception:
+        return 0.0
+    if not av or len(av) != len(bv):
+        return 0.0
+    return sum(abs(x - y) for x, y in zip(av, bv)) / (255.0 * len(av))
+
+
+def temporal_role_score(root: Path, role: str, steps: list[str], phase_rows: list[dict[str, Any]]) -> dict[str, Any]:
+    lookup = phase_lookup(phase_rows)
+    present = 0
+    topology_delta = 0.0
+    phase_values: set[str] = set()
+    budget_values: list[float] = []
+    prev_topology: Path | None = None
+    for step in steps:
+        cell = root / role / "steps" / f"step_{step}"
+        if cell.exists():
+            present += 1
+        row = lookup.get((role, step), {})
+        phase_values.add(str(row.get("transport_quality_phase", "")))
+        budget_values.append(parse_float(row.get("budget_exhaustion_percent"), 0.0))
+        topology = evolution_artifact(root, role, step, "topology")
+        if prev_topology and topology:
+            topology_delta += image_difference_score(prev_topology, topology)
+        if topology:
+            prev_topology = topology
+    budget_range = (max(budget_values) - min(budget_values)) if budget_values else 0.0
+    score = present * 8.0 + topology_delta * 35.0 + max(0, len(phase_values) - 1) * 10.0 + min(20.0, budget_range * 3.0)
+    return {
+        "role": role,
+        "score": round(score, 5),
+        "step_count": present,
+        "topology_delta_score": round(topology_delta, 5),
+        "phase_diversity": sorted(v for v in phase_values if v),
+        "budget_range": round(budget_range, 6),
+        "selection_factors": [
+            "best_temporal_coherence",
+            "strongest_visible_evolution",
+            "highest_explanatory_value",
+        ],
+    }
+
+
+def choose_temporal_evolution_role(root: Path, steps: list[str], phase_rows: list[dict[str, Any]]) -> dict[str, Any]:
+    candidates = [temporal_role_score(root, role, steps, phase_rows) for role in ("curved", "control")]
+    selected = max(candidates, key=lambda row: (parse_float(row.get("score"), -9999.0), 1 if row.get("role") == "curved" else 0))
+    return {
+        "selected_role": selected["role"],
+        "selection_reason": "highest combined temporal coherence, visible evolution, and explanatory value score",
+        "candidates": candidates,
+    }
+
+
+def make_evolution_gif(
+    path: Path,
+    root: Path,
+    role: str,
+    steps: list[str],
+    kind: str,
+    phase_rows: list[dict[str, Any]],
+    duration_ms: int = 850,
+) -> dict[str, Any]:
+    lookup = phase_lookup(phase_rows)
+    frames: list[Image.Image] = []
+    missing: list[str] = []
+    for step in steps:
+        artifact = evolution_artifact(root, role, step, kind)
+        if not artifact:
+            missing.append(f"{role}/step_{step}/{kind}")
+        frame = annotated_evolution_frame(artifact, role, step, kind, lookup.get((role, step), {}), PANEL_SIZE)
+        frames.append(frame.convert("RGB"))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if frames:
+        frames[0].save(path, save_all=True, append_images=frames[1:], duration=duration_ms, loop=0)
+    return {
+        "path": str(path),
+        "role": role,
+        "kind": kind,
+        "frame_count": len(frames),
+        "duration_ms": duration_ms,
+        "missing": missing,
+        "interpolation": "none_real_frames_only",
+    }
+
+
+def build_temporal_evolution_outputs(root: Path, steps: list[str], phase_rows: list[dict[str, Any]]) -> dict[str, Any]:
+    roles = ["control", "curved"]
+    role_selection = choose_temporal_evolution_role(root, steps, phase_rows)
+    selected_role = str(role_selection.get("selected_role", "curved"))
+    strips = {
+        "topology_evolution_strip": make_evolution_strip(
+            root / "topology_evolution_strip.png",
+            root,
+            roles,
+            steps,
+            "topology",
+            phase_rows,
+            "Topology evolution strip",
+        ),
+        "transport_phase_evolution_strip": make_evolution_strip(
+            root / "transport_phase_evolution_strip.png",
+            root,
+            roles,
+            steps,
+            "transport_phase",
+            phase_rows,
+            "Transport phase evolution strip",
+        ),
+        "budget_evolution_strip": make_evolution_strip(
+            root / "budget_evolution_strip.png",
+            root,
+            roles,
+            steps,
+            "budget",
+            phase_rows,
+            "Budget / unresolved evolution strip",
+        ),
+    }
+    gifs = {
+        "ownership_graph_evolution": make_evolution_gif(
+            root / "ownership_graph_evolution.gif",
+            root,
+            selected_role,
+            steps,
+            "topology",
+            phase_rows,
+        ),
+        "budget_heatmap_evolution": make_evolution_gif(
+            root / "budget_heatmap_evolution.gif",
+            root,
+            selected_role,
+            steps,
+            "budget",
+            phase_rows,
+        ),
+        "diagnostic_storyboard_evolution": make_evolution_gif(
+            root / "diagnostic_storyboard_evolution.gif",
+            root,
+            selected_role,
+            steps,
+            "storyboard",
+            phase_rows,
+            duration_ms=1200,
+        ),
+    }
+    summary = {
+        "schema_version": STORYBOARD_SCHEMA_VERSION,
+        "visual_sequence": STORYBOARD_TAGLINE,
+        "real_frames_only": True,
+        "fake_interpolation": False,
+        "evolution_axes": {
+            "step_ladder": True,
+            "frame_progression": False,
+            "frame_progression_reason": "current ladder artifacts expose final per-step captures, not per-frame image sequences",
+            "convergence_stages": True,
+        },
+        "steps": steps,
+        "roles": roles,
+        "temporal_role_selection": role_selection,
+        "strips": strips,
+        "animated_outputs": gifs,
+        "annotations": [
+            "role",
+            "frame_count_when_available",
+            "step",
+            "transport_quality_phase",
+            "budget_saturation_marker",
+            "unresolved_marker",
+        ],
+    }
+    (root / "temporal_observability_summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
+    return summary
 
 
 def write_readme(root: Path, summary: dict[str, Any]) -> None:
@@ -651,9 +1222,26 @@ def write_readme(root: Path, summary: dict[str, Any]) -> None:
         "",
         "## Visual story",
         "",
-        "- `curved_vs_control_storyboard.png`: control render, curved render, curved hit normals, ownership seams, unresolved island overlay, and graph lineage.",
+        "- `curved_vs_control_storyboard.png`: representative six-panel story using the sequence geometry -> transport -> topology -> quality/budget.",
+        "- `topology_evolution_strip.png`, `transport_phase_evolution_strip.png`, and `budget_evolution_strip.png`: step-ladder evolution strips built from real rendered diagnostic artifacts.",
+        "- `ownership_graph_evolution.gif`, `budget_heatmap_evolution.gif`, and `diagnostic_storyboard_evolution.gif`: animated observability outputs using real step frames only; no fake interpolation.",
+        "- Per-cell `diagnostic_storyboard.png`: rendered frame, Cartesian wireframe, hit normals/vectors, ownership seams, budget/islands, and lineage/phase.",
         "- Per-cell `diagnostic_quad_panel.png`: rendered frame, hit-normal overlay, camera cross-section minimap, and available transport/field overlay.",
-        "- Per-cell `diagnostic_storyboard.png`: local six-panel cockpit for that capture cell.",
+        "",
+        "## Visual hierarchy principles",
+        "",
+        "1. Establish Cartesian geometry projection first. This gives the observer a stable coordinate-space anchor.",
+        "2. Add hit normals and transport vectors second, so transport behavior is read against the geometry anchor.",
+        "3. Reveal ownership topology and seams third.",
+        "4. Diagnose budget saturation and unresolved islands fourth.",
+        "5. Track graph lineage and phase evolution last.",
+        "",
+        "## Representative frame selection",
+        "",
+        "- Prefer cells with visible geometry, visible hits, coherent transport structure, informative topology, and non-empty overlays.",
+        "- Avoid low-hit cells, visually empty cells, mostly budget-exhausted cells, and unresolved samples with no observable geometry.",
+        "- Selection details are written to `storyboard_selection.json`.",
+        "- Temporal role selection is written to `temporal_observability_summary.json` and scores best temporal coherence, strongest visible evolution, and explanatory value.",
         "",
         "## Evidence tiers",
         "",
@@ -786,11 +1374,35 @@ def analyze(root: Path, repo_root: Path) -> dict[str, Any]:
     }
     validation_status = "invalid" if not curvature_evidence["valid"] else ("warning" if comparability["warnings"] else "valid")
 
+    storyboard_selection = {
+        "schema_version": STORYBOARD_SCHEMA_VERSION,
+        "visual_hierarchy": VISUAL_HIERARCHY,
+        "selection_policy": {
+            "prefer": [
+                "visible geometry",
+                "visible hit samples",
+                "coherent transport structure",
+                "nonempty topology overlays",
+                "informative seams or unresolved support",
+            ],
+            "avoid": [
+                "low-hit cells",
+                "visually empty cells",
+                "mostly budget-exhausted cells",
+                "unresolved samples without observable geometry",
+            ],
+        },
+        "control": choose_representative_step(root, "control", steps, primary_step),
+        "curved": choose_representative_step(root, "curved", steps, primary_step),
+    }
+    (root / "storyboard_selection.json").write_text(json.dumps(storyboard_selection, indent=2, sort_keys=True) + "\n")
+
     for role in ("control", "curved"):
         role_root = root / role
         for cell in sorted((role_root / "steps").glob("step_*")):
-            make_cell_storyboard(cell, role_root)
-    make_root_storyboard(root, primary_step)
+            make_cell_storyboard(cell, role_root, root)
+    make_root_storyboard(root, primary_step, storyboard_selection)
+    temporal_observability = build_temporal_evolution_outputs(root, steps, phase_rows)
 
     rows = [
         {
@@ -859,6 +1471,9 @@ def analyze(root: Path, repo_root: Path) -> dict[str, Any]:
         "transport_quality_phase_csv": str(root / "transport_quality_phase.csv"),
         "transport_quality_phase_plot": str(root / "transport_quality_phase_plot.png"),
         "transport_quality_phase_summary": phase_summary,
+        "storyboard_selection": storyboard_selection,
+        "temporal_observability": temporal_observability,
+        "visual_hierarchy": VISUAL_HIERARCHY,
         "beauty_hashes": beauty_hashes,
         "curved_metrics": curved_metrics,
         "control_metrics": control_metrics,
@@ -878,6 +1493,16 @@ def analyze(root: Path, repo_root: Path) -> dict[str, Any]:
         f"- Control comparison type: **{control_comparison_type}**",
         f"- Control comparison reason: {control_comparison_reason}",
         f"- Storyboard: `curved_vs_control_storyboard.png`",
+        f"- Storyboard selection: `storyboard_selection.json`",
+        f"- Temporal observability: `topology_evolution_strip.png`, `transport_phase_evolution_strip.png`, `budget_evolution_strip.png`",
+        f"- Animated observability: `ownership_graph_evolution.gif`, `budget_heatmap_evolution.gif`, `diagnostic_storyboard_evolution.gif`",
+        "",
+        "## Visual Hierarchy",
+        "",
+        "- The storyboard sequence is geometry -> transport -> topology -> quality/budget.",
+        "- Cartesian wireframe projection is treated as the foundational coordinate-space anchor.",
+        "- Representative frames are selected by visible geometry, hit support, topology signal, overlay availability, and budget-exhaustion penalties.",
+        "- Temporal outputs use real captured step artifacts only. No cinematic interpolation or inferred in-between frames are generated.",
         "",
         "## Evidence Tiers",
         "",
@@ -900,6 +1525,8 @@ def analyze(root: Path, repo_root: Path) -> dict[str, Any]:
         f"- graph_delta_vs_control: `{json.dumps(delta, sort_keys=True)}`",
         f"- budget diminishing returns: `{json.dumps(budget_diminishing_returns, sort_keys=True)}`",
         f"- transport quality phases: `{json.dumps(phase_summary, sort_keys=True)}`",
+        f"- storyboard representatives: control step `{storyboard_selection['control'].get('selected_step')}`, curved step `{storyboard_selection['curved'].get('selected_step')}`",
+        f"- temporal evolution role: `{temporal_observability['temporal_role_selection'].get('selected_role')}`",
         f"- oracle comparisons: {oracle_json.get('comparison_count', '')}",
         f"- budget saturation ladder: `curved_ladder_budget_saturation.csv`",
         f"- transport quality phase plot: `transport_quality_phase_plot.png`",
@@ -924,6 +1551,42 @@ def analyze(root: Path, repo_root: Path) -> dict[str, Any]:
     return summary
 
 
+def format_phase_counts(counts: dict[str, Any]) -> str:
+    ordered = ["underresolved", "converging", "plateau", "budget_saturated"]
+    return " ".join(f"{phase}={parse_int(counts.get(phase), 0)}" for phase in ordered)
+
+
+def top_recommended_action(rows: list[dict[str, str]], role: str) -> str:
+    priority = ["budget_saturated", "underresolved", "converging", "plateau"]
+    role_rows = [row for row in rows if row.get("role") == role]
+    for phase in priority:
+        for row in role_rows:
+            if row.get("transport_quality_phase") == phase and row.get("recommended_next_action"):
+                return str(row.get("recommended_next_action"))
+    for row in role_rows:
+        if row.get("recommended_next_action"):
+            return str(row.get("recommended_next_action"))
+    return ""
+
+
+def print_terminal_summary(root: Path, summary: dict[str, Any]) -> None:
+    phase_summary = summary.get("transport_quality_phase_summary") or {}
+    phase_rows = load_csv(root / "transport_quality_phase.csv")
+    print(f"[output] {root}")
+    print(f"[status] curved_validation={summary.get('curved_validation_status', '')}")
+    print(f"[control] comparison_type={summary.get('control_comparison_type', '')}")
+    for role in ("curved", "control"):
+        role_summary = phase_summary.get(role) or {}
+        print(f"[plateau] {role}: {role_summary.get('plateau_start_step', '')}")
+        print(f"[budget-saturation] {role}: {role_summary.get('budget_saturation_start_step', '')}")
+    for role in ("curved", "control"):
+        role_summary = phase_summary.get(role) or {}
+        print(f"[transport-quality] {role}: {format_phase_counts(role_summary.get('phase_counts') or {})}")
+    for role in ("curved", "control"):
+        print(f"[next-action] {role}: {top_recommended_action(phase_rows, role)}")
+    print("[plot] transport_quality_phase_plot.png")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root", type=Path)
@@ -934,6 +1597,7 @@ def main() -> int:
         f"[curved-ladder-analysis] root={args.root} "
         f"status={summary['curved_validation_status']} comparability={summary['comparability_status']}"
     )
+    print_terminal_summary(args.root, summary)
     return 0
 
 
