@@ -3460,6 +3460,23 @@ private sealed class OverlayRollingWindow
 		public long FieldSourceEvals;
 	}
 
+	private static void DisposePass1ThreadLocal(Pass1ThreadLocal local)
+	{
+		local?.QuickRayParams?.Dispose();
+		if (local != null)
+			local.QuickRayParams = null;
+	}
+
+	public override void _ExitTree()
+	{
+		_quickRayParams?.Dispose();
+		_quickRayParams = null;
+		_overlapQuery?.Dispose();
+		_overlapQuery = null;
+		_overlapSphere?.Dispose();
+		_overlapSphere = null;
+	}
+
 	private struct Pass2ResolvedSample
 	{
 		public int X;
@@ -9564,6 +9581,10 @@ private sealed class OverlayRollingWindow
 			return "blackhole_minimal";
 		if (scenePath.IndexOf("einstein", StringComparison.OrdinalIgnoreCase) >= 0)
 			return "einstein_ring_minimal";
+		if (scenePath.IndexOf("atomic-orbital-grin-room", StringComparison.OrdinalIgnoreCase) >= 0)
+			return "atomic_orbital_grin_room";
+		if (scenePath.IndexOf("atomic-orbital-visual-observatory", StringComparison.OrdinalIgnoreCase) >= 0)
+			return "atomic_orbital_visual_observatory";
 		if (scenePath.IndexOf("curved-minimal", StringComparison.OrdinalIgnoreCase) >= 0)
 			return "curved_minimal";
 		if (scenePath.IndexOf("straight", StringComparison.OrdinalIgnoreCase) >= 0)
@@ -14401,6 +14422,7 @@ private sealed class OverlayRollingWindow
 					});
 
 					MergePass1ThreadLocal(in local);
+					DisposePass1ThreadLocal(local);
 				}
 
 				bool useThreadedPass1Bands = cfg.UseThreadedBands;
@@ -14458,7 +14480,10 @@ private sealed class OverlayRollingWindow
 					}
 
 					for (int chunkIndex = 0; chunkIndex < chunkCount; chunkIndex++)
+					{
 						MergePass1ThreadLocal(in chunkResults[chunkIndex]);
+						DisposePass1ThreadLocal(chunkResults[chunkIndex]);
+					}
 				}
 				else
 				{
@@ -14469,7 +14494,11 @@ private sealed class OverlayRollingWindow
 						new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = jobs },
 						() => CreatePass1ThreadLocal(),
 						(pi, _, local) => ProcessPass1Pixel(pi, local),
-						local => MergePass1ThreadLocal(in local));
+						local =>
+						{
+							MergePass1ThreadLocal(in local);
+							DisposePass1ThreadLocal(local);
+						});
 				}
 
 				// DECISION: dispose pass1 perf scope when enabled.

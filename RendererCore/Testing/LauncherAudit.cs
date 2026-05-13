@@ -106,6 +106,14 @@ public static class LauncherAudit
 		{
 			return "hermetic_curved_room";
 		}
+		if (normalized.Contains("test-atomic-orbital-grin-room", StringComparison.OrdinalIgnoreCase))
+		{
+			return "atomic_orbital_grin_room";
+		}
+		if (normalized.Contains("test-atomic-orbital-visual-observatory", StringComparison.OrdinalIgnoreCase))
+		{
+			return "atomic_orbital_visual_observatory";
+		}
 		if (normalized.Contains("test-overspace-wormhole-checkpoint-sequence-fixture", StringComparison.OrdinalIgnoreCase))
 		{
 			return "overspace_wormhole_checkpoint_sequence";
@@ -183,6 +191,8 @@ public static class LauncherAudit
 			"einstein_ring_minimal" => "res://test-einstein-ring-minimal.tscn",
 			"domain_resolver_stress" => "res://test-domain-resolver-stress.tscn",
 			"hermetic_curved_room" => "res://test-hermetic-curved-room.tscn",
+			"atomic_orbital_grin_room" => "res://test-atomic-orbital-grin-room.tscn",
+			"atomic_orbital_visual_observatory" => "res://test-atomic-orbital-visual-observatory.tscn",
 			"overspace_hermetic_fixture" => "res://test-overspace-hermetic-fixture.tscn",
 			"overspace_wormhole_witness" => "res://test-overspace-wormhole-witness-fixture.tscn",
 			"overspace_wormhole_checkpoint_sequence" => "res://test-overspace-wormhole-checkpoint-sequence-fixture.tscn",

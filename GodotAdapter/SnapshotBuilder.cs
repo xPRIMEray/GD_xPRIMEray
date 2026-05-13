@@ -190,6 +190,11 @@ public static class SnapshotBuilder
 
     private static void CollectGeometryNodes(Node root, List<CollisionObject3D> collisions, List<VisualInstance3D> visuals)
     {
+        if (IsVisualOnlyNodeOrAncestor(root))
+        {
+            return;
+        }
+
         if (root is CollisionObject3D collision)
         {
             collisions.Add(collision);
@@ -203,6 +208,19 @@ public static class SnapshotBuilder
         {
             CollectGeometryNodes(child, collisions, visuals);
         }
+    }
+
+    private static bool IsVisualOnlyNodeOrAncestor(Node node)
+    {
+        for (Node p = node; p != null; p = p.GetParent())
+        {
+            if (p.IsInGroup("visual_only"))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool IsRaycastTarget(CollisionObject3D collision)

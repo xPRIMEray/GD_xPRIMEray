@@ -35,6 +35,7 @@ STRIDE="${HERMETIC_CLOSURE_STRIDE:-1}"
 MAX_HOURS="${HERMETIC_CLOSURE_MAX_HOURS:-12}"
 SMOKE="${HERMETIC_CLOSURE_SMOKE:-0}"
 RESOLVER_PHASE="${HERMETIC_RESOLVER_PHASE:-0}"
+ADAPTIVE_CLOSURE_PROBE="${HERMETIC_ADAPTIVE_CLOSURE_PROBE:-1}"
 
 if [[ "$SMOKE" == "1" ]]; then
 	FRAMES="${HERMETIC_CLOSURE_FRAMES:-5}"
@@ -59,6 +60,7 @@ echo "[hermetic-closure] frames=$FRAMES warmup=$WARMUP res=${FILM_W}x${FILM_H} s
 echo "[hermetic-closure] steps=$STEPS_RAW budgets=$BUDGETS_RAW curvature=$CURVATURES_RAW traversal=$TRAVERSALS_RAW"
 echo "[hermetic-closure] contract=every pixel should hit a sealed-room receiver unless budget/integration/topology/valid-exception prevents closure"
 echo "[hermetic-closure] guardrail=scene-contract closure only; no physical truth claim; diagnostics never feed rendering"
+echo "[hermetic-closure] adaptive_closure_probe=$ADAPTIVE_CLOSURE_PROBE prototype_postprocess_only=1"
 
 sanitize_float() {
 	echo "$1" | sed 's/-/m/g; s/\./p/g'
@@ -78,6 +80,9 @@ effective_from_log() {
 
 refresh_summary() {
 	"$PYTHON" "$ROOT/tools/hermetic_hit_closure_analysis.py" "$OUTPUT_DIR" || true
+	if [[ "$ADAPTIVE_CLOSURE_PROBE" == "1" ]]; then
+		"$PYTHON" "$ROOT/tools/adaptive_closure_probe_analysis.py" "$OUTPUT_DIR" || true
+	fi
 }
 
 write_metadata() {
@@ -109,6 +114,7 @@ write_metadata() {
   "frames": $FRAMES,
   "warmup": $WARMUP,
   "resolver_phase": $RESOLVER_PHASE,
+  "adaptive_closure_probe": $ADAPTIVE_CLOSURE_PROBE,
   "closure_contract": "all pixels expected to hit sealed-room receiver; no valid exceptions in v1",
   "closure_truth_scope": "scene-contract closure, not physical correctness",
   "diagnostic_only": true,

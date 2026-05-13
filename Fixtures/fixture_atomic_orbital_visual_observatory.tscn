@@ -1,0 +1,950 @@
+[gd_scene load_steps=26 format=3]
+
+; Fixture: atomic orbital visual observatory
+; Purpose: interpretation-only hydrogen GRIN transport visualizer.
+; Visual-only guide roots use group "visual_only"; SnapshotBuilder excludes that group and descendants.
+
+[ext_resource type="Script" path="res://RayBeamRenderer.cs" id="1_rbr"]
+[ext_resource type="Script" path="res://AtomicEigenmodeFieldSource3D.cs" id="2_field"]
+[ext_resource type="Script" path="res://Fixtures/AtomicOrbitalVisualObservatoryController.cs" id="3_ctrl"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_unit"]
+size = Vector3(1, 1, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape_unit"]
+size = Vector3(1, 1, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_core"]
+radius = 0.18
+height = 0.36
+
+[sub_resource type="SphereMesh" id="SphereMesh_marker"]
+radius = 0.06
+height = 0.12
+
+[sub_resource type="TorusMesh" id="TorusMesh_orbit"]
+inner_radius = 0.012
+outer_radius = 3.0
+
+[sub_resource type="TorusMesh" id="TorusMesh_density_inner"]
+inner_radius = 0.01
+outer_radius = 1.8
+
+[sub_resource type="TorusMesh" id="TorusMesh_density_mid"]
+inner_radius = 0.01
+outer_radius = 3.6
+
+[sub_resource type="TorusMesh" id="TorusMesh_density_outer"]
+inner_radius = 0.01
+outer_radius = 6.0
+
+[sub_resource type="StandardMaterial3D" id="Mat_backplane"]
+albedo_color = Color(0.055, 0.065, 0.078, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_floor"]
+albedo_color = Color(0.075, 0.070, 0.090, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_side_a"]
+albedo_color = Color(0.105, 0.155, 0.210, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_side_b"]
+albedo_color = Color(0.185, 0.110, 0.160, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_grid_cyan"]
+albedo_color = Color(0.12, 0.95, 1.0, 1)
+emission_enabled = true
+emission = Color(0.04, 0.45, 0.55, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_grid_gold"]
+albedo_color = Color(1.0, 0.72, 0.20, 1)
+emission_enabled = true
+emission = Color(0.55, 0.28, 0.02, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_grid_magenta"]
+albedo_color = Color(0.95, 0.18, 0.72, 1)
+emission_enabled = true
+emission = Color(0.42, 0.05, 0.30, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_core"]
+albedo_color = Color(1.0, 0.78, 0.24, 1)
+emission_enabled = true
+emission = Color(0.80, 0.44, 0.05, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_density"]
+albedo_color = Color(0.2, 0.72, 1.0, 0.42)
+emission_enabled = true
+emission = Color(0.04, 0.30, 0.80, 1)
+transparency = 1
+
+[sub_resource type="StandardMaterial3D" id="Mat_laser"]
+albedo_color = Color(0.95, 0.12, 0.08, 0.55)
+emission_enabled = true
+emission = Color(1.0, 0.05, 0.02, 1)
+transparency = 1
+
+[sub_resource type="StandardMaterial3D" id="Mat_beam"]
+albedo_color = Color(0.35, 1.0, 0.34, 0.65)
+emission_enabled = true
+emission = Color(0.06, 0.85, 0.06, 1)
+transparency = 1
+
+[node name="FixtureAtomicOrbitalVisualObservatory" type="Node3D"]
+script = ExtResource("3_ctrl")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8.5)
+current = true
+fov = 50.0
+near = 0.01
+far = 120.0
+
+[node name="reference_backplane" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_background", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(24, 0, 0, 0, 13.5, 0, 0, 0, 0.18, 0, 0, -12)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="reference_backplane"]
+material_override = SubResource("Mat_backplane")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="reference_backplane"]
+shape = SubResource("BoxShape_unit")
+
+[node name="RaytraceReferenceRoot" type="Node3D" parent="."]
+
+[node name="wall_grid_v_neg10" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.0448, 0, -0.0045, 0, 12.4, 0, 0.008, 0, 0.0796, -10, 0, -11.76)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/wall_grid_v_neg10"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/wall_grid_v_neg10"]
+shape = SubResource("BoxShape_unit")
+
+[node name="wall_grid_v_neg8" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.0448, 0, 0.0045, 0, 12.4, 0, -0.008, 0, 0.0796, -8, 0, -11.75)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/wall_grid_v_neg8"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/wall_grid_v_neg8"]
+shape = SubResource("BoxShape_unit")
+
+[node name="wall_grid_v_neg6" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.0448, 0, -0.0045, 0, 12.4, 0, 0.008, 0, 0.0796, -6, 0, -11.74)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/wall_grid_v_neg6"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/wall_grid_v_neg6"]
+shape = SubResource("BoxShape_unit")
+
+[node name="wall_grid_v_neg4" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.0448, 0, 0.0045, 0, 12.4, 0, -0.008, 0, 0.0796, -4, 0, -11.73)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/wall_grid_v_neg4"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/wall_grid_v_neg4"]
+shape = SubResource("BoxShape_unit")
+
+[node name="wall_grid_v_neg2" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.052, 0, -0.0052, 0, 12.8, 0, 0.009, 0, 0.0895, -2, 0, -11.72)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/wall_grid_v_neg2"]
+material_override = SubResource("Mat_grid_magenta")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/wall_grid_v_neg2"]
+shape = SubResource("BoxShape_unit")
+
+[node name="wall_grid_v_zero" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.055, 0, 0, 0, 13.0, 0, 0, 0, 0.10, 0, 0, -11.70)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/wall_grid_v_zero"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/wall_grid_v_zero"]
+shape = SubResource("BoxShape_unit")
+
+[node name="wall_grid_v_pos2" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.052, 0, 0.0052, 0, 12.8, 0, -0.009, 0, 0.0895, 2, 0, -11.72)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/wall_grid_v_pos2"]
+material_override = SubResource("Mat_grid_magenta")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/wall_grid_v_pos2"]
+shape = SubResource("BoxShape_unit")
+
+[node name="wall_grid_v_pos4" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.0448, 0, -0.0045, 0, 12.4, 0, 0.008, 0, 0.0796, 4, 0, -11.73)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/wall_grid_v_pos4"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/wall_grid_v_pos4"]
+shape = SubResource("BoxShape_unit")
+
+[node name="wall_grid_v_pos6" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.0448, 0, 0.0045, 0, 12.4, 0, -0.008, 0, 0.0796, 6, 0, -11.74)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/wall_grid_v_pos6"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/wall_grid_v_pos6"]
+shape = SubResource("BoxShape_unit")
+
+[node name="wall_grid_v_pos8" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.0448, 0, -0.0045, 0, 12.4, 0, 0.008, 0, 0.0796, 8, 0, -11.75)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/wall_grid_v_pos8"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/wall_grid_v_pos8"]
+shape = SubResource("BoxShape_unit")
+
+[node name="wall_grid_v_pos10" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.0448, 0, 0.0045, 0, 12.4, 0, -0.008, 0, 0.0796, 10, 0, -11.76)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/wall_grid_v_pos10"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/wall_grid_v_pos10"]
+shape = SubResource("BoxShape_unit")
+
+[node name="wall_grid_h_neg6" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(22, 0, 0, 0, 0.0448, 0.0045, 0, -0.008, 0.0796, 0, -6, -11.76)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/wall_grid_h_neg6"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/wall_grid_h_neg6"]
+shape = SubResource("BoxShape_unit")
+
+[node name="wall_grid_h_neg4_5" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(22, 0, 0, 0, 0.0448, -0.0045, 0, 0.008, 0.0796, 0, -4.5, -11.75)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/wall_grid_h_neg4_5"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/wall_grid_h_neg4_5"]
+shape = SubResource("BoxShape_unit")
+
+[node name="wall_grid_h_neg3" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(22, 0, 0, 0, 0.0448, 0.0045, 0, -0.008, 0.0796, 0, -3, -11.74)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/wall_grid_h_neg3"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/wall_grid_h_neg3"]
+shape = SubResource("BoxShape_unit")
+
+[node name="wall_grid_h_neg1_5" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(22.5, 0, 0, 0, 0.052, -0.0052, 0, 0.009, 0.0895, 0, -1.5, -11.72)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/wall_grid_h_neg1_5"]
+material_override = SubResource("Mat_grid_magenta")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/wall_grid_h_neg1_5"]
+shape = SubResource("BoxShape_unit")
+
+[node name="wall_grid_h_zero" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(23, 0, 0, 0, 0.055, 0, 0, 0, 0.10, 0, 0, -11.70)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/wall_grid_h_zero"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/wall_grid_h_zero"]
+shape = SubResource("BoxShape_unit")
+
+[node name="wall_grid_h_pos1_5" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(22.5, 0, 0, 0, 0.052, 0.0052, 0, -0.009, 0.0895, 0, 1.5, -11.72)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/wall_grid_h_pos1_5"]
+material_override = SubResource("Mat_grid_magenta")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/wall_grid_h_pos1_5"]
+shape = SubResource("BoxShape_unit")
+
+[node name="wall_grid_h_pos3" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(22, 0, 0, 0, 0.0448, -0.0045, 0, 0.008, 0.0796, 0, 3, -11.74)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/wall_grid_h_pos3"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/wall_grid_h_pos3"]
+shape = SubResource("BoxShape_unit")
+
+[node name="wall_grid_h_pos4_5" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(22, 0, 0, 0, 0.0448, 0.0045, 0, -0.008, 0.0796, 0, 4.5, -11.75)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/wall_grid_h_pos4_5"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/wall_grid_h_pos4_5"]
+shape = SubResource("BoxShape_unit")
+
+[node name="wall_grid_h_pos6" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(22, 0, 0, 0, 0.0448, -0.0045, 0, 0.008, 0.0796, 0, 6, -11.76)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/wall_grid_h_pos6"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/wall_grid_h_pos6"]
+shape = SubResource("BoxShape_unit")
+
+[node name="target_outer_top" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(3.2, 0, 0, 0, 0.07, 0, 0, 0, 0.11, 0, 2.6, -11.58)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/target_outer_top"]
+material_override = SubResource("Mat_grid_magenta")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/target_outer_top"]
+shape = SubResource("BoxShape_unit")
+
+[node name="target_outer_bottom" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(3.2, 0, 0, 0, 0.07, 0, 0, 0, 0.11, 0, -2.6, -11.57)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/target_outer_bottom"]
+material_override = SubResource("Mat_grid_magenta")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/target_outer_bottom"]
+shape = SubResource("BoxShape_unit")
+
+[node name="target_outer_left" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.07, 0, 0, 0, 3.2, 0, 0, 0, 0.11, -2.6, 0, -11.56)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/target_outer_left"]
+material_override = SubResource("Mat_grid_magenta")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/target_outer_left"]
+shape = SubResource("BoxShape_unit")
+
+[node name="target_outer_right" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.07, 0, 0, 0, 3.2, 0, 0, 0, 0.11, 2.6, 0, -11.55)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/target_outer_right"]
+material_override = SubResource("Mat_grid_magenta")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/target_outer_right"]
+shape = SubResource("BoxShape_unit")
+
+[node name="target_inner_top" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(1.7, 0, 0, 0, 0.06, 0, 0, 0, 0.12, 0, 1.35, -11.54)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/target_inner_top"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/target_inner_top"]
+shape = SubResource("BoxShape_unit")
+
+[node name="target_inner_bottom" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(1.7, 0, 0, 0, 0.06, 0, 0, 0, 0.12, 0, -1.35, -11.53)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/target_inner_bottom"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/target_inner_bottom"]
+shape = SubResource("BoxShape_unit")
+
+[node name="target_inner_left" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.06, 0, 0, 0, 1.7, 0, 0, 0, 0.12, -1.35, 0, -11.52)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/target_inner_left"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/target_inner_left"]
+shape = SubResource("BoxShape_unit")
+
+[node name="target_inner_right" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.06, 0, 0, 0, 1.7, 0, 0, 0, 0.12, 1.35, 0, -11.51)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/target_inner_right"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/target_inner_right"]
+shape = SubResource("BoxShape_unit")
+
+[node name="target_crosshair_h" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(5.6, 0, 0, 0, 0.045, 0, 0, 0, 0.13, 0, 0, -11.49)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/target_crosshair_h"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/target_crosshair_h"]
+shape = SubResource("BoxShape_unit")
+
+[node name="target_crosshair_v" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.045, 0, 0, 0, 5.6, 0, 0, 0, 0.13, 0, 0, -11.48)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/target_crosshair_v"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/target_crosshair_v"]
+shape = SubResource("BoxShape_unit")
+
+[node name="lens_pole_neg24" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.13, 0, -0.026, 0, 8.2, 0, 0.031, 0, 0.157, -2.4, 0, -3.8)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/lens_pole_neg24"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/lens_pole_neg24"]
+shape = SubResource("BoxShape_unit")
+
+[node name="lens_pole_neg12" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.13, 0, 0.026, 0, 8.2, 0, -0.031, 0, 0.157, -1.2, 0, -3.4)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/lens_pole_neg12"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/lens_pole_neg12"]
+shape = SubResource("BoxShape_unit")
+
+[node name="lens_pole_zero" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.10, 0, 0, 0, 8.6, 0, 0, 0, 0.18, 0, 0, -3.0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/lens_pole_zero"]
+material_override = SubResource("Mat_grid_magenta")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/lens_pole_zero"]
+shape = SubResource("BoxShape_unit")
+
+[node name="lens_pole_pos12" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.13, 0, -0.026, 0, 8.2, 0, 0.031, 0, 0.157, 1.2, 0, -3.4)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/lens_pole_pos12"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/lens_pole_pos12"]
+shape = SubResource("BoxShape_unit")
+
+[node name="lens_pole_pos24" type="StaticBody3D" parent="RaytraceReferenceRoot" groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.13, 0, 0.026, 0, 8.2, 0, -0.031, 0, 0.157, 2.4, 0, -3.8)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RaytraceReferenceRoot/lens_pole_pos24"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RaytraceReferenceRoot/lens_pole_pos24"]
+shape = SubResource("BoxShape_unit")
+
+[node name="reference_floor" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_background", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(16, 0, 0, 0, 0.18, 0, 0, 0, 18, 0, -4.5, -8)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="reference_floor"]
+material_override = SubResource("Mat_floor")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="reference_floor"]
+shape = SubResource("BoxShape_unit")
+
+[node name="reference_left_panel" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_background", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.16, 0, 0, 0, 8, 0, 0, 0, 14, -8, 0, -10)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="reference_left_panel"]
+material_override = SubResource("Mat_side_a")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="reference_left_panel"]
+shape = SubResource("BoxShape_unit")
+
+[node name="reference_right_panel" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_background", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.16, 0, 0, 0, 8, 0, 0, 0, 14, 8, 0, -10)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="reference_right_panel"]
+material_override = SubResource("Mat_side_b")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="reference_right_panel"]
+shape = SubResource("BoxShape_unit")
+
+[node name="back_grid_vertical_a" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.045, 0, 0, 0, 8.6, 0, 0, 0, 0.08, -4, 0, -17.82)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="back_grid_vertical_a"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="back_grid_vertical_a"]
+shape = SubResource("BoxShape_unit")
+
+[node name="back_grid_vertical_b" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.045, 0, 0, 0, 8.6, 0, 0, 0, 0.08, 0, 0, -17.8)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="back_grid_vertical_b"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="back_grid_vertical_b"]
+shape = SubResource("BoxShape_unit")
+
+[node name="back_grid_vertical_c" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.045, 0, 0, 0, 8.6, 0, 0, 0, 0.08, 4, 0, -17.78)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="back_grid_vertical_c"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="back_grid_vertical_c"]
+shape = SubResource("BoxShape_unit")
+
+[node name="back_grid_horizontal_a" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(15.2, 0, 0, 0, 0.045, 0, 0, 0, 0.08, 0, -2.2, -17.76)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="back_grid_horizontal_a"]
+material_override = SubResource("Mat_grid_magenta")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="back_grid_horizontal_a"]
+shape = SubResource("BoxShape_unit")
+
+[node name="back_grid_horizontal_b" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(15.2, 0, 0, 0, 0.045, 0, 0, 0, 0.08, 0, 2.2, -17.74)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="back_grid_horizontal_b"]
+material_override = SubResource("Mat_grid_magenta")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="back_grid_horizontal_b"]
+shape = SubResource("BoxShape_unit")
+
+[node name="back_checker_tl_a" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.95, 0, 0, 0, 0.62, 0, 0, 0, 0.06, -5.9, 3.25, -17.66)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="back_checker_tl_a"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="back_checker_tl_a"]
+shape = SubResource("BoxShape_unit")
+
+[node name="back_checker_tl_b" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.95, 0, 0, 0, 0.62, 0, 0, 0, 0.06, -3.9, 3.25, -17.65)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="back_checker_tl_b"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="back_checker_tl_b"]
+shape = SubResource("BoxShape_unit")
+
+[node name="back_checker_tr_a" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.95, 0, 0, 0, 0.62, 0, 0, 0, 0.06, 3.9, 3.25, -17.64)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="back_checker_tr_a"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="back_checker_tr_a"]
+shape = SubResource("BoxShape_unit")
+
+[node name="back_checker_tr_b" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.95, 0, 0, 0, 0.62, 0, 0, 0, 0.06, 5.9, 3.25, -17.63)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="back_checker_tr_b"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="back_checker_tr_b"]
+shape = SubResource("BoxShape_unit")
+
+[node name="back_checker_bl_a" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.95, 0, 0, 0, 0.62, 0, 0, 0, 0.06, -5.9, -3.25, -17.62)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="back_checker_bl_a"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="back_checker_bl_a"]
+shape = SubResource("BoxShape_unit")
+
+[node name="back_checker_bl_b" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.95, 0, 0, 0, 0.62, 0, 0, 0, 0.06, -3.9, -3.25, -17.61)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="back_checker_bl_b"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="back_checker_bl_b"]
+shape = SubResource("BoxShape_unit")
+
+[node name="back_checker_br_a" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.95, 0, 0, 0, 0.62, 0, 0, 0, 0.06, 3.9, -3.25, -17.60)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="back_checker_br_a"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="back_checker_br_a"]
+shape = SubResource("BoxShape_unit")
+
+[node name="back_checker_br_b" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.95, 0, 0, 0, 0.62, 0, 0, 0, 0.06, 5.9, -3.25, -17.59)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="back_checker_br_b"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="back_checker_br_b"]
+shape = SubResource("BoxShape_unit")
+
+[node name="rear_target_outer_top" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(5.2, 0, 0, 0, 0.05, 0, 0, 0, 0.055, 0, 2.6, -17.58)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="rear_target_outer_top"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="rear_target_outer_top"]
+shape = SubResource("BoxShape_unit")
+
+[node name="rear_target_outer_bottom" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(5.2, 0, 0, 0, 0.05, 0, 0, 0, 0.055, 0, -2.6, -17.57)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="rear_target_outer_bottom"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="rear_target_outer_bottom"]
+shape = SubResource("BoxShape_unit")
+
+[node name="rear_target_outer_left" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.05, 0, 0, 0, 5.2, 0, 0, 0, 0.055, -2.6, 0, -17.56)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="rear_target_outer_left"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="rear_target_outer_left"]
+shape = SubResource("BoxShape_unit")
+
+[node name="rear_target_outer_right" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.05, 0, 0, 0, 5.2, 0, 0, 0, 0.055, 2.6, 0, -17.55)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="rear_target_outer_right"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="rear_target_outer_right"]
+shape = SubResource("BoxShape_unit")
+
+[node name="rear_target_inner_top" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(2.8, 0, 0, 0, 0.045, 0, 0, 0, 0.052, 0, 1.4, -17.54)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="rear_target_inner_top"]
+material_override = SubResource("Mat_grid_magenta")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="rear_target_inner_top"]
+shape = SubResource("BoxShape_unit")
+
+[node name="rear_target_inner_bottom" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(2.8, 0, 0, 0, 0.045, 0, 0, 0, 0.052, 0, -1.4, -17.53)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="rear_target_inner_bottom"]
+material_override = SubResource("Mat_grid_magenta")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="rear_target_inner_bottom"]
+shape = SubResource("BoxShape_unit")
+
+[node name="rear_target_inner_left" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.045, 0, 0, 0, 2.8, 0, 0, 0, 0.052, -1.4, 0, -17.52)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="rear_target_inner_left"]
+material_override = SubResource("Mat_grid_magenta")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="rear_target_inner_left"]
+shape = SubResource("BoxShape_unit")
+
+[node name="rear_target_inner_right" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.045, 0, 0, 0, 2.8, 0, 0, 0, 0.052, 1.4, 0, -17.51)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="rear_target_inner_right"]
+material_override = SubResource("Mat_grid_magenta")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="rear_target_inner_right"]
+shape = SubResource("BoxShape_unit")
+
+[node name="floor_grid_x_neg4" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.045, 0, 0, 0, 0.045, 0, 0, 0, 16.0, -4, -4.24, -8)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="floor_grid_x_neg4"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="floor_grid_x_neg4"]
+shape = SubResource("BoxShape_unit")
+
+[node name="floor_grid_x_neg2" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.045, 0, 0, 0, 0.045, 0, 0, 0, 16.0, -2, -4.23, -8)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="floor_grid_x_neg2"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="floor_grid_x_neg2"]
+shape = SubResource("BoxShape_unit")
+
+[node name="floor_grid_x_zero" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.045, 0, 0, 0, 0.045, 0, 0, 0, 16.0, 0, -4.22, -8)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="floor_grid_x_zero"]
+material_override = SubResource("Mat_grid_magenta")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="floor_grid_x_zero"]
+shape = SubResource("BoxShape_unit")
+
+[node name="floor_grid_x_pos2" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.045, 0, 0, 0, 0.045, 0, 0, 0, 16.0, 2, -4.21, -8)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="floor_grid_x_pos2"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="floor_grid_x_pos2"]
+shape = SubResource("BoxShape_unit")
+
+[node name="floor_grid_x_pos4" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.045, 0, 0, 0, 0.045, 0, 0, 0, 16.0, 4, -4.20, -8)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="floor_grid_x_pos4"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="floor_grid_x_pos4"]
+shape = SubResource("BoxShape_unit")
+
+[node name="floor_grid_z_near" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(14.0, 0, 0, 0, 0.045, 0, 0, 0, 0.045, 0, -4.19, -2.5)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="floor_grid_z_near"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="floor_grid_z_near"]
+shape = SubResource("BoxShape_unit")
+
+[node name="floor_grid_z_mid" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(14.0, 0, 0, 0, 0.045, 0, 0, 0, 0.045, 0, -4.18, -7.0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="floor_grid_z_mid"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="floor_grid_z_mid"]
+shape = SubResource("BoxShape_unit")
+
+[node name="floor_grid_z_far" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(14.0, 0, 0, 0, 0.045, 0, 0, 0, 0.045, 0, -4.17, -11.5)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="floor_grid_z_far"]
+material_override = SubResource("Mat_grid_magenta")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="floor_grid_z_far"]
+shape = SubResource("BoxShape_unit")
+
+[node name="pole_left" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.09, 0, 0, 0, 7.8, 0, 0, 0, 0.09, -3.2, -0.4, -8)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="pole_left"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="pole_left"]
+shape = SubResource("BoxShape_unit")
+
+[node name="pole_center" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.07, 0, 0, 0, 6.8, 0, 0, 0, 0.07, 0, -0.75, -9.4)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="pole_center"]
+material_override = SubResource("Mat_grid_magenta")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="pole_center"]
+shape = SubResource("BoxShape_unit")
+
+[node name="pole_right" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.09, 0, 0, 0, 7.8, 0, 0, 0, 0.09, 3.2, -0.4, -8)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="pole_right"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="pole_right"]
+shape = SubResource("BoxShape_unit")
+
+[node name="pole_far_left" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.065, 0, 0, 0, 5.8, 0, 0, 0, 0.065, -5.2, -0.95, -11.2)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="pole_far_left"]
+material_override = SubResource("Mat_grid_cyan")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="pole_far_left"]
+shape = SubResource("BoxShape_unit")
+
+[node name="pole_far_right" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(0.065, 0, 0, 0, 5.8, 0, 0, 0, 0.065, 5.2, -0.95, -11.2)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="pole_far_right"]
+material_override = SubResource("Mat_grid_gold")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="pole_far_right"]
+shape = SubResource("BoxShape_unit")
+
+[node name="proton_core_marker" type="StaticBody3D" parent="." groups=["atomic_visual_reference", "fixture_geometry", "raytrace_geometry"]]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="proton_core_marker"]
+material_override = SubResource("Mat_core")
+mesh = SubResource("SphereMesh_core")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="proton_core_marker"]
+shape = SubResource("BoxShape_unit")
+
+[node name="VisualGuidesRoot" type="Node3D" parent="." groups=["visual_only"]]
+
+[node name="orbit_ring_xy" type="MeshInstance3D" parent="VisualGuidesRoot"]
+material_override = SubResource("Mat_density")
+mesh = SubResource("TorusMesh_orbit")
+
+[node name="orbit_ring_xz" type="MeshInstance3D" parent="VisualGuidesRoot"]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0, 0)
+material_override = SubResource("Mat_density")
+mesh = SubResource("TorusMesh_orbit")
+
+[node name="DensityMarkersRoot" type="Node3D" parent="." groups=["visual_only"]]
+
+[node name="density_shell_inner" type="MeshInstance3D" parent="DensityMarkersRoot"]
+material_override = SubResource("Mat_density")
+mesh = SubResource("TorusMesh_density_inner")
+
+[node name="density_shell_mid" type="MeshInstance3D" parent="DensityMarkersRoot"]
+material_override = SubResource("Mat_density")
+mesh = SubResource("TorusMesh_density_mid")
+
+[node name="density_shell_outer" type="MeshInstance3D" parent="DensityMarkersRoot"]
+material_override = SubResource("Mat_density")
+mesh = SubResource("TorusMesh_density_outer")
+
+[node name="marker_x_pos" type="MeshInstance3D" parent="DensityMarkersRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, 0)
+material_override = SubResource("Mat_density")
+mesh = SubResource("SphereMesh_marker")
+
+[node name="marker_x_neg" type="MeshInstance3D" parent="DensityMarkersRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, 0)
+material_override = SubResource("Mat_density")
+mesh = SubResource("SphereMesh_marker")
+
+[node name="marker_y_pos" type="MeshInstance3D" parent="DensityMarkersRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+material_override = SubResource("Mat_density")
+mesh = SubResource("SphereMesh_marker")
+
+[node name="marker_y_neg" type="MeshInstance3D" parent="DensityMarkersRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -3, 0)
+material_override = SubResource("Mat_density")
+mesh = SubResource("SphereMesh_marker")
+
+[node name="LaserGuidesRoot" type="Node3D" parent="." groups=["visual_only"]]
+
+[node name="laser_sheet_x" type="MeshInstance3D" parent="LaserGuidesRoot"]
+transform = Transform3D(10, 0, 0, 0, 0.035, 0, 0, 0, 0.035, 0, 0, -4)
+material_override = SubResource("Mat_laser")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="laser_sheet_y" type="MeshInstance3D" parent="LaserGuidesRoot"]
+transform = Transform3D(0.035, 0, 0, 0, 6, 0, 0, 0, 0.035, 0, 0, -4)
+material_override = SubResource("Mat_laser")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="BeamGuidesRoot" type="Node3D" parent="." groups=["visual_only"]]
+
+[node name="beam_center" type="MeshInstance3D" parent="BeamGuidesRoot"]
+transform = Transform3D(0.06, 0, 0, 0, 0.06, 0, 0, 0, 18, 0, 0, -9)
+material_override = SubResource("Mat_beam")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="beam_offset" type="MeshInstance3D" parent="BeamGuidesRoot"]
+transform = Transform3D(0.045, 0, 0, 0, 0.045, 0, 0, 0, 18, 1.4, 0.8, -9)
+material_override = SubResource("Mat_beam")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="AtomicEigenmodeFieldSource3D" type="Node3D" parent="."]
+script = ExtResource("2_field")
+Enabled = true
+ROuter = 24.0
+CanonicalGamma = 1.0
+Amp = 0.035
+CanonicalOverrideBetaScale = true
+CanonicalBetaScale = 1.0
+DebugVizEnabled = false
+DebugVizInGame = false
+ElectronCount = 1
+AtomicPreset = "hydrogen"
+OrbitalRadius = 8.0
+CurvatureStrength = 0.05
+ModulationDepth = 0.35
+TimeEnabled = false
+ProtonCoreEnabled = false
+
+[node name="RayBeamRenderer" type="Node3D" parent="."]
+visible = false
+script = ExtResource("1_rbr")
+CameraPath = NodePath("../Camera3D")
+StepsPerRay = 900
+StepLength = 0.0125
+MinStepLength = 0.001
+MaxStepLength = 0.04
+CollisionRaySubdivideThreshold = 0.015
+MaxCollisionSubsteps = 6
+CollisionRadius = 0.006
+UseIntegratedField = true
+BendScale = 1.0
+FieldStrength = 1.0
+FieldCenterIsCamera = false
+StopOnHit = true
+TerminateTrailOnHit = true
+RequireHitToRender = false
+DebugMode = 0
+DebugNormalLen = 0.295
+Alpha = 1.0
+UpdateEveryFrame = false

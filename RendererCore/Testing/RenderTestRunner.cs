@@ -17,7 +17,9 @@ public partial class RenderTestRunner : Node
 		EinsteinRingMinimal = 4,
 		CurvedMinimalBackdrop = 5,
 		DomainResolverStress = 6,
-		HermeticCurvedRoom = 7
+		HermeticCurvedRoom = 7,
+		AtomicOrbitalGrinRoom = 8,
+		AtomicOrbitalVisualObservatory = 9
 	}
 
 	public enum SmartScaleMode
@@ -80,6 +82,8 @@ public partial class RenderTestRunner : Node
 	private const string RenderTestEinsteinRingMinimalGrinScenePath = "res://test-einstein-ring-minimal-grin.tscn";
 	private const string RenderTestDomainResolverStressScenePath = "res://test-domain-resolver-stress.tscn";
 	private const string RenderTestHermeticCurvedRoomScenePath = "res://test-hermetic-curved-room.tscn";
+	private const string RenderTestAtomicOrbitalGrinRoomScenePath = "res://test-atomic-orbital-grin-room.tscn";
+	private const string RenderTestAtomicOrbitalVisualObservatoryScenePath = "res://test-atomic-orbital-visual-observatory.tscn";
 	private const string RenderTestStraightArgToken = "--render-test-straight";
 	private const string RenderTestStraightSceneHint = "straight";
 	private const string RenderTestFixtureArgPrefix = "--render-test-fixture=";
@@ -126,6 +130,8 @@ public partial class RenderTestRunner : Node
 	private const string RenderTestFilmWidthCmdArgPrefix = "--render-test-film-width=";
 	private const string RenderTestFilmHeightCmdArgPrefix = "--render-test-film-height=";
 	private const string RenderTestFilmScaleCmdArgPrefix = "--render-test-film-scale=";
+	private const string RenderTestFilmShadingCmdArgPrefix = "--render-test-film-shading=";
+	private const string RenderTestUpdateBudgetMsCmdArgPrefix = "--render-test-update-budget-ms=";
 	private const string RenderTestCameraFixedCmdArgPrefix = "--render-test-camera-fixed=";
 	private const string RenderTestStepLengthCmdArgPrefix = "--render-test-step-length=";
 	private const string RenderTestStepsPerRayCmdArgPrefix = "--render-test-steps-per-ray=";
@@ -236,6 +242,10 @@ public partial class RenderTestRunner : Node
 	private int _renderTestFilmHeightOverride = 180;
 	private bool _renderTestFilmScaleOverrideKnown = false;
 	private float _renderTestFilmScaleOverride = 1.0f;
+	private bool _renderTestFilmShadingOverrideKnown = false;
+	private GrinFilmCamera.FilmShadingMode _renderTestFilmShadingOverride = GrinFilmCamera.FilmShadingMode.NormalRGB;
+	private bool _renderTestUpdateBudgetMsOverrideKnown = false;
+	private float _renderTestUpdateBudgetMsOverride = 2000f;
 	private bool _renderTestCameraFixedCliOverrideKnown = false;
 	private bool _renderTestCameraFixed = false;
 	private bool _renderTestStepLengthOverrideKnown = false;
@@ -924,9 +934,17 @@ public partial class RenderTestRunner : Node
 		_film.SkyColor = new Color(0.15517181f, 0.13225737f, 0.33741817f, 1.0f);
 		_film.FilmOpacity = 0.8f;
 		_film.ShadingMode = GrinFilmCamera.FilmShadingMode.NormalRGB;
+		if (_renderTestFilmShadingOverrideKnown)
+		{
+			_film.ShadingMode = _renderTestFilmShadingOverride;
+		}
 		_film.FlipNormalToCamera = false;
 		_film.UpdateEveryFrame = false;
 		_film.UpdateEveryFrameBudgetMs = 2000f;
+		if (_renderTestUpdateBudgetMsOverrideKnown)
+		{
+			_film.UpdateEveryFrameBudgetMs = _renderTestUpdateBudgetMsOverride;
+		}
 		_film.UpdateEveryFrameMaxRowsPerStep = statsRowsPerStep;
 		_film.RowsPerFrame = statsRowsPerStep;
 		_film.MinRowsPerFrame = Math.Min(_film.MinRowsPerFrame, statsRowsPerStep);
@@ -4241,6 +4259,10 @@ public partial class RenderTestRunner : Node
 		_renderTestFilmHeightOverride = 180;
 		_renderTestFilmScaleOverrideKnown = false;
 		_renderTestFilmScaleOverride = 1.0f;
+		_renderTestFilmShadingOverrideKnown = false;
+		_renderTestFilmShadingOverride = GrinFilmCamera.FilmShadingMode.NormalRGB;
+		_renderTestUpdateBudgetMsOverrideKnown = false;
+		_renderTestUpdateBudgetMsOverride = 2000f;
 		_renderTestCameraFixedCliOverrideKnown = false;
 		_renderTestCameraFixed = false;
 		_renderTestStepLengthOverrideKnown = false;
@@ -4446,6 +4468,19 @@ public partial class RenderTestRunner : Node
 		{
 			_renderTestFilmScaleOverrideKnown = true;
 			_renderTestFilmScaleOverride = Mathf.Clamp(renderTestFilmScale, 0.01f, 4.0f);
+		}
+		if (TryGetStringCmdArgValue(RenderTestFilmShadingCmdArgPrefix, out string renderTestFilmShadingRaw) &&
+			TryParseRenderTestFilmShading(renderTestFilmShadingRaw, out GrinFilmCamera.FilmShadingMode renderTestFilmShading))
+		{
+			_renderTestFilmShadingOverrideKnown = true;
+			_renderTestFilmShadingOverride = renderTestFilmShading;
+		}
+		if (TryGetStringCmdArgValue(RenderTestUpdateBudgetMsCmdArgPrefix, out string renderTestUpdateBudgetMsRaw) &&
+			!string.IsNullOrWhiteSpace(renderTestUpdateBudgetMsRaw) &&
+			float.TryParse(renderTestUpdateBudgetMsRaw.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float renderTestUpdateBudgetMs))
+		{
+			_renderTestUpdateBudgetMsOverrideKnown = true;
+			_renderTestUpdateBudgetMsOverride = Mathf.Clamp(renderTestUpdateBudgetMs, 100f, 60000f);
 		}
 		if (TryGetBoolCmdArgValue(RenderTestCameraFixedCmdArgPrefix, out bool renderTestCameraFixed))
 		{
@@ -4852,6 +4887,20 @@ public partial class RenderTestRunner : Node
 				fixture = RenderTestFixture.HermeticCurvedRoom;
 				return true;
 			}
+			if (string.Equals(value, "atomic_orbital_grin_room", StringComparison.OrdinalIgnoreCase) ||
+				string.Equals(value, "atomic_grin_room", StringComparison.OrdinalIgnoreCase) ||
+				string.Equals(value, "atomic", StringComparison.OrdinalIgnoreCase))
+			{
+				fixture = RenderTestFixture.AtomicOrbitalGrinRoom;
+				return true;
+			}
+			if (string.Equals(value, "atomic_orbital_visual_observatory", StringComparison.OrdinalIgnoreCase) ||
+				string.Equals(value, "atomic_visual_observatory", StringComparison.OrdinalIgnoreCase) ||
+				string.Equals(value, "atomic_visual", StringComparison.OrdinalIgnoreCase))
+			{
+				fixture = RenderTestFixture.AtomicOrbitalVisualObservatory;
+				return true;
+			}
 			if (string.Equals(value, "default", StringComparison.OrdinalIgnoreCase))
 			{
 				fixture = RenderTestFixture.Default;
@@ -5118,6 +5167,8 @@ public partial class RenderTestRunner : Node
 			RenderTestFixture.EinsteinRingMinimal => "einstein_ring_minimal",
 			RenderTestFixture.DomainResolverStress => "domain_resolver_stress",
 			RenderTestFixture.HermeticCurvedRoom => "hermetic_curved_room",
+			RenderTestFixture.AtomicOrbitalGrinRoom => "atomic_orbital_grin_room",
+			RenderTestFixture.AtomicOrbitalVisualObservatory => "atomic_orbital_visual_observatory",
 			_ => string.Empty
 		};
 	}
@@ -5153,6 +5204,8 @@ public partial class RenderTestRunner : Node
 				RenderTestEinsteinRingMinimalGrinScenePath),
 			RenderTestFixture.DomainResolverStress => RenderTestDomainResolverStressScenePath,
 			RenderTestFixture.HermeticCurvedRoom => RenderTestHermeticCurvedRoomScenePath,
+			RenderTestFixture.AtomicOrbitalGrinRoom => RenderTestAtomicOrbitalGrinRoomScenePath,
+			RenderTestFixture.AtomicOrbitalVisualObservatory => RenderTestAtomicOrbitalVisualObservatoryScenePath,
 			_ => RenderTestDefaultScenePath
 		};
 	}
@@ -5260,6 +5313,39 @@ public partial class RenderTestRunner : Node
 		}
 
 		return ordered.ToArray();
+	}
+
+	private static bool TryParseRenderTestFilmShading(string raw, out GrinFilmCamera.FilmShadingMode shading)
+	{
+		shading = GrinFilmCamera.FilmShadingMode.NormalRGB;
+		if (string.IsNullOrWhiteSpace(raw))
+		{
+			return false;
+		}
+
+		string token = raw.Trim().ToLowerInvariant();
+		if (token == "normal_rgb" || token == "normalrgb" || token == "normal")
+		{
+			shading = GrinFilmCamera.FilmShadingMode.NormalRGB;
+			return true;
+		}
+		if (token == "depth_heatmap" || token == "depth" || token == "heatmap")
+		{
+			shading = GrinFilmCamera.FilmShadingMode.DepthHeatmap;
+			return true;
+		}
+		if (token == "ndotv" || token == "n_dot_v")
+		{
+			shading = GrinFilmCamera.FilmShadingMode.NdotV;
+			return true;
+		}
+		if (token == "two_sided_ndotv" || token == "twosided_ndotv" || token == "two_sided")
+		{
+			shading = GrinFilmCamera.FilmShadingMode.TwoSidedNdotV;
+			return true;
+		}
+
+		return false;
 	}
 
 	private void SwitchToFixtureSceneDeferred(string scenePath)
@@ -5476,6 +5562,9 @@ public partial class RenderTestRunner : Node
 			RenderTestFixture.BlackholeMinimal => "blackhole_minimal",
 			RenderTestFixture.EinsteinRingMinimal => "einstein_ring_minimal",
 			RenderTestFixture.DomainResolverStress => "domain_resolver_stress",
+			RenderTestFixture.HermeticCurvedRoom => "hermetic_curved_room",
+			RenderTestFixture.AtomicOrbitalGrinRoom => "atomic_orbital_grin_room",
+			RenderTestFixture.AtomicOrbitalVisualObservatory => "atomic_orbital_visual_observatory",
 			_ => "default"
 		};
 	}

@@ -90,7 +90,9 @@ public static class FieldSystem
             var denom = MathF.Max(Eps, rOuter - rInner);
             var u = Saturate((r - rInner) / denom);
             var curve = (i < curveType.Length) ? (FieldCurveType)curveType[i] : FieldCurveType.Linear;
-            var f = FieldCurves.Eval(curve, u, a, b, c, clamp01: true);
+            var f = curve == FieldCurveType.AtomicOrbital
+                ? EvalAtomicOrbitalDensity(r, a, b, c)
+                : FieldCurves.Eval(curve, u, a, b, c, clamp01: true);
 
             // TODO: 1/r^2 flags behavior.
             var magnitude = amp * f;
@@ -136,5 +138,19 @@ public static class FieldSystem
         if (v < 0f) return 0f;
         if (v > 1f) return 1f;
         return v;
+    }
+
+    private static float EvalAtomicOrbitalDensity(float r, float electronCount, float orbitalRadius, float modulation)
+    {
+        const float eps = 1e-6f;
+        var radius = MathF.Max(eps, orbitalRadius);
+        var count = Math.Clamp(MathF.Round(electronCount), 0f, 3f);
+        if (count <= 0f)
+        {
+            return 0f;
+        }
+
+        var density = MathF.Exp((-2f * MathF.Max(0f, r)) / radius);
+        return Saturate(density * MathF.Max(0f, modulation));
     }
 }

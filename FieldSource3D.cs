@@ -441,7 +441,7 @@ public partial class FieldSource3D : Node3D
 
 				case nameof(CurveType):
 					property["hint"] = (int)PropertyHint.Enum;
-					property["hint_string"] = "Linear:0,Power:1,Polynomial:2,Gaussian:3,CustomCurve:4";
+					property["hint_string"] = "Linear:0,Power:1,Polynomial:2,Gaussian:3,CustomCurve:4,AtomicOrbital:5";
 					break;
 
 				case nameof(CanonicalGamma):
@@ -727,7 +727,7 @@ public partial class FieldSource3D : Node3D
 		return true;
 	}
 
-	public ResolvedFieldParams ResolveEffectiveParams(out string reason)
+	public virtual ResolvedFieldParams ResolveEffectiveParams(out string reason)
 	{
 		ResolvedFieldParams resolved;
 		if (!IsCanonicalUnset())

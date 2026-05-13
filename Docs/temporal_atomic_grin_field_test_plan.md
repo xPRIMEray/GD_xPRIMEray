@@ -1,5 +1,25 @@
 # Temporal Atomic GRIN Field Test Plan
 
+## V1 Implementation Scope
+
+The first implementation patch is intentionally narrow:
+
+- A0 straight sealed-room baseline
+- A1 no electron cloud reference, `electronCount=0`, `density=0`
+- A2 static hydrogen-like 1s cloud
+- A3 clocked hydrogen-like 1s cloud using repeated deterministic short runs
+
+V1 uses `atomic_orbital_grin_room` and `AtomicEigenmodeFieldSource3D`. The source fits through the existing `FieldSource3D` packed field path; V1 does not widen field snapshots.
+
+V2/V3 roadmap items:
+
+- helium-like filled shell approximation
+- lithium-like inner shell plus weak outer shell approximation
+- exaggerated hydrogen artistic stress
+- optional gold high-Z curvature stress
+
+A1 is a no-cloud reference. Proton-core curvature is not implied by `electronCount=0`; any core term must be explicit and disabled by default.
+
 ## Purpose
 
 Prototype a minimal **Temporal Hydrogen Atom Eigenmode-Modulated GRIN Field** inside the xPRIMEray / FieldSource3D architecture.
@@ -470,4 +490,3 @@ Hydrogen provides the stable baseline.
 Gold provides the curvature dragon.
 
 Together they create the first atomic-to-macro transport bridge.
-

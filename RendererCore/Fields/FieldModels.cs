@@ -18,5 +18,6 @@ public enum FieldCurveType
     Power = 1,
     Polynomial = 2,
     Exponential = 3,
-    CustomCurve = 4
+    CustomCurve = 4,
+    AtomicOrbital = 5
 }

@@ -2296,7 +2296,7 @@ public partial class RayBeamRenderer : Node3D
 			float t = (float)i / steps;
 			Vector3 cur = a + d * t;
 
-			var rq = PhysicsRayQueryParameters3D.Create(prev, cur, mask);
+			using var rq = PhysicsRayQueryParameters3D.Create(prev, cur, mask);
 			rq.CollideWithBodies = true;
 			rq.CollideWithAreas = true;
 			rq.HitFromInside = false;	// formerly true
@@ -2383,7 +2383,7 @@ public partial class RayBeamRenderer : Node3D
 			float t = (float)i / steps;
 			Vector3 cur = a + d * t;
 
-			var rq = PhysicsRayQueryParameters3D.Create(prev, cur, mask);
+			using var rq = PhysicsRayQueryParameters3D.Create(prev, cur, mask);
 			rq.CollideWithBodies = true;
 			rq.CollideWithAreas = true;
 			rq.HitBackFaces = hitBackFaces;
@@ -2461,7 +2461,7 @@ public partial class RayBeamRenderer : Node3D
 			float t = (float)i / steps;
 			Vector3 cur = a + d * t;
 
-			var rq = PhysicsRayQueryParameters3D.Create(prev, cur, mask);
+			using var rq = PhysicsRayQueryParameters3D.Create(prev, cur, mask);
 			rq.CollideWithBodies = true;
 			rq.CollideWithAreas = true;
 			rq.HitBackFaces = hitBackFaces;

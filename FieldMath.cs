@@ -144,6 +144,21 @@ public static class FieldMath
 				return Mathf.Exp(-(x * x));
 			}
 
+			case FieldCurveType.AtomicOrbital:
+			{
+				float electronCount = Mathf.Clamp(Mathf.Round(safeGamma), 0f, 3f);
+				if (electronCount <= 0f)
+				{
+					return 0f;
+				}
+
+				float orbitalRadius = Mathf.Max(Epsilon, polyB);
+				float modulation = Mathf.Max(0f, polyC);
+				float r = clampedU * orbitalRadius;
+				float density = Mathf.Exp((-2f * r) / orbitalRadius);
+				return Mathf.Clamp(density * modulation, 0f, 1f);
+			}
+
 			case FieldCurveType.Polynomial:
 				return Mathf.Clamp(polyA + (polyB * clampedU) + (polyC * clampedU * clampedU), 0f, 1f);
 
