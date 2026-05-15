@@ -388,6 +388,11 @@ public partial class WormholePrototypeRig : Node3D
 	private float _appliedValidationCameraBackoffDistance;
 	private string _appliedValidationCameraPosePreset = "validation_nearfield";
 	private bool _validationCameraBackoffOverrideActive;
+	private bool _filmShadingOverrideActive;
+	private GrinFilmCamera.FilmShadingMode _filmShadingOverride = GrinFilmCamera.FilmShadingMode.NormalRGB;
+	private bool _stepConvergenceTelemetryOverrideActive;
+	private bool _stepConvergenceTelemetryOverride;
+	private bool _exitAfterValidationCapture;
 
 	public override void _Ready()
 	{
@@ -402,6 +407,14 @@ public partial class WormholePrototypeRig : Node3D
 		{
 			_filmCamera.EnableDomainTelemetry = EnableDomainTelemetry;
 			_filmCamera.EnableDomainAwareFirstHitResolver = EnableDomainAwareFirstHitResolver;
+			if (_filmShadingOverrideActive)
+			{
+				_filmCamera.ShadingMode = _filmShadingOverride;
+			}
+			if (_stepConvergenceTelemetryOverrideActive)
+			{
+				_filmCamera.EnableStepConvergenceTelemetry = _stepConvergenceTelemetryOverride;
+			}
 		}
 		_researchOverlay = GetNodeOrNull<WormholeResearchOverlay>("ResearchOverlayDebug");
 		_researchOverlayStatusLabel = GetNodeOrNull<Label>("CanvasLayer/ResearchOverlayPanel/InsetMargin/InsetVBox/OverlayStatus");
@@ -1717,8 +1730,63 @@ public partial class WormholePrototypeRig : Node3D
 	private void ApplyDualRealityCmdArgs()
 	{
 		_validationCameraBackoffOverrideActive = false;
+		_filmShadingOverrideActive = false;
+		_stepConvergenceTelemetryOverrideActive = false;
+		_exitAfterValidationCapture = false;
 		foreach (string arg in GetRigCmdArgs())
 		{
+			if (TryGetRigArgValue(arg, "--wormhole-validation-capture-path=", out string validationCapturePath))
+			{
+				ValidationCapturePath = validationCapturePath.Trim();
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--wormhole-validation-composite-path=", out string validationCompositePath))
+			{
+				ValidationCompositeCapturePath = validationCompositePath.Trim();
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--wormhole-dual-reality-capture-path=", out string dualRealityCapturePath))
+			{
+				DualRealityCapturePath = dualRealityCapturePath.Trim();
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--wormhole-film-shading=", out string filmShadingValue))
+			{
+				_filmShadingOverrideActive = true;
+				_filmShadingOverride = ParseFilmShadingMode(filmShadingValue);
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--wormhole-validation-delay=", out string validationDelayValue)
+				&& float.TryParse(validationDelayValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedValidationDelay))
+			{
+				ValidationCaptureDelaySeconds = Mathf.Max(0.1f, parsedValidationDelay);
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--wormhole-validation-max-delay=", out string validationMaxDelayValue)
+				&& float.TryParse(validationMaxDelayValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedValidationMaxDelay))
+			{
+				ValidationCaptureMaxDelaySeconds = Mathf.Max(0.1f, parsedValidationMaxDelay);
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--wormhole-exit-after-capture=", out string exitAfterCaptureValue))
+			{
+				_exitAfterValidationCapture = ParseCliBool(exitAfterCaptureValue);
+				continue;
+			}
+
+			if (TryGetRigArgValue(arg, "--enable-step-convergence-telemetry=", out string stepConvergenceValue))
+			{
+				_stepConvergenceTelemetryOverrideActive = true;
+				_stepConvergenceTelemetryOverride = ParseCliBool(stepConvergenceValue);
+				continue;
+			}
+
 			if (TryGetRigArgValue(arg, "--dual-reality=", out string enabledValue))
 			{
 				EnableDualRealityResearchMode = ParseCliBool(enabledValue);
@@ -1878,6 +1946,19 @@ public partial class WormholePrototypeRig : Node3D
 		}
 	}
 
+	private static GrinFilmCamera.FilmShadingMode ParseFilmShadingMode(string value)
+	{
+		string normalized = (value ?? string.Empty).Trim().ToLowerInvariant();
+		return normalized switch
+		{
+			"depth" or "depth_heatmap" or "depth-heatmap" => GrinFilmCamera.FilmShadingMode.DepthHeatmap,
+			"normal" or "normal_rgb" or "normal-rgb" => GrinFilmCamera.FilmShadingMode.NormalRGB,
+			"ndotv" or "n_dot_v" => GrinFilmCamera.FilmShadingMode.NdotV,
+			"two_sided_ndotv" or "two-sided-ndotv" or "twosidedndotv" => GrinFilmCamera.FilmShadingMode.TwoSidedNdotV,
+			_ => GrinFilmCamera.FilmShadingMode.NormalRGB,
+		};
+	}
+
 	private async void ExecuteValidationCapture()
 	{
 		if (!IsInsideTree() || _validationCaptureCompleted)
@@ -1913,6 +1994,11 @@ public partial class WormholePrototypeRig : Node3D
 		GD.Print($"[WormholeValidation] remap_summary teleports={_teleportCount} active_portal={_activePortal?.Name ?? "none"}");
 
 		_validationCaptureCompleted = true;
+		if (_exitAfterValidationCapture)
+		{
+			GD.Print("[WormholeValidation] exit_after_capture=1");
+			GetTree()?.Quit(0);
+		}
 	}
 
 	private void CaptureFilmScreenshot()

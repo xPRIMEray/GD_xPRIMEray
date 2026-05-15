@@ -1,0 +1,344 @@
+{
+  "schema": "xprimeray.testbench.recipes.v1",
+  "recipes": [
+    {
+      "id": "hermetic_closure_smoke",
+      "title": "Hermetic Closure Smoke",
+      "script": "scripts/run_hermetic_hit_closure_ladder.sh",
+      "workingDirectory": ".",
+      "testbenchWrappedOutput": false,
+      "outputRoot": "output/hermetic_hit_closure",
+      "rootEnv": "HERMETIC_CLOSURE_ROOT",
+      "qualityEnv": {
+        "smoke": {
+          "HERMETIC_CLOSURE_SMOKE": "1"
+        },
+        "review": {
+          "HERMETIC_CLOSURE_SMOKE": "0"
+        },
+        "full": {
+          "HERMETIC_CLOSURE_SMOKE": "0"
+        }
+      },
+      "allowedOverlayModes": [
+        "none",
+        "hit_miss_mask",
+        "step_budget_heatmap",
+        "domain_ownership_map"
+      ],
+      "allowedPlacements": [
+        "none",
+        "contact_sheet_only"
+      ],
+      "overlayEnv": {},
+      "expectedReports": [
+        "hermetic_hit_closure_summary.md",
+        "hermetic_oracle_recommendations.md"
+      ],
+      "expectedContactSheets": [
+        "hermetic_closure_ladder.png",
+        "hermetic_failure_storyboard.png",
+        "closure_recovery_storyboard.png"
+      ],
+      "expectedSummaries": [
+        "hermetic_hit_closure_summary.json"
+      ],
+      "expectedPreviews": [
+        "hermetic_hit_closure_heatmap.png",
+        "adaptive_closure_recovery_heatmap.png"
+      ],
+      "guardrailText": "Validation recipe: pass/fail is owned by the script report. The Test Bench only launches the curated script and displays artifacts."
+    },
+    {
+      "id": "atomic_grin_validation_smoke",
+      "title": "Atomic GRIN Validation Smoke",
+      "script": "scripts/run_atomic_orbital_grin_ladder.sh",
+      "workingDirectory": ".",
+      "testbenchWrappedOutput": false,
+      "outputRoot": "output/atomic_orbital_grin_ladder",
+      "rootEnv": "ATOMIC_ORBITAL_GRIN_ROOT",
+      "qualityEnv": {
+        "smoke": {
+          "ATOMIC_ORBITAL_GRIN_SMOKE": "1"
+        },
+        "review": {
+          "ATOMIC_ORBITAL_GRIN_SMOKE": "0"
+        },
+        "full": {
+          "ATOMIC_ORBITAL_GRIN_SMOKE": "0"
+        }
+      },
+      "allowedOverlayModes": [
+        "none",
+        "hit_miss_mask",
+        "step_budget_heatmap",
+        "domain_ownership_map"
+      ],
+      "allowedPlacements": [
+        "none",
+        "contact_sheet_only"
+      ],
+      "overlayEnv": {},
+      "expectedReports": [
+        "atomic_orbital_grin_ladder_report.md",
+        "graph_plus_hit_normals_report.md"
+      ],
+      "expectedContactSheets": [
+        "diagnostic_overlay_contact_sheet.png"
+      ],
+      "expectedSummaries": [
+        "atomic_orbital_grin_ladder_summary.json"
+      ],
+      "expectedPreviews": [
+        "budget_exhaustion_heatmap.png",
+        "layer2_transport_ownership.png",
+        "full_frame_hit_normals.png"
+      ],
+      "guardrailText": "Validation recipe: pass/fail is owned by the script report. The Test Bench does not reinterpret closure, miss, or budget gates."
+    },
+    {
+      "id": "atomic_visual_observatory",
+      "title": "Atomic Orbital Visual Observatory",
+      "script": "scripts/run_atomic_orbital_visual_observatory.sh",
+      "workingDirectory": ".",
+      "testbenchWrappedOutput": false,
+      "outputRoot": "output/atomic_orbital_visual_observatory",
+      "rootEnv": "ATOMIC_ORBITAL_VISUAL_ROOT",
+      "qualityPresets": [
+        "smoke",
+        "quick_review",
+        "review",
+        "full"
+      ],
+      "defaultQuality": "quick_review",
+      "qualityEnv": {
+        "smoke": {
+          "ATOMIC_ORBITAL_VISUAL_SMOKE": "1"
+        },
+        "quick_review": {
+          "ATOMIC_ORBITAL_VISUAL_SMOKE": "0",
+          "ATOMIC_ORBITAL_VISUAL_RES": "320x180",
+          "ATOMIC_ORBITAL_VISUAL_FRAMES": "30",
+          "ATOMIC_ORBITAL_VISUAL_WARMUP": "0",
+          "ATOMIC_ORBITAL_VISUAL_UPDATE_BUDGET_MS": "2500",
+          "ATOMIC_ORBITAL_VISUAL_BUDGET": "450",
+          "ATOMIC_ORBITAL_VISUAL_STRIDE": "4",
+          "ATOMIC_ORBITAL_VISUAL_CELLS": "V0_baseline_no_field,V2_exaggerated_hydrogen,V3_tick0,V4_tick1"
+        },
+        "review": {
+          "ATOMIC_ORBITAL_VISUAL_SMOKE": "0"
+        },
+        "full": {
+          "ATOMIC_ORBITAL_VISUAL_SMOKE": "0"
+        }
+      },
+      "allowedOverlayModes": [
+        "none",
+        "density_contours",
+        "curvature_contours"
+      ],
+      "allowedPlacements": [
+        "none",
+        "contact_sheet_only"
+      ],
+      "overlayEnv": {
+        "density_contours": {
+          "ATOMIC_ORBITAL_VISUAL_CONTOURS": "1",
+          "ATOMIC_ORBITAL_VISUAL_CONTOUR_MODE": "density"
+        },
+        "curvature_contours": {
+          "ATOMIC_ORBITAL_VISUAL_CONTOURS": "1",
+          "ATOMIC_ORBITAL_VISUAL_CONTOUR_MODE": "curvature"
+        }
+      },
+      "expectedReports": [
+        "atomic_visual_observatory_report.md"
+      ],
+      "expectedContactSheets": [
+        "atomic_visual_contact_sheet.png"
+      ],
+      "expectedSummaries": [
+        "atomic_visual_diff_summary.json"
+      ],
+      "expectedPreviews": [
+        "*__density_contours.png",
+        "*__curvature_contours.png",
+        "V0_vs_V1_scaled_diff.png",
+        "V0_vs_V2_scaled_diff.png",
+        "tick0_vs_tick1_scaled_diff.png"
+      ],
+      "guardrailText": "Interpretation only, not validation. Contours and visual overlays are postprocess guides derived from fixture metadata or saved captures."
+    },
+    {
+      "id": "wormhole_structure_observatory",
+      "title": "Wormhole Structure Observatory",
+      "script": "scripts/run_wormhole_structure_observatory_quick.sh",
+      "workingDirectory": ".",
+      "scriptArgs": [
+        "{timestamp}"
+      ],
+      "testbenchWrappedOutput": false,
+      "outputRoot": "output/wormhole_structure_observatory",
+      "rootEnv": "",
+      "qualityPresets": [
+        "quick_review",
+        "review",
+        "full"
+      ],
+      "defaultQuality": "quick_review",
+      "qualityEnv": {
+        "quick_review": {
+          "WORMHOLE_STRUCTURE_QUALITY": "quick_review",
+          "WORMHOLE_STRUCTURE_PANEL_TIMEOUT_SECONDS": "95"
+        },
+        "review": {
+          "WORMHOLE_STRUCTURE_QUALITY": "review",
+          "WORMHOLE_STRUCTURE_PANEL_TIMEOUT_SECONDS": "120"
+        },
+        "full": {
+          "WORMHOLE_STRUCTURE_QUALITY": "full",
+          "WORMHOLE_STRUCTURE_PANEL_TIMEOUT_SECONDS": "190"
+        }
+      },
+      "allowedOverlayModes": [
+        "none",
+        "dual_reality_straight_vs_curved",
+        "step_budget_heatmap",
+        "domain_ownership_map"
+      ],
+      "allowedPlacements": [
+        "none",
+        "minimap_inset",
+        "side_by_side",
+        "contact_sheet_only"
+      ],
+      "overlayEnv": {
+        "step_budget_heatmap": {
+          "WORMHOLE_STRUCTURE_EXTRA_PANELS": "1"
+        },
+        "domain_ownership_map": {
+          "WORMHOLE_STRUCTURE_EXTRA_PANELS": "1"
+        }
+      },
+      "expectedReports": [
+        "wormhole_structure_report.md"
+      ],
+      "expectedContactSheets": [
+        "wormhole_structure_contact_sheet.png"
+      ],
+      "expectedSummaries": [
+        "wormhole_structure_summary.json"
+      ],
+      "expectedPreviews": [
+        "testbench_preview.png",
+        "panels/clean_curved/clean_curved_film.png",
+        "panels/straight_vs_curved/straight_vs_curved_composed.png",
+        "panels/depth_heatmap/depth_heatmap_film.png",
+        "panels/step_budget_heatmap/step_budget_heatmap_composed.png",
+        "panels/domain_diagnostics/domain_diagnostics_film.domain_id.png",
+        "panels/structure_minimap/structure_minimap_composed.png"
+      ],
+      "guardrailText": "Visual observatory only. Dual-reality and diagnostic overlays visualize renderer transport structure, not physical wormhole evidence or validation verdicts."
+    },
+    {
+      "id": "wormhole_dual_reality_observatory",
+      "title": "Wormhole Dual Reality Observatory",
+      "script": "scripts/run_wormhole_dual_reality_storytelling.sh",
+      "workingDirectory": ".",
+      "scriptArgs": [
+        "{timestamp}"
+      ],
+      "testbenchWrappedOutput": false,
+      "outputRoot": "output/wormhole_dual_reality_storytelling",
+      "rootEnv": "",
+      "qualityEnv": {
+        "smoke": {},
+        "review": {},
+        "full": {}
+      },
+      "allowedOverlayModes": [
+        "none",
+        "dual_reality_straight_vs_curved",
+        "curvature_contours"
+      ],
+      "allowedPlacements": [
+        "none",
+        "side_by_side",
+        "contact_sheet_only"
+      ],
+      "overlayEnv": {},
+      "expectedReports": [
+        "storytelling_sequence.md"
+      ],
+      "expectedContactSheets": [
+        "wormhole_dual_reality_storytelling_contact_sheet.png"
+      ],
+      "expectedSummaries": [
+        "summary.json",
+        "contact_sheet_summary.json"
+      ],
+      "expectedPreviews": [
+        "images/01_clean_curved.png",
+        "images/02_reference_reality.png",
+        "images/03_curvature_map.png",
+        "images/06_full_stack.png"
+      ],
+      "guardrailText": "Dual-reality observatory: visual comparison cockpit for straight reference and curved transport artifacts. It is not a validation gate."
+    },
+    {
+      "id": "transport_oracle_unresolved_island",
+      "title": "Transport Oracle / Unresolved Island Probe",
+      "script": "scripts/run_reference_transport_oracle_unresolved_island.sh",
+      "workingDirectory": ".",
+      "testbenchWrappedOutput": false,
+      "outputRoot": "output/reference_transport_oracle_unresolved_island",
+      "rootEnv": "ORACLE_ISLAND_ROOT",
+      "qualityEnv": {
+        "smoke": {
+          "ORACLE_ISLAND_SMOKE": "1"
+        },
+        "review": {
+          "ORACLE_ISLAND_SMOKE": "0"
+        },
+        "full": {
+          "ORACLE_ISLAND_SMOKE": "0",
+          "ORACLE_ISLAND_DEEP": "1"
+        }
+      },
+      "allowedOverlayModes": [
+        "none",
+        "domain_ownership_map",
+        "transport_oracle_islands"
+      ],
+      "allowedPlacements": [
+        "none",
+        "minimap_inset",
+        "side_by_side",
+        "contact_sheet_only"
+      ],
+      "overlayEnv": {},
+      "expectedReports": [
+        "unresolved_island_summary.md",
+        "unresolved_island_root_summary.md",
+        "reference_transport_oracle_report.md"
+      ],
+      "expectedContactSheets": [
+        "diagnostic_overlay_contact_sheet.png",
+        "convergence_ladder_contact_sheet.png",
+        "parent_trajectory_contact_sheet.png"
+      ],
+      "expectedSummaries": [
+        "unresolved_island_summary.json",
+        "unresolved_island_root_summary.json"
+      ],
+      "expectedPreviews": [
+        "island_convergence_ladder.png",
+        "ownership_transition_map.png",
+        "first_stable_step_map.png",
+        "decision_risk_gradient.png",
+        "transport_shape_regions_overlay.png"
+      ],
+      "guardrailText": "ReferenceTransportOracle is a renderer-reference comparison, not physical ground truth. Oracle outputs must not feed rendering or resolver decisions."
+    }
+  ]
+}

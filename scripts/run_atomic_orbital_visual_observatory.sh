@@ -28,6 +28,12 @@ BUDGET="${ATOMIC_ORBITAL_VISUAL_BUDGET:-900}"
 UPDATE_BUDGET_MS="${ATOMIC_ORBITAL_VISUAL_UPDATE_BUDGET_MS:-12000}"
 STRIDE="${ATOMIC_ORBITAL_VISUAL_STRIDE:-2}"
 SMOKE="${ATOMIC_ORBITAL_VISUAL_SMOKE:-0}"
+CELL_FILTER="${ATOMIC_ORBITAL_VISUAL_CELLS:-V0_baseline_no_field,V1_static_hydrogen,V2_exaggerated_hydrogen,V3_tick0,V4_tick1}"
+SHADING_FILTER="${ATOMIC_ORBITAL_VISUAL_SHADINGS:-normal_rgb,depth_heatmap}"
+CONTOURS="${ATOMIC_ORBITAL_VISUAL_CONTOURS:-0}"
+CONTOUR_MODE="${ATOMIC_ORBITAL_VISUAL_CONTOUR_MODE:-density}"
+CONTOUR_LEVELS="${ATOMIC_ORBITAL_VISUAL_CONTOUR_LEVELS:-6}"
+CONTOUR_LABELS="${ATOMIC_ORBITAL_VISUAL_CONTOUR_LABELS:-0}"
 
 if [[ "$SMOKE" == "1" ]]; then
 	RES="${ATOMIC_ORBITAL_VISUAL_RES:-80x45}"
@@ -44,6 +50,8 @@ exec > >(tee -a "$LOG") 2>&1
 
 echo "[atomic-visual] output=$OUTPUT_DIR"
 echo "[atomic-visual] scene=$SCENE fixture=$FIXTURE res=${FILM_W}x${FILM_H} frames=$FRAMES warmup=$WARMUP step=$STEP budget=$BUDGET update_budget_ms=$UPDATE_BUDGET_MS"
+echo "[atomic-visual] cells=$CELL_FILTER shadings=$SHADING_FILTER"
+echo "[atomic-visual] contours=$CONTOURS contour_mode=$CONTOUR_MODE contour_levels=$CONTOUR_LEVELS contour_labels=$CONTOUR_LABELS"
 echo "[atomic-visual] purpose=interpretation_only closure_validation=0 pass_fail_gates=none"
 
 effective_from_log() {
@@ -171,18 +179,45 @@ run_cell() {
 	echo "[atomic-visual] cell_status cell=$cell shading=$shading exit=$exit_code effective=$effective notes=$notes"
 }
 
+list_contains() {
+	local list="$1"
+	local needle="$2"
+	[[ ",$list," == *",$needle,"* ]]
+}
+
+run_cell_if_selected() {
+	local cell="$1"
+	local shading="$2"
+	shift 2
+	if list_contains "$CELL_FILTER" "$cell"; then
+		run_cell "$cell" "$shading" "$@"
+	else
+		echo "[atomic-visual] skip cell=$cell shading=$shading reason=cell_filter"
+	fi
+}
+
 echo "[atomic-visual] static checks"
 dotnet build "$ROOT/Physical Light and Camera Units.csproj"
 "$PYTHON" -m py_compile "$ROOT/tools/atomic_orbital_visual_diff.py"
 
 for shading in normal_rgb depth_heatmap; do
-	run_cell "V0_baseline_no_field" "$shading" 0 8.0 0 0 0 0 0
-	run_cell "V1_static_hydrogen" "$shading" 1 8.0 0.05 0 0 0 0
-	run_cell "V2_exaggerated_hydrogen" "$shading" 1 9.0 0.1 0 0 0 0
-	run_cell "V3_tick0" "$shading" 1 8.0 0.065 0.35 1 0 -1.570796
-	run_cell "V4_tick1" "$shading" 1 8.0 0.065 0.35 1 1 1.570796
+	if ! list_contains "$SHADING_FILTER" "$shading"; then
+		echo "[atomic-visual] skip shading=$shading reason=shading_filter"
+		continue
+	fi
+	echo "[atomic-visual] capture_phase shading=$shading"
+	run_cell_if_selected "V0_baseline_no_field" "$shading" 0 8.0 0 0 0 0 0
+	run_cell_if_selected "V1_static_hydrogen" "$shading" 1 8.0 0.05 0 0 0 0
+	run_cell_if_selected "V2_exaggerated_hydrogen" "$shading" 1 9.0 0.1 0 0 0 0
+	run_cell_if_selected "V3_tick0" "$shading" 1 8.0 0.065 0.35 1 0 -1.570796
+	run_cell_if_selected "V4_tick1" "$shading" 1 8.0 0.065 0.35 1 1 1.570796
 done
 
-"$PYTHON" "$ROOT/tools/atomic_orbital_visual_diff.py" "$OUTPUT_DIR" || true
+echo "[atomic-visual] postprocess_phase report_contact_sheet=1"
+ATOMIC_ORBITAL_VISUAL_CONTOURS="$CONTOURS" \
+ATOMIC_ORBITAL_VISUAL_CONTOUR_MODE="$CONTOUR_MODE" \
+ATOMIC_ORBITAL_VISUAL_CONTOUR_LEVELS="$CONTOUR_LEVELS" \
+ATOMIC_ORBITAL_VISUAL_CONTOUR_LABELS="$CONTOUR_LABELS" \
+	"$PYTHON" "$ROOT/tools/atomic_orbital_visual_diff.py" "$OUTPUT_DIR" || true
 
 echo "[atomic-visual] complete output=$OUTPUT_DIR"
