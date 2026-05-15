@@ -1,0 +1,14 @@
+[godot_local] using Windows mono console build: /mnt/c/Users/wmbro/Downloads/Godot_v4.5.1-stable_mono_win64/Godot_v4.5.1-stable_mono_win64/Godot_v4.5.1-stable_mono_win64_console.exe
+Godot Engine v4.5.1.stable.mono.official.f62fdbde1 - https://godotengine.org
+OpenGL API 3.3.0 Core Profile Context 25.11.1.251104 - Compatibility - Using Device: ATI Technologies Inc. - AMD Radeon(TM) Graphics
+
+ERROR: An EditorPlugin build callback failed.
+   at: call_build (editor/editor_node.cpp:7073)
+ERROR: Command line option --build-solutions was passed, but the build callback failed. Aborting.
+   at: iteration (main/main.cpp:4922)
+ERROR: Unrecognized binary resource file: 'res://Docs/Arxiv/Perceptual Curvature Threshold Hypothesis.tex'.
+   at: open (core/io/resource_format_binary.cpp:1003)
+ERROR: Unrecognized binary resource file: 'res://Docs/Arxiv/Perceptual Curvature Threshold Hypothesis.tex'.
+   at: open (core/io/resource_format_binary.cpp:1003)
+WARNING: UID duplicate detected between res://site/assets/fig_01_architecture.png and res://Docs/assets/fig_01_architecture.png.
+   at: _process_file_system (editor/file_system/editor_file_system.cpp:1377)

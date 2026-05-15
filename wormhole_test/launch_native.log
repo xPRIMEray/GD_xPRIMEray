@@ -1,0 +1,115 @@
+[godot_local] using Windows mono console build: /mnt/c/Users/wmbro/Downloads/Godot_v4.5.1-stable_mono_win64/Godot_v4.5.1-stable_mono_win64/Godot_v4.5.1-stable_mono_win64_console.exe
+Godot Engine v4.5.1.stable.mono.official.f62fdbde1 - https://godotengine.org
+OpenGL API 3.3.0 Core Profile Context 25.11.1.251104 - Compatibility - Using Device: ATI Technologies Inc. - AMD Radeon RX 6700 XT
+
+WARNING: [FieldSource3D][Warn] canonical+legacy both set; using canonical. (legacy ignored, reason=legacy Strength)
+   at: void FieldSource3D.WarnIfCanonicalAndLegacyBothSet() (/home/bb/code/godot_xPRIMEray/FieldSource3D.cs:887)
+   C# backtrace (most recent call first):
+       [0] void Godot.GD.PushWarning(string) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/GD.cs:396)
+       [1] void FieldSource3D.WarnIfCanonicalAndLegacyBothSet() (/home/bb/code/godot_xPRIMEray/FieldSource3D.cs:887)
+       [2] void FieldSource3D._Ready() (/home/bb/code/godot_xPRIMEray/FieldSource3D.cs:373)
+       [3] bool Godot.Node.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node.cs:2660)
+       [4] bool Godot.Node3D.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node3D.cs:1126)
+       [5] bool FieldSource3D.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/home/bb/code/godot_xPRIMEray/Godot.SourceGenerators/Godot.SourceGenerators.ScriptMethodsGenerator/FieldSource3D_ScriptMethods.generated.cs:388)
+       [6] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+WARNING: [FieldSource3D][Warn] canonical+legacy both set; using canonical. (legacy ignored, reason=legacy Strength)
+   at: void FieldSource3D.WarnIfCanonicalAndLegacyBothSet() (/home/bb/code/godot_xPRIMEray/FieldSource3D.cs:887)
+   C# backtrace (most recent call first):
+       [0] void Godot.GD.PushWarning(string) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/GD.cs:396)
+       [1] void FieldSource3D.WarnIfCanonicalAndLegacyBothSet() (/home/bb/code/godot_xPRIMEray/FieldSource3D.cs:887)
+       [2] void FieldSource3D._Ready() (/home/bb/code/godot_xPRIMEray/FieldSource3D.cs:373)
+       [3] bool Godot.Node.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node.cs:2660)
+       [4] bool Godot.Node3D.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node3D.cs:1126)
+       [5] bool FieldSource3D.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/home/bb/code/godot_xPRIMEray/Godot.SourceGenerators/Godot.SourceGenerators.ScriptMethodsGenerator/FieldSource3D_ScriptMethods.generated.cs:388)
+       [6] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+[DBG] dbgMesh inTree=True parent=RayBeamRenderer world=(0, 0, 0)
+✅ GrinFilmCamera READY: /root/WormholePrototype/GrinFilmCamera
+[RBRRef][Startup] configured path=../RayBeamRenderer
+[RBRRef] resolved ok name=RayBeamRenderer
+[RBRRef][Startup] resolved=True
+RayBeamRenderer found? True
+[RuntimeMacroMode] hotkeys cycle=F6 accurate=F7 tight08=F8 cheapMotion=F9 settleRefine=F10 startupMode=Tight08 applyOnReady=0
+[BroadphaseEffective] mode=Policy policy=OverlapOnly quick=False overlap=True reason=policy
+[SharedSnap] steps=420 stepLen=0.05 minStep=0.001 maxStep=0.22 collEvery=1 collRad=0.03 mask=0x0000FFFF debug=Off
+[EffectiveCfg] broadphase=Policy(policy) policy=OverlapOnly quick=0 overlap=1 softgate=0 score=1 threadedBands=0 bandWorkers=2 bandChunkRows=4 threadedP2Cand=0 p2CandWorkers=2 p2CandRows=4 threadedP2QR=0 p2QRWorkers=2 p2QRRows=4 threadedP2=0 p2Workers=2 p2ChunkRows=4 minSeg=0.1 attempts=5000 sub=10000 stride=1 resScale=0.6 rows=8 stepLen=0.05 collRad=0.03 mask=0x0000FFFF envRadScale=1.1 envAabbExpand=0 adaptiveEnv=0 adaptiveMode=three_state adaptivePrior=same_pass adaptiveStat=mean adaptiveLow=0.35 adaptiveHigh=0.65 adaptivePct=95/80/50 adaptiveScales=0.7/0.85/1/1.05 geomPrune=1 maxDist=50
+FilmView found? False
+GrinFilmCamera: No FilmViewPath set, created overlay TextureRect.
+[RBRRef][Startup] HasRenderer(after mirror)=True
+✅ GrinFilmCamera ready. Rendering film.
+Rebuild ENTER
+Rebuild on node: /root/WormholePrototype/RayBeamRenderer  TerminateTrailOnHit=True StopOnHit=False RequireHitToRender=False
+READY node: /root/WormholePrototype/RayBeamRenderer  Script=<CSharpScript#-9223372010799757944>  TerminateTrailOnHit=True
+RayBeamRenderer: field sources in group = 2
+[Transport] active=GRIN_Optical
+RayBeamRenderer: boundary layers in group = 2 snapped = 2 integrated = True
+Toggles: AdaptiveSubsteps=0 SingleProbeSubdivide=0 BandHitSkip=0 RequireHit=0 StopOnHit=0 TerminateTrailOnHit=1 UpdateEveryFrame=1
+[Cfg] Pass2SoftGateEnableQuickRayMiss=0 Pass2SoftGateScoringEnabled=1 Pass2SoftGateMinSegmentLength=0.1 Pass2SoftGateScoreThreshold=1 Pass2SoftGateScoreTurnAngleWeight=1 Pass2SoftGateScorePrevHitLostBonus=0.75 Pass2SoftGateRandomProbeChance=0.01 Pass2SoftGateScoreBudgetPerFrame=32 Pass2SoftGateMaxAttemptsPerPixel=2 Pass2SoftGateMaxAttemptsPerFrame=5000 Pass2SoftGateMaxSubdividedCallsPerFrame=10000 UpdateEveryFrame=1
+[ThreadAudit] unitOfWork=band_rows y=[0,8) width=384 stride=1 rowsPerStep=8 jobs=8 pendingPass2Reuse=0 subtileReorder=0
+[ThreadAudit] sharedWrites=film_image,texture_upload,row_cursor,pending_band,frame_counters,renderhealth_window,overlay_buffers,tile_metric_priors,band_hit_history,fixture_capture_images
+[ThreadAudit] localAccumulationReadiness=pass1_segment_build:easy pass2_counters:easy film_writes:medium overlay/debug:medium adaptive/band-history/priors:caution
+[ThreadAudit][Pass2] localizable=per_pixel_hit_search,broadphase_candidate_lists,segment_shading_scratch,row_or_region_counters,region_hit_masks,region_color_buffers
+[ThreadAudit][Pass2] serialized=film_image_and_fixture_images,pass2_hit_history,quickray_cache,softgate_frame_state,geom_renderhealth_counters,debug_overlay_buffers,row_cursor_budget_stop,texture_upload
+[ThreadAudit][Pass2] highRisk=adaptive_rows,tile_reorder_execution,persistent_priors,capture_snapshot_bookkeeping,global_rng_shared_softgate_paths
+[ThreadAudit][Pass2] firstSlice=disjoint_row_region_pass2_with_local_color_and_hit_buffers_then_serial_commit_to_film_histories_overlay
+[ThreadAudit] deterministic=off hook=Research.DeterministicMode+FixedSeed
+[RenderStep][Yield] reason=max_ms_after_pass1 frame=1 rowStart=0 bandH=8 committed=0 pendingPass2=1 ms=896
+[RenderStep][STOP] reason=max_ms_after_pass1 phase=enter y=[0,8) rowCursor=0 elapsedMs=896 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Finalize] reason=max_ms_after_pass1 phase=enter y=[0,8) rowCursor=0->8 elapsedMs=897 attempts=0/5000 sub=0/10000 hits=0 pendingPass2=1
+[BudgetExit] frame=1 row=3 reason=update_every_frame_budget elapsedMs=605 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/5000 subdiv=0/10000 px=3072/2000000
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[0,8) rowCursor=8 elapsedMs=605 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Yield] reason=update_every_frame_budget frame=1 rowCursor=3 rowsDone=3 pendingPass2=1 bandH=8 pass1RerunAvoided=1 ms=606 p1ms=0.00 p2ms=605.52 p2SegTestedStep=196666 softGate{attemptUsed=0 subdivUsed=0}
+[BudgetExit] frame=1 row=9 reason=update_every_frame_budget elapsedMs=607 rowsDoneThisStep=1 hitsThisBand=0 attempts=0/5000 subdiv=0/10000 px=1536/2000000
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[8,12) rowCursor=8 elapsedMs=607 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Yield] reason=update_every_frame_budget frame=1 rowCursor=9 rowsDone=1 pendingPass2=0 bandH=4 pass1RerunAvoided=0 ms=607 p1ms=340.10 p2ms=267.71 p2SegTestedStep=71886 softGate{attemptUsed=0 subdivUsed=0}
+[BudgetExit] frame=1 row=13 reason=update_every_frame_budget elapsedMs=612 rowsDoneThisStep=1 hitsThisBand=0 attempts=0/5000 subdiv=0/10000 px=1536/2000000
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[12,16) rowCursor=12 elapsedMs=612 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Yield] reason=update_every_frame_budget frame=1 rowCursor=13 rowsDone=1 pendingPass2=0 bandH=4 pass1RerunAvoided=0 ms=612 p1ms=336.19 p2ms=276.30 p2SegTestedStep=88962 softGate{attemptUsed=0 subdivUsed=0}
+[BudgetExit] frame=1 row=17 reason=update_every_frame_budget elapsedMs=609 rowsDoneThisStep=1 hitsThisBand=0 attempts=0/5000 subdiv=0/10000 px=1536/2000000
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[16,20) rowCursor=16 elapsedMs=609 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Yield] reason=update_every_frame_budget frame=1 rowCursor=17 rowsDone=1 pendingPass2=0 bandH=4 pass1RerunAvoided=0 ms=609 p1ms=424.55 p2ms=185.25 p2SegTestedStep=74621 softGate{attemptUsed=0 subdivUsed=0}
+[BudgetExit] frame=1 row=20 reason=update_every_frame_budget elapsedMs=601 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/5000 subdiv=0/10000 px=1536/2000000
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[20,24) rowCursor=20 elapsedMs=601 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Yield] reason=update_every_frame_budget frame=1 rowCursor=20 rowsDone=0 pendingPass2=0 bandH=4 pass1RerunAvoided=0 ms=601 p1ms=429.54 p2ms=171.97 p2SegTestedStep=58612 softGate{attemptUsed=0 subdivUsed=0}
+[BudgetExit] frame=1 row=25 reason=update_every_frame_budget elapsedMs=605 rowsDoneThisStep=1 hitsThisBand=0 attempts=0/5000 subdiv=0/10000 px=1536/2000000
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[24,28) rowCursor=24 elapsedMs=605 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Yield] reason=update_every_frame_budget frame=1 rowCursor=25 rowsDone=1 pendingPass2=0 bandH=4 pass1RerunAvoided=0 ms=605 p1ms=336.87 p2ms=268.71 p2SegTestedStep=76487 softGate{attemptUsed=0 subdivUsed=0}
+[BUS SET] frameId=8 grid=OK fields=2
+SceneSnapshot: Instances=0, Fields=2, Geometry=13, FieldParams=16, FieldTLASNodes=1, GeometryTLASNodes=7, MetricModel(GRIN=2, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1, FirstFields=[0:(rInner=2, rOuter=3.15, amp=0.22, curveType=0, shapeType=0), 1:(rInner=2, rOuter=3.15, amp=0.22, curveType=0, shapeType=0)]
+[BudgetExit] frame=1 row=29 reason=update_every_frame_budget elapsedMs=601 rowsDoneThisStep=1 hitsThisBand=0 attempts=0/5000 subdiv=0/10000 px=1536/2000000
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[28,32) rowCursor=28 elapsedMs=601 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Yield] reason=update_every_frame_budget frame=1 rowCursor=29 rowsDone=1 pendingPass2=0 bandH=4 pass1RerunAvoided=0 ms=602 p1ms=346.04 p2ms=255.89 p2SegTestedStep=74933 softGate{attemptUsed=0 subdivUsed=0}
+[BudgetExit] frame=1 row=33 reason=update_every_frame_budget elapsedMs=602 rowsDoneThisStep=1 hitsThisBand=220 attempts=0/5000 subdiv=0/10000 px=1536/2000000
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[32,36) rowCursor=32 elapsedMs=602 attempts=0/5000 sub=0/10000 hits=220
+[RenderStep][Yield] reason=update_every_frame_budget frame=1 rowCursor=33 rowsDone=1 pendingPass2=0 bandH=4 pass1RerunAvoided=0 ms=603 p1ms=331.34 p2ms=271.27 p2SegTestedStep=89188 softGate{attemptUsed=0 subdivUsed=0}
+[BudgetExit] frame=1 row=37 reason=update_every_frame_budget elapsedMs=605 rowsDoneThisStep=1 hitsThisBand=0 attempts=0/5000 subdiv=0/10000 px=1536/2000000
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[36,40) rowCursor=36 elapsedMs=605 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Yield] reason=update_every_frame_budget frame=1 rowCursor=37 rowsDone=1 pendingPass2=0 bandH=4 pass1RerunAvoided=0 ms=606 p1ms=423.37 p2ms=182.48 p2SegTestedStep=57485 softGate{attemptUsed=0 subdivUsed=0}
+[BudgetExit] frame=1 row=41 reason=update_every_frame_budget elapsedMs=612 rowsDoneThisStep=1 hitsThisBand=0 attempts=0/5000 subdiv=0/10000 px=1536/2000000
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[40,44) rowCursor=40 elapsedMs=612 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Yield] reason=update_every_frame_budget frame=1 rowCursor=41 rowsDone=1 pendingPass2=0 bandH=4 pass1RerunAvoided=0 ms=612 p1ms=344.17 p2ms=268.37 p2SegTestedStep=71877 softGate{attemptUsed=0 subdivUsed=0}
+[BudgetExit] frame=1 row=45 reason=update_every_frame_budget elapsedMs=610 rowsDoneThisStep=1 hitsThisBand=0 attempts=0/5000 subdiv=0/10000 px=1536/2000000
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[44,48) rowCursor=44 elapsedMs=610 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Yield] reason=update_every_frame_budget frame=1 rowCursor=45 rowsDone=1 pendingPass2=0 bandH=4 pass1RerunAvoided=0 ms=610 p1ms=334.12 p2ms=276.15 p2SegTestedStep=80023 softGate{attemptUsed=0 subdivUsed=0}
+[BudgetExit] frame=1 row=49 reason=update_every_frame_budget elapsedMs=612 rowsDoneThisStep=1 hitsThisBand=0 attempts=0/5000 subdiv=0/10000 px=1536/2000000
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[48,52) rowCursor=48 elapsedMs=612 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Yield] reason=update_every_frame_budget frame=1 rowCursor=49 rowsDone=1 pendingPass2=0 bandH=4 pass1RerunAvoided=0 ms=612 p1ms=347.23 p2ms=265.21 p2SegTestedStep=77436 softGate{attemptUsed=0 subdivUsed=0}
+[BudgetExit] frame=1 row=53 reason=update_every_frame_budget elapsedMs=606 rowsDoneThisStep=1 hitsThisBand=0 attempts=0/5000 subdiv=0/10000 px=1536/2000000
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[52,56) rowCursor=52 elapsedMs=606 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Yield] reason=update_every_frame_budget frame=1 rowCursor=53 rowsDone=1 pendingPass2=0 bandH=4 pass1RerunAvoided=0 ms=606 p1ms=414.46 p2ms=192.11 p2SegTestedStep=69499 softGate{attemptUsed=0 subdivUsed=0}
+[BUS SET] frameId=15 grid=OK fields=2
+SceneSnapshot: Instances=0, Fields=2, Geometry=13, FieldParams=16, FieldTLASNodes=1, GeometryTLASNodes=7, MetricModel(GRIN=2, GordonMetric=0), CurvatureGrid: OK dim=32x16x32 cell=1, FirstFields=[0:(rInner=2, rOuter=3.15, amp=0.22, curveType=0, shapeType=0), 1:(rInner=2, rOuter=3.15, amp=0.22, curveType=0, shapeType=0)]
+[BudgetExit] frame=1 row=57 reason=update_every_frame_budget elapsedMs=613 rowsDoneThisStep=1 hitsThisBand=0 attempts=0/5000 subdiv=0/10000 px=1536/2000000
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[56,60) rowCursor=56 elapsedMs=613 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Yield] reason=update_every_frame_budget frame=1 rowCursor=57 rowsDone=1 pendingPass2=0 bandH=4 pass1RerunAvoided=0 ms=613 p1ms=405.85 p2ms=207.30 p2SegTestedStep=82830 softGate{attemptUsed=0 subdivUsed=0}
+[BudgetExit] frame=1 row=60 reason=update_every_frame_budget elapsedMs=611 rowsDoneThisStep=0 hitsThisBand=0 attempts=0/5000 subdiv=0/10000 px=1536/2000000
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[60,64) rowCursor=60 elapsedMs=611 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Yield] reason=update_every_frame_budget frame=1 rowCursor=60 rowsDone=0 pendingPass2=0 bandH=4 pass1RerunAvoided=0 ms=611 p1ms=423.25 p2ms=188.09 p2SegTestedStep=57512 softGate{attemptUsed=0 subdivUsed=0}
+[BudgetExit] frame=1 row=65 reason=update_every_frame_budget elapsedMs=603 rowsDoneThisStep=1 hitsThisBand=0 attempts=0/5000 subdiv=0/10000 px=1536/2000000
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[64,68) rowCursor=64 elapsedMs=603 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Yield] reason=update_every_frame_budget frame=1 rowCursor=65 rowsDone=1 pendingPass2=0 bandH=4 pass1RerunAvoided=0 ms=603 p1ms=343.47 p2ms=259.98 p2SegTestedStep=72902 softGate{attemptUsed=0 subdivUsed=0}
+[BudgetExit] frame=1 row=69 reason=update_every_frame_budget elapsedMs=610 rowsDoneThisStep=1 hitsThisBand=77 attempts=0/5000 subdiv=0/10000 px=1536/2000000
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[68,72) rowCursor=68 elapsedMs=610 attempts=0/5000 sub=0/10000 hits=77
+[RenderStep][Yield] reason=update_every_frame_budget frame=1 rowCursor=69 rowsDone=1 pendingPass2=0 bandH=4 pass1RerunAvoided=0 ms=611 p1ms=370.43 p2ms=240.21 p2SegTestedStep=85745 softGate{attemptUsed=0 subdivUsed=0}
+[BudgetExit] frame=1 row=73 reason=update_every_frame_budget elapsedMs=602 rowsDoneThisStep=1 hitsThisBand=0 attempts=0/5000 subdiv=0/10000 px=1536/2000000
+[RenderStep][STOP] reason=update_every_frame_budget phase=enter y=[72,76) rowCursor=72 elapsedMs=602 attempts=0/5000 sub=0/10000 hits=0
+[RenderStep][Yield] reason=update_every_frame_budget frame=1 rowCursor=73 rowsDone=1 pendingPass2=0 bandH=4 pass1RerunAvoided=0 ms=602 p1ms=335.01 p2ms=267.73 p2SegTestedStep=79254 softGate{attemptUsed=0 subdivUsed=0}

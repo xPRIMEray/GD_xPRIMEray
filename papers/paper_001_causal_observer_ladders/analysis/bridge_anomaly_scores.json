@@ -1,0 +1,34 @@
+{
+  "scores": [
+    {
+      "checkpoint": "mouth",
+      "overall_anomaly_score": 0.583245340843182,
+      "bridge_signature_score": 0.3248217468794213
+    },
+    {
+      "checkpoint": "mouth_to_throat_approach",
+      "overall_anomaly_score": 0.30916115082088763,
+      "bridge_signature_score": 0.09408924389531384
+    },
+    {
+      "checkpoint": "throat",
+      "overall_anomaly_score": 0.23555075690234697,
+      "bridge_signature_score": 0.0
+    },
+    {
+      "checkpoint": "post_throat_backstep_01",
+      "overall_anomaly_score": 2.1948364982237076,
+      "bridge_signature_score": 1.9527258108585184
+    },
+    {
+      "checkpoint": "post_throat_exit_approach",
+      "overall_anomaly_score": 1.4857050102005307,
+      "bridge_signature_score": 0.14290602519928525
+    },
+    {
+      "checkpoint": "exit_lookback",
+      "overall_anomaly_score": 2.058396838981789,
+      "bridge_signature_score": 0.08990433371533904
+    }
+  ]
+}

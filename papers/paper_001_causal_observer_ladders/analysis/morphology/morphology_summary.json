@@ -1,0 +1,83 @@
+{
+  "results": [
+    {
+      "checkpoint": "mouth",
+      "image_path": "/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-20T22-26-39/00_mouth_debug.png",
+      "annotated_path": "/home/bb/code/godot_xPRIMEray/Docs/papers/paper_001_causal_observer_ladders/analysis/morphology/annotated/mouth_annotated.png",
+      "radial_profile_path": "/home/bb/code/godot_xPRIMEray/Docs/papers/paper_001_causal_observer_ladders/analysis/morphology/profiles/mouth_radial_profile.png",
+      "center_x": 580.2000122070312,
+      "center_y": 347.3999938964844,
+      "center_offset_px": 23.773931456423387,
+      "apparent_radius_px": 206.24000549316406,
+      "ring_count": 1,
+      "contour_eccentricity": 0.6850396605662709,
+      "contour_area_px": 298.0
+    },
+    {
+      "checkpoint": "mouth_to_throat_approach",
+      "image_path": "/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-20T22-26-39/01_mouth_to_throat_approach_debug.png",
+      "annotated_path": "/home/bb/code/godot_xPRIMEray/Docs/papers/paper_001_causal_observer_ladders/analysis/morphology/annotated/mouth_to_throat_approach_annotated.png",
+      "radial_profile_path": "/home/bb/code/godot_xPRIMEray/Docs/papers/paper_001_causal_observer_ladders/analysis/morphology/profiles/mouth_to_throat_approach_radial_profile.png",
+      "center_x": 660.5999755859375,
+      "center_y": 336.6000061035156,
+      "center_offset_px": 85.53312821912836,
+      "apparent_radius_px": 204.9199981689453,
+      "ring_count": 1,
+      "contour_eccentricity": 0.9870457917122047,
+      "contour_area_px": 244.5
+    },
+    {
+      "checkpoint": "throat",
+      "image_path": "/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-20T22-26-39/02_throat_debug.png",
+      "annotated_path": "/home/bb/code/godot_xPRIMEray/Docs/papers/paper_001_causal_observer_ladders/analysis/morphology/annotated/throat_annotated.png",
+      "radial_profile_path": "/home/bb/code/godot_xPRIMEray/Docs/papers/paper_001_causal_observer_ladders/analysis/morphology/profiles/throat_radial_profile.png",
+      "center_x": 544.2000122070312,
+      "center_y": 351.0,
+      "center_offset_px": 41.71617460449797,
+      "apparent_radius_px": 202.27999877929688,
+      "ring_count": 2,
+      "contour_eccentricity": 0.9924389282063896,
+      "contour_area_px": 216.5
+    },
+    {
+      "checkpoint": "post_throat_backstep_01",
+      "image_path": "/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-20T22-26-39/03_post_throat_backstep_01_debug.png",
+      "annotated_path": "/home/bb/code/godot_xPRIMEray/Docs/papers/paper_001_causal_observer_ladders/analysis/morphology/annotated/post_throat_backstep_01_annotated.png",
+      "radial_profile_path": "/home/bb/code/godot_xPRIMEray/Docs/papers/paper_001_causal_observer_ladders/analysis/morphology/profiles/post_throat_backstep_01_radial_profile.png",
+      "center_x": 635.4000244140625,
+      "center_y": 394.20001220703125,
+      "center_offset_px": 91.95871146475768,
+      "apparent_radius_px": 206.24000549316406,
+      "ring_count": 0,
+      "contour_eccentricity": 0.181374743626699,
+      "contour_area_px": 3201.5
+    },
+    {
+      "checkpoint": "post_throat_exit_approach",
+      "image_path": "/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-20T22-26-39/04_post_throat_exit_approach_debug.png",
+      "annotated_path": "/home/bb/code/godot_xPRIMEray/Docs/papers/paper_001_causal_observer_ladders/analysis/morphology/annotated/post_throat_exit_approach_annotated.png",
+      "radial_profile_path": "/home/bb/code/godot_xPRIMEray/Docs/papers/paper_001_causal_observer_ladders/analysis/morphology/profiles/post_throat_exit_approach_radial_profile.png",
+      "center_x": 593.4000244140625,
+      "center_y": 306.6000061035156,
+      "center_offset_px": 24.60732893281318,
+      "apparent_radius_px": 200.9600067138672,
+      "ring_count": 1,
+      "contour_eccentricity": 0.6540693152422362,
+      "contour_area_px": 1012.0
+    },
+    {
+      "checkpoint": "exit_lookback",
+      "image_path": "/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-20T22-26-39/05_exit_lookback_debug.png",
+      "annotated_path": "/home/bb/code/godot_xPRIMEray/Docs/papers/paper_001_causal_observer_ladders/analysis/morphology/annotated/exit_lookback_annotated.png",
+      "radial_profile_path": "/home/bb/code/godot_xPRIMEray/Docs/papers/paper_001_causal_observer_ladders/analysis/morphology/profiles/exit_lookback_radial_profile.png",
+      "center_x": 619.7999877929688,
+      "center_y": 360.6000061035156,
+      "center_offset_px": 57.07888731783051,
+      "apparent_radius_px": 203.60000610351562,
+      "ring_count": 0,
+      "contour_eccentricity": 0.9673971478586354,
+      "contour_area_px": 2171.0
+    }
+  ],
+  "smooth_morphology": true
+}
