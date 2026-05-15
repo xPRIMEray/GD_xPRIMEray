@@ -89,5 +89,5 @@ The bridge is anomalous across all five characterisation features simultaneously
 - Clustering analysis: [papers/paper_001_causal_observer_ladders/clustering_summary.md](../papers/paper_001_causal_observer_ladders/clustering_summary.md)
 - Anomaly scoring: [papers/paper_001_causal_observer_ladders/analysis/bridge_anomaly_scoring.md](../papers/paper_001_causal_observer_ladders/analysis/bridge_anomaly_scoring.md)
 - Regime clustering notes: [papers/paper_001_causal_observer_ladders/analysis/regime_clustering.md](../papers/paper_001_causal_observer_ladders/analysis/regime_clustering.md)
-- Research synthesis: [research/curvature_domain_ownership.md](../research/curvature_domain_ownership.md)
+- Research synthesis: [Research/curvature_domain_ownership.md](../Research/curvature_domain_ownership.md)
 - Paper 001 §5.1–5.2: [papers/paper_001_causal_observer_ladders/paper.md](../papers/paper_001_causal_observer_ladders/paper.md)

@@ -17,7 +17,7 @@ GD_xPRIMEray modifies the classical rendering pipeline by inserting a curvature-
 
 ## Pipeline Diagram
 
-![Pipeline Diagram](assets/fig_04_pipeline.png)
+*Pipeline diagram not yet available.*
 
 ---
 

@@ -93,6 +93,11 @@ markdown_extensions:
   - pymdownx.mark
   - pymdownx.critic
 
+exclude_docs: |
+  /README.md
+  README_obs.md
+  index_obs.md
+
 plugins:
   - search:
       lang: en
@@ -127,6 +132,64 @@ extra:
 nav:
   - Home: index.md
 
+  - Overview:
+      - Transport Observatory: Overview/TRANSPORT_OBSERVATORY_OVERVIEW.md
+      - Feature Index: FEATURE_INDEX.md
+
+  - Observatory:
+      - Overlay Master List: Observatory/OVERLAY_MASTER_LIST.md
+      - Atomic Visual Observatory: Research/atomic_orbital_visual_observatory_fixture.md
+      - Wormhole Structure Observatory: Research/wormhole_dual_reality_transport_workflow.md
+      - Domain Audit Visuals: diagnostics/domain_ownership.md
+      - Diagnostics:
+          - Overview: diagnostics/README.md
+          - Curvature Heatmaps: diagnostics/heatmaps.md
+          - Domain Ownership: diagnostics/domain_ownership.md
+          - Phase Coherence: diagnostics/phase_coherence.md
+          - Tile Coherence: diagnostics/tile_coherence.md
+
+  - Research:
+      - Optical Transport Map: Research/OPTICAL_TRANSPORT_FEATURE_MAP.md
+      - Cathedral Probe Architecture: Research/cathedral_probe_architecture.md
+      - Dual Reality Framework: Research/DualRealityFramework.md
+      - Overspace Architecture Layer: Research/overspace_architecture_layer.md
+      - Wormhole Pipeline Validation: Research/wormhole_render_pipeline_validation.md
+      - Wormhole Dual-Reality Workflow: Research/wormhole_dual_reality_transport_workflow.md
+      - GRIN Fixture Auto-Calibration: Research/grin_fixture_auto_calibration_phase_plan.md
+      - Atomic Orbital Studies:
+          - GRIN Room Fixture: Research/atomic_orbital_grin_room_fixture.md
+          - Visual Observatory Fixture: Research/atomic_orbital_visual_observatory_fixture.md
+      - Fixture Notes:
+          - Note Pattern & Template: Research/fixture_note_pattern.md
+          - Fixture 001 — Radial GRIN Baseline: Research/fixture_001_radial_grin_baseline.md
+          - Fixture 002 — Linear Transport Baseline: Research/fixture_002_linear_transport_baseline.md
+          - Fixture 003 — Offset Field Baseline: Research/fixture_003_offset_field_baseline.md
+          - Fixture 004 — Dual Attractor Baseline: Research/fixture_004_dual_attractor_baseline.md
+      - Advanced Studies:
+          - Wormhole Curvature Heatmap Literature: Research/wormhole_curvature_heatmap_literature_crosswalk.md
+          - Wormhole Throat Phased Architecture: Research/wormhole_throat_phased_architecture_note.md
+          - TriClock DoE Sandbox Plan: Research/triclock_doe_sandbox_plan.md
+          - Subtile Granularity: Research/curved_minimal_subtile_granularity.md
+          - Experimental Subtile Scheduler: Research/experimental_subtile_scheduler_mode.md
+      - Domain & Geometry Analysis:
+          - Domain Ownership Analysis: Research/curvature_domain_ownership.md
+          - Geometric Sampling Texture: Research/geometric_sampling_texture.md
+          - Phase Coherence Field: Research/phase_coherence_field.md
+      - Transport Island Microscopy: Research/transport_island_microscopy.md
+      - Scheduler Decorrelation: Research/scheduler_decorrelation_and_local_coherence.md
+      - Traversal Council Review: Research/architecture_design_council_traversal_review.md
+      - Object-Seeded Null Geodesic Scheduler: Research/object_seeded_null_geodesic_tiling_scheduler.md
+      - Reference Precision Null Geodesic Probe: Research/reference_precision_null_geodesic_probe.md
+      - Visual Milestone Inventory: Research/xprimeray_visual_milestone_inventory.md
+      - Feature Maturity Matrix: Research/xprimeray_feature_maturity_matrix.md
+      - Curved Ray Transport Model Review: Research/curved_ray_transport_model_review.md
+
+  - Release:
+      - Feature Readiness Audit: Release/FEATURE_READINESS_AUDIT.md
+
+  - MisterY Labs:
+      - Inspiration Cards: MisterYLabs/INSPIRATION_CARD_FEATURE_LINKS.md
+
   - Core Docs:
       - System Architecture: architecture.md
       - Architecture Overview: architecture_overview.md
@@ -147,14 +210,6 @@ nav:
       - Property Surface: PropertySurface.md
       - RenderStep Gate Hierarchy: RenderStep_GateHierarchy.md
       - Overspaces: overspaces.md
-      - Curved Ray Transport Model Review: Research/curved_ray_transport_model_review.md
-
-  - Diagnostics:
-      - Overview: diagnostics/README.md
-      - Curvature Heatmaps: diagnostics/heatmaps.md
-      - Domain Ownership: diagnostics/domain_ownership.md
-      - Phase Coherence: diagnostics/phase_coherence.md
-      - Tile Coherence: diagnostics/tile_coherence.md
 
   - Specifications — Current:
       - SceneSnapshot Data Layout: spec_scene_snapshot_data_layout_1.md
@@ -191,30 +246,6 @@ nav:
       - Object-Seeded Null Geodesic Scheduler: Research/object_seeded_null_geodesic_tiling_scheduler.md
       - Reference Precision Null Geodesic Probe: Research/reference_precision_null_geodesic_probe.md
       - README & Navigation Proposal: Research/readme_and_navigation_proposal.md
-
-  - Research:
-      - Cathedral Probe Architecture: Research/cathedral_probe_architecture.md
-      - Dual Reality Framework: Research/DualRealityFramework.md
-      - Overspace Architecture Layer: Research/overspace_architecture_layer.md
-      - Wormhole Pipeline Validation: Research/wormhole_render_pipeline_validation.md
-      - Wormhole Dual-Reality Workflow: Research/wormhole_dual_reality_transport_workflow.md
-      - GRIN Fixture Auto-Calibration: Research/grin_fixture_auto_calibration_phase_plan.md
-      - Fixture Notes:
-          - Note Pattern & Template: Research/fixture_note_pattern.md
-          - Fixture 001 — Radial GRIN Baseline: Research/fixture_001_radial_grin_baseline.md
-          - Fixture 002 — Linear Transport Baseline: Research/fixture_002_linear_transport_baseline.md
-          - Fixture 003 — Offset Field Baseline: Research/fixture_003_offset_field_baseline.md
-          - Fixture 004 — Dual Attractor Baseline: Research/fixture_004_dual_attractor_baseline.md
-      - Advanced Studies:
-          - Wormhole Curvature Heatmap Literature: Research/wormhole_curvature_heatmap_literature_crosswalk.md
-          - Wormhole Throat Phased Architecture: Research/wormhole_throat_phased_architecture_note.md
-          - TriClock DoE Sandbox Plan: Research/triclock_doe_sandbox_plan.md
-          - Subtile Granularity: Research/curved_minimal_subtile_granularity.md
-          - Experimental Subtile Scheduler: Research/experimental_subtile_scheduler_mode.md
-      - Domain & Geometry Analysis:
-          - Domain Ownership Analysis: Research/curvature_domain_ownership.md
-          - Geometric Sampling Texture: Research/geometric_sampling_texture.md
-          - Phase Coherence Field: Research/phase_coherence_field.md
 
   - Papers:
       - Paper Index: papers/index.md

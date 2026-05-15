@@ -6,33 +6,37 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Research-grade hybrid symbolic–numeric ray propagation for GRIN fields, wormhole rendering, and geometry-aware optical transport in Godot 4.x">
+        <meta name="description" content="Curved Ray Transport Engine for GRIN Fields — hybrid symbolic–numeric propagation, wormhole rendering, and geometry-aware optical transport">
       
       
         <meta name="author" content="AetherTopologist">
       
       
-        <link rel="canonical" href="https://aethertopologist.github.io/GD_xPRIMEray/index_obs/">
+        <link rel="canonical" href="https://aethertopologist.github.io/GD_xPRIMEray/Research/reference_precision_null_geodesic_probe/">
       
       
+        <link rel="prev" href="../object_seeded_null_geodesic_tiling_scheduler/">
+      
+      
+        <link rel="next" href="../readme_and_navigation_proposal/">
       
       
         
       
       
-      <link rel="icon" href="../assets/xprimeray-icon.svg">
+      <link rel="icon" href="../../assets/xprimeray-icon.svg">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>xPRIMEray — Curved Ray Transport Engine - xPRIMEray</title>
+        <title>Reference Precision Null Geodesic Probe - xPRIMEray</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
   
@@ -116,9 +120,9 @@
       
     
     
-      <link rel="stylesheet" href="../stylesheets/extra.css">
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
   
@@ -145,7 +149,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#research-papers" class="md-skip">
+        <a href="#reference-precision-null-geodesic-probe" class="md-skip">
           Skip to content
         </a>
       
@@ -159,9 +163,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="xPRIMEray" class="md-header__button md-logo" aria-label="xPRIMEray" data-md-component="logo">
+    <a href="../.." title="xPRIMEray" class="md-header__button md-logo" aria-label="xPRIMEray" data-md-component="logo">
       
-  <img src="../assets/xprimeray-icon.svg" alt="logo">
+  <img src="../../assets/xprimeray-icon.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -178,7 +182,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              xPRIMEray — Curved Ray Transport Engine
+              Reference Precision Null Geodesic Probe
             
           </span>
         </div>
@@ -296,7 +300,7 @@
   
   
     <li class="md-tabs__item">
-      <a href=".." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -317,13 +321,13 @@
     
     
       <li class="md-tabs__item">
-        <a href="../architecture/" class="md-tabs__link">
+        <a href="../../Overview/TRANSPORT_OBSERVATORY_OVERVIEW/" class="md-tabs__link">
           
   
   
     
   
-  Core Docs
+  Overview
 
         </a>
       </li>
@@ -339,13 +343,13 @@
     
     
       <li class="md-tabs__item">
-        <a href="../metric_null_geodesic_param_map/" class="md-tabs__link">
+        <a href="../../Observatory/OVERLAY_MASTER_LIST/" class="md-tabs__link">
           
   
   
     
   
-  Physics & Transport
+  Observatory
 
         </a>
       </li>
@@ -361,73 +365,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../diagnostics/" class="md-tabs__link">
-          
-  
-  
-    
-  
-  Diagnostics
-
-        </a>
-      </li>
-    
-  
-
-      
-        
-  
-  
-  
-  
-    
-    
-      <li class="md-tabs__item">
-        <a href="../spec_scene_snapshot_data_layout_1/" class="md-tabs__link">
-          
-  
-  
-    
-  
-  Specifications — Current
-
-        </a>
-      </li>
-    
-  
-
-      
-        
-  
-  
-  
-  
-    
-    
-      <li class="md-tabs__item">
-        <a href="../spec_scene_snapshot_data_layout/" class="md-tabs__link">
-          
-  
-  
-    
-  
-  Specifications — Legacy
-
-        </a>
-      </li>
-    
-  
-
-      
-        
-  
-  
-  
-  
-    
-    
-      <li class="md-tabs__item">
-        <a href="../Research/DualRealityFramework/" class="md-tabs__link">
+        <a href="../OPTICAL_TRANSPORT_FEATURE_MAP/" class="md-tabs__link">
           
   
   
@@ -449,7 +387,163 @@
     
     
       <li class="md-tabs__item">
-        <a href="../papers/" class="md-tabs__link">
+        <a href="../../Release/FEATURE_READINESS_AUDIT/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Release
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../MisterYLabs/INSPIRATION_CARD_FEATURE_LINKS/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  MisterY Labs
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Core Docs
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../metric_null_geodesic_param_map/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Physics & Transport
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../spec_scene_snapshot_data_layout_1/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Specifications — Current
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../spec_scene_snapshot_data_layout/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Specifications — Legacy
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../cathedral_probe_architecture/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Cathedral Probe
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../papers/" class="md-tabs__link">
           
   
   
@@ -471,7 +565,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../Arxiv/" class="md-tabs__link">
+        <a href="../../Arxiv/" class="md-tabs__link">
           
   
   
@@ -493,7 +587,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../validation/hermetic_fixture_rule/" class="md-tabs__link">
+        <a href="../../validation/hermetic_fixture_rule/" class="md-tabs__link">
           
   
   
@@ -515,7 +609,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../CalibRoadmap/PatchLogs/C1_0_g_1/" class="md-tabs__link">
+        <a href="../../CalibRoadmap/PatchLogs/C1_0_g_1/" class="md-tabs__link">
           
   
   
@@ -537,7 +631,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../_Archive/_arch_charter_MASTER_v0-Chat52/" class="md-tabs__link">
+        <a href="../../_Archive/_arch_charter_MASTER_v0-Chat52/" class="md-tabs__link">
           
   
   
@@ -575,9 +669,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="xPRIMEray" class="md-nav__button md-logo" aria-label="xPRIMEray" data-md-component="logo">
+    <a href="../.." title="xPRIMEray" class="md-nav__button md-logo" aria-label="xPRIMEray" data-md-component="logo">
       
-  <img src="../assets/xprimeray-icon.svg" alt="logo">
+  <img src="../../assets/xprimeray-icon.svg" alt="logo">
 
     </a>
     xPRIMEray
@@ -604,7 +698,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -620,6 +714,2041 @@
   
 
       </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Overview
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Overview/TRANSPORT_OBSERVATORY_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transport Observatory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../FEATURE_INDEX/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observatory
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Observatory
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Observatory/OVERLAY_MASTER_LIST/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overlay Master List
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../atomic_orbital_visual_observatory_fixture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Atomic Visual Observatory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../wormhole_dual_reality_transport_workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wormhole Structure Observatory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../diagnostics/domain_ownership/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain Audit Visuals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../diagnostics/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3_5" id="__nav_3_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Diagnostics
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../diagnostics/heatmaps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Curvature Heatmaps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../diagnostics/domain_ownership/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain Audit Visuals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../diagnostics/phase_coherence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase Coherence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../diagnostics/tile_coherence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tile Coherence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Research
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Research
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../OPTICAL_TRANSPORT_FEATURE_MAP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Optical Transport Map
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cathedral_probe_architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cathedral Probe Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DualRealityFramework/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dual Reality Framework
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overspace_architecture_layer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overspace Architecture Layer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../wormhole_render_pipeline_validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wormhole Pipeline Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../wormhole_dual_reality_transport_workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wormhole Structure Observatory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../grin_fixture_auto_calibration_phase_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GRIN Fixture Auto-Calibration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_8" id="__nav_4_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Atomic Orbital Studies
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Atomic Orbital Studies
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../atomic_orbital_grin_room_fixture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GRIN Room Fixture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../atomic_orbital_visual_observatory_fixture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Atomic Visual Observatory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_9" id="__nav_4_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fixture Notes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Fixture Notes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fixture_note_pattern/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Note Pattern & Template
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fixture_001_radial_grin_baseline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fixture 001 — Radial GRIN Baseline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fixture_002_linear_transport_baseline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fixture 002 — Linear Transport Baseline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fixture_003_offset_field_baseline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fixture 003 — Offset Field Baseline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fixture_004_dual_attractor_baseline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fixture 004 — Dual Attractor Baseline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_10" id="__nav_4_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced Studies
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Advanced Studies
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../wormhole_curvature_heatmap_literature_crosswalk/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wormhole Curvature Heatmap Literature
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../wormhole_throat_phased_architecture_note/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wormhole Throat Phased Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../triclock_doe_sandbox_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TriClock DoE Sandbox Plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../curved_minimal_subtile_granularity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Subtile Granularity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../experimental_subtile_scheduler_mode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Experimental Subtile Scheduler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_11" id="__nav_4_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain & Geometry Analysis
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Domain & Geometry Analysis
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../curvature_domain_ownership/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain Ownership Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../geometric_sampling_texture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Geometric Sampling Texture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase_coherence_field/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase Coherence Field
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../transport_island_microscopy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transport Island Microscopy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scheduler_decorrelation_and_local_coherence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scheduler Decorrelation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture_design_council_traversal_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Traversal Council Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../object_seeded_null_geodesic_tiling_scheduler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Object-Seeded Null Geodesic Scheduler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference Precision Null Geodesic Probe
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference Precision Null Geodesic Probe
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+  
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#goal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Goal
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cli-wiring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI Wiring
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minimal-c-implementation-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Minimal C# Implementation Plan
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#analyzer-outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Analyzer Outputs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-risk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Risk
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagnostics-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagnostics Schema
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#smoke-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Smoke Command
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#guardrails" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Guardrails
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../xprimeray_visual_milestone_inventory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visual Milestone Inventory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../xprimeray_feature_maturity_matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Maturity Matrix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../curved_ray_transport_model_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Curved Ray Transport Model Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Release
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Release/FEATURE_READINESS_AUDIT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Readiness Audit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MisterY Labs
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    MisterY Labs
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../MisterYLabs/INSPIRATION_CARD_FEATURE_LINKS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inspiration Cards
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -666,10 +2795,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
         
           
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
             
   
   
@@ -687,8 +2816,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -705,7 +2834,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/" class="md-nav__link">
+      <a href="../../architecture/" class="md-nav__link">
         
   
   
@@ -733,7 +2862,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture_overview/" class="md-nav__link">
+      <a href="../../architecture_overview/" class="md-nav__link">
         
   
   
@@ -761,7 +2890,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/overview/" class="md-nav__link">
+      <a href="../../architecture/overview/" class="md-nav__link">
         
   
   
@@ -789,7 +2918,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture_review_ray_renderer/" class="md-nav__link">
+      <a href="../../architecture_review_ray_renderer/" class="md-nav__link">
         
   
   
@@ -817,7 +2946,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../code_map_big12/" class="md-nav__link">
+      <a href="../../code_map_big12/" class="md-nav__link">
         
   
   
@@ -845,7 +2974,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../glossary/" class="md-nav__link">
+      <a href="../../glossary/" class="md-nav__link">
         
   
   
@@ -873,7 +3002,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../validation/" class="md-nav__link">
+      <a href="../../validation/" class="md-nav__link">
         
   
   
@@ -901,7 +3030,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../BoundaryLayerFixtures/" class="md-nav__link">
+      <a href="../../BoundaryLayerFixtures/" class="md-nav__link">
         
   
   
@@ -929,7 +3058,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../SPEC_INDEX/" class="md-nav__link">
+      <a href="../../SPEC_INDEX/" class="md-nav__link">
         
   
   
@@ -957,7 +3086,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../_xPRIMEray_arch_charter_v3-ChatClaudeGrokCoherencePass2/" class="md-nav__link">
+      <a href="../../_xPRIMEray_arch_charter_v3-ChatClaudeGrokCoherencePass2/" class="md-nav__link">
         
   
   
@@ -1008,8 +3137,6 @@
       
         
       
-        
-      
     
     
     
@@ -1023,10 +3150,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
             
   
   
@@ -1044,8 +3171,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1062,7 +3189,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../metric_null_geodesic_param_map/" class="md-nav__link">
+      <a href="../../metric_null_geodesic_param_map/" class="md-nav__link">
         
   
   
@@ -1090,7 +3217,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../metric_transport_nextgen_roadmap/" class="md-nav__link">
+      <a href="../../metric_transport_nextgen_roadmap/" class="md-nav__link">
         
   
   
@@ -1118,7 +3245,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../blackhole_fast_compare/" class="md-nav__link">
+      <a href="../../blackhole_fast_compare/" class="md-nav__link">
         
   
   
@@ -1146,7 +3273,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../black_hole_optical_texture_reference/" class="md-nav__link">
+      <a href="../../black_hole_optical_texture_reference/" class="md-nav__link">
         
   
   
@@ -1174,7 +3301,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../PropertySurface/" class="md-nav__link">
+      <a href="../../PropertySurface/" class="md-nav__link">
         
   
   
@@ -1202,7 +3329,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../RenderStep_GateHierarchy/" class="md-nav__link">
+      <a href="../../RenderStep_GateHierarchy/" class="md-nav__link">
         
   
   
@@ -1230,7 +3357,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../overspaces/" class="md-nav__link">
+      <a href="../../overspaces/" class="md-nav__link">
         
   
   
@@ -1251,228 +3378,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../Research/curved_ray_transport_model_review/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Curved Ray Transport Model Review
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-      
-        
-          
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
-        
-          
-          <div class="md-nav__link md-nav__container">
-            <a href="../diagnostics/" class="md-nav__link ">
-              
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Diagnostics
-  
-
-    
-  </span>
-  
-  
-
-            </a>
-            
-              
-              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
-                <span class="md-nav__icon md-icon"></span>
-              </label>
-            
-          </div>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Diagnostics
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../diagnostics/heatmaps/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Curvature Heatmaps
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../diagnostics/domain_ownership/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Domain Ownership
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../diagnostics/phase_coherence/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Phase Coherence
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../diagnostics/tile_coherence/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Tile Coherence
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -1528,10 +3433,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
             
   
   
@@ -1549,8 +3454,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1567,7 +3472,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../spec_scene_snapshot_data_layout_1/" class="md-nav__link">
+      <a href="../../spec_scene_snapshot_data_layout_1/" class="md-nav__link">
         
   
   
@@ -1595,7 +3500,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../spec_field_system_grin_1/" class="md-nav__link">
+      <a href="../../spec_field_system_grin_1/" class="md-nav__link">
         
   
   
@@ -1623,7 +3528,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../spec_fieldsource3d_canonical_params_1/" class="md-nav__link">
+      <a href="../../spec_fieldsource3d_canonical_params_1/" class="md-nav__link">
         
   
   
@@ -1651,7 +3556,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../spec_metric_models_grin_vs_gordon_1/" class="md-nav__link">
+      <a href="../../spec_metric_models_grin_vs_gordon_1/" class="md-nav__link">
         
   
   
@@ -1679,7 +3584,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../spec_field_extraction_rules_1/" class="md-nav__link">
+      <a href="../../spec_field_extraction_rules_1/" class="md-nav__link">
         
   
   
@@ -1707,7 +3612,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../spec_curved_ray_chunks_1/" class="md-nav__link">
+      <a href="../../spec_curved_ray_chunks_1/" class="md-nav__link">
         
   
   
@@ -1735,7 +3640,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../spec_bvh_acceleration_1/" class="md-nav__link">
+      <a href="../../spec_bvh_acceleration_1/" class="md-nav__link">
         
   
   
@@ -1763,7 +3668,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../spec_scheduler_task_graph_1/" class="md-nav__link">
+      <a href="../../spec_scheduler_task_graph_1/" class="md-nav__link">
         
   
   
@@ -1791,7 +3696,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../spec_rendering_backends_1/" class="md-nav__link">
+      <a href="../../spec_rendering_backends_1/" class="md-nav__link">
         
   
   
@@ -1819,7 +3724,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../spec_telemetry_debug_1/" class="md-nav__link">
+      <a href="../../spec_telemetry_debug_1/" class="md-nav__link">
         
   
   
@@ -1847,7 +3752,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../spec_ray_transport_interfaces_1/" class="md-nav__link">
+      <a href="../../spec_ray_transport_interfaces_1/" class="md-nav__link">
         
   
   
@@ -1875,7 +3780,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../spec_research_mode_1/" class="md-nav__link">
+      <a href="../../spec_research_mode_1/" class="md-nav__link">
         
   
   
@@ -1903,7 +3808,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../spec_wormhole_scene_graph_1/" class="md-nav__link">
+      <a href="../../spec_wormhole_scene_graph_1/" class="md-nav__link">
         
   
   
@@ -1967,10 +3872,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
             
   
   
@@ -1988,8 +3893,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2006,7 +3911,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../spec_scene_snapshot_data_layout/" class="md-nav__link">
+      <a href="../../spec_scene_snapshot_data_layout/" class="md-nav__link">
         
   
   
@@ -2034,7 +3939,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../spec_field_system_grin/" class="md-nav__link">
+      <a href="../../spec_field_system_grin/" class="md-nav__link">
         
   
   
@@ -2062,7 +3967,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../spec_metric_models_grin_vs_gordon/" class="md-nav__link">
+      <a href="../../spec_metric_models_grin_vs_gordon/" class="md-nav__link">
         
   
   
@@ -2090,7 +3995,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../spec_field_extraction_rules/" class="md-nav__link">
+      <a href="../../spec_field_extraction_rules/" class="md-nav__link">
         
   
   
@@ -2118,7 +4023,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../spec_curved_ray_chunks/" class="md-nav__link">
+      <a href="../../spec_curved_ray_chunks/" class="md-nav__link">
         
   
   
@@ -2146,7 +4051,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../spec_bvh_acceleration/" class="md-nav__link">
+      <a href="../../spec_bvh_acceleration/" class="md-nav__link">
         
   
   
@@ -2174,7 +4079,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../spec_scheduler_task_graph/" class="md-nav__link">
+      <a href="../../spec_scheduler_task_graph/" class="md-nav__link">
         
   
   
@@ -2206,8 +4111,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -2227,30 +4134,37 @@
       
         
       
+        
+      
+        
+      
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" checked>
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="">
             
   
   
   <span class="md-ellipsis">
     
   
-    Research
+    Cathedral Probe
   
 
     
@@ -2261,12 +4175,12 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_11">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Research
+    Cathedral Probe
   
 
           </label>
@@ -2279,14 +4193,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../Research/DualRealityFramework/" class="md-nav__link">
+      <a href="../cathedral_probe_architecture/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Dual Reality Framework
+    Cathedral Probe Architecture
   
 
     
@@ -2307,14 +4221,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../Research/overspace_architecture_layer/" class="md-nav__link">
+      <a href="../transport_island_microscopy/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Overspace Architecture Layer
+    Transport Island Microscopy
   
 
     
@@ -2335,14 +4249,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../Research/wormhole_render_pipeline_validation/" class="md-nav__link">
+      <a href="../xprimeray_visual_milestone_inventory/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Wormhole Pipeline Validation
+    Visual Milestone Inventory
   
 
     
@@ -2363,14 +4277,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../Research/wormhole_dual_reality_transport_workflow/" class="md-nav__link">
+      <a href="../xprimeray_feature_maturity_matrix/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Wormhole Dual-Reality Workflow
+    Feature Maturity Matrix
   
 
     
@@ -2391,14 +4305,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../Research/grin_fixture_auto_calibration_phase_plan/" class="md-nav__link">
+      <a href="../xprimeray_logo_usage_recommendation/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    GRIN Fixture Auto-Calibration
+    Logo Usage Recommendations
   
 
     
@@ -2418,43 +4332,108 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../scheduler_decorrelation_and_local_coherence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
     
+  
+    Scheduler Decorrelation
+  
+
     
-      
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture_design_council_traversal_review/" class="md-nav__link">
         
-      
-        
-      
-        
-      
-        
-      
-        
-      
+  
+  
+  <span class="md-ellipsis">
     
+  
+    Traversal Council Review
+  
+
     
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../object_seeded_null_geodesic_tiling_scheduler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
     
+  
+    Object-Seeded Null Geodesic Scheduler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
         
       
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
       
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_6" >
-        
+        <label class="md-nav__link md-nav__link--active" for="__toc">
           
-          <label class="md-nav__link" for="__nav_7_6" id="__nav_7_6_label" tabindex="0">
-            
   
   
   <span class="md-ellipsis">
     
   
-    Fixture Notes
+    Reference Precision Null Geodesic Probe
   
 
     
@@ -2462,35 +4441,17 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_6">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Fixture Notes
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../Research/fixture_note_pattern/" class="md-nav__link">
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
   <span class="md-ellipsis">
     
   
-    Note Pattern & Template
+    Reference Precision Null Geodesic Probe
   
 
     
@@ -2499,218 +4460,116 @@
   
 
       </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../Research/fixture_001_radial_grin_baseline/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Fixture 001 — Radial GRIN Baseline
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../Research/fixture_002_linear_transport_baseline/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Fixture 002 — Linear Transport Baseline
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../Research/fixture_003_offset_field_baseline/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Fixture 003 — Offset Field Baseline
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../Research/fixture_004_dual_attractor_baseline/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Fixture 004 — Dual Attractor Baseline
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
       
         
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
-        
-          
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Advanced Studies
+
   
 
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_7">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Advanced Studies
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
   
   
   
-  
-    <li class="md-nav__item">
-      <a href="../Research/wormhole_curvature_heatmap_literature_crosswalk/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
     
   
-    Wormhole Curvature Heatmap Literature
   
-
-    
-  </span>
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#goal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Goal
+      
+    </span>
+  </a>
   
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cli-wiring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI Wiring
+      
+    </span>
+  </a>
   
-
-      </a>
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minimal-c-implementation-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Minimal C# Implementation Plan
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#analyzer-outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Analyzer Outputs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-risk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Risk
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagnostics-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagnostics Schema
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#smoke-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Smoke Command
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#guardrails" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Guardrails
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -2723,14 +4582,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../Research/wormhole_throat_phased_architecture_note/" class="md-nav__link">
+      <a href="../readme_and_navigation_proposal/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Wormhole Throat Phased Architecture
+    README & Navigation Proposal
   
 
     
@@ -2739,250 +4598,6 @@
   
 
       </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../Research/triclock_doe_sandbox_plan/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    TriClock DoE Sandbox Plan
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../Research/curved_minimal_subtile_granularity/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Subtile Granularity
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../Research/experimental_subtile_scheduler_mode/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Experimental Subtile Scheduler
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_8" >
-        
-          
-          <label class="md-nav__link" for="__nav_7_8" id="__nav_7_8_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Domain & Geometry Analysis
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_8">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Domain & Geometry Analysis
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../Research/curvature_domain_ownership/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Domain Ownership Analysis
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../Research/geometric_sampling_texture/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Geometric Sampling Texture
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../Research/phase_coherence_field/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Phase Coherence Field
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
     </li>
   
 
@@ -3039,11 +4654,11 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12" >
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../papers/" class="md-nav__link ">
+            <a href="../../papers/" class="md-nav__link ">
               
   
   
@@ -3061,14 +4676,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_12" id="__nav_12_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3087,7 +4702,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../papers/paper_000_unified_summary/paper/" class="md-nav__link">
+      <a href="../../papers/paper_000_unified_summary/paper/" class="md-nav__link">
         
   
   
@@ -3122,7 +4737,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../papers/paper_001_proto_caustic_invariant/paper/" class="md-nav__link">
+      <a href="../../papers/paper_001_proto_caustic_invariant/paper/" class="md-nav__link">
         
   
   
@@ -3157,7 +4772,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../papers/paper_001_causal_observer_ladders/paper/" class="md-nav__link">
+      <a href="../../papers/paper_001_causal_observer_ladders/paper/" class="md-nav__link">
         
   
   
@@ -3185,7 +4800,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../papers/paper_002_low_value_sector_budget/paper/" class="md-nav__link">
+      <a href="../../papers/paper_002_low_value_sector_budget/paper/" class="md-nav__link">
         
   
   
@@ -3220,7 +4835,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../papers/paper_003_coupled_invariants_phase_space/paper/" class="md-nav__link">
+      <a href="../../papers/paper_003_coupled_invariants_phase_space/paper/" class="md-nav__link">
         
   
   
@@ -3255,7 +4870,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../papers/paper_004_hermetic_throat_validation/paper/" class="md-nav__link">
+      <a href="../../papers/paper_004_hermetic_throat_validation/paper/" class="md-nav__link">
         
   
   
@@ -3283,7 +4898,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../papers/overspace_throat_validation_preprint_v1/" class="md-nav__link">
+      <a href="../../papers/overspace_throat_validation_preprint_v1/" class="md-nav__link">
         
   
   
@@ -3311,7 +4926,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../papers/shared_related_work/" class="md-nav__link">
+      <a href="../../papers/shared_related_work/" class="md-nav__link">
         
   
   
@@ -3339,7 +4954,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../papers/figure_captions/" class="md-nav__link">
+      <a href="../../papers/figure_captions/" class="md-nav__link">
         
   
   
@@ -3393,11 +5008,11 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_13" >
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../Arxiv/" class="md-nav__link ">
+            <a href="../../Arxiv/" class="md-nav__link ">
               
   
   
@@ -3416,8 +5031,8 @@
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_9">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_13">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3462,10 +5077,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_14" >
         
           
-          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_14" id="__nav_14_label" tabindex="0">
             
   
   
@@ -3483,8 +5098,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_10">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_14">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3501,7 +5116,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../validation/hermetic_fixture_rule/" class="md-nav__link">
+      <a href="../../validation/hermetic_fixture_rule/" class="md-nav__link">
         
   
   
@@ -3529,7 +5144,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../validation/wormhole_observer_ladder/" class="md-nav__link">
+      <a href="../../validation/wormhole_observer_ladder/" class="md-nav__link">
         
   
   
@@ -3583,10 +5198,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_15" >
         
           
-          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_15" id="__nav_15_label" tabindex="0">
             
   
   
@@ -3604,8 +5219,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_11">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_15_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_15">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3622,7 +5237,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../CalibRoadmap/PatchLogs/C1_0_g_1/" class="md-nav__link">
+      <a href="../../CalibRoadmap/PatchLogs/C1_0_g_1/" class="md-nav__link">
         
   
   
@@ -3650,7 +5265,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../CalibRoadmap/PatchLogs/C1_7_g_X/" class="md-nav__link">
+      <a href="../../CalibRoadmap/PatchLogs/C1_7_g_X/" class="md-nav__link">
         
   
   
@@ -3716,10 +5331,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_16" >
         
           
-          <label class="md-nav__link" for="__nav_12" id="__nav_12_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_16" id="__nav_16_label" tabindex="0">
             
   
   
@@ -3737,8 +5352,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_12_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_12">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_16_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_16">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3755,7 +5370,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../_Archive/_arch_charter_MASTER_v0-Chat52/" class="md-nav__link">
+      <a href="../../_Archive/_arch_charter_MASTER_v0-Chat52/" class="md-nav__link">
         
   
   
@@ -3783,7 +5398,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../_Archive/_arch_charter_MASTER_v1-Alt-RESEARCHMODE/" class="md-nav__link">
+      <a href="../../_Archive/_arch_charter_MASTER_v1-Alt-RESEARCHMODE/" class="md-nav__link">
         
   
   
@@ -3811,7 +5426,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../_Archive/_arch_charter_MASTER_v1-Alt-otherUpdated/" class="md-nav__link">
+      <a href="../../_Archive/_arch_charter_MASTER_v1-Alt-otherUpdated/" class="md-nav__link">
         
   
   
@@ -3839,7 +5454,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../_Archive/_arch_charter_MASTER_v1-Baseline-Gravity/" class="md-nav__link">
+      <a href="../../_Archive/_arch_charter_MASTER_v1-Baseline-Gravity/" class="md-nav__link">
         
   
   
@@ -3867,7 +5482,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../_Archive/_arch_charter_MASTER_v2-Chat52/" class="md-nav__link">
+      <a href="../../_Archive/_arch_charter_MASTER_v2-Chat52/" class="md-nav__link">
         
   
   
@@ -3895,7 +5510,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../_Archive/_xPRIMEray_arch_charter_MASTER_v3-ChatClaudeCoherencePass1/" class="md-nav__link">
+      <a href="../../_Archive/_xPRIMEray_arch_charter_MASTER_v3-ChatClaudeCoherencePass1/" class="md-nav__link">
         
   
   
@@ -3923,7 +5538,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../_Archive/_xPRIMEray_arch_charter_v2-Claude45/" class="md-nav__link">
+      <a href="../../_Archive/_xPRIMEray_arch_charter_v2-Claude45/" class="md-nav__link">
         
   
   
@@ -3951,7 +5566,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../_Archive/_xPRIMEray_arch_charter_v2-Claude46/" class="md-nav__link">
+      <a href="../../_Archive/_xPRIMEray_arch_charter_v2-Claude46/" class="md-nav__link">
         
   
   
@@ -3996,7 +5611,7 @@
 
 
   
-    <a href="https://github.com/AetherTopologist/GD_xPRIMEray/edit/main/Docs/index_obs.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/AetherTopologist/GD_xPRIMEray/edit/main/Docs/Research/reference_precision_null_geodesic_probe.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -4004,206 +5619,154 @@
   
 
 
-  <h1>xPRIMEray — Curved Ray Transport Engine</h1>
-
-<div class="xp-hero">
-  <img src="assets/xprimeray-blueprint.png" alt="xPRIMEray logo" />
-  <div class="xp-tagline">Where physics performs.</div>
-  <div class="xp-equation">E = mc²</div>
-</div>
-
-<hr />
-<p><strong>xPRIMEray</strong> is a research-grade curved ray transport engine built on Godot 4.x.
-It replaces straight-line ray casting with physics-driven propagation through gradient-index (GRIN) fields, enabling simulation of graded refractive media, wormhole geometries, and general metric-driven optical transport.</p>
-<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin:1rem 0;">
-<span style="background:rgba(102,68,170,0.2);border:1px solid rgba(102,68,170,0.4);border-radius:4px;padding:2px 10px;font-size:0.8rem;">GRIN Optics</span>
-<span style="background:rgba(40,120,200,0.2);border:1px solid rgba(40,120,200,0.4);border-radius:4px;padding:2px 10px;font-size:0.8rem;">Wormhole Transport</span>
-<span style="background:rgba(40,160,100,0.2);border:1px solid rgba(40,160,100,0.4);border-radius:4px;padding:2px 10px;font-size:0.8rem;">RK4 Integration</span>
-<span style="background:rgba(200,120,40,0.2);border:1px solid rgba(200,120,40,0.4);border-radius:4px;padding:2px 10px;font-size:0.8rem;">Hermetic Validation</span>
-<span style="background:rgba(170,40,40,0.2);border:1px solid rgba(170,40,40,0.4);border-radius:4px;padding:2px 10px;font-size:0.8rem;">Penrose Causal Consistency</span>
-<span style="background:rgba(80,80,80,0.3);border:1px solid rgba(128,128,128,0.3);border-radius:4px;padding:2px 10px;font-size:0.8rem;">MIT License</span>
-</div>
-
-<hr />
-<h2 id="research-papers">Research Papers<a class="headerlink" href="#research-papers" title="Permanent link">&para;</a></h2>
-<p>The xPRIMEray invariant trilogy establishes geometric contracts for wormhole rendering correctness.
-Each paper is structured as an arXiv-facing research note with deterministic harness artifacts.</p>
-<table>
-<thead>
-<tr>
-<th>#</th>
-<th>Title</th>
-<th>Status</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="../papers/paper_000_unified_summary/paper/">000</a></td>
-<td>Unified Summary of the Wormhole Invariant Trilogy</td>
-<td>Draft</td>
-</tr>
-<tr>
-<td><a href="../papers/paper_001_proto_caustic_invariant/paper/">001</a></td>
-<td>Proto-Caustic Invariant in Geometry-Aware Wormhole Transport</td>
-<td>Draft</td>
-</tr>
-<tr>
-<td><a href="../papers/paper_002_low_value_sector_budget/paper/">002</a></td>
-<td>Low-Value Sector Budget as a Negative Invariant</td>
-<td>Draft</td>
-</tr>
-<tr>
-<td><a href="../papers/paper_003_coupled_invariants_phase_space/paper/">003</a></td>
-<td>Coupled Invariants and Stability Phase Space</td>
-<td>Draft</td>
-</tr>
-<tr>
-<td><a href="../papers/paper_004_hermetic_throat_validation/paper/">004</a></td>
-<td>Hermetic Throat Validation</td>
-<td>Draft</td>
-</tr>
-</tbody>
-</table>
-<p>Artifact companion:
-<a href="../papers/paper_001a_causal_observer_ladder_artifacts/paper/">Paper 001a — Causal Observer Ladder Artifact Atlas</a></p>
-<p>→ <a href="../papers/">Full paper index with abstracts and conventions</a></p>
-<hr />
-<h2 id="validation-figures">Validation Figures<a class="headerlink" href="#validation-figures" title="Permanent link">&para;</a></h2>
-<p>Each deterministic harness run produces a figure quartet:</p>
-<table>
-<thead>
-<tr>
-<th>Figure</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>A</td>
-<td>Raw render output</td>
-</tr>
-<tr>
-<td>B</td>
-<td>Render + research overlay</td>
-</tr>
-<tr>
-<td>C</td>
-<td>Portal-sector density map</td>
-</tr>
-<tr>
-<td>D</td>
-<td>Invariant + performance summary table</td>
-</tr>
-<tr>
-<td>E</td>
-<td>Coupled phase-space plot</td>
-</tr>
-</tbody>
-</table>
-<figure>
-  <img src="wormhole_test/figures/figure_B_composed_overlay.png"
-       alt="Wormhole DualRealityTransport — composed overlay with research diagnostics" />
-  <figcaption>Figure B — Wormhole DualRealityTransport capture: curved main view, straight transport reference panel, and diagnostic overlays.</figcaption>
-</figure>
-
-<hr />
-<h2 id="documentation-hub">Documentation Hub<a class="headerlink" href="#documentation-hub" title="Permanent link">&para;</a></h2>
-<h3 id="entry-points">Entry points<a class="headerlink" href="#entry-points" title="Permanent link">&para;</a></h3>
+<h1 id="reference-precision-null-geodesic-probe">Reference-Precision Null Geodesic Probe<a class="headerlink" href="#reference-precision-null-geodesic-probe" title="Permanent link">&para;</a></h1>
+<h2 id="goal">Goal<a class="headerlink" href="#goal" title="Permanent link">&para;</a></h2>
+<p>This is a tiny daytime experiment for local stepper convergence. It reuses object/domain anchors from the object-seeded scheduler path, biases sampling toward projected corners, edge midpoints, principal axes, and domain-boundary samples, then compares coarser probes against a reference-precision baseline.</p>
+<p>The reference baseline is the smallest local step tested, not absolute truth.</p>
+<h2 id="cli-wiring">CLI Wiring<a class="headerlink" href="#cli-wiring" title="Permanent link">&para;</a></h2>
+<p>Enable the experiment with:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>--reference-geodesic-probe<span class="o">=</span><span class="m">1</span>
+</span></code></pre></div>
+<p>Optional budget controls:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>--reference-geodesic-probe-max-anchors<span class="o">=</span><span class="m">2</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>--reference-geodesic-probe-max-steps<span class="o">=</span><span class="m">2048</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>--reference-geodesic-probe-diagonals<span class="o">=</span><span class="m">0</span>
+</span></code></pre></div>
+<p>The render-test harness writes diagnostics after capture:</p>
 <ul>
-<li><a href="README.md"><strong>README.md</strong></a> — unified entry point: what xPRIMEray is, what problem it solves, full navigation map</li>
-<li><a href="../glossary/"><strong>Glossary</strong></a> — definitions for null geodesic, GRIN, Gordon metric, domain boundary, phase coherence, curvature centre</li>
+<li><code>*.reference_geodesic_probe.csv</code></li>
+<li><code>*.reference_geodesic_probe.json</code></li>
 </ul>
-<h3 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h3>
+<p>The probe temporarily adjusts <code>RayBeamRenderer</code> stepper fields inside the diagnostics loop, restores them in <code>finally</code>, and does not alter final rendering, shading, hit selection, resolver state, or scheduler behavior.</p>
+<h2 id="minimal-c-implementation-plan">Minimal C# Implementation Plan<a class="headerlink" href="#minimal-c-implementation-plan" title="Permanent link">&para;</a></h2>
+<p>Implemented as a research-only artifact writer in <code>GrinFilmCamera</code>:</p>
+<ol>
+<li>Select anchors from <code>SceneTransportFingerprint</code>.</li>
+<li>Prefer centroid anchors first, then screen-relevant AABB corners, edge midpoints, principal-axis samples, and domain-boundary anchors.</li>
+<li>Project each anchor to film space.</li>
+<li>Build a radial micro-search around the projected anchor:</li>
+<li>center pixel</li>
+<li>radius 1, 2, 4, 8, and 16 pixels</li>
+<li>cardinal and diagonal offsets at each radius</li>
+<li>centroid-radial inward/outward offsets where an object centroid projects into frame</li>
+<li>For each micro-search sample, call <code>RayBeamRenderer.BuildRaySegmentsCamera_Pass1</code> at:</li>
+<li><code>0.015</code></li>
+<li><code>0.0125</code></li>
+<li><code>0.00625</code></li>
+<li><code>0.003125</code> reference</li>
+<li>Compare each result to the <code>0.003125</code> reference for that anchor/offset.</li>
+<li>Export CSV/JSON diagnostics only.</li>
+</ol>
+<h2 id="analyzer-outputs">Analyzer Outputs<a class="headerlink" href="#analyzer-outputs" title="Permanent link">&para;</a></h2>
+<p>Run:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>python3<span class="w"> </span>tools/reference_probe_analyzer.py<span class="w"> </span>output/reference_geodesic_probe_smoke/&lt;timestamp&gt;
+</span></code></pre></div>
+<p>The analyzer writes:</p>
 <ul>
-<li><a href="../architecture/overview/">architecture/overview.md</a> — pipeline, Pass 1 vs Pass 2, stored-hit system, domain emergence, Gordon metric</li>
-<li><a href="../architecture_overview/">Architecture Overview</a> — detailed subsystem contracts and data-flow diagrams</li>
-<li><a href="../architecture/">System Architecture</a> — compact pipeline summary</li>
-<li><a href="../code_map_big12/">Code Map (Big 12)</a> — contributor-facing code map</li>
+<li><code>reference_probe_summary.csv</code></li>
+<li><code>risk_vs_step_by_anchor.png</code></li>
+<li><code>nonconvergent_anchor_report.md</code></li>
+<li><code>decision_risk_heatmap.png</code></li>
+<li><code>required_precision_heatmap.png</code></li>
+<li><code>convergence_class_heatmap.png</code></li>
+<li><code>risk_node_map.png</code></li>
+<li><code>transport_risk_nodes.csv</code></li>
+<li><code>risk_node_report.md</code></li>
+<li><code>transport_risk_regions.csv</code></li>
+<li><code>risk_region_report.md</code></li>
+<li><code>radial_risk_profile_by_node.png</code></li>
+<li><code>risk_region_overlay.png</code></li>
+<li><code>radial_dist_vs_required_precision.png</code></li>
+<li><code>transport_coherence_basins.csv</code></li>
+<li><code>unstable_seams.csv</code></li>
+<li><code>scene_transport_memory.json</code></li>
+<li><code>coherence_basin_map.png</code></li>
+<li><code>transport_entropy_heatmap.png</code></li>
+<li><code>basin_boundary_overlay.png</code></li>
+<li><code>unstable_seam_overlay.png</code></li>
+<li><code>coherence_decay_profile.png</code></li>
+<li><code>transport_coherence_basin_summary.md</code></li>
+<li><code>transport_coherence_basin_summary.json</code></li>
 </ul>
-<h3 id="diagnostics">Diagnostics<a class="headerlink" href="#diagnostics" title="Permanent link">&para;</a></h3>
+<p><code>TransportRiskNodes</code> are diagnostic screen-space samples flagged by local decision-risk maxima, persistent mismatch at <code>0.00625</code>, or threshold-snap behavior that only matches the reference-precision baseline at <code>0.003125</code>.</p>
+<p><code>TransportRiskRegions</code> expand each node into nearby sampled pixels and centroid-radial corridors. They estimate the high-risk radius, first stable outer bound where risk falls below epsilon, required precision inside the region, and classify the sampled region as <code>CORE_STABLE</code>, <code>EDGE_TRANSITION</code>, <code>CORNER_CURVATURE_SNAP</code>, <code>OUTER_STABLE_BOUND</code>, or <code>UNSEALED_NONCONVERGENT</code>.</p>
+<p><code>TransportCoherenceBasins</code> are passive local transport-field neighborhoods sampled around high-risk centers. They measure collider/domain/event agreement, normal continuity, hit-distance continuity, path-length continuity, entropy, fragmentation, and local precision floors. <code>SceneTransportMemory</code> is diagnostic-only: it must not feed render scheduling, hit selection, shading, resolver decisions, or adaptive precision until a separate future plan explicitly approves that feedback path.</p>
+<p>Enable the basin experiment with:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>--transport-coherence-basin<span class="o">=</span><span class="m">1</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>--transport-coherence-basin-radii<span class="o">=</span><span class="m">4</span>,8,16
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>--transport-coherence-basin-max-centers<span class="o">=</span><span class="m">32</span>
+</span></code></pre></div>
+<p>Every basin run records probe budget metrics in the probe JSON and analyzer summary JSON/Markdown. <code>scene_transport_memory.json</code> intentionally excludes nondeterministic runtime/path metadata so fixed-camera repeatability can compare its hash directly.</p>
 <ul>
-<li><a href="../diagnostics/">diagnostics/README.md</a> — what each diagnostic measures and when to use it</li>
-<li><a href="../diagnostics/heatmaps/">diagnostics/heatmaps.md</a> — curvature heat maps: transport diagnostic, not observable flux</li>
-<li><a href="../diagnostics/tile_coherence/">diagnostics/tile_coherence.md</a> — adaptive vs polar tile geometry trade-offs</li>
-<li><a href="../diagnostics/phase_coherence/">diagnostics/phase_coherence.md</a> — phase-coherence field, band-boundary correlation</li>
-<li><a href="../diagnostics/domain_ownership/">diagnostics/domain_ownership.md</a> — regime decomposition, interpolation validity by domain</li>
+<li><code>probe_sample_count</code></li>
+<li><code>probe_runtime_ms</code></li>
+<li><code>max_centers_used</code></li>
+<li><code>centers_skipped_due_to_budget</code></li>
+<li><code>rows_written</code></li>
 </ul>
-<h3 id="research-notes">Research notes<a class="headerlink" href="#research-notes" title="Permanent link">&para;</a></h3>
+<h2 id="decision-risk">Decision Risk<a class="headerlink" href="#decision-risk" title="Permanent link">&para;</a></h2>
+<p>The diagnostic decision risk is:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>DecisionRisk =
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>  hit/miss mismatch
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>+ collider mismatch
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>+ domain mismatch
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>+ boundary event mismatch
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>+ portal/throat event mismatch
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>+ hit distance delta
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>+ normal angle delta
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>+ path length delta
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>+ resolver state changes
+</span></code></pre></div>
+<p>Resolver state is reserved for a later pass where the probe can sample resolver telemetry without mutating render state.</p>
+<h2 id="diagnostics-schema">Diagnostics Schema<a class="headerlink" href="#diagnostics-schema" title="Permanent link">&para;</a></h2>
+<p>CSV columns:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>anchor_id
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>object_id
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>step_length
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>reference_step_length
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>projected_x
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>projected_y
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>object_centroid_projected_x
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>object_centroid_projected_y
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>radial_dist_from_object_centroid
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>radial_angle_from_object_centroid
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>nearest_anchor_kind
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>nearest_corner_dist
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>nearest_edge_dist
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>projected_tile
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>radial_offset_x
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>radial_offset_y
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>hit
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>collider_id
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>domain_id
+</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>boundary_events
+</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>portal_events
+</span><span id="__span-5-22"><a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>hit_distance
+</span><span id="__span-5-23"><a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>path_length
+</span><span id="__span-5-24"><a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>decision_risk
+</span><span id="__span-5-25"><a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>matched_reference_decision
+</span><span id="__span-5-26"><a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>required_precision_label
+</span></code></pre></div>
+<p>JSON includes the same row data plus:</p>
 <ul>
-<li><a href="research/geometric_sampling_texture.md">research/geometric_sampling_texture.md</a> — sampling texture synthesis: adaptive, polar, hybrid architecture</li>
-<li><a href="research/phase_coherence_field.md">research/phase_coherence_field.md</a> — phase coherence as a transport diagnostic; geometric phase memory roadmap</li>
-<li><a href="research/curvature_domain_ownership.md">research/curvature_domain_ownership.md</a> — domain decomposition, bridge anomaly, banding mechanism</li>
+<li>fixture</li>
+<li>scene fingerprint</li>
+<li>reference step length</li>
+<li>row count</li>
+<li>schema list</li>
 </ul>
-<h3 id="specifications-and-validation">Specifications and validation<a class="headerlink" href="#specifications-and-validation" title="Permanent link">&para;</a></h3>
+<h2 id="smoke-command">Smoke Command<a class="headerlink" href="#smoke-command" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>bash<span class="w"> </span>scripts/run_reference_geodesic_probe_smoke.sh
+</span></code></pre></div>
+<p>The smoke uses 5 frames at <code>320x180</code>, two anchors, and a capped probe step budget so it stays cheap while scheduler DOE runs elsewhere.</p>
+<h2 id="guardrails">Guardrails<a class="headerlink" href="#guardrails" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="../SPEC_INDEX/">Specification Index</a> — full spec map, current vs legacy</li>
-<li><a href="../validation/">Validation Framework</a> — validation modes and verification context</li>
-<li><a href="../_xPRIMEray_arch_charter_v3-ChatClaudeGrokCoherencePass2/">Architecture Charter (Current)</a> — working charter</li>
+<li>Do not tune beauty aesthetics.</li>
+<li>Do not smooth or post-process artifacts.</li>
+<li>Do not use probe results to choose final color, hit, normal, collider, domain, or resolver state.</li>
+<li>Do not treat the reference-precision baseline as absolute truth.</li>
+<li>Keep budgets explicit and small.</li>
 </ul>
-<h3 id="physics-and-transport">Physics and transport<a class="headerlink" href="#physics-and-transport" title="Permanent link">&para;</a></h3>
-<ul>
-<li><a href="../metric_null_geodesic_param_map/">Metric Null Geodesic Parameter Map</a></li>
-<li><a href="../metric_transport_nextgen_roadmap/">Next-Generation Metric Transport Roadmap</a></li>
-<li><a href="../blackhole_fast_compare/">BlackHole Fast Compare — GRIN vs Metric</a></li>
-<li><a href="../black_hole_optical_texture_reference/">Black Hole Optical Texture Reference</a></li>
-<li><a href="../overspaces/">Overspaces</a> — metadata-first world/layer/anchor/link graph</li>
-</ul>
-<h3 id="current-specifications">Current specifications<a class="headerlink" href="#current-specifications" title="Permanent link">&para;</a></h3>
-<ul>
-<li><a href="../spec_scene_snapshot_data_layout_1/">SceneSnapshot Data Layout</a></li>
-<li><a href="../spec_field_system_grin_1/">Field System (GRIN Evaluation)</a></li>
-<li><a href="../spec_fieldsource3d_canonical_params_1/">FieldSource3D Canonical Params</a></li>
-<li><a href="../spec_metric_models_grin_vs_gordon_1/">Metric Models (GRIN vs Gordon)</a></li>
-<li><a href="../spec_field_extraction_rules_1/">Field Extraction Rules</a></li>
-<li><a href="../spec_curved_ray_chunks_1/">Curved Ray Segment Integration</a></li>
-<li><a href="../spec_bvh_acceleration_1/">BVH Acceleration System</a></li>
-<li><a href="../spec_scheduler_task_graph_1/">Scheduler &amp; Task Graph</a></li>
-<li><a href="../spec_rendering_backends_1/">Rendering Backends</a></li>
-<li><a href="../spec_telemetry_debug_1/">Telemetry, Debug, and Diagnostics</a></li>
-<li><a href="../spec_ray_transport_interfaces_1/">Ray Transport &amp; Portability Interfaces</a></li>
-<li><a href="../spec_research_mode_1/">Research Mode</a></li>
-<li><a href="../spec_wormhole_scene_graph_1/">Wormhole Multi-Scene System</a></li>
-</ul>
-<h3 id="research-experimental-frameworks">Research &amp; experimental frameworks<a class="headerlink" href="#research-experimental-frameworks" title="Permanent link">&para;</a></h3>
-<ul>
-<li><a href="../Research/DualRealityFramework/">Dual Reality Framework</a></li>
-<li><a href="../Research/overspace_architecture_layer/">Overspace Architecture Layer</a> — wormhole systems, rabbit-hole nesting, scale-clock-density transforms</li>
-<li><a href="../Research/wormhole_render_pipeline_validation/">Wormhole Render Pipeline Validation</a> — ground-truth pipeline, proof methodology, failure-mode history</li>
-<li><a href="../Research/wormhole_dual_reality_transport_workflow/">Wormhole DualRealityTransport Workflow</a> — capture-matrix and comparison workflow</li>
-<li><a href="../Research/grin_fixture_auto_calibration_phase_plan/">GRIN Fixture Auto-Calibration Framework</a></li>
-<li><a href="../Research/fixture_001_radial_grin_baseline/">Fixture 001 — Radial GRIN Baseline</a></li>
-<li><a href="../Research/fixture_002_linear_transport_baseline/">Fixture 002 — Linear Transport Baseline</a></li>
-<li><a href="../Research/fixture_003_offset_field_baseline/">Fixture 003 — Offset Field Baseline</a></li>
-<li><a href="../Research/fixture_004_dual_attractor_baseline/">Fixture 004 — Dual Attractor Baseline</a></li>
-</ul>
-<h3 id="validation">Validation<a class="headerlink" href="#validation" title="Permanent link">&para;</a></h3>
-<ul>
-<li><a href="../validation/hermetic_fixture_rule/">Hermetic Fixture Rule</a></li>
-<li><a href="../validation/wormhole_observer_ladder/">Wormhole Observer Ladder</a></li>
-<li><a href="../BoundaryLayerFixtures/">Boundary Layer Fixtures</a></li>
-</ul>
-<h3 id="calibration-roadmap">Calibration roadmap<a class="headerlink" href="#calibration-roadmap" title="Permanent link">&para;</a></h3>
-<ul>
-<li><a href="../CalibRoadmap/PatchLogs/C1_0_g_1/">C1.0 g.1 — Canonical Signature Fields</a></li>
-<li><a href="../CalibRoadmap/PatchLogs/C1_7_g_X/">C1.7 g.X — AutoCal Weak-Signal Stopgap</a></li>
-</ul>
-<h3 id="legacy-baseline-specifications">Legacy baseline specifications<a class="headerlink" href="#legacy-baseline-specifications" title="Permanent link">&para;</a></h3>
-<p>Retained for historical context and design evolution comparison.</p>
-<ul>
-<li><a href="../spec_scene_snapshot_data_layout/">SceneSnapshot Data Layout (Legacy)</a></li>
-<li><a href="../spec_field_system_grin/">Field System GRIN (Legacy)</a></li>
-<li><a href="../spec_metric_models_grin_vs_gordon/">Metric Models (Legacy)</a></li>
-<li><a href="../spec_field_extraction_rules/">Field Extraction Rules (Legacy)</a></li>
-<li><a href="../spec_curved_ray_chunks/">Curved Ray Chunk Integration (Legacy)</a></li>
-<li><a href="../spec_bvh_acceleration/">BVH Acceleration (Legacy)</a></li>
-<li><a href="../spec_scheduler_task_graph/">Scheduler &amp; Task Graph (Legacy)</a></li>
-</ul>
-<hr />
-<h2 id="license-citation">License &amp; Citation<a class="headerlink" href="#license-citation" title="Permanent link">&para;</a></h2>
-<p>Licensed under <strong>MIT</strong> — suitable for both academic and creative use.</p>
-<p>If this work informs your research, please cite the relevant paper from the invariant trilogy (see <a href="../papers/">Papers</a> for BibTeX templates).</p>
-<hr />
-<p><em>Built on <a href="https://godotengine.org">Godot 4.x</a> · Documentation via <a href="https://squidfunk.github.io/mkdocs-material/">MkDocs Material</a></em></p>
 
 
 
@@ -4226,7 +5789,7 @@ Each paper is structured as an arXiv-facing research note with deterministic har
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 26, 2026 05:18:22 UTC">April 26, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="May 3, 2026 13:08:13 UTC">May 3, 2026</span>
   </span>
 
     
@@ -4236,7 +5799,7 @@ Each paper is structured as an arXiv-facing research note with deterministic har
     <span class="md-icon" title="Created">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="December 12, 2025 01:38:06 UTC">December 12, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="May 2, 2026 23:57:04 UTC">May 2, 2026</span>
   </span>
 
     
@@ -4319,6 +5882,44 @@ Each paper is structured as an arXiv-facing research note with deterministic har
         <footer class="md-footer">
   
     
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../object_seeded_null_geodesic_tiling_scheduler/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Object-Seeded Null Geodesic Scheduler">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Object-Seeded Null Geodesic Scheduler
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../readme_and_navigation_proposal/" class="md-footer__link md-footer__link--next" aria-label="Next: README &amp; Navigation Proposal">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                README & Navigation Proposal
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
@@ -4360,10 +5961,10 @@ Each paper is structured as an arXiv-facing research note with deterministic har
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.top", "navigation.footer", "navigation.indexes", "toc.follow", "toc.integrate", "content.code.copy", "content.action.edit", "search.suggest", "search.highlight", "search.share", "announce.dismiss"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.top", "navigation.footer", "navigation.indexes", "toc.follow", "toc.integrate", "content.code.copy", "content.action.edit", "search.suggest", "search.highlight", "search.share", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
         <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       

@@ -26,4 +26,4 @@ Related reference: [Black Hole Optical Texture Reference](black_hole_optical_tex
 
 ## Example Diagnostic
 
-![Ray Bundle Curvature](assets/fig_03_ray_bundle.png)
+*Ray bundle curvature figure not yet available.*

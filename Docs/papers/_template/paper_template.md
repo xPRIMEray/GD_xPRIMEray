@@ -70,25 +70,25 @@ Treat the figures as coordinated projections of one underlying structure.
 
 ### Figure A
 
-![Figure A — Main Render](../../../output/<experiment_slug>/figures/figure_A_main_render.png)
+*Figure A — Main Render: `output/<experiment_slug>/figures/figure_A_main_render.png`*
 
 Describe what the main render alone establishes.
 
 ### Figure B
 
-![Figure B — Composed Render with Research Inset](../../../output/<experiment_slug>/figures/figure_B_composed_overlay.png)
+*Figure B — Composed Render with Research Inset: `output/<experiment_slug>/figures/figure_B_composed_overlay.png`*
 
 Describe what explanatory structure the composed view adds.
 
 ### Figure C
 
-![Figure C — Ring Density](../../../output/<experiment_slug>/figures/figure_C_ring_density.png)
+*Figure C — Ring Density: `output/<experiment_slug>/figures/figure_C_ring_density.png`*
 
 Describe what portal-local or invariant-local structure becomes visible here.
 
 ### Figure D
 
-![Figure D — Metrics Table](../../../output/<experiment_slug>/figures/figure_D_metrics_table.png)
+*Figure D — Metrics Table: `output/<experiment_slug>/figures/figure_D_metrics_table.png`*
 
 Describe how the compact metrics summary closes the validation loop.
 

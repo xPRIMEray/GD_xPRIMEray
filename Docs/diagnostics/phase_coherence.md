@@ -66,7 +66,7 @@ In this framework:
 - **Phase boundaries** (low-coherence band locations) correspond to transitions between attractor basins.
 - **Curvature centres** (Hough arc-fit candidates) are candidate nodes of silence — structural anchors from which phase relationships radiate.
 
-This is explicitly an analogy and a design grammar, not a physical or biological equivalence claim. See [research/phase_coherence_field.md](../research/phase_coherence_field.md) and [papers/paper_001_causal_observer_ladders/analysis/geometric_phase_memory.md](../papers/paper_001_causal_observer_ladders/analysis/geometric_phase_memory.md) for the full framework.
+This is explicitly an analogy and a design grammar, not a physical or biological equivalence claim. See [Research/phase_coherence_field.md](../Research/phase_coherence_field.md) and [papers/paper_001_causal_observer_ladders/analysis/geometric_phase_memory.md](../papers/paper_001_causal_observer_ladders/analysis/geometric_phase_memory.md) for the full framework.
 
 ---
 
@@ -75,5 +75,5 @@ This is explicitly an analogy and a design grammar, not a physical or biological
 - Full analysis in paper 001: [papers/paper_001_causal_observer_ladders/paper.md](../papers/paper_001_causal_observer_ladders/paper.md) §5.6
 - Phase sampling domain update: [papers/paper_001_causal_observer_ladders/analysis/phase_sampling_domain_update.md](../papers/paper_001_causal_observer_ladders/analysis/phase_sampling_domain_update.md)
 - Geometric phase memory framework: [papers/paper_001_causal_observer_ladders/analysis/geometric_phase_memory.md](../papers/paper_001_causal_observer_ladders/analysis/geometric_phase_memory.md)
-- Research synthesis: [research/phase_coherence_field.md](../research/phase_coherence_field.md)
+- Research synthesis: [Research/phase_coherence_field.md](../Research/phase_coherence_field.md)
 - Tile coherence interaction: [tile_coherence.md](tile_coherence.md)

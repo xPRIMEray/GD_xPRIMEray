@@ -52,9 +52,9 @@ xPRIMEray addresses all three cases within a single transport framework grounded
 
 | Document | Contents |
 |---|---|
-| [research/geometric_sampling_texture.md](research/geometric_sampling_texture.md) | Sampling texture analysis synthesis — adaptive, polar, hybrid architecture |
-| [research/phase_coherence_field.md](research/phase_coherence_field.md) | Phase coherence as a transport-domain diagnostic |
-| [research/curvature_domain_ownership.md](research/curvature_domain_ownership.md) | Domain decomposition, clustering, and the bridge anomaly |
+| [Research/geometric_sampling_texture.md](Research/geometric_sampling_texture.md) | Sampling texture analysis synthesis — adaptive, polar, hybrid architecture |
+| [Research/phase_coherence_field.md](Research/phase_coherence_field.md) | Phase coherence as a transport-domain diagnostic |
+| [Research/curvature_domain_ownership.md](Research/curvature_domain_ownership.md) | Domain decomposition, clustering, and the bridge anomaly |
 
 ### Specifications
 

@@ -164,8 +164,8 @@ These results motivate a hybrid sampling texture architecture: retain raw row pa
 
 Relevant analysis:
 - [geometric_sampling_texture.md](./analysis/geometric_sampling_texture.md)
-- [orientation_histograms.png](../../../output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/log_polar_orientation_2026-04-25/orientation_histograms.png)
-- [annotated_shape_search_contact_sheet.png](../../../output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/geometry_structure_search_2026-04-25/annotated_shape_search_contact_sheet.png)
+- `orientation_histograms.png` — fixture_011 log_polar_orientation run (output/fixture_runs/, not versioned in docs)
+- `annotated_shape_search_contact_sheet.png` — fixture_011 geometry_structure_search run (output/fixture_runs/, not versioned in docs)
 
 ### 5.6 Phase Coherence and Temporal Structure in Observer-Ladder Sampling
 

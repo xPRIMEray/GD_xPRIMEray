@@ -69,7 +69,7 @@ Each deterministic harness run produces a figure quartet:
 
 ### Entry points
 
-- [**README.md**](README.md) — unified entry point: what xPRIMEray is, what problem it solves, full navigation map
+- [**Home**](index.md) — unified entry point: what xPRIMEray is, what problem it solves, full navigation map
 - [**Glossary**](glossary.md) — definitions for null geodesic, GRIN, Gordon metric, domain boundary, phase coherence, curvature centre
 
 ### Architecture
@@ -89,9 +89,9 @@ Each deterministic harness run produces a figure quartet:
 
 ### Research notes
 
-- [research/geometric_sampling_texture.md](research/geometric_sampling_texture.md) — sampling texture synthesis: adaptive, polar, hybrid architecture
-- [research/phase_coherence_field.md](research/phase_coherence_field.md) — phase coherence as a transport diagnostic; geometric phase memory roadmap
-- [research/curvature_domain_ownership.md](research/curvature_domain_ownership.md) — domain decomposition, bridge anomaly, banding mechanism
+- [Research/geometric_sampling_texture.md](Research/geometric_sampling_texture.md) — sampling texture synthesis: adaptive, polar, hybrid architecture
+- [Research/phase_coherence_field.md](Research/phase_coherence_field.md) — phase coherence as a transport diagnostic; geometric phase memory roadmap
+- [Research/curvature_domain_ownership.md](Research/curvature_domain_ownership.md) — domain decomposition, bridge anomaly, banding mechanism
 
 ### Specifications and validation
 

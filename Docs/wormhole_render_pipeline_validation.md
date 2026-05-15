@@ -1,7 +1,7 @@
 Wormhole Validation Results
 ## Wormhole Validation Results (Figure Quartet)
 
-![Wormhole DualRealityTransport](../output/dual_reality/wormhole_inset_baseline.png)
+![Wormhole DualRealityTransport](assets/wormhole_inset_baseline.png)
 
 *Current wormhole DualRealityTransport capture showing the curved main view, straight transport reference panel, and diagnostic overlays.*
 
@@ -9,7 +9,7 @@ The wormhole validation harness produces a standardized set of deterministic art
 
 ### Figure A — Main Render (Film Buffer)
 
-![Figure A](../output/wormhole_test/figures/figure_A_main_render.png)
+![Figure A](wormhole_test/figures/figure_A_main_render.png)
 
 Raw film/composited render of the wormhole scene.  
 This image represents the optical result without any explanatory overlays.
@@ -18,7 +18,7 @@ This image represents the optical result without any explanatory overlays.
 
 ### Figure B — Composed Render with Research Overlay
 
-![Figure B](../output/wormhole_test/figures/figure_B_composed_overlay.png)
+![Figure B](wormhole_test/figures/figure_B_composed_overlay.png)
 
 Film render with research overlay.  
 Includes:
@@ -31,7 +31,7 @@ Includes:
 
 ### Figure C — Ring Density / Portal-Sector Distribution
 
-![Figure C](../output/wormhole_test/figures/figure_C_ring_density.png)
+![Figure C](wormhole_test/figures/figure_C_ring_density.png)
 
 Portal-centric density visualization used to evaluate spatial distribution of ray hits.  
 Supports validation of the proto-caustic invariant and detection of low-value regions.
@@ -40,7 +40,7 @@ Supports validation of the proto-caustic invariant and detection of low-value re
 
 ### Figure D — Invariant and Performance Summary
 
-![Figure D](../output/wormhole_test/figures/figure_D_metrics_table.png)
+![Figure D](wormhole_test/figures/figure_D_metrics_table.png)
 
 Compact summary of:
 - proto-caustic invariant metrics

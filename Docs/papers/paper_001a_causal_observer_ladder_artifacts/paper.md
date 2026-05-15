@@ -13,7 +13,7 @@ This note is a clean artifact companion to [Paper 001](../paper_001_causal_obser
 
 ## Scope
 
-- source ladder: [checkpoint_sequence_summary.json](../../../output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-20T22-26-39/checkpoint_sequence_summary.json)
+- source ladder: `output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-20T22-26-39/checkpoint_sequence_summary.json` (not versioned in docs)
 - core manuscript: [paper_001_causal_observer_ladders.tex](../paper_001_causal_observer_ladders/paper_001_causal_observer_ladders.tex)
 - characterization note: [wormhole_observer_ladder_characterization.md](../../validation/wormhole_observer_ladder_characterization.md)
 

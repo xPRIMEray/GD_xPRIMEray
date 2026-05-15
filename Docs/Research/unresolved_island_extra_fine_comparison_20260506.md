@@ -17,12 +17,14 @@ The extra-fine oracle did change the threshold map: `46 / 289` pixels moved to a
 
 | Layer | `0.0015625` oracle | `0.00078125` oracle | Assessment |
 |---|---|---|---|
-| First stable step | ![first stable baseline](../../output/reference_transport_oracle_unresolved_island/20260506T034644Z/first_stable_step_map.png) | ![first stable extra fine](../../output/reference_transport_oracle_unresolved_island/20260506T035920Z/first_stable_step_map.png) | Changed: 46 pixels shifted to finer first-stable labels. |
-| Decision risk gradient | ![risk baseline](../../output/reference_transport_oracle_unresolved_island/20260506T034644Z/decision_risk_gradient.png) | ![risk extra fine](../../output/reference_transport_oracle_unresolved_island/20260506T035920Z/decision_risk_gradient.png) | Changed in scalar intensity, not class outcome. |
-| Path length delta | ![path baseline](../../output/reference_transport_oracle_unresolved_island/20260506T034644Z/path_length_delta_map.png) | ![path extra fine](../../output/reference_transport_oracle_unresolved_island/20260506T035920Z/path_length_delta_map.png) | Changed in scalar intensity. |
-| Normal angle delta | ![normal baseline](../../output/reference_transport_oracle_unresolved_island/20260506T034644Z/normal_angle_delta_map.png) | ![normal extra fine](../../output/reference_transport_oracle_unresolved_island/20260506T035920Z/normal_angle_delta_map.png) | Identical. |
-| Ownership transition | ![ownership baseline](../../output/reference_transport_oracle_unresolved_island/20260506T034644Z/ownership_transition_map.png) | ![ownership extra fine](../../output/reference_transport_oracle_unresolved_island/20260506T035920Z/ownership_transition_map.png) | Identical. |
-| Convergence ladder | ![ladder baseline](../../output/reference_transport_oracle_unresolved_island/20260506T034644Z/island_convergence_ladder.png) | ![ladder extra fine](../../output/reference_transport_oracle_unresolved_island/20260506T035920Z/island_convergence_ladder.png) | Changed only where first-stable threshold labels shifted. |
+| First stable step | `first_stable_step_map.png` (20260506T034644Z) | `first_stable_step_map.png` (20260506T035920Z) | Changed: 46 pixels shifted to finer first-stable labels. |
+| Decision risk gradient | `decision_risk_gradient.png` (20260506T034644Z) | `decision_risk_gradient.png` (20260506T035920Z) | Changed in scalar intensity, not class outcome. |
+| Path length delta | `path_length_delta_map.png` (20260506T034644Z) | `path_length_delta_map.png` (20260506T035920Z) | Changed in scalar intensity. |
+| Normal angle delta | `normal_angle_delta_map.png` (20260506T034644Z) | `normal_angle_delta_map.png` (20260506T035920Z) | Identical. |
+| Ownership transition | `ownership_transition_map.png` (20260506T034644Z) | `ownership_transition_map.png` (20260506T035920Z) | Identical. |
+| Convergence ladder | `island_convergence_ladder.png` (20260506T034644Z) | `island_convergence_ladder.png` (20260506T035920Z) | Changed only where first-stable threshold labels shifted. |
+
+*All figures are in `output/reference_transport_oracle_unresolved_island/<timestamp>/` — not versioned in the docs site.*
 
 ## Metric Deltas
 

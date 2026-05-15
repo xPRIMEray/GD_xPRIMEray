@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Curved-ray geodesic rendering in Godot 4 C# — GRIN lensing through exotic wormhole metrics">
+        <meta name="description" content="Curved-ray optical transport observatory — GRIN field integration, wormhole rendering, curvature domain diagnostics, and observer-relative overlays in Godot 4 C#">
       
       
         <meta name="author" content="AetherTopologist">
@@ -16,7 +16,7 @@
       
       
       
-        <link rel="next" href="architecture/">
+        <link rel="next" href="Overview/TRANSPORT_OBSERVATORY_OVERVIEW/">
       
       
         
@@ -147,7 +147,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#xprimeray" class="md-skip">
+        <a href="#what-xprimeray-is" class="md-skip">
           Skip to content
         </a>
       
@@ -321,6 +321,116 @@
     
     
       <li class="md-tabs__item">
+        <a href="Overview/TRANSPORT_OBSERVATORY_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Overview
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="Observatory/OVERLAY_MASTER_LIST/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Observatory
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="Research/OPTICAL_TRANSPORT_FEATURE_MAP/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Research
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="Release/FEATURE_READINESS_AUDIT/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Release
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="MisterYLabs/INSPIRATION_CARD_FEATURE_LINKS/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  MisterY Labs
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
         <a href="architecture/" class="md-tabs__link">
           
   
@@ -350,28 +460,6 @@
     
   
   Physics & Transport
-
-        </a>
-      </li>
-    
-  
-
-      
-        
-  
-  
-  
-  
-    
-    
-      <li class="md-tabs__item">
-        <a href="diagnostics/" class="md-tabs__link">
-          
-  
-  
-    
-  
-  Diagnostics
 
         </a>
       </li>
@@ -431,13 +519,13 @@
     
     
       <li class="md-tabs__item">
-        <a href="Research/DualRealityFramework/" class="md-tabs__link">
+        <a href="Research/cathedral_probe_architecture/" class="md-tabs__link">
           
   
   
     
   
-  Research
+  Cathedral Probe
 
         </a>
       </li>
@@ -614,8 +702,6 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
-        
-      
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
           
@@ -660,8 +746,6 @@
   
   
   
-    
-  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -670,13 +754,157 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#current-status" class="md-nav__link">
+  <a href="#what-xprimeray-is" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Current Status
+        What xPRIMEray Is
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-renderer-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current Renderer State
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#observatory-audit-navigator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Observatory &amp; Audit Navigator
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-is" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What This Is
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-milestone-curved-field-validation-ladder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current Milestone: Curved-Field Validation Ladder
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#core-capabilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Capabilities
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Core Capabilities">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#transport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transport
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#in-game-overlays-live-no-render-pass-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        In-Game Overlays (live, no render pass required)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#experimental-feature-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Experimental Feature Flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validation-and-diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation and Diagnostics
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-research-frontier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current Research Frontier
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Current Research Frontier">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cathedral-probe-scheduler-resonance-and-dual-layer-transport-failure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cathedral Probe — Scheduler Resonance and Dual-Layer Transport Failure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transport-island-microscopy-oracle-guided-precision-closure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transport Island Microscopy — Oracle-Guided Precision Closure
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -692,13 +920,52 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#research-notes" class="md-nav__link">
+  <a href="#read-next" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Research Notes
+        Read Next
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Read Next">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#research-papers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Research papers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#diagnostics-and-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagnostics and analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reference
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -716,6 +983,1904 @@
     </ul>
   
 </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Overview
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Overview/TRANSPORT_OBSERVATORY_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transport Observatory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="FEATURE_INDEX/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observatory
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Observatory
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Observatory/OVERLAY_MASTER_LIST/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overlay Master List
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/atomic_orbital_visual_observatory_fixture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Atomic Visual Observatory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/wormhole_dual_reality_transport_workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wormhole Structure Observatory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="diagnostics/domain_ownership/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain Audit Visuals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="diagnostics/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3_5" id="__nav_3_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Diagnostics
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="diagnostics/heatmaps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Curvature Heatmaps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="diagnostics/domain_ownership/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain Audit Visuals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="diagnostics/phase_coherence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase Coherence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="diagnostics/tile_coherence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tile Coherence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Research
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Research
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/OPTICAL_TRANSPORT_FEATURE_MAP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Optical Transport Map
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/cathedral_probe_architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cathedral Probe Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/DualRealityFramework/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dual Reality Framework
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/overspace_architecture_layer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overspace Architecture Layer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/wormhole_render_pipeline_validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wormhole Pipeline Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/wormhole_dual_reality_transport_workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wormhole Structure Observatory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/grin_fixture_auto_calibration_phase_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GRIN Fixture Auto-Calibration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_8" id="__nav_4_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Atomic Orbital Studies
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Atomic Orbital Studies
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/atomic_orbital_grin_room_fixture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GRIN Room Fixture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/atomic_orbital_visual_observatory_fixture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Atomic Visual Observatory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_9" id="__nav_4_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fixture Notes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Fixture Notes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/fixture_note_pattern/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Note Pattern & Template
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/fixture_001_radial_grin_baseline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fixture 001 — Radial GRIN Baseline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/fixture_002_linear_transport_baseline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fixture 002 — Linear Transport Baseline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/fixture_003_offset_field_baseline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fixture 003 — Offset Field Baseline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/fixture_004_dual_attractor_baseline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fixture 004 — Dual Attractor Baseline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_10" id="__nav_4_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced Studies
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Advanced Studies
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/wormhole_curvature_heatmap_literature_crosswalk/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wormhole Curvature Heatmap Literature
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/wormhole_throat_phased_architecture_note/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wormhole Throat Phased Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/triclock_doe_sandbox_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TriClock DoE Sandbox Plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/curved_minimal_subtile_granularity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Subtile Granularity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/experimental_subtile_scheduler_mode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Experimental Subtile Scheduler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_11" id="__nav_4_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain & Geometry Analysis
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Domain & Geometry Analysis
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/curvature_domain_ownership/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain Ownership Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/geometric_sampling_texture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Geometric Sampling Texture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/phase_coherence_field/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase Coherence Field
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/transport_island_microscopy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transport Island Microscopy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/scheduler_decorrelation_and_local_coherence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scheduler Decorrelation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/architecture_design_council_traversal_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Traversal Council Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/object_seeded_null_geodesic_tiling_scheduler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Object-Seeded Null Geodesic Scheduler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/reference_precision_null_geodesic_probe/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference Precision Null Geodesic Probe
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/xprimeray_visual_milestone_inventory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visual Milestone Inventory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/xprimeray_feature_maturity_matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Maturity Matrix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Research/curved_ray_transport_model_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Curved Ray Transport Model Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Release
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Release/FEATURE_READINESS_AUDIT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Readiness Audit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MisterY Labs
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    MisterY Labs
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="MisterYLabs/INSPIRATION_CARD_FEATURE_LINKS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inspiration Cards
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
       
     </li>
   
@@ -763,10 +2928,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
         
           
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
             
   
   
@@ -784,8 +2949,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1105,8 +3270,6 @@
       
         
       
-        
-      
     
     
     
@@ -1120,10 +3283,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
             
   
   
@@ -1141,8 +3304,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1348,228 +3511,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="Research/curved_ray_transport_model_review/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Curved Ray Transport Model Review
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-      
-        
-          
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
-        
-          
-          <div class="md-nav__link md-nav__container">
-            <a href="diagnostics/" class="md-nav__link ">
-              
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Diagnostics
-  
-
-    
-  </span>
-  
-  
-
-            </a>
-            
-              
-              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
-                <span class="md-nav__icon md-icon"></span>
-              </label>
-            
-          </div>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Diagnostics
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="diagnostics/heatmaps/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Curvature Heatmaps
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="diagnostics/domain_ownership/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Domain Ownership
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="diagnostics/phase_coherence/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Phase Coherence
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="diagnostics/tile_coherence/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Tile Coherence
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -1625,10 +3566,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
             
   
   
@@ -1646,8 +3587,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2064,10 +4005,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
             
   
   
@@ -2085,8 +4026,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2324,206 +4265,6 @@
       
         
       
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
-        
-          
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Research
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Research
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="Research/DualRealityFramework/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Dual Reality Framework
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="Research/overspace_architecture_layer/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Overspace Architecture Layer
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="Research/wormhole_render_pipeline_validation/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Wormhole Pipeline Validation
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="Research/wormhole_dual_reality_transport_workflow/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Wormhole Dual-Reality Workflow
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="Research/grin_fixture_auto_calibration_phase_plan/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    GRIN Fixture Auto-Calibration
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
         
       
         
@@ -2541,17 +4282,17 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
         
           
-          <label class="md-nav__link" for="__nav_7_6" id="__nav_7_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="0">
             
   
   
   <span class="md-ellipsis">
     
   
-    Fixture Notes
+    Cathedral Probe
   
 
     
@@ -2562,12 +4303,12 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_6">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Fixture Notes
+    Cathedral Probe
   
 
           </label>
@@ -2580,14 +4321,14 @@
   
   
     <li class="md-nav__item">
-      <a href="Research/fixture_note_pattern/" class="md-nav__link">
+      <a href="Research/cathedral_probe_architecture/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Note Pattern & Template
+    Cathedral Probe Architecture
   
 
     
@@ -2608,14 +4349,14 @@
   
   
     <li class="md-nav__item">
-      <a href="Research/fixture_001_radial_grin_baseline/" class="md-nav__link">
+      <a href="Research/transport_island_microscopy/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Fixture 001 — Radial GRIN Baseline
+    Transport Island Microscopy
   
 
     
@@ -2636,14 +4377,14 @@
   
   
     <li class="md-nav__item">
-      <a href="Research/fixture_002_linear_transport_baseline/" class="md-nav__link">
+      <a href="Research/xprimeray_visual_milestone_inventory/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Fixture 002 — Linear Transport Baseline
+    Visual Milestone Inventory
   
 
     
@@ -2664,14 +4405,14 @@
   
   
     <li class="md-nav__item">
-      <a href="Research/fixture_003_offset_field_baseline/" class="md-nav__link">
+      <a href="Research/xprimeray_feature_maturity_matrix/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Fixture 003 — Offset Field Baseline
+    Feature Maturity Matrix
   
 
     
@@ -2692,114 +4433,14 @@
   
   
     <li class="md-nav__item">
-      <a href="Research/fixture_004_dual_attractor_baseline/" class="md-nav__link">
+      <a href="Research/xprimeray_logo_usage_recommendation/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Fixture 004 — Dual Attractor Baseline
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
-        
-          
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Advanced Studies
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_7">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Advanced Studies
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="Research/wormhole_curvature_heatmap_literature_crosswalk/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Wormhole Curvature Heatmap Literature
+    Logo Usage Recommendations
   
 
     
@@ -2820,14 +4461,14 @@
   
   
     <li class="md-nav__item">
-      <a href="Research/wormhole_throat_phased_architecture_note/" class="md-nav__link">
+      <a href="Research/scheduler_decorrelation_and_local_coherence/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Wormhole Throat Phased Architecture
+    Scheduler Decorrelation
   
 
     
@@ -2848,14 +4489,14 @@
   
   
     <li class="md-nav__item">
-      <a href="Research/triclock_doe_sandbox_plan/" class="md-nav__link">
+      <a href="Research/architecture_design_council_traversal_review/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    TriClock DoE Sandbox Plan
+    Traversal Council Review
   
 
     
@@ -2876,14 +4517,14 @@
   
   
     <li class="md-nav__item">
-      <a href="Research/curved_minimal_subtile_granularity/" class="md-nav__link">
+      <a href="Research/object_seeded_null_geodesic_tiling_scheduler/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Subtile Granularity
+    Object-Seeded Null Geodesic Scheduler
   
 
     
@@ -2904,110 +4545,14 @@
   
   
     <li class="md-nav__item">
-      <a href="Research/experimental_subtile_scheduler_mode/" class="md-nav__link">
+      <a href="Research/reference_precision_null_geodesic_probe/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Experimental Subtile Scheduler
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_8" >
-        
-          
-          <label class="md-nav__link" for="__nav_7_8" id="__nav_7_8_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Domain & Geometry Analysis
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_8">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Domain & Geometry Analysis
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="Research/curvature_domain_ownership/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Domain Ownership Analysis
+    Reference Precision Null Geodesic Probe
   
 
     
@@ -3028,14 +4573,14 @@
   
   
     <li class="md-nav__item">
-      <a href="Research/geometric_sampling_texture/" class="md-nav__link">
+      <a href="Research/readme_and_navigation_proposal/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Geometric Sampling Texture
+    README & Navigation Proposal
   
 
     
@@ -3044,42 +4589,6 @@
   
 
       </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="Research/phase_coherence_field/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Phase Coherence Field
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
     </li>
   
 
@@ -3136,7 +4645,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -3158,14 +4667,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_12" id="__nav_12_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3490,7 +4999,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_13" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -3513,8 +5022,8 @@
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_9">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_13">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3559,10 +5068,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_14" >
         
           
-          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_14" id="__nav_14_label" tabindex="0">
             
   
   
@@ -3580,8 +5089,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_10">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_14">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3680,10 +5189,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_15" >
         
           
-          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_15" id="__nav_15_label" tabindex="0">
             
   
   
@@ -3701,8 +5210,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_11">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_15_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_15">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3813,10 +5322,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_16" >
         
           
-          <label class="md-nav__link" for="__nav_12" id="__nav_12_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_16" id="__nav_16_label" tabindex="0">
             
   
   
@@ -3834,8 +5343,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_12_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_12">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_16_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_16">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -4101,22 +5610,384 @@
   
 
 
-<h1 id="xprimeray">xPRIMEray<a class="headerlink" href="#xprimeray" title="Permanent link">&para;</a></h1>
-<p>xPRIMEray is a curved-ray geodesic rendering system built in Godot 4 C#, spanning interactive GRIN lensing through exotic wormhole metrics. It targets academically rigorous gravitational optics with a tiered architecture from Tier 0 GRIN through Tier 3 exotic metrics including Morris-Thorne wormholes. The transport integrator solves null-geodesic equations of the Gordon effective metric using RK4, and every render is hermetically validated — no unclassified pixels escape within the eikonal limit.</p>
-<h2 id="current-status">Current Status<a class="headerlink" href="#current-status" title="Permanent link">&para;</a></h2>
-<p>Active development. The full wormhole observer ladder (six checkpoints through a Morris-Thorne wormhole) is test-complete and hermetically validated. Three feature flags gate advanced diagnostic capabilities:</p>
+  <h1>Home</h1>
+
+<div align="center">
+  <img src="assets/xprimeray-logo-dark.png" alt="xPRIMEray" width="460">
+  <br>
+  <em>Where physics performs.</em>
+</div>
+
+<hr />
+<p>xPRIMEray is a curved-ray optical transport observatory built in Godot 4 C# for visualizing propagation, boundary behavior, curvature domains, GRIN fields, wormhole seams, and observer-relative diagnostics. It integrates null geodesics of the Gordon effective metric — <code>ẋ = p/n(x)</code>, <code>ṗ = ∇n(x)</code> — and validates every render against a hermetic fixture contract: 100% pixel classification, zero unresolved exits. The engine reveals transport structure. It does not assert physics.</p>
+<hr />
+<h2 id="what-xprimeray-is">What xPRIMEray Is<a class="headerlink" href="#what-xprimeray-is" title="Permanent link">&para;</a></h2>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Renderer</label><label for="__tabbed_1_2">Observatory</label><label for="__tabbed_1_3">Research Map</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p>A null-geodesic integrator where curved rays are first-class primitives. Transport is solved, not faked with lens shaders or post-process distortion. GRIN and Gordon-metric fields define an effective spacetime; the renderer solves the correct eikonal transport through it.</p>
+</div>
+<div class="tabbed-block">
+<p>A visual diagnostics platform. The engine finds hits, seams, high-curvature regions, unstable domains, and boundary-layer events from scene data — then reveals their structure through an expanding library of overlay modes: film overlays, heatmaps, contact sheets, domain maps, curvature contours, and transport ownership graphs.</p>
+</div>
+<div class="tabbed-block">
+<p>A structured diagnostic infrastructure connecting renderer behavior to theoretical frameworks. Six-layer Cathedral Probe overlays, scheduler resonance DOE, domain telemetry, oracle reference comparison, and transport island microscopy separate independent failure layers that naive per-pixel analysis conflates.</p>
+</div>
+</div>
+</div>
+<hr />
+<h2 id="current-renderer-state">Current Renderer State<a class="headerlink" href="#current-renderer-state" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Count</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ready to ship</td>
+<td>20+ systems</td>
+<td>GRIN fields, boundary layers, hit detection, overlays, 46 fixture scenes, observatory scripts</td>
+</tr>
+<tr>
+<td>In progress</td>
+<td>4 systems</td>
+<td>WormholePrototypeRig, TestBench recipes, atomic orbital observatory fixture</td>
+</tr>
+<tr>
+<td>Research / diagnostic only</td>
+<td>5 systems</td>
+<td>ReferenceTransportOracle, SceneTransportMemory, MetricHeuristicIntegrator (4 open TODOs)</td>
+</tr>
+<tr>
+<td>Active overlays</td>
+<td>21 modes</td>
+<td>FilmOverlay2D, step budget heatmap, domain ownership map, curvature contours, observatory contact sheets</td>
+</tr>
+<tr>
+<td>Proposed overlays</td>
+<td>13 modes</td>
+<td>Celestial Boundary Overlay, Bulk-to-Boundary Dual View, Curvature Domain Map, S-Matrix Event Ledger</td>
+</tr>
+</tbody>
+</table>
+<p>→ <a href="FEATURE_INDEX/">Full Feature Index</a> · <a href="Release/FEATURE_READINESS_AUDIT/">Release Readiness Audit</a> · <a href="Observatory/OVERLAY_MASTER_LIST/">Overlay Master List</a></p>
+<hr />
+<h2 id="observatory-audit-navigator">Observatory &amp; Audit Navigator<a class="headerlink" href="#observatory-audit-navigator" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Document</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="Overview/TRANSPORT_OBSERVATORY_OVERVIEW/">Overview / Transport Observatory</a></td>
+<td>How all systems fit together; gallery; recommended next actions</td>
+</tr>
+<tr>
+<td><a href="FEATURE_INDEX/">Feature Index</a></td>
+<td>Master feature map with quick-reference tables</td>
+</tr>
+<tr>
+<td><a href="Release/FEATURE_READINESS_AUDIT/">Release Readiness Audit</a></td>
+<td>Ship-readiness classification; cleanup list; packaging exclusions</td>
+</tr>
+<tr>
+<td><a href="Research/OPTICAL_TRANSPORT_FEATURE_MAP/">Optical Transport Feature Map</a></td>
+<td>Transport system completeness; engine feature candidates; gap analysis</td>
+</tr>
+<tr>
+<td><a href="Observatory/OVERLAY_MASTER_LIST/">Overlay Master List</a></td>
+<td>All 34 overlay modes — existing, partial, and proposed</td>
+</tr>
+<tr>
+<td><a href="MisterYLabs/INSPIRATION_CARD_FEATURE_LINKS/">Inspiration Cards</a></td>
+<td>Thinkers and concepts linked to engine features (Pasterski, Noether, MTW, Maxwell, Feynman)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="what-this-is">What This Is<a class="headerlink" href="#what-this-is" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong><code>EnableDomainTelemetry</code></strong> — exports per-pixel domain classification maps: <code>domain_id</code>, <code>domain_confidence</code>, <code>boundary_confidence</code>, and <code>selection_flip</code>.</li>
-<li><strong><code>EnableDomainAwareFirstHitResolver</code></strong> — enables domain-coherent first-hit resolution (requires <code>EnableDomainTelemetry</code>).</li>
-<li><strong><code>EnableTileMetricsScaffold</code></strong> — gates the tile-metrics subsystem including reorder simulation, execution, and persistent-priors scheduling.</li>
+<li><strong>A null-geodesic integrator</strong> — curved rays are first-class primitives. Transport is solved, not faked with lens shaders or post-process distortion.</li>
+<li><strong>A GRIN and Gordon-metric renderer</strong> — refractive-index fields define an effective spacetime; the renderer solves the correct eikonal transport through it.</li>
+<li><strong>A hermetic validation harness</strong> — every render run is classified: source hit, background hit, portal, absorbed, escaped. <code>escaped_no_hit = 0</code> is the contract.</li>
+<li><strong>A multi-scene wormhole system</strong> — two causally isolated overspaces joined at a topological throat, each rendered with full curved-ray physics.</li>
+<li><strong>A transport diagnostics platform</strong> — six-layer Cathedral Probe overlays, scheduler resonance DOE, domain telemetry, oracle reference comparison, and transport island microscopy.</li>
 </ul>
-<p>The bridge (post-throat backstep) is confirmed as the transport anomaly: 366 segments/crossing vs. 50–153 at all other checkpoints (z-score 4.40). Three independent anomaly detectors agree.</p>
+<hr />
+<h2 id="current-milestone-curved-field-validation-ladder">Current Milestone: Curved-Field Validation Ladder<a class="headerlink" href="#current-milestone-curved-field-validation-ladder" title="Permanent link">&para;</a></h2>
+<p><img alt="Curved-field diagnostic quad panel" src="assets/curved_field_validation_ladder/curved_field_validation_quad_panel.png" /></p>
+<p><em>Four-panel diagnostic layout: rendered frame with curved transport active · hit-normal vector overlay · camera cross-section minimap showing field geometry in the vertical camera plane · transport/field overlay with ownership seams and oracle comparison context. Oracle replay failures: 0. All 64 sampled pixels sealed at step 0.02.</em></p>
+<p>The curved-field validation ladder is the first end-to-end validation packet for curved ray transport in xPRIMEray. It runs the complete diagnostic stack — ReferenceTransportOracle step-size convergence, six-layer Cathedral Probe overlay, camera cross-section minimap, and curved-vs-control storyboard — against a GRIN field scene with curved transport active. The result confirms that the oracle, diagnostic infrastructure, and transport ownership machinery operate correctly under non-trivial geodesic curvature.</p>
+<table>
+<thead>
+<tr>
+<th>Measurement</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Oracle step</td>
+<td>0.0015625 (8× finer than production floor)</td>
+</tr>
+<tr>
+<td>Sampled pixels</td>
+<td>64</td>
+</tr>
+<tr>
+<td>Oracle replay failures</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Sealed at step 0.02</td>
+<td>64 / 64</td>
+</tr>
+<tr>
+<td>Mean decision-risk delta (0.00625 vs 0.003125)</td>
+<td>0.000090</td>
+</tr>
+<tr>
+<td>Comparability status</td>
+<td><code>warning</code> — control scene differs by camera pose key</td>
+</tr>
+</tbody>
+</table>
+<p>All 64 sampled pixels achieve <code>Stable</code> classification at the coarsest tested step, with near-zero risk delta between the two finest steps. No transport topology anomalies were identified in this scene. The comparability warning records that the baseline used the <code>domain_resolver_stress</code> scene while the curved run used <code>curved_minimal_backdrop</code>; a matched-pose control was not available at run time — the storyboard is evidence that the ladder infrastructure wires correctly under this constraint, not a head-to-head geometry comparison.</p>
+<hr />
+<h2 id="core-capabilities">Core Capabilities<a class="headerlink" href="#core-capabilities" title="Permanent link">&para;</a></h2>
+<h3 id="transport">Transport<a class="headerlink" href="#transport" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RK4 null-geodesic integration (eikonal ODE)</td>
+<td>✅ Production</td>
+</tr>
+<tr>
+<td>GRIN field sources (<code>FieldSource3D</code>, spatially varying n(x))</td>
+<td>✅ Production</td>
+</tr>
+<tr>
+<td>Gordon effective metric framing</td>
+<td>✅ Production</td>
+</tr>
+<tr>
+<td>Tiered metric hierarchy (Tier 0 GRIN → Tier 3 exotic)</td>
+<td>✅ Production</td>
+</tr>
+<tr>
+<td>Morris-Thorne wormhole topology (causal observer ladder)</td>
+<td>✅ Production</td>
+</tr>
+<tr>
+<td>Dual-scene overspace composition</td>
+<td>✅ Production</td>
+</tr>
+<tr>
+<td>Derivative-aware adaptive step control</td>
+<td>✅ Production</td>
+</tr>
+</tbody>
+</table>
+<h3 id="in-game-overlays-live-no-render-pass-required">In-Game Overlays (live, no render pass required)<a class="headerlink" href="#in-game-overlays-live-no-render-pass-required" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Overlay</th>
+<th>Toggle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dual-reality straight-reference inset</td>
+<td><code>EnableDualRealityResearchMode</code></td>
+</tr>
+<tr>
+<td>Curvature heatmap (5 metric modes)</td>
+<td><code>DualRealityOverlayMode</code></td>
+</tr>
+<tr>
+<td>Semantic wireframe glyphs (portals, fields, BLVs)</td>
+<td><code>WireframeReferenceOverlay</code></td>
+</tr>
+<tr>
+<td>Collision radar (projected AABB/sphere bounds)</td>
+<td><code>DualRealityCollisionRadarOverlayEnabled</code></td>
+</tr>
+<tr>
+<td>Hit normal vectors + film gradient normals</td>
+<td><code>FilmOverlay2D</code></td>
+</tr>
+<tr>
+<td>Debug ray polylines</td>
+<td><code>DebugOverlayOwnedByFilm</code></td>
+</tr>
+<tr>
+<td>Top-down / oblique research overlay</td>
+<td><code>WormholeResearchOverlay</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="experimental-feature-flags">Experimental Feature Flags<a class="headerlink" href="#experimental-feature-flags" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>EnableDomainTelemetry</code></strong> — exports per-pixel renderer diagnostics: <code>domain_id</code>, <code>domain_confidence</code>, <code>boundary_confidence</code>, <code>selection_flip</code>, <code>normal_discontinuity</code>.</li>
+<li><strong><code>EnableDomainAwareFirstHitResolver</code></strong> — experimental domain-aware first-hit heuristic. Off by default. Requires <code>EnableDomainTelemetry</code>.</li>
+<li><strong><code>EnableTileMetricsScaffold</code></strong> — tile-metrics subsystem: reorder simulation, execution, and persistent-priors scheduling.</li>
+<li><strong><code>EnableObjectSeededTileScheduler</code></strong> — tile ordering seeded from projected scene object centroids.</li>
+</ul>
+<hr />
+<h2 id="validation-and-diagnostics">Validation and Diagnostics<a class="headerlink" href="#validation-and-diagnostics" title="Permanent link">&para;</a></h2>
+<p>The hermetic fixture rule enforces complete pixel classification on every run. Fixture 011 (six-checkpoint wormhole observer ladder) is the canonical validation sequence.</p>
+<p>The bridge (post-throat backstep) is the confirmed transport anomaly: 366 segments/crossing vs. 50–153 at all other checkpoints (z-score 4.40). Three independent anomaly detectors agree. Domain-aware analysis separates three transport regimes (near-side, bridge anomaly, far-side) via PCA and k-means clustering (k=3, ARI=0.595).</p>
+<p>The Cathedral Probe framework — six passive diagnostic layers composited over a single render — separates scheduler-induced global banding from localized topology failure. The key finding: transport instability is topological and localized, not globally smoothable. Scheduler decorrelation (tile traversal) eliminates horizontal banding; it does not eliminate local geometry seam instability. Those are two independent failure layers.</p>
+<p>The ReferenceTransportOracle measures transport stability against a fine-step reference (0.0015625) without feeding results back into the renderer — a guardrail enforced in code, not by convention. Oracle microscopy surfaces transport topology that phase-space diagnostics miss.</p>
+<hr />
+<h2 id="current-research-frontier">Current Research Frontier<a class="headerlink" href="#current-research-frontier" title="Permanent link">&para;</a></h2>
+<h3 id="cathedral-probe-scheduler-resonance-and-dual-layer-transport-failure">Cathedral Probe — Scheduler Resonance and Dual-Layer Transport Failure<a class="headerlink" href="#cathedral-probe-scheduler-resonance-and-dual-layer-transport-failure" title="Permanent link">&para;</a></h3>
+<p><img alt="Cathedral Probe contact sheet" src="assets/cathedral_probe/cathedral_probe_contact_sheet_row_0015.png" /></p>
+<p><em>Six-layer Cathedral Probe diagnostic contact sheet — domain resolver stress scene, step_length=0.015, row traversal. From left: beauty render, geometric wireframe, transport ownership map, risk probe markers, spacetime transport diagram, transport continuity vectors.</em></p>
+<p><img alt="Scheduler resonance stride plot" src="assets/cathedral_probe/scheduler_resonance_stride_plot.png" /></p>
+<p><em>Scheduler stride sweep (56-cell DOE). Stride 1: ~31% band coverage across all step lengths. Stride 4: &lt; 0.7%. Traversal cadence — not physics precision — is the primary amplifier of row-global banding.</em></p>
+<p><img alt="Four-mode traversal comparison" src="assets/cathedral_probe/traversal_contact_sheet_4mode_0015.png" /></p>
+<p><em>Traversal mode comparison at step_length=0.015. Scheduler decorrelation reduces banding across modes. Local corner instability persists unchanged — two independent failure layers confirmed.</em></p>
+<p>→ <a href="Research/cathedral_probe_architecture/">Cathedral Probe architecture paper</a></p>
+<h3 id="transport-island-microscopy-oracle-guided-precision-closure">Transport Island Microscopy — Oracle-Guided Precision Closure<a class="headerlink" href="#transport-island-microscopy-oracle-guided-precision-closure" title="Permanent link">&para;</a></h3>
+<p>Following scheduler decorrelation, a ReferenceTransportOracle ROI sweep identified a compact unresolved transport island (x=36..44, y=31..37). Dense island microscopy (289 samples) confirmed precision closure: all pixels seal at step 0.00625, with zero oracle replay failures. The island was not independently flagged by the Cathedral Probe continuity vectors — demonstrating that oracle microscopy surfaces transport topology that phase-space diagnostics miss.</p>
+<table>
+<thead>
+<tr>
+<th>Island measurement</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ROI sweep unresolved pixels</td>
+<td>54 / 320 comparisons (16.9%)</td>
+</tr>
+<tr>
+<td>Island bbox</td>
+<td>x=36..44, y=31..37</td>
+</tr>
+<tr>
+<td>Dense pass samples</td>
+<td>289</td>
+</tr>
+<tr>
+<td>Sealed at step 0.00625</td>
+<td>true (289/289)</td>
+</tr>
+<tr>
+<td>Mean decision-risk delta (0.00625 vs 0.003125)</td>
+<td>0.000189</td>
+</tr>
+<tr>
+<td>Oracle replay failures</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p>→ <a href="Research/transport_island_microscopy/">Transport Island Microscopy paper</a></p>
+<hr />
 <h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
-<p>xPRIMEray uses a tiered transport hierarchy: Tier 0 GRIN ray integration → Tier 1 metric parameter extraction → Tier 2 Gordon Metric bridge → Tier 3 exotic metrics. The multi-scene wormhole system joins two causally isolated overspaces at the wormhole throat. The hermetic fixture rule (<code>escaped_no_hit = 0</code>) enforces complete pixel classification. See <a href="architecture/overview/">architecture/overview.md</a> for the pipeline, stored-hit system, and domain emergence, and <a href="architecture_overview/">architecture_overview.md</a> for subsystem contracts and data-flow diagrams.</p>
-<h2 id="research-notes">Research Notes<a class="headerlink" href="#research-notes" title="Permanent link">&para;</a></h2>
-<p>Domain-aware rendering characterizes three transport regimes (near-side, bridge anomaly, far-side) using PCA and k-means clustering (k=3, ARI=0.595). Band detection in the bridge regime reveals anomalous transport geometry. The domain telemetry exports (<code>domain_id</code>, <code>domain_confidence</code>, <code>boundary_confidence</code>, <code>selection_flip</code> maps) are live and archive-ready. See <a href="Research/curvature_domain_ownership/">Research/curvature_domain_ownership.md</a>, <a href="Research/phase_coherence_field/">Research/phase_coherence_field.md</a>, and <a href="papers/paper_001_causal_observer_ladders/paper/">papers/paper_001_causal_observer_ladders/paper.md</a>.</p>
+<p>xPRIMEray uses a tiered transport hierarchy: Tier 0 GRIN ray integration → Tier 1 metric parameter extraction → Tier 2 Gordon Metric bridge → Tier 3 exotic metrics. The multi-scene wormhole system joins two causally isolated overspaces at the wormhole throat. The hermetic fixture rule (<code>escaped_no_hit = 0</code>) enforces complete pixel classification.</p>
+<p>→ <a href="architecture/overview/">Architecture overview</a> — pipeline, stored-hit system, domain emergence, Gordon metric math<br />
+→ <a href="architecture_overview/">Architecture subsystems</a> — subsystem contracts and data-flow diagrams</p>
+<hr />
+<h2 id="read-next">Read Next<a class="headerlink" href="#read-next" title="Permanent link">&para;</a></h2>
+<h3 id="research-papers">Research papers<a class="headerlink" href="#research-papers" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Paper</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="Research/cathedral_probe_architecture/">Cathedral Probe architecture</a></td>
+<td>Scheduler resonance DOE, dual-layer failure model, six-layer overlay methodology</td>
+</tr>
+<tr>
+<td><a href="Research/transport_island_microscopy/">Transport Island Microscopy</a></td>
+<td>Oracle-guided precision closure, island identification, convergence ladders</td>
+</tr>
+<tr>
+<td><a href="papers/paper_001_causal_observer_ladders/paper/">Paper 001 — Causal Observer Ladders</a></td>
+<td>Six-checkpoint wormhole fixture, transport anomaly z-scores, regime clustering</td>
+</tr>
+<tr>
+<td><a href="papers/paper_004_hermetic_throat_validation/paper/">Paper 004 — Hermetic Throat Validation</a></td>
+<td>Coverage contract, bridge anomaly evidence, throat-depth maps</td>
+</tr>
+</tbody>
+</table>
+<h3 id="diagnostics-and-analysis">Diagnostics and analysis<a class="headerlink" href="#diagnostics-and-analysis" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Document</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="Research/phase_coherence_field/">Phase coherence field</a></td>
+<td>Per-pixel coherence scores correlating banding with domain-boundary transitions</td>
+</tr>
+<tr>
+<td><a href="Research/curvature_domain_ownership/">Domain ownership analysis</a></td>
+<td>Transport regime decomposition, spectral ruling-out of oscillatory model</td>
+</tr>
+<tr>
+<td><a href="Research/xprimeray_feature_maturity_matrix/">Feature maturity matrix</a></td>
+<td>What is live in-game vs. harness-only vs. post-process only</td>
+</tr>
+<tr>
+<td><a href="Research/xprimeray_visual_milestone_inventory/">Visual milestone inventory</a></td>
+<td>Chronological archaeology of all rendered output artifacts</td>
+</tr>
+</tbody>
+</table>
+<h3 id="reference">Reference<a class="headerlink" href="#reference" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Document</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="glossary/">Glossary</a></td>
+<td>Null geodesic · GRIN · Gordon metric · domain boundary · phase coherence</td>
+</tr>
+<tr>
+<td><a href="validation/hermetic_fixture_rule/">Hermetic fixture rule</a></td>
+<td>What 100% pixel classification means and why it matters</td>
+</tr>
+<tr>
+<td><a href="SPEC_INDEX/">Spec index</a></td>
+<td>All active specifications</td>
+</tr>
+</tbody>
+</table>
+<hr />
 <h2 id="repository">Repository<a class="headerlink" href="#repository" title="Permanent link">&para;</a></h2>
-<p><a href="https://github.com/AetherTopologist/GD_xPRIMEray">https://github.com/AetherTopologist/GD_xPRIMEray</a></p>
+<p><a href="https://github.com/AetherTopologist/GD_xPRIMEray">github.com/AetherTopologist/GD_xPRIMEray</a></p>
+<p><strong>License:</strong> MIT — academic, commercial, and creative use welcome.<br />
+<strong>Citation templates:</strong> <a href="papers/shared_bibliography.bib">papers/shared_bibliography.bib</a></p>
 
 
 
@@ -4139,7 +6010,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 27, 2026 23:45:28 UTC">April 27, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="May 9, 2026 17:37:11 UTC">May 9, 2026</span>
   </span>
 
     
@@ -4237,13 +6108,13 @@
         
         
           
-          <a href="architecture/" class="md-footer__link md-footer__link--next" aria-label="Next: System Architecture">
+          <a href="Overview/TRANSPORT_OBSERVATORY_OVERVIEW/" class="md-footer__link md-footer__link--next" aria-label="Next: Transport Observatory">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                System Architecture
+                Transport Observatory
               </div>
             </div>
             <div class="md-footer__button md-icon">

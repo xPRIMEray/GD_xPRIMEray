@@ -82,5 +82,5 @@ No single tile geometry is appropriate for all diagnostic goals. The recommended
 
 - Full analysis note: [papers/paper_001_causal_observer_ladders/analysis/geometric_sampling_texture.md](../papers/paper_001_causal_observer_ladders/analysis/geometric_sampling_texture.md)
 - Phase sampling domain update: [papers/paper_001_causal_observer_ladders/analysis/phase_sampling_domain_update.md](../papers/paper_001_causal_observer_ladders/analysis/phase_sampling_domain_update.md)
-- Research synthesis: [research/geometric_sampling_texture.md](../research/geometric_sampling_texture.md)
+- Research synthesis: [Research/geometric_sampling_texture.md](../Research/geometric_sampling_texture.md)
 - Paper 001 §5.5: [papers/paper_001_causal_observer_ladders/paper.md](../papers/paper_001_causal_observer_ladders/paper.md)

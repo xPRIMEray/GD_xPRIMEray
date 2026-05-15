@@ -1,6 +1,6 @@
 ---
 title: xPRIMEray
-description: Experimental curved-ray transport engine — GRIN field integration, wormhole metric rendering, and topology-aware transport diagnostics in Godot 4 C#
+description: Curved-ray optical transport observatory — GRIN field integration, wormhole rendering, curvature domain diagnostics, and observer-relative overlays in Godot 4 C#
 ---
 
 <div align="center">
@@ -11,7 +11,47 @@ description: Experimental curved-ray transport engine — GRIN field integration
 
 ---
 
-xPRIMEray is an experimental curved-ray transport engine built in Godot 4 C#. It integrates null geodesics of the Gordon effective metric — `ẋ = p/n(x)`, `ṗ = ∇n(x)` — using RK4 with derivative-aware adaptive step control, and validates every render against a hermetic fixture contract: 100% pixel classification, zero unresolved exits. It is a benchmarkable visual physics platform, not a game renderer.
+xPRIMEray is a curved-ray optical transport observatory built in Godot 4 C# for visualizing propagation, boundary behavior, curvature domains, GRIN fields, wormhole seams, and observer-relative diagnostics. It integrates null geodesics of the Gordon effective metric — `ẋ = p/n(x)`, `ṗ = ∇n(x)` — and validates every render against a hermetic fixture contract: 100% pixel classification, zero unresolved exits. The engine reveals transport structure. It does not assert physics.
+
+---
+
+## What xPRIMEray Is
+
+=== "Renderer"
+    A null-geodesic integrator where curved rays are first-class primitives. Transport is solved, not faked with lens shaders or post-process distortion. GRIN and Gordon-metric fields define an effective spacetime; the renderer solves the correct eikonal transport through it.
+
+=== "Observatory"
+    A visual diagnostics platform. The engine finds hits, seams, high-curvature regions, unstable domains, and boundary-layer events from scene data — then reveals their structure through an expanding library of overlay modes: film overlays, heatmaps, contact sheets, domain maps, curvature contours, and transport ownership graphs.
+
+=== "Research Map"
+    A structured diagnostic infrastructure connecting renderer behavior to theoretical frameworks. Six-layer Cathedral Probe overlays, scheduler resonance DOE, domain telemetry, oracle reference comparison, and transport island microscopy separate independent failure layers that naive per-pixel analysis conflates.
+
+---
+
+## Current Renderer State
+
+| Category | Count | Examples |
+|----------|-------|---------|
+| Ready to ship | 20+ systems | GRIN fields, boundary layers, hit detection, overlays, 46 fixture scenes, observatory scripts |
+| In progress | 4 systems | WormholePrototypeRig, TestBench recipes, atomic orbital observatory fixture |
+| Research / diagnostic only | 5 systems | ReferenceTransportOracle, SceneTransportMemory, MetricHeuristicIntegrator (4 open TODOs) |
+| Active overlays | 21 modes | FilmOverlay2D, step budget heatmap, domain ownership map, curvature contours, observatory contact sheets |
+| Proposed overlays | 13 modes | Celestial Boundary Overlay, Bulk-to-Boundary Dual View, Curvature Domain Map, S-Matrix Event Ledger |
+
+→ [Full Feature Index](FEATURE_INDEX.md) · [Release Readiness Audit](Release/FEATURE_READINESS_AUDIT.md) · [Overlay Master List](Observatory/OVERLAY_MASTER_LIST.md)
+
+---
+
+## Observatory & Audit Navigator
+
+| Document | Purpose |
+|----------|---------|
+| [Overview / Transport Observatory](Overview/TRANSPORT_OBSERVATORY_OVERVIEW.md) | How all systems fit together; gallery; recommended next actions |
+| [Feature Index](FEATURE_INDEX.md) | Master feature map with quick-reference tables |
+| [Release Readiness Audit](Release/FEATURE_READINESS_AUDIT.md) | Ship-readiness classification; cleanup list; packaging exclusions |
+| [Optical Transport Feature Map](Research/OPTICAL_TRANSPORT_FEATURE_MAP.md) | Transport system completeness; engine feature candidates; gap analysis |
+| [Overlay Master List](Observatory/OVERLAY_MASTER_LIST.md) | All 34 overlay modes — existing, partial, and proposed |
+| [Inspiration Cards](MisterYLabs/INSPIRATION_CARD_FEATURE_LINKS.md) | Thinkers and concepts linked to engine features (Pasterski, Noether, MTW, Maxwell, Feynman) |
 
 ---
 

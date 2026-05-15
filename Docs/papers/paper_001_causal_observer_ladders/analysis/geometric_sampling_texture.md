@@ -58,13 +58,15 @@ Proposed architecture:
 
 ## Figure References
 
-- Adaptive tile overlay: [00_mouth_adaptive_tile_overlay.png](../../../../output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/00_mouth_adaptive_tile_overlay.png), [01_post_throat_backstep_01_adaptive_tile_overlay.png](../../../../output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/01_post_throat_backstep_01_adaptive_tile_overlay.png)
-- Adaptive tile heatmap: [00_mouth_adaptive_tile_heatmap.png](../../../../output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/00_mouth_adaptive_tile_heatmap.png), [01_post_throat_backstep_01_adaptive_tile_heatmap.png](../../../../output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/01_post_throat_backstep_01_adaptive_tile_heatmap.png)
-- Edge alignment contact sheet: [edge_alignment_contact_sheet.png](../../../../output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/edge_alignment_contact_sheet.png)
-- Polar edge comparison overlays: [00_mouth_polar_boundary_overlay.png](../../../../output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/00_mouth_polar_boundary_overlay.png), [01_post_throat_backstep_01_polar_boundary_overlay.png](../../../../output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/01_post_throat_backstep_01_polar_boundary_overlay.png)
-- Log-polar orientation histogram: [orientation_histograms.png](../../../../output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/log_polar_orientation_2026-04-25/orientation_histograms.png)
-- Log-polar edge contact sheet: [log_polar_edge_contact_sheet.png](../../../../output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/log_polar_orientation_2026-04-25/log_polar_edge_contact_sheet.png)
-- Geometry structure contact sheet: [annotated_shape_search_contact_sheet.png](../../../../output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-21T20-24-39/geometry_structure_search_2026-04-25/annotated_shape_search_contact_sheet.png)
+All figures below are in `output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/` (not versioned in the docs site).
+
+- `00_mouth_adaptive_tile_overlay.png`, `01_post_throat_backstep_01_adaptive_tile_overlay.png` — adaptive tile overlay per checkpoint
+- `00_mouth_adaptive_tile_heatmap.png`, `01_post_throat_backstep_01_adaptive_tile_heatmap.png` — adaptive tile heatmap per checkpoint
+- `edge_alignment_contact_sheet.png` — edge alignment contact sheet
+- `00_mouth_polar_boundary_overlay.png`, `01_post_throat_backstep_01_polar_boundary_overlay.png` — polar edge comparison overlays
+- `orientation_histograms.png` — log-polar orientation histogram
+- `log_polar_edge_contact_sheet.png` — log-polar edge contact sheet
+- `annotated_shape_search_contact_sheet.png` — geometry structure contact sheet
 
 ## Short Verdict
 
