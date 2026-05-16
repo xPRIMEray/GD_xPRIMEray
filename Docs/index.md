@@ -4,7 +4,7 @@ description: Curved-ray optical transport observatory — GRIN field integration
 ---
 
 <div align="center">
-  <img src="assets/xPRIMEray_Logo_Hero_960.png" alt="xPRIMEray" width="460">
+  <img src="/GD_xPRIMEray/assets/xPRIMEray_Logo_Hero_960.png" alt="xPRIMEray" width="460">
   <br>
   <em>Where physics performs.</em>
 </div>

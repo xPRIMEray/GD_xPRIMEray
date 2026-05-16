@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="Docs/assets/xPRIMEray_Logo_Official_256.png" alt="xPRIMEray" width="400">
+  <img src="/GD_xPRIMEray/assets/xPRIMEray_Logo_Official_256.png" alt="xPRIMEray" width="400">
 </p>
 
 # xPRIMEray
@@ -25,7 +25,7 @@ The engine is a curvature-inspired rendering platform and visual research tool. 
 ## Phase 0 Visual Identity
 
 <p align="center">
-  <img src="Docs/assets/xPRIMEray_Logo_Hero_960.png" alt="xPRIMEray — Optical Transport Observatory" width="520">
+  <img src="/GD_xPRIMEray/assets/xPRIMEray_Logo_Hero_960.png" alt="xPRIMEray — Optical Transport Observatory" width="520">
 </p>
 
 ---
