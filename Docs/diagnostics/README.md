@@ -1,6 +1,6 @@
 # Diagnostics — Overview
 
-<img src="/GD_xPRIMEray/assets/xPRIMEray_Logo_Research_256.png" alt="xPRIMEray Research" width="120" align="right" style="margin-left:1.5em; margin-bottom:0.5em;">
+<img src="/GD_xPRIMEray/assets/xPRIMEray_Logo_Research_256_light.png?v=phase0-2" alt="xPRIMEray Research" width="120" align="right" style="margin-left:1.5em; margin-bottom:0.5em;">
 
 xPRIMEray produces several categories of diagnostic output from each fixture run. This page describes what each diagnostic measures, what it is useful for, and what it is not.
 
