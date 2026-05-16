@@ -9,7 +9,7 @@ description: What xPRIMEray is, how its systems fit together, and what the curre
 
 > xPRIMEray is a curved-ray optical transport observatory built in Godot for visualizing propagation, boundary behavior, curvature domains, GRIN fields, wormhole seams, and observer-relative diagnostics.
 
-<p align="center">
+<p align="center" style="clear:both;">
   <img src="/GD_xPRIMEray/assets/xPRIMEray_Banner_Overview_Wormhole_1200x320.png?v=phase0-2" alt="Wormhole transport structure diagnostic banner" style="width:100%; max-width:1200px; border-radius:6px;">
 </p>
 

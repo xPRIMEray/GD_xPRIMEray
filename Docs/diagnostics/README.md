@@ -6,7 +6,7 @@ xPRIMEray produces several categories of diagnostic output from each fixture run
 
 All diagnostics are derived from Pass 1 stored-hit data or from approved debug captures. No diagnostic modifies or overrides the Pass 1 transport classification.
 
-<p align="center">
+<p align="center" style="clear:both;">
   <img src="/GD_xPRIMEray/assets/xPRIMEray_Banner_Diagnostics_Islands_1200x260.png?v=phase0-2" alt="Transport diagnostics contact sheet showing classification overlays" style="width:100%; max-width:1200px; border-radius:6px;">
 </p>
 
