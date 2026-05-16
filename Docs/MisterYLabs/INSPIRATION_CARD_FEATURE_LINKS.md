@@ -1,4 +1,4 @@
-# MisterY Labs Observatory Lineage Cards
+# MisterY Labs Inspiration Card Feature Links
 
 > **Lens: XenoCitations / Observatory Lineage**
 > Audit date: 2026-05-16
@@ -11,6 +11,8 @@
 These cards describe ideas xPRIMEray is **inspired by** and **resonates with**. They do not claim that xPRIMEray proves, derives from, validates, or is endorsed by any person named here.
 
 XenoCitations map known academic structures, unknown frontier metaphors, and mythic-symbolic visual language onto xPRIMEray's observatory vocabulary. Each card is a lens, not a claim.
+
+This order begins with the most established optical-transport and geometric foundations, then moves outward toward instrumentation, correspondence frameworks, and frontier interpretation.
 
 The engine reveals transport structure. It does not assert physics beyond its implemented renderer, diagnostics, and visual models. The observatory treats **known knowns**, **known unknowns**, **unknown knowns**, and **unknown unknowns** as epistemic zones for careful navigation, not mystical proof categories.
 
@@ -36,114 +38,9 @@ Each card includes editorial calibration values. These numbers are not objective
 
 ---
 
-## Inner Core — Foundational Geometry
+## Foundational Optical-Transport Lineage
 
-### CARD 001 — Roger Penrose / Optical Geometry and Causal Structure
-
-**Ring / Tier:** Inner Core — Foundational Geometry  
-**Symbol:** ⟐ Geometry  
-**Field / Contribution:** Mathematical physics, conformal geometry, causal diagrams, twistors, null structure, visual reasoning in relativity.
-
-**Signal Calibration:**
-- Academic Signal: 98
-- Instrumentation Signal: 75
-- Mythic / Visual Signal: 55
-- Ontological Frontier: 80
-
-**Why this matters to xPRIMEray:**
-
-Penrose is a master counsel anchor for mathematical seriousness. His relevance is not that xPRIMEray implements twistor theory or proves a relativistic claim. The resonance is methodological: use geometry, light cones, null directions, and causal structure as disciplined visual language.
-
-xPRIMEray's curved rays, wormhole throats, boundary events, and transport domains all ask the same careful question: what can an observer infer from the paths light-like probes take through a structured field?
-
-**Related Engine Concepts:**
-- Null-geodesic-inspired ray transport
-- Wormhole mouth, throat, and exit event classification
-- Causal observer ladders and checkpoint sequences
-- Curvature domain telemetry
-
-**Related Features / Proposed Features:**
-- Celestial Boundary Overlay
-- Bulk-to-Boundary Dual View
-- Causal Observer Ladder diagnostics
-- Curvature Domain Map
-
-**Visual Motif:**
-Fine white causal lines bending across a dark sphere; a disciplined diagram that still feels like an observatory window.
-
----
-
-### CARD 002 — Gauss & Riemann / Intrinsic Curvature
-
-**Ring / Tier:** Inner Core — Foundational Geometry  
-**Symbol:** ⟐ Geometry  
-**Field / Contribution:** Differential geometry, Gaussian curvature, intrinsic curvature, manifold language.
-
-**Signal Calibration:**
-- Academic Signal: 100
-- Instrumentation Signal: 85
-- Mythic / Visual Signal: 35
-- Ontological Frontier: 70
-
-**Why this matters to xPRIMEray:**
-
-Gauss and Riemann give the formal ground for treating curvature as something measurable from within a space, not merely as a shape seen from outside. xPRIMEray borrows that posture carefully: curvature appears as field behavior, turn budgets, domain changes, and diagnostic overlays.
-
-This is a known-formal lineage. The renderer's discrete curvature tools are not differential geometry itself, but they are instruments for watching curvature-like behavior emerge in transport.
-
-**Related Engine Concepts:**
-- `CurvatureBoundGrid`
-- `MetricHeuristicIntegrator.MaxTurnRadiansPerStep`
-- `DomainTelemetry.CurvatureDomainKind`
-- Curvature and transport ownership seams
-
-**Related Features / Proposed Features:**
-- Curvature Contour Overlay
-- High-Curvature Oracle Overlay
-- Curvature Domain Map
-- Domain Ownership diagnostics
-
-**Visual Motif:**
-A mesh-like field with local curvature bands, where the grid itself tells the viewer what bends.
-
----
-
-### CARD 003 — William Rowan Hamilton / Variational Transport
-
-**Ring / Tier:** Inner Core — Foundational Geometry  
-**Symbol:** ⊗ Transport  
-**Field / Contribution:** Hamiltonian mechanics, optics-mechanics analogy, action principles, phase-space reasoning.
-
-**Signal Calibration:**
-- Academic Signal: 95
-- Instrumentation Signal: 90
-- Mythic / Visual Signal: 50
-- Ontological Frontier: 75
-
-**Why this matters to xPRIMEray:**
-
-Hamilton is the transport anchor. xPRIMEray's rays are not decorative lines; they are solved paths through a field. The engine's practical ODE language echoes the optics-mechanics bridge Hamilton helped formalize: rays, paths, gradients, and conserved structure.
-
-The resonance is instrumental: Hamiltonian thinking helps frame renderer behavior as transport through a state space, where stability, path length, and domain transitions can be measured.
-
-**Related Engine Concepts:**
-- Eikonal-style transport equations
-- Optical path length
-- Ray state integration
-- Transport memory and coherence basins
-
-**Related Features / Proposed Features:**
-- Transport Memory Overlay
-- Path Length Delta Map
-- ReferenceTransportOracle
-- S-Matrix Event Ledger
-
-**Visual Motif:**
-One bright trajectory threaded through a phase-space grid, with nearby ghost paths showing stable and unstable basins.
-
----
-
-### CARD 004 — James Clerk Maxwell / Field and Wave Instrumentation
+### CARD 001 — James Clerk Maxwell / GRIN Optics Tradition
 
 **Ring / Tier:** Inner Core — Foundational Geometry  
 **Symbol:** ∿ Wave  
@@ -179,7 +76,77 @@ Concentric wavefronts and refractive bands bending a ray without claiming the ra
 
 ---
 
-### CARD 005 — Misner / Thorne / Wheeler / Metric Language
+### CARD 002 — Gauss & Riemann / Differential Geometry
+
+**Ring / Tier:** Inner Core — Foundational Geometry  
+**Symbol:** ⟐ Geometry  
+**Field / Contribution:** Differential geometry, Gaussian curvature, intrinsic curvature, manifold language.
+
+**Signal Calibration:**
+- Academic Signal: 100
+- Instrumentation Signal: 85
+- Mythic / Visual Signal: 35
+- Ontological Frontier: 70
+
+**Why this matters to xPRIMEray:**
+
+Gauss and Riemann give the formal ground for treating curvature as something measurable from within a space, not merely as a shape seen from outside. xPRIMEray borrows that posture carefully: curvature appears as field behavior, turn budgets, domain changes, and diagnostic overlays.
+
+This is a known-formal lineage. The renderer's discrete curvature tools are not differential geometry itself, but they are instruments for watching curvature-like behavior emerge in transport.
+
+**Related Engine Concepts:**
+- `CurvatureBoundGrid`
+- `MetricHeuristicIntegrator.MaxTurnRadiansPerStep`
+- `DomainTelemetry.CurvatureDomainKind`
+- Curvature and transport ownership seams
+
+**Related Features / Proposed Features:**
+- Curvature Contour Overlay
+- High-Curvature Oracle Overlay
+- Curvature Domain Map
+- Domain Ownership diagnostics
+
+**Visual Motif:**
+A mesh-like field with local curvature bands, where the grid itself tells the viewer what bends.
+
+---
+
+### CARD 003 — William Rowan Hamilton / Hamiltonian Optics and Quaternions
+
+**Ring / Tier:** Inner Core — Foundational Geometry  
+**Symbol:** ⊗ Transport  
+**Field / Contribution:** Hamiltonian mechanics, Hamiltonian optics, quaternions, optics-mechanics analogy, action principles, phase-space reasoning.
+
+**Signal Calibration:**
+- Academic Signal: 95
+- Instrumentation Signal: 90
+- Mythic / Visual Signal: 50
+- Ontological Frontier: 75
+
+**Why this matters to xPRIMEray:**
+
+Hamilton is the transport anchor, with Hamiltonian optics and quaternions forming part of the deeper mathematical lineage behind rotations, phase, and path structure. xPRIMEray's rays are not decorative lines; they are solved paths through a field. The engine's practical ODE language echoes the optics-mechanics bridge Hamilton helped formalize: rays, paths, gradients, and conserved structure.
+
+The resonance is instrumental: Hamiltonian thinking helps frame renderer behavior as transport through a state space, where stability, path length, and domain transitions can be measured.
+
+**Related Engine Concepts:**
+- Eikonal-style transport equations
+- Optical path length
+- Ray state integration
+- Transport memory and coherence basins
+
+**Related Features / Proposed Features:**
+- Transport Memory Overlay
+- Path Length Delta Map
+- ReferenceTransportOracle
+- S-Matrix Event Ledger
+
+**Visual Motif:**
+One bright trajectory threaded through a phase-space grid, with nearby ghost paths showing stable and unstable basins.
+
+---
+
+### CARD 004 — Misner, Thorne & Wheeler / Metric Tensor Language
 
 **Ring / Tier:** Inner Core — Foundational Geometry  
 **Symbol:** ◌ Boundary  
@@ -215,9 +182,112 @@ A sparse metric grid folding near a throat, annotated like a blackboard rather t
 
 ---
 
-## Instrumentation Ring
+### CARD 005 — Roger Penrose / Null Geodesics and Observer Geometry
 
-### CARD 006 — Anirban Bandyopadhyay / Temporal Instrumentation and Observer Frames
+**Ring / Tier:** Inner Core — Foundational Geometry  
+**Symbol:** ⟐ Geometry  
+**Field / Contribution:** Mathematical physics, conformal geometry, causal diagrams, twistors, null geodesics, observer geometry, visual reasoning in relativity.
+
+**Signal Calibration:**
+- Academic Signal: 98
+- Instrumentation Signal: 75
+- Mythic / Visual Signal: 55
+- Ontological Frontier: 80
+
+**Why this matters to xPRIMEray:**
+
+Penrose is a master counsel anchor for mathematical seriousness. His relevance is not that xPRIMEray implements twistor theory or proves a relativistic claim. The resonance is methodological: use geometry, light cones, null directions, and causal structure as disciplined visual language.
+
+xPRIMEray's curved rays, wormhole throats, boundary events, and transport domains all ask the same careful question: what can an observer infer from the paths light-like probes take through a structured field?
+
+**Related Engine Concepts:**
+- Null-geodesic-inspired ray transport
+- Wormhole mouth, throat, and exit event classification
+- Causal observer ladders and checkpoint sequences
+- Curvature domain telemetry
+
+**Related Features / Proposed Features:**
+- Celestial Boundary Overlay
+- Bulk-to-Boundary Dual View
+- Causal Observer Ladder diagnostics
+- Curvature Domain Map
+
+**Visual Motif:**
+Fine white causal lines bending across a dark sphere; a disciplined diagram that still feels like an observatory window.
+
+---
+
+### CARD 006 — Emmy Noether / Symmetry and Conserved Currents
+
+**Ring / Tier:** Instrumentation Ring  
+**Symbol:** ⟐ Geometry  
+**Field / Contribution:** Symmetry, conservation laws, invariant structure, formal physics.
+
+**Signal Calibration:**
+- Academic Signal: 100
+- Instrumentation Signal: 85
+- Mythic / Visual Signal: 35
+- Ontological Frontier: 65
+
+**Why this matters to xPRIMEray:**
+
+Noether gives the observatory a disciplined way to ask what remains stable as transport changes. In xPRIMEray, invariants are practical diagnostics: path length behavior, constraint drift, domain coherence, and places where symmetry appears to break.
+
+The useful question is not "what grand law has been proven?" It is: what measured quantity stays coherent, and where does that coherence fail?
+
+**Related Engine Concepts:**
+- Constraint drift in metric ray states
+- Transport coherence basins
+- Epsilon stability classes
+- Domain resolver seams
+
+**Related Features / Proposed Features:**
+- Transport Memory Overlay
+- S-Matrix Event Ledger
+- Epsilon Stability Map
+- Coherence Basin diagnostics
+
+**Visual Motif:**
+Symmetry lines over a transport field, with one seam showing the exact location where invariance becomes a question.
+
+---
+
+### CARD 007 — Richard Feynman / Path Integral / All Paths Contribute
+
+**Ring / Tier:** Instrumentation Ring  
+**Symbol:** ⊗ Transport  
+**Field / Contribution:** Quantum electrodynamics, path integrals, diagrammatic reasoning, physical intuition as calculation aid.
+
+**Signal Calibration:**
+- Academic Signal: 100
+- Instrumentation Signal: 80
+- Mythic / Visual Signal: 65
+- Ontological Frontier: 80
+
+**Why this matters to xPRIMEray:**
+
+Feynman resonates with xPRIMEray's transport memory: nearby paths matter because stability is local, comparative, and diagnostic. This is not a claim that the renderer computes quantum amplitudes. It is an inspiration signal for treating path families as meaningful.
+
+Unresolved islands and multi-solution zones become places where the observatory asks whether coherent transport has failed, split, or become under-sampled.
+
+**Related Engine Concepts:**
+- `SceneTransportMemory`
+- Reference oracle replay
+- Multi-solution stability classes
+- Transport island diagnostics
+
+**Related Features / Proposed Features:**
+- Transport Memory Overlay
+- Transport Island Microscopy
+- Parent Trajectory Contact Sheet
+- Correspondence Failure Heatmap
+
+**Visual Motif:**
+Multiple ghost rays surrounding a bright reference path, fading where coherence collapses.
+
+---
+
+### CARD 008 — Anirban Bandyopadhyay / Nanobrain, Time Crystal Instrumentation, GML
 
 **Ring / Tier:** Instrumentation Ring  
 **Symbol:** ◇ Instrument  
@@ -253,7 +323,7 @@ A layered instrument panel with time-indexed traces, crystalline recurrence band
 
 ---
 
-### CARD 007 — Sabrina Pasterski / Celestial Holography
+### CARD 009 — Sabrina Pasterski / Celestial Holography
 
 **Ring / Tier:** Instrumentation Ring  
 **Symbol:** ◌ Boundary  
@@ -287,76 +357,6 @@ Ray terminal angles, boundary crossings, correspondence failures, and celestial 
 
 **Visual Motif:**
 A dark celestial sphere with terminal-angle dots forming constellations of transport structure.
-
----
-
-### CARD 008 — Emmy Noether / Symmetry and Conserved Structure
-
-**Ring / Tier:** Instrumentation Ring  
-**Symbol:** ⟐ Geometry  
-**Field / Contribution:** Symmetry, conservation laws, invariant structure, formal physics.
-
-**Signal Calibration:**
-- Academic Signal: 100
-- Instrumentation Signal: 85
-- Mythic / Visual Signal: 35
-- Ontological Frontier: 65
-
-**Why this matters to xPRIMEray:**
-
-Noether gives the observatory a disciplined way to ask what remains stable as transport changes. In xPRIMEray, invariants are practical diagnostics: path length behavior, constraint drift, domain coherence, and places where symmetry appears to break.
-
-The useful question is not "what grand law has been proven?" It is: what measured quantity stays coherent, and where does that coherence fail?
-
-**Related Engine Concepts:**
-- Constraint drift in metric ray states
-- Transport coherence basins
-- Epsilon stability classes
-- Domain resolver seams
-
-**Related Features / Proposed Features:**
-- Transport Memory Overlay
-- S-Matrix Event Ledger
-- Epsilon Stability Map
-- Coherence Basin diagnostics
-
-**Visual Motif:**
-Symmetry lines over a transport field, with one seam showing the exact location where invariance becomes a question.
-
----
-
-### CARD 009 — Richard Feynman / Many Paths and Practical Intuition
-
-**Ring / Tier:** Instrumentation Ring  
-**Symbol:** ⊗ Transport  
-**Field / Contribution:** Quantum electrodynamics, path integrals, diagrammatic reasoning, physical intuition as calculation aid.
-
-**Signal Calibration:**
-- Academic Signal: 100
-- Instrumentation Signal: 80
-- Mythic / Visual Signal: 65
-- Ontological Frontier: 80
-
-**Why this matters to xPRIMEray:**
-
-Feynman resonates with xPRIMEray's transport memory: nearby paths matter because stability is local, comparative, and diagnostic. This is not a claim that the renderer computes quantum amplitudes. It is an inspiration signal for treating path families as meaningful.
-
-Unresolved islands and multi-solution zones become places where the observatory asks whether coherent transport has failed, split, or become under-sampled.
-
-**Related Engine Concepts:**
-- `SceneTransportMemory`
-- Reference oracle replay
-- Multi-solution stability classes
-- Transport island diagnostics
-
-**Related Features / Proposed Features:**
-- Transport Memory Overlay
-- Transport Island Microscopy
-- Parent Trajectory Contact Sheet
-- Correspondence Failure Heatmap
-
-**Visual Motif:**
-Multiple ghost rays surrounding a bright reference path, fading where coherence collapses.
 
 ---
 
