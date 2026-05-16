@@ -1,5 +1,7 @@
 # Diagnostics — Overview
 
+<img src="../assets/xPRIMEray_Logo_Research.png" alt="xPRIMEray Research" width="120" align="right" style="margin-left:1.5em; margin-bottom:0.5em;">
+
 xPRIMEray produces several categories of diagnostic output from each fixture run. This page describes what each diagnostic measures, what it is useful for, and what it is not.
 
 All diagnostics are derived from Pass 1 stored-hit data or from approved debug captures. No diagnostic modifies or overrides the Pass 1 transport classification.
