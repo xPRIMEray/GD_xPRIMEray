@@ -76,6 +76,18 @@ public static class LauncherAudit
 		{
 			return "grin_basic_visual";
 		}
+		if (normalized.Contains("test-straight-hermetic-observatory", StringComparison.OrdinalIgnoreCase))
+		{
+			return normalized.Contains("-quick", StringComparison.OrdinalIgnoreCase)
+				? "hermetic_observatory_straight_quick"
+				: "hermetic_observatory_straight";
+		}
+		if (normalized.Contains("test-grin-hermetic-observatory", StringComparison.OrdinalIgnoreCase))
+		{
+			return normalized.Contains("-quick", StringComparison.OrdinalIgnoreCase)
+				? "hermetic_observatory_grin_quick"
+				: "hermetic_observatory_grin";
+		}
 		if (normalized.Contains("test-straight", StringComparison.OrdinalIgnoreCase) ||
 			normalized.Contains("test_straight", StringComparison.OrdinalIgnoreCase))
 		{
@@ -203,6 +215,10 @@ public static class LauncherAudit
 			"overspace_wormhole_witness_exit" => "res://test-overspace-wormhole-witness-exit-fixture.tscn",
 			"overspace_hermetic_fixture_topology" => "res://test-overspace-hermetic-fixture-topology.tscn",
 			"overspace_hermetic_fixture_field" => "res://test-overspace-hermetic-fixture-field.tscn",
+			"hermetic_observatory_straight" => "res://test-straight-hermetic-observatory-v0-pre.tscn",
+			"hermetic_observatory_grin" => "res://test-grin-hermetic-observatory-v0-pre.tscn",
+			"hermetic_observatory_straight_quick" => "res://test-straight-hermetic-observatory-quick.tscn",
+			"hermetic_observatory_grin_quick" => "res://test-grin-hermetic-observatory-quick.tscn",
 			"default" => "res://test.tscn",
 			_ => string.Empty
 		};

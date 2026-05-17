@@ -788,6 +788,7 @@ public partial class GrinBasicVisualController : Node3D
 			$"filmWidth={(hasFilmDiagnostics ? filmDiagnostics.FilmWidth.ToString(CultureInfo.InvariantCulture) : "na")} " +
 			$"filmHeight={(hasFilmDiagnostics ? filmDiagnostics.FilmHeight.ToString(CultureInfo.InvariantCulture) : "na")} " +
 			$"filmRowsRendered={(hasFilmDiagnostics ? filmDiagnostics.RowCursor.ToString(CultureInfo.InvariantCulture) : "na")} " +
+			$"traversalRowsCompleted={(hasWriteDiagnostics ? writeDiagnostics.RowsCompleted.ToString(CultureInfo.InvariantCulture) : "na")} " +
 			$"filmViewRect={FormatRectToken(filmViewRect)} captureCrop=full_image " +
 			$"captureCropBounds={FormatBoundsToken(0, 0, analysisImage.GetWidth(), analysisImage.GetHeight())} " +
 			$"renderedImageBounds={FormatBoundsToken(0, 0, analysisImage.GetWidth(), analysisRenderedRows)} " +

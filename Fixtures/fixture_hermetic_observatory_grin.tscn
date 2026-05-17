@@ -1,0 +1,136 @@
+[gd_scene load_steps=12 format=3]
+
+; Fixture: hermetic observatory GRIN
+; Purpose: sealed calibration chamber for full-pixel validation with GRIN field enabled.
+; Contract: missHits == 0; curved transport rays must still terminate on a receiver wall.
+
+[ext_resource type="Script" path="res://RayBeamRenderer.cs" id="1_rbr"]
+[ext_resource type="Script" path="res://FieldSource3D.cs" id="2_field"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_wall"]
+size = Vector3(1, 1, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape_wall"]
+size = Vector3(1, 1, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_front"]
+albedo_color = Color(0.12, 0.22, 0.52, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_back"]
+albedo_color = Color(0.52, 0.16, 0.12, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_left"]
+albedo_color = Color(0.10, 0.40, 0.24, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_right"]
+albedo_color = Color(0.58, 0.45, 0.10, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_floor"]
+albedo_color = Color(0.28, 0.18, 0.44, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_ceiling"]
+albedo_color = Color(0.16, 0.42, 0.48, 1)
+
+[node name="FixtureHermeticObservatoryGrin" type="Node3D"]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+current = true
+fov = 75.0
+near = 0.01
+far = 40.0
+
+[node name="receiver_front" type="StaticBody3D" parent="." groups=["fixture_background", "fixture_geometry", "hermetic_receiver", "raytrace_geometry"]]
+transform = Transform3D(12, 0, 0, 0, 12, 0, 0, 0, 0.2, 0, 0, -6.0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="receiver_front"]
+material_override = SubResource("Mat_front")
+mesh = SubResource("BoxMesh_wall")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="receiver_front"]
+shape = SubResource("BoxShape_wall")
+
+[node name="receiver_back" type="StaticBody3D" parent="." groups=["fixture_background", "fixture_geometry", "hermetic_receiver", "raytrace_geometry"]]
+transform = Transform3D(12, 0, 0, 0, 12, 0, 0, 0, 0.2, 0, 0, 6.0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="receiver_back"]
+material_override = SubResource("Mat_back")
+mesh = SubResource("BoxMesh_wall")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="receiver_back"]
+shape = SubResource("BoxShape_wall")
+
+[node name="receiver_left" type="StaticBody3D" parent="." groups=["fixture_background", "fixture_geometry", "hermetic_receiver", "raytrace_geometry"]]
+transform = Transform3D(0.2, 0, 0, 0, 12, 0, 0, 0, 12, -6.0, 0, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="receiver_left"]
+material_override = SubResource("Mat_left")
+mesh = SubResource("BoxMesh_wall")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="receiver_left"]
+shape = SubResource("BoxShape_wall")
+
+[node name="receiver_right" type="StaticBody3D" parent="." groups=["fixture_background", "fixture_geometry", "hermetic_receiver", "raytrace_geometry"]]
+transform = Transform3D(0.2, 0, 0, 0, 12, 0, 0, 0, 12, 6.0, 0, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="receiver_right"]
+material_override = SubResource("Mat_right")
+mesh = SubResource("BoxMesh_wall")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="receiver_right"]
+shape = SubResource("BoxShape_wall")
+
+[node name="receiver_floor" type="StaticBody3D" parent="." groups=["fixture_background", "fixture_geometry", "hermetic_receiver", "raytrace_geometry"]]
+transform = Transform3D(12, 0, 0, 0, 0.2, 0, 0, 0, 12, 0, -6.0, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="receiver_floor"]
+material_override = SubResource("Mat_floor")
+mesh = SubResource("BoxMesh_wall")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="receiver_floor"]
+shape = SubResource("BoxShape_wall")
+
+[node name="receiver_ceiling" type="StaticBody3D" parent="." groups=["fixture_background", "fixture_geometry", "hermetic_receiver", "raytrace_geometry"]]
+transform = Transform3D(12, 0, 0, 0, 0.2, 0, 0, 0, 12, 0, 6.0, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="receiver_ceiling"]
+material_override = SubResource("Mat_ceiling")
+mesh = SubResource("BoxMesh_wall")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="receiver_ceiling"]
+shape = SubResource("BoxShape_wall")
+
+[node name="FieldSource3D" type="Node3D" parent="."]
+script = ExtResource("2_field")
+Enabled = true
+ROuter = 3.0
+CanonicalGamma = 1.5
+Amp = 0.6
+CanonicalOverrideBetaScale = true
+CanonicalBetaScale = 1.0
+DebugVizEnabled = false
+DebugVizInGame = false
+Attract = true
+Strength = 0.0
+
+[node name="RayBeamRenderer" type="Node3D" parent="."]
+visible = false
+script = ExtResource("1_rbr")
+CameraPath = NodePath("../Camera3D")
+StepsPerRay = 900
+StepLength = 0.015
+MinStepLength = 0.001
+MaxStepLength = 0.03
+CollisionRaySubdivideThreshold = 0.015
+MaxCollisionSubsteps = 4
+CollisionRadius = 0.004
+UseIntegratedField = true
+BendScale = 1.0
+FieldStrength = 0.0
+FieldCenterIsCamera = false
+StopOnHit = true
+TerminateTrailOnHit = true
+RequireHitToRender = false
+DebugMode = 0
+DebugNormalLen = 0.295
+Alpha = 1.0
+UpdateEveryFrame = false
