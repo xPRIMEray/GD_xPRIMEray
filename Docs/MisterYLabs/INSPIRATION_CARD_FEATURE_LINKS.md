@@ -182,7 +182,46 @@ A sparse metric grid folding near a throat, annotated like a blackboard rather t
 
 ---
 
-### CARD 005 — Roger Penrose / Null Geodesics and Observer Geometry
+### CARD 005 — Gordon / Optical Metric
+
+**Ring / Tier:** Inner Core — Foundational Geometry  
+**Symbol / Category:** ⊗ Optical Metric / Effective Geometry  
+**Field / Contribution:** Optical metric theory, effective spacetime geometry, light propagation in dielectric media.
+
+**Signal Calibration:**
+- Academic Signal: 95
+- Instrumentation Signal: 95
+- Mythic / Visual Signal: 35
+- Ontological Frontier: 80
+
+**Why this matters to xPRIMEray:**
+
+Gordon's optical metric reframes light propagation in a moving dielectric medium as motion through an effective spacetime geometry. For xPRIMEray, this is one of the cleanest bridges between optical transport, refractive media, and metric-style ray traversal.
+
+This card anchors the project's careful use of effective-metric language. It does not claim that every GRIN scene is physical spacetime; it marks the formal resonance between optical media and null-geodesic-inspired traversal.
+
+**Related Engine Concepts:**
+- Gordon effective metric
+- GRIN transport
+- Null-geodesic-inspired traversal
+- Optical medium as geometry
+- Curved ray diagnostics
+- `MetricTransportTypes`
+- `MetricHeuristicIntegrator`
+- `IMetricField`
+
+**Related Features / Proposed Features:**
+- Metric Grid / Stress-Tensor Style Overlay
+- GRIN field validation ladder
+- Curvature Domain Map
+- ReferenceTransportOracle
+
+**Visual Motif:**
+A refractive medium drawn as a metric surface, where the optical field itself becomes the geometry the ray must traverse.
+
+---
+
+### CARD 006 — Roger Penrose / Null Geodesics and Observer Geometry
 
 **Ring / Tier:** Inner Core — Foundational Geometry  
 **Symbol:** ⟐ Geometry  
@@ -217,7 +256,7 @@ Fine white causal lines bending across a dark sphere; a disciplined diagram that
 
 ---
 
-### CARD 006 — Emmy Noether / Symmetry and Conserved Currents
+### CARD 007 — Emmy Noether / Symmetry and Conserved Currents
 
 **Ring / Tier:** Instrumentation Ring  
 **Symbol:** ⟐ Geometry  
@@ -252,7 +291,7 @@ Symmetry lines over a transport field, with one seam showing the exact location 
 
 ---
 
-### CARD 007 — Richard Feynman / Path Integral / All Paths Contribute
+### CARD 008 — Richard Feynman / Path Integral / All Paths Contribute
 
 **Ring / Tier:** Instrumentation Ring  
 **Symbol:** ⊗ Transport  
@@ -287,7 +326,7 @@ Multiple ghost rays surrounding a bright reference path, fading where coherence 
 
 ---
 
-### CARD 008 — Anirban Bandyopadhyay / Nanobrain, Time Crystal Instrumentation, GML
+### CARD 009 — Anirban Bandyopadhyay / Nanobrain, Time Crystal Instrumentation, GML
 
 **Ring / Tier:** Instrumentation Ring  
 **Symbol:** ◇ Instrument  
@@ -323,7 +362,7 @@ A layered instrument panel with time-indexed traces, crystalline recurrence band
 
 ---
 
-### CARD 009 — Sabrina Pasterski / Celestial Holography
+### CARD 010 — Sabrina Pasterski / Celestial Holography
 
 **Ring / Tier:** Instrumentation Ring  
 **Symbol:** ◌ Boundary  
