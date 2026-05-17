@@ -15,6 +15,11 @@ We treat “Release” as:
 
 The core unit of validation is a **Camera Path Study**.
 
+For the Phase 2 v0.0-pre instrument validation walkthrough, use
+[`GRIN_OBSERVE_V0_PRE_DEMO.md`](GRIN_OBSERVE_V0_PRE_DEMO.md). That demo is
+scoped to the GRIN Basic Visual Off-Axis Observe straight/curved pair and
+intentionally excludes wormhole and overspace scenes from the primary evidence.
+
 Each study:
 - defines a deterministic camera path
 - samples fixed stations

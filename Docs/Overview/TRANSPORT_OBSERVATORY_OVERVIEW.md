@@ -194,17 +194,28 @@ From [Release/FEATURE_READINESS_AUDIT.md](../Release/FEATURE_READINESS_AUDIT.md)
 
 ---
 
-## Inspiration Cards
+> ## Inspiration Cards
 
-The [MisterY Labs Inspiration Cards](../MisterYLabs/INSPIRATION_CARD_FEATURE_LINKS.md) connect thinkers to xPRIMEray features:
+The [MisterY Labs Inspiration Cards](../MisterYLabs/INSPIRATION_CARD_FEATURE_LINKS.md) connect calibrated XenoCitation lineages to xPRIMEray observatory features:
 
-| Thinker | Connection | Relevant Overlays |
-|---------|-----------|-------------------|
-| Sabrina Pasterski | Celestial holography; bulk-to-boundary translation; "gravity is hard — find an equivalent description" | Celestial Boundary Overlay (proposed), Bulk-to-Boundary Dual View (proposed), Boundary Confidence Map |
-| Emmy Noether | Symmetry → conserved currents → transport invariants and their breaking | Transport Memory Overlay, S-Matrix Event Ledger |
-| MTW (Misner/Thorne/Wheeler) | Metric tensor language; transport frame as partial tetrad | Metric Grid / Stress-Tensor Style Overlay |
-| Maxwell / GRIN optics | Gradient-index optics tradition; curved rays through varying n | Density Contour Overlay, Curvature Contour Overlay |
-| Feynman | Path integral; all paths contribute; coherence basins as interference | Transport Memory Overlay, Correspondence Failure Heatmap |
+| Thinker / Signal | Connection | Relevant Overlays / Systems |
+|------------------|------------|-----------------------------|
+| James Clerk Maxwell / GRIN Optics | Gradient-index optics, refractive field transport, curved ray propagation through varying n-fields | Density Contour Overlay, Curvature Contour Overlay, GRIN Validation Ladder, FieldProbe3D |
+| Gauss & Riemann | Intrinsic curvature, manifold reasoning, measurable geometric transport structure | Curvature Domain Map, High-Curvature Oracle Overlay, Domain Ownership Diagnostics |
+| William Rowan Hamilton | Hamiltonian optics, path-state transport, quaternionic rotational structure | Transport Memory Overlay, Path Length Delta Map, ReferenceTransportOracle |
+| MTW (Misner / Thorne / Wheeler) | Metric tensor vocabulary, causal transport framing, disciplined geometry language | Metric Grid Overlay, Wormhole Structure Observatory, Boundary Confidence Map |
+| Gordon Optical Metric | Effective geometry through refractive media; optical metric bridge between GRIN and null-geodesic-inspired traversal | Metric Grid Overlay, GRIN Validation Ladder, Curvature Domain Map |
+| Roger Penrose | Null geodesics, observer geometry, causal structure visualization | Celestial Boundary Overlay, Causal Observer Ladder, Bulk-to-Boundary Dual View |
+| Emmy Noether | Symmetry, conserved transport structure, coherence/invariant diagnostics | S-Matrix Event Ledger, Epsilon Stability Map, Coherence Basin Diagnostics |
+| Richard Feynman | Path families, interference intuition, neighboring transport trajectories | Transport Island Microscopy, Correspondence Failure Heatmap, Parent Trajectory Sheets |
+| Anirban Bandyopadhyay | Temporal instrumentation, time-crystal-inspired observatory framing, GML resonance | Cathedral Probe Overlay, Scheduler Resonance Heatmap, Temporal Observer Ladder |
+| Sabrina Pasterski | Celestial holography, asymptotic boundary encoding, bulk-to-boundary translation | Celestial Boundary Overlay, Boundary Confidence Map, S-Matrix Event Ledger |
+| Alan Turing / Gödel / Shannon | Computability, undecidable regions, signal-vs-noise observatory language | Unresolved Domain Audit, Signal Confidence Overlay, Diagnostic Entropy Maps |
+| Mandelbrot / Klein | Scale recursion, transformational geometry, observer-relative mappings | Scale Ladder View, Domain Equivalence Map, Transport Island Diagnostics |
+| Einstein | Observer dependence and metric-inspired transport interpretation | Observer Ladder Views, Reference Frame Comparison, Causal Checkpoint Sequences |
+| Salvatore Pais | Frontier aerospace field-language and engineered transport speculation interfaces | Frontier Language Annotations, Claim-Boundary Badges |
+| Ashton Forbes | Public anomaly-analysis culture, layered observer interpretation workflows | Evidence Layer Comparison, Anomaly Review Ledger |
+| Arthur C. Clarke / Asimov / Lem / Sagan | Instrumented wonder, systems ethics, epistemic humility, public cosmological imagination | Observatory Gallery Mode, Public Explainer Panels, Epistemic-Zone Overlays |
 
 ---
 

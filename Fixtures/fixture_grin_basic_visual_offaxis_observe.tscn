@@ -274,6 +274,7 @@ LowCurvaturePerpAccel = 0.3
 BendScale = 1.0
 FieldCenterIsCamera = false
 DebugMode = 0
+DebugHotkeysEnabled = false
 DebugNormalLen = 0.295
 Alpha = 1.0
 UpdateEveryFrame = false

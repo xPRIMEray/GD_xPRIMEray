@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# GPU runtime default: D3D12 Gallium backend for WSL hardware acceleration.
+# Override by setting GALLIUM_DRIVER in the calling environment before running this script.
+export GALLIUM_DRIVER="${GALLIUM_DRIVER:-d3d12}"
+
 resolve_project_path() {
   local base_dir project_arg resolved
   base_dir="$(pwd -P)"

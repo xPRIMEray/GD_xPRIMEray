@@ -1,40 +1,63 @@
 /* ============================================================
    xPRIMEray Documentation Stylesheet
    GitHub Pages · MkDocs Material
+   Density-aligned with MisterY Labs
    ============================================================ */
 
-/* ── Typography (arXiv-calibrated) ─────────────────────────── */
+/* ── Global layout density ─────────────────────────────────── */
+.md-grid {
+  max-width: 96rem;
+}
+
+.md-content__inner {
+  max-width: 88rem;
+}
+
+/* ── Typography (compact observatory mode) ─────────────────── */
 .md-typeset {
-  font-size: 0.95rem;
-  line-height: 1.60;
+  font-size: 0.82rem;
+  line-height: 1.48;
 }
 
 .md-typeset h1 {
+  font-size: 1.85rem;
   font-weight: 300;
   letter-spacing: 0.02em;
+  margin-bottom: 0.8rem;
 }
 
 .md-typeset h2 {
+  font-size: 1.35rem;
   font-weight: 400;
   border-bottom: 1px solid rgba(128,128,128,0.2);
-  padding-bottom: 0.3em;
-  margin-top: 2em;
+  padding-bottom: 0.25em;
+  margin-top: 1.45em;
+  margin-bottom: 0.55em;
 }
 
 .md-typeset h3 {
+  font-size: 1.02rem;
   font-weight: 500;
-  margin-top: 1.6em;
+  margin-top: 1.05em;
+  margin-bottom: 0.35em;
 }
 
-/* ── Hero / Logo block ──────────────────────────────────────── */
+.md-typeset p,
+.md-typeset ul,
+.md-typeset ol {
+  margin-top: 0.45em;
+  margin-bottom: 0.45em;
+}
+
+/* ── Hero / Logo block ─────────────────────────────────────── */
 .xp-hero {
   text-align: center;
-  padding: 2.5rem 1rem 1.5rem;
-  margin-bottom: 1rem;
+  padding: 1.6rem 1rem 1rem;
+  margin-bottom: 0.6rem;
 }
 
 .xp-hero img {
-  max-width: 280px;
+  max-width: 220px;
   border: none !important;
   background: transparent !important;
   padding: 0 !important;
@@ -42,57 +65,57 @@
 }
 
 .xp-tagline {
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 300;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.10em;
   opacity: 0.75;
-  margin-top: 0.6rem;
+  margin-top: 0.45rem;
   font-style: italic;
 }
 
 .xp-equation {
   font-family: 'Georgia', 'Times New Roman', serif;
   font-style: italic;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   color: #cc8844;
   opacity: 0.8;
-  margin-top: 0.4rem;
+  margin-top: 0.25rem;
 }
 
-/* ── Paper/figure images ────────────────────────────────────── */
+/* ── Paper/figure images ───────────────────────────────────── */
 .md-typeset img {
   border: 1px solid rgba(100,100,100,0.3);
-  padding: 6px;
+  padding: 4px;
   background: #0a0a12;
   border-radius: 3px;
   max-width: 100%;
 }
 
 .md-typeset figcaption {
-  font-size: 0.83rem;
+  font-size: 0.72rem;
   opacity: 0.75;
   text-align: center;
-  margin-top: 0.4em;
+  margin-top: 0.3em;
   font-style: italic;
 }
 
 /* Figure quartet grid */
 .figure-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.2rem;
-  margin: 1.5rem 0;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0.8rem;
+  margin: 1rem 0;
 }
 
 .figure-grid figure {
   margin: 0;
 }
 
-/* ── Paper abstract block ───────────────────────────────────── */
+/* ── Paper abstract block ──────────────────────────────────── */
 .paper-abstract {
   border-left: 3px solid #6644aa;
-  padding: 1rem 1.2rem;
-  margin: 1.5rem 0;
+  padding: 0.75rem 0.95rem;
+  margin: 1rem 0;
   background: rgba(102,68,170,0.06);
   border-radius: 0 4px 4px 0;
 }
@@ -101,30 +124,31 @@
   margin-bottom: 0;
 }
 
-/* ── Metadata header (papers) ──────────────────────────────── */
+/* ── Metadata header (papers) ─────────────────────────────── */
 .paper-meta {
-  font-size: 0.82rem;
+  font-size: 0.74rem;
   opacity: 0.65;
-  margin-bottom: 1.8rem;
+  margin-bottom: 1.1rem;
   border-bottom: 1px solid rgba(128,128,128,0.15);
-  padding-bottom: 0.8rem;
+  padding-bottom: 0.55rem;
 }
 
 .paper-meta strong {
   opacity: 0.9;
 }
 
-/* ── Citation / bibtex block ────────────────────────────────── */
+/* ── Citation / bibtex block ───────────────────────────────── */
 .md-typeset blockquote {
   border-left: 3px solid #5566cc;
   background: rgba(85,102,204,0.05);
-  padding: 0.8rem 1rem;
+  padding: 0.65rem 0.85rem;
   border-radius: 0 4px 4px 0;
+  margin: 0.85rem 0;
 }
 
-/* ── Tables (spec / invariant tables) ──────────────────────── */
+/* ── Tables ────────────────────────────────────────────────── */
 .md-typeset table {
-  font-size: 0.88rem;
+  font-size: 0.78rem;
   border-collapse: collapse;
   width: 100%;
 }
@@ -139,12 +163,42 @@
   background: rgba(102,68,170,0.05);
 }
 
-/* ── Invariant badge ─────────────────────────────────────────── */
+/* ── Inspiration / XenoCitation compact cards ──────────────── */
+.xeno-card-grid,
+.inspiration-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(285px, 1fr));
+  gap: 0.9rem;
+  margin: 1rem 0;
+}
+
+.xeno-card,
+.inspiration-card {
+  border: 1px solid rgba(120,100,220,0.22);
+  border-radius: 8px;
+  padding: 0.85rem;
+  background: rgba(20,20,32,0.45);
+  font-size: 0.74rem;
+  line-height: 1.38;
+}
+
+.xeno-card h3,
+.inspiration-card h3 {
+  margin-top: 0;
+  font-size: 0.9rem;
+}
+
+.xeno-card p,
+.inspiration-card p {
+  margin: 0.35em 0;
+}
+
+/* ── Invariant badge ───────────────────────────────────────── */
 .invariant-badge {
   display: inline-block;
   padding: 2px 8px;
   border-radius: 12px;
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -168,29 +222,38 @@
   border: 1px solid rgba(100,100,220,0.3);
 }
 
-/* ── Code blocks ─────────────────────────────────────────────── */
+/* ── Code blocks ───────────────────────────────────────────── */
 .md-typeset pre > code {
-  font-size: 0.83rem;
-  line-height: 1.5;
+  font-size: 0.74rem;
+  line-height: 1.4;
 }
 
-/* ── Nav — tab bar ───────────────────────────────────────────── */
+/* ── Nav — tab bar ─────────────────────────────────────────── */
 .md-tabs__link {
-  font-size: 0.78rem;
-  letter-spacing: 0.06em;
+  font-size: 0.74rem;
+  letter-spacing: 0.05em;
 }
 
-/* ── Site header ─────────────────────────────────────────────── */
+/* ── Sidebar density ───────────────────────────────────────── */
+.md-nav {
+  font-size: 0.76rem;
+}
+
+.md-nav__item {
+  line-height: 1.25;
+}
+
+/* ── Site header ───────────────────────────────────────────── */
 .md-header {
   border-bottom: 1px solid rgba(255,255,255,0.07);
 }
 
-/* ── Footer ───────────────────────────────────────────────────── */
+/* ── Footer ────────────────────────────────────────────────── */
 .md-footer-meta {
   opacity: 0.6;
 }
 
-/* ── Print / paper export ───────────────────────────────────── */
+/* ── Print / paper export ──────────────────────────────────── */
 @media print {
   .md-header,
   .md-tabs,

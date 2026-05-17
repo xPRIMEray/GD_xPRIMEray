@@ -18,7 +18,8 @@ LOG_ROOT = ROOT / "logs" / "basic_visual_offaxis_observe"
 CONTACT_SHEET_SCRIPT = ROOT / "tools" / "build_visual_contact_sheet.py"
 DEFAULT_SETTLE_FRAMES = 12
 DEFAULT_MIN_RENDER_HEALTH_STEP = 20
-DEFAULT_MIN_PROCESSED_ROWS = 64
+DEFAULT_FULL_COVERAGE_ROWS = 270
+DEFAULT_MIN_PROCESSED_ROWS = DEFAULT_FULL_COVERAGE_ROWS
 DEFAULT_CAPTURE_FILM_OPACITY = 1.0
 FAIL_RE = re.compile(r"\[GrinBasicVisual\]\[Capture\]\[FAIL\].*")
 
@@ -139,6 +140,7 @@ def parse_log(text: str) -> dict:
         "metricDiag": None,
         "renderHealth": None,
         "launchAudit": None,
+        "captureArtifacts": None,
         "captureFailure": None,
     }
     for line in text.splitlines():
@@ -148,6 +150,7 @@ def parse_log(text: str) -> dict:
             "metricDiag": "[GrinBasicVisual][MetricDiag]",
             "renderHealth": "[RenderHealth]",
             "launchAudit": "[LaunchAudit]",
+            "captureArtifacts": "[GrinBasicVisual][CaptureArtifacts]",
         }.items():
             data = parse_kv(line, prefix)
             if data:
@@ -159,11 +162,12 @@ def parse_log(text: str) -> dict:
 
 
 def build_args(case_data: dict, screenshot_path: Path) -> list[str]:
+    min_rows = os.environ.get("OFFAXIS_OBSERVE_MIN_PROCESSED_ROWS", str(DEFAULT_MIN_PROCESSED_ROWS))
     args = [
         f"--grin-basic-capture={screenshot_path.as_posix()}",
         f"--grin-basic-settle-frames={os.environ.get('OFFAXIS_OBSERVE_SETTLE_FRAMES', str(DEFAULT_SETTLE_FRAMES))}",
         f"--grin-basic-min-rh-step={os.environ.get('OFFAXIS_OBSERVE_MIN_RH_STEP', str(DEFAULT_MIN_RENDER_HEALTH_STEP))}",
-        f"--grin-basic-min-processed-rows={os.environ.get('OFFAXIS_OBSERVE_MIN_PROCESSED_ROWS', str(DEFAULT_MIN_PROCESSED_ROWS))}",
+        f"--grin-basic-min-processed-rows={min_rows}",
         f"--grin-basic-capture-film-opacity={os.environ.get('OFFAXIS_OBSERVE_CAPTURE_FILM_OPACITY', str(DEFAULT_CAPTURE_FILM_OPACITY))}",
         f"--grin-basic-compare-grid={os.environ.get('OFFAXIS_OBSERVE_COMPARE_GRID', '1')}",
         f"--grin-basic-compare-crosshair={os.environ.get('OFFAXIS_OBSERVE_COMPARE_CROSSHAIR', '1')}",
@@ -200,6 +204,7 @@ def run_case(godot_exe: str, case_data: dict, screenshot_dir: Path, log_dir: Pat
     log_path.write_text(combined, encoding="utf-8")
     parsed = parse_log(combined)
     capture = parsed.get("capture") or {}
+    capture_artifacts = parsed.get("captureArtifacts") or {}
     zero_reason_map = parse_zero_reason_map(parsed.get("metricDiag"))
     capture_stats = {
         "tracedPixels": capture.get("tracedPixels"),
@@ -211,6 +216,11 @@ def run_case(godot_exe: str, case_data: dict, screenshot_dir: Path, log_dir: Pat
         "rhStep": capture.get("rhStep"),
         "processedRows": capture.get("processedRows"),
     }
+    expected_full_rows = int(os.environ.get("OFFAXIS_OBSERVE_EXPECTED_FULL_ROWS", str(DEFAULT_FULL_COVERAGE_ROWS)))
+    processed_rows = to_int(capture.get("processedRows"))
+    film_rows_rendered = to_int(capture_artifacts.get("filmRowsRendered"))
+    film_height = to_int(capture_artifacts.get("filmHeight"))
+    unrendered_bounds = str(capture_artifacts.get("unrenderedImageBounds") or "")
     failure = None
     if completed.returncode != 0:
         failure = f"godot_exit_{completed.returncode}"
@@ -220,6 +230,12 @@ def run_case(godot_exe: str, case_data: dict, screenshot_dir: Path, log_dir: Pat
         failure = "missing_screenshot"
     elif not capture:
         failure = "missing_capture_log"
+    elif processed_rows is None or processed_rows < expected_full_rows:
+        failure = f"incomplete_processed_rows_{processed_rows}_of_{expected_full_rows}"
+    elif film_rows_rendered is None or film_height is None or film_rows_rendered < film_height:
+        failure = f"incomplete_film_rows_{film_rows_rendered}_of_{film_height}"
+    elif not unrendered_bounds.endswith(",0"):
+        failure = f"unrendered_bounds_present_{unrendered_bounds}"
     return {
         "caseId": case_data["id"],
         "label": case_data["label"],
@@ -232,7 +248,16 @@ def run_case(godot_exe: str, case_data: dict, screenshot_dir: Path, log_dir: Pat
         "zeroReasonMap": zero_reason_map,
         "parallelRaw": zero_reason_map.get("parallel_raw"),
         "renderHealth": parsed.get("renderHealth"),
+        "captureArtifacts": capture_artifacts,
         "captureStats": capture_stats,
+        "fullCoverage": {
+            "expectedRows": expected_full_rows,
+            "processedRows": processed_rows,
+            "filmRowsRendered": film_rows_rendered,
+            "filmHeight": film_height,
+            "unrenderedImageBounds": unrendered_bounds,
+            "complete": failure is None,
+        },
         "launchAudit": parsed.get("launchAudit"),
         "screenshotPath": str(screenshot_path),
         "logPath": str(log_path),

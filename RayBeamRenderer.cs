@@ -276,6 +276,8 @@ public partial class RayBeamRenderer : Node3D
 	/// <summary>Draw only rays that hit.</summary>
 	// CONTROL FACTOR: Filter debug overlay to hit rays only.
 	[Export] public bool DebugDrawOnlyHits = false;
+	/// <summary>Allows legacy F1/F2 debug hotkeys. Demo cockpits should disable this and own F-keys centrally.</summary>
+	[Export] public bool DebugHotkeysEnabled = true;
 
 	public readonly struct SharedSnapshot
 	{
@@ -1039,6 +1041,11 @@ public partial class RayBeamRenderer : Node3D
 
 	public override void _UnhandledInput(InputEvent e)
 	{
+		if (!DebugHotkeysEnabled)
+		{
+			return;
+		}
+
 		// DECISION: only handle non-echo key presses.
 		if (e is InputEventKey k && k.Pressed && !k.Echo)
 		{
