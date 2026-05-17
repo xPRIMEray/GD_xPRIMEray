@@ -34,6 +34,7 @@ Each card includes editorial calibration values. These numbers are not objective
 - **Inner Core — Foundational Geometry:** known formal structures: geometry, optics, variational transport, curvature, and causal language.
 - **Instrumentation Ring:** measurement and observer tools: diagnostics, temporal analysis, conservation, and experiment-facing visual instruments.
 - **Systems / Computation Ring:** computation and information: algorithmic limits, coding, entropy, machine structure, recursion, and scale.
+- **Frontier Interface Signals:** contemporary aerospace discourse and anomaly-analysis culture where transport language, field speculation, visual evidence, and observer interpretation meet.
 - **Cultural / Mythic Mirror Ring:** narrative forms for approaching unknowns: monumentality, silence, cinema, speculative fiction, and public cosmological imagination.
 
 ---
@@ -472,6 +473,36 @@ These cards are currently grouped stubs. They should be expanded only after the 
 **Related Engine Concepts:** observer-relative transport, metric-inspired integration, causal checkpoints.  
 **Related Features / Proposed Features:** observer ladder views, reference frame comparison.  
 **Visual Motif:** multiple observers receiving different but measurable ray histories.
+
+---
+
+## Frontier Interface Signals
+
+These frontier-interface entries represent contemporary aerospace discourse and anomaly-analysis culture. Inclusion reflects conceptual resonance and public transport-language investigation, not endorsement or validation of extraordinary claims.
+
+### XC-011 — Salvatore Pais / Frontier Aerospace Field Language
+
+**Ring / Tier:** Frontier Interface Signals  
+**Symbol:** ◇ Instrument  
+**Theme:** Naval propulsion concepts, electromagnetic field engineering, effective metric-style aerospace discourse.
+
+**Signal Calibration:** Academic 45, Instrumentation 55, Mythic / Visual 70, Ontological Frontier 95  
+**Why this matters to xPRIMEray:** Pais represents a public aerospace patent discourse around high-energy field propulsion concepts and engineered spacetime analogies. For xPRIMEray, the careful resonance is not validation of those concepts; it is the appearance of frontier aerospace engineering language at the boundary between field control, propulsion imagination, and transport-field speculation interfaces.  
+**Related Engine Concepts:** effective-metric language, field-driven transport, observer-relative diagnostics, curved ray interpretation.  
+**Related Features / Proposed Features:** frontier-language annotation, claim-boundary badges, field-control thought experiment cards.  
+**Visual Motif:** an engineering patent diagram translated into an observatory panel, with strong claim-boundary markings.
+
+### XC-012 — Ashton Forbes / Public Anomaly Signal Interpretation
+
+**Ring / Tier:** Frontier Interface Signals  
+**Symbol:** ◉ Observatory  
+**Theme:** Open-source anomaly analysis, transport interpretation, visual synthesis.
+
+**Signal Calibration:** Academic 25, Instrumentation 55, Mythic / Visual 80, Ontological Frontier 95  
+**Why this matters to xPRIMEray:** Forbes represents a contemporary public-facing anomaly-analysis culture where visual evidence, transport interpretation, aerospace speculation, and open-source investigation intersect. The resonance is with signal interpretation, observer analysis, cross-disciplinary synthesis, and modern anomaly investigation culture, not with authoritative proof or extraordinary claims.  
+**Related Engine Concepts:** visual evidence review, observer-relative interpretation, anomaly scoring, transport-path comparison, diagnostic humility.  
+**Related Features / Proposed Features:** anomaly review ledger, evidence-layer comparison, observer analysis notes, speculative-claim boundary labels.  
+**Visual Motif:** layered public evidence frames overlaid with transport arrows, confidence markings, and unresolved-zone labels.
 
 ---
 
