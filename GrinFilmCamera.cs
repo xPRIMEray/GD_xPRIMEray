@@ -20380,7 +20380,11 @@ private sealed class OverlayRollingWindow
 					_pendingBandRowCount = 0;
 					_pendingBandHasPass1 = false;
 				}
-				if (_rowCursor < filmH)
+				// When completing a deferred pass2 band, _rowCursor was already advanced to yEnd
+				// by the prior pass1 FinalizeBandAndAdvance. EnsureForwardProgress would see
+				// startRow == endRow and incorrectly force an extra advance, skipping the next
+				// band entirely. Skip the guard when a pass2 commit actually advanced the band.
+				if (_rowCursor < filmH && !(pendingPass2 && bandAdvanced))
 					EnsureForwardProgress("end", false, _rowCursor, bandHits, false);
 				if (_rowCursor >= filmH)
 				{

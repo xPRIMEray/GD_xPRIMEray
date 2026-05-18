@@ -794,6 +794,10 @@ public partial class GrinBasicVisualController : Node3D
 			$"renderedImageBounds={FormatBoundsToken(0, 0, analysisImage.GetWidth(), analysisRenderedRows)} " +
 			$"unrenderedImageBounds={FormatBoundsToken(0, analysisRenderedRows, analysisImage.GetWidth(), analysisUnrenderedRows)}");
 		GD.Print(
+			$"[TileScheduler] fixture={FixtureHudName} " +
+			$"mode={(_filmCamera != null ? _filmCamera.RenderTestFirstPassTraversalMode : "na")} " +
+			$"traversalRowsCompleted={(hasWriteDiagnostics ? writeDiagnostics.RowsCompleted.ToString(CultureInfo.InvariantCulture) : "na")}");
+		GD.Print(
 			$"[GrinBasicVisual][OverlayDiag] fixture={FixtureHudName} " +
 			$"rayRendererDebugMode={(_rayBeamRenderer != null ? _rayBeamRenderer.DebugMode.ToString() : "na")} " +
 			$"rayRendererDebugOverlayOwnedByFilm={(_rayBeamRenderer != null && _rayBeamRenderer.DebugOverlayOwnedByFilm ? 1 : 0)} " +

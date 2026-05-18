@@ -15,7 +15,7 @@ DEFAULT_GODOT_EXE = (
 
 FULL_MIN_ROWS = 360
 QUICK_MIN_ROWS = 180
-GODOT_TIMEOUT_SECONDS = 900
+GODOT_TIMEOUT_SECONDS = 1800
 
 FAIL_RE = re.compile(r"\[GrinBasicVisual\]\[Capture\]\[FAIL\].*")
 
@@ -45,6 +45,36 @@ CASES_QUICK = [
         "id": "hermetic_grin_quick",
         "label": "hermetic GRIN (quick 320×180)",
         "scene": "res://test-grin-hermetic-observatory-quick.tscn",
+        "min_rows": QUICK_MIN_ROWS,
+    },
+]
+
+CASES_TILE_FULL = [
+    {
+        "id": "hermetic_straight_tile",
+        "label": "hermetic straight (tile)",
+        "scene": "res://test-straight-hermetic-observatory-tile-v0.tscn",
+        "min_rows": FULL_MIN_ROWS,
+    },
+    {
+        "id": "hermetic_grin_tile",
+        "label": "hermetic GRIN (tile)",
+        "scene": "res://test-grin-hermetic-observatory-tile-v0.tscn",
+        "min_rows": FULL_MIN_ROWS,
+    },
+]
+
+CASES_TILE_QUICK = [
+    {
+        "id": "hermetic_straight_tile_quick",
+        "label": "hermetic straight tile (quick 320×180)",
+        "scene": "res://test-straight-hermetic-observatory-tile-quick.tscn",
+        "min_rows": QUICK_MIN_ROWS,
+    },
+    {
+        "id": "hermetic_grin_tile_quick",
+        "label": "hermetic GRIN tile (quick 320×180)",
+        "scene": "res://test-grin-hermetic-observatory-tile-quick.tscn",
         "min_rows": QUICK_MIN_ROWS,
     },
 ]
@@ -106,6 +136,7 @@ def parse_log(text):
         "captureConfig": None,
         "launchAudit": None,
         "coverage": None,
+        "tileScheduler": None,
         "captureFailure": None,
     }
     for line in text.splitlines():
@@ -115,6 +146,7 @@ def parse_log(text):
             "captureConfig": "[GrinBasicVisual][CaptureConfig] ",
             "launchAudit": "[LaunchAudit] ",
             "coverage": "[GrinBasicVisual][Coverage] ",
+            "tileScheduler": "[TileScheduler] ",
         }.items():
             data = parse_kv(line, prefix)
             if data:
@@ -248,7 +280,14 @@ def run_case(godot_exe, case_data, screenshot_dir, log_dir):
         exit_code = completed.returncode
     except subprocess.TimeoutExpired as exc:
         timed_out = True
-        combined = (exc.stdout or "") + ("\n" + (exc.stderr or "") if exc.stderr else "")
+        # exc.stdout/stderr are bytes when the process is killed mid-run, even with text=True
+        def _decode(b):
+            if b is None:
+                return ""
+            if isinstance(b, bytes):
+                return b.decode("utf-8", errors="replace")
+            return b
+        combined = _decode(exc.stdout) + ("\n" + _decode(exc.stderr) if exc.stderr else "")
         exit_code = -1
 
     log_path.write_text(combined, encoding="utf-8")
@@ -269,6 +308,7 @@ def run_case(godot_exe, case_data, screenshot_dir, log_dir):
     art = parsed.get("captureArtifacts") or {}
     cap = parsed.get("capture") or {}
     cov = parsed.get("coverage") or {}
+    tile = parsed.get("tileScheduler") or {}
 
     status = "PASS" if (capture_failure is None and not hermetic_failures) else "FAIL"
 
@@ -281,6 +321,7 @@ def run_case(godot_exe, case_data, screenshot_dir, log_dir):
         "captureFailure": capture_failure,
         "hermeticFailures": hermetic_failures,
         "missHits": to_int(cap.get("missHits")),
+        "tileMode": tile.get("mode"),
         "traversalRowsCompleted": to_int(art.get("traversalRowsCompleted")),
         "filmRowsRendered": to_int(art.get("filmRowsRendered")),
         "filmHeight": to_int(art.get("filmHeight")),
@@ -371,11 +412,16 @@ def main():
     parser.add_argument("--godot-exe", default=None, help="Path to Godot executable (or wrapper script). Overrides GODOT_EXE env var.")
     parser.add_argument("--output-dir", default=str(ROOT / "output" / "v0.0-pre"), help="Output directory for screenshots and report")
     parser.add_argument("--quick", action="store_true", help="Use quick smoke scenes (320x180 effective, min_rows=180)")
+    parser.add_argument("--tile", action="store_true", help="Use tile-mode traversal scenes instead of row-mode scenes")
     args = parser.parse_args()
 
     godot_exe = require_godot_exe(args.godot_exe)
-    cases = CASES_QUICK if args.quick else CASES_FULL
-    mode_label = "quick (320×180)" if args.quick else "full (640×360)"
+    if args.tile:
+        cases = CASES_TILE_QUICK if args.quick else CASES_TILE_FULL
+        mode_label = ("tile quick (320×180)" if args.quick else "tile full (640×360)")
+    else:
+        cases = CASES_QUICK if args.quick else CASES_FULL
+        mode_label = "quick (320×180)" if args.quick else "full (640×360)"
 
     output_dir = Path(args.output_dir)
     screenshot_dir = output_dir
