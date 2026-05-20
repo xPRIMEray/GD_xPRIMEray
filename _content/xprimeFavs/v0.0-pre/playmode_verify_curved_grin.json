@@ -1,0 +1,64 @@
+{
+  "schema": "xprimeray.grin_observe_playmode_verify.v1",
+  "timestamp_utc": "2026-05-19T01:23:58Z",
+  "role": "curved_grin",
+  "scene": "res://test-grin-basic-visual-offaxis-observe.tscn",
+  "hud_active": true,
+  "keymap_markdown": "| Key | v0.0-pre control |\n| --- | --- |\n| F1 | Help / Control overlay |\n| F2 | Toggle Straight Control vs Curved Transport by matched scene switch |\n| F3 | Toggle Film Rays |\n| F4 | Toggle Hit Normals |\n| F5 | Toggle Grid / Reference Crosshair |\n| F6 | Toggle Difference / Comparison View |\n| F7 | Freeze / Unfreeze Camera |\n| F8 | Reset Camera to Canonical Pose |\n| F9 | Capture Screenshot / Still Packet |\n| F10 | Export Diagnostics |\n| F11 | Toggle Clean Presentation Mode |\n| F12 | Toggle Crosshair / Minimal Reticle |",
+  "checks": [
+    { "area": "scene boot", "name": "canonical scene loaded", "status": "PASS", "detail": "res://test-grin-basic-visual-offaxis-observe.tscn" },
+    { "area": "scene boot", "name": "GrinObserveDemoHud active", "status": "PASS", "detail": "../CanvasLayer/DemoHud" },
+    { "area": "scene boot", "name": "FilmOverlay2D active", "status": "PASS", "detail": "../CanvasLayer/FilmOverlay2D" },
+    { "area": "scene boot", "name": "GrinFilmCamera active", "status": "PASS", "detail": "../GrinFilmCamera" },
+    { "area": "scene boot", "name": "paired comparison scene reachable", "status": "PASS", "detail": "res://test-straight-basic-visual-offaxis-observe.tscn" },
+    { "area": "scene boot", "name": "no fatal runtime errors during first frames", "status": "PASS", "detail": "verifier reached frame 20" },
+    { "area": "user behavior", "name": "objects locked for v0.0-pre", "status": "PASS", "detail": "verification does not expose object manipulation controls" },
+    { "area": "key conflict", "name": "renderer F6-F10 macro hotkeys disabled", "status": "PASS", "detail": "GrinFilmCamera.RuntimeMacroHotkeysEnabled=false" },
+    { "area": "key conflict", "name": "RayBeamRenderer debug hotkeys disabled", "status": "PASS", "detail": "no active RayBeamRenderer debug hotkeys found" },
+    { "area": "controls", "name": "F1", "status": "PASS", "detail": "help overlay visible=off" },
+    { "area": "controls", "name": "F2", "status": "PASS", "detail": "paired scene reachable: res://test-straight-basic-visual-offaxis-observe.tscn; verification does not switch scenes" },
+    { "area": "controls", "name": "F3", "status": "PASS", "detail": "film rays=off" },
+    { "area": "controls", "name": "F4", "status": "PASS", "detail": "hit normals=on" },
+    { "area": "controls", "name": "F5", "status": "PASS", "detail": "grid=off reticle=off" },
+    { "area": "controls", "name": "F6", "status": "PASS", "detail": "comparison view=on" },
+    { "area": "controls", "name": "F7", "status": "PASS", "detail": "camera frozen=on" },
+    { "area": "controls", "name": "F8", "status": "PASS", "detail": "camera reset to canonical pose" },
+    { "area": "controls", "name": "F9", "status": "PASS", "detail": "output/v0.0-pre/grin_observe_curved_grin_transport_still.png" },
+    { "area": "controls", "name": "F10", "status": "PASS", "detail": "output/v0.0-pre/grin_observe_curved_grin_transport_diagnostics.json" },
+    { "area": "controls", "name": "F11", "status": "PASS", "detail": "clean presentation=on" },
+    { "area": "controls", "name": "F12", "status": "PASS", "detail": "minimal reticle=off" }
+  ],
+  "artifacts": [
+    {
+      "label": "primary verify viewport",
+      "path": "output/v0.0-pre/curved_grin_verify.png",
+      "width": 480,
+      "height": 270,
+      "total_pixels": 129600,
+      "non_background_pixels": 122562,
+      "traced_pixels": 16640,
+      "coverage_percent": 94.569444,
+      "sha256": "d50738a197ad0fa3bd07682fc7d8e1a1af71bfc074970d3758318209953781eb",
+      "status": "PASS",
+      "detail": "full-pixel scan threshold >= 0.5%"
+    },
+    {
+      "label": "curved final smoke viewport",
+      "path": "output/v0.0-pre/curved_grin_final_smoke.png",
+      "width": 480,
+      "height": 270,
+      "total_pixels": 129600,
+      "non_background_pixels": 122562,
+      "traced_pixels": 16640,
+      "coverage_percent": 94.569444,
+      "sha256": "d50738a197ad0fa3bd07682fc7d8e1a1af71bfc074970d3758318209953781eb",
+      "status": "PASS",
+      "detail": "full-pixel scan threshold >= 0.5%"
+    }
+  ],
+  "summary_status": "PASS",
+  "known_limitations": [
+    "F2 is verified as matched scene reachability during automated play-mode verification; normal Play mode still performs scene switching.",
+    "The full-pixel pass scans exported viewport PNG artifacts; advanced physics validation remains outside v0.0-pre scope."
+  ]
+}

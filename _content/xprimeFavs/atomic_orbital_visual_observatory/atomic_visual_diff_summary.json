@@ -1,0 +1,516 @@
+{
+  "purpose": "Interpretation only; not closure validation.",
+  "contours": {
+    "enabled": true,
+    "mode": "density",
+    "levels": 6,
+    "labels": false,
+    "line_alpha": 58,
+    "legend_alpha": 150,
+    "line_width_px": 1,
+    "mapping": "v1_image_center_min_dimension_div_5",
+    "safety_note": "Contours are analytic postprocess guides derived from fixture metadata, not sampled render telemetry.",
+    "overlays": {
+      "normal_rgb": {
+        "V2_exaggerated_hydrogen": {
+          "image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/cells/normal_rgb/V2_exaggerated_hydrogen/atomic_orbital_visual_observatory__normal_rgb_v2_exaggerated_hydrogen__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1__density_contours.png",
+          "source_image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/cells/normal_rgb/V2_exaggerated_hydrogen/atomic_orbital_visual_observatory__normal_rgb_v2_exaggerated_hydrogen__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1.png",
+          "mode": "density",
+          "levels": 6,
+          "level_values": [
+            0.697676326071031,
+            0.5651410608568248,
+            0.43260579564261864,
+            0.3000705304284124,
+            0.16753526521420625,
+            0.03500000000000003
+          ],
+          "radii_px": [
+            6.48,
+            10.272238447744003,
+            15.082710629774267,
+            21.667279149538285,
+            32.15810540312782,
+            60.343329914869
+          ],
+          "center_px": [
+            160.0,
+            90.0
+          ],
+          "orbital_radius_px": 36.0,
+          "line_alpha": 58,
+          "line_width_px": 1,
+          "postprocess_only": true,
+          "sampled_render_telemetry": false
+        },
+        "V3_tick0": {
+          "image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/cells/normal_rgb/V3_tick0/atomic_orbital_visual_observatory__normal_rgb_v3_tick0__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1__density_contours.png",
+          "source_image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/cells/normal_rgb/V3_tick0/atomic_orbital_visual_observatory__normal_rgb_v3_tick0__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1.png",
+          "mode": "density",
+          "levels": 6,
+          "level_values": [
+            0.45348961194618326,
+            0.36734168955694674,
+            0.2811937671677102,
+            0.1950458447784737,
+            0.10889792238923718,
+            0.02275000000000066
+          ],
+          "radii_px": [
+            6.48,
+            10.272238447744003,
+            15.082710629774269,
+            21.667279149538285,
+            32.15810540312783,
+            60.34332991486902
+          ],
+          "center_px": [
+            160.0,
+            90.0
+          ],
+          "orbital_radius_px": 36.0,
+          "line_alpha": 58,
+          "line_width_px": 1,
+          "postprocess_only": true,
+          "sampled_render_telemetry": false
+        },
+        "V4_tick1": {
+          "image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/cells/normal_rgb/V4_tick1/atomic_orbital_visual_observatory__normal_rgb_v4_tick1__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1__density_contours.png",
+          "source_image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/cells/normal_rgb/V4_tick1/atomic_orbital_visual_observatory__normal_rgb_v4_tick1__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1.png",
+          "mode": "density",
+          "levels": 6,
+          "level_values": [
+            0.82,
+            0.663,
+            0.506,
+            0.34900000000000003,
+            0.19200000000000006,
+            0.03500000000000003
+          ],
+          "radii_px": [
+            8.973999561134924,
+            12.799527862438776,
+            17.663817638609924,
+            24.35018308614061,
+            35.106560989284226,
+            65.74521257897484
+          ],
+          "center_px": [
+            160.0,
+            90.0
+          ],
+          "orbital_radius_px": 36.0,
+          "line_alpha": 58,
+          "line_width_px": 1,
+          "postprocess_only": true,
+          "sampled_render_telemetry": false
+        }
+      },
+      "depth_heatmap": {
+        "V2_exaggerated_hydrogen": {
+          "image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/cells/depth_heatmap/V2_exaggerated_hydrogen/atomic_orbital_visual_observatory__depth_heatmap_v2_exaggerated_hydrogen__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1__density_contours.png",
+          "source_image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/cells/depth_heatmap/V2_exaggerated_hydrogen/atomic_orbital_visual_observatory__depth_heatmap_v2_exaggerated_hydrogen__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1.png",
+          "mode": "density",
+          "levels": 6,
+          "level_values": [
+            0.697676326071031,
+            0.5651410608568248,
+            0.43260579564261864,
+            0.3000705304284124,
+            0.16753526521420625,
+            0.03500000000000003
+          ],
+          "radii_px": [
+            6.48,
+            10.272238447744003,
+            15.082710629774267,
+            21.667279149538285,
+            32.15810540312782,
+            60.343329914869
+          ],
+          "center_px": [
+            160.0,
+            90.0
+          ],
+          "orbital_radius_px": 36.0,
+          "line_alpha": 58,
+          "line_width_px": 1,
+          "postprocess_only": true,
+          "sampled_render_telemetry": false
+        },
+        "V3_tick0": {
+          "image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/cells/depth_heatmap/V3_tick0/atomic_orbital_visual_observatory__depth_heatmap_v3_tick0__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1__density_contours.png",
+          "source_image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/cells/depth_heatmap/V3_tick0/atomic_orbital_visual_observatory__depth_heatmap_v3_tick0__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1.png",
+          "mode": "density",
+          "levels": 6,
+          "level_values": [
+            0.45348961194618326,
+            0.36734168955694674,
+            0.2811937671677102,
+            0.1950458447784737,
+            0.10889792238923718,
+            0.02275000000000066
+          ],
+          "radii_px": [
+            6.48,
+            10.272238447744003,
+            15.082710629774269,
+            21.667279149538285,
+            32.15810540312783,
+            60.34332991486902
+          ],
+          "center_px": [
+            160.0,
+            90.0
+          ],
+          "orbital_radius_px": 36.0,
+          "line_alpha": 58,
+          "line_width_px": 1,
+          "postprocess_only": true,
+          "sampled_render_telemetry": false
+        },
+        "V4_tick1": {
+          "image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/cells/depth_heatmap/V4_tick1/atomic_orbital_visual_observatory__depth_heatmap_v4_tick1__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1__density_contours.png",
+          "source_image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/cells/depth_heatmap/V4_tick1/atomic_orbital_visual_observatory__depth_heatmap_v4_tick1__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1.png",
+          "mode": "density",
+          "levels": 6,
+          "level_values": [
+            0.82,
+            0.663,
+            0.506,
+            0.34900000000000003,
+            0.19200000000000006,
+            0.03500000000000003
+          ],
+          "radii_px": [
+            8.973999561134924,
+            12.799527862438776,
+            17.663817638609924,
+            24.35018308614061,
+            35.106560989284226,
+            65.74521257897484
+          ],
+          "center_px": [
+            160.0,
+            90.0
+          ],
+          "orbital_radius_px": 36.0,
+          "line_alpha": 58,
+          "line_width_px": 1,
+          "postprocess_only": true,
+          "sampled_render_telemetry": false
+        }
+      }
+    }
+  },
+  "shadings": {
+    "normal_rgb": {
+      "V0_baseline_no_field": {
+        "image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/cells/normal_rgb/V0_baseline_no_field/atomic_orbital_visual_observatory__normal_rgb_v0_baseline_no_field__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1.png",
+        "image_present": true,
+        "settings": {
+          "study": "atomic_orbital_visual_observatory",
+          "purpose": "Interpretation only; not closure validation.",
+          "cell": "V0_baseline_no_field",
+          "film_shading": "normal_rgb",
+          "fixture": "atomic_orbital_visual_observatory",
+          "scene": "res://test-atomic-orbital-visual-observatory.tscn",
+          "electron_count": 0,
+          "atomic_preset": "hydrogen",
+          "orbital_radius": 8.0,
+          "curvature_strength": 0,
+          "modulation_depth": 0,
+          "time_enabled": 0,
+          "field_tick_index": 0,
+          "phase": 0,
+          "visual_density": 1,
+          "visual_guides": 1,
+          "visual_laser_sheet": 1,
+          "visual_beams": 1,
+          "visual_only_exclusion": "VisualGuidesRoot, DensityMarkersRoot, LaserGuidesRoot, and BeamGuidesRoot are in group visual_only and excluded by SnapshotBuilder.",
+          "resolution": "320x180",
+          "frames": 30,
+          "warmup": 0,
+          "step_length": "0.0125",
+          "steps_per_ray": 450,
+          "update_budget_ms": 2500,
+          "exit_code": 0,
+          "effective_status": 0,
+          "notes": "clean_exit"
+        }
+      },
+      "V1_static_hydrogen": {
+        "image": "",
+        "image_present": false,
+        "settings": {}
+      },
+      "V2_exaggerated_hydrogen": {
+        "image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/cells/normal_rgb/V2_exaggerated_hydrogen/atomic_orbital_visual_observatory__normal_rgb_v2_exaggerated_hydrogen__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1.png",
+        "image_present": true,
+        "settings": {
+          "study": "atomic_orbital_visual_observatory",
+          "purpose": "Interpretation only; not closure validation.",
+          "cell": "V2_exaggerated_hydrogen",
+          "film_shading": "normal_rgb",
+          "fixture": "atomic_orbital_visual_observatory",
+          "scene": "res://test-atomic-orbital-visual-observatory.tscn",
+          "electron_count": 1,
+          "atomic_preset": "hydrogen",
+          "orbital_radius": 9.0,
+          "curvature_strength": 0.1,
+          "modulation_depth": 0,
+          "time_enabled": 0,
+          "field_tick_index": 0,
+          "phase": 0,
+          "visual_density": 1,
+          "visual_guides": 1,
+          "visual_laser_sheet": 1,
+          "visual_beams": 1,
+          "visual_only_exclusion": "VisualGuidesRoot, DensityMarkersRoot, LaserGuidesRoot, and BeamGuidesRoot are in group visual_only and excluded by SnapshotBuilder.",
+          "resolution": "320x180",
+          "frames": 30,
+          "warmup": 0,
+          "step_length": "0.0125",
+          "steps_per_ray": 450,
+          "update_budget_ms": 2500,
+          "exit_code": 0,
+          "effective_status": 0,
+          "notes": "clean_exit"
+        }
+      },
+      "V3_tick0": {
+        "image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/cells/normal_rgb/V3_tick0/atomic_orbital_visual_observatory__normal_rgb_v3_tick0__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1.png",
+        "image_present": true,
+        "settings": {
+          "study": "atomic_orbital_visual_observatory",
+          "purpose": "Interpretation only; not closure validation.",
+          "cell": "V3_tick0",
+          "film_shading": "normal_rgb",
+          "fixture": "atomic_orbital_visual_observatory",
+          "scene": "res://test-atomic-orbital-visual-observatory.tscn",
+          "electron_count": 1,
+          "atomic_preset": "hydrogen",
+          "orbital_radius": 8.0,
+          "curvature_strength": 0.065,
+          "modulation_depth": 0.35,
+          "time_enabled": 1,
+          "field_tick_index": 0,
+          "phase": -1.570796,
+          "visual_density": 1,
+          "visual_guides": 1,
+          "visual_laser_sheet": 1,
+          "visual_beams": 1,
+          "visual_only_exclusion": "VisualGuidesRoot, DensityMarkersRoot, LaserGuidesRoot, and BeamGuidesRoot are in group visual_only and excluded by SnapshotBuilder.",
+          "resolution": "320x180",
+          "frames": 30,
+          "warmup": 0,
+          "step_length": "0.0125",
+          "steps_per_ray": 450,
+          "update_budget_ms": 2500,
+          "exit_code": 0,
+          "effective_status": 0,
+          "notes": "clean_exit"
+        }
+      },
+      "V4_tick1": {
+        "image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/cells/normal_rgb/V4_tick1/atomic_orbital_visual_observatory__normal_rgb_v4_tick1__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1.png",
+        "image_present": true,
+        "settings": {
+          "study": "atomic_orbital_visual_observatory",
+          "purpose": "Interpretation only; not closure validation.",
+          "cell": "V4_tick1",
+          "film_shading": "normal_rgb",
+          "fixture": "atomic_orbital_visual_observatory",
+          "scene": "res://test-atomic-orbital-visual-observatory.tscn",
+          "electron_count": 1,
+          "atomic_preset": "hydrogen",
+          "orbital_radius": 8.0,
+          "curvature_strength": 0.065,
+          "modulation_depth": 0.35,
+          "time_enabled": 1,
+          "field_tick_index": 1,
+          "phase": 1.570796,
+          "visual_density": 1,
+          "visual_guides": 1,
+          "visual_laser_sheet": 1,
+          "visual_beams": 1,
+          "visual_only_exclusion": "VisualGuidesRoot, DensityMarkersRoot, LaserGuidesRoot, and BeamGuidesRoot are in group visual_only and excluded by SnapshotBuilder.",
+          "resolution": "320x180",
+          "frames": 30,
+          "warmup": 0,
+          "step_length": "0.0125",
+          "steps_per_ray": 450,
+          "update_budget_ms": 2500,
+          "exit_code": 0,
+          "effective_status": 0,
+          "notes": "clean_exit"
+        }
+      }
+    },
+    "depth_heatmap": {
+      "V0_baseline_no_field": {
+        "image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/cells/depth_heatmap/V0_baseline_no_field/atomic_orbital_visual_observatory__depth_heatmap_v0_baseline_no_field__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1.png",
+        "image_present": true,
+        "settings": {
+          "study": "atomic_orbital_visual_observatory",
+          "purpose": "Interpretation only; not closure validation.",
+          "cell": "V0_baseline_no_field",
+          "film_shading": "depth_heatmap",
+          "fixture": "atomic_orbital_visual_observatory",
+          "scene": "res://test-atomic-orbital-visual-observatory.tscn",
+          "electron_count": 0,
+          "atomic_preset": "hydrogen",
+          "orbital_radius": 8.0,
+          "curvature_strength": 0,
+          "modulation_depth": 0,
+          "time_enabled": 0,
+          "field_tick_index": 0,
+          "phase": 0,
+          "visual_density": 1,
+          "visual_guides": 1,
+          "visual_laser_sheet": 1,
+          "visual_beams": 1,
+          "visual_only_exclusion": "VisualGuidesRoot, DensityMarkersRoot, LaserGuidesRoot, and BeamGuidesRoot are in group visual_only and excluded by SnapshotBuilder.",
+          "resolution": "320x180",
+          "frames": 30,
+          "warmup": 0,
+          "step_length": "0.0125",
+          "steps_per_ray": 450,
+          "update_budget_ms": 2500,
+          "exit_code": 0,
+          "effective_status": 0,
+          "notes": "clean_exit"
+        }
+      },
+      "V1_static_hydrogen": {
+        "image": "",
+        "image_present": false,
+        "settings": {}
+      },
+      "V2_exaggerated_hydrogen": {
+        "image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/cells/depth_heatmap/V2_exaggerated_hydrogen/atomic_orbital_visual_observatory__depth_heatmap_v2_exaggerated_hydrogen__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1.png",
+        "image_present": true,
+        "settings": {
+          "study": "atomic_orbital_visual_observatory",
+          "purpose": "Interpretation only; not closure validation.",
+          "cell": "V2_exaggerated_hydrogen",
+          "film_shading": "depth_heatmap",
+          "fixture": "atomic_orbital_visual_observatory",
+          "scene": "res://test-atomic-orbital-visual-observatory.tscn",
+          "electron_count": 1,
+          "atomic_preset": "hydrogen",
+          "orbital_radius": 9.0,
+          "curvature_strength": 0.1,
+          "modulation_depth": 0,
+          "time_enabled": 0,
+          "field_tick_index": 0,
+          "phase": 0,
+          "visual_density": 1,
+          "visual_guides": 1,
+          "visual_laser_sheet": 1,
+          "visual_beams": 1,
+          "visual_only_exclusion": "VisualGuidesRoot, DensityMarkersRoot, LaserGuidesRoot, and BeamGuidesRoot are in group visual_only and excluded by SnapshotBuilder.",
+          "resolution": "320x180",
+          "frames": 30,
+          "warmup": 0,
+          "step_length": "0.0125",
+          "steps_per_ray": 450,
+          "update_budget_ms": 2500,
+          "exit_code": 0,
+          "effective_status": 0,
+          "notes": "clean_exit"
+        }
+      },
+      "V3_tick0": {
+        "image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/cells/depth_heatmap/V3_tick0/atomic_orbital_visual_observatory__depth_heatmap_v3_tick0__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1.png",
+        "image_present": true,
+        "settings": {
+          "study": "atomic_orbital_visual_observatory",
+          "purpose": "Interpretation only; not closure validation.",
+          "cell": "V3_tick0",
+          "film_shading": "depth_heatmap",
+          "fixture": "atomic_orbital_visual_observatory",
+          "scene": "res://test-atomic-orbital-visual-observatory.tscn",
+          "electron_count": 1,
+          "atomic_preset": "hydrogen",
+          "orbital_radius": 8.0,
+          "curvature_strength": 0.065,
+          "modulation_depth": 0.35,
+          "time_enabled": 1,
+          "field_tick_index": 0,
+          "phase": -1.570796,
+          "visual_density": 1,
+          "visual_guides": 1,
+          "visual_laser_sheet": 1,
+          "visual_beams": 1,
+          "visual_only_exclusion": "VisualGuidesRoot, DensityMarkersRoot, LaserGuidesRoot, and BeamGuidesRoot are in group visual_only and excluded by SnapshotBuilder.",
+          "resolution": "320x180",
+          "frames": 30,
+          "warmup": 0,
+          "step_length": "0.0125",
+          "steps_per_ray": 450,
+          "update_budget_ms": 2500,
+          "exit_code": 0,
+          "effective_status": 0,
+          "notes": "clean_exit"
+        }
+      },
+      "V4_tick1": {
+        "image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/cells/depth_heatmap/V4_tick1/atomic_orbital_visual_observatory__depth_heatmap_v4_tick1__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1.png",
+        "image_present": true,
+        "settings": {
+          "study": "atomic_orbital_visual_observatory",
+          "purpose": "Interpretation only; not closure validation.",
+          "cell": "V4_tick1",
+          "film_shading": "depth_heatmap",
+          "fixture": "atomic_orbital_visual_observatory",
+          "scene": "res://test-atomic-orbital-visual-observatory.tscn",
+          "electron_count": 1,
+          "atomic_preset": "hydrogen",
+          "orbital_radius": 8.0,
+          "curvature_strength": 0.065,
+          "modulation_depth": 0.35,
+          "time_enabled": 1,
+          "field_tick_index": 1,
+          "phase": 1.570796,
+          "visual_density": 1,
+          "visual_guides": 1,
+          "visual_laser_sheet": 1,
+          "visual_beams": 1,
+          "visual_only_exclusion": "VisualGuidesRoot, DensityMarkersRoot, LaserGuidesRoot, and BeamGuidesRoot are in group visual_only and excluded by SnapshotBuilder.",
+          "resolution": "320x180",
+          "frames": 30,
+          "warmup": 0,
+          "step_length": "0.0125",
+          "steps_per_ray": 450,
+          "update_budget_ms": 2500,
+          "exit_code": 0,
+          "effective_status": 0,
+          "notes": "clean_exit"
+        }
+      }
+    }
+  },
+  "pillow_available": true,
+  "normal_rgb_diffs": {
+    "V0_vs_V2": {
+      "diff": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/V0_vs_V2_diff.png",
+      "scaled_diff": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/V0_vs_V2_scaled_diff.png",
+      "changed_pixels": 39456,
+      "total_pixels": 57600,
+      "changed_fraction": 0.685,
+      "mean_abs_channel_delta": 61.42638888888889,
+      "max_channel_delta": 255
+    },
+    "tick0_vs_tick1": {
+      "diff": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/tick0_vs_tick1_diff.png",
+      "scaled_diff": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/tick0_vs_tick1_scaled_diff.png",
+      "changed_pixels": 17536,
+      "total_pixels": 57600,
+      "changed_fraction": 0.30444444444444446,
+      "mean_abs_channel_delta": 17.71925925925926,
+      "max_channel_delta": 255
+    }
+  },
+  "contact_sheet": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T043731Z/atomic_visual_contact_sheet.png"
+}

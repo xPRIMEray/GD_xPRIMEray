@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="PackedScene" path="res://Fixtures/fixture_grin_basic_visual_offaxis_observe.tscn" id="1_fixture"]
 [ext_resource type="Script" path="res://GrinFilmCamera.cs" id="2_grin"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://Fixtures/GrinBasicVisualController.cs" id="4_controller"]
 [ext_resource type="Script" path="res://GrinObserveDemoHud.cs" id="5_hud"]
 [ext_resource type="Script" path="res://GrinObservePlayModeVerifier.cs" id="6_verify"]
+[ext_resource type="Script" path="res://ObservatoryModeController.cs" id="7_mode"]
 
 [node name="TestGrinBasicVisualOffAxisObserveHarness" type="Node3D"]
 script = ExtResource("4_controller")
@@ -23,6 +24,9 @@ DefaultCaptureTimeoutFrames = 900
 [node name="PlayModeVerifier" type="Node" parent="."]
 script = ExtResource("6_verify")
 Role = "curved"
+
+[node name="ObservatoryModeController" type="Node" parent="."]
+script = ExtResource("7_mode")
 
 [node name="GrinFilmCamera" type="Node" parent="."]
 script = ExtResource("2_grin")

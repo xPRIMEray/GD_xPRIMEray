@@ -225,7 +225,10 @@ public partial class GrinObserveDemoHud : Control
 		}
 
 		FilmOverlay2D.OverlayRenderSnapshot snapshot = _overlay.GetOverlayRenderSnapshot();
-		return $"FilmOverlay2D: rays={OnOff(snapshot.DrawRaysEnabled)} normals={OnOff(snapshot.DrawHitNormalsEnabled)} grid={OnOff(snapshot.ComparisonGridEnabled)} reticle={OnOff(snapshot.ComparisonCrosshairEnabled)} rays_sampled={snapshot.RayCount}";
+		string traversal = snapshot.TraversalOverlayEnabled || snapshot.TraversalMinimapEnabled
+			? $" traversal={OnOff(snapshot.TraversalOverlayEnabled)} mini={OnOff(snapshot.TraversalMinimapEnabled)} mode={snapshot.TraversalMode} rows={snapshot.TraversalRowsCompleted}"
+			: string.Empty;
+		return $"FilmOverlay2D: rays={OnOff(snapshot.DrawRaysEnabled)} normals={OnOff(snapshot.DrawHitNormalsEnabled)} grid={OnOff(snapshot.ComparisonGridEnabled)} reticle={OnOff(snapshot.ComparisonCrosshairEnabled)} rays_sampled={snapshot.RayCount}{traversal}";
 	}
 
 	private string BuildFieldState()

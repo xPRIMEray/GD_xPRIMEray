@@ -2056,6 +2056,11 @@ public partial class GrinFilmCamera : Node
 	private int _pendingBandRowStart = -1;
 	private int _pendingBandRowCount = 0;
 	private bool _pendingBandHasPass1 = false;
+	private int _traversalOverlayActiveX = -1;
+	private int _traversalOverlayActiveY = -1;
+	private int _traversalOverlayActiveW = 0;
+	private int _traversalOverlayActiveH = 0;
+	private byte[] _traversalOverlayTileStates = Array.Empty<byte>();
 	private bool _softGateDisabledForPass = false;
 	private int _lastFilmSettingsHash = 0;
 	private bool _hasFilmSettingsHash = false;
@@ -9049,6 +9054,106 @@ private sealed class OverlayRollingWindow
 		return count;
 	}
 
+	private void RecordTraversalOverlayActiveRect(int x, int y, int width, int height)
+	{
+		_traversalOverlayActiveX = Math.Max(0, x);
+		_traversalOverlayActiveY = Math.Max(0, y);
+		_traversalOverlayActiveW = Math.Max(1, width);
+		_traversalOverlayActiveH = Math.Max(1, height);
+	}
+
+	private void PushTraversalOverlayStateToFilmOverlay(int filmW, int filmH, string traversalMode, int yStart, int yEnd)
+	{
+		if (_filmOverlay == null || !GodotObject.IsInstanceValid(_filmOverlay))
+			return;
+
+		if (!_filmOverlay.ShowTraversalOverlay && !_filmOverlay.ShowTraversalMinimap)
+			return;
+
+		if (filmW <= 0 || filmH <= 0)
+		{
+			_filmOverlay.ClearTraversalOverlayState();
+			return;
+		}
+
+		int tileSize = Math.Max(1, _filmOverlay.TraversalOverlayTileSize);
+		int cols = Math.Max(1, (filmW + tileSize - 1) / tileSize);
+		int rows = Math.Max(1, (filmH + tileSize - 1) / tileSize);
+		int tileCount = cols * rows;
+		if (_traversalOverlayTileStates.Length != tileCount)
+			_traversalOverlayTileStates = new byte[tileCount];
+		else
+			Array.Clear(_traversalOverlayTileStates, 0, _traversalOverlayTileStates.Length);
+
+		for (int ty = 0; ty < rows; ty++)
+		{
+			int row0 = ty * tileSize;
+			int row1 = Math.Min(filmH, row0 + tileSize);
+			if (row0 >= row1)
+				continue;
+
+			bool allComplete = true;
+			bool anyStartedOrPartial = false;
+			for (int row = row0; row < row1; row++)
+			{
+				bool completed = row < _fixtureRowsCompleted.Length && _fixtureRowsCompleted[row] != 0;
+				bool started = row < _fixtureRowsStarted.Length && _fixtureRowsStarted[row] != 0;
+				bool partial = row < _fixtureRowsPartiallyWritten.Length && _fixtureRowsPartiallyWritten[row] != 0;
+				if (!completed)
+					allComplete = false;
+				if (started || partial || completed)
+					anyStartedOrPartial = true;
+			}
+
+			bool pendingPass1 = _pendingBandHasPass1 &&
+				_pendingBandRowStart < row1 &&
+				(_pendingBandRowStart + Math.Max(0, _pendingBandRowCount)) > row0;
+
+			byte state = allComplete ? (byte)2 : (pendingPass1 || anyStartedOrPartial ? (byte)1 : (byte)0);
+			int offset = ty * cols;
+			for (int tx = 0; tx < cols; tx++)
+				_traversalOverlayTileStates[offset + tx] = state;
+		}
+
+		string normalizedMode = NormalizeRenderTestFirstPassTraversalMode(traversalMode);
+		Rect2I activeRect = default;
+		bool activeKnown = false;
+		bool useTileMarker = (normalizedMode == "tile" || normalizedMode == "checkerboard") &&
+			_traversalOverlayActiveX >= 0 &&
+			_traversalOverlayActiveY >= 0 &&
+			_traversalOverlayActiveW > 0 &&
+			_traversalOverlayActiveH > 0;
+		if (useTileMarker)
+		{
+			activeRect = new Rect2I(
+				Mathf.Clamp(_traversalOverlayActiveX, 0, filmW),
+				Mathf.Clamp(_traversalOverlayActiveY, 0, filmH),
+				Mathf.Clamp(_traversalOverlayActiveW, 1, filmW),
+				Mathf.Clamp(_traversalOverlayActiveH, 1, filmH));
+			activeKnown = true;
+		}
+		else
+		{
+			int activeY = _pendingBandHasPass1 ? _pendingBandRowStart : yStart;
+			int activeH = Math.Max(1, yEnd - yStart);
+			activeRect = new Rect2I(0, Mathf.Clamp(activeY, 0, filmH), filmW, Math.Min(activeH, filmH));
+			activeKnown = true;
+		}
+
+		_filmOverlay.SetTraversalOverlayState(
+			filmW,
+			filmH,
+			tileSize,
+			tileSize,
+			_traversalOverlayTileStates.AsSpan(0, tileCount),
+			cols,
+			rows,
+			activeRect,
+			activeKnown,
+			normalizedMode,
+			CountMarkedRows(_fixtureRowsCompleted));
+	}
+
 	private static bool IsCategoricalVoidPixel(Color color)
 	{
 		return color.R <= 0.001f &&
@@ -14319,6 +14424,11 @@ private sealed class OverlayRollingWindow
 
 				string renderTestTraversalMode = NormalizeRenderTestFirstPassTraversalMode(cfg.RenderTestFirstPassTraversalMode);
 				const int renderTestTraversalTileSize = 16;
+				bool captureTraversalOverlayActive = _filmOverlay != null
+					&& GodotObject.IsInstanceValid(_filmOverlay)
+					&& (_filmOverlay.ShowTraversalOverlay || _filmOverlay.ShowTraversalMinimap);
+				if (captureTraversalOverlayActive)
+					RecordTraversalOverlayActiveRect(0, yStart, filmW, Math.Max(1, yEnd - yStart));
 				int TraversalSubtileIndexForX(int x)
 				{
 					if (_tileMetricCurrentSubtileCount <= 0 || _tileMetricCurrentSubtileWidth <= 0)
@@ -14418,6 +14528,16 @@ private sealed class OverlayRollingWindow
 					Pass1ThreadLocal local = CreatePass1ThreadLocal();
 					ForEachTraversalSampleOrigin(mode, (x, y, localY, subtileIndex) =>
 					{
+						if (captureTraversalOverlayActive)
+						{
+							int tileX = (x / renderTestTraversalTileSize) * renderTestTraversalTileSize;
+							int tileY = (y / renderTestTraversalTileSize) * renderTestTraversalTileSize;
+							RecordTraversalOverlayActiveRect(
+								tileX,
+								tileY,
+								Math.Min(renderTestTraversalTileSize, Math.Max(1, filmW - tileX)),
+								Math.Min(renderTestTraversalTileSize, Math.Max(1, filmH - tileY)));
+						}
 						local = ProcessPass1Pixel(localY * filmW + x, local);
 					});
 
@@ -20259,6 +20379,7 @@ private sealed class OverlayRollingWindow
 
 			// ---- Debug overlay draw ONCE per band ----
 			ApplyHudOverlayVisualSettings();
+			PushTraversalOverlayStateToFilmOverlay(filmW, filmH, cfg.RenderTestFirstPassTraversalMode, yStart, yEnd);
 			if (wantDbg && _filmOverlay != null)
 			{
 				ulong dbgOverlayStart = 0;

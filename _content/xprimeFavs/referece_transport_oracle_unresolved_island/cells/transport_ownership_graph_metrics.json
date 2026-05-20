@@ -1,0 +1,37 @@
+{
+  "edge_persistence_rate": "",
+  "epsilon": 0.05,
+  "epsilon_stable_area_percent": 100.0,
+  "full_frame_graph_basis": true,
+  "graph_edge_count": 0,
+  "graph_edit_distance_vs_reference": "",
+  "graph_node_count": 1,
+  "high_discontinuity_edge_count": 0,
+  "merge_count": 0,
+  "missing_optional_fields": [
+    "portal_event_count"
+  ],
+  "node_persistence_rate": "",
+  "oracle_sample_only": false,
+  "persistence_basis": "unavailable",
+  "precision_floor_histogram": {
+    "0.014": 11,
+    "0.015": 32,
+    "0.016": 44,
+    "0.018": 53,
+    "0.02": 132
+  },
+  "roi_bbox": [
+    32,
+    27,
+    48,
+    43
+  ],
+  "sampled_topology_sealed_step": "0.00625",
+  "seam_length_px_total": 0,
+  "split_count": 0,
+  "threshold_snap_count": 0,
+  "unresolved_pixel_count": 0,
+  "unstable_subgraph_count": 0,
+  "warnings": []
+}

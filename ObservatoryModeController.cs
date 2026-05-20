@@ -119,6 +119,8 @@ public partial class ObservatoryModeController : Node
 					_overlay.DrawFilmGradientNormals = false;
 					_overlay.ShowComparisonGrid      = false;
 					_overlay.ShowComparisonCrosshair = true;
+					_overlay.ShowTraversalOverlay    = false;
+					_overlay.ShowTraversalMinimap    = false;
 					_overlay.QueueRedraw();
 				}
 				if (haveRenderer)
@@ -137,6 +139,8 @@ public partial class ObservatoryModeController : Node
 					_overlay.DrawFilmGradientNormals = false;
 					_overlay.ShowComparisonGrid      = true;
 					_overlay.ShowComparisonCrosshair = true;
+					_overlay.ShowTraversalOverlay    = false;
+					_overlay.ShowTraversalMinimap    = false;
 					_overlay.QueueRedraw();
 				}
 				if (haveRenderer)
@@ -155,6 +159,8 @@ public partial class ObservatoryModeController : Node
 					_overlay.DrawFilmGradientNormals = false;
 					_overlay.ShowComparisonGrid      = true;
 					_overlay.ShowComparisonCrosshair = true;
+					_overlay.ShowTraversalOverlay    = true;
+					_overlay.ShowTraversalMinimap    = false;
 					_overlay.QueueRedraw();
 				}
 				if (haveRenderer)
@@ -173,6 +179,8 @@ public partial class ObservatoryModeController : Node
 					_overlay.DrawFilmGradientNormals = true;
 					_overlay.ShowComparisonGrid      = true;
 					_overlay.ShowComparisonCrosshair = true;
+					_overlay.ShowTraversalOverlay    = true;
+					_overlay.ShowTraversalMinimap    = true;
 					_overlay.QueueRedraw();
 				}
 				if (haveRenderer)
@@ -191,6 +199,8 @@ public partial class ObservatoryModeController : Node
 					_overlay.DrawFilmGradientNormals = true;
 					_overlay.ShowComparisonGrid      = true;
 					_overlay.ShowComparisonCrosshair = true;
+					_overlay.ShowTraversalOverlay    = true;
+					_overlay.ShowTraversalMinimap    = true;
 					_overlay.QueueRedraw();
 				}
 				if (haveRenderer)
@@ -209,6 +219,8 @@ public partial class ObservatoryModeController : Node
 					_overlay.DrawFilmGradientNormals = false;
 					_overlay.ShowComparisonGrid      = false;
 					_overlay.ShowComparisonCrosshair = false;
+					_overlay.ShowTraversalOverlay    = false;
+					_overlay.ShowTraversalMinimap    = false;
 					_overlay.QueueRedraw();
 				}
 				if (haveRenderer)

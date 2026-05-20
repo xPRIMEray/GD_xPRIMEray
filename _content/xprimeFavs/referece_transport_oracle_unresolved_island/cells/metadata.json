@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-05-06T04:07:04Z",
+  "study": "reference_transport_oracle_unresolved_island",
+  "fixture": "domain_resolver_stress",
+  "mode": "unresolved_island",
+  "center": "40,34",
+  "target_bbox": "36,31,44,37",
+  "local_patch_bbox": "32,27,48,43",
+  "patch_size": 17,
+  "max_pixels": 289,
+  "production_steps": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+  "oracle_step_length": "0.00078125",
+  "oracle_tolerance": "0.0001",
+  "traversal": "row",
+  "stride": 1,
+  "resolution": "320x180",
+  "diagnostic_only": true,
+  "guardrail": "ReferenceTransportOracle outputs must not feed rendering, scheduling, hit selection, shading, resolver decisions, traversal, or adaptive precision.",
+  "cell_dir": "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260506T035920Z/cells/unresolved_island",
+  "exit_code": 0,
+  "effective_status": 0,
+  "notes": "clean_exit"
+}

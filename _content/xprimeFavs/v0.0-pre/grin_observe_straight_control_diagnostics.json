@@ -1,0 +1,12 @@
+{
+  "schema": "xprimeray.grin_observe_demo_diagnostics.v1",
+  "timestamp_utc": "2026-05-19T01:23:44Z",
+  "version": "xPRIMEray v0.0-pre",
+  "mode": "Straight Control",
+  "scene": "res://test-straight-basic-visual-offaxis-observe.tscn",
+  "fixture": "GRIN Basic Visual Off-Axis Observe",
+  "overlay_state": "FilmOverlay2D: rays=off normals=on grid=on reticle=on rays_sampled=0",
+  "field_state": "Field: transport=GRIN_Optical rOuter=6.5 amp=1.35 gamma=2.4",
+  "cockpit_state": "Cockpit: comparison=on cameraFrozen=on clean=off still=ok diagnostics=pending",
+  "object_state_locked": true
+}

@@ -1,0 +1,133 @@
+{
+  "animated_outputs": {
+    "budget_heatmap_evolution": {
+      "duration_ms": 850,
+      "frame_count": 1,
+      "interpolation": "none_real_frames_only",
+      "kind": "budget",
+      "missing": [],
+      "path": "output/curved_field_validation_ladder/20260509T160715Z/budget_heatmap_evolution.gif",
+      "role": "curved"
+    },
+    "diagnostic_storyboard_evolution": {
+      "duration_ms": 1200,
+      "frame_count": 1,
+      "interpolation": "none_real_frames_only",
+      "kind": "storyboard",
+      "missing": [],
+      "path": "output/curved_field_validation_ladder/20260509T160715Z/diagnostic_storyboard_evolution.gif",
+      "role": "curved"
+    },
+    "ownership_graph_evolution": {
+      "duration_ms": 850,
+      "frame_count": 1,
+      "interpolation": "none_real_frames_only",
+      "kind": "topology",
+      "missing": [],
+      "path": "output/curved_field_validation_ladder/20260509T160715Z/ownership_graph_evolution.gif",
+      "role": "curved"
+    }
+  },
+  "annotations": [
+    "role",
+    "frame_count_when_available",
+    "step",
+    "transport_quality_phase",
+    "budget_saturation_marker",
+    "unresolved_marker"
+  ],
+  "evolution_axes": {
+    "convergence_stages": true,
+    "frame_progression": false,
+    "frame_progression_reason": "current ladder artifacts expose final per-step captures, not per-frame image sequences",
+    "step_ladder": true
+  },
+  "fake_interpolation": false,
+  "real_frames_only": true,
+  "roles": [
+    "control",
+    "curved"
+  ],
+  "schema_version": 1,
+  "steps": [
+    "0.015"
+  ],
+  "strips": {
+    "budget_evolution_strip": {
+      "frames_used": 2,
+      "kind": "budget",
+      "missing": [],
+      "path": "output/curved_field_validation_ladder/20260509T160715Z/budget_evolution_strip.png",
+      "roles": [
+        "control",
+        "curved"
+      ],
+      "steps": [
+        "0.015"
+      ]
+    },
+    "topology_evolution_strip": {
+      "frames_used": 2,
+      "kind": "topology",
+      "missing": [],
+      "path": "output/curved_field_validation_ladder/20260509T160715Z/topology_evolution_strip.png",
+      "roles": [
+        "control",
+        "curved"
+      ],
+      "steps": [
+        "0.015"
+      ]
+    },
+    "transport_phase_evolution_strip": {
+      "frames_used": 2,
+      "kind": "transport_phase",
+      "missing": [],
+      "path": "output/curved_field_validation_ladder/20260509T160715Z/transport_phase_evolution_strip.png",
+      "roles": [
+        "control",
+        "curved"
+      ],
+      "steps": [
+        "0.015"
+      ]
+    }
+  },
+  "temporal_role_selection": {
+    "candidates": [
+      {
+        "budget_range": 0.0,
+        "phase_diversity": [
+          "underresolved"
+        ],
+        "role": "curved",
+        "score": 8.0,
+        "selection_factors": [
+          "best_temporal_coherence",
+          "strongest_visible_evolution",
+          "highest_explanatory_value"
+        ],
+        "step_count": 1,
+        "topology_delta_score": 0.0
+      },
+      {
+        "budget_range": 0.0,
+        "phase_diversity": [
+          "budget_saturated"
+        ],
+        "role": "control",
+        "score": 8.0,
+        "selection_factors": [
+          "best_temporal_coherence",
+          "strongest_visible_evolution",
+          "highest_explanatory_value"
+        ],
+        "step_count": 1,
+        "topology_delta_score": 0.0
+      }
+    ],
+    "selected_role": "curved",
+    "selection_reason": "highest combined temporal coherence, visible evolution, and explanatory value score"
+  },
+  "visual_sequence": "geometry -> transport -> topology -> quality/budget"
+}

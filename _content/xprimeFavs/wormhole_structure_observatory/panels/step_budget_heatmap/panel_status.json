@@ -1,0 +1,11 @@
+{
+  "panel_id": "step_budget_heatmap",
+  "title": "Step budget heatmap",
+  "status": "ok",
+  "exit_code": 0,
+  "duration_seconds": 38.0,
+  "timed_out": false,
+  "image": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/panels/step_budget_heatmap/step_budget_heatmap_composed.png",
+  "log": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/logs/step_budget_heatmap.log",
+  "notes": "capture_found"
+}

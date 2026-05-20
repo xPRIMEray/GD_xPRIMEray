@@ -1,0 +1,11 @@
+{
+  "panel_id": "structure_minimap",
+  "title": "Structure minimap",
+  "status": "ok",
+  "exit_code": 0,
+  "duration_seconds": 37.0,
+  "timed_out": false,
+  "image": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/panels/structure_minimap/structure_minimap_composed.png",
+  "log": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/logs/structure_minimap.log",
+  "notes": "capture_found"
+}

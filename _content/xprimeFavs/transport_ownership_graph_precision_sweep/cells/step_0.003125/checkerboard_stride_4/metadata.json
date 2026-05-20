@@ -1,0 +1,22 @@
+{
+  "timestamp": "2026-05-04T07:10:55Z",
+  "study": "transport_ownership_graph_precision_sweep",
+  "phase": "graph_precision_sweep",
+  "fixture": "domain_resolver_stress",
+  "step_length": "0.003125",
+  "reference_step_length": "0.003125",
+  "traversal": "checkerboard",
+  "stride": 4,
+  "roi_label": "full_frame_control_plus_roi_seeds",
+  "roi_sources": "40,35;280,35;40,145;280,145;79,25;150,28;150,32;150,36;104,40;158,40;214,40;104,44",
+  "patch_size": 17,
+  "radial_rings": "2,4,8,16,32",
+  "resolution": "320x180",
+  "diagnostic_only": true,
+  "graph_guardrail": "ownership graph outputs must not feed render scheduling, hit selection, shading, resolver decisions, or adaptive precision",
+  "cell_dir": "/home/bb/code/godot_xPRIMEray/output/transport_ownership_graph_precision_sweep/20260504T043955Z/cells/step_0.003125/checkerboard_stride_4",
+  "exit_code": 134,
+  "effective_status": 0,
+  "plateaued": 0,
+  "notes": "godot_shutdown_abort_after_harness_success"
+}

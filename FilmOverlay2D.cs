@@ -18,6 +18,11 @@ public partial class FilmOverlay2D : TextureRect
 		public readonly int DebugOverlayTextCount;
 		public readonly int FilmWidth;
 		public readonly int FilmHeight;
+		public readonly bool TraversalOverlayEnabled;
+		public readonly bool TraversalMinimapEnabled;
+		public readonly string TraversalMode;
+		public readonly int TraversalTileCount;
+		public readonly int TraversalRowsCompleted;
 
 		public OverlayRenderSnapshot(
 			bool drawRaysEnabled,
@@ -31,7 +36,12 @@ public partial class FilmOverlay2D : TextureRect
 			int debugOverlayLineCount,
 			int debugOverlayTextCount,
 			int filmWidth,
-			int filmHeight)
+			int filmHeight,
+			bool traversalOverlayEnabled,
+			bool traversalMinimapEnabled,
+			string traversalMode,
+			int traversalTileCount,
+			int traversalRowsCompleted)
 		{
 			DrawRaysEnabled = drawRaysEnabled;
 			DrawHitNormalsEnabled = drawHitNormalsEnabled;
@@ -45,6 +55,11 @@ public partial class FilmOverlay2D : TextureRect
 			DebugOverlayTextCount = debugOverlayTextCount;
 			FilmWidth = filmWidth;
 			FilmHeight = filmHeight;
+			TraversalOverlayEnabled = traversalOverlayEnabled;
+			TraversalMinimapEnabled = traversalMinimapEnabled;
+			TraversalMode = traversalMode ?? string.Empty;
+			TraversalTileCount = traversalTileCount;
+			TraversalRowsCompleted = traversalRowsCompleted;
 		}
 	}
 
@@ -92,6 +107,24 @@ public partial class FilmOverlay2D : TextureRect
 	/// <summary>Crosshair arm length as a fraction of the smaller viewport dimension.</summary>
 	[Export(PropertyHint.Range, "0.01,0.08,0.005")] public float ComparisonCrosshairArmFraction = 0.035f;
 
+	[ExportSubgroup("Traversal Overlay")]
+	/// <summary>Draws passive scheduler completion state over the film.</summary>
+	[Export] public bool ShowTraversalOverlay = false;
+	/// <summary>Draws a small completion minimap in the corner.</summary>
+	[Export] public bool ShowTraversalMinimap = false;
+	/// <summary>Tile size used to bin row and tile traversal state for visualization.</summary>
+	[Export(PropertyHint.Range, "4,128,1")] public int TraversalOverlayTileSize = 16;
+	/// <summary>Untouched tile color. Low opacity keeps the film primary.</summary>
+	[Export] public Color TraversalUntouchedColor = new Color(0.55f, 0.60f, 0.65f, 0.10f);
+	/// <summary>Pass-1 complete / pass-2 pending color.</summary>
+	[Export] public Color TraversalPass1PendingColor = new Color(0.20f, 0.55f, 1.00f, 0.20f);
+	/// <summary>Active tile or band border color.</summary>
+	[Export] public Color TraversalActiveBorderColor = new Color(1f, 1f, 1f, 0.62f);
+	/// <summary>Active traversal marker line width.</summary>
+	[Export(PropertyHint.Range, "0.5,4.0,0.1")] public float TraversalActiveBorderWidth = 1.2f;
+	/// <summary>Maximum width of the completion minimap.</summary>
+	[Export(PropertyHint.Range, "80,260,5")] public float TraversalMinimapMaxWidth = 168f;
+
 	/// <summary>Base ray color.</summary>
 	[Export] public Color RayColor = new Color(0.6f, 1.0f, 0.6f, 0.9f);
 	/// <summary>Color for rays that hit.</summary>
@@ -126,6 +159,17 @@ public partial class FilmOverlay2D : TextureRect
 	private int _filmWidth;
 	private int _filmHeight;
 	private int _filmSampleStride = 1;
+	private byte[] _traversalTileStates = Array.Empty<byte>();
+	private int _traversalCols;
+	private int _traversalRows;
+	private int _traversalFilmWidth;
+	private int _traversalFilmHeight;
+	private int _traversalTileWidth;
+	private int _traversalTileHeight;
+	private Rect2I _traversalActiveRect;
+	private bool _traversalActiveKnown;
+	private string _traversalMode = string.Empty;
+	private int _traversalRowsCompleted;
 
 	public override void _Ready()
 	{
@@ -192,6 +236,57 @@ public partial class FilmOverlay2D : TextureRect
 		QueueRedraw();
 	}
 
+	public void SetTraversalOverlayState(
+		int filmWidth,
+		int filmHeight,
+		int tileWidth,
+		int tileHeight,
+		ReadOnlySpan<byte> tileStates,
+		int cols,
+		int rows,
+		Rect2I activeRect,
+		bool activeKnown,
+		string traversalMode,
+		int rowsCompleted)
+	{
+		_traversalFilmWidth = Math.Max(0, filmWidth);
+		_traversalFilmHeight = Math.Max(0, filmHeight);
+		_traversalTileWidth = Math.Max(1, tileWidth);
+		_traversalTileHeight = Math.Max(1, tileHeight);
+		_traversalCols = Math.Max(0, cols);
+		_traversalRows = Math.Max(0, rows);
+		int expected = _traversalCols * _traversalRows;
+		if (expected <= 0 || tileStates.Length < expected)
+		{
+			ClearTraversalOverlayState();
+			return;
+		}
+
+		if (_traversalTileStates.Length != expected)
+			_traversalTileStates = new byte[expected];
+		tileStates.Slice(0, expected).CopyTo(_traversalTileStates);
+
+		_traversalActiveRect = activeRect;
+		_traversalActiveKnown = activeKnown;
+		_traversalMode = traversalMode ?? string.Empty;
+		_traversalRowsCompleted = Math.Max(0, rowsCompleted);
+		QueueRedraw();
+	}
+
+	public void ClearTraversalOverlayState()
+	{
+		_traversalCols = 0;
+		_traversalRows = 0;
+		_traversalFilmWidth = 0;
+		_traversalFilmHeight = 0;
+		_traversalActiveKnown = false;
+		_traversalRowsCompleted = 0;
+		_traversalMode = string.Empty;
+		if (_traversalTileStates.Length > 0)
+			Array.Clear(_traversalTileStates, 0, _traversalTileStates.Length);
+		QueueRedraw();
+	}
+
 	public OverlayRenderSnapshot GetOverlayRenderSnapshot()
 	{
 		int lineCount = 0;
@@ -216,7 +311,12 @@ public partial class FilmOverlay2D : TextureRect
 			lineCount,
 			textCount,
 			_filmWidth,
-			_filmHeight);
+			_filmHeight,
+			ShowTraversalOverlay,
+			ShowTraversalMinimap,
+			_traversalMode,
+			_traversalCols * _traversalRows,
+			_traversalRowsCompleted);
 	}
 
 	private Transform2D GetCanvasToLocalTransform()
@@ -246,7 +346,12 @@ public partial class FilmOverlay2D : TextureRect
 		bool hasRayData = hasCam && _rayCount > 0 && _ptCount > 0;
 		bool drawFilmGradient = DrawFilmGradientNormals && _filmImage != null && _filmWidth > 2 && _filmHeight > 2;
 		bool hasOverlayItems = DebugOverlayBus.Count > 0;
-		if (!hasRayData && !drawFilmGradient && !hasOverlayItems) return;
+		bool drawTraversal = HasTraversalState() && (ShowTraversalOverlay || ShowTraversalMinimap);
+		bool drawComparison = ShowComparisonGrid || ShowComparisonCrosshair;
+		if (!hasRayData && !drawFilmGradient && !hasOverlayItems && !drawTraversal && !drawComparison) return;
+
+		if (drawTraversal && ShowTraversalOverlay)
+			DrawTraversalOverlay();
 
 		if (hasRayData && DrawRays)
 		{
@@ -341,6 +446,9 @@ public partial class FilmOverlay2D : TextureRect
 
 		if (ShowComparisonGrid || ShowComparisonCrosshair)
 			DrawComparisonOverlay();
+
+		if (drawTraversal && ShowTraversalMinimap)
+			DrawTraversalMinimap();
 
 		if (hasOverlayItems)
 		{
@@ -507,6 +615,137 @@ public partial class FilmOverlay2D : TextureRect
 			DrawLine(start, end, ComparisonBackdropColor, backdropThickness);
 		if (ComparisonLineColor.A > 0f && ComparisonLineThickness > 0f)
 			DrawLine(start, end, ComparisonLineColor, ComparisonLineThickness);
+	}
+
+	private bool HasTraversalState()
+	{
+		return _traversalFilmWidth > 0
+			&& _traversalFilmHeight > 0
+			&& _traversalCols > 0
+			&& _traversalRows > 0
+			&& _traversalTileStates.Length >= (_traversalCols * _traversalRows);
+	}
+
+	private void DrawTraversalOverlay()
+	{
+		Vector2 size = GetRect().Size;
+		if (size.X <= 1f || size.Y <= 1f)
+			return;
+
+		float scaleX = size.X / Mathf.Max(1, _traversalFilmWidth);
+		float scaleY = size.Y / Mathf.Max(1, _traversalFilmHeight);
+		for (int ty = 0; ty < _traversalRows; ty++)
+		{
+			int y0 = ty * _traversalTileHeight;
+			int y1 = Math.Min(_traversalFilmHeight, y0 + _traversalTileHeight);
+			if (y0 >= y1)
+				continue;
+
+			for (int tx = 0; tx < _traversalCols; tx++)
+			{
+				byte state = _traversalTileStates[(ty * _traversalCols) + tx];
+				if (state >= 2)
+					continue;
+
+				int x0 = tx * _traversalTileWidth;
+				int x1 = Math.Min(_traversalFilmWidth, x0 + _traversalTileWidth);
+				if (x0 >= x1)
+					continue;
+
+				Color color = state == 1 ? TraversalPass1PendingColor : TraversalUntouchedColor;
+				if (color.A <= 0f)
+					continue;
+
+				Rect2 rect = new Rect2(
+					new Vector2(x0 * scaleX, y0 * scaleY),
+					new Vector2(Mathf.Max(1f, (x1 - x0) * scaleX), Mathf.Max(1f, (y1 - y0) * scaleY)));
+				DrawRect(rect, color, filled: true);
+			}
+		}
+
+		if (_traversalActiveKnown && TraversalActiveBorderColor.A > 0f)
+		{
+			Rect2 active = FilmRectToLocal(_traversalActiveRect, scaleX, scaleY);
+			if (active.Size.X > 0.5f && active.Size.Y > 0.5f)
+				DrawRect(active, TraversalActiveBorderColor, filled: false, width: Math.Max(0.5f, TraversalActiveBorderWidth));
+		}
+	}
+
+	private void DrawTraversalMinimap()
+	{
+		Vector2 size = GetRect().Size;
+		if (size.X <= 1f || size.Y <= 1f)
+			return;
+
+		float aspect = _traversalFilmHeight > 0 ? _traversalFilmWidth / (float)_traversalFilmHeight : 1f;
+		float mapW = Mathf.Clamp(TraversalMinimapMaxWidth, 80f, Mathf.Min(260f, size.X * 0.28f));
+		float mapH = Mathf.Clamp(mapW / Mathf.Max(0.1f, aspect), 44f, size.Y * 0.24f);
+		if (mapH > size.Y * 0.24f)
+		{
+			mapH = size.Y * 0.24f;
+			mapW = mapH * Mathf.Max(0.1f, aspect);
+		}
+
+		const float margin = 14f;
+		Rect2 bg = new Rect2(
+			new Vector2(Mathf.Max(margin, size.X - mapW - margin), Mathf.Max(margin, size.Y - mapH - margin)),
+			new Vector2(mapW, mapH));
+		DrawRect(bg, new Color(0.02f, 0.025f, 0.035f, 0.68f), filled: true);
+		DrawRect(bg, new Color(1f, 1f, 1f, 0.18f), filled: false, width: 1f);
+
+		float cellW = bg.Size.X / Math.Max(1, _traversalCols);
+		float cellH = bg.Size.Y / Math.Max(1, _traversalRows);
+		Color completeColor = new Color(0.78f, 0.90f, 1.0f, 0.10f);
+		for (int ty = 0; ty < _traversalRows; ty++)
+		{
+			for (int tx = 0; tx < _traversalCols; tx++)
+			{
+				byte state = _traversalTileStates[(ty * _traversalCols) + tx];
+				Color color = state >= 2
+					? completeColor
+					: (state == 1 ? TraversalPass1PendingColor : TraversalUntouchedColor);
+				if (color.A <= 0f)
+					continue;
+
+				Rect2 rect = new Rect2(
+					bg.Position + new Vector2(tx * cellW, ty * cellH),
+					new Vector2(Mathf.Max(1f, cellW), Mathf.Max(1f, cellH)));
+				DrawRect(rect, color, filled: true);
+			}
+		}
+
+		if (_traversalActiveKnown && TraversalActiveBorderColor.A > 0f)
+		{
+			float sx = bg.Size.X / Mathf.Max(1, _traversalFilmWidth);
+			float sy = bg.Size.Y / Mathf.Max(1, _traversalFilmHeight);
+			Rect2 active = FilmRectToLocal(_traversalActiveRect, sx, sy);
+			active.Position += bg.Position;
+			DrawRect(active, TraversalActiveBorderColor, filled: false, width: 1f);
+		}
+
+		Font font = GetThemeDefaultFont();
+		if (font != null)
+		{
+			int fontSize = Math.Max(9, Mathf.RoundToInt(GetThemeDefaultFontSize() * 0.72f));
+			int totalRows = Math.Max(1, _traversalFilmHeight);
+			string label = $"{_traversalMode} {_traversalRowsCompleted}/{totalRows}";
+			DrawString(font, bg.Position + new Vector2(6f, Mathf.Min(bg.Size.Y - 5f, fontSize + 4f)), label, HorizontalAlignment.Left, bg.Size.X - 12f, fontSize, new Color(0.92f, 0.97f, 1f, 0.86f));
+		}
+	}
+
+	private Rect2 FilmRectToLocal(Rect2I rect, float scaleX, float scaleY)
+	{
+		int x0 = Math.Clamp(rect.Position.X, 0, Math.Max(0, _traversalFilmWidth));
+		int y0 = Math.Clamp(rect.Position.Y, 0, Math.Max(0, _traversalFilmHeight));
+		int x1 = Math.Clamp(rect.Position.X + Math.Max(1, rect.Size.X), 0, Math.Max(0, _traversalFilmWidth));
+		int y1 = Math.Clamp(rect.Position.Y + Math.Max(1, rect.Size.Y), 0, Math.Max(0, _traversalFilmHeight));
+		if (x1 <= x0)
+			x1 = Math.Min(_traversalFilmWidth, x0 + 1);
+		if (y1 <= y0)
+			y1 = Math.Min(_traversalFilmHeight, y0 + 1);
+		return new Rect2(
+			new Vector2(x0 * scaleX, y0 * scaleY),
+			new Vector2(Mathf.Max(1f, (x1 - x0) * scaleX), Mathf.Max(1f, (y1 - y0) * scaleY)));
 	}
 
 	private float ResolveHudFontScale()

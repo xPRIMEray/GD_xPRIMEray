@@ -1,0 +1,50 @@
+# Curved Fixture Inventory
+
+| Scene | Field node? | Nonzero curvature/GRIN hint? | Curved transport hint? | Prior outputs? |
+|---|---:|---:|---:|---:|
+| `Fixtures/fixture_blackhole_minimal.tscn` | True | True | False | False |
+| `Fixtures/fixture_blackhole_minimal_grin.tscn` | True | True | True | False |
+| `Fixtures/fixture_blackhole_minimal_metric.tscn` | True | True | True | False |
+| `Fixtures/fixture_boundary_nested_shell_modes.tscn` | False | False | False | False |
+| `Fixtures/fixture_boundary_shell_entry_basic.tscn` | True | False | False | False |
+| `Fixtures/fixture_boundary_shell_policy_compare.tscn` | False | False | False | False |
+| `Fixtures/fixture_curved_minimal.tscn` | True | True | False | False |
+| `Fixtures/fixture_curved_minimal_backdrop.tscn` | True | True | False | False |
+| `Fixtures/fixture_einstein_ring_minimal.tscn` | True | True | False | False |
+| `Fixtures/fixture_einstein_ring_minimal_grin.tscn` | True | True | True | False |
+| `Fixtures/fixture_einstein_ring_minimal_metric.tscn` | True | True | True | False |
+| `Fixtures/fixture_grin_basic_visual.tscn` | True | True | False | False |
+| `Fixtures/fixture_grin_basic_visual_linear.tscn` | True | True | False | False |
+| `Fixtures/fixture_grin_basic_visual_linear_dual_attractor.tscn` | True | True | False | False |
+| `Fixtures/fixture_grin_basic_visual_linear_offset.tscn` | True | True | False | False |
+| `Fixtures/fixture_grin_basic_visual_offaxis.tscn` | True | True | True | False |
+| `Fixtures/fixture_grin_basic_visual_offaxis_observe.tscn` | True | True | True | False |
+| `Fixtures/fixture_grin_basic_visual_straight.tscn` | True | True | True | False |
+| `Fixtures/fixture_grin_basic_visual_straight_offaxis.tscn` | True | True | True | False |
+| `Fixtures/fixture_grin_basic_visual_straight_offaxis_observe.tscn` | True | True | True | False |
+| `Fixtures/fixture_metric_basic_visual.tscn` | True | True | True | False |
+| `Fixtures/fixture_metric_basic_visual_offaxis.tscn` | True | True | True | False |
+| `Fixtures/fixture_metric_basic_visual_offaxis_observe.tscn` | True | True | True | False |
+| `test-blackhole-minimal-grin.tscn` | False | False | False | False |
+| `test-blackhole-minimal-metric.tscn` | False | False | False | False |
+| `test-blackhole-minimal.tscn` | False | False | False | True |
+| `test-boundary-nested-shell-modes.tscn` | False | False | False | False |
+| `test-boundary-shell-entry-basic.tscn` | False | False | False | False |
+| `test-boundary-shell-policy-compare.tscn` | False | False | False | False |
+| `test-curved-minimal-backdrop.tscn` | False | True | True | True |
+| `test-curved-minimal.tscn` | False | True | True | True |
+| `test-einstein-ring-minimal-grin.tscn` | False | False | False | False |
+| `test-einstein-ring-minimal-metric.tscn` | False | False | False | False |
+| `test-einstein-ring-minimal.tscn` | False | False | False | True |
+| `test-grin-basic-visual-linear-dual-attractor-minimal.tscn` | True | True | False | False |
+| `test-grin-basic-visual-linear-minimal.tscn` | True | True | False | False |
+| `test-grin-basic-visual-linear-offset-minimal.tscn` | True | True | False | False |
+| `test-grin-basic-visual-minimal-offaxis-observe.tscn` | True | True | False | False |
+| `test-grin-basic-visual-minimal-offaxis.tscn` | True | True | False | False |
+| `test-grin-basic-visual-minimal.tscn` | True | True | False | False |
+| `test-grin-basic-visual-offaxis-observe.tscn` | True | True | False | False |
+| `test-grin-basic-visual-offaxis.tscn` | True | True | False | False |
+| `test-grin-basic-visual-straight-offaxis-observe.tscn` | True | True | False | False |
+| `test-grin-basic-visual-straight-offaxis.tscn` | True | True | False | False |
+| `test-grin-basic-visual-straight.tscn` | True | True | False | False |
+| `test-grin-basic-visual.tscn` | True | True | False | False |

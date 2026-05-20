@@ -1,0 +1,11 @@
+{
+  "panel_id": "domain_diagnostics",
+  "title": "Domain diagnostics",
+  "status": "ok",
+  "exit_code": 0,
+  "duration_seconds": 21.0,
+  "timed_out": false,
+  "image": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/panels/domain_diagnostics/domain_diagnostics_film.domain_id.png",
+  "log": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/logs/domain_diagnostics.log",
+  "notes": "capture_found"
+}
