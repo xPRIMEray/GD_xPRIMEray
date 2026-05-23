@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -16,6 +17,7 @@ DEFAULT_GODOT_EXE = (
 FULL_MIN_ROWS = 360
 QUICK_MIN_ROWS = 180
 GODOT_TIMEOUT_SECONDS = 1800
+TRANSPORT_CLASSIFICATION_CAPTURE_MODE = "transport_classification"
 
 FAIL_RE = re.compile(r"\[GrinBasicVisual\]\[Capture\]\[FAIL\].*")
 
@@ -250,16 +252,27 @@ def build_telemetry_block(result, log_text):
     return "\n".join(lines)
 
 
-def run_case(godot_exe, case_data, screenshot_dir, log_dir):
+def run_case(
+    godot_exe,
+    case_data,
+    screenshot_dir,
+    log_dir,
+    capture_path=None,
+    log_suffix="",
+    analysis_capture_mode=None,
+):
     min_rows = case_data["min_rows"]
-    screenshot_path = screenshot_dir / f"{case_data['id']}.png"
-    log_path = log_dir / f"{case_data['id']}.log"
+    screenshot_path = capture_path or (screenshot_dir / f"{case_data['id']}.png")
+    log_path = log_dir / f"{case_data['id']}{log_suffix}.log"
     args = [
         f"--grin-basic-capture={screenshot_path.as_posix()}",
         f"--grin-basic-min-processed-rows={min_rows}",
         "--grin-basic-exit-after-capture=1",
         "--grin-basic-settle-frames=6",
     ]
+    if analysis_capture_mode:
+        args.append(f"--grin-basic-analysis-capture-mode={analysis_capture_mode}")
+
     cmd = [godot_exe, "--path", ".", "--scene", case_data["scene"], "--", *args]
     combined = ""
     exit_code = -1
@@ -325,6 +338,11 @@ def run_case(godot_exe, case_data, screenshot_dir, log_dir):
         "traversalRowsCompleted": to_int(art.get("traversalRowsCompleted")),
         "filmRowsRendered": to_int(art.get("filmRowsRendered")),
         "filmHeight": to_int(art.get("filmHeight")),
+        "filmWidth": to_int(art.get("filmWidth")),
+        "analysisWidth": to_int(art.get("analysisWidth")),
+        "analysisHeight": to_int(art.get("analysisHeight")),
+        "analysisCaptureMode": art.get("analysisCaptureMode") or analysis_capture_mode,
+        "transportClassificationWritten": to_int(art.get("transportClassificationWritten")),
         "tracedPixels": to_int(cap.get("tracedPixels")),
         "backgroundHits": to_int(cap.get("backgroundHits")),
         "sourceHits": to_int(cap.get("sourceHits")),
@@ -340,6 +358,216 @@ def run_case(godot_exe, case_data, screenshot_dir, log_dir):
         "_parsed": parsed,
         "_logText": combined,
     }
+
+
+def transport_assumption_for_case(case_id):
+    if "straight" in case_id:
+        return "straight_reference"
+    if "grin" in case_id:
+        return "curved_grin"
+    return "unknown"
+
+
+def classification_capture_path(output_dir, case_data):
+    return output_dir / f"{case_data['id']}_transport_classification.png"
+
+
+def classification_metadata_path(output_dir, case_data):
+    return output_dir / f"{case_data['id']}_transport_classification_metadata.json"
+
+
+def classification_coverage_path(output_dir, case_data):
+    return output_dir / f"{case_data['id']}_transport_classification_coverage.json"
+
+
+def write_json(path, payload):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def build_classification_metadata(case_data, result):
+    parsed = result.get("_parsed") or {}
+    art = parsed.get("captureArtifacts") or {}
+    cfg = parsed.get("captureConfig") or {}
+    audit = parsed.get("launchAudit") or {}
+    tile = parsed.get("tileScheduler") or {}
+    width = result.get("analysisWidth")
+    height = result.get("analysisHeight")
+    return {
+        "schema": "xprimeray.classification_export_metadata.v1",
+        "case_id": result["caseId"],
+        "fixture": art.get("fixture") or cfg.get("fixture") or audit.get("actual_fixture"),
+        "fixture_id": result["caseId"],
+        "fixture_label": result["label"],
+        "scene": result["scene"],
+        "transport_assumption": transport_assumption_for_case(result["caseId"]),
+        "camera_pose_key": "hermetic_observatory_v0_pre",
+        "analysis_capture_mode": result.get("analysisCaptureMode"),
+        "classification_path": result["screenshotPath"],
+        "log_path": result["logPath"],
+        "width": width,
+        "height": height,
+        "dimensions": {
+            "analysis_width": width,
+            "analysis_height": height,
+            "film_width": result.get("filmWidth"),
+            "film_height": result.get("filmHeight"),
+            "matches_final_film": (
+                width is not None
+                and height is not None
+                and width == result.get("filmWidth")
+                and height == result.get("filmHeight")
+            ),
+        },
+        "scheduler_mode": tile.get("mode"),
+        "traversal_mode": tile.get("mode"),
+        "render_test_traversal_pass1_pass2": tile.get("mode"),
+        "min_rows": result["minRows"],
+        "traversal_rows_completed": result.get("traversalRowsCompleted"),
+        "transport_classification_written": result.get("transportClassificationWritten"),
+        "status": result["status"],
+        "capture_failure": result["captureFailure"],
+        "hermetic_failures": result["hermeticFailures"],
+        "semantic_scope": "presentation_only_export",
+        "notes": [
+            "Generated by re-running the hermetic fixture with analysis_capture_mode=transport_classification.",
+            "No transport semantics, scheduler order, hit selection, resolver decisions, or oracle logic are modified by this export.",
+        ],
+    }
+
+
+def build_classification_coverage(case_data, result):
+    parsed = result.get("_parsed") or {}
+    return {
+        "schema": "xprimeray.classification_export_coverage.v1",
+        "case_id": result["caseId"],
+        "fixture_label": result["label"],
+        "transport_assumption": transport_assumption_for_case(result["caseId"]),
+        "classification_path": result["screenshotPath"],
+        "analysis_capture_mode": result.get("analysisCaptureMode"),
+        "coverage": parsed.get("coverage") or {},
+        "summary_metrics": {
+            "total_pixels": result.get("totalPixels"),
+            "classified_pixels": result.get("classifiedPixels"),
+            "escaped_no_hit_pixels": result.get("escapedNoHitPixels"),
+            "budget_exhausted_pixels": result.get("budgetExhaustedPixels"),
+            "hermetic_rule_satisfied": result.get("hermeticRuleSatisfied"),
+        },
+    }
+
+
+def validate_classification_export(result):
+    failures = []
+    if result.get("analysisCaptureMode") != TRANSPORT_CLASSIFICATION_CAPTURE_MODE:
+        failures.append(
+            f"analysisCaptureMode={result.get('analysisCaptureMode')} "
+            f"(expected {TRANSPORT_CLASSIFICATION_CAPTURE_MODE})"
+        )
+    if result.get("transportClassificationWritten") != 1:
+        failures.append("transportClassificationWritten is not 1")
+
+    analysis_width = result.get("analysisWidth")
+    analysis_height = result.get("analysisHeight")
+    film_width = result.get("filmWidth")
+    film_height = result.get("filmHeight")
+    if None in (analysis_width, analysis_height, film_width, film_height):
+        failures.append(
+            "classification/film dimensions missing "
+            f"(analysis={analysis_width}x{analysis_height}, film={film_width}x{film_height})"
+        )
+    elif analysis_width != film_width or analysis_height != film_height:
+        failures.append(
+            "classification dimensions do not match final film "
+            f"(analysis={analysis_width}x{analysis_height}, film={film_width}x{film_height})"
+        )
+
+    if failures:
+        result["status"] = "FAIL"
+        result["hermeticFailures"].extend(failures)
+
+
+def export_classification_case(godot_exe, case_data, output_dir, log_dir):
+    capture_path = classification_capture_path(output_dir, case_data)
+    result = run_case(
+        godot_exe,
+        case_data,
+        output_dir,
+        log_dir,
+        capture_path=capture_path,
+        log_suffix="_transport_classification",
+        analysis_capture_mode=TRANSPORT_CLASSIFICATION_CAPTURE_MODE,
+    )
+    validate_classification_export(result)
+    write_json(classification_metadata_path(output_dir, case_data), build_classification_metadata(case_data, result))
+    write_json(classification_coverage_path(output_dir, case_data), build_classification_coverage(case_data, result))
+    return result
+
+
+def run_classification_delta(output_dir, classification_results):
+    by_assumption = {
+        transport_assumption_for_case(r["caseId"]): r
+        for r in classification_results
+        if r["status"] == "PASS" and Path(r["screenshotPath"]).exists()
+    }
+    straight = by_assumption.get("straight_reference")
+    curved = by_assumption.get("curved_grin")
+    if not straight or not curved:
+        print("[hermetic-observe] classification delta skipped — straight/GRIN classification pair unavailable")
+        return None
+
+    out_dir = output_dir / "classification_delta"
+    cmd = [
+        sys.executable,
+        str(ROOT / "tools" / "classification_delta_compare.py"),
+        "--straight",
+        straight["screenshotPath"],
+        "--curved",
+        curved["screenshotPath"],
+        "--out-dir",
+        str(out_dir),
+        "--straight-metadata",
+        str(classification_metadata_path(output_dir, {"id": straight["caseId"]})),
+        "--curved-metadata",
+        str(classification_metadata_path(output_dir, {"id": curved["caseId"]})),
+        "--straight-coverage",
+        str(classification_coverage_path(output_dir, {"id": straight["caseId"]})),
+        "--curved-coverage",
+        str(classification_coverage_path(output_dir, {"id": curved["caseId"]})),
+        "--require-metadata",
+        "--metadata-key",
+        "width",
+        "--metadata-key",
+        "height",
+        "--metadata-key",
+        "camera_pose_key",
+        "--metadata-key",
+        "traversal_mode",
+        "--metadata-key",
+        "scheduler_mode",
+        "--metadata-key",
+        "render_test_traversal_pass1_pass2",
+    ]
+    completed = subprocess.run(
+        cmd,
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    delta_log_path = output_dir / "logs" / "hermetic_observatory" / "classification_delta_compare.log"
+    delta_log_path.parent.mkdir(parents=True, exist_ok=True)
+    delta_log_path.write_text(
+        completed.stdout + ("\n" + completed.stderr if completed.stderr else ""),
+        encoding="utf-8",
+    )
+    if completed.returncode != 0:
+        print(f"[hermetic-observe] classification delta failed — see {delta_log_path}")
+        return {"status": "FAIL", "logPath": str(delta_log_path), "outDir": str(out_dir)}
+
+    print(f"[hermetic-observe] classification delta written to {out_dir}")
+    return {"status": "PASS", "logPath": str(delta_log_path), "outDir": str(out_dir)}
 
 
 def write_report(report_path, results, mode_label):
@@ -413,6 +641,16 @@ def main():
     parser.add_argument("--output-dir", default=str(ROOT / "output" / "v0.0-pre"), help="Output directory for screenshots and report")
     parser.add_argument("--quick", action="store_true", help="Use quick smoke scenes (320x180 effective, min_rows=180)")
     parser.add_argument("--tile", action="store_true", help="Use tile-mode traversal scenes instead of row-mode scenes")
+    parser.add_argument(
+        "--export-classification",
+        action="store_true",
+        help="Also export normalized transport classification PNG/JSON sidecars for each hermetic case.",
+    )
+    parser.add_argument(
+        "--skip-classification-delta",
+        action="store_true",
+        help="Do not run classification_delta_compare.py after classification exports.",
+    )
     args = parser.parse_args()
 
     godot_exe = require_godot_exe(args.godot_exe)
@@ -434,6 +672,7 @@ def main():
     print(f"[hermetic-observe] mode={mode_label}  godot={godot_exe}")
 
     results = []
+    classification_results = []
     for case_data in cases:
         print(f"[hermetic-observe] running {case_data['label']} (min_rows={case_data['min_rows']}) ...")
         result = run_case(godot_exe, case_data, screenshot_dir, log_dir)
@@ -450,9 +689,29 @@ def main():
 
         results.append(result)
 
+        if args.export_classification:
+            print(f"[hermetic-observe] exporting {case_data['label']} transport classification ...")
+            classification_result = export_classification_case(godot_exe, case_data, output_dir, log_dir)
+            cls_suffix = ""
+            if classification_result["captureFailure"]:
+                cls_suffix = f" — capture error: {classification_result['captureFailure']}"
+            elif classification_result["hermeticFailures"]:
+                cls_suffix = f" — hermetic failures: {classification_result['hermeticFailures']}"
+            print(f"[hermetic-observe] {case_data['label']} classification: {classification_result['status']}{cls_suffix}")
+            if classification_result["status"] == "FAIL":
+                print(build_telemetry_block(classification_result, classification_result["_logText"]))
+            classification_results.append(classification_result)
+
     write_report(report_path, results, mode_label)
+    delta_result = None
+    if args.export_classification and not args.skip_classification_delta:
+        delta_result = run_classification_delta(output_dir, classification_results)
 
     all_pass = all(r["status"] == "PASS" for r in results)
+    if classification_results:
+        all_pass = all_pass and all(r["status"] == "PASS" for r in classification_results)
+    if delta_result:
+        all_pass = all_pass and delta_result["status"] == "PASS"
     if all_pass:
         print("[hermetic-observe] ALL PASS")
     else:

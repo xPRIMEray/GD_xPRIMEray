@@ -23,17 +23,20 @@ public partial class ObservatoryModeController : Node
 		Risk         = 4,  // Ctrl+4 — continuity vectors and film gradient
 		Oracle       = 5,  // Ctrl+5 — maximum diagnostic density
 		Presentation = 6,  // Ctrl+6 — educational/public, minimal overlays
+		TraversalEmergenceObservatoryMode = 7, // Ctrl+7 — staged traversal emergence reel
 	}
 
 	[Export] public NodePath OverlayPath     = new("../CanvasLayer/FilmOverlay2D");
 	[Export] public NodePath HudPath         = new("../CanvasLayer/DemoHud");
 	[Export] public NodePath RendererPath    = new("../FixtureGrinBasicVisual/RayBeamRenderer");
+	[Export] public NodePath TraversalEmergenceSequencerPath = new("../TraversalEmergenceSequencer");
 	[Export] public bool EnableModeHotkeys   = true;
 	[Export] public ObservatoryMode InitialMode = ObservatoryMode.None;
 
 	private FilmOverlay2D    _overlay;
 	private GrinObserveDemoHud _hud;
 	private RayBeamRenderer  _renderer;
+	private TraversalEmergenceSequencer _traversalEmergenceSequencer;
 	private ObservatoryMode  _currentMode = ObservatoryMode.None;
 
 	public ObservatoryMode CurrentMode => _currentMode;
@@ -43,6 +46,7 @@ public partial class ObservatoryModeController : Node
 		_overlay  = GetNodeOrNull<FilmOverlay2D>(OverlayPath);
 		_hud      = GetNodeOrNull<GrinObserveDemoHud>(HudPath);
 		_renderer = GetNodeOrNull<RayBeamRenderer>(RendererPath);
+		_traversalEmergenceSequencer = GetNodeOrNull<TraversalEmergenceSequencer>(TraversalEmergenceSequencerPath);
 
 		if (InitialMode != ObservatoryMode.None)
 		{
@@ -75,6 +79,7 @@ public partial class ObservatoryModeController : Node
 			Key.Key4 => ObservatoryMode.Risk,
 			Key.Key5 => ObservatoryMode.Oracle,
 			Key.Key6 => ObservatoryMode.Presentation,
+			Key.Key7 => ObservatoryMode.TraversalEmergenceObservatoryMode,
 			_        => null,
 		};
 
@@ -90,9 +95,24 @@ public partial class ObservatoryModeController : Node
 		_currentMode = mode;
 		ApplyPreset(mode);
 
+		bool traversalEmergenceStarted = false;
+		if (_traversalEmergenceSequencer != null && GodotObject.IsInstanceValid(_traversalEmergenceSequencer))
+		{
+			if (mode == ObservatoryMode.TraversalEmergenceObservatoryMode)
+			{
+				_traversalEmergenceSequencer.StartSequence();
+				traversalEmergenceStarted = true;
+			}
+			else
+			{
+				_traversalEmergenceSequencer.StopSequence();
+			}
+		}
+
 		if (_hud != null && GodotObject.IsInstanceValid(_hud))
 		{
-			_hud.ObservatoryModeName = ModeLabel(mode);
+			if (!traversalEmergenceStarted)
+				_hud.ObservatoryModeName = ModeLabel(mode);
 		}
 
 		GD.Print($"[ObservatoryModeController] mode={mode}  ({ModeLabel(mode)})");
@@ -229,6 +249,27 @@ public partial class ObservatoryModeController : Node
 					_renderer.DebugDrawOnlyHits = false;
 				}
 				break;
+
+			case ObservatoryMode.TraversalEmergenceObservatoryMode:
+				// Capture-friendly starting state; TraversalEmergenceSequencer owns
+				// the subsequent staged overlay choreography.
+				if (haveOverlay)
+				{
+					_overlay.DrawRays               = false;
+					_overlay.DrawHitNormals         = false;
+					_overlay.DrawFilmGradientNormals = false;
+					_overlay.ShowComparisonGrid      = false;
+					_overlay.ShowComparisonCrosshair = false;
+					_overlay.ShowTraversalOverlay    = true;
+					_overlay.ShowTraversalMinimap    = true;
+					_overlay.QueueRedraw();
+				}
+				if (haveRenderer)
+				{
+					_renderer.DebugMode        = RayBeamRenderer.DebugDrawMode.Off;
+					_renderer.DebugDrawOnlyHits = true;
+				}
+				break;
 		}
 	}
 
@@ -240,6 +281,7 @@ public partial class ObservatoryModeController : Node
 		ObservatoryMode.Risk         => "Risk / Continuity Mode",
 		ObservatoryMode.Oracle       => "Oracle / Microscopy Mode",
 		ObservatoryMode.Presentation => "Presentation Mode",
+		ObservatoryMode.TraversalEmergenceObservatoryMode => "Traversal Emergence Observatory Mode",
 		_                            => string.Empty,
 	};
 }

@@ -1032,16 +1032,16 @@ public partial class GrinFilmCamera : Node
 
 	private static readonly Color FixtureCategoricalFinalHitColor = new(1.0f, 0.82f, 0.18f, 1.0f);
 	private static readonly Color FixtureCategoricalRenderedNoHitColor = new(0.07f, 0.09f, 0.18f, 1.0f);
-	private static readonly Color FixtureTransportGeomHitColor = new(0.16f, 0.72f, 0.26f, 1.0f);
-	private static readonly Color FixtureTransportPortalHitColor = new(0.18f, 0.82f, 0.92f, 1.0f);
-	private static readonly Color FixtureTransportThroatEventColor = new(0.95f, 0.78f, 0.18f, 1.0f);
-	private static readonly Color FixtureTransportThroatEntryColor = new(0.96f, 0.82f, 0.16f, 1.0f);
-	private static readonly Color FixtureTransportThroatExitColor = new(0.96f, 0.42f, 0.14f, 1.0f);
-	private static readonly Color FixtureTransportThroatShellTransformColor = new(0.72f, 0.32f, 0.92f, 1.0f);
-	private static readonly Color FixtureTransportThroatInnerAbsorbColor = new(0.46f, 0.16f, 0.14f, 1.0f);
-	private static readonly Color FixtureTransportBackgroundHitColor = new(0.32f, 0.44f, 0.86f, 1.0f);
-	private static readonly Color FixtureTransportEscapedNoHitColor = new(0.55f, 0.17f, 0.17f, 1.0f);
-	private static readonly Color FixtureTransportBudgetExhaustedColor = new(0.95f, 0.18f, 0.18f, 1.0f);
+	private static readonly Color FixtureTransportGeomHitColor = Color.Color8(41, 184, 66);
+	private static readonly Color FixtureTransportPortalHitColor = Color.Color8(46, 209, 235);
+	private static readonly Color FixtureTransportThroatEventColor = Color.Color8(242, 199, 46);
+	private static readonly Color FixtureTransportThroatEntryColor = Color.Color8(245, 209, 41);
+	private static readonly Color FixtureTransportThroatExitColor = Color.Color8(245, 107, 36);
+	private static readonly Color FixtureTransportThroatShellTransformColor = Color.Color8(184, 82, 235);
+	private static readonly Color FixtureTransportThroatInnerAbsorbColor = Color.Color8(117, 41, 36);
+	private static readonly Color FixtureTransportBackgroundHitColor = Color.Color8(82, 112, 219);
+	private static readonly Color FixtureTransportEscapedNoHitColor = Color.Color8(140, 43, 43);
+	private static readonly Color FixtureTransportBudgetExhaustedColor = Color.Color8(242, 46, 46);
 	private static readonly Color FixtureThroatDepthZeroColor = new(0.03f, 0.03f, 0.04f, 1.0f);
 	private static readonly Color FixtureThroatDepthLowColor = new(0.08f, 0.17f, 0.42f, 1.0f);
 	private static readonly Color FixtureThroatDepthMidColor = new(0.09f, 0.73f, 0.82f, 1.0f);

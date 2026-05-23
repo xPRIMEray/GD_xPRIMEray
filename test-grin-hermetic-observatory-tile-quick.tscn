@@ -33,6 +33,7 @@ FixtureDebugSourceHitColor = Color(1, 0.72, 0.16, 1)
 FixtureDebugBackgroundHitColor = Color(0.14, 0.35, 0.78, 1)
 FixtureDebugAbsorbedColor = Color(0.03, 0.04, 0.08, 1)
 FixtureDebugColorAuthorityEnabled = true
+FixtureTransportClassificationEnabled = true
 UpdateEveryFrame = true
 UpdateEveryFrameBudgetMs = 500.0
 UpdateEveryFrameMaxRowsPerStep = 1024
