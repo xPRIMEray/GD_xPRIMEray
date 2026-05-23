@@ -117,7 +117,7 @@ def draw_metrics_panel(
 ) -> None:
     x, y = xy
     w = 420
-    h = 696
+    h = 1056
     draw.rounded_rectangle((x, y, x + w, y + h), radius=6, fill=PANEL, outline=LINE_SOFT, width=1)
     draw.text((x + 24, y + 24), "Metrics", fill=TEXT, font=FONT_PANEL)
     draw.text((x + 24, y + 50), "matched straight/curved transport assumptions", fill=TEXT_MUTED, font=FONT_SMALL)
@@ -145,7 +145,7 @@ def draw_metrics_panel(
     yy += 12
     draw.line((x + 24, yy, x + w - 24, yy), fill=LINE_SOFT, width=1)
     yy += 24
-    note = "terminal evidence redistributed; classification changed where measured terminal labels differ"
+    note = "beauty frames provide observatory context; terminal evidence redistributed in the classification buffers"
     for line in fit_text(draw, note, FONT_SMALL, w - 48):
         draw.text((x + 24, yy), line, fill=TEXT_MUTED, font=FONT_SMALL)
         yy += 19
@@ -156,14 +156,27 @@ def build(packet_dir: Path) -> Path:
     manifest = read_json(packet_dir / "packet_manifest.json")
     if manifest["delta"]["status"] != "PASS":
         raise SystemExit("packet_manifest delta status is not PASS")
+    beauty_frames = manifest.get("beauty_frames") or []
+    if len(beauty_frames) != 2 or any(frame.get("status") != "PASS" for frame in beauty_frames):
+        raise SystemExit("packet_manifest beauty_frames must contain two PASS entries")
+    beauty_pair_contract = manifest.get("beauty_pair_contract") or {}
+    if beauty_pair_contract and beauty_pair_contract.get("status") != "PASS":
+        raise SystemExit("packet_manifest beauty_pair_contract status is not PASS")
+    expected_beauty = [
+        packet_dir / "straight_offaxis_observe_beauty.png",
+        packet_dir / "grin_offaxis_observe_beauty.png",
+    ]
+    missing_beauty = [path.name for path in expected_beauty if not path.exists()]
+    if missing_beauty:
+        raise SystemExit(f"missing beauty frame(s): {', '.join(missing_beauty)}")
 
-    canvas = Image.new("RGBA", (1600, 940), BG + (255,))
+    canvas = Image.new("RGBA", (1600, 1300), BG + (255,))
     draw = ImageDraw.Draw(canvas)
 
     draw.text((56, 38), "Observer Disagreement Contact Sheet", fill=TEXT, font=FONT_TITLE)
     draw.text(
         (56, 78),
-        "measured off-axis transport classification packet",
+        "measured off-axis observatory context and transport classification packet",
         fill=TEXT_MUTED,
         font=FONT_METRIC,
     )
@@ -173,6 +186,22 @@ def build(packet_dir: Path) -> Path:
         canvas,
         draw,
         (56, 144),
+        "Straight Beauty",
+        "what the observer sees",
+        packet_dir / "straight_offaxis_observe_beauty.png",
+    )
+    draw_panel(
+        canvas,
+        draw,
+        (600, 144),
+        "Curved GRIN Beauty",
+        "what the observer sees",
+        packet_dir / "grin_offaxis_observe_beauty.png",
+    )
+    draw_panel(
+        canvas,
+        draw,
+        (56, 504),
         "Straight Classification",
         "straight_reference terminal evidence",
         packet_dir / "straight_offaxis_observe_transport_classification.png",
@@ -180,7 +209,7 @@ def build(packet_dir: Path) -> Path:
     draw_panel(
         canvas,
         draw,
-        (600, 144),
+        (600, 504),
         "Curved GRIN Classification",
         "curved_grin terminal evidence",
         packet_dir / "grin_offaxis_observe_transport_classification.png",
@@ -188,7 +217,7 @@ def build(packet_dir: Path) -> Path:
     draw_panel(
         canvas,
         draw,
-        (56, 504),
+        (56, 864),
         "Delta Mask",
         "classification changed",
         packet_dir / "classification_delta.png",
@@ -196,7 +225,7 @@ def build(packet_dir: Path) -> Path:
     draw_panel(
         canvas,
         draw,
-        (600, 504),
+        (600, 864),
         "Delta Contours",
         "redistribution boundary",
         packet_dir / "classification_delta_contours.png",
@@ -206,7 +235,7 @@ def build(packet_dir: Path) -> Path:
     footer = (
         "presentation-only instrumentation  |  measured outputs only  |  no transport, scheduler, traversal, hit-selection, or oracle changes"
     )
-    draw.text((56, 882), footer, fill=TEXT_MUTED, font=FONT_SMALL)
+    draw.text((56, 1242), footer, fill=TEXT_MUTED, font=FONT_SMALL)
 
     out_path = packet_dir / "contact_sheet.png"
     canvas.convert("RGB").save(out_path)
