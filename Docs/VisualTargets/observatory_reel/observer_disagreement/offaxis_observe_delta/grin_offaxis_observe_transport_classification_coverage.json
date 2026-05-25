@@ -1,0 +1,38 @@
+{
+  "analysis_capture_mode": "transport_classification",
+  "case_id": "grin_offaxis_observe",
+  "classification_path": "output/observer_disagreement/offaxis_observe_delta/grin_offaxis_observe_transport_classification.png",
+  "coverage": {
+    "analysisCaptureMode": "transport_classification",
+    "backgroundHitPixels": 0,
+    "budgetExhaustedPixels": 22464,
+    "classifiedCoverageRatio": 1,
+    "classifiedPixels": 129600,
+    "escapedNoHitPixels": 60295,
+    "fixture": "grin_basic_visual_offaxis",
+    "geomHitPixels": 46841,
+    "hermeticRuleSatisfied": 0,
+    "portalHitPixels": 0,
+    "summary": "geom=46841|portal=0|throat=0|t_entry=0|t_exit=0|t_xform=0|t_absorb=0|background=0|escaped=60295|budget=22464|cov=1",
+    "throatEntryPixels": 0,
+    "throatEventPixels": 0,
+    "throatExitPixels": 0,
+    "throatInnerAbsorbPixels": 0,
+    "throatShellTransformPixels": 0,
+    "totalPixels": 129600,
+    "unclassifiedPixels": 0
+  },
+  "fixture_label": "curved GRIN off-axis observe",
+  "schema": "xprimeray.classification_export_coverage.v1",
+  "summary_metrics": {
+    "background_hits": 44401,
+    "budget_exhausted_pixels": 22464,
+    "classified_pixels": 129600,
+    "escaped_no_hit_pixels": 60295,
+    "hermetic_rule_satisfied": 0,
+    "miss_hits": 62232,
+    "source_hits": 5815,
+    "total_pixels": 129600
+  },
+  "transport_assumption": "curved_grin"
+}

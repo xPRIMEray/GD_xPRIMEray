@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a restrained observer-disagreement contact sheet from a measured packet."""
+"""Build a restrained observer-disagreement cutsheet from a measured packet."""
 
 from __future__ import annotations
 
@@ -12,6 +12,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 DEFAULT_PACKET_DIR = Path("output/observer_disagreement/offaxis_observe_delta")
+PRIMARY_OUTPUT_NAME = "observability_cutsheet.png"
+LEGACY_OUTPUT_NAME = "contact_sheet.png"
 
 BG = (9, 14, 17)
 PANEL = (14, 22, 27)
@@ -173,10 +175,10 @@ def build(packet_dir: Path) -> Path:
     canvas = Image.new("RGBA", (1600, 1300), BG + (255,))
     draw = ImageDraw.Draw(canvas)
 
-    draw.text((56, 38), "Observer Disagreement Contact Sheet", fill=TEXT, font=FONT_TITLE)
+    draw.text((56, 38), "Observer Disagreement Cutsheet", fill=TEXT, font=FONT_TITLE)
     draw.text(
         (56, 78),
-        "measured off-axis observatory context and transport classification packet",
+        "measured off-axis observability packet",
         fill=TEXT_MUTED,
         font=FONT_METRIC,
     )
@@ -187,7 +189,7 @@ def build(packet_dir: Path) -> Path:
         draw,
         (56, 144),
         "Straight Beauty",
-        "what the observer sees",
+        "resolved film",
         packet_dir / "straight_offaxis_observe_beauty.png",
     )
     draw_panel(
@@ -195,7 +197,7 @@ def build(packet_dir: Path) -> Path:
         draw,
         (600, 144),
         "Curved GRIN Beauty",
-        "what the observer sees",
+        "resolved film",
         packet_dir / "grin_offaxis_observe_beauty.png",
     )
     draw_panel(
@@ -203,7 +205,7 @@ def build(packet_dir: Path) -> Path:
         draw,
         (56, 504),
         "Straight Classification",
-        "straight_reference terminal evidence",
+        "terminal evidence",
         packet_dir / "straight_offaxis_observe_transport_classification.png",
     )
     draw_panel(
@@ -211,7 +213,7 @@ def build(packet_dir: Path) -> Path:
         draw,
         (600, 504),
         "Curved GRIN Classification",
-        "curved_grin terminal evidence",
+        "terminal evidence",
         packet_dir / "grin_offaxis_observe_transport_classification.png",
     )
     draw_panel(
@@ -227,7 +229,7 @@ def build(packet_dir: Path) -> Path:
         draw,
         (600, 864),
         "Delta Contours",
-        "redistribution boundary",
+        "terminal evidence redistributed",
         packet_dir / "classification_delta_contours.png",
     )
     draw_metrics_panel(draw, (1144, 144), summary)
@@ -237,8 +239,11 @@ def build(packet_dir: Path) -> Path:
     )
     draw.text((56, 1242), footer, fill=TEXT_MUTED, font=FONT_SMALL)
 
-    out_path = packet_dir / "contact_sheet.png"
-    canvas.convert("RGB").save(out_path)
+    out_path = packet_dir / PRIMARY_OUTPUT_NAME
+    legacy_path = packet_dir / LEGACY_OUTPUT_NAME
+    rgb = canvas.convert("RGB")
+    rgb.save(out_path)
+    rgb.save(legacy_path)
     return out_path
 
 
