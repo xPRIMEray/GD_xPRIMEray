@@ -26,6 +26,7 @@ The engine is a curvature-inspired rendering platform and visual research tool. 
 
 <p align="center">
   <img src="assets/xPRIMEray_Logo_Hero_960.png" alt="xPRIMEray — Optical Transport Observatory" width="520">
+  ![xPRIMEray](https://raw.githubusercontent.com/AetherTopologist/GD_xPRIMEray/main/assets/xPRIMEray_Hero_960.png)
 </p>
 
 ---
