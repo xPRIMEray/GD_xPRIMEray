@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/xPRIMEray_Logo_Official_256.png" alt="xPRIMEray" width="400">
+  <img src="Docs/assets/xPRIMEray_Logo_Official_256.png" alt="xPRIMEray" width="400">
 </p>
 
 # xPRIMEray
@@ -25,8 +25,7 @@ The engine is a curvature-inspired rendering platform and visual research tool. 
 ## Phase 0 Visual Identity
 
 <p align="center">
-  <img src="assets/xPRIMEray_Logo_Hero_960.png" alt="xPRIMEray — Optical Transport Observatory" width="520">
-  ![xPRIMEray](https://raw.githubusercontent.com/AetherTopologist/GD_xPRIMEray/main/assets/xPRIMEray_Hero_960.png)
+  <img src="Docs/assets/xPRIMEray_Logo_Hero_960.png" alt="xPRIMEray — Optical Transport Observatory" width="520">
 </p>
 
 ---
