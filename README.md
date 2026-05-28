@@ -10,7 +10,7 @@ Built in Godot 4 C# — null-geodesic integrator, GRIN field renderer, wormhole 
 
 ---
 
-[Documentation](https://aethertopologist.github.io/GD_xPRIMEray/) · [Architecture](Docs/architecture/overview.md) · [Research](Docs/Research/) · [Feature Index](Docs/FEATURE_INDEX.md)
+[Documentation](https://xprimeray.github.io/GD_xPRIMEray/) · [Architecture](Docs/architecture/overview.md) · [Research](Docs/Research/) · [Feature Index](Docs/FEATURE_INDEX.md)
 
 ---
 

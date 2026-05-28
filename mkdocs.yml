@@ -1,7 +1,7 @@
 site_name: xPRIMEray
 site_description: Curved Ray Transport Engine for GRIN Fields — hybrid symbolic–numeric propagation, wormhole rendering, and geometry-aware optical transport
 site_author: AetherTopologist
-site_url: https://aethertopologist.github.io/GD_xPRIMEray/
+site_url: https://xprimeray.github.io/GD_xPRIMEray/
 
 repo_name: AetherTopologist/GD_xPRIMEray
 repo_url: https://github.com/AetherTopologist/GD_xPRIMEray
