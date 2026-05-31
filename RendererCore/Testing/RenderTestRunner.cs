@@ -3360,6 +3360,19 @@ public partial class RenderTestRunner : Node
 			&& tileMetricsSimulateReorder;
 		bool objectSeeded = TryGetBoolCmdArgValue("--object-seeded-tile-scheduler=", out bool objectSeededTileScheduler)
 			&& objectSeededTileScheduler;
+
+		if (TryGetIntCmdArgValue("--causal-threads=", out int causalThreadsCli) && _film != null && GodotObject.IsInstanceValid(_film))
+		{
+			_film.CausalThreads = Math.Clamp(causalThreadsCli, 1, 64);
+			// Conservative: enabling the scheduler scaffold when causal threads are explicitly requested
+			if (_film.CausalThreads != 4)
+				_film.EnableObjectSeededTileScheduler = true;
+		}
+
+		if (TryGetBoolCmdArgValue("--causal-turbo=", out bool causalTurboCli) && _film != null && GodotObject.IsInstanceValid(_film))
+		{
+			_film.EnableCausalTurbo = causalTurboCli;
+		}
 		if (!objectSeeded && TryGetStringCmdArgValue("--render-test-traversal=", out string traversalRaw) && !string.IsNullOrWhiteSpace(traversalRaw))
 		{
 			string traversal = traversalRaw.Trim().ToLowerInvariant().Replace("-", "_");

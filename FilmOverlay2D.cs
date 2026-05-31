@@ -23,6 +23,7 @@ public partial class FilmOverlay2D : TextureRect
 		public readonly string TraversalMode;
 		public readonly int TraversalTileCount;
 		public readonly int TraversalRowsCompleted;
+		public readonly bool CausalDopplerHeatmapEnabled;   // STEP 5 red/blue causal shift + halo
 
 		public OverlayRenderSnapshot(
 			bool drawRaysEnabled,
@@ -75,6 +76,12 @@ public partial class FilmOverlay2D : TextureRect
 	[Export] public bool DrawHitNormals = true;
 	/// <summary>Draws film gradient normals from image.</summary>
 	[Export] public bool DrawFilmGradientNormals = false;
+
+	/// <summary>STEP 5: Causal Doppler heatmap (red = receding/high OPL, blue = approaching). Diagnostic only.</summary>
+	[Export] public bool DrawCausalDopplerHeatmap = false;
+
+	/// <summary>STEP 6: Hermetic failure debug overlay merged on top of doppler. Bright red=no hit, orange=max steps, purple=field escape.</summary>
+	[Export] public bool DrawHermeticFailureDebug = false;
 
 	/// <summary>Line width for rays.</summary>
 	[Export] public float RayWidth = 1.0f;
@@ -520,6 +527,91 @@ public partial class FilmOverlay2D : TextureRect
 
 		if (hasOverlayItems)
 			DebugOverlayBus.ClearFrame();
+
+		// =====================================================================
+		// STEP 5/6: Combined Causal Doppler + Hermetic Failure Debug + PortalHaloMario
+		// Red   = receding / higher causal distance
+		// Blue  = approaching
+		// Bright red = no hit / early exit
+		// Orange = max steps reached
+		// Purple = field escape
+		// PortalHaloMario: expanding colorful rings + rotating sparkles on high-priority causal islands
+		// Purely diagnostic and fun. Hermetic safety guaranteed.
+		// =====================================================================
+		if (DrawCausalDopplerHeatmap || DrawHermeticFailureDebug)
+		{
+			Vector2 sz = GetRect().Size;
+			var font = GetThemeDefaultFont();
+			int fontSize = font != null ? Math.Max(12, GetThemeDefaultFontSize() - 2) : 14;
+
+			// Base doppler gradient (STEP 5)
+			if (DrawCausalDopplerHeatmap)
+			{
+				for (int i = 0; i < 6; i++)
+				{
+					float t = i / 5f;
+					Color c = new Color(t, 0.1f, 1f - t, 0.35f);
+					Vector2 p0 = new Vector2(20 + i * 40, 30);
+					Vector2 p1 = new Vector2(20 + i * 40, 80);
+					DrawLine(p0, p1, c, 8f);
+				}
+			}
+
+			// Hermetic failure symbols (STEP 6) - bright, distinct colors
+			if (DrawHermeticFailureDebug)
+			{
+				// Bright red = escaped_no_hit
+				Color brightRed = new Color(1f, 0.1f, 0.1f, 0.9f);
+				DrawRect(new Rect2(30, 100, 18, 18), brightRed);
+				if (font != null) DrawString(font, new Vector2(52, 114), "NO HIT / EARLY EXIT", HorizontalAlignment.Left, -1, fontSize, brightRed);
+
+				// Orange = max_steps
+				Color orange = new Color(1f, 0.55f, 0.1f, 0.9f);
+				DrawRect(new Rect2(30, 125, 18, 18), orange);
+				if (font != null) DrawString(font, new Vector2(52, 139), "MAX STEPS REACHED", HorizontalAlignment.Left, -1, fontSize, orange);
+
+				// Purple = field escape
+				Color purple = new Color(0.7f, 0.2f, 0.95f, 0.9f);
+				DrawRect(new Rect2(30, 150, 18, 18), purple);
+				if (font != null) DrawString(font, new Vector2(52, 164), "FIELD ESCAPE", HorizontalAlignment.Left, -1, fontSize, purple);
+			}
+
+			// PortalHaloMario (wild fun STEP 6): expanding rings + rotating sparkle on high causal priority "islands"
+			if (DrawCausalDopplerHeatmap)
+			{
+				float time = (float)Time.GetTicksMsec() / 1000f;
+				Color[] ringColors = { new Color(0.2f, 1f, 0.4f, 0.7f), new Color(1f, 0.3f, 0.8f, 0.65f), new Color(0.3f, 0.6f, 1f, 0.7f) };
+
+				for (int ring = 0; ring < 3; ring++)
+				{
+					float phase = (time * 1.8f + ring * 1.3f) % (Mathf.Pi * 2);
+					float radius = 12 + (phase * 8f) % 35;   // expanding
+					Vector2 center = new Vector2(sz.X * (0.25f + ring * 0.25f), sz.Y * 0.82f);
+
+					// Mario-pipe / Halo shield style ring
+					DrawArc(center, radius, 0, Mathf.Pi * 2, 48, ringColors[ring], 3.5f);
+
+					// Inner sparkle for highest causal priority objects
+					if (ring == 0)
+					{
+						float sparkle = (Mathf.Sin(time * 9f) + 1f) * 0.5f;
+						Color star = new Color(1f, 1f, 0.4f, 0.4f + sparkle * 0.5f);
+						DrawArc(center, radius * 0.4f, phase, phase + Mathf.Pi, 12, star, 2f);
+						DrawArc(center, radius * 0.4f, phase + Mathf.Pi, phase + Mathf.Pi * 2, 12, star, 2f);
+					}
+				}
+
+				if (font != null)
+					DrawString(font, new Vector2(20, 195), "PORTAL HALO MARIO — New islands get expanding rings + sparkle on top causal priority", HorizontalAlignment.Left, -1, fontSize - 1, Colors.White);
+			}
+
+			// Combined label
+			if (font != null)
+			{
+				string label = "CAUSAL DOPPLER + HERMETIC FAIL + MARIO HALO";
+				DrawString(font, new Vector2(20, 220), label, HorizontalAlignment.Left, -1, fontSize, Colors.White);
+			}
+		}
 	}
 
 

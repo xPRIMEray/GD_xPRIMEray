@@ -165,3 +165,9 @@ Success criteria:
 - Preserve real geometric discontinuities.
 - Keep probe budgets bounded and report budget exhaustion.
 - Keep claims tied to DOE outputs and diagnostics.
+
+## STEP 4+ Causal Probe Fixture
+
+New dedicated stress scene: `test-multi-object-causal.tscn` (5 objects at staggered depths + weak AtomicEigenmode).
+
+See `Docs/Research/multi_object_causal_stress_fixture.md` for usage with `CAUSAL_THREADS=16` and expected telemetry (`probe_phase_ms`, real MinDistance values).

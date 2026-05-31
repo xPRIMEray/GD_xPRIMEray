@@ -1,0 +1,114 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://GrinFilmCamera.cs" id="1_grin"]
+[ext_resource type="Script" path="res://RendererCore/Testing/RenderTestRunner.cs" id="2_runner"]
+[ext_resource type="Script" path="res://FilmOverlay2D.cs" id="3_overlay"]
+[ext_resource type="Script" path="res://AtomicEigenmodeFieldSource3D.cs" id="4_field"]
+
+[sub_resource type="BoxMesh" id="BoxMesh1"]
+size = Vector3(1, 1, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh1"]
+radius = 0.6
+height = 1.2
+
+[node name="MultiObjectCausalTest" type="Node3D"]
+
+[node name="GrinFilmCamera" type="Node" parent="."]
+script = ExtResource("1_grin")
+Width = 256
+Height = 144
+FilmResolutionScale = 1.0
+UpdateEveryFrameBudgetMs = 800.0
+RenderStepMaxMs = 1200
+RenderStepMaxSegmentsPerFrame = 80000000
+TargetMsPerFrame = 60
+MaxRowsPerFrameCap = 512
+EnableFramePerf = true
+RenderStepPhaseLog = false
+RenderStepBandLog = true
+DebugSnapshotLog = false
+EnableObjectSeededTileScheduler = true
+CausalThreads = 4
+EnableCausalTurbo = true
+ObjectSeededMaxObservers = 32
+ObjectSeededMaxProbes = 256
+ObjectSeededMinConfidence = 0.1
+RayBeamRendererPath = NodePath("../SceneRoot/RayBeamRenderer")
+FilmViewPath = NodePath("../CanvasLayer/FilmView")
+FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
+
+[node name="SceneRoot" type="Node3D" parent="."]
+
+# Four objects at deliberately different depths for causal ordering test
+[node name="ObjectNear" type="MeshInstance3D" parent="SceneRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -6)
+mesh = SubResource("BoxMesh1")
+
+[node name="ObjectMid1" type="MeshInstance3D" parent="SceneRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1, -14)
+mesh = SubResource("SphereMesh1")
+
+[node name="ObjectMid2" type="MeshInstance3D" parent="SceneRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, -1.5, -22)
+mesh = SubResource("BoxMesh1")
+
+[node name="ObjectFar" type="MeshInstance3D" parent="SceneRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 2, -35)
+mesh = SubResource("SphereMesh1")
+
+# One additional object slightly off axis
+[node name="ObjectSide" type="MeshInstance3D" parent="SceneRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, -3, -18)
+mesh = SubResource("BoxMesh1")
+
+# Weak Atomic Eigenmode field (low amplitude for subtle causal perturbation)
+[node name="WeakAtomicField" type="Node3D" parent="SceneRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -20)
+script = ExtResource("4_field")
+Enabled = true
+ROuter = 12.0
+Amp = 0.008
+CanonicalGamma = 0.7
+CanonicalOverrideBetaScale = true
+CanonicalBetaScale = 0.8
+
+[node name="Camera3D" type="Camera3D" parent="SceneRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 2)
+current = true
+near = 0.05
+far = 200.0
+
+[node name="RayBeamRenderer" type="Node3D" parent="SceneRoot"]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+layer = -2
+
+[node name="FilmView" type="TextureRect" parent="CanvasLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_behavior_recursive = 1
+
+[node name="FilmOverlay2D" type="TextureRect" parent="CanvasLayer"]
+modulate = Color(1, 1, 1, 0.55)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_behavior_recursive = 1
+script = ExtResource("3_overlay")
+CameraPath = NodePath("../../SceneRoot/Camera3D")
+DrawFilmGradientNormals = true
+RayWidth = 1.5
+
+[node name="RenderTestRunner" type="Node" parent="."]
+script = ExtResource("2_runner")
+StartWhenCmdArgPresent = true
+Fixture = 99
+FramesPerRun = 60
+WarmupFrames = 4
+TargetCameraPath = NodePath("../SceneRoot/Camera3D")

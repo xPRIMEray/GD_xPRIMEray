@@ -28,6 +28,27 @@ BUDGET="${ATOMIC_ORBITAL_VISUAL_BUDGET:-900}"
 UPDATE_BUDGET_MS="${ATOMIC_ORBITAL_VISUAL_UPDATE_BUDGET_MS:-12000}"
 STRIDE="${ATOMIC_ORBITAL_VISUAL_STRIDE:-2}"
 SMOKE="${ATOMIC_ORBITAL_VISUAL_SMOKE:-0}"
+MEDRES="${ATOMIC_ORBITAL_VISUAL_MEDRES:-0}"
+
+# Parse CLI flags passed to the script (e.g. --medres)
+for arg in "$@"; do
+    case "$arg" in
+        --medres)
+            MEDRES=1
+            ;;
+    esac
+done
+
+# Re-apply medres settings if --medres was passed on CLI (after env)
+if [[ "$MEDRES" == "1" && "$SMOKE" != "1" ]]; then
+	RES="${ATOMIC_ORBITAL_VISUAL_RES:-320x180}"
+	FILM_W="${RES%x*}"
+	FILM_H="${RES#*x}"
+	FRAMES="${ATOMIC_ORBITAL_VISUAL_FRAMES:-60}"
+	WARMUP="${ATOMIC_ORBITAL_VISUAL_WARMUP:-5}"
+	UPDATE_BUDGET_MS="${ATOMIC_ORBITAL_VISUAL_UPDATE_BUDGET_MS:-4000}"
+fi
+
 CELL_FILTER="${ATOMIC_ORBITAL_VISUAL_CELLS:-V0_baseline_no_field,V1_static_hydrogen,V2_exaggerated_hydrogen,V3_tick0,V4_tick1}"
 SHADING_FILTER="${ATOMIC_ORBITAL_VISUAL_SHADINGS:-normal_rgb,depth_heatmap}"
 CONTOURS="${ATOMIC_ORBITAL_VISUAL_CONTOURS:-0}"
@@ -42,6 +63,13 @@ if [[ "$SMOKE" == "1" ]]; then
 	FRAMES="${ATOMIC_ORBITAL_VISUAL_FRAMES:-30}"
 	WARMUP="${ATOMIC_ORBITAL_VISUAL_WARMUP:-0}"
 	UPDATE_BUDGET_MS="${ATOMIC_ORBITAL_VISUAL_UPDATE_BUDGET_MS:-2000}"
+elif [[ "$MEDRES" == "1" ]]; then
+	RES="${ATOMIC_ORBITAL_VISUAL_RES:-320x180}"
+	FILM_W="${RES%x*}"
+	FILM_H="${RES#*x}"
+	FRAMES="${ATOMIC_ORBITAL_VISUAL_FRAMES:-60}"
+	WARMUP="${ATOMIC_ORBITAL_VISUAL_WARMUP:-5}"
+	UPDATE_BUDGET_MS="${ATOMIC_ORBITAL_VISUAL_UPDATE_BUDGET_MS:-4000}"
 fi
 
 mkdir -p "$OUTPUT_DIR"
@@ -52,6 +80,11 @@ echo "[atomic-visual] output=$OUTPUT_DIR"
 echo "[atomic-visual] scene=$SCENE fixture=$FIXTURE res=${FILM_W}x${FILM_H} frames=$FRAMES warmup=$WARMUP step=$STEP budget=$BUDGET update_budget_ms=$UPDATE_BUDGET_MS"
 echo "[atomic-visual] cells=$CELL_FILTER shadings=$SHADING_FILTER"
 echo "[atomic-visual] contours=$CONTOURS contour_mode=$CONTOUR_MODE contour_levels=$CONTOUR_LEVELS contour_labels=$CONTOUR_LABELS"
+echo "[atomic-visual] causal_threads=${CAUSAL_THREADS:-default(4)}"
+echo "[atomic-visual] causal_probe=real_coarse_rays (ObjectProbeOracle.TryAcquireProbesBridge + physics)"
+echo "[atomic-visual] telemetry: look for causal_object_count, threads_configured, probe_phase_ms in tile_metrics_summary.json and object_seeded_diagnostics"
+echo "[atomic-visual] causal_overlay=${CAUSAL_OVERLAY:-0} (CausalDopplerHeatmap + portal halo via ObservatoryModeController)"
+echo "[atomic-visual] hermetic_debug=${HERMETIC_DEBUG:-0} (bright red/orange/purple failure markers merged on doppler)"
 echo "[atomic-visual] purpose=interpretation_only closure_validation=0 pass_fail_gates=none"
 
 effective_from_log() {
@@ -169,6 +202,12 @@ run_cell() {
 		--atomic-visual-beams=1 \
 		--atomic-visual-allow-extreme=0 \
 		"--atomic-visual-output-dir=$cell_dir" \
+		${CAUSAL_THREADS:+--causal-threads=$CAUSAL_THREADS} \
+		${CAUSAL_THREADS:+--object-seeded-tile-scheduler=1} \
+		${CAUSAL_THREADS:+--causal-turbo=1} \
+		${CAUSAL_OVERLAY:+--enable-causal-overlay=1} \
+		${HERMETIC_DEBUG:+--enable-hermetic-debug=1} \
+		"$@" \
 		> "$cell_dir/run.log" 2>&1
 	local exit_code=$?
 	set -e

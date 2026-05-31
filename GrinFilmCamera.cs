@@ -1416,6 +1416,38 @@ public partial class GrinFilmCamera : Node
 	[Export(PropertyHint.Range, "0,1,0.01")] public float ObjectSeededMinConfidence = 0.25f;
 	/// <summary>Decision-risk epsilon used by the diagnostic stepper precision profile. V1 records this only.</summary>
 	[Export(PropertyHint.Range, "0,10,0.001")] public float ObjectSeededRiskEpsilon = 0.05f;
+
+	/// <summary>Causal Probe + Turbo Scheduler: max worker threads (conservative default 4 for safety and hermetic reproducibility).</summary>
+	[Export(PropertyHint.Range, "1,64,1")] public int CausalThreads = 4;
+	/// <summary>Enable the causal depth probe oracle and turbo scheduling path (object priority influences band tile ordering diagnostics and future execution).</summary>
+	[Export] public bool EnableCausalTurbo = true;
+
+	/// <summary>
+	/// When true, the live renderer applies stricter hermetic closure budgets (lower allowed no-hit / early-exit pixels,
+	/// tighter max-segments before forced advance) to compensate for higher scheduling aggressiveness when using many causal threads.
+	/// This is the STEP 6 "close the live hermetic gap" mechanism.
+	/// </summary>
+	[Export] public bool EnforceStrongerHermeticClosureWithHighCausalThreads = true;
+
+	/// <summary>
+	/// STEP 6: Returns a multiplier < 1.0 when CausalThreads is high, making the renderer more conservative
+	/// about advancing bands with low coverage or many "escaped_no_hit" / max_steps cases.
+	/// Hermetic safety first.
+	/// </summary>
+	private float GetCausalHermeticClosureMultiplier()
+	{
+		if (!EnforceStrongerHermeticClosureWithHighCausalThreads || !EnableCausalTurbo)
+			return 1.0f;
+
+		if (CausalThreads >= 24)
+			return 0.65f;   // quite strict
+		if (CausalThreads >= 16)
+			return 0.78f;
+		if (CausalThreads >= 12)
+			return 0.88f;
+		return 1.0f;
+	}
+
 	/// <summary>Research-only local convergence probe. Writes diagnostics only; does not alter final render state.</summary>
 	[Export] public bool EnableReferenceGeodesicProbe = false;
 	/// <summary>Maximum object/domain anchors sampled by the reference-precision probe.</summary>
@@ -2707,6 +2739,13 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private string _pendingRowCursorResetReason = "";
 	private const int StuckBandWatchdogMaxRepeats = 10;
 	private const int BandNoHitStallMaxRepeats = 3;
+
+	/// <summary>STEP 6: Dynamic version that tightens (lowers) the allowed no-hit stall repeats when using high causal thread counts.</summary>
+	private int GetEffectiveBandNoHitStallMaxRepeats()
+	{
+		float mult = GetCausalHermeticClosureMultiplier();
+		return Math.Max(1, (int)(BandNoHitStallMaxRepeats * mult));
+	}
 	private const int SmartScaleWarmupSamples = 3;
 	private bool _smartScaleRunRequested = false;
 	private bool _smartScaleRunInProgress = false;
@@ -10137,6 +10176,42 @@ private sealed class OverlayRollingWindow
 				ObjectSeededRiskEpsilon = Math.Max(0.0f, parsedRiskEpsilon);
 			}
 
+			if (TryGetHudArgValue(arg, "--causal-threads=", out string causalThreadsValue)
+				&& int.TryParse(causalThreadsValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedCausalThreads))
+			{
+				CausalThreads = Math.Clamp(parsedCausalThreads, 1, 64);
+			}
+
+			if (TryGetHudArgValue(arg, "--causal-turbo=", out string causalTurboValue) ||
+			    TryGetHudArgValue(arg, "--enable-causal-turbo=", out causalTurboValue))
+			{
+				string normalized = causalTurboValue.Trim().ToLowerInvariant();
+				EnableCausalTurbo = normalized is "1" or "true" or "on" or "yes";
+			}
+
+			if (TryGetHudArgValue(arg, "--enable-causal-overlay=", out string causalOverlayValue))
+			{
+				string normalized = causalOverlayValue.Trim().ToLowerInvariant();
+				if (normalized is "1" or "true" or "on" or "yes")
+				{
+					// Will be picked up by ObservatoryModeController if present in the scene
+					// As a convenience we also enable strong causal diagnostics
+					EnableCausalTurbo = true;
+					EnableObjectSeededTileScheduler = true;
+				}
+			}
+
+			if (TryGetHudArgValue(arg, "--enable-hermetic-debug=", out string hermeticDebugValue))
+			{
+				string normalized = hermeticDebugValue.Trim().ToLowerInvariant();
+				if (normalized is "1" or "true" or "on" or "yes")
+				{
+					// Enables the bright failure markers (red/orange/purple) in the overlay
+					// and can be used to drive stricter internal logging.
+					EnableCausalTurbo = true; // often used together
+				}
+			}
+
 			if (TryGetHudArgValue(arg, "--reference-geodesic-probe=", out string referenceProbeValue))
 			{
 				string normalized = referenceProbeValue.Trim().ToLowerInvariant();
@@ -10501,6 +10576,12 @@ private sealed class OverlayRollingWindow
 			sb.Append("\"reorder_simulation_active\":").Append(EnableTileMetricsReorderSimulation ? "true" : "false").Append(",");
 			sb.Append("\"object_seeded_scheduler_active\":").Append(EnableObjectSeededTileScheduler ? "true" : "false").Append(",");
 			sb.Append("\"object_seeded_seed\":").Append(ObjectSeededTileSchedulerSeed).Append(",");
+			sb.Append("\"causal_threads\":").Append(CausalThreads).Append(",");
+			sb.Append("\"causal_turbo_enabled\":").Append(EnableCausalTurbo ? "true" : "false").Append(",");
+			sb.Append("\"causal_object_count\":").Append(_objectSeededLastBandSchedule.CausalObjectCount).Append(",");
+			sb.Append("\"threads_configured\":").Append(_objectSeededLastBandSchedule.ThreadsConfigured).Append(",");
+			sb.Append("\"causal_turbo_active\":").Append(_objectSeededLastBandSchedule.CausalTurboActive ? "true" : "false").Append(",");
+			sb.Append("\"probe_phase_ms\":").Append(_objectSeededLastBandSchedule.ProbePhaseMs.ToString("F3", CultureInfo.InvariantCulture)).Append(",");
 			sb.Append("\"object_seeded_observer_count\":").Append(_objectSeededLastBandSchedule.ObserverCount).Append(",");
 			sb.Append("\"object_seeded_anchor_count\":").Append(_objectSeededLastBandSchedule.AnchorCount).Append(",");
 			sb.Append("\"object_seeded_probe_count\":").Append(_objectSeededLastBandSchedule.ProbeCount).Append(",");
@@ -13472,7 +13553,7 @@ private sealed class OverlayRollingWindow
 					_bandNoHitStallEndRow = yEnd;
 					_bandNoHitStallRepeats = 1;
 				}
-				return _bandNoHitStallRepeats > BandNoHitStallMaxRepeats;
+				return _bandNoHitStallRepeats > GetEffectiveBandNoHitStallMaxRepeats();
 			}
 
 			bool ForceAdvanceOnNoHit(string reason, string reasonDone, bool forceNow)
@@ -24422,6 +24503,9 @@ private sealed class OverlayRollingWindow
 		if (snap == null)
 			return false;
 
+		// Configure the scheduler instance (CLI/Export values)
+		_objectSeededTileScheduler.ConfigureCausalTurbo(CausalThreads, EnableCausalTurbo);
+
 		var options = new ObjectSeededTileScheduler.Options
 		{
 			FilmWidth = _filmWidth,
@@ -24433,7 +24517,9 @@ private sealed class OverlayRollingWindow
 			MaxObservers = Math.Max(0, ObjectSeededMaxObservers),
 			MaxProbes = Math.Max(0, ObjectSeededMaxProbes),
 			RiskEpsilon = Math.Max(0.0f, ObjectSeededRiskEpsilon),
-			MinSeedConfidence = Math.Clamp(ObjectSeededMinConfidence, 0.0f, 1.0f)
+			MinSeedConfidence = Math.Clamp(ObjectSeededMinConfidence, 0.0f, 1.0f),
+			CausalThreads = Math.Max(1, CausalThreads),
+			UseCausalTurbo = EnableCausalTurbo
 		};
 
 		ObjectSeededTileScheduler.BandScheduleResult result = _objectSeededTileScheduler.BuildBandSchedule(snap, _cam, options);

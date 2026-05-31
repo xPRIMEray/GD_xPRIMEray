@@ -24,6 +24,7 @@ public partial class ObservatoryModeController : Node
 		Oracle       = 5,  // Ctrl+5 — maximum diagnostic density
 		Presentation = 6,  // Ctrl+6 — educational/public, minimal overlays
 		TraversalEmergenceObservatoryMode = 7, // Ctrl+7 — staged traversal emergence reel
+		CausalDoppler = 8,                       // Ctrl+8 — STEP 5 red/blue causal doppler + portal halo (fun but diagnostic)
 	}
 
 	[Export] public NodePath OverlayPath     = new("../CanvasLayer/FilmOverlay2D");
@@ -80,6 +81,7 @@ public partial class ObservatoryModeController : Node
 			Key.Key5 => ObservatoryMode.Oracle,
 			Key.Key6 => ObservatoryMode.Presentation,
 			Key.Key7 => ObservatoryMode.TraversalEmergenceObservatoryMode,
+			Key.Key8 => ObservatoryMode.CausalDoppler,
 			_        => null,
 		};
 
@@ -270,6 +272,27 @@ public partial class ObservatoryModeController : Node
 					_renderer.DebugDrawOnlyHits = true;
 				}
 				break;
+
+			case ObservatoryMode.CausalDoppler:
+				// STEP 5: Red = receding (high causal distance / longer transport paths)
+				// Blue = approaching (low causal distance). Purely diagnostic + fun.
+				if (haveOverlay)
+				{
+					_overlay.DrawRays                = true;
+					_overlay.DrawHitNormals          = false;
+					_overlay.DrawFilmGradientNormals = true;
+					_overlay.ShowComparisonGrid      = false;
+					_overlay.ShowComparisonCrosshair = false;
+					_overlay.ShowTraversalOverlay    = true;
+					_overlay.ShowTraversalMinimap    = true;
+					_overlay.DrawCausalDopplerHeatmap = true;
+					_overlay.QueueRedraw();
+				}
+				if (haveRenderer)
+				{
+					_renderer.DebugMode = RayBeamRenderer.DebugDrawMode.RaysOnly; // safe fallback for CausalDoppler
+				}
+				break;
 		}
 	}
 
@@ -282,6 +305,7 @@ public partial class ObservatoryModeController : Node
 		ObservatoryMode.Oracle       => "Oracle / Microscopy Mode",
 		ObservatoryMode.Presentation => "Presentation Mode",
 		ObservatoryMode.TraversalEmergenceObservatoryMode => "Traversal Emergence Observatory Mode",
+		ObservatoryMode.CausalDoppler => "Causal Doppler (Red=Receding / Blue=Approaching)",
 		_                            => string.Empty,
 	};
 }
