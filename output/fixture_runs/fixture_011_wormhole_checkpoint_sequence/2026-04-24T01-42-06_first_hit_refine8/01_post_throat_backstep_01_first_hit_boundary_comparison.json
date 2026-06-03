@@ -1,0 +1,149 @@
+{
+  "csv_path": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-42-06_first_hit_refine8/01_post_throat_backstep_01_hit_diagnostics.csv",
+  "width": 480,
+  "height": 270,
+  "neighbor_pairs_considered": 258450,
+  "boundary_sample_size": 256,
+  "summary": {
+    "final_normal_delta": {
+      "mean": 1.75,
+      "median": 2.0,
+      "max": 2.0
+    },
+    "first_normal_delta": {
+      "mean": 1.75,
+      "median": 2.0,
+      "max": 2.0
+    },
+    "first_segment_jump": {
+      "mean": 10.98046875,
+      "median": 14.0,
+      "max": 16.0
+    },
+    "final_distance_jump": {
+      "mean": 1.1114235000000001,
+      "median": 1.4033909999999992,
+      "max": 1.5998
+    },
+    "first_distance_jump": {
+      "mean": 1.1114235000000001,
+      "median": 1.4033909999999992,
+      "max": 1.5998
+    },
+    "final_collider_switch_rate": 0.75,
+    "first_collider_switch_rate": 0.75,
+    "first_to_final_normal_delta_ratio": 1.0,
+    "boundary_delta_residual_mean": 0.0,
+    "stored_overwrite_normal_delta_mean": 0.25
+  },
+  "alignment": {
+    "debug_image_path": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-42-06_first_hit_refine8/01_post_throat_backstep_01_debug_normal_rgb.png",
+    "visible_band_pixels": 19081,
+    "visible_band_threshold": 0.05684269778319084,
+    "neighbor_normal_delta": {
+      "pearson_to_visible_band_signal": 0.4952560321967635,
+      "iou_to_visible_band_mask": 0.35260745832871343,
+      "mean_signal": 0.41765705064782005,
+      "threshold": 0.03137254901960784,
+      "nonzero_pixels": 54114
+    },
+    "first_hit_neighbor_normal_delta": {
+      "pearson_to_visible_band_signal": 0.4952560321967635,
+      "iou_to_visible_band_mask": 0.35260745832871343,
+      "mean_signal": 0.41765705064782005,
+      "threshold": 0.03137254901960784,
+      "nonzero_pixels": 54114
+    }
+  },
+  "top_pairs": [
+    {
+      "a": [
+        479,
+        74
+      ],
+      "b": [
+        479,
+        75
+      ],
+      "axis": "v",
+      "final_normal_delta": 2.0,
+      "first_normal_delta": 2.0,
+      "first_step_jump": 14,
+      "final_distance_jump": 1.375604000000001,
+      "first_distance_jump": 1.375604000000001,
+      "final_collider_switch": 1,
+      "first_collider_switch": 1,
+      "a_final_vs_first_normal_delta": 0.0,
+      "b_final_vs_first_normal_delta": 0.0,
+      "candidate_count_a": 8,
+      "candidate_count_b": 11
+    },
+    {
+      "a": [
+        478,
+        75
+      ],
+      "b": [
+        479,
+        75
+      ],
+      "axis": "h",
+      "final_normal_delta": 2.0,
+      "first_normal_delta": 2.0,
+      "first_step_jump": 14,
+      "final_distance_jump": 1.3810099999999998,
+      "first_distance_jump": 1.3810099999999998,
+      "final_collider_switch": 1,
+      "first_collider_switch": 1,
+      "a_final_vs_first_normal_delta": 0.0,
+      "b_final_vs_first_normal_delta": 0.0,
+      "candidate_count_a": 8,
+      "candidate_count_b": 11
+    },
+    {
+      "a": [
+        478,
+        75
+      ],
+      "b": [
+        478,
+        76
+      ],
+      "axis": "v",
+      "final_normal_delta": 2.0,
+      "first_normal_delta": 2.0,
+      "first_step_jump": 14,
+      "final_distance_jump": 1.4075699999999998,
+      "first_distance_jump": 1.4075699999999998,
+      "final_collider_switch": 1,
+      "first_collider_switch": 1,
+      "a_final_vs_first_normal_delta": 0.0,
+      "b_final_vs_first_normal_delta": 0.0,
+      "candidate_count_a": 8,
+      "candidate_count_b": 11
+    },
+    {
+      "a": [
+        476,
+        76
+      ],
+      "b": [
+        476,
+        77
+      ],
+      "axis": "v",
+      "final_normal_delta": 2.0,
+      "first_normal_delta": 2.0,
+      "first_step_jump": 14,
+      "final_distance_jump": 1.4050779999999996,
+      "first_distance_jump": 1.4050779999999996,
+      "final_collider_switch": 1,
+      "first_collider_switch": 1,
+      "a_final_vs_first_normal_delta": 0.0,
+      "b_final_vs_first_normal_delta": 0.0,
+      "candidate_count_a": 8,
+      "candidate_count_b": 11
+    }
+  ],
+  "verdict": "divergence begins at first-hit acquisition"
+}

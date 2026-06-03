@@ -1,0 +1,263 @@
+{
+  "beauty_hash": "90f748a2ca420f6e125a597e781a7f529ed7570fea2b9406df6b571ca1f0056c",
+  "beauty_path": "/home/bb/code/godot_xPRIMEray/output/hermetic_hit_closure/20260510T060327Z/cells/step_0.015/budget_700/curvature_0/row/hermetic_curved_room__hermetic_step_0.015_budget_700_curv_0_row__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+  "budget_exhaustion_heatmap": "/home/bb/code/godot_xPRIMEray/output/hermetic_hit_closure/20260510T060327Z/cells/step_0.015/budget_700/curvature_0/row/budget_exhaustion_heatmap.png",
+  "budget_exhaustion_overlay": "/home/bb/code/godot_xPRIMEray/output/hermetic_hit_closure/20260510T060327Z/cells/step_0.015/budget_700/curvature_0/row/budget_exhaustion_overlay.png",
+  "budget_exhaustion_summary": {
+    "budget_exhausted_hit_count": 1760,
+    "budget_exhausted_no_hit_count": 0,
+    "budget_exhausted_pixel_count": 1760,
+    "budget_exhaustion_percent": 48.888889,
+    "budget_fields_present": [
+      "budget_exhausted_without_hit",
+      "final_path_length",
+      "final_step_count",
+      "hit_found_after_budget_warning",
+      "max_steps_reached"
+    ],
+    "final_path_length_max": 6.94189,
+    "final_path_length_mean": 5.525832,
+    "final_step_count_max": 701,
+    "final_step_count_mean": 342.711111,
+    "hit_found_after_budget_warning_count": 1760,
+    "max_steps_reached_pixel_count": 1760,
+    "step_quality_plateau_candidate": true
+  },
+  "capture_stem": "hermetic_curved_room__hermetic_step_0.015_budget_700_curv_0_row__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1",
+  "enabled_layers": {
+    "cartesian": true,
+    "continuity": true,
+    "labels": true,
+    "risk": true,
+    "spacetime": false,
+    "transport": true
+  },
+  "hit_diagnostics_csv": "/home/bb/code/godot_xPRIMEray/output/hermetic_hit_closure/20260510T060327Z/cells/step_0.015/budget_700/curvature_0/row/hermetic_curved_room__hermetic_step_0.015_budget_700_curv_0_row__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+  "hit_region_count": 3,
+  "manual_rois": [
+    {
+      "x": 40,
+      "y": 35
+    },
+    {
+      "x": 280,
+      "y": 35
+    },
+    {
+      "x": 40,
+      "y": 145
+    },
+    {
+      "x": 280,
+      "y": 145
+    }
+  ],
+  "missing_inputs": [
+    "continuity_optional_field_portal_event_count"
+  ],
+  "object_count": 4,
+  "opencv_requested": false,
+  "opencv_used": false,
+  "post_process_only": true,
+  "primitive_count_by_layer": {
+    "cartesian_lines": 0,
+    "cartesian_points": 9,
+    "manual_rois": 4,
+    "spacetime_events": 0,
+    "spacetime_polylines": 0
+  },
+  "primitive_path": "/home/bb/code/godot_xPRIMEray/output/hermetic_hit_closure/20260510T060327Z/cells/step_0.015/budget_700/curvature_0/row/hermetic_curved_room__hermetic_step_0.015_budget_700_curv_0_row__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.diagnostic_wireframe_primitives.json",
+  "schema_version": 1,
+  "transport_continuity_summary": {
+    "high_discontinuity_vectors": 48,
+    "high_threshold": 1.0,
+    "manual_roi_overlap_count": 0,
+    "max_discontinuity_score": 2.05304,
+    "mean_discontinuity_score": 2.023538,
+    "missing_optional_fields": [
+      "portal_event_count"
+    ],
+    "shape_region_correlations": [
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 24,
+        "collider_id": 26206012821,
+        "max_discontinuity_score": 2.05304,
+        "mean_discontinuity_score": 2.023538,
+        "region_id": 0
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 48,
+        "collider_id": 26105349517,
+        "max_discontinuity_score": 2.05304,
+        "mean_discontinuity_score": 2.023538,
+        "region_id": 1
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 24,
+        "collider_id": 26256344472,
+        "max_discontinuity_score": 2.05304,
+        "mean_discontinuity_score": 2.023538,
+        "region_id": 2
+      }
+    ],
+    "threshold": 0.2,
+    "top_10_discontinuity_locations": [
+      {
+        "boundary_event_delta": 0,
+        "collider_change": 1,
+        "domain_change": 0,
+        "hit_distance_delta": 0.132601,
+        "hit_normal_angle_delta": 90.0,
+        "neighbor_x": 12,
+        "neighbor_y": 2,
+        "ownership_flip_score": 1.0,
+        "path_length_delta": 0.132601,
+        "step_count_delta": 0.0,
+        "total_transport_discontinuity_score": 2.05304,
+        "x": 11,
+        "y": 2
+      },
+      {
+        "boundary_event_delta": 0,
+        "collider_change": 1,
+        "domain_change": 0,
+        "hit_distance_delta": 0.132601,
+        "hit_normal_angle_delta": 90.0,
+        "neighbor_x": 68,
+        "neighbor_y": 2,
+        "ownership_flip_score": 1.0,
+        "path_length_delta": 0.132601,
+        "step_count_delta": 0.0,
+        "total_transport_discontinuity_score": 2.05304,
+        "x": 67,
+        "y": 2
+      },
+      {
+        "boundary_event_delta": 0,
+        "collider_change": 1,
+        "domain_change": 0,
+        "hit_distance_delta": 0.114498,
+        "hit_normal_angle_delta": 90.0,
+        "neighbor_x": 12,
+        "neighbor_y": 1,
+        "ownership_flip_score": 1.0,
+        "path_length_delta": 0.114498,
+        "step_count_delta": 0.0,
+        "total_transport_discontinuity_score": 2.045799,
+        "x": 11,
+        "y": 1
+      },
+      {
+        "boundary_event_delta": 0,
+        "collider_change": 1,
+        "domain_change": 0,
+        "hit_distance_delta": 0.114498,
+        "hit_normal_angle_delta": 90.0,
+        "neighbor_x": 68,
+        "neighbor_y": 1,
+        "ownership_flip_score": 1.0,
+        "path_length_delta": 0.114498,
+        "step_count_delta": 0.0,
+        "total_transport_discontinuity_score": 2.045799,
+        "x": 67,
+        "y": 1
+      },
+      {
+        "boundary_event_delta": 0,
+        "collider_change": 1,
+        "domain_change": 0,
+        "hit_distance_delta": 0.110774,
+        "hit_normal_angle_delta": 90.0,
+        "neighbor_x": 14,
+        "neighbor_y": 14,
+        "ownership_flip_score": 1.0,
+        "path_length_delta": 0.110774,
+        "step_count_delta": 0.0,
+        "total_transport_discontinuity_score": 2.04431,
+        "x": 13,
+        "y": 14
+      },
+      {
+        "boundary_event_delta": 0,
+        "collider_change": 1,
+        "domain_change": 0,
+        "hit_distance_delta": 0.110774,
+        "hit_normal_angle_delta": 90.0,
+        "neighbor_x": 66,
+        "neighbor_y": 14,
+        "ownership_flip_score": 1.0,
+        "path_length_delta": 0.110774,
+        "step_count_delta": 0.0,
+        "total_transport_discontinuity_score": 2.04431,
+        "x": 65,
+        "y": 14
+      },
+      {
+        "boundary_event_delta": 0,
+        "collider_change": 1,
+        "domain_change": 0,
+        "hit_distance_delta": 0.101379,
+        "hit_normal_angle_delta": 90.0,
+        "neighbor_x": 13,
+        "neighbor_y": 13,
+        "ownership_flip_score": 1.0,
+        "path_length_delta": 0.101379,
+        "step_count_delta": 0.0,
+        "total_transport_discontinuity_score": 2.040552,
+        "x": 12,
+        "y": 13
+      },
+      {
+        "boundary_event_delta": 0,
+        "collider_change": 1,
+        "domain_change": 0,
+        "hit_distance_delta": 0.101379,
+        "hit_normal_angle_delta": 90.0,
+        "neighbor_x": 67,
+        "neighbor_y": 13,
+        "ownership_flip_score": 1.0,
+        "path_length_delta": 0.101379,
+        "step_count_delta": 0.0,
+        "total_transport_discontinuity_score": 2.040552,
+        "x": 66,
+        "y": 13
+      },
+      {
+        "boundary_event_delta": 0,
+        "collider_change": 1,
+        "domain_change": 0,
+        "hit_distance_delta": 0.096124,
+        "hit_normal_angle_delta": 90.0,
+        "neighbor_x": 12,
+        "neighbor_y": 0,
+        "ownership_flip_score": 1.0,
+        "path_length_delta": 0.096124,
+        "step_count_delta": 0.0,
+        "total_transport_discontinuity_score": 2.038449,
+        "x": 11,
+        "y": 0
+      },
+      {
+        "boundary_event_delta": 0,
+        "collider_change": 1,
+        "domain_change": 0,
+        "hit_distance_delta": 0.096124,
+        "hit_normal_angle_delta": 90.0,
+        "neighbor_x": 68,
+        "neighbor_y": 0,
+        "ownership_flip_score": 1.0,
+        "path_length_delta": 0.096124,
+        "step_count_delta": 0.0,
+        "total_transport_discontinuity_score": 2.038449,
+        "x": 67,
+        "y": 0
+      }
+    ],
+    "total_vectors": 48,
+    "transport_shape_region_overlap_count": 48
+  },
+  "transport_continuity_vectors_csv": "/home/bb/code/godot_xPRIMEray/output/hermetic_hit_closure/20260510T060327Z/cells/step_0.015/budget_700/curvature_0/row/transport_continuity_vectors.csv"
+}

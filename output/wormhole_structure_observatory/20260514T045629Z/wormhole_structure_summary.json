@@ -1,0 +1,85 @@
+{
+  "schema": "xprimeray.wormhole_structure_observatory.v1",
+  "purpose": "visual_observatory_only",
+  "safety_note": "This observatory visualizes renderer transport structure, not physical wormhole evidence.",
+  "quality": "quick_review",
+  "extra_panels_enabled": true,
+  "panel_count": 6,
+  "complete_panel_count": 6,
+  "all_panels_complete": true,
+  "total_panel_duration_seconds": 175.0,
+  "panels": [
+    {
+      "panel_id": "clean_curved",
+      "title": "Clean curved render",
+      "status": "ok",
+      "exit_code": 0,
+      "duration_seconds": 21.0,
+      "timed_out": false,
+      "image": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/panels/clean_curved/clean_curved_film.png",
+      "log": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/logs/clean_curved.log",
+      "notes": "capture_found"
+    },
+    {
+      "panel_id": "straight_vs_curved",
+      "title": "Straight reference vs curved transport",
+      "status": "ok",
+      "exit_code": 0,
+      "duration_seconds": 38.0,
+      "timed_out": false,
+      "image": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/panels/straight_vs_curved/straight_vs_curved_composed.png",
+      "log": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/logs/straight_vs_curved.log",
+      "notes": "capture_found"
+    },
+    {
+      "panel_id": "depth_heatmap",
+      "title": "Depth heatmap",
+      "status": "ok",
+      "exit_code": 0,
+      "duration_seconds": 20.0,
+      "timed_out": false,
+      "image": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/panels/depth_heatmap/depth_heatmap_film.png",
+      "log": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/logs/depth_heatmap.log",
+      "notes": "capture_found"
+    },
+    {
+      "panel_id": "step_budget_heatmap",
+      "title": "Step budget heatmap",
+      "status": "ok",
+      "exit_code": 0,
+      "duration_seconds": 38.0,
+      "timed_out": false,
+      "image": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/panels/step_budget_heatmap/step_budget_heatmap_composed.png",
+      "log": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/logs/step_budget_heatmap.log",
+      "notes": "capture_found"
+    },
+    {
+      "panel_id": "domain_diagnostics",
+      "title": "Domain diagnostics",
+      "status": "ok",
+      "exit_code": 0,
+      "duration_seconds": 21.0,
+      "timed_out": false,
+      "image": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/panels/domain_diagnostics/domain_diagnostics_film.domain_id.png",
+      "log": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/logs/domain_diagnostics.log",
+      "notes": "capture_found"
+    },
+    {
+      "panel_id": "structure_minimap",
+      "title": "Structure minimap",
+      "status": "ok",
+      "exit_code": 0,
+      "duration_seconds": 37.0,
+      "timed_out": false,
+      "image": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/panels/structure_minimap/structure_minimap_composed.png",
+      "log": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/logs/structure_minimap.log",
+      "notes": "capture_found"
+    }
+  ],
+  "artifacts": {
+    "contact_sheet": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/wormhole_structure_contact_sheet.png",
+    "preview": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/testbench_preview.png",
+    "report": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/wormhole_structure_report.md",
+    "summary": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045629Z/wormhole_structure_summary.json"
+  }
+}

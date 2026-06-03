@@ -1,0 +1,134 @@
+{
+  "timestamp": "2026-03-28T_scheduler_compare_rerun",
+  "runRoot": "/home/bb/code/godot_xPRIMEray/output/render_test_scheduler_compare/2026-03-28T_scheduler_compare_rerun",
+  "imagesDir": "/home/bb/code/godot_xPRIMEray/output/render_test_scheduler_compare/2026-03-28T_scheduler_compare_rerun/images",
+  "logsDir": "/home/bb/code/godot_xPRIMEray/output/render_test_scheduler_compare/2026-03-28T_scheduler_compare_rerun/logs",
+  "cases": [
+    {
+      "fixture": "curved_minimal",
+      "mode": "baseline",
+      "scene": "res://test-curved-minimal.tscn",
+      "logPath": "/home/bb/code/godot_xPRIMEray/output/render_test_scheduler_compare/2026-03-28T_scheduler_compare_rerun/logs/curved_minimal__baseline.log",
+      "capturePaths": [],
+      "godotExitCode": 0,
+      "regressExitCode": 0,
+      "regressStdout": "PASS: /home/bb/code/godot_xPRIMEray/output/render_test_scheduler_compare/2026-03-28T_scheduler_compare_rerun/logs/curved_minimal__baseline.log windows=50, trusted=10, partial=40\nON trusted mean per-px-on=na\nOFF trusted mean per-px-off=178.077\nON saved% mean (baseline-ready)=na\nAudit totals: falseNeg=0 falsePos=0\n\nsummary: pass=1 fail=0\n\nDOE summary:\nA) TrustReason histogram (global)\n  low_raytests: 40\n  ok: 10\n\nA) TrustReason histogram (per run)\n  baseline_prune_off: ok=10\n  prune_on_default: low_raytests=10\n  prune_on_tight_env: low_raytests=10\n  prune_on_loose_env: low_raytests=10\n  prune_on_stride_off: low_raytests=10\n\nB) Trust flip timeline\n  baseline_prune_off: firstTrustedStep=30 trusted_windows=10/10 (100.0%)\n  prune_on_default: firstTrustedStep=none trusted_windows=0/10 (0.0%)\n  prune_on_tight_env: firstTrustedStep=none trusted_windows=0/10 (0.0%)\n  prune_on_loose_env: firstTrustedStep=none trusted_windows=0/10 (0.0%)\n  prune_on_stride_off: firstTrustedStep=none trusted_windows=0/10 (0.0%)\n\nC) low_raytests diagnostics: count=40\n  run=prune_on_default step=330 geomRayTestsTotalRaw=608.0 minRayTests=4096.0 geomPixProcessedRaw=1160.0 minGeomPix=1024.0 candPix/noCand=43/1117 rayTestsPerGeomPix=0.524 candRate=0.037 noCandRate=0.963\n  run=prune_on_default step=360 geomRayTestsTotalRaw=608.0 minRayTests=4096.0 geomPixProcessedRaw=1120.0 minGeomPix=1024.0 candPix/noCand=43/1077 rayTestsPerGeomPix=0.543 candRate=0.038 noCandRate=0.962\n  run=prune_on_default step=390 geomRayTestsTotalRaw=767.0 minRayTests=4096.0 geomPixProcessedRaw=1160.0 minGeomPix=1024.0 candPix/noCand=54/1106 rayTestsPerGeomPix=0.661 candRate=0.047 noCandRate=0.953\n  run=prune_on_default step=420 geomRayTestsTotalRaw=1071.0 minRayTests=4096.0 geomPixProcessedRaw=1160.0 minGeomPix=1024.0 candPix/noCand=75/1085 rayTestsPerGeomPix=0.923 candRate=0.065 noCandRate=0.935\n  run=prune_on_default step=450 geomRayTestsTotalRaw=613.0 minRayTests=4096.0 geomPixProcessedRaw=1160.0 minGeomPix=1024.0 candPix/noCand=43/1117 rayTestsPerGeomPix=0.528 candRate=0.037 noCandRate=0.963\n\nD) Top 10 worst trust failures by deficit\n  run=prune_on_tight_env step=690 raytestsDeficit=3520.000 geomPixDeficit=0.000 p2Deficit=na\n  run=prune_on_tight_env step=720 raytestsDeficit=3520.000 geomPixDeficit=0.000 p2Deficit=na\n  run=prune_on_tight_env step=810 raytestsDeficit=3520.000 geomPixDeficit=0.000 p2Deficit=na\n  run=prune_on_tight_env step=840 raytestsDeficit=3520.000 geomPixDeficit=0.000 p2Deficit=na\n  run=prune_on_stride_off step=1290 raytestsDeficit=3520.000 geomPixDeficit=0.000 p2Deficit=na\n  run=prune_on_stride_off step=1320 raytestsDeficit=3520.000 geomPixDeficit=0.000 p2Deficit=na\n  run=prune_on_stride_off step=1410 raytestsDeficit=3520.000 geomPixDeficit=0.000 p2Deficit=na\n  run=prune_on_stride_off step=1440 raytestsDeficit=3520.000 geomPixDeficit=0.000 p2Deficit=na\n  run=prune_on_default step=330 raytestsDeficit=3488.000 geomPixDeficit=0.000 p2Deficit=na\n  run=prune_on_default step=360 raytestsDeficit=3488.000 geomPixDeficit=0.000 p2Deficit=na\n\nRUN REPORT\n  run=baseline_prune_off frames=300 warmup=30 samples=270 windows=10 trusted=10 partial=0\n    firstTrustedStep=30 lastTrustedStep=300\n    topReasons=ok=10\n    perPxOff(mean,p95)=178.077,212.757 perPxOn(mean,p95)=na,na savedPctMean=na\n  run=prune_on_default frames=300 warmup=30 samples=270 windows=10 trusted=0 partial=10\n    firstTrustedStep=na lastTrustedStep=na\n    topReasons=low_raytests=10\n    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=na,na savedPctMean=na\n    low_raytests examples:\n      step=330 geomRayTestsTotalRaw=608 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024\n      step=360 geomRayTestsTotalRaw=608 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1120 minGeomPix=1024\n      step=390 geomRayTestsTotalRaw=767 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024\n  run=prune_on_tight_env frames=300 warmup=30 samples=270 windows=10 trusted=0 partial=10\n    firstTrustedStep=na lastTrustedStep=na\n    topReasons=low_raytests=10\n    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=na,na savedPctMean=na\n    low_raytests examples:\n      step=630 geomRayTestsTotalRaw=733 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024\n      step=660 geomRayTestsTotalRaw=1000 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024\n      step=690 geomRayTestsTotalRaw=576 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024\n  run=prune_on_loose_env frames=300 warmup=30 samples=270 windows=10 trusted=0 partial=10\n    firstTrustedStep=na lastTrustedStep=na\n    topReasons=low_raytests=10\n    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=na,na savedPctMean=na\n    low_raytests examples:\n      step=930 geomRayTestsTotalRaw=652 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024\n      step=960 geomRayTestsTotalRaw=652 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1120 minGeomPix=1024\n      step=990 geomRayTestsTotalRaw=832 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024\n  run=prune_on_stride_off frames=300 warmup=30 samples=270 windows=10 trusted=0 partial=10\n    firstTrustedStep=na lastTrustedStep=na\n    topReasons=low_raytests=10\n    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=na,na savedPctMean=na\n    low_raytests examples:\n      step=1230 geomRayTestsTotalRaw=733 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024\n      step=1260 geomRayTestsTotalRaw=1000 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024\n      step=1290 geomRayTestsTotalRaw=576 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024\n\nREASON HISTOGRAM\n  reasons:\n    low_raytests: 40\n    ok: 10\n  trusted: trusted=1=10 trusted=0=40\n  prune: prune=on=40 prune=off=10\n  trustGateDebug metPix=1 metRay=0: 40\n\n=== AutoCal Shadow Eval Summary (C1.1 g.3) ===\nCoverage\n  total_runs=5\n  runs_with_shadow_eval=0\n  coverage_pct=0.0%\nVerdicts\n  pass_count=0\n  fail_count=0\n  defer_count=0\n  missing_count=0\nOverhead (overhead_pct_est, numeric only)\n  count=0\n  mean=na\n  median=na\n  p90=na\n  p95=na\n  max=na\nTop offenders (overhead_pct_est desc)\n  none\nTrust sanity\n  baseline_trust_eq_1_and_shadow_trust_ne_1=0\n  fail_count_inferred_due_to_shadow_trust=0\n  shadow_trust_counts=none\n\nAutoCal decision binding diagnostic\n  missing_decision_count=0\n\nCSV written: /home/bb/code/godot_xPRIMEray/tools/renderhealth_summary.csv\nJSON written: /home/bb/code/godot_xPRIMEray/tools/renderhealth_summary.json",
+      "regressStderr": "",
+      "command": [
+        "/mnt/c/Users/wmbro/Downloads/Godot_v4.5.1-stable_mono_win64/Godot_v4.5.1-stable_mono_win64/Godot_v4.5.1-stable_mono_win64_console.exe",
+        "--path",
+        ".",
+        "--scene",
+        "res://test-curved-minimal.tscn",
+        "--",
+        "--render-test",
+        "--render-test-fixture=curved_minimal",
+        "--lifecycle-stress=0",
+        "--smartscale=0",
+        "--render-test-capture=1",
+        "--render-test-capture-dir=/home/bb/code/godot_xPRIMEray/output/render_test_scheduler_compare/2026-03-28T_scheduler_compare_rerun/images",
+        "--render-test-capture-mode=baseline",
+        "--tile-metrics=1",
+        "--tile-metrics-subtile-width=8"
+      ]
+    },
+    {
+      "fixture": "curved_minimal",
+      "mode": "reorder-only",
+      "scene": "res://test-curved-minimal.tscn",
+      "logPath": "/home/bb/code/godot_xPRIMEray/output/render_test_scheduler_compare/2026-03-28T_scheduler_compare_rerun/logs/curved_minimal__reorder-only.log",
+      "capturePaths": [],
+      "godotExitCode": 0,
+      "regressExitCode": 0,
+      "regressStdout": "PASS: /home/bb/code/godot_xPRIMEray/output/render_test_scheduler_compare/2026-03-28T_scheduler_compare_rerun/logs/curved_minimal__reorder-only.log windows=50, trusted=10, partial=40\nON trusted mean per-px-on=na\nOFF trusted mean per-px-off=178.077\nON saved% mean (baseline-ready)=na\nAudit totals: falseNeg=0 falsePos=0\n\nsummary: pass=1 fail=0\n\nDOE summary:\nA) TrustReason histogram (global)\n  low_raytests: 40\n  ok: 10\n\nA) TrustReason histogram (per run)\n  baseline_prune_off: ok=10\n  prune_on_default: low_raytests=10\n  prune_on_tight_env: low_raytests=10\n  prune_on_loose_env: low_raytests=10\n  prune_on_stride_off: low_raytests=10\n\nB) Trust flip timeline\n  baseline_prune_off: firstTrustedStep=30 trusted_windows=10/10 (100.0%)\n  prune_on_default: firstTrustedStep=none trusted_windows=0/10 (0.0%)\n  prune_on_tight_env: firstTrustedStep=none trusted_windows=0/10 (0.0%)\n  prune_on_loose_env: firstTrustedStep=none trusted_windows=0/10 (0.0%)\n  prune_on_stride_off: firstTrustedStep=none trusted_windows=0/10 (0.0%)\n\nC) low_raytests diagnostics: count=40\n  run=prune_on_default step=330 geomRayTestsTotalRaw=608.0 minRayTests=4096.0 geomPixProcessedRaw=1160.0 minGeomPix=1024.0 candPix/noCand=43/1117 rayTestsPerGeomPix=0.524 candRate=0.037 noCandRate=0.963\n  run=prune_on_default step=360 geomRayTestsTotalRaw=608.0 minRayTests=4096.0 geomPixProcessedRaw=1120.0 minGeomPix=1024.0 candPix/noCand=43/1077 rayTestsPerGeomPix=0.543 candRate=0.038 noCandRate=0.962\n  run=prune_on_default step=390 geomRayTestsTotalRaw=767.0 minRayTests=4096.0 geomPixProcessedRaw=1160.0 minGeomPix=1024.0 candPix/noCand=54/1106 rayTestsPerGeomPix=0.661 candRate=0.047 noCandRate=0.953\n  run=prune_on_default step=420 geomRayTestsTotalRaw=1071.0 minRayTests=4096.0 geomPixProcessedRaw=1160.0 minGeomPix=1024.0 candPix/noCand=75/1085 rayTestsPerGeomPix=0.923 candRate=0.065 noCandRate=0.935\n  run=prune_on_default step=450 geomRayTestsTotalRaw=613.0 minRayTests=4096.0 geomPixProcessedRaw=1160.0 minGeomPix=1024.0 candPix/noCand=43/1117 rayTestsPerGeomPix=0.528 candRate=0.037 noCandRate=0.963\n\nD) Top 10 worst trust failures by deficit\n  run=prune_on_tight_env step=690 raytestsDeficit=3520.000 geomPixDeficit=0.000 p2Deficit=na\n  run=prune_on_tight_env step=720 raytestsDeficit=3520.000 geomPixDeficit=0.000 p2Deficit=na\n  run=prune_on_tight_env step=810 raytestsDeficit=3520.000 geomPixDeficit=0.000 p2Deficit=na\n  run=prune_on_tight_env step=840 raytestsDeficit=3520.000 geomPixDeficit=0.000 p2Deficit=na\n  run=prune_on_stride_off step=1290 raytestsDeficit=3520.000 geomPixDeficit=0.000 p2Deficit=na\n  run=prune_on_stride_off step=1320 raytestsDeficit=3520.000 geomPixDeficit=0.000 p2Deficit=na\n  run=prune_on_stride_off step=1410 raytestsDeficit=3520.000 geomPixDeficit=0.000 p2Deficit=na\n  run=prune_on_stride_off step=1440 raytestsDeficit=3520.000 geomPixDeficit=0.000 p2Deficit=na\n  run=prune_on_default step=330 raytestsDeficit=3488.000 geomPixDeficit=0.000 p2Deficit=na\n  run=prune_on_default step=360 raytestsDeficit=3488.000 geomPixDeficit=0.000 p2Deficit=na\n\nRUN REPORT\n  run=baseline_prune_off frames=300 warmup=30 samples=270 windows=10 trusted=10 partial=0\n    firstTrustedStep=30 lastTrustedStep=300\n    topReasons=ok=10\n    perPxOff(mean,p95)=178.077,212.757 perPxOn(mean,p95)=na,na savedPctMean=na\n  run=prune_on_default frames=300 warmup=30 samples=270 windows=10 trusted=0 partial=10\n    firstTrustedStep=na lastTrustedStep=na\n    topReasons=low_raytests=10\n    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=na,na savedPctMean=na\n    low_raytests examples:\n      step=330 geomRayTestsTotalRaw=608 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024\n      step=360 geomRayTestsTotalRaw=608 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1120 minGeomPix=1024\n      step=390 geomRayTestsTotalRaw=767 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024\n  run=prune_on_tight_env frames=300 warmup=30 samples=270 windows=10 trusted=0 partial=10\n    firstTrustedStep=na lastTrustedStep=na\n    topReasons=low_raytests=10\n    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=na,na savedPctMean=na\n    low_raytests examples:\n      step=630 geomRayTestsTotalRaw=733 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024\n      step=660 geomRayTestsTotalRaw=1000 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024\n      step=690 geomRayTestsTotalRaw=576 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024\n  run=prune_on_loose_env frames=300 warmup=30 samples=270 windows=10 trusted=0 partial=10\n    firstTrustedStep=na lastTrustedStep=na\n    topReasons=low_raytests=10\n    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=na,na savedPctMean=na\n    low_raytests examples:\n      step=930 geomRayTestsTotalRaw=652 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024\n      step=960 geomRayTestsTotalRaw=652 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1120 minGeomPix=1024\n      step=990 geomRayTestsTotalRaw=832 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024\n  run=prune_on_stride_off frames=300 warmup=30 samples=270 windows=10 trusted=0 partial=10\n    firstTrustedStep=na lastTrustedStep=na\n    topReasons=low_raytests=10\n    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=na,na savedPctMean=na\n    low_raytests examples:\n      step=1230 geomRayTestsTotalRaw=733 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024\n      step=1260 geomRayTestsTotalRaw=1000 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024\n      step=1290 geomRayTestsTotalRaw=576 minRayTests=4096 trustRayTestsMet=0 geomPixProcessedRaw=1160 minGeomPix=1024\n\nREASON HISTOGRAM\n  reasons:\n    low_raytests: 40\n    ok: 10\n  trusted: trusted=1=10 trusted=0=40\n  prune: prune=on=40 prune=off=10\n  trustGateDebug metPix=1 metRay=0: 40\n\n=== AutoCal Shadow Eval Summary (C1.1 g.3) ===\nCoverage\n  total_runs=5\n  runs_with_shadow_eval=0\n  coverage_pct=0.0%\nVerdicts\n  pass_count=0\n  fail_count=0\n  defer_count=0\n  missing_count=0\nOverhead (overhead_pct_est, numeric only)\n  count=0\n  mean=na\n  median=na\n  p90=na\n  p95=na\n  max=na\nTop offenders (overhead_pct_est desc)\n  none\nTrust sanity\n  baseline_trust_eq_1_and_shadow_trust_ne_1=0\n  fail_count_inferred_due_to_shadow_trust=0\n  shadow_trust_counts=none\n\nAutoCal decision binding diagnostic\n  missing_decision_count=0\n\nCSV written: /home/bb/code/godot_xPRIMEray/tools/renderhealth_summary.csv\nJSON written: /home/bb/code/godot_xPRIMEray/tools/renderhealth_summary.json",
+      "regressStderr": "",
+      "command": [
+        "/mnt/c/Users/wmbro/Downloads/Godot_v4.5.1-stable_mono_win64/Godot_v4.5.1-stable_mono_win64/Godot_v4.5.1-stable_mono_win64_console.exe",
+        "--path",
+        ".",
+        "--scene",
+        "res://test-curved-minimal.tscn",
+        "--",
+        "--render-test",
+        "--render-test-fixture=curved_minimal",
+        "--lifecycle-stress=0",
+        "--smartscale=0",
+        "--render-test-capture=1",
+        "--render-test-capture-dir=/home/bb/code/godot_xPRIMEray/output/render_test_scheduler_compare/2026-03-28T_scheduler_compare_rerun/images",
+        "--render-test-capture-mode=reorder-only",
+        "--tile-metrics=1",
+        "--tile-metrics-subtile-width=8",
+        "--experimental-subtile-scheduler=1"
+      ]
+    },
+    {
+      "fixture": "curved_minimal_backdrop",
+      "mode": "baseline",
+      "scene": "res://test-curved-minimal-backdrop.tscn",
+      "logPath": "/home/bb/code/godot_xPRIMEray/output/render_test_scheduler_compare/2026-03-28T_scheduler_compare_rerun/logs/curved_minimal_backdrop__baseline.log",
+      "capturePaths": [],
+      "godotExitCode": 2,
+      "regressExitCode": 0,
+      "regressStdout": "PASS: /home/bb/code/godot_xPRIMEray/output/render_test_scheduler_compare/2026-03-28T_scheduler_compare_rerun/logs/curved_minimal_backdrop__baseline.log windows=1, trusted=1, partial=0\nON trusted mean per-px-on=35.969\nOFF trusted mean per-px-off=na\nON saved% mean (baseline-ready)=na\nAudit totals: falseNeg=0 falsePos=0\n\nsummary: pass=1 fail=0\n\nDOE summary:\nA) TrustReason histogram (global)\n  ok: 1\n\nA) TrustReason histogram (per run)\n  __unscoped__:curved_minimal_backdrop__baseline.log: ok=1\n\nB) Trust flip timeline\n  __unscoped__:curved_minimal_backdrop__baseline.log: firstTrustedStep=30 trusted_windows=1/1 (100.0%)\n\nC) low_raytests diagnostics: count=0\n\nD) Top 10 worst trust failures by deficit\n  none\n\nRUN REPORT\n  run=__unscoped__:curved_minimal_backdrop__baseline.log frames=na warmup=na samples=na windows=1 trusted=1 partial=0\n    firstTrustedStep=30 lastTrustedStep=30\n    topReasons=ok=1\n    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=35.969,35.969 savedPctMean=na\n\nREASON HISTOGRAM\n  reasons:\n    ok: 1\n  trusted: trusted=1=1 trusted=0=0\n  prune: prune=on=1 prune=off=0\n  trustGateDebug metPix=1 metRay=0: 0\n\n=== AutoCal Shadow Eval Summary (C1.1 g.3) ===\nCoverage\n  total_runs=1\n  runs_with_shadow_eval=0\n  coverage_pct=0.0%\nVerdicts\n  pass_count=0\n  fail_count=0\n  defer_count=0\n  missing_count=0\nOverhead (overhead_pct_est, numeric only)\n  count=0\n  mean=na\n  median=na\n  p90=na\n  p95=na\n  max=na\nTop offenders (overhead_pct_est desc)\n  none\nTrust sanity\n  baseline_trust_eq_1_and_shadow_trust_ne_1=0\n  fail_count_inferred_due_to_shadow_trust=0\n  shadow_trust_counts=none\n\nAutoCal decision binding diagnostic\n  missing_decision_count=0\n\nCSV written: /home/bb/code/godot_xPRIMEray/tools/renderhealth_summary.csv\nJSON written: /home/bb/code/godot_xPRIMEray/tools/renderhealth_summary.json",
+      "regressStderr": "",
+      "command": [
+        "/mnt/c/Users/wmbro/Downloads/Godot_v4.5.1-stable_mono_win64/Godot_v4.5.1-stable_mono_win64/Godot_v4.5.1-stable_mono_win64_console.exe",
+        "--path",
+        ".",
+        "--scene",
+        "res://test-curved-minimal-backdrop.tscn",
+        "--",
+        "--render-test",
+        "--render-test-fixture=curved_minimal_backdrop",
+        "--lifecycle-stress=0",
+        "--smartscale=0",
+        "--render-test-capture=1",
+        "--render-test-capture-dir=/home/bb/code/godot_xPRIMEray/output/render_test_scheduler_compare/2026-03-28T_scheduler_compare_rerun/images",
+        "--render-test-capture-mode=baseline",
+        "--tile-metrics=1",
+        "--tile-metrics-subtile-width=8"
+      ]
+    },
+    {
+      "fixture": "curved_minimal_backdrop",
+      "mode": "reorder-only",
+      "scene": "res://test-curved-minimal-backdrop.tscn",
+      "logPath": "/home/bb/code/godot_xPRIMEray/output/render_test_scheduler_compare/2026-03-28T_scheduler_compare_rerun/logs/curved_minimal_backdrop__reorder-only.log",
+      "capturePaths": [],
+      "godotExitCode": 5,
+      "regressExitCode": 0,
+      "regressStdout": "PASS: /home/bb/code/godot_xPRIMEray/output/render_test_scheduler_compare/2026-03-28T_scheduler_compare_rerun/logs/curved_minimal_backdrop__reorder-only.log windows=1, trusted=1, partial=0\nON trusted mean per-px-on=34.699\nOFF trusted mean per-px-off=na\nON saved% mean (baseline-ready)=na\nAudit totals: falseNeg=0 falsePos=0\n\nsummary: pass=1 fail=0\n\nDOE summary:\nA) TrustReason histogram (global)\n  ok: 1\n\nA) TrustReason histogram (per run)\n  __unscoped__:curved_minimal_backdrop__reorder-only.log: ok=1\n\nB) Trust flip timeline\n  __unscoped__:curved_minimal_backdrop__reorder-only.log: firstTrustedStep=30 trusted_windows=1/1 (100.0%)\n\nC) low_raytests diagnostics: count=0\n\nD) Top 10 worst trust failures by deficit\n  none\n\nRUN REPORT\n  run=__unscoped__:curved_minimal_backdrop__reorder-only.log frames=na warmup=na samples=na windows=1 trusted=1 partial=0\n    firstTrustedStep=30 lastTrustedStep=30\n    topReasons=ok=1\n    perPxOff(mean,p95)=na,na perPxOn(mean,p95)=34.699,34.699 savedPctMean=na\n\nREASON HISTOGRAM\n  reasons:\n    ok: 1\n  trusted: trusted=1=1 trusted=0=0\n  prune: prune=on=1 prune=off=0\n  trustGateDebug metPix=1 metRay=0: 0\n\n=== AutoCal Shadow Eval Summary (C1.1 g.3) ===\nCoverage\n  total_runs=1\n  runs_with_shadow_eval=0\n  coverage_pct=0.0%\nVerdicts\n  pass_count=0\n  fail_count=0\n  defer_count=0\n  missing_count=0\nOverhead (overhead_pct_est, numeric only)\n  count=0\n  mean=na\n  median=na\n  p90=na\n  p95=na\n  max=na\nTop offenders (overhead_pct_est desc)\n  none\nTrust sanity\n  baseline_trust_eq_1_and_shadow_trust_ne_1=0\n  fail_count_inferred_due_to_shadow_trust=0\n  shadow_trust_counts=none\n\nAutoCal decision binding diagnostic\n  missing_decision_count=0\n\nCSV written: /home/bb/code/godot_xPRIMEray/tools/renderhealth_summary.csv\nJSON written: /home/bb/code/godot_xPRIMEray/tools/renderhealth_summary.json",
+      "regressStderr": "",
+      "command": [
+        "/mnt/c/Users/wmbro/Downloads/Godot_v4.5.1-stable_mono_win64/Godot_v4.5.1-stable_mono_win64/Godot_v4.5.1-stable_mono_win64_console.exe",
+        "--path",
+        ".",
+        "--scene",
+        "res://test-curved-minimal-backdrop.tscn",
+        "--",
+        "--render-test",
+        "--render-test-fixture=curved_minimal_backdrop",
+        "--lifecycle-stress=0",
+        "--smartscale=0",
+        "--render-test-capture=1",
+        "--render-test-capture-dir=/home/bb/code/godot_xPRIMEray/output/render_test_scheduler_compare/2026-03-28T_scheduler_compare_rerun/images",
+        "--render-test-capture-mode=reorder-only",
+        "--tile-metrics=1",
+        "--tile-metrics-subtile-width=8",
+        "--experimental-subtile-scheduler=1"
+      ]
+    }
+  ],
+  "comparisons": [
+    {
+      "fixture": "curved_minimal",
+      "status": "compare_unavailable",
+      "reason": "missing_python_dependency:numpy"
+    },
+    {
+      "fixture": "curved_minimal_backdrop",
+      "status": "compare_unavailable",
+      "reason": "missing_python_dependency:numpy"
+    }
+  ]
+}

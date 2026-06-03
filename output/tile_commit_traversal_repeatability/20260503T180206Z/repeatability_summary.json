@@ -1,0 +1,12 @@
+{
+  "checked": 2,
+  "mismatches": [
+    {
+      "run_a": "e2030f1e467494ccffcb62bc8cdd0d8ccac68ecd4291025f1980c9962f3707d1",
+      "run_b": "a156e86e0b7021661f428f51fa8c5bbb725c547b95e84293d625fb302a0577e7",
+      "step_length": "0.015",
+      "traversal": "tile"
+    }
+  ],
+  "passed": false
+}

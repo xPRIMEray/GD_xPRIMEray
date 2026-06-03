@@ -1,0 +1,2 @@
+cell,island_id,closure_oracle_class,area_px,bbox_x0,bbox_y0,bbox_x1,bbox_y1,centroid_x,centroid_y
+cells/step_0.015/budget_32/curvature_0/row,1,budget_exhausted_no_hit,200,0,0,19,9,9.5,4.5

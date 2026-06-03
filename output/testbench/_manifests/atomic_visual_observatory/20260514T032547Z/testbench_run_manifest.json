@@ -1,0 +1,70 @@
+{
+  "schema": "xprimeray.testbench.run_manifest.v1",
+  "manifest_path": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T032547Z/testbench_run_manifest.json",
+  "recipe_id": "atomic_visual_observatory",
+  "recipe_title": "Atomic Orbital Visual Observatory",
+  "quality": "review",
+  "overlay": {
+    "mode": "density_contours",
+    "placement": "contact_sheet_only",
+    "postprocess_only": true,
+    "placement_descriptive_only": true
+  },
+  "exact_command": "cd \u0027/home/bb/code/godot_xPRIMEray\u0027 \u0026\u0026 ATOMIC_ORBITAL_VISUAL_CONTOURS=\u00271\u0027 ATOMIC_ORBITAL_VISUAL_CONTOUR_MODE=\u0027density\u0027 ATOMIC_ORBITAL_VISUAL_ROOT=\u0027/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T032547Z\u0027 ATOMIC_ORBITAL_VISUAL_SMOKE=\u00270\u0027 \u0027bash\u0027 \u0027/home/bb/code/godot_xPRIMEray/scripts/run_atomic_orbital_visual_observatory.sh\u0027",
+  "working_directory": "/home/bb/code/godot_xPRIMEray",
+  "env": {
+    "ATOMIC_ORBITAL_VISUAL_SMOKE": "0",
+    "ATOMIC_ORBITAL_VISUAL_CONTOURS": "1",
+    "ATOMIC_ORBITAL_VISUAL_CONTOUR_MODE": "density",
+    "ATOMIC_ORBITAL_VISUAL_ROOT": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T032547Z"
+  },
+  "planned_output_folder": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T032547Z",
+  "testbench_wrapped_output": false,
+  "source_script_artifacts_preserved": true,
+  "dry_run": false,
+  "status": "completed_with_errors",
+  "exit_code": 137,
+  "started_utc": "20260514T032547Z",
+  "updated_utc": "2026-05-14T03:45:48Z",
+  "smoke_success_known": false,
+  "artifacts": {
+    "folder": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T032547Z",
+    "report": "",
+    "contact_sheet": "",
+    "summary": "",
+    "preview": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T032547Z/cells/normal_rgb/V4_tick1/atomic_orbital_visual_observatory__normal_rgb_v4_tick1__baseline_prune_off__scheduler-baseline__targetms-1000__stride-2__runid-1.png",
+    "expected_reports": [
+      "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T032547Z/atomic_visual_observatory_report.md"
+    ],
+    "expected_contact_sheets": [
+      "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T032547Z/atomic_visual_contact_sheet.png"
+    ],
+    "expected_summaries": [
+      "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T032547Z/atomic_visual_diff_summary.json"
+    ],
+    "expected_previews": [
+      "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T032547Z/*__density_contours.png",
+      "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T032547Z/*__curvature_contours.png",
+      "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T032547Z/V0_vs_V1_scaled_diff.png",
+      "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T032547Z/V0_vs_V2_scaled_diff.png",
+      "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_visual_observatory/20260514T032547Z/tick0_vs_tick1_scaled_diff.png"
+    ]
+  },
+  "cockpit_summary": "Atomic Orbital Visual Observatory: report missing; contact sheet missing.",
+  "guardrail_text": "Interpretation only, not validation. Contours and visual overlays are postprocess guides derived from fixture metadata or saved captures.",
+  "visual_grammar": {
+    "straight_reference": "#d8d8d8",
+    "curved_transport": [
+      "#00d7ff",
+      "#ff4fd8"
+    ],
+    "density": "#2f7dff",
+    "curvature": "#f2c14e",
+    "unresolved_failed_transport": [
+      "#ff4b2f",
+      "#ff9a2f"
+    ],
+    "observer_camera": "small_labeled_glyph",
+    "field_center_nucleus": "crosshair"
+  }
+}

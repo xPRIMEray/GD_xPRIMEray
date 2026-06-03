@@ -1,0 +1,386 @@
+{
+  "beauty_hashes": {
+    "control": "a7601081c0419a561027a54e7fb1a937fc5969c657ea0826ed320eae47b36832",
+    "curved": "a7ee73eb4dfa61b2107e6293d32e59790628883906ce75263ef215b6f18497ad"
+  },
+  "budget_diminishing_returns": {
+    "control": {
+      "last_pre_budget_step": "",
+      "likely_point_of_diminishing_returns": "0.015",
+      "reason": "quality improves until step before first sampled step, then budget exhaustion appears at step 0.015"
+    },
+    "curved": {
+      "last_pre_budget_step": "0.015",
+      "likely_point_of_diminishing_returns": "",
+      "reason": "no traversal budget exhaustion detected across sampled steps"
+    }
+  },
+  "budget_saturation_ladder_csv": "output/curved_field_validation_ladder/20260509T160715Z/curved_ladder_budget_saturation.csv",
+  "comparability_status": "warning",
+  "comparability_warnings": [
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.015"
+    }
+  ],
+  "control_comparison_reason": "configured scene-control fixture",
+  "control_comparison_type": "scene_control",
+  "control_metrics": {
+    "budget_exhausted_hit_count": 388,
+    "budget_exhausted_no_hit_count": 860,
+    "budget_exhausted_pixel_count": 1248,
+    "budget_exhaustion_percent": 2.166667,
+    "graph_edge_count": 2,
+    "graph_node_count": 3,
+    "high_discontinuity_edge_count": 2,
+    "ladder_persistence_basis": "unavailable",
+    "merge_split_count": 0,
+    "node_persistence_rate": "",
+    "seam_length_px_total": 780,
+    "step_dir": "output/curved_field_validation_ladder/20260509T160715Z/control/steps/step_0.015",
+    "step_quality_plateau_candidate": true,
+    "unresolved_pixel_count": 0
+  },
+  "curvature_evidence": {
+    "bend_scale": 1.0,
+    "curvature_energy": 2.496387,
+    "curvature_metric_log_present": true,
+    "curved_transport_enabled": true,
+    "field_accel_sum": 2.496387,
+    "field_strength": 1.0,
+    "metric_line": "[CurvedFixture][CurvatureMetric] field_accel_sum=2.496387 curvature_energy=2.496387 max_probe_accel=0.735433 far_accel=0",
+    "nonzero_curvature_params": true,
+    "reason": "ok",
+    "resolved_line": "[CurvedFixture][Resolved] source=canonical curve=Power modeFlags=0 rInner=0 rOuter=4.5 amp=1.15 gamma=2 beta_mode=override beta_scale=1 useIntegrated=1 bendScale=1 fieldStrength=1",
+    "resolved_log_present": true,
+    "valid": true
+  },
+  "curved_metrics": {
+    "budget_exhausted_hit_count": 0,
+    "budget_exhausted_no_hit_count": 0,
+    "budget_exhausted_pixel_count": 0,
+    "budget_exhaustion_percent": 0.0,
+    "graph_edge_count": 1,
+    "graph_node_count": 2,
+    "high_discontinuity_edge_count": 1,
+    "ladder_persistence_basis": "unavailable",
+    "merge_split_count": 0,
+    "node_persistence_rate": "",
+    "seam_length_px_total": 18,
+    "step_dir": "output/curved_field_validation_ladder/20260509T160715Z/curved/steps/step_0.015",
+    "step_quality_plateau_candidate": false,
+    "unresolved_pixel_count": 0
+  },
+  "curved_validation_status": "warning",
+  "evidence_tiers": {
+    "tier_a_fixture_curvature_engaged": "pass",
+    "tier_b_renderer_diagnostics_changed": "pass",
+    "tier_c_topology_changed_across_step_ladder": "not_detected",
+    "tier_d_unresolved_island_sealed_or_persisted": "unknown"
+  },
+  "graph_delta_vs_control": {
+    "edge_count_delta": -1,
+    "high_discontinuity_edge_delta": -1,
+    "merge_split_delta": 0,
+    "node_count_delta": -1,
+    "seam_length_delta": -762,
+    "unresolved_count_delta": 0
+  },
+  "guardrail": "Do not describe visible band/support artifacts as caused by curvature unless comparison metrics support that claim; use 'associated with curved transport fixture under tested settings.'",
+  "requested_control_mode": "scene_control",
+  "storyboard_selection": {
+    "control": {
+      "candidates": [
+        {
+          "budget_exhaustion_percent": 2.166667,
+          "cell_dir": "output/curved_field_validation_ladder/20260509T160715Z/control/steps/step_0.015",
+          "graph_edge_count": 2,
+          "graph_node_count": 3,
+          "hit_count": 388,
+          "hit_row_count": 57600,
+          "image_metrics": {
+            "contrast": 15.109,
+            "exists": true,
+            "mean_luma": 55.56
+          },
+          "overlay_availability": {
+            "budget": true,
+            "cartesian": true,
+            "continuity": true,
+            "hit_normals": true,
+            "ownership": true,
+            "quad_panel": true,
+            "unresolved": true
+          },
+          "role": "control",
+          "score": 90.6302,
+          "seam_length_px_total": 780,
+          "selection_reasons": [
+            "visible_render",
+            "visible_hits",
+            "ownership_nodes",
+            "seam_edges",
+            "seam_support",
+            "nonempty_overlays",
+            "budget_exhaustion_penalty"
+          ],
+          "step_length": "0.015",
+          "unresolved_pixel_count": 0
+        }
+      ],
+      "role": "control",
+      "score": 90.6302,
+      "selected_step": "0.015",
+      "selection_reasons": [
+        "visible_render",
+        "visible_hits",
+        "ownership_nodes",
+        "seam_edges",
+        "seam_support",
+        "nonempty_overlays",
+        "budget_exhaustion_penalty"
+      ]
+    },
+    "curved": {
+      "candidates": [
+        {
+          "budget_exhaustion_percent": 0.0,
+          "cell_dir": "output/curved_field_validation_ladder/20260509T160715Z/curved/steps/step_0.015",
+          "graph_edge_count": 1,
+          "graph_node_count": 2,
+          "hit_count": 8,
+          "hit_row_count": 57600,
+          "image_metrics": {
+            "contrast": 15.0,
+            "exists": true,
+            "mean_luma": 55.773
+          },
+          "overlay_availability": {
+            "budget": true,
+            "cartesian": true,
+            "continuity": true,
+            "hit_normals": true,
+            "ownership": true,
+            "quad_panel": true,
+            "unresolved": true
+          },
+          "role": "curved",
+          "score": 64.7032,
+          "seam_length_px_total": 18,
+          "selection_reasons": [
+            "visible_render",
+            "visible_hits",
+            "ownership_nodes",
+            "seam_edges",
+            "seam_support",
+            "nonempty_overlays"
+          ],
+          "step_length": "0.015",
+          "unresolved_pixel_count": 0
+        }
+      ],
+      "role": "curved",
+      "score": 64.7032,
+      "selected_step": "0.015",
+      "selection_reasons": [
+        "visible_render",
+        "visible_hits",
+        "ownership_nodes",
+        "seam_edges",
+        "seam_support",
+        "nonempty_overlays"
+      ]
+    },
+    "schema_version": 1,
+    "selection_policy": {
+      "avoid": [
+        "low-hit cells",
+        "visually empty cells",
+        "mostly budget-exhausted cells",
+        "unresolved samples without observable geometry"
+      ],
+      "prefer": [
+        "visible geometry",
+        "visible hit samples",
+        "coherent transport structure",
+        "nonempty topology overlays",
+        "informative seams or unresolved support"
+      ]
+    },
+    "visual_hierarchy": [
+      "cartesian_geometry_projection",
+      "hit_normals_and_transport_vectors",
+      "ownership_topology_and_seams",
+      "budget_saturation_and_unresolved_islands",
+      "graph_lineage_and_phase_evolution"
+    ]
+  },
+  "study": "curved_field_validation_ladder",
+  "temporal_observability": {
+    "animated_outputs": {
+      "budget_heatmap_evolution": {
+        "duration_ms": 850,
+        "frame_count": 1,
+        "interpolation": "none_real_frames_only",
+        "kind": "budget",
+        "missing": [],
+        "path": "output/curved_field_validation_ladder/20260509T160715Z/budget_heatmap_evolution.gif",
+        "role": "curved"
+      },
+      "diagnostic_storyboard_evolution": {
+        "duration_ms": 1200,
+        "frame_count": 1,
+        "interpolation": "none_real_frames_only",
+        "kind": "storyboard",
+        "missing": [],
+        "path": "output/curved_field_validation_ladder/20260509T160715Z/diagnostic_storyboard_evolution.gif",
+        "role": "curved"
+      },
+      "ownership_graph_evolution": {
+        "duration_ms": 850,
+        "frame_count": 1,
+        "interpolation": "none_real_frames_only",
+        "kind": "topology",
+        "missing": [],
+        "path": "output/curved_field_validation_ladder/20260509T160715Z/ownership_graph_evolution.gif",
+        "role": "curved"
+      }
+    },
+    "annotations": [
+      "role",
+      "frame_count_when_available",
+      "step",
+      "transport_quality_phase",
+      "budget_saturation_marker",
+      "unresolved_marker"
+    ],
+    "evolution_axes": {
+      "convergence_stages": true,
+      "frame_progression": false,
+      "frame_progression_reason": "current ladder artifacts expose final per-step captures, not per-frame image sequences",
+      "step_ladder": true
+    },
+    "fake_interpolation": false,
+    "real_frames_only": true,
+    "roles": [
+      "control",
+      "curved"
+    ],
+    "schema_version": 1,
+    "steps": [
+      "0.015"
+    ],
+    "strips": {
+      "budget_evolution_strip": {
+        "frames_used": 2,
+        "kind": "budget",
+        "missing": [],
+        "path": "output/curved_field_validation_ladder/20260509T160715Z/budget_evolution_strip.png",
+        "roles": [
+          "control",
+          "curved"
+        ],
+        "steps": [
+          "0.015"
+        ]
+      },
+      "topology_evolution_strip": {
+        "frames_used": 2,
+        "kind": "topology",
+        "missing": [],
+        "path": "output/curved_field_validation_ladder/20260509T160715Z/topology_evolution_strip.png",
+        "roles": [
+          "control",
+          "curved"
+        ],
+        "steps": [
+          "0.015"
+        ]
+      },
+      "transport_phase_evolution_strip": {
+        "frames_used": 2,
+        "kind": "transport_phase",
+        "missing": [],
+        "path": "output/curved_field_validation_ladder/20260509T160715Z/transport_phase_evolution_strip.png",
+        "roles": [
+          "control",
+          "curved"
+        ],
+        "steps": [
+          "0.015"
+        ]
+      }
+    },
+    "temporal_role_selection": {
+      "candidates": [
+        {
+          "budget_range": 0.0,
+          "phase_diversity": [
+            "underresolved"
+          ],
+          "role": "curved",
+          "score": 8.0,
+          "selection_factors": [
+            "best_temporal_coherence",
+            "strongest_visible_evolution",
+            "highest_explanatory_value"
+          ],
+          "step_count": 1,
+          "topology_delta_score": 0.0
+        },
+        {
+          "budget_range": 0.0,
+          "phase_diversity": [
+            "budget_saturated"
+          ],
+          "role": "control",
+          "score": 8.0,
+          "selection_factors": [
+            "best_temporal_coherence",
+            "strongest_visible_evolution",
+            "highest_explanatory_value"
+          ],
+          "step_count": 1,
+          "topology_delta_score": 0.0
+        }
+      ],
+      "selected_role": "curved",
+      "selection_reason": "highest combined temporal coherence, visible evolution, and explanatory value score"
+    },
+    "visual_sequence": "geometry -> transport -> topology -> quality/budget"
+  },
+  "transport_quality_phase_csv": "output/curved_field_validation_ladder/20260509T160715Z/transport_quality_phase.csv",
+  "transport_quality_phase_plot": "output/curved_field_validation_ladder/20260509T160715Z/transport_quality_phase_plot.png",
+  "transport_quality_phase_summary": {
+    "control": {
+      "budget_saturation_start_step": "0.015",
+      "phase_counts": {
+        "budget_saturated": 1
+      },
+      "plateau_start_step": ""
+    },
+    "curved": {
+      "budget_saturation_start_step": "",
+      "phase_counts": {
+        "underresolved": 1
+      },
+      "plateau_start_step": ""
+    }
+  },
+  "validation_inference": {
+    "diagnostics_changed_vs_control": true,
+    "oracle_comparison_count": 8,
+    "ownership_topology_differs_from_control": true,
+    "unresolved_island_summary_available": true
+  },
+  "visible_support_wording": "visible band/support metrics",
+  "visual_hierarchy": [
+    "cartesian_geometry_projection",
+    "hit_normals_and_transport_vectors",
+    "ownership_topology_and_seams",
+    "budget_saturation_and_unresolved_islands",
+    "graph_lineage_and_phase_evolution"
+  ]
+}

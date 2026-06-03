@@ -1,0 +1,69 @@
+{
+  "schema": "xprimeray.testbench.run_manifest.v1",
+  "manifest_path": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T042946Z/testbench_run_manifest.json",
+  "recipe_id": "wormhole_structure_observatory",
+  "recipe_title": "Wormhole Structure Observatory",
+  "quality": "quick_review",
+  "overlay": {
+    "mode": "dual_reality_straight_vs_curved",
+    "placement": "contact_sheet_only",
+    "postprocess_only": true,
+    "placement_descriptive_only": true
+  },
+  "exact_command": "cd \u0027/home/bb/code/godot_xPRIMEray\u0027 \u0026\u0026 WORMHOLE_STRUCTURE_PANEL_TIMEOUT_SECONDS=\u002795\u0027 WORMHOLE_STRUCTURE_QUALITY=\u0027quick_review\u0027 \u0027bash\u0027 \u0027/home/bb/code/godot_xPRIMEray/scripts/run_wormhole_structure_observatory_quick.sh\u0027 \u002720260514T042946Z\u0027",
+  "working_directory": "/home/bb/code/godot_xPRIMEray",
+  "env": {
+    "WORMHOLE_STRUCTURE_QUALITY": "quick_review",
+    "WORMHOLE_STRUCTURE_PANEL_TIMEOUT_SECONDS": "95"
+  },
+  "planned_output_folder": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T042946Z",
+  "testbench_wrapped_output": false,
+  "source_script_artifacts_preserved": true,
+  "dry_run": false,
+  "status": "completed",
+  "exit_code": 0,
+  "started_utc": "2026-05-14T04:29:46Z",
+  "updated_utc": "2026-05-14T04:34:11Z",
+  "duration_seconds": 265.330387,
+  "duration_text": "4m 25s",
+  "smoke_success_known": false,
+  "artifacts": {
+    "folder": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T042946Z",
+    "report": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T042946Z/wormhole_structure_report.md",
+    "contact_sheet": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T042946Z/wormhole_structure_contact_sheet.png",
+    "summary": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T042946Z/wormhole_structure_summary.json",
+    "preview": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T042946Z/testbench_preview.png",
+    "expected_reports": [
+      "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T042946Z/wormhole_structure_report.md"
+    ],
+    "expected_contact_sheets": [
+      "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T042946Z/wormhole_structure_contact_sheet.png"
+    ],
+    "expected_summaries": [
+      "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T042946Z/wormhole_structure_summary.json"
+    ],
+    "expected_previews": [
+      "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T042946Z/testbench_preview.png",
+      "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T042946Z/panels/clean_curved/clean_curved_film.png",
+      "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T042946Z/panels/straight_vs_curved/straight_vs_curved_composed.png",
+      "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T042946Z/panels/depth_heatmap/depth_heatmap_film.png"
+    ]
+  },
+  "cockpit_summary": "Wormhole Structure Observatory: panels 0/3 complete; clean_curved, straight_vs_curved, depth_heatmap incomplete; contact sheet found; duration 4m 25s.",
+  "guardrail_text": "Visual observatory only. Dual-reality and diagnostic overlays visualize renderer transport structure, not physical wormhole evidence or validation verdicts.",
+  "visual_grammar": {
+    "straight_reference": "#d8d8d8",
+    "curved_transport": [
+      "#00d7ff",
+      "#ff4fd8"
+    ],
+    "density": "#2f7dff",
+    "curvature": "#f2c14e",
+    "unresolved_failed_transport": [
+      "#ff4b2f",
+      "#ff9a2f"
+    ],
+    "observer_camera": "small_labeled_glyph",
+    "field_center_nucleus": "crosshair"
+  }
+}

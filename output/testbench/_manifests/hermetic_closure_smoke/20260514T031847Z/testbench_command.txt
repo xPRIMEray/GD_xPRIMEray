@@ -1,0 +1,1 @@
+cd '/home/bb/code/godot_xPRIMEray' && HERMETIC_CLOSURE_ROOT='/home/bb/code/godot_xPRIMEray/output/hermetic_hit_closure/20260514T031847Z' HERMETIC_CLOSURE_SMOKE='1' 'bash' '/home/bb/code/godot_xPRIMEray/scripts/run_hermetic_hit_closure_ladder.sh'

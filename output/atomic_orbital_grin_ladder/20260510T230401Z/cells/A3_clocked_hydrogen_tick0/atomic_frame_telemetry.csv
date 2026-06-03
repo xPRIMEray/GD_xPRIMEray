@@ -1,0 +1,5 @@
+frame_index,render_time,field_tick_index,phase,electron_count,atomic_preset,orbital_radius,curvature_strength,modulation_depth,hit_pixels,miss_pixels,budget_exhausted_pixels,mean_steps_per_pixel,max_steps_per_pixel,mean_density_sampled,max_density_sampled,mean_curvature_magnitude,max_curvature_magnitude
+0,1.118,0,0,1,hydrogen,3.5,0.002,0.1,64,0,-1,0,0,0.137354,1,0,0
+1,2.1,0,0,1,hydrogen,3.5,0.002,0.1,448,0,-1,0,0,0.137354,1,0,0
+2,3.083,0,0,1,hydrogen,3.5,0.002,0.1,928,0,-1,0,0,0.137354,1,0,0
+3,4.082,0,0,1,hydrogen,3.5,0.002,0.1,1440,0,-1,0,0,0.137354,1,0,0

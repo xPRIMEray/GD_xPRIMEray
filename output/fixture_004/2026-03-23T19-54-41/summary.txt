@@ -1,0 +1,76 @@
+Fixture: fixture_004
+Timestamp: 2026-03-23T19-54-41
+Scene: res://test-grin-basic-visual-linear-dual-attractor-minimal.tscn
+Status: ok
+Runtime Seconds: 29.344
+Traced Pixels: 70912
+Source Hits: 150
+Miss Hits: 70762
+Capture Succeeded: true
+Launch Audit Status: ok
+Guard Progress Exits: 0
+Forced Advance Events: 0
+Render Health Step: 41
+Processed Rows: 164
+Total Rows Considered: 164
+Total Rows Processed: 164
+Total Rows Skipped: 0
+Processed Row Window: 0..163
+Zero-Hit Rows: 128
+Row Participation Summary: proc=0-163|skip=-|zero=0-111,120-127,144-147,160-163
+Row Coverage: ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZPPPPPPPPZZZZZZZZPPPPPPPPPPPPPPPPZZZZPPPPPPPPPPPPZZZZ
+Visual Mode: diagnostic_flat
+Visual Shading Mode: DepthHeatmap
+Baseline Shading Mode: NormalRGB
+Analysis Capture Mode: categorical_final
+Analysis Capture Written: 1
+Debug Capture Written: 1
+Categorical Final Written: 1
+Overlay Enabled For Analysis Capture: 0
+White Streak Likely Source: none_detected
+Rows Started: 164
+Rows Completed: 158
+Rows Partially Written: 0
+Rows Early Terminated: 0
+Final Hit Pixel Count: 150
+Traversal Write Pixel Count: 0
+Rendered Bright Rows: 0
+RenderHealth Geom Segments Queried: 672000
+Bottom Region Likely Cause: background_fill_in_unrendered_image_area
+Analysis Unrendered Rows: 106
+Analysis Band Matches Unrendered Rows: 1
+Radial Bin Count: 8
+Radial Overall Hit Fraction: 0.001905
+Radial Overall Rendered Coverage: 0.607407
+Radial Profile Path: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_004/2026-03-23T19-54-41/radial_profile.json
+Radial Sector Left Hit Fraction: 0.002109
+Radial Sector Right Hit Fraction: 0.001702
+Radial Sector Left Rendered Coverage: 0.607407
+Radial Sector Right Rendered Coverage: 0.607407
+Radial Sector Profile Path: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_004/2026-03-23T19-54-41/radial_sector_profile.json
+Field Center Pixel: (126.7588, 134.5)
+Field World Origin: (-2.25235, 0.0, 0.0)
+Field Radial Overall Hit Fraction: 0.001905
+Field Radial Overall Rendered Coverage: 0.607407
+Field Radial Profile Path: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_004/2026-03-23T19-54-41/field_radial_profile.json
+Field Sector Left Hit Fraction: 0.001824
+Field Sector Right Hit Fraction: 0.001935
+Field Sector Left Rendered Coverage: 0.607407
+Field Sector Right Rendered Coverage: 0.607407
+Field Radial Sector Profile Path: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_004/2026-03-23T19-54-41/field_radial_sector_profile.json
+Nearest Attractor Count: 2
+Nearest Attractor Partition Clean: False
+Nearest Attractor Clean Fraction: 0.4
+Nearest Attractor Dominant Path: FixtureGrinBasicVisualLinearDualAttractor/FieldSource3DPrimary
+Nearest Attractor Dominant Share: 0.553333
+Nearest Attractor Second Share: 0.446667
+Nearest Attractor Behavior: blended
+Nearest Attractor Profile Path: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_004/2026-03-23T19-54-41/nearest_attractor_profile.json
+Runtime Fingerprint: fixture004_runtime_fingerprint_v1_git_4a6317b6dd9a_utc_20260324T005446Z_sha_cd9160e5937ebbb1
+Assembly Timestamp Present: true
+Requested Step Match: true
+Row Diagnostics Present: true
+Scheduler Clean: true
+Run Verified: true
+Turn Threshold: 2.4
+Output Path: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_004/2026-03-23T19-54-41

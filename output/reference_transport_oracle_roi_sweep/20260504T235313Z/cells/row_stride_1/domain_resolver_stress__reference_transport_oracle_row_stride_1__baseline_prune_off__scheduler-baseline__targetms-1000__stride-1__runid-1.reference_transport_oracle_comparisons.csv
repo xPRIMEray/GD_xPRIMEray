@@ -1,0 +1,9 @@
+sample_id,roi_id,pixel_x,pixel_y,production_step_length,oracle_step_length,collider_match,domain_match,normal_angle_delta,hit_distance_delta,path_length_delta,boundary_event_delta,step_count_delta,ownership_graph_agreement,epsilon_stability_class,secondary_tags,decision_risk,oracle_repeat_match,oracle_self_path_delta,oracle_self_graph_delta,comparison_confidence
+oracle_px_0000_39_34,manual_roi_0,39,34,0.015,0.001563,0,1,0,-1,2.088178,0,3531,0,unresolved,trajectory_escape|phase_flip|plateau_oscillation,2.326186,1,0,0,high
+oracle_px_0001_40_34,manual_roi_0,40,34,0.015,0.001563,0,1,0,-1,2.088178,0,3531,0,unresolved,trajectory_escape|phase_flip|plateau_oscillation,2.326186,1,0,0,high
+oracle_px_0002_41_34,manual_roi_0,41,34,0.015,0.001563,0,1,0,-1,2.088178,0,3531,0,unresolved,trajectory_escape|phase_flip|plateau_oscillation,2.326186,1,0,0,high
+oracle_px_0003_39_35,manual_roi_0,39,35,0.015,0.001563,0,1,0,-1,2.088178,0,3531,0,unresolved,trajectory_escape|phase_flip|plateau_oscillation,2.326186,1,0,0,high
+oracle_px_0004_40_35,manual_roi_0,40,35,0.015,0.001563,0,1,0,-1,2.073178,0,3532,0,unresolved,trajectory_escape|phase_flip|plateau_oscillation,2.323843,1,0,0,high
+oracle_px_0005_41_35,manual_roi_0,41,35,0.015,0.001563,0,1,0,-1,2.073178,0,3532,0,unresolved,trajectory_escape|phase_flip|plateau_oscillation,2.323843,1,0,0,high
+oracle_px_0006_39_36,manual_roi_0,39,36,0.015,0.001563,0,1,0,-1,2.073178,0,3532,0,unresolved,trajectory_escape|phase_flip|plateau_oscillation,2.323843,1,0,0,high
+oracle_px_0007_40_36,manual_roi_0,40,36,0.015,0.001563,0,1,0,-1,2.073178,0,3532,0,unresolved,trajectory_escape|phase_flip|plateau_oscillation,2.323843,1,0,0,high

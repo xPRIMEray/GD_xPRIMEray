@@ -1,0 +1,2 @@
+frame_index,render_time,field_tick_index,phase,electron_count,atomic_preset,orbital_radius,curvature_strength,modulation_depth,visual_density,visual_guides,visual_laser_sheet,visual_beams,hit_pixels,miss_pixels,mean_density_sampled,max_density_sampled
+0,0.076,0,0,1,hydrogen,9,0.1,0,1,1,1,1,0,0,0.13307,1

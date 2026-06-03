@@ -1,0 +1,127 @@
+{
+  "control": {
+    "candidates": [
+      {
+        "budget_exhaustion_percent": 2.166667,
+        "cell_dir": "output/curved_field_validation_ladder/20260509T160715Z/control/steps/step_0.015",
+        "graph_edge_count": 2,
+        "graph_node_count": 3,
+        "hit_count": 388,
+        "hit_row_count": 57600,
+        "image_metrics": {
+          "contrast": 15.109,
+          "exists": true,
+          "mean_luma": 55.56
+        },
+        "overlay_availability": {
+          "budget": true,
+          "cartesian": true,
+          "continuity": true,
+          "hit_normals": true,
+          "ownership": true,
+          "quad_panel": true,
+          "unresolved": true
+        },
+        "role": "control",
+        "score": 90.6302,
+        "seam_length_px_total": 780,
+        "selection_reasons": [
+          "visible_render",
+          "visible_hits",
+          "ownership_nodes",
+          "seam_edges",
+          "seam_support",
+          "nonempty_overlays",
+          "budget_exhaustion_penalty"
+        ],
+        "step_length": "0.015",
+        "unresolved_pixel_count": 0
+      }
+    ],
+    "role": "control",
+    "score": 90.6302,
+    "selected_step": "0.015",
+    "selection_reasons": [
+      "visible_render",
+      "visible_hits",
+      "ownership_nodes",
+      "seam_edges",
+      "seam_support",
+      "nonempty_overlays",
+      "budget_exhaustion_penalty"
+    ]
+  },
+  "curved": {
+    "candidates": [
+      {
+        "budget_exhaustion_percent": 0.0,
+        "cell_dir": "output/curved_field_validation_ladder/20260509T160715Z/curved/steps/step_0.015",
+        "graph_edge_count": 1,
+        "graph_node_count": 2,
+        "hit_count": 8,
+        "hit_row_count": 57600,
+        "image_metrics": {
+          "contrast": 15.0,
+          "exists": true,
+          "mean_luma": 55.773
+        },
+        "overlay_availability": {
+          "budget": true,
+          "cartesian": true,
+          "continuity": true,
+          "hit_normals": true,
+          "ownership": true,
+          "quad_panel": true,
+          "unresolved": true
+        },
+        "role": "curved",
+        "score": 64.7032,
+        "seam_length_px_total": 18,
+        "selection_reasons": [
+          "visible_render",
+          "visible_hits",
+          "ownership_nodes",
+          "seam_edges",
+          "seam_support",
+          "nonempty_overlays"
+        ],
+        "step_length": "0.015",
+        "unresolved_pixel_count": 0
+      }
+    ],
+    "role": "curved",
+    "score": 64.7032,
+    "selected_step": "0.015",
+    "selection_reasons": [
+      "visible_render",
+      "visible_hits",
+      "ownership_nodes",
+      "seam_edges",
+      "seam_support",
+      "nonempty_overlays"
+    ]
+  },
+  "schema_version": 1,
+  "selection_policy": {
+    "avoid": [
+      "low-hit cells",
+      "visually empty cells",
+      "mostly budget-exhausted cells",
+      "unresolved samples without observable geometry"
+    ],
+    "prefer": [
+      "visible geometry",
+      "visible hit samples",
+      "coherent transport structure",
+      "nonempty topology overlays",
+      "informative seams or unresolved support"
+    ]
+  },
+  "visual_hierarchy": [
+    "cartesian_geometry_projection",
+    "hit_normals_and_transport_vectors",
+    "ownership_topology_and_seams",
+    "budget_saturation_and_unresolved_islands",
+    "graph_lineage_and_phase_evolution"
+  ]
+}

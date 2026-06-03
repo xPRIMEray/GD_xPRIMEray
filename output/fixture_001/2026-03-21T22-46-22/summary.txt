@@ -1,0 +1,23 @@
+Fixture: fixture_001
+Timestamp: 2026-03-21T22-46-22
+Scene: res://test-grin-basic-visual-minimal.tscn
+Status: ok
+Runtime Seconds: 29.982
+Traced Pixels: 66208
+Source Hits: 2993
+Miss Hits: 63215
+Capture Succeeded: true
+Launch Audit Status: ok
+Guard Progress Exits: 0
+Forced Advance Events: 0
+Render Health Step: 41
+Processed Rows: 164
+Total Rows Considered: 164
+Total Rows Processed: 164
+Total Rows Skipped: 0
+Processed Row Window: 0..163
+Zero-Hit Rows: 0
+Row Participation Summary: proc=0-163|skip=-|zero=-
+Runtime Fingerprint: fixture001_runtime_fingerprint_v1_git_8acc166a5c56_utc_20260322T034626Z_sha_cf0366d8469056bf
+Turn Threshold: 2
+Output Path: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_001/2026-03-21T22-46-22

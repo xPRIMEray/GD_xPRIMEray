@@ -1,0 +1,53 @@
+Nearest Attractor Profile
+Capture Path: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_004/2026-03-23T19-50-42/capture.png
+Analysis Capture Mode: categorical_final
+Assignment Basis: nearest_projected_field_center
+Attractor Count: 2
+Behavior: blended
+Partition Clean: False
+Clean Partition Fraction: 0.183044
+Dominant Attractor: FixtureGrinBasicVisualLinearDualAttractor/FieldSource3DPrimary
+Dominant Final Hit Share: 0.522158
+Second Final Hit Share: 0.477842
+Ambiguous Final Hit Pixels: 424
+Total Final Hit Pixels: 519
+
+Attractor 0
+Field Path: FixtureGrinBasicVisualLinearDualAttractor/FieldSource3DPrimary
+Primary Field: True
+Field Center Pixel: (89.3352, 134.5)
+Field World Origin: (-3.0, 0.0, 0.0)
+Assigned Pixels: 64800
+Final Hit Share: 0.522158
+Totals: px=64800 hit=271 nohit=39089 unrendered=25440 hitFrac=0.006885 renderedCov=0.607407 other=0
+Sector Left: px=24300 hit=59 nohit=14701 unrendered=9540 hitFrac=0.003997 renderedCov=0.607407 other=0
+Sector Right: px=40500 hit=212 nohit=24388 unrendered=15900 hitFrac=0.008618 renderedCov=0.607407 other=0
+Legend: bin radius_px pixels final_hit rendered_no_hit unrendered hit_frac_rendered rendered_coverage other
+bin0   0.000- 51.528 px= 8334 hit=   59 nohit= 6930 unrendered= 1345 hitFrac=0.0084 renderedCov=0.8386 other=    0
+bin1  51.528-103.056 px=24138 hit=    0 nohit=14802 unrendered= 9336 hitFrac=0.0000 renderedCov=0.6132 other=    0
+bin2 103.056-154.584 px=26984 hit=   56 nohit=14841 unrendered=12087 hitFrac=0.0038 renderedCov=0.5521 other=    0
+bin3 154.584-206.112 px= 5344 hit=  156 nohit= 2516 unrendered= 2672 hitFrac=0.0584 renderedCov=0.5000 other=    0
+bin4 206.112-257.640 px=    0 hit=    0 nohit=    0 unrendered=    0 hitFrac=na renderedCov=na other=    0
+bin5 257.640-309.168 px=    0 hit=    0 nohit=    0 unrendered=    0 hitFrac=na renderedCov=na other=    0
+bin6 309.168-360.696 px=    0 hit=    0 nohit=    0 unrendered=    0 hitFrac=na renderedCov=na other=    0
+bin7 360.696-412.224 px=    0 hit=    0 nohit=    0 unrendered=    0 hitFrac=na renderedCov=na other=    0
+
+Attractor 1
+Field Path: FixtureGrinBasicVisualLinearDualAttractor/FieldSource3DSecondary
+Primary Field: False
+Field Center Pixel: (389.6648, 134.5)
+Field World Origin: (3.0, 0.0, 0.0)
+Assigned Pixels: 64800
+Final Hit Share: 0.477842
+Totals: px=64800 hit=248 nohit=39112 unrendered=25440 hitFrac=0.006301 renderedCov=0.607407 other=0
+Sector Left: px=40500 hit=212 nohit=24388 unrendered=15900 hitFrac=0.008618 renderedCov=0.607407 other=0
+Sector Right: px=24300 hit=36 nohit=14724 unrendered=9540 hitFrac=0.002439 renderedCov=0.607407 other=0
+Legend: bin radius_px pixels final_hit rendered_no_hit unrendered hit_frac_rendered rendered_coverage other
+bin0   0.000- 51.528 px= 8334 hit=   36 nohit= 6953 unrendered= 1345 hitFrac=0.0052 renderedCov=0.8386 other=    0
+bin1  51.528-103.056 px=24138 hit=    0 nohit=14802 unrendered= 9336 hitFrac=0.0000 renderedCov=0.6132 other=    0
+bin2 103.056-154.584 px=26984 hit=   56 nohit=14841 unrendered=12087 hitFrac=0.0038 renderedCov=0.5521 other=    0
+bin3 154.584-206.112 px= 5344 hit=  156 nohit= 2516 unrendered= 2672 hitFrac=0.0584 renderedCov=0.5000 other=    0
+bin4 206.112-257.640 px=    0 hit=    0 nohit=    0 unrendered=    0 hitFrac=na renderedCov=na other=    0
+bin5 257.640-309.168 px=    0 hit=    0 nohit=    0 unrendered=    0 hitFrac=na renderedCov=na other=    0
+bin6 309.168-360.696 px=    0 hit=    0 nohit=    0 unrendered=    0 hitFrac=na renderedCov=na other=    0
+bin7 360.696-412.224 px=    0 hit=    0 nohit=    0 unrendered=    0 hitFrac=na renderedCov=na other=    0

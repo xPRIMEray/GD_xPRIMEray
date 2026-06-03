@@ -1,0 +1,223 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://GrinFilmCamera.cs" id="1_grin"]
+[ext_resource type="Script" path="res://RendererCore/Testing/RenderTestRunner.cs" id="2_runner"]
+[ext_resource type="Script" path="res://FilmOverlay2D.cs" id="3_overlay"]
+[ext_resource type="Script" path="res://AtomicEigenmodeFieldSource3D.cs" id="4_field"]
+[ext_resource type="Script" path="res://BoundaryLayerVolume.cs" id="5_blv"]
+[ext_resource type="Script" path="res://RayBeamRenderer.cs" id="6_rbr"]
+
+[sub_resource type="BoxMesh" id="BoxMeshMirror"]
+size = Vector3(12, 12, 0.25)
+
+[sub_resource type="BoxShape3D" id="BoxShapeMirror"]
+size = Vector3(12, 12, 0.25)
+
+[sub_resource type="BoxMesh" id="BoxMeshMarker"]
+size = Vector3(0.8, 0.8, 0.1)
+
+[sub_resource type="SphereMesh" id="SphereMeshCore"]
+radius = 0.4
+height = 0.8
+
+[sub_resource type="SphereShape3D" id="SphereShapeCore"]
+radius = 0.4
+
+[node name="RecursiveMirrorGhostPortal" type="Node3D"]
+
+; GrinFilmCamera drives advanced causal / overlay / scheduling features needed for the cathedral probe stress test.
+[node name="GrinFilmCamera" type="Node" parent="."]
+script = ExtResource("1_grin")
+Width = 512
+Height = 288
+FilmResolutionScale = 1.0
+UpdateEveryFrameBudgetMs = 6000.0
+RenderStepMaxMs = 8000
+RenderStepMaxSegmentsPerFrame = 200000000
+TargetMsPerFrame = 120
+MaxRowsPerFrameCap = 1024
+EnableFramePerf = true
+RenderStepPhaseLog = true
+RenderStepBandLog = true
+DebugSnapshotLog = false
+EnableObjectSeededTileScheduler = true
+CausalThreads = 8
+EnableCausalTurbo = true
+EnforceStrongerHermeticClosureWithHighCausalThreads = true
+EnableUltraTurboMode = true
+ObjectSeededMaxObservers = 64
+ObjectSeededMaxProbes = 512
+ObjectSeededMinConfidence = 0.15
+RayBeamRendererPath = NodePath("../SceneRoot/RayBeamRenderer")
+FilmViewPath = NodePath("../CanvasLayer/FilmView")
+FilmOverlayPath = NodePath("../CanvasLayer/FilmOverlay2D")
+
+[node name="SceneRoot" type="Node3D" parent="."]
+
+; === Two thin parallel PerfectMirror shells facing each other (the recursive mirrors) ===
+; Thin box volumes so crossing events fire reliably. Large XY for wide field recursion.
+; Behavior=2 (PerfectMirrorReflection), ExecutionMode=1 (CrossingEvent), CrossingPolicy=2 (EntryAndExit)
+; to reflect on both faces of each shell.
+[node name="MirrorPositiveZ" type="Node3D" parent="SceneRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 5.0)
+script = ExtResource("5_blv")
+Enabled = true
+ShapeType = 1
+BoxExtents = Vector3(6, 6, 0.125)
+ExecutionMode = 1
+CrossingPolicy = 2
+Behavior = 2
+Reflectivity = 1.0
+DebugLogCrossings = true
+
+[node name="MirrorNegativeZ" type="Node3D" parent="SceneRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -5.0)
+script = ExtResource("5_blv")
+Enabled = true
+ShapeType = 1
+BoxExtents = Vector3(6, 6, 0.125)
+ExecutionMode = 1
+CrossingPolicy = 2
+Behavior = 2
+Reflectivity = 1.0
+DebugLogCrossings = true
+
+; GRIN corridor between the mirrors (Atomic Eigenmode for interesting smooth curvature + "atomic" structure in recursion).
+; Low amplitude so bounces remain stable and deep recursion is visible without rays escaping too fast.
+[node name="CorridorGRIN" type="Node3D" parent="SceneRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+script = ExtResource("4_field")
+Enabled = true
+ROuter = 5.5
+Amp = 0.015
+CanonicalGamma = 0.85
+CanonicalOverrideBetaScale = true
+CanonicalBetaScale = 0.9
+CurvatureStrength = 0.003
+ModulationDepth = 0.2
+AtomicPreset = "hydrogen"
+OrbitalRadius = 2.8
+TimeEnabled = false
+ProtonCoreEnabled = true
+DebugVizEnabled = false
+
+; Ghost/portal boundary markers: faint frames around the "edges" of the recursion tunnel.
+; These provide visual anchors and some discrete hits that "frame" the infinite images.
+; Placed slightly outside the mirror shells in XY to mark the portal boundaries.
+[node name="GhostFrame1" type="StaticBody3D" parent="SceneRoot" groups=["raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.5, 5.5, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="SceneRoot/GhostFrame1"]
+mesh = SubResource("BoxMeshMarker")
+
+[node name="Collision" type="CollisionShape3D" parent="SceneRoot/GhostFrame1"]
+shape = SubResource("BoxShapeMirror")
+
+[node name="GhostFrame2" type="StaticBody3D" parent="SceneRoot" groups=["raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 5.5, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="SceneRoot/GhostFrame2"]
+mesh = SubResource("BoxMeshMarker")
+
+[node name="Collision" type="CollisionShape3D" parent="SceneRoot/GhostFrame2"]
+shape = SubResource("BoxShapeMirror")
+
+[node name="GhostFrame3" type="StaticBody3D" parent="SceneRoot" groups=["raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.5, -5.5, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="SceneRoot/GhostFrame3"]
+mesh = SubResource("BoxMeshMarker")
+
+[node name="Collision" type="CollisionShape3D" parent="SceneRoot/GhostFrame3"]
+shape = SubResource("BoxShapeMirror")
+
+[node name="GhostFrame4" type="StaticBody3D" parent="SceneRoot" groups=["raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, -5.5, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="SceneRoot/GhostFrame4"]
+mesh = SubResource("BoxMeshMarker")
+
+[node name="Collision" type="CollisionShape3D" parent="SceneRoot/GhostFrame4"]
+shape = SubResource("BoxShapeMirror")
+
+; Core marker at center for reference in the recursion tunnel.
+[node name="CentralCoreMarker" type="StaticBody3D" parent="SceneRoot" groups=["raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="SceneRoot/CentralCoreMarker"]
+mesh = SubResource("SphereMeshCore")
+
+[node name="Collision" type="CollisionShape3D" parent="SceneRoot/CentralCoreMarker"]
+shape = SubResource("SphereShapeCore")
+
+; Observer camera placed in the middle of the corridor, looking down +Z toward one mirror for classic recursion tunnel view.
+[node name="Camera3D" type="Camera3D" parent="SceneRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0.5)
+current = true
+fov = 42.0
+near = 0.02
+far = 500.0
+
+; RayBeamRenderer tuned for deep recursion: high step budget, fine steps to reliably cross thin mirror shells,
+; StopOnHit=false so volume mirrors control bounces (geometry markers can still be hit for visual interest if needed).
+[node name="RayBeamRenderer" type="Node3D" parent="SceneRoot"]
+script = ExtResource("6_rbr")
+CameraPath = NodePath("../Camera3D")
+StepsPerRay = 4000
+StepLength = 0.012
+MinStepLength = 0.002
+MaxStepLength = 0.04
+StepAdaptGain = 0.08
+CollisionEveryNSteps = 1
+StopOnHit = false
+TerminateTrailOnHit = false
+RequireHitToRender = false
+UseIntegratedField = true
+BendScale = 1.0
+FieldStrength = 1.0
+FieldCenterIsCamera = false
+CollisionRadius = 0.003
+CollisionRaySubdivideThreshold = 0.02
+MaxCollisionSubsteps = 6
+RenderEveryNSteps = 1
+DebugMode = 0
+Alpha = 0.95
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+layer = -2
+
+[node name="FilmView" type="TextureRect" parent="CanvasLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_behavior_recursive = 1
+
+[node name="FilmOverlay2D" type="TextureRect" parent="CanvasLayer"]
+modulate = Color(1, 1, 1, 0.6)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_behavior_recursive = 1
+script = ExtResource("3_overlay")
+CameraPath = NodePath("../../SceneRoot/Camera3D")
+DrawRays = true
+DrawHitNormals = false
+DrawFilmGradientNormals = false
+RayWidth = 1.2
+WorldNormalWidth = 1.8
+DrawCausalDopplerHeatmap = true
+DrawHermeticFailureDebug = true
+DrawCurvatureFingerprint = true
+HudFontScale = 0.85
+
+[node name="RenderTestRunner" type="Node" parent="."]
+script = ExtResource("2_runner")
+StartWhenCmdArgPresent = true
+Fixture = 99
+FramesPerRun = 30
+WarmupFrames = 3
+TargetCameraPath = NodePath("../SceneRoot/Camera3D")

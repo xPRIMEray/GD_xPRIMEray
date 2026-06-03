@@ -1,0 +1,921 @@
+{
+  "comparability_status": "warning",
+  "comparisons": [
+    {
+      "control": "320x180",
+      "curved": "320x180",
+      "field": "resolution",
+      "matched": true,
+      "step": "0.02"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "matched": false,
+      "step": "0.02"
+    },
+    {
+      "control": 90,
+      "curved": 90,
+      "field": "frames",
+      "matched": true,
+      "step": "0.02"
+    },
+    {
+      "control": 5,
+      "curved": 5,
+      "field": "warmup",
+      "matched": true,
+      "step": "0.02"
+    },
+    {
+      "control": 1,
+      "curved": 1,
+      "field": "stride",
+      "matched": true,
+      "step": "0.02"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "traversal",
+      "matched": true,
+      "step": "0.02"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "scheduler_mode",
+      "matched": true,
+      "step": "0.02"
+    },
+    {
+      "control": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "curved": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "field": "resolver_flags",
+      "matched": true,
+      "step": "0.02"
+    },
+    {
+      "control": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "curved": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "field": "step_ladder",
+      "matched": true,
+      "step": "0.02"
+    },
+    {
+      "control": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "curved": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "field": "hit_diagnostics_flags",
+      "matched": true,
+      "step": "0.02"
+    },
+    {
+      "control": "320x180",
+      "curved": "320x180",
+      "field": "resolution",
+      "matched": true,
+      "step": "0.018"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "matched": false,
+      "step": "0.018"
+    },
+    {
+      "control": 90,
+      "curved": 90,
+      "field": "frames",
+      "matched": true,
+      "step": "0.018"
+    },
+    {
+      "control": 5,
+      "curved": 5,
+      "field": "warmup",
+      "matched": true,
+      "step": "0.018"
+    },
+    {
+      "control": 1,
+      "curved": 1,
+      "field": "stride",
+      "matched": true,
+      "step": "0.018"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "traversal",
+      "matched": true,
+      "step": "0.018"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "scheduler_mode",
+      "matched": true,
+      "step": "0.018"
+    },
+    {
+      "control": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "curved": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "field": "resolver_flags",
+      "matched": true,
+      "step": "0.018"
+    },
+    {
+      "control": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "curved": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "field": "step_ladder",
+      "matched": true,
+      "step": "0.018"
+    },
+    {
+      "control": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "curved": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "field": "hit_diagnostics_flags",
+      "matched": true,
+      "step": "0.018"
+    },
+    {
+      "control": "320x180",
+      "curved": "320x180",
+      "field": "resolution",
+      "matched": true,
+      "step": "0.016"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "matched": false,
+      "step": "0.016"
+    },
+    {
+      "control": 90,
+      "curved": 90,
+      "field": "frames",
+      "matched": true,
+      "step": "0.016"
+    },
+    {
+      "control": 5,
+      "curved": 5,
+      "field": "warmup",
+      "matched": true,
+      "step": "0.016"
+    },
+    {
+      "control": 1,
+      "curved": 1,
+      "field": "stride",
+      "matched": true,
+      "step": "0.016"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "traversal",
+      "matched": true,
+      "step": "0.016"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "scheduler_mode",
+      "matched": true,
+      "step": "0.016"
+    },
+    {
+      "control": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "curved": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "field": "resolver_flags",
+      "matched": true,
+      "step": "0.016"
+    },
+    {
+      "control": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "curved": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "field": "step_ladder",
+      "matched": true,
+      "step": "0.016"
+    },
+    {
+      "control": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "curved": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "field": "hit_diagnostics_flags",
+      "matched": true,
+      "step": "0.016"
+    },
+    {
+      "control": "320x180",
+      "curved": "320x180",
+      "field": "resolution",
+      "matched": true,
+      "step": "0.015"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "matched": false,
+      "step": "0.015"
+    },
+    {
+      "control": 90,
+      "curved": 90,
+      "field": "frames",
+      "matched": true,
+      "step": "0.015"
+    },
+    {
+      "control": 5,
+      "curved": 5,
+      "field": "warmup",
+      "matched": true,
+      "step": "0.015"
+    },
+    {
+      "control": 1,
+      "curved": 1,
+      "field": "stride",
+      "matched": true,
+      "step": "0.015"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "traversal",
+      "matched": true,
+      "step": "0.015"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "scheduler_mode",
+      "matched": true,
+      "step": "0.015"
+    },
+    {
+      "control": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "curved": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "field": "resolver_flags",
+      "matched": true,
+      "step": "0.015"
+    },
+    {
+      "control": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "curved": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "field": "step_ladder",
+      "matched": true,
+      "step": "0.015"
+    },
+    {
+      "control": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "curved": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "field": "hit_diagnostics_flags",
+      "matched": true,
+      "step": "0.015"
+    },
+    {
+      "control": "320x180",
+      "curved": "320x180",
+      "field": "resolution",
+      "matched": true,
+      "step": "0.014"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "matched": false,
+      "step": "0.014"
+    },
+    {
+      "control": 90,
+      "curved": 90,
+      "field": "frames",
+      "matched": true,
+      "step": "0.014"
+    },
+    {
+      "control": 5,
+      "curved": 5,
+      "field": "warmup",
+      "matched": true,
+      "step": "0.014"
+    },
+    {
+      "control": 1,
+      "curved": 1,
+      "field": "stride",
+      "matched": true,
+      "step": "0.014"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "traversal",
+      "matched": true,
+      "step": "0.014"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "scheduler_mode",
+      "matched": true,
+      "step": "0.014"
+    },
+    {
+      "control": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "curved": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "field": "resolver_flags",
+      "matched": true,
+      "step": "0.014"
+    },
+    {
+      "control": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "curved": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "field": "step_ladder",
+      "matched": true,
+      "step": "0.014"
+    },
+    {
+      "control": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "curved": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "field": "hit_diagnostics_flags",
+      "matched": true,
+      "step": "0.014"
+    },
+    {
+      "control": "320x180",
+      "curved": "320x180",
+      "field": "resolution",
+      "matched": true,
+      "step": "0.013"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "matched": false,
+      "step": "0.013"
+    },
+    {
+      "control": 90,
+      "curved": 90,
+      "field": "frames",
+      "matched": true,
+      "step": "0.013"
+    },
+    {
+      "control": 5,
+      "curved": 5,
+      "field": "warmup",
+      "matched": true,
+      "step": "0.013"
+    },
+    {
+      "control": 1,
+      "curved": 1,
+      "field": "stride",
+      "matched": true,
+      "step": "0.013"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "traversal",
+      "matched": true,
+      "step": "0.013"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "scheduler_mode",
+      "matched": true,
+      "step": "0.013"
+    },
+    {
+      "control": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "curved": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "field": "resolver_flags",
+      "matched": true,
+      "step": "0.013"
+    },
+    {
+      "control": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "curved": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "field": "step_ladder",
+      "matched": true,
+      "step": "0.013"
+    },
+    {
+      "control": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "curved": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "field": "hit_diagnostics_flags",
+      "matched": true,
+      "step": "0.013"
+    },
+    {
+      "control": "320x180",
+      "curved": "320x180",
+      "field": "resolution",
+      "matched": true,
+      "step": "0.0125"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "matched": false,
+      "step": "0.0125"
+    },
+    {
+      "control": 90,
+      "curved": 90,
+      "field": "frames",
+      "matched": true,
+      "step": "0.0125"
+    },
+    {
+      "control": 5,
+      "curved": 5,
+      "field": "warmup",
+      "matched": true,
+      "step": "0.0125"
+    },
+    {
+      "control": 1,
+      "curved": 1,
+      "field": "stride",
+      "matched": true,
+      "step": "0.0125"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "traversal",
+      "matched": true,
+      "step": "0.0125"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "scheduler_mode",
+      "matched": true,
+      "step": "0.0125"
+    },
+    {
+      "control": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "curved": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "field": "resolver_flags",
+      "matched": true,
+      "step": "0.0125"
+    },
+    {
+      "control": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "curved": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "field": "step_ladder",
+      "matched": true,
+      "step": "0.0125"
+    },
+    {
+      "control": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "curved": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "field": "hit_diagnostics_flags",
+      "matched": true,
+      "step": "0.0125"
+    },
+    {
+      "control": "320x180",
+      "curved": "320x180",
+      "field": "resolution",
+      "matched": true,
+      "step": "0.011"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "matched": false,
+      "step": "0.011"
+    },
+    {
+      "control": 90,
+      "curved": 90,
+      "field": "frames",
+      "matched": true,
+      "step": "0.011"
+    },
+    {
+      "control": 5,
+      "curved": 5,
+      "field": "warmup",
+      "matched": true,
+      "step": "0.011"
+    },
+    {
+      "control": 1,
+      "curved": 1,
+      "field": "stride",
+      "matched": true,
+      "step": "0.011"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "traversal",
+      "matched": true,
+      "step": "0.011"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "scheduler_mode",
+      "matched": true,
+      "step": "0.011"
+    },
+    {
+      "control": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "curved": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "field": "resolver_flags",
+      "matched": true,
+      "step": "0.011"
+    },
+    {
+      "control": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "curved": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "field": "step_ladder",
+      "matched": true,
+      "step": "0.011"
+    },
+    {
+      "control": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "curved": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "field": "hit_diagnostics_flags",
+      "matched": true,
+      "step": "0.011"
+    },
+    {
+      "control": "320x180",
+      "curved": "320x180",
+      "field": "resolution",
+      "matched": true,
+      "step": "0.010"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "matched": false,
+      "step": "0.010"
+    },
+    {
+      "control": 90,
+      "curved": 90,
+      "field": "frames",
+      "matched": true,
+      "step": "0.010"
+    },
+    {
+      "control": 5,
+      "curved": 5,
+      "field": "warmup",
+      "matched": true,
+      "step": "0.010"
+    },
+    {
+      "control": 1,
+      "curved": 1,
+      "field": "stride",
+      "matched": true,
+      "step": "0.010"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "traversal",
+      "matched": true,
+      "step": "0.010"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "scheduler_mode",
+      "matched": true,
+      "step": "0.010"
+    },
+    {
+      "control": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "curved": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "field": "resolver_flags",
+      "matched": true,
+      "step": "0.010"
+    },
+    {
+      "control": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "curved": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "field": "step_ladder",
+      "matched": true,
+      "step": "0.010"
+    },
+    {
+      "control": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "curved": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "field": "hit_diagnostics_flags",
+      "matched": true,
+      "step": "0.010"
+    },
+    {
+      "control": "320x180",
+      "curved": "320x180",
+      "field": "resolution",
+      "matched": true,
+      "step": "0.0075"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "matched": false,
+      "step": "0.0075"
+    },
+    {
+      "control": 90,
+      "curved": 90,
+      "field": "frames",
+      "matched": true,
+      "step": "0.0075"
+    },
+    {
+      "control": 5,
+      "curved": 5,
+      "field": "warmup",
+      "matched": true,
+      "step": "0.0075"
+    },
+    {
+      "control": 1,
+      "curved": 1,
+      "field": "stride",
+      "matched": true,
+      "step": "0.0075"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "traversal",
+      "matched": true,
+      "step": "0.0075"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "scheduler_mode",
+      "matched": true,
+      "step": "0.0075"
+    },
+    {
+      "control": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "curved": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "field": "resolver_flags",
+      "matched": true,
+      "step": "0.0075"
+    },
+    {
+      "control": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "curved": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "field": "step_ladder",
+      "matched": true,
+      "step": "0.0075"
+    },
+    {
+      "control": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "curved": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "field": "hit_diagnostics_flags",
+      "matched": true,
+      "step": "0.0075"
+    },
+    {
+      "control": "320x180",
+      "curved": "320x180",
+      "field": "resolution",
+      "matched": true,
+      "step": "0.00625"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "matched": false,
+      "step": "0.00625"
+    },
+    {
+      "control": 90,
+      "curved": 90,
+      "field": "frames",
+      "matched": true,
+      "step": "0.00625"
+    },
+    {
+      "control": 5,
+      "curved": 5,
+      "field": "warmup",
+      "matched": true,
+      "step": "0.00625"
+    },
+    {
+      "control": 1,
+      "curved": 1,
+      "field": "stride",
+      "matched": true,
+      "step": "0.00625"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "traversal",
+      "matched": true,
+      "step": "0.00625"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "scheduler_mode",
+      "matched": true,
+      "step": "0.00625"
+    },
+    {
+      "control": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "curved": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "field": "resolver_flags",
+      "matched": true,
+      "step": "0.00625"
+    },
+    {
+      "control": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "curved": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "field": "step_ladder",
+      "matched": true,
+      "step": "0.00625"
+    },
+    {
+      "control": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "curved": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "field": "hit_diagnostics_flags",
+      "matched": true,
+      "step": "0.00625"
+    },
+    {
+      "control": "320x180",
+      "curved": "320x180",
+      "field": "resolution",
+      "matched": true,
+      "step": "0.003125"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "matched": false,
+      "step": "0.003125"
+    },
+    {
+      "control": 90,
+      "curved": 90,
+      "field": "frames",
+      "matched": true,
+      "step": "0.003125"
+    },
+    {
+      "control": 5,
+      "curved": 5,
+      "field": "warmup",
+      "matched": true,
+      "step": "0.003125"
+    },
+    {
+      "control": 1,
+      "curved": 1,
+      "field": "stride",
+      "matched": true,
+      "step": "0.003125"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "traversal",
+      "matched": true,
+      "step": "0.003125"
+    },
+    {
+      "control": "row",
+      "curved": "row",
+      "field": "scheduler_mode",
+      "matched": true,
+      "step": "0.003125"
+    },
+    {
+      "control": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "curved": "domain_telemetry=0;domain_resolver=0;step_convergence=0",
+      "field": "resolver_flags",
+      "matched": true,
+      "step": "0.003125"
+    },
+    {
+      "control": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "curved": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+      "field": "step_ladder",
+      "matched": true,
+      "step": "0.003125"
+    },
+    {
+      "control": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "curved": "diagnostic_wireframe_overlay=1;transport=1;risk=1;continuity=1",
+      "field": "hit_diagnostics_flags",
+      "matched": true,
+      "step": "0.003125"
+    }
+  ],
+  "control_comparison_reason": "matched_pose requested, but no safe fixture-level curvature bypass or matched-pose flat variant is available; using configured scene-control, not matched-control",
+  "control_comparison_type": "scene_control",
+  "warnings": [
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.02"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.018"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.016"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.015"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.014"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.013"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.0125"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.011"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.010"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.0075"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.00625"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.003125"
+    }
+  ]
+}

@@ -1,0 +1,354 @@
+{
+  "checkpoint": "post_throat_backstep_01",
+  "csv_path": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/01_post_throat_backstep_01_hit_diagnostics.csv",
+  "base_image_path": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/01_post_throat_backstep_01_debug_normal_rgb.png",
+  "visible_mask_path": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-22T18-12-54/post_throat_backstep_01_visible_band_mask.png",
+  "width": 480,
+  "height": 270,
+  "center": {
+    "x": 230.91796698155918,
+    "y": 148.54338574834756,
+    "source": "visible_band_mask_centroid"
+  },
+  "radial_bands": 24,
+  "angular_sectors": 48,
+  "polar_bin_count": 1152,
+  "outputs": {
+    "polar_coherence_heatmap": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/01_post_throat_backstep_01_polar_coherence_heatmap.png",
+    "polar_boundary_overlay": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/01_post_throat_backstep_01_polar_boundary_overlay.png",
+    "polar_tile_summary": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/01_post_throat_backstep_01_polar_tile_summary.json"
+  },
+  "metrics": {
+    "normal_variance": {
+      "mean": 0.2564272162376027,
+      "p95": 0.8455598455598455,
+      "max": 1.0
+    },
+    "collider_switch_density": {
+      "mean": 0.006812516084780988,
+      "p95": 0.05025125628140704,
+      "max": 0.2
+    },
+    "hit_distance_variance": {
+      "mean": 0.35205684519110414,
+      "p95": 1.9908502784158284,
+      "max": 14.372932242076725
+    },
+    "segment_index_variance": {
+      "mean": 35.29435001571144,
+      "p95": 198.9946849241025,
+      "max": 1423.796626984127
+    },
+    "incoherence_score": {
+      "mean": 0.15687756641780554,
+      "p95": 0.6140201025869103,
+      "max": 0.9060606060606062
+    }
+  },
+  "edge_alignment": {
+    "polar_coherence_heatmap": {
+      "visible_edge_pixels": 48946,
+      "target_edge_pixels": 8995,
+      "edge_iou": 0.0573368127155605,
+      "visible_edge_recall_within_radius": 0.41970743268091365,
+      "target_edge_precision_within_radius": 0.9316286826014453,
+      "symmetric_near_overlap": 0.6756680576411794,
+      "edge_distance_score_visible_to_target": 0.22534160315990448,
+      "edge_distance_score_target_to_visible": 0.6735329031944275,
+      "symmetric_edge_distance_score": 0.449437253177166,
+      "gradient_direction_similarity": 0.6736711859703064,
+      "gradient_magnitude_pearson": -0.03167110565170956
+    },
+    "polar_boundary_overlay": {
+      "visible_edge_pixels": 48946,
+      "target_edge_pixels": 54545,
+      "edge_iou": 0.2550296503801797,
+      "visible_edge_recall_within_radius": 0.9996731091406856,
+      "target_edge_precision_within_radius": 0.9473095609130076,
+      "symmetric_near_overlap": 0.9734913350268466,
+      "edge_distance_score_visible_to_target": 0.8165237307548523,
+      "edge_distance_score_target_to_visible": 0.7135522961616516,
+      "symmetric_edge_distance_score": 0.765038013458252,
+      "gradient_direction_similarity": 0.6423007845878601,
+      "gradient_magnitude_pearson": 0.008874138862224575
+    }
+  },
+  "top_bins": [
+    {
+      "pixel_count": 264,
+      "hit_count": 264,
+      "normal_variance": 0.9659090909090909,
+      "collider_switch_density": 0.07613168724279835,
+      "hit_distance_variance": 7.088487491089712,
+      "segment_index_variance": 700.0165145775942,
+      "classification_diversity": 0.003787878787878788,
+      "classification_count": 1,
+      "dominant_class": "background",
+      "bin_id": 1007,
+      "radial_band": 20,
+      "angular_sector": 47,
+      "component_scores": {
+        "normal": 1.0,
+        "collider": 1.0,
+        "distance": 1.0,
+        "segment": 1.0,
+        "classification": 0.06060606060606061
+      },
+      "incoherence_score": 0.9060606060606062,
+      "coherence_quality": 0.09393939393939377
+    },
+    {
+      "pixel_count": 291,
+      "hit_count": 291,
+      "normal_variance": 0.9347079037800687,
+      "collider_switch_density": 0.08455882352941177,
+      "hit_distance_variance": 7.330057311181018,
+      "segment_index_variance": 727.2003637179532,
+      "classification_diversity": 0.003436426116838488,
+      "classification_count": 1,
+      "dominant_class": "background",
+      "bin_id": 720,
+      "radial_band": 15,
+      "angular_sector": 0,
+      "component_scores": {
+        "normal": 1.0,
+        "collider": 1.0,
+        "distance": 1.0,
+        "segment": 1.0,
+        "classification": 0.054982817869415807
+      },
+      "incoherence_score": 0.9054982817869417,
+      "coherence_quality": 0.0945017182130583
+    },
+    {
+      "pixel_count": 319,
+      "hit_count": 319,
+      "normal_variance": 0.8557993730407524,
+      "collider_switch_density": 0.07859531772575251,
+      "hit_distance_variance": 6.204627678695717,
+      "segment_index_variance": 615.8558583347256,
+      "classification_diversity": 0.003134796238244514,
+      "classification_count": 1,
+      "dominant_class": "background",
+      "bin_id": 815,
+      "radial_band": 16,
+      "angular_sector": 47,
+      "component_scores": {
+        "normal": 1.0,
+        "collider": 1.0,
+        "distance": 1.0,
+        "segment": 1.0,
+        "classification": 0.050156739811912224
+      },
+      "incoherence_score": 0.9050156739811913,
+      "coherence_quality": 0.09498432601880868
+    },
+    {
+      "pixel_count": 336,
+      "hit_count": 336,
+      "normal_variance": 0.8659392186957713,
+      "collider_switch_density": 0.07108239095315025,
+      "hit_distance_variance": 11.665133346529288,
+      "segment_index_variance": 1161.3171414399094,
+      "classification_diversity": 0.002976190476190476,
+      "classification_count": 1,
+      "dominant_class": "background",
+      "bin_id": 819,
+      "radial_band": 17,
+      "angular_sector": 3,
+      "component_scores": {
+        "normal": 1.0,
+        "collider": 1.0,
+        "distance": 1.0,
+        "segment": 1.0,
+        "classification": 0.047619047619047616
+      },
+      "incoherence_score": 0.9047619047619049,
+      "coherence_quality": 0.09523809523809512
+    },
+    {
+      "pixel_count": 355,
+      "hit_count": 355,
+      "normal_variance": 0.9436619718309859,
+      "collider_switch_density": 0.06797583081570997,
+      "hit_distance_variance": 2.436503509070144,
+      "segment_index_variance": 241.61567942868479,
+      "classification_diversity": 0.0028169014084507044,
+      "classification_count": 1,
+      "dominant_class": "background",
+      "bin_id": 865,
+      "radial_band": 18,
+      "angular_sector": 1,
+      "component_scores": {
+        "normal": 1.0,
+        "collider": 1.0,
+        "distance": 1.0,
+        "segment": 1.0,
+        "classification": 0.04507042253521127
+      },
+      "incoherence_score": 0.9045070422535213,
+      "coherence_quality": 0.0954929577464787
+    },
+    {
+      "pixel_count": 371,
+      "hit_count": 371,
+      "normal_variance": 0.8625336927223719,
+      "collider_switch_density": 0.07122093023255814,
+      "hit_distance_variance": 7.932471688067065,
+      "segment_index_variance": 793.004264717635,
+      "classification_diversity": 0.0026954177897574125,
+      "classification_count": 1,
+      "dominant_class": "background",
+      "bin_id": 914,
+      "radial_band": 19,
+      "angular_sector": 2,
+      "component_scores": {
+        "normal": 1.0,
+        "collider": 1.0,
+        "distance": 1.0,
+        "segment": 1.0,
+        "classification": 0.0431266846361186
+      },
+      "incoherence_score": 0.904312668463612,
+      "coherence_quality": 0.09568733153638798
+    },
+    {
+      "pixel_count": 391,
+      "hit_count": 391,
+      "normal_variance": 0.8644501278772379,
+      "collider_switch_density": 0.09366391184573003,
+      "hit_distance_variance": 13.083073972636383,
+      "segment_index_variance": 1300.7254008019308,
+      "classification_diversity": 0.0025575447570332483,
+      "classification_count": 1,
+      "dominant_class": "background",
+      "bin_id": 962,
+      "radial_band": 20,
+      "angular_sector": 2,
+      "component_scores": {
+        "normal": 1.0,
+        "collider": 1.0,
+        "distance": 1.0,
+        "segment": 1.0,
+        "classification": 0.04092071611253197
+      },
+      "incoherence_score": 0.9040920716112534,
+      "coherence_quality": 0.09590792838874662
+    },
+    {
+      "pixel_count": 301,
+      "hit_count": 301,
+      "normal_variance": 0.787375415282392,
+      "collider_switch_density": 0.0763765541740675,
+      "hit_distance_variance": 5.007248964439825,
+      "segment_index_variance": 498.1239059171532,
+      "classification_diversity": 0.0033222591362126247,
+      "classification_count": 1,
+      "dominant_class": "background",
+      "bin_id": 767,
+      "radial_band": 15,
+      "angular_sector": 47,
+      "component_scores": {
+        "normal": 0.9311882765211851,
+        "collider": 1.0,
+        "distance": 1.0,
+        "segment": 1.0,
+        "classification": 0.053156146179401995
+      },
+      "incoherence_score": 0.8846720975742958,
+      "coherence_quality": 0.11532790242570423
+    },
+    {
+      "pixel_count": 381,
+      "hit_count": 381,
+      "normal_variance": 0.8057742782152231,
+      "collider_switch_density": 0.04888268156424581,
+      "hit_distance_variance": 2.137134978884772,
+      "segment_index_variance": 213.27298654597308,
+      "classification_diversity": 0.0026246719160104987,
+      "classification_count": 1,
+      "dominant_class": "background",
+      "bin_id": 959,
+      "radial_band": 19,
+      "angular_sector": 47,
+      "component_scores": {
+        "normal": 0.9529476623641223,
+        "collider": 0.9727653631284915,
+        "distance": 1.0,
+        "segment": 1.0,
+        "classification": 0.04199475065616798
+      },
+      "incoherence_score": 0.8832751145569765,
+      "coherence_quality": 0.11672488544302351
+    },
+    {
+      "pixel_count": 237,
+      "hit_count": 237,
+      "normal_variance": 0.9075462484194045,
+      "collider_switch_density": 0.05336426914153132,
+      "hit_distance_variance": 1.8384880659488232,
+      "segment_index_variance": 185.65853050615107,
+      "classification_diversity": 0.004219409282700422,
+      "classification_count": 1,
+      "dominant_class": "background",
+      "bin_id": 618,
+      "radial_band": 12,
+      "angular_sector": 42,
+      "component_scores": {
+        "normal": 1.0,
+        "collider": 1.0,
+        "distance": 0.9234687740615815,
+        "segment": 0.9329823586844146,
+        "classification": 0.06751054852320675
+      },
+      "incoherence_score": 0.8818678426984408,
+      "coherence_quality": 0.11813215730155924
+    },
+    {
+      "pixel_count": 267,
+      "hit_count": 267,
+      "normal_variance": 0.7487284926184343,
+      "collider_switch_density": 0.049079754601226995,
+      "hit_distance_variance": 3.951611316085961,
+      "segment_index_variance": 390.72098079647634,
+      "classification_diversity": 0.003745318352059925,
+      "classification_count": 1,
+      "dominant_class": "background",
+      "bin_id": 1051,
+      "radial_band": 21,
+      "angular_sector": 43,
+      "component_scores": {
+        "normal": 0.8854825551971438,
+        "collider": 0.9766871165644172,
+        "distance": 1.0,
+        "segment": 1.0,
+        "classification": 0.0599250936329588
+      },
+      "incoherence_score": 0.8658090550635434,
+      "coherence_quality": 0.13419094493645656
+    },
+    {
+      "pixel_count": 295,
+      "hit_count": 295,
+      "normal_variance": 0.7220338983050847,
+      "collider_switch_density": 0.07889908256880734,
+      "hit_distance_variance": 7.864268797049881,
+      "segment_index_variance": 785.1407066934788,
+      "classification_diversity": 0.003389830508474576,
+      "classification_count": 1,
+      "dominant_class": "background",
+      "bin_id": 722,
+      "radial_band": 15,
+      "angular_sector": 2,
+      "component_scores": {
+        "normal": 0.8539122358950545,
+        "collider": 1.0,
+        "distance": 1.0,
+        "segment": 1.0,
+        "classification": 0.05423728813559322
+      },
+      "incoherence_score": 0.8615973995820757,
+      "coherence_quality": 0.1384026004179243
+    }
+  ]
+}

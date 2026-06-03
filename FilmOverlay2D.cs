@@ -83,6 +83,13 @@ public partial class FilmOverlay2D : TextureRect
 	/// <summary>STEP 6: Hermetic failure debug overlay merged on top of doppler. Bright red=no hit, orange=max steps, purple=field escape.</summary>
 	[Export] public bool DrawHermeticFailureDebug = false;
 
+	/// <summary>
+	/// Cathedral Probe v2: Curvature Fingerprint overlay (ultra-turbo memristor experience).
+	/// Color hue = transport stability (blue=stable/easy for turbo, red=unstable/hard); brightness ~ confidence.
+	/// Helps visualize which pixels have "earned" relaxed budgets vs which still need reference care.
+	/// </summary>
+	[Export] public bool DrawCurvatureFingerprint = false;
+
 	/// <summary>Line width for rays.</summary>
 	[Export] public float RayWidth = 1.0f;
 	/// <summary>Line width for world hit normals.</summary>
@@ -557,13 +564,13 @@ public partial class FilmOverlay2D : TextureRect
 				}
 			}
 
-			// Hermetic failure symbols (STEP 6) - bright, distinct colors
+			// Hermetic failure symbols (STEP 6) - bright, distinct colors + banding indicators
 			if (DrawHermeticFailureDebug)
 			{
 				// Bright red = escaped_no_hit
 				Color brightRed = new Color(1f, 0.1f, 0.1f, 0.9f);
 				DrawRect(new Rect2(30, 100, 18, 18), brightRed);
-				if (font != null) DrawString(font, new Vector2(52, 114), "NO HIT / EARLY EXIT", HorizontalAlignment.Left, -1, fontSize, brightRed);
+				if (font != null) DrawString(font, new Vector2(52, 114), "NO HIT / EARLY EXIT (banding source)", HorizontalAlignment.Left, -1, fontSize, brightRed);
 
 				// Orange = max_steps
 				Color orange = new Color(1f, 0.55f, 0.1f, 0.9f);
@@ -574,6 +581,26 @@ public partial class FilmOverlay2D : TextureRect
 				Color purple = new Color(0.7f, 0.2f, 0.95f, 0.9f);
 				DrawRect(new Rect2(30, 150, 18, 18), purple);
 				if (font != null) DrawString(font, new Vector2(52, 164), "FIELD ESCAPE", HorizontalAlignment.Left, -1, fontSize, purple);
+
+				// NEW: banding pattern helper (horizontal stall markers concept)
+				if (font != null)
+					DrawString(font, new Vector2(30, 188), "BANDING: repeated zero-hit force-advances on rows with poor fingerprints", HorizontalAlignment.Left, -1, fontSize - 1, new Color(1f, 0.8f, 0.3f));
+			}
+
+			// Curvature Fingerprint (Cathedral Probe memristor viz)
+			if (DrawCurvatureFingerprint)
+			{
+				// Legend: blue=stable (turbo candidate), cyan=curved but ok, red=unstable/hard (needs reference budget)
+				Color blue = new Color(0.2f, 0.6f, 1f, 0.9f);
+				DrawRect(new Rect2(30, 210, 18, 18), blue);
+				if (font != null) DrawString(font, new Vector2(52, 224), "STABLE (ultra-turbo OK)", HorizontalAlignment.Left, -1, fontSize, blue);
+
+				Color red = new Color(0.95f, 0.2f, 0.3f, 0.9f);
+				DrawRect(new Rect2(30, 235, 18, 18), red);
+				if (font != null) DrawString(font, new Vector2(52, 249), "UNSTABLE / HIGH-EFFORT (protect)", HorizontalAlignment.Left, -1, fontSize, red);
+
+				if (font != null)
+					DrawString(font, new Vector2(30, 272), "FINGERPRINT: hue=stability, bright=conf. Built from OPL/step history across frames.", HorizontalAlignment.Left, -1, fontSize - 1, Colors.LightGray);
 			}
 
 			// PortalHaloMario (wild fun STEP 6): expanding rings + rotating sparkle on high causal priority "islands"

@@ -1,0 +1,499 @@
+{
+  "enabled": true,
+  "analysis_capture_mode": "categorical_final",
+  "capture_path": "/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_004/2026-03-23T21-27-29/capture.png",
+  "bin_count": 8,
+  "profile_label": "field_relative",
+  "field_center_pixel": {
+    "x": 139.3901,
+    "y": 134.5
+  },
+  "origin_label": "Field Center Pixel",
+  "max_radius_px": 365.2741,
+  "categorical_palette": {
+    "final_hit_rgba": [
+      255,
+      209,
+      46,
+      255
+    ],
+    "rendered_no_hit_rgba": [
+      18,
+      23,
+      46,
+      255
+    ],
+    "unrendered_rgba": [
+      0,
+      0,
+      0,
+      255
+    ]
+  },
+  "field_analysis_origin": {
+    "resolved": true,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-grin-basic-visual-linear-dual-attractor-minimal.tscn",
+    "field_path": "FixtureGrinBasicVisualLinearDualAttractor/FieldSource3DPrimary",
+    "camera_path": "FixtureGrinBasicVisualLinearDualAttractor/Camera3D",
+    "field_world_origin": {
+      "x": -2.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "field_center_pixel": {
+      "x": 139.3901,
+      "y": 134.5
+    },
+    "camera_fov_degrees": 42.0,
+    "camera_space_point": {
+      "x": -2.0,
+      "y": 0.0,
+      "z": -7.0
+    },
+    "projection_basis": "scene_camera_perspective"
+  },
+  "field_world_origin": {
+    "x": -2.0,
+    "y": 0.0,
+    "z": 0.0
+  },
+  "sector_definition": {
+    "axis": "field_center_x",
+    "left_rule": "x <= field_center_x",
+    "right_rule": "x > field_center_x"
+  },
+  "bins": [
+    {
+      "bin_index": 0,
+      "radius_start_px": 0.0,
+      "radius_end_px": 45.6593,
+      "sectors": {
+        "left": {
+          "pixel_count": 3288,
+          "final_hit_pixel_count": 25,
+          "rendered_no_hit_pixel_count": 2852,
+          "unrendered_pixel_count": 411,
+          "other_pixel_count": 0,
+          "rendered_pixel_count": 2877,
+          "hit_frac_rendered": 0.00869,
+          "rendered_coverage": 0.875,
+          "hit_fraction_within_rendered_area": 0.00869,
+          "rendered_coverage_fraction": 0.875
+        },
+        "right": {
+          "pixel_count": 3270,
+          "final_hit_pixel_count": 0,
+          "rendered_no_hit_pixel_count": 2861,
+          "unrendered_pixel_count": 409,
+          "other_pixel_count": 0,
+          "rendered_pixel_count": 2861,
+          "hit_frac_rendered": 0.0,
+          "rendered_coverage": 0.874924,
+          "hit_fraction_within_rendered_area": 0.0,
+          "rendered_coverage_fraction": 0.874924
+        }
+      },
+      "combined": {
+        "pixel_count": 6558,
+        "final_hit_pixel_count": 25,
+        "rendered_no_hit_pixel_count": 5713,
+        "unrendered_pixel_count": 820,
+        "other_pixel_count": 0,
+        "rendered_pixel_count": 5738,
+        "hit_frac_rendered": 0.004357,
+        "rendered_coverage": 0.874962,
+        "hit_fraction_within_rendered_area": 0.004357,
+        "rendered_coverage_fraction": 0.874962
+      },
+      "left_minus_right": {
+        "final_hit_pixel_count": 25,
+        "rendered_pixel_count": 16,
+        "hit_frac_rendered": 0.00869,
+        "rendered_coverage": 7.6e-05
+      }
+    },
+    {
+      "bin_index": 1,
+      "radius_start_px": 45.6593,
+      "radius_end_px": 91.3185,
+      "sectors": {
+        "left": {
+          "pixel_count": 9820,
+          "final_hit_pixel_count": 0,
+          "rendered_no_hit_pixel_count": 6281,
+          "unrendered_pixel_count": 3539,
+          "other_pixel_count": 0,
+          "rendered_pixel_count": 6281,
+          "hit_frac_rendered": 0.0,
+          "rendered_coverage": 0.639613,
+          "hit_fraction_within_rendered_area": 0.0,
+          "rendered_coverage_fraction": 0.639613
+        },
+        "right": {
+          "pixel_count": 9806,
+          "final_hit_pixel_count": 0,
+          "rendered_no_hit_pixel_count": 6277,
+          "unrendered_pixel_count": 3529,
+          "other_pixel_count": 0,
+          "rendered_pixel_count": 6277,
+          "hit_frac_rendered": 0.0,
+          "rendered_coverage": 0.640118,
+          "hit_fraction_within_rendered_area": 0.0,
+          "rendered_coverage_fraction": 0.640118
+        }
+      },
+      "combined": {
+        "pixel_count": 19626,
+        "final_hit_pixel_count": 0,
+        "rendered_no_hit_pixel_count": 12558,
+        "unrendered_pixel_count": 7068,
+        "other_pixel_count": 0,
+        "rendered_pixel_count": 12558,
+        "hit_frac_rendered": 0.0,
+        "rendered_coverage": 0.639865,
+        "hit_fraction_within_rendered_area": 0.0,
+        "rendered_coverage_fraction": 0.639865
+      },
+      "left_minus_right": {
+        "final_hit_pixel_count": 0,
+        "rendered_pixel_count": 4,
+        "hit_frac_rendered": 0.0,
+        "rendered_coverage": -0.000505
+      }
+    },
+    {
+      "bin_index": 2,
+      "radius_start_px": 91.3185,
+      "radius_end_px": 136.9778,
+      "sectors": {
+        "left": {
+          "pixel_count": 16326,
+          "final_hit_pixel_count": 0,
+          "rendered_no_hit_pixel_count": 9505,
+          "unrendered_pixel_count": 6821,
+          "other_pixel_count": 0,
+          "rendered_pixel_count": 9505,
+          "hit_frac_rendered": 0.0,
+          "rendered_coverage": 0.5822,
+          "hit_fraction_within_rendered_area": 0.0,
+          "rendered_coverage_fraction": 0.5822
+        },
+        "right": {
+          "pixel_count": 16310,
+          "final_hit_pixel_count": 92,
+          "rendered_no_hit_pixel_count": 9403,
+          "unrendered_pixel_count": 6815,
+          "other_pixel_count": 0,
+          "rendered_pixel_count": 9495,
+          "hit_frac_rendered": 0.009689,
+          "rendered_coverage": 0.582158,
+          "hit_fraction_within_rendered_area": 0.009689,
+          "rendered_coverage_fraction": 0.582158
+        }
+      },
+      "combined": {
+        "pixel_count": 32636,
+        "final_hit_pixel_count": 92,
+        "rendered_no_hit_pixel_count": 18908,
+        "unrendered_pixel_count": 13636,
+        "other_pixel_count": 0,
+        "rendered_pixel_count": 19000,
+        "hit_frac_rendered": 0.004842,
+        "rendered_coverage": 0.582179,
+        "hit_fraction_within_rendered_area": 0.004842,
+        "rendered_coverage_fraction": 0.582179
+      },
+      "left_minus_right": {
+        "final_hit_pixel_count": -92,
+        "rendered_pixel_count": 10,
+        "hit_frac_rendered": -0.009689,
+        "rendered_coverage": 4.2e-05
+      }
+    },
+    {
+      "bin_index": 3,
+      "radius_start_px": 136.9778,
+      "radius_end_px": 182.637,
+      "sectors": {
+        "left": {
+          "pixel_count": 8086,
+          "final_hit_pixel_count": 0,
+          "rendered_no_hit_pixel_count": 4157,
+          "unrendered_pixel_count": 3929,
+          "other_pixel_count": 0,
+          "rendered_pixel_count": 4157,
+          "hit_frac_rendered": 0.0,
+          "rendered_coverage": 0.514098,
+          "hit_fraction_within_rendered_area": 0.0,
+          "rendered_coverage_fraction": 0.514098
+        },
+        "right": {
+          "pixel_count": 14946,
+          "final_hit_pixel_count": 0,
+          "rendered_no_hit_pixel_count": 8802,
+          "unrendered_pixel_count": 6144,
+          "other_pixel_count": 0,
+          "rendered_pixel_count": 8802,
+          "hit_frac_rendered": 0.0,
+          "rendered_coverage": 0.58892,
+          "hit_fraction_within_rendered_area": 0.0,
+          "rendered_coverage_fraction": 0.58892
+        }
+      },
+      "combined": {
+        "pixel_count": 23032,
+        "final_hit_pixel_count": 0,
+        "rendered_no_hit_pixel_count": 12959,
+        "unrendered_pixel_count": 10073,
+        "other_pixel_count": 0,
+        "rendered_pixel_count": 12959,
+        "hit_frac_rendered": 0.0,
+        "rendered_coverage": 0.562652,
+        "hit_fraction_within_rendered_area": 0.0,
+        "rendered_coverage_fraction": 0.562652
+      },
+      "left_minus_right": {
+        "final_hit_pixel_count": 0,
+        "rendered_pixel_count": -4645,
+        "hit_frac_rendered": 0.0,
+        "rendered_coverage": -0.074822
+      }
+    },
+    {
+      "bin_index": 4,
+      "radius_start_px": 182.637,
+      "radius_end_px": 228.2963,
+      "sectors": {
+        "left": {
+          "pixel_count": 280,
+          "final_hit_pixel_count": 0,
+          "rendered_no_hit_pixel_count": 140,
+          "unrendered_pixel_count": 140,
+          "other_pixel_count": 0,
+          "rendered_pixel_count": 140,
+          "hit_frac_rendered": 0.0,
+          "rendered_coverage": 0.5,
+          "hit_fraction_within_rendered_area": 0.0,
+          "rendered_coverage_fraction": 0.5
+        },
+        "right": {
+          "pixel_count": 13472,
+          "final_hit_pixel_count": 18,
+          "rendered_no_hit_pixel_count": 8049,
+          "unrendered_pixel_count": 5405,
+          "other_pixel_count": 0,
+          "rendered_pixel_count": 8067,
+          "hit_frac_rendered": 0.002231,
+          "rendered_coverage": 0.598798,
+          "hit_fraction_within_rendered_area": 0.002231,
+          "rendered_coverage_fraction": 0.598798
+        }
+      },
+      "combined": {
+        "pixel_count": 13752,
+        "final_hit_pixel_count": 18,
+        "rendered_no_hit_pixel_count": 8189,
+        "unrendered_pixel_count": 5545,
+        "other_pixel_count": 0,
+        "rendered_pixel_count": 8207,
+        "hit_frac_rendered": 0.002193,
+        "rendered_coverage": 0.596786,
+        "hit_fraction_within_rendered_area": 0.002193,
+        "rendered_coverage_fraction": 0.596786
+      },
+      "left_minus_right": {
+        "final_hit_pixel_count": -18,
+        "rendered_pixel_count": -7927,
+        "hit_frac_rendered": -0.002231,
+        "rendered_coverage": -0.098798
+      }
+    },
+    {
+      "bin_index": 5,
+      "radius_start_px": 228.2963,
+      "radius_end_px": 273.9555,
+      "sectors": {
+        "left": {
+          "pixel_count": 0,
+          "final_hit_pixel_count": 0,
+          "rendered_no_hit_pixel_count": 0,
+          "unrendered_pixel_count": 0,
+          "other_pixel_count": 0,
+          "rendered_pixel_count": 0,
+          "hit_frac_rendered": null,
+          "rendered_coverage": null,
+          "hit_fraction_within_rendered_area": null,
+          "rendered_coverage_fraction": null
+        },
+        "right": {
+          "pixel_count": 13024,
+          "final_hit_pixel_count": 0,
+          "rendered_no_hit_pixel_count": 7841,
+          "unrendered_pixel_count": 5183,
+          "other_pixel_count": 0,
+          "rendered_pixel_count": 7841,
+          "hit_frac_rendered": 0.0,
+          "rendered_coverage": 0.602042,
+          "hit_fraction_within_rendered_area": 0.0,
+          "rendered_coverage_fraction": 0.602042
+        }
+      },
+      "combined": {
+        "pixel_count": 13024,
+        "final_hit_pixel_count": 0,
+        "rendered_no_hit_pixel_count": 7841,
+        "unrendered_pixel_count": 5183,
+        "other_pixel_count": 0,
+        "rendered_pixel_count": 7841,
+        "hit_frac_rendered": 0.0,
+        "rendered_coverage": 0.602042,
+        "hit_fraction_within_rendered_area": 0.0,
+        "rendered_coverage_fraction": 0.602042
+      },
+      "left_minus_right": {
+        "final_hit_pixel_count": 0,
+        "rendered_pixel_count": -7841,
+        "hit_frac_rendered": null,
+        "rendered_coverage": null
+      }
+    },
+    {
+      "bin_index": 6,
+      "radius_start_px": 273.9555,
+      "radius_end_px": 319.6148,
+      "sectors": {
+        "left": {
+          "pixel_count": 0,
+          "final_hit_pixel_count": 0,
+          "rendered_no_hit_pixel_count": 0,
+          "unrendered_pixel_count": 0,
+          "other_pixel_count": 0,
+          "rendered_pixel_count": 0,
+          "hit_frac_rendered": null,
+          "rendered_coverage": null,
+          "hit_fraction_within_rendered_area": null,
+          "rendered_coverage_fraction": null
+        },
+        "right": {
+          "pixel_count": 12796,
+          "final_hit_pixel_count": 0,
+          "rendered_no_hit_pixel_count": 7718,
+          "unrendered_pixel_count": 5078,
+          "other_pixel_count": 0,
+          "rendered_pixel_count": 7718,
+          "hit_frac_rendered": 0.0,
+          "rendered_coverage": 0.603157,
+          "hit_fraction_within_rendered_area": 0.0,
+          "rendered_coverage_fraction": 0.603157
+        }
+      },
+      "combined": {
+        "pixel_count": 12796,
+        "final_hit_pixel_count": 0,
+        "rendered_no_hit_pixel_count": 7718,
+        "unrendered_pixel_count": 5078,
+        "other_pixel_count": 0,
+        "rendered_pixel_count": 7718,
+        "hit_frac_rendered": 0.0,
+        "rendered_coverage": 0.603157,
+        "hit_fraction_within_rendered_area": 0.0,
+        "rendered_coverage_fraction": 0.603157
+      },
+      "left_minus_right": {
+        "final_hit_pixel_count": 0,
+        "rendered_pixel_count": -7718,
+        "hit_frac_rendered": null,
+        "rendered_coverage": null
+      }
+    },
+    {
+      "bin_index": 7,
+      "radius_start_px": 319.6148,
+      "radius_end_px": 365.2741,
+      "sectors": {
+        "left": {
+          "pixel_count": 0,
+          "final_hit_pixel_count": 0,
+          "rendered_no_hit_pixel_count": 0,
+          "unrendered_pixel_count": 0,
+          "other_pixel_count": 0,
+          "rendered_pixel_count": 0,
+          "hit_frac_rendered": null,
+          "rendered_coverage": null,
+          "hit_fraction_within_rendered_area": null,
+          "rendered_coverage_fraction": null
+        },
+        "right": {
+          "pixel_count": 8176,
+          "final_hit_pixel_count": 0,
+          "rendered_no_hit_pixel_count": 4699,
+          "unrendered_pixel_count": 3477,
+          "other_pixel_count": 0,
+          "rendered_pixel_count": 4699,
+          "hit_frac_rendered": 0.0,
+          "rendered_coverage": 0.574731,
+          "hit_fraction_within_rendered_area": 0.0,
+          "rendered_coverage_fraction": 0.574731
+        }
+      },
+      "combined": {
+        "pixel_count": 8176,
+        "final_hit_pixel_count": 0,
+        "rendered_no_hit_pixel_count": 4699,
+        "unrendered_pixel_count": 3477,
+        "other_pixel_count": 0,
+        "rendered_pixel_count": 4699,
+        "hit_frac_rendered": 0.0,
+        "rendered_coverage": 0.574731,
+        "hit_fraction_within_rendered_area": 0.0,
+        "rendered_coverage_fraction": 0.574731
+      },
+      "left_minus_right": {
+        "final_hit_pixel_count": 0,
+        "rendered_pixel_count": -4699,
+        "hit_frac_rendered": null,
+        "rendered_coverage": null
+      }
+    }
+  ],
+  "totals": {
+    "sectors": {
+      "left": {
+        "pixel_count": 37800,
+        "final_hit_pixel_count": 25,
+        "rendered_no_hit_pixel_count": 22935,
+        "unrendered_pixel_count": 14840,
+        "other_pixel_count": 0,
+        "rendered_pixel_count": 22960,
+        "hit_frac_rendered": 0.001089,
+        "rendered_coverage": 0.607407,
+        "hit_fraction_within_rendered_area": 0.001089,
+        "rendered_coverage_fraction": 0.607407
+      },
+      "right": {
+        "pixel_count": 91800,
+        "final_hit_pixel_count": 110,
+        "rendered_no_hit_pixel_count": 55650,
+        "unrendered_pixel_count": 36040,
+        "other_pixel_count": 0,
+        "rendered_pixel_count": 55760,
+        "hit_frac_rendered": 0.001973,
+        "rendered_coverage": 0.607407,
+        "hit_fraction_within_rendered_area": 0.001973,
+        "rendered_coverage_fraction": 0.607407
+      }
+    },
+    "combined": {
+      "pixel_count": 129600,
+      "final_hit_pixel_count": 135,
+      "rendered_no_hit_pixel_count": 78585,
+      "unrendered_pixel_count": 50880,
+      "other_pixel_count": 0,
+      "rendered_pixel_count": 78720,
+      "hit_frac_rendered": 0.001715,
+      "rendered_coverage": 0.607407,
+      "hit_fraction_within_rendered_area": 0.001715,
+      "rendered_coverage_fraction": 0.607407
+    }
+  }
+}

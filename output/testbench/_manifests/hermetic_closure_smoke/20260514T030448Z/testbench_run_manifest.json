@@ -1,0 +1,61 @@
+{
+  "schema": "xprimeray.testbench.run_manifest.v1",
+  "recipe_id": "hermetic_closure_smoke",
+  "recipe_title": "Hermetic Closure Smoke",
+  "quality": "smoke",
+  "overlay": {
+    "mode": "none",
+    "placement": "contact_sheet_only",
+    "postprocess_only": true,
+    "placement_descriptive_only": true
+  },
+  "exact_command": "cd \u0027/home/bb/code/godot_xPRIMEray\u0027 \u0026\u0026 HERMETIC_CLOSURE_ROOT=\u0027/home/bb/code/godot_xPRIMEray/output/hermetic_hit_closure/20260514T030448Z\u0027 HERMETIC_CLOSURE_SMOKE=\u00271\u0027 \u0027bash\u0027 \u0027/home/bb/code/godot_xPRIMEray/scripts/run_hermetic_hit_closure_ladder.sh\u0027",
+  "working_directory": "/home/bb/code/godot_xPRIMEray",
+  "env": {
+    "HERMETIC_CLOSURE_SMOKE": "1",
+    "HERMETIC_CLOSURE_ROOT": "/home/bb/code/godot_xPRIMEray/output/hermetic_hit_closure/20260514T030448Z"
+  },
+  "planned_output_folder": "/home/bb/code/godot_xPRIMEray/output/hermetic_hit_closure/20260514T030448Z",
+  "testbench_wrapped_output": false,
+  "source_script_artifacts_preserved": true,
+  "dry_run": true,
+  "status": "dry_run",
+  "started_utc": "20260514T030448Z",
+  "updated_utc": "2026-05-14T03:04:48Z",
+  "smoke_success_known": false,
+  "artifacts": {
+    "folder": "/home/bb/code/godot_xPRIMEray/output/hermetic_hit_closure/20260514T030448Z",
+    "expected_reports": [
+      "/home/bb/code/godot_xPRIMEray/output/hermetic_hit_closure/20260514T030448Z/hermetic_hit_closure_summary.md",
+      "/home/bb/code/godot_xPRIMEray/output/hermetic_hit_closure/20260514T030448Z/hermetic_oracle_recommendations.md"
+    ],
+    "expected_contact_sheets": [
+      "/home/bb/code/godot_xPRIMEray/output/hermetic_hit_closure/20260514T030448Z/hermetic_closure_ladder.png",
+      "/home/bb/code/godot_xPRIMEray/output/hermetic_hit_closure/20260514T030448Z/hermetic_failure_storyboard.png",
+      "/home/bb/code/godot_xPRIMEray/output/hermetic_hit_closure/20260514T030448Z/closure_recovery_storyboard.png"
+    ],
+    "expected_summaries": [
+      "/home/bb/code/godot_xPRIMEray/output/hermetic_hit_closure/20260514T030448Z/hermetic_hit_closure_summary.json"
+    ],
+    "expected_previews": [
+      "/home/bb/code/godot_xPRIMEray/output/hermetic_hit_closure/20260514T030448Z/hermetic_hit_closure_heatmap.png",
+      "/home/bb/code/godot_xPRIMEray/output/hermetic_hit_closure/20260514T030448Z/adaptive_closure_recovery_heatmap.png"
+    ]
+  },
+  "guardrail_text": "Validation recipe: pass/fail is owned by the script report. The Test Bench only launches the curated script and displays artifacts.",
+  "visual_grammar": {
+    "straight_reference": "#d8d8d8",
+    "curved_transport": [
+      "#00d7ff",
+      "#ff4fd8"
+    ],
+    "density": "#2f7dff",
+    "curvature": "#f2c14e",
+    "unresolved_failed_transport": [
+      "#ff4b2f",
+      "#ff9a2f"
+    ],
+    "observer_camera": "small_labeled_glyph",
+    "field_center_nucleus": "crosshair"
+  }
+}

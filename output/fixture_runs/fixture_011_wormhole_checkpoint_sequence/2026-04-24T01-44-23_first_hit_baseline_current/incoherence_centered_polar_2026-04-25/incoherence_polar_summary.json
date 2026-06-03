@@ -1,0 +1,416 @@
+{
+  "analysis_label": "exploratory_sampling_domain_analysis_incoherence_centered_polar",
+  "diagnostics_dir": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current",
+  "visible_mask_dir": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-22T18-12-54",
+  "outputs": {
+    "incoherence_centered_polar_heatmap": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/incoherence_centered_polar_2026-04-25/incoherence_centered_polar_heatmap.png",
+    "incoherence_centered_polar_boundary_overlay": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/incoherence_centered_polar_2026-04-25/incoherence_centered_polar_boundary_overlay.png",
+    "centroid_overlay": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/incoherence_centered_polar_2026-04-25/centroid_overlay.png",
+    "summary_json": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/incoherence_centered_polar_2026-04-25/incoherence_polar_summary.json"
+  },
+  "checkpoints": [
+    {
+      "checkpoint": "mouth",
+      "centroid": {
+        "x": 259.5663558910636,
+        "y": 145.31672981826324,
+        "source": "weighted visible_mask(0.40)+neighbor_normal_delta(0.30)+phase_incoherence(0.30)"
+      },
+      "inputs": {
+        "tile_summary": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/00_mouth_tile_summary.json",
+        "csv": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/00_mouth_hit_diagnostics.csv",
+        "visible_band_mask": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-22T18-12-54/mouth_visible_band_mask.png",
+        "debug_normal_rgb": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/00_mouth_debug_normal_rgb.png"
+      },
+      "outputs": {
+        "incoherence_centered_polar_heatmap": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/incoherence_centered_polar_2026-04-25/00_mouth_incoherence_centered_polar_heatmap.png",
+        "incoherence_centered_polar_boundary_overlay": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/incoherence_centered_polar_2026-04-25/00_mouth_incoherence_centered_polar_boundary_overlay.png",
+        "centroid_overlay": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/incoherence_centered_polar_2026-04-25/00_mouth_centroid_overlay.png"
+      },
+      "polar_config": {
+        "radial_bins": 24,
+        "angular_sectors": 48,
+        "log_radius": false
+      },
+      "metrics": {
+        "new_incoherence_centered_polar": {
+          "visible_edge_pixels": 53578,
+          "target_edge_pixels": 53887,
+          "edge_overlap_pixels": 23685,
+          "edge_iou": 0.28270470279302934,
+          "visible_edge_recall_within_radius": 0.9996267124566053,
+          "target_edge_precision_within_radius": 0.919925028299961,
+          "symmetric_near_overlap": 0.9597758703782832,
+          "edge_distance_score_visible_to_target": 0.8193607330322266,
+          "edge_distance_score_target_to_visible": 0.7535557150840759,
+          "symmetric_edge_distance_score": 0.7864582240581512,
+          "gradient_direction_similarity": 0.6235631108283997,
+          "gradient_direction_samples": 23685,
+          "gradient_magnitude_pearson": 0.037961959039235466
+        },
+        "prior_aperture_centered_polar": {
+          "visible_edge_pixels": 53578,
+          "target_edge_pixels": 52562,
+          "edge_iou": 0.28428822070300686,
+          "visible_edge_recall_within_radius": 1.0,
+          "target_edge_precision_within_radius": 0.9220729804801948,
+          "symmetric_near_overlap": 0.9610364902400974,
+          "edge_distance_score_visible_to_target": 0.8135961890220642,
+          "edge_distance_score_target_to_visible": 0.7591742277145386,
+          "symmetric_edge_distance_score": 0.7863852083683014,
+          "gradient_direction_similarity": 0.628449022769928,
+          "gradient_magnitude_pearson": 0.0499030452531412
+        },
+        "prior_adaptive_square": {
+          "visible_edge_pixels": 53578,
+          "target_edge_pixels": 21029,
+          "edge_overlap_pixels": 16062,
+          "edge_iou": 0.27435306174737384,
+          "visible_edge_recall_within_radius": 0.7120273246481765,
+          "target_edge_precision_within_radius": 1.0,
+          "symmetric_near_overlap": 0.8560136623240883,
+          "edge_distance_score_visible_to_target": 0.5789422988891602,
+          "edge_distance_score_target_to_visible": 0.9569031000137329,
+          "symmetric_edge_distance_score": 0.7679226994514465,
+          "gradient_direction_similarity": 0.8356582522392273,
+          "gradient_direction_samples": 30992,
+          "gradient_magnitude_pearson": 0.31210259096588683
+        }
+      },
+      "bin_summary": {
+        "mean_incoherence": 0.2409827709197998,
+        "p95_incoherence": 0.8716103434562683,
+        "top_bins": [
+          {
+            "radial_bin": 0,
+            "angular_sector": 23,
+            "pixel_count": 7,
+            "normal_variance": 1.0,
+            "collider_switch_density": 0.5714285714285714,
+            "hit_distance_variance": 10.213528768235838,
+            "segment_index_variance": 1031.3469387755101,
+            "phase_incoherence_score": 1.0
+          },
+          {
+            "radial_bin": 1,
+            "angular_sector": 24,
+            "pixel_count": 33,
+            "normal_variance": 0.9696969696969697,
+            "collider_switch_density": 0.696969696969697,
+            "hit_distance_variance": 36.88328486990772,
+            "segment_index_variance": 3240.2718089990817,
+            "phase_incoherence_score": 1.0
+          },
+          {
+            "radial_bin": 2,
+            "angular_sector": 20,
+            "pixel_count": 50,
+            "normal_variance": 0.8735088935932649,
+            "collider_switch_density": 0.7,
+            "hit_distance_variance": 35.384679869760205,
+            "segment_index_variance": 3128.12,
+            "phase_incoherence_score": 1.0
+          },
+          {
+            "radial_bin": 2,
+            "angular_sector": 21,
+            "pixel_count": 51,
+            "normal_variance": 0.8613516115320494,
+            "collider_switch_density": 0.5882352941176471,
+            "hit_distance_variance": 44.701486964333185,
+            "segment_index_variance": 3897.62245290273,
+            "phase_incoherence_score": 1.0
+          },
+          {
+            "radial_bin": 2,
+            "angular_sector": 22,
+            "pixel_count": 52,
+            "normal_variance": 0.9728035853389789,
+            "collider_switch_density": 0.7307692307692308,
+            "hit_distance_variance": 33.97071371027057,
+            "segment_index_variance": 2921.6164940828403,
+            "phase_incoherence_score": 1.0
+          },
+          {
+            "radial_bin": 2,
+            "angular_sector": 23,
+            "pixel_count": 46,
+            "normal_variance": 0.9312548334746005,
+            "collider_switch_density": 0.6739130434782609,
+            "hit_distance_variance": 47.3572497194562,
+            "segment_index_variance": 4122.13988657845,
+            "phase_incoherence_score": 1.0
+          },
+          {
+            "radial_bin": 2,
+            "angular_sector": 41,
+            "pixel_count": 46,
+            "normal_variance": 0.9565217391304348,
+            "collider_switch_density": 0.5434782608695652,
+            "hit_distance_variance": 10.027157169808563,
+            "segment_index_variance": 1000.0023629489604,
+            "phase_incoherence_score": 0.9977231025695801
+          },
+          {
+            "radial_bin": 1,
+            "angular_sector": 19,
+            "pixel_count": 31,
+            "normal_variance": 0.8387096774193549,
+            "collider_switch_density": 0.6129032258064516,
+            "hit_distance_variance": 11.885524041674957,
+            "segment_index_variance": 1111.6670135275756,
+            "phase_incoherence_score": 0.9940327405929565
+          },
+          {
+            "radial_bin": 1,
+            "angular_sector": 20,
+            "pixel_count": 30,
+            "normal_variance": 0.8333333333333333,
+            "collider_switch_density": 0.6666666666666667,
+            "hit_distance_variance": 28.797109740744357,
+            "segment_index_variance": 2494.04,
+            "phase_incoherence_score": 0.9924684762954712
+          },
+          {
+            "radial_bin": 0,
+            "angular_sector": 32,
+            "pixel_count": 10,
+            "normal_variance": 0.8585786437626904,
+            "collider_switch_density": 0.5,
+            "hit_distance_variance": 10.11733256372176,
+            "segment_index_variance": 1013.05,
+            "phase_incoherence_score": 0.9892632365226746
+          },
+          {
+            "radial_bin": 2,
+            "angular_sector": 46,
+            "pixel_count": 51,
+            "normal_variance": 0.8324705147976954,
+            "collider_switch_density": 0.5098039215686274,
+            "hit_distance_variance": 10.470124500583648,
+            "segment_index_variance": 1042.484429065744,
+            "phase_incoherence_score": 0.9863618612289429
+          },
+          {
+            "radial_bin": 2,
+            "angular_sector": 47,
+            "pixel_count": 52,
+            "normal_variance": 0.8356922356669705,
+            "collider_switch_density": 0.5,
+            "hit_distance_variance": 10.110896863626607,
+            "segment_index_variance": 1009.9363905325444,
+            "phase_incoherence_score": 0.9826041460037231
+          }
+        ]
+      }
+    },
+    {
+      "checkpoint": "post_throat_backstep_01",
+      "centroid": {
+        "x": 248.38565614228813,
+        "y": 143.96872973266522,
+        "source": "weighted visible_mask(0.40)+neighbor_normal_delta(0.30)+phase_incoherence(0.30)"
+      },
+      "inputs": {
+        "tile_summary": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/01_post_throat_backstep_01_tile_summary.json",
+        "csv": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/01_post_throat_backstep_01_hit_diagnostics.csv",
+        "visible_band_mask": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-22T18-12-54/post_throat_backstep_01_visible_band_mask.png",
+        "debug_normal_rgb": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/01_post_throat_backstep_01_debug_normal_rgb.png"
+      },
+      "outputs": {
+        "incoherence_centered_polar_heatmap": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/incoherence_centered_polar_2026-04-25/01_post_throat_backstep_01_incoherence_centered_polar_heatmap.png",
+        "incoherence_centered_polar_boundary_overlay": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/incoherence_centered_polar_2026-04-25/01_post_throat_backstep_01_incoherence_centered_polar_boundary_overlay.png",
+        "centroid_overlay": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/incoherence_centered_polar_2026-04-25/01_post_throat_backstep_01_centroid_overlay.png"
+      },
+      "polar_config": {
+        "radial_bins": 24,
+        "angular_sectors": 48,
+        "log_radius": false
+      },
+      "metrics": {
+        "new_incoherence_centered_polar": {
+          "visible_edge_pixels": 48946,
+          "target_edge_pixels": 54866,
+          "edge_overlap_pixels": 21247,
+          "edge_iou": 0.2573366438563556,
+          "visible_edge_recall_within_radius": 0.9993257876026641,
+          "target_edge_precision_within_radius": 0.9463419968650895,
+          "symmetric_near_overlap": 0.9728338922338768,
+          "edge_distance_score_visible_to_target": 0.8157853484153748,
+          "edge_distance_score_target_to_visible": 0.7111403346061707,
+          "symmetric_edge_distance_score": 0.7634628415107727,
+          "gradient_direction_similarity": 0.656435489654541,
+          "gradient_direction_samples": 21247,
+          "gradient_magnitude_pearson": 0.012829833473809399
+        },
+        "prior_aperture_centered_polar": {
+          "visible_edge_pixels": 48946,
+          "target_edge_pixels": 54545,
+          "edge_iou": 0.2550296503801797,
+          "visible_edge_recall_within_radius": 0.9996731091406856,
+          "target_edge_precision_within_radius": 0.9473095609130076,
+          "symmetric_near_overlap": 0.9734913350268466,
+          "edge_distance_score_visible_to_target": 0.8165237307548523,
+          "edge_distance_score_target_to_visible": 0.7135522961616516,
+          "symmetric_edge_distance_score": 0.765038013458252,
+          "gradient_direction_similarity": 0.6423007845878601,
+          "gradient_magnitude_pearson": 0.008874138862224575
+        },
+        "prior_adaptive_square": {
+          "visible_edge_pixels": 48946,
+          "target_edge_pixels": 22833,
+          "edge_overlap_pixels": 17829,
+          "edge_iou": 0.3304726598702502,
+          "visible_edge_recall_within_radius": 0.7313570056797287,
+          "target_edge_precision_within_radius": 0.9998686112206018,
+          "symmetric_near_overlap": 0.8656128084501653,
+          "edge_distance_score_visible_to_target": 0.6414065361022949,
+          "edge_distance_score_target_to_visible": 0.9655072689056396,
+          "symmetric_edge_distance_score": 0.8034569025039673,
+          "gradient_direction_similarity": 0.8753202557563782,
+          "gradient_direction_samples": 26859,
+          "gradient_magnitude_pearson": 0.3688686275066714
+        }
+      },
+      "bin_summary": {
+        "mean_incoherence": 0.1298215091228485,
+        "p95_incoherence": 0.6665676832199097,
+        "top_bins": [
+          {
+            "radial_bin": 14,
+            "angular_sector": 47,
+            "pixel_count": 268,
+            "normal_variance": 0.9552238805970149,
+            "collider_switch_density": 0.3619402985074627,
+            "hit_distance_variance": 7.499170792759124,
+            "segment_index_variance": 745.6603920695032,
+            "phase_incoherence_score": 1.0
+          },
+          {
+            "radial_bin": 15,
+            "angular_sector": 3,
+            "pixel_count": 292,
+            "normal_variance": 0.9965753424657534,
+            "collider_switch_density": 0.5102739726027397,
+            "hit_distance_variance": 11.141780034585915,
+            "segment_index_variance": 1116.3338689247514,
+            "phase_incoherence_score": 1.0
+          },
+          {
+            "radial_bin": 17,
+            "angular_sector": 0,
+            "pixel_count": 333,
+            "normal_variance": 0.993993993993994,
+            "collider_switch_density": 0.5405405405405406,
+            "hit_distance_variance": 4.310220108841123,
+            "segment_index_variance": 425.70361352343326,
+            "phase_incoherence_score": 1.0
+          },
+          {
+            "radial_bin": 19,
+            "angular_sector": 47,
+            "pixel_count": 133,
+            "normal_variance": 0.9172932330827068,
+            "collider_switch_density": 0.5263157894736843,
+            "hit_distance_variance": 4.7854707557383716,
+            "segment_index_variance": 471.98247498445363,
+            "phase_incoherence_score": 1.0
+          },
+          {
+            "radial_bin": 16,
+            "angular_sector": 3,
+            "pixel_count": 311,
+            "normal_variance": 0.9097384640024553,
+            "collider_switch_density": 0.3086816720257235,
+            "hit_distance_variance": 13.279536441536722,
+            "segment_index_variance": 1322.5283857693778,
+            "phase_incoherence_score": 0.9990202188491821
+          },
+          {
+            "radial_bin": 17,
+            "angular_sector": 1,
+            "pixel_count": 329,
+            "normal_variance": 0.8206686930091185,
+            "collider_switch_density": 0.4620060790273556,
+            "hit_distance_variance": 8.962547770106623,
+            "segment_index_variance": 888.4145194519638,
+            "phase_incoherence_score": 0.9759858250617981
+          },
+          {
+            "radial_bin": 20,
+            "angular_sector": 43,
+            "pixel_count": 311,
+            "normal_variance": 0.7324611987706211,
+            "collider_switch_density": 0.32797427652733124,
+            "hit_distance_variance": 3.8261910017720004,
+            "segment_index_variance": 378.5782818622636,
+            "phase_incoherence_score": 0.9516962766647339
+          },
+          {
+            "radial_bin": 18,
+            "angular_sector": 2,
+            "pixel_count": 345,
+            "normal_variance": 0.7217391304347827,
+            "collider_switch_density": 0.527536231884058,
+            "hit_distance_variance": 12.778537459916816,
+            "segment_index_variance": 1276.259054820416,
+            "phase_incoherence_score": 0.9487437605857849
+          },
+          {
+            "radial_bin": 13,
+            "angular_sector": 6,
+            "pixel_count": 199,
+            "normal_variance": 0.782463710332529,
+            "collider_switch_density": 0.2864321608040201,
+            "hit_distance_variance": 7.7893608024285195,
+            "segment_index_variance": 770.3544859978282,
+            "phase_incoherence_score": 0.9465364217758179
+          },
+          {
+            "radial_bin": 15,
+            "angular_sector": 47,
+            "pixel_count": 284,
+            "normal_variance": 0.7253521126760563,
+            "collider_switch_density": 0.29929577464788737,
+            "hit_distance_variance": 11.264069986081338,
+            "segment_index_variance": 1115.1280499900813,
+            "phase_incoherence_score": 0.9411870837211609
+          },
+          {
+            "radial_bin": 19,
+            "angular_sector": 2,
+            "pixel_count": 368,
+            "normal_variance": 0.6548913043478262,
+            "collider_switch_density": 0.4402173913043478,
+            "hit_distance_variance": 10.757678305984268,
+            "segment_index_variance": 1068.9468262641776,
+            "phase_incoherence_score": 0.930336058139801
+          },
+          {
+            "radial_bin": 14,
+            "angular_sector": 5,
+            "pixel_count": 267,
+            "normal_variance": 0.6366462071719879,
+            "collider_switch_density": 0.4943820224719101,
+            "hit_distance_variance": 11.03345687542364,
+            "segment_index_variance": 1093.9732357025628,
+            "phase_incoherence_score": 0.9253119230270386
+          }
+        ]
+      }
+    }
+  ],
+  "aggregate": {
+    "new_mean_recall": 0.9994762500296347,
+    "aperture_polar_mean_recall": 0.9998365545703428,
+    "adaptive_square_mean_recall": 0.7216921651639526,
+    "new_mean_direction_similarity": 0.6399993002414703,
+    "aperture_polar_mean_direction_similarity": 0.635374903678894,
+    "adaptive_square_mean_direction_similarity": 0.8554892539978027,
+    "new_mean_symmetric_distance": 0.774960532784462,
+    "aperture_polar_mean_symmetric_distance": 0.7757116109132767,
+    "adaptive_square_mean_symmetric_distance": 0.7856898009777069
+  },
+  "verdict": "Incoherence-centered polar tiling improves direction fidelity over aperture-centered polar while retaining comparable boundary distance alignment.",
+  "next_recommended_sampling_texture": "If this does not beat adaptive square direction fidelity, try annular sectors with adaptive angular subdivision or diagonal/triangular texture probes, keeping raw validation separate from coherence overlays."
+}

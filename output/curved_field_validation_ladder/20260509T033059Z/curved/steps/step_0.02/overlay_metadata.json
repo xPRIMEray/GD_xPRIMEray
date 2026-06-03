@@ -1,0 +1,585 @@
+{
+  "beauty_hash": "edf490429ab6e1d1c385016f5ba9019b6796287d0cd468cfa8e96491c62e7824",
+  "beauty_path": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T033059Z/curved/steps/step_0.02/curved_minimal_backdrop__curved_step_0p02__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+  "capture_stem": "curved_minimal_backdrop__curved_step_0p02__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1",
+  "enabled_layers": {
+    "cartesian": true,
+    "continuity": true,
+    "labels": true,
+    "risk": true,
+    "spacetime": false,
+    "transport": true
+  },
+  "hit_diagnostics_csv": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T033059Z/curved/steps/step_0.02/curved_minimal_backdrop__curved_step_0p02__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+  "hit_region_count": 46,
+  "manual_rois": [
+    {
+      "x": 40,
+      "y": 35
+    },
+    {
+      "x": 280,
+      "y": 35
+    },
+    {
+      "x": 40,
+      "y": 145
+    },
+    {
+      "x": 280,
+      "y": 145
+    }
+  ],
+  "missing_inputs": [
+    "continuity_optional_field_portal_event_count"
+  ],
+  "object_count": 5,
+  "opencv_requested": false,
+  "opencv_used": false,
+  "post_process_only": true,
+  "primitive_count_by_layer": {
+    "cartesian_lines": 60,
+    "cartesian_points": 115,
+    "manual_rois": 4,
+    "spacetime_events": 0,
+    "spacetime_polylines": 0
+  },
+  "primitive_path": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T033059Z/curved/steps/step_0.02/curved_minimal_backdrop__curved_step_0p02__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.diagnostic_wireframe_primitives.json",
+  "schema_version": 1,
+  "transport_continuity_summary": {
+    "high_discontinuity_vectors": 1335,
+    "high_threshold": 1.0,
+    "manual_roi_overlap_count": 0,
+    "max_discontinuity_score": 4.0,
+    "mean_discontinuity_score": 2.668204,
+    "missing_optional_fields": [
+      "portal_event_count"
+    ],
+    "shape_region_correlations": [
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 83,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 3.0,
+        "region_id": 0
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 81,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 3.0,
+        "region_id": 1
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 81,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 3.0,
+        "region_id": 2
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 80,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.798607,
+        "region_id": 3
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 80,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.79987,
+        "region_id": 4
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 78,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.657523,
+        "region_id": 5
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 27,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.608442,
+        "region_id": 6
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 27,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.722604,
+        "region_id": 7
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 20,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.609579,
+        "region_id": 8
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 24,
+        "collider_id": 26038240635,
+        "max_discontinuity_score": 4.0,
+        "mean_discontinuity_score": 2.809246,
+        "region_id": 9
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 20,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.787242,
+        "region_id": 10
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 15,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.587774,
+        "region_id": 11
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 36,
+        "collider_id": 26038240635,
+        "max_discontinuity_score": 3.8125,
+        "mean_discontinuity_score": 2.605352,
+        "region_id": 12
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 15,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.484548,
+        "region_id": 13
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 13,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.521163,
+        "region_id": 14
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 42,
+        "collider_id": 26038240635,
+        "max_discontinuity_score": 3.6875,
+        "mean_discontinuity_score": 2.519486,
+        "region_id": 15
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 13,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.818208,
+        "region_id": 16
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 10,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.561171,
+        "region_id": 17
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 48,
+        "collider_id": 26038240635,
+        "max_discontinuity_score": 3.59375,
+        "mean_discontinuity_score": 2.451889,
+        "region_id": 18
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 10,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.561117,
+        "region_id": 19
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 8,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.461015,
+        "region_id": 20
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 50,
+        "collider_id": 26038240635,
+        "max_discontinuity_score": 3.453125,
+        "mean_discontinuity_score": 2.411224,
+        "region_id": 21
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 8,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.461078,
+        "region_id": 22
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 4,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 3.0,
+        "region_id": 23
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 52,
+        "collider_id": 26038240635,
+        "max_discontinuity_score": 3.359375,
+        "mean_discontinuity_score": 2.375044,
+        "region_id": 24
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 4,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 3.0,
+        "region_id": 25
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 52,
+        "collider_id": 26038240635,
+        "max_discontinuity_score": 3.390625,
+        "mean_discontinuity_score": 2.365526,
+        "region_id": 26
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 3,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.253359,
+        "region_id": 27
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 52,
+        "collider_id": 26038240635,
+        "max_discontinuity_score": 3.5,
+        "mean_discontinuity_score": 2.396152,
+        "region_id": 28
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 3,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.906798,
+        "region_id": 29
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 4,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.485265,
+        "region_id": 30
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 48,
+        "collider_id": 26038240635,
+        "max_discontinuity_score": 3.46875,
+        "mean_discontinuity_score": 2.619916,
+        "region_id": 31
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 4,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.955157,
+        "region_id": 32
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 4,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 3.0,
+        "region_id": 33
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 46,
+        "collider_id": 26038240635,
+        "max_discontinuity_score": 3.4375,
+        "mean_discontinuity_score": 2.722958,
+        "region_id": 34
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 4,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.10593,
+        "region_id": 35
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 6,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.560151,
+        "region_id": 36
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 40,
+        "collider_id": 26038240635,
+        "max_discontinuity_score": 3.34375,
+        "mean_discontinuity_score": 2.725103,
+        "region_id": 37
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 6,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.861344,
+        "region_id": 38
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 8,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.641256,
+        "region_id": 39
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 30,
+        "collider_id": 26038240635,
+        "max_discontinuity_score": 3.3125,
+        "mean_discontinuity_score": 2.432242,
+        "region_id": 40
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 8,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 2.868292,
+        "region_id": 41
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 11,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.03125,
+        "mean_discontinuity_score": 2.611109,
+        "region_id": 42
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 11,
+        "collider_id": 26038240635,
+        "max_discontinuity_score": 3.09375,
+        "mean_discontinuity_score": 2.775127,
+        "region_id": 43
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 11,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.03125,
+        "mean_discontinuity_score": 2.7552,
+        "region_id": 44
+      },
+      {
+        "boundary_aligns_with_high_vector_density": true,
+        "boundary_flip_count": 18,
+        "collider_id": 26088572295,
+        "max_discontinuity_score": 3.0,
+        "mean_discontinuity_score": 3.0,
+        "region_id": 45
+      }
+    ],
+    "threshold": 0.2,
+    "top_10_discontinuity_locations": [
+      {
+        "boundary_event_delta": 0,
+        "collider_change": 1,
+        "domain_change": 0,
+        "hit_distance_delta": 16.14993,
+        "hit_normal_angle_delta": 0.0,
+        "neighbor_x": 150,
+        "neighbor_y": 57,
+        "ownership_flip_score": 1.0,
+        "path_length_delta": 25.10675,
+        "step_count_delta": 68.0,
+        "total_transport_discontinuity_score": 4.0,
+        "x": 150,
+        "y": 56
+      },
+      {
+        "boundary_event_delta": 0,
+        "collider_change": 1,
+        "domain_change": 0,
+        "hit_distance_delta": 15.85768,
+        "hit_normal_angle_delta": 0.0,
+        "neighbor_x": 151,
+        "neighbor_y": 57,
+        "ownership_flip_score": 1.0,
+        "path_length_delta": 25.398999,
+        "step_count_delta": 66.0,
+        "total_transport_discontinuity_score": 4.0,
+        "x": 151,
+        "y": 56
+      },
+      {
+        "boundary_event_delta": 0,
+        "collider_change": 1,
+        "domain_change": 0,
+        "hit_distance_delta": 15.85768,
+        "hit_normal_angle_delta": 0.0,
+        "neighbor_x": 168,
+        "neighbor_y": 57,
+        "ownership_flip_score": 1.0,
+        "path_length_delta": 25.398999,
+        "step_count_delta": 66.0,
+        "total_transport_discontinuity_score": 4.0,
+        "x": 168,
+        "y": 56
+      },
+      {
+        "boundary_event_delta": 0,
+        "collider_change": 1,
+        "domain_change": 0,
+        "hit_distance_delta": 16.14993,
+        "hit_normal_angle_delta": 0.0,
+        "neighbor_x": 169,
+        "neighbor_y": 57,
+        "ownership_flip_score": 1.0,
+        "path_length_delta": 25.10675,
+        "step_count_delta": 68.0,
+        "total_transport_discontinuity_score": 4.0,
+        "x": 169,
+        "y": 56
+      },
+      {
+        "boundary_event_delta": 0,
+        "collider_change": 1,
+        "domain_change": 0,
+        "hit_distance_delta": 16.76353,
+        "hit_normal_angle_delta": 0.0,
+        "neighbor_x": 149,
+        "neighbor_y": 57,
+        "ownership_flip_score": 1.0,
+        "path_length_delta": 24.49315,
+        "step_count_delta": 56.0,
+        "total_transport_discontinuity_score": 3.875,
+        "x": 149,
+        "y": 56
+      },
+      {
+        "boundary_event_delta": 0,
+        "collider_change": 1,
+        "domain_change": 0,
+        "hit_distance_delta": 16.76352,
+        "hit_normal_angle_delta": 0.0,
+        "neighbor_x": 170,
+        "neighbor_y": 57,
+        "ownership_flip_score": 1.0,
+        "path_length_delta": 24.493159,
+        "step_count_delta": 56.0,
+        "total_transport_discontinuity_score": 3.875,
+        "x": 170,
+        "y": 56
+      },
+      {
+        "boundary_event_delta": 0,
+        "collider_change": 1,
+        "domain_change": 0,
+        "hit_distance_delta": 15.91388,
+        "hit_normal_angle_delta": 0.0,
+        "neighbor_x": 144,
+        "neighbor_y": 61,
+        "ownership_flip_score": 1.0,
+        "path_length_delta": 25.343349,
+        "step_count_delta": 52.0,
+        "total_transport_discontinuity_score": 3.8125,
+        "x": 144,
+        "y": 60
+      },
+      {
+        "boundary_event_delta": 0,
+        "collider_change": 1,
+        "domain_change": 0,
+        "hit_distance_delta": 15.91388,
+        "hit_normal_angle_delta": 0.0,
+        "neighbor_x": 175,
+        "neighbor_y": 61,
+        "ownership_flip_score": 1.0,
+        "path_length_delta": 25.343349,
+        "step_count_delta": 52.0,
+        "total_transport_discontinuity_score": 3.8125,
+        "x": 175,
+        "y": 60
+      },
+      {
+        "boundary_event_delta": 0,
+        "collider_change": 1,
+        "domain_change": 0,
+        "hit_distance_delta": 16.67142,
+        "hit_normal_angle_delta": 0.0,
+        "neighbor_x": 143,
+        "neighbor_y": 61,
+        "ownership_flip_score": 1.0,
+        "path_length_delta": 24.585809,
+        "step_count_delta": 49.0,
+        "total_transport_discontinuity_score": 3.765625,
+        "x": 143,
+        "y": 60
+      },
+      {
+        "boundary_event_delta": 0,
+        "collider_change": 1,
+        "domain_change": 0,
+        "hit_distance_delta": 16.67142,
+        "hit_normal_angle_delta": 0.0,
+        "neighbor_x": 176,
+        "neighbor_y": 61,
+        "ownership_flip_score": 1.0,
+        "path_length_delta": 24.585809,
+        "step_count_delta": 49.0,
+        "total_transport_discontinuity_score": 3.765625,
+        "x": 176,
+        "y": 60
+      }
+    ],
+    "total_vectors": 1508,
+    "transport_shape_region_overlap_count": 1508
+  },
+  "transport_continuity_vectors_csv": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T033059Z/curved/steps/step_0.02/transport_continuity_vectors.csv"
+}

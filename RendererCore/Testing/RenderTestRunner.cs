@@ -19,7 +19,8 @@ public partial class RenderTestRunner : Node
 		DomainResolverStress = 6,
 		HermeticCurvedRoom = 7,
 		AtomicOrbitalGrinRoom = 8,
-		AtomicOrbitalVisualObservatory = 9
+		AtomicOrbitalVisualObservatory = 9,
+		RecursiveMirrorGhostPortal = 10
 	}
 
 	public enum SmartScaleMode
@@ -84,6 +85,7 @@ public partial class RenderTestRunner : Node
 	private const string RenderTestHermeticCurvedRoomScenePath = "res://test-hermetic-curved-room.tscn";
 	private const string RenderTestAtomicOrbitalGrinRoomScenePath = "res://test-atomic-orbital-grin-room.tscn";
 	private const string RenderTestAtomicOrbitalVisualObservatoryScenePath = "res://test-atomic-orbital-visual-observatory.tscn";
+	private const string RenderTestRecursiveMirrorGhostPortalScenePath = "res://test-recursive-mirror-ghost-portal.tscn";
 	private const string RenderTestStraightArgToken = "--render-test-straight";
 	private const string RenderTestStraightSceneHint = "straight";
 	private const string RenderTestFixtureArgPrefix = "--render-test-fixture=";
@@ -4914,6 +4916,13 @@ public partial class RenderTestRunner : Node
 				fixture = RenderTestFixture.AtomicOrbitalVisualObservatory;
 				return true;
 			}
+			if (string.Equals(value, "recursive_mirror_ghost_portal", StringComparison.OrdinalIgnoreCase) ||
+				string.Equals(value, "recursive_mirror", StringComparison.OrdinalIgnoreCase) ||
+				string.Equals(value, "mirror_ghost_portal", StringComparison.OrdinalIgnoreCase))
+			{
+				fixture = RenderTestFixture.RecursiveMirrorGhostPortal;
+				return true;
+			}
 			if (string.Equals(value, "default", StringComparison.OrdinalIgnoreCase))
 			{
 				fixture = RenderTestFixture.Default;
@@ -5219,6 +5228,7 @@ public partial class RenderTestRunner : Node
 			RenderTestFixture.HermeticCurvedRoom => RenderTestHermeticCurvedRoomScenePath,
 			RenderTestFixture.AtomicOrbitalGrinRoom => RenderTestAtomicOrbitalGrinRoomScenePath,
 			RenderTestFixture.AtomicOrbitalVisualObservatory => RenderTestAtomicOrbitalVisualObservatoryScenePath,
+			RenderTestFixture.RecursiveMirrorGhostPortal => RenderTestRecursiveMirrorGhostPortalScenePath,
 			_ => RenderTestDefaultScenePath
 		};
 	}

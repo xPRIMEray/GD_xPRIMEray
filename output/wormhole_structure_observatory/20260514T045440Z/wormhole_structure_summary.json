@@ -1,0 +1,52 @@
+{
+  "schema": "xprimeray.wormhole_structure_observatory.v1",
+  "purpose": "visual_observatory_only",
+  "safety_note": "This observatory visualizes renderer transport structure, not physical wormhole evidence.",
+  "quality": "quick_review",
+  "extra_panels_enabled": false,
+  "panel_count": 3,
+  "complete_panel_count": 3,
+  "all_panels_complete": true,
+  "total_panel_duration_seconds": 84.0,
+  "panels": [
+    {
+      "panel_id": "clean_curved",
+      "title": "Clean curved render",
+      "status": "ok",
+      "exit_code": 0,
+      "duration_seconds": 23.0,
+      "timed_out": false,
+      "image": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045440Z/panels/clean_curved/clean_curved_film.png",
+      "log": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045440Z/logs/clean_curved.log",
+      "notes": "capture_found"
+    },
+    {
+      "panel_id": "straight_vs_curved",
+      "title": "Straight reference vs curved transport",
+      "status": "ok",
+      "exit_code": 0,
+      "duration_seconds": 37.0,
+      "timed_out": false,
+      "image": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045440Z/panels/straight_vs_curved/straight_vs_curved_composed.png",
+      "log": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045440Z/logs/straight_vs_curved.log",
+      "notes": "capture_found"
+    },
+    {
+      "panel_id": "depth_heatmap",
+      "title": "Depth heatmap",
+      "status": "ok",
+      "exit_code": 0,
+      "duration_seconds": 24.0,
+      "timed_out": false,
+      "image": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045440Z/panels/depth_heatmap/depth_heatmap_film.png",
+      "log": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045440Z/logs/depth_heatmap.log",
+      "notes": "capture_found"
+    }
+  ],
+  "artifacts": {
+    "contact_sheet": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045440Z/wormhole_structure_contact_sheet.png",
+    "preview": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045440Z/testbench_preview.png",
+    "report": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045440Z/wormhole_structure_report.md",
+    "summary": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045440Z/wormhole_structure_summary.json"
+  }
+}

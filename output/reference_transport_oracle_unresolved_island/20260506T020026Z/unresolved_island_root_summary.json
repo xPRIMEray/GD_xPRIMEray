@@ -1,0 +1,16 @@
+[
+  {
+    "cell": "unresolved_island",
+    "cell_dir": "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260506T020026Z/cells/unresolved_island",
+    "comparison_count": 75,
+    "effective_status": 0,
+    "local_continuity_vector_count": 0,
+    "local_transport_shape_region_count": 0,
+    "oracle_replay_failure_count": 0,
+    "oracle_step_length": "0.0015625",
+    "sample_count": 25,
+    "sealed_at_0.00625": false,
+    "stable_at_0.00625_count": 0,
+    "unresolved_at_0.003125_count": 25
+  }
+]

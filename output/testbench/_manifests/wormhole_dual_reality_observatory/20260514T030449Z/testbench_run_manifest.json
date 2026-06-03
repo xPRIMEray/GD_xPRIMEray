@@ -1,0 +1,58 @@
+{
+  "schema": "xprimeray.testbench.run_manifest.v1",
+  "recipe_id": "wormhole_dual_reality_observatory",
+  "recipe_title": "Wormhole Dual Reality Observatory",
+  "quality": "smoke",
+  "overlay": {
+    "mode": "dual_reality_straight_vs_curved",
+    "placement": "contact_sheet_only",
+    "postprocess_only": true,
+    "placement_descriptive_only": true
+  },
+  "exact_command": "cd \u0027/home/bb/code/godot_xPRIMEray\u0027 \u0026\u0026 \u0027bash\u0027 \u0027/home/bb/code/godot_xPRIMEray/scripts/run_wormhole_dual_reality_storytelling.sh\u0027 \u002720260514T030449Z\u0027",
+  "working_directory": "/home/bb/code/godot_xPRIMEray",
+  "env": {},
+  "planned_output_folder": "/home/bb/code/godot_xPRIMEray/output/wormhole_dual_reality_storytelling/20260514T030449Z",
+  "testbench_wrapped_output": false,
+  "source_script_artifacts_preserved": true,
+  "dry_run": true,
+  "status": "dry_run",
+  "started_utc": "20260514T030449Z",
+  "updated_utc": "2026-05-14T03:04:49Z",
+  "smoke_success_known": false,
+  "artifacts": {
+    "folder": "/home/bb/code/godot_xPRIMEray/output/wormhole_dual_reality_storytelling/20260514T030449Z",
+    "expected_reports": [
+      "/home/bb/code/godot_xPRIMEray/output/wormhole_dual_reality_storytelling/20260514T030449Z/storytelling_sequence.md"
+    ],
+    "expected_contact_sheets": [
+      "/home/bb/code/godot_xPRIMEray/output/wormhole_dual_reality_storytelling/20260514T030449Z/wormhole_dual_reality_storytelling_contact_sheet.png"
+    ],
+    "expected_summaries": [
+      "/home/bb/code/godot_xPRIMEray/output/wormhole_dual_reality_storytelling/20260514T030449Z/summary.json",
+      "/home/bb/code/godot_xPRIMEray/output/wormhole_dual_reality_storytelling/20260514T030449Z/contact_sheet_summary.json"
+    ],
+    "expected_previews": [
+      "/home/bb/code/godot_xPRIMEray/output/wormhole_dual_reality_storytelling/20260514T030449Z/images/01_clean_curved.png",
+      "/home/bb/code/godot_xPRIMEray/output/wormhole_dual_reality_storytelling/20260514T030449Z/images/02_reference_reality.png",
+      "/home/bb/code/godot_xPRIMEray/output/wormhole_dual_reality_storytelling/20260514T030449Z/images/03_curvature_map.png",
+      "/home/bb/code/godot_xPRIMEray/output/wormhole_dual_reality_storytelling/20260514T030449Z/images/06_full_stack.png"
+    ]
+  },
+  "guardrail_text": "Dual-reality observatory: visual comparison cockpit for straight reference and curved transport artifacts. It is not a validation gate.",
+  "visual_grammar": {
+    "straight_reference": "#d8d8d8",
+    "curved_transport": [
+      "#00d7ff",
+      "#ff4fd8"
+    ],
+    "density": "#2f7dff",
+    "curvature": "#f2c14e",
+    "unresolved_failed_transport": [
+      "#ff4b2f",
+      "#ff9a2f"
+    ],
+    "observer_camera": "small_labeled_glyph",
+    "field_center_nucleus": "crosshair"
+  }
+}

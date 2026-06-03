@@ -1,0 +1,11 @@
+{
+  "panel_id": "depth_heatmap",
+  "title": "Depth heatmap",
+  "status": "ok",
+  "exit_code": 0,
+  "duration_seconds": 24.0,
+  "timed_out": false,
+  "image": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045440Z/panels/depth_heatmap/depth_heatmap_film.png",
+  "log": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045440Z/logs/depth_heatmap.log",
+  "notes": "capture_found"
+}

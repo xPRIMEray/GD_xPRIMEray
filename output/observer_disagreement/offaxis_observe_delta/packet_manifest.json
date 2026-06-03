@@ -1,0 +1,86 @@
+{
+  "beauty_frames": [
+    {
+      "beauty_path": "output/observer_disagreement/offaxis_observe_delta/straight_offaxis_observe_beauty.png",
+      "camera_pose_key": "basic_visual_offaxis_observe_v0_pre",
+      "case_id": "straight_offaxis_observe",
+      "fixture": "grin_basic_visual_straight_offaxis",
+      "height": 270,
+      "metadata_path": "output/observer_disagreement/offaxis_observe_delta/straight_offaxis_observe_beauty_metadata.json",
+      "scheduler_mode": "row",
+      "status": "PASS",
+      "transport_assumption": "straight_reference",
+      "traversal_mode": "row",
+      "validation_failures": [],
+      "width": 480
+    },
+    {
+      "beauty_path": "output/observer_disagreement/offaxis_observe_delta/grin_offaxis_observe_beauty.png",
+      "camera_pose_key": "basic_visual_offaxis_observe_v0_pre",
+      "case_id": "grin_offaxis_observe",
+      "fixture": "grin_basic_visual_offaxis",
+      "height": 270,
+      "metadata_path": "output/observer_disagreement/offaxis_observe_delta/grin_offaxis_observe_beauty_metadata.json",
+      "scheduler_mode": "row",
+      "status": "PASS",
+      "transport_assumption": "curved_grin",
+      "traversal_mode": "row",
+      "validation_failures": [],
+      "width": 480
+    }
+  ],
+  "beauty_pair_contract": {
+    "camera_pose_key": "basic_visual_offaxis_observe_v0_pre",
+    "capture_mode": "resolved_film",
+    "case_ids": [
+      "straight_offaxis_observe",
+      "grin_offaxis_observe"
+    ],
+    "deterministic_paths": [
+      "straight_offaxis_observe_beauty.png",
+      "grin_offaxis_observe_beauty.png"
+    ],
+    "status": "PASS",
+    "validation_failures": []
+  },
+  "cases": [
+    {
+      "case_id": "straight_offaxis_observe",
+      "classification_path": "output/observer_disagreement/offaxis_observe_delta/straight_offaxis_observe_transport_classification.png",
+      "coverage_path": "output/observer_disagreement/offaxis_observe_delta/straight_offaxis_observe_transport_classification_coverage.json",
+      "height": 270,
+      "metadata_path": "output/observer_disagreement/offaxis_observe_delta/straight_offaxis_observe_transport_classification_metadata.json",
+      "status": "PASS",
+      "transport_assumption": "straight_reference",
+      "validation_failures": [],
+      "width": 480
+    },
+    {
+      "case_id": "grin_offaxis_observe",
+      "classification_path": "output/observer_disagreement/offaxis_observe_delta/grin_offaxis_observe_transport_classification.png",
+      "coverage_path": "output/observer_disagreement/offaxis_observe_delta/grin_offaxis_observe_transport_classification_coverage.json",
+      "height": 270,
+      "metadata_path": "output/observer_disagreement/offaxis_observe_delta/grin_offaxis_observe_transport_classification_metadata.json",
+      "status": "PASS",
+      "transport_assumption": "curved_grin",
+      "validation_failures": [],
+      "width": 480
+    }
+  ],
+  "delta": {
+    "classification_delta": "output/observer_disagreement/offaxis_observe_delta/classification_delta.png",
+    "classification_delta_contours": "output/observer_disagreement/offaxis_observe_delta/classification_delta_contours.png",
+    "classification_delta_summary": "output/observer_disagreement/offaxis_observe_delta/classification_delta_summary.json",
+    "log_path": "output/observer_disagreement/offaxis_observe_delta/logs/classification_delta_compare.log",
+    "status": "PASS"
+  },
+  "guardrails": [
+    "Measured classification outputs only.",
+    "No transport semantics, scheduler behavior, traversal order, hit selection, or oracle logic changes.",
+    "Hermetic observatory remains the export sanity gate; this packet is the visual observer-disagreement artifact path.",
+    "Beauty frames are observatory context only."
+  ],
+  "output_dir": "output/observer_disagreement/offaxis_observe_delta",
+  "schema": "xprimeray.observer_disagreement_offaxis_packet.v1",
+  "semantic_scope": "presentation_only_export"
+}

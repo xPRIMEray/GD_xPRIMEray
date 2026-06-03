@@ -1,0 +1,5 @@
+step_length,mode,effective_status,beauty_hash,hash_matches_off,changed_pixels,changed_bbox,band_pixels,band_percent,boundary_mean,selection_flip_mean,step_sensitivity_mean,precision_required_mean,sconv_confidence_mean,band_vs_boundary_precision,band_vs_boundary_iou,band_vs_selection_flip_precision,band_vs_selection_flip_iou,band_vs_step_sensitivity_precision,band_vs_step_sensitivity_iou,band_vs_precision_required_precision,band_vs_precision_required_iou
+0.0125,off,127,,true,0,none,-1,,,,,,,,,,,,,,
+0.0125,telemetry_on,127,,,,,-1,,,,,,,,,,,,,,
+0.0125,sconv_on,127,,,,,-1,,,,,,,,,,,,,,
+0.0125,resolver_on,127,,,,,-1,,,,,,,,,,,,,,

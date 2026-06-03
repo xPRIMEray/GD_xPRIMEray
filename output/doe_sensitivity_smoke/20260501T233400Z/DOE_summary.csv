@@ -1,0 +1,5 @@
+step_length,mode,effective_status,beauty_hash,hash_matches_off,changed_pixels,changed_bbox,band_pixels,band_percent,boundary_mean,selection_flip_mean,step_sensitivity_mean,precision_required_mean,sconv_confidence_mean,band_vs_boundary_precision,band_vs_boundary_iou,band_vs_selection_flip_precision,band_vs_selection_flip_iou,band_vs_step_sensitivity_precision,band_vs_step_sensitivity_iou,band_vs_precision_required_precision,band_vs_precision_required_iou
+0.0125,off,0,bd8e60fcf5727a7ef636a0ed12003690204d86222e0761986b86e78434b0e259,true,0,none,2346,4.0730,,,,,,,,,,,,,
+0.0125,telemetry_on,0,50b101f007cf53cbee61e3c0001b0730a6abf5a1627b7c3a55491977d12bebbe,false,896,"(160, 2, 319, 59)",3048,5.2920,0.0751,0.1076,,,,0.1988,0.0702,0.1988,0.0702,,,,
+0.0125,sconv_on,0,bf220d274d05ab08a2387c24e3f937b3ef323db2aa7f796aef8dfb0f6285ba4c,false,512,"(160, 26, 319, 59)",2724,4.7290,0.0743,0.1064,,,,0.2386,0.0792,0.2386,0.0792,,,,
+0.0125,resolver_on,0,fbc3939b341b0f02c9d5966efab078030bd82811bed31cc4516b329b9992afcb,false,2944,"(32, 26, 319, 59)",3394,5.8920,0.0446,0.0639,,,,0.1500,0.0775,0.1500,0.0775,,,,

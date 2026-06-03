@@ -1,0 +1,276 @@
+{
+  "basin_count": 8,
+  "diagnostic_only_guardrail": "SceneTransportMemory is diagnostic-only and must not feed render scheduling, hit selection, shading, resolver decisions, or adaptive precision yet.",
+  "local_transport_fingerprints": [
+    {
+      "fingerprint_id": "basin:1",
+      "local_coherence_score": 0.9999988541971649,
+      "object_id": "geometry:25836914057",
+      "pixel_x": 144,
+      "pixel_y": 74,
+      "transport_entropy": 0.0
+    },
+    {
+      "fingerprint_id": "basin:2",
+      "local_coherence_score": 0.9999988615389583,
+      "object_id": "geometry:25836914057",
+      "pixel_x": 144,
+      "pixel_y": 90,
+      "transport_entropy": 0.0
+    },
+    {
+      "fingerprint_id": "basin:3",
+      "local_coherence_score": 0.999998897276904,
+      "object_id": "geometry:25836914057",
+      "pixel_x": 144,
+      "pixel_y": 106,
+      "transport_entropy": 0.0
+    },
+    {
+      "fingerprint_id": "basin:4",
+      "local_coherence_score": 0.9999988386175979,
+      "object_id": "geometry:25836914057",
+      "pixel_x": 152,
+      "pixel_y": 82,
+      "transport_entropy": 0.0
+    },
+    {
+      "fingerprint_id": "basin:5",
+      "local_coherence_score": 0.99999877428547,
+      "object_id": "geometry:25836914057",
+      "pixel_x": 152,
+      "pixel_y": 90,
+      "transport_entropy": 0.0
+    },
+    {
+      "fingerprint_id": "basin:6",
+      "local_coherence_score": 0.9999987738406192,
+      "object_id": "geometry:25836914057",
+      "pixel_x": 152,
+      "pixel_y": 98,
+      "transport_entropy": 0.0
+    },
+    {
+      "fingerprint_id": "basin:7",
+      "local_coherence_score": 0.9999990069838007,
+      "object_id": "geometry:25836914057",
+      "pixel_x": 160,
+      "pixel_y": 74,
+      "transport_entropy": 0.0
+    },
+    {
+      "fingerprint_id": "basin:8",
+      "local_coherence_score": 0.9999990036065952,
+      "object_id": "geometry:25836914057",
+      "pixel_x": 160,
+      "pixel_y": 106,
+      "transport_entropy": 0.0
+    }
+  ],
+  "required_precision_regions": [
+    {
+      "center_x": 144,
+      "center_y": 74,
+      "object_id": "geometry:25836914057",
+      "precision_floor": "0.003125",
+      "region_id": "precision:1"
+    },
+    {
+      "center_x": 144,
+      "center_y": 90,
+      "object_id": "geometry:25836914057",
+      "precision_floor": "0.003125",
+      "region_id": "precision:2"
+    },
+    {
+      "center_x": 144,
+      "center_y": 106,
+      "object_id": "geometry:25836914057",
+      "precision_floor": "0.003125",
+      "region_id": "precision:3"
+    },
+    {
+      "center_x": 152,
+      "center_y": 82,
+      "object_id": "geometry:25836914057",
+      "precision_floor": "0.003125",
+      "region_id": "precision:4"
+    },
+    {
+      "center_x": 152,
+      "center_y": 90,
+      "object_id": "geometry:25836914057",
+      "precision_floor": "0.003125",
+      "region_id": "precision:5"
+    },
+    {
+      "center_x": 152,
+      "center_y": 98,
+      "object_id": "geometry:25836914057",
+      "precision_floor": "0.003125",
+      "region_id": "precision:6"
+    },
+    {
+      "center_x": 160,
+      "center_y": 74,
+      "object_id": "geometry:25836914057",
+      "precision_floor": "0.003125",
+      "region_id": "precision:7"
+    },
+    {
+      "center_x": 160,
+      "center_y": 106,
+      "object_id": "geometry:25836914057",
+      "precision_floor": "0.003125",
+      "region_id": "precision:8"
+    }
+  ],
+  "stable_basins": [
+    {
+      "basin_id": 1,
+      "basin_stability_class": "STABLE_COHERENT_BASIN",
+      "center_x": 144,
+      "center_y": 74,
+      "coherence_decay_radius": 0,
+      "first_stable_outer_bound": 0,
+      "local_coherence_score": 0.9999988541971649,
+      "local_transport_entropy": 0.0,
+      "manifold_fragmentation_count": 1,
+      "object_id": "geometry:25836914057",
+      "precision_floor": "0.003125",
+      "recommended_step_length": "0.003125",
+      "revisit_frequency_recommendation": "low",
+      "sample_count": 37,
+      "stability_confidence": 0.9999988541971649,
+      "transport_divergence_score": 1.1458028350563865e-06
+    },
+    {
+      "basin_id": 2,
+      "basin_stability_class": "STABLE_COHERENT_BASIN",
+      "center_x": 144,
+      "center_y": 90,
+      "coherence_decay_radius": 0,
+      "first_stable_outer_bound": 0,
+      "local_coherence_score": 0.9999988615389583,
+      "local_transport_entropy": 0.0,
+      "manifold_fragmentation_count": 1,
+      "object_id": "geometry:25836914057",
+      "precision_floor": "0.003125",
+      "recommended_step_length": "0.003125",
+      "revisit_frequency_recommendation": "low",
+      "sample_count": 25,
+      "stability_confidence": 0.9999988615389583,
+      "transport_divergence_score": 1.138461041660932e-06
+    },
+    {
+      "basin_id": 3,
+      "basin_stability_class": "STABLE_COHERENT_BASIN",
+      "center_x": 144,
+      "center_y": 106,
+      "coherence_decay_radius": 0,
+      "first_stable_outer_bound": 0,
+      "local_coherence_score": 0.999998897276904,
+      "local_transport_entropy": 0.0,
+      "manifold_fragmentation_count": 1,
+      "object_id": "geometry:25836914057",
+      "precision_floor": "0.003125",
+      "recommended_step_length": "0.003125",
+      "revisit_frequency_recommendation": "low",
+      "sample_count": 37,
+      "stability_confidence": 0.999998897276904,
+      "transport_divergence_score": 1.1027230959470558e-06
+    },
+    {
+      "basin_id": 4,
+      "basin_stability_class": "STABLE_COHERENT_BASIN",
+      "center_x": 152,
+      "center_y": 82,
+      "coherence_decay_radius": 0,
+      "first_stable_outer_bound": 0,
+      "local_coherence_score": 0.9999988386175979,
+      "local_transport_entropy": 0.0,
+      "manifold_fragmentation_count": 1,
+      "object_id": "geometry:25836914057",
+      "precision_floor": "0.003125",
+      "recommended_step_length": "0.003125",
+      "revisit_frequency_recommendation": "low",
+      "sample_count": 37,
+      "stability_confidence": 0.9999988386175979,
+      "transport_divergence_score": 1.1613824021372565e-06
+    },
+    {
+      "basin_id": 5,
+      "basin_stability_class": "STABLE_COHERENT_BASIN",
+      "center_x": 152,
+      "center_y": 90,
+      "coherence_decay_radius": 0,
+      "first_stable_outer_bound": 0,
+      "local_coherence_score": 0.99999877428547,
+      "local_transport_entropy": 0.0,
+      "manifold_fragmentation_count": 1,
+      "object_id": "geometry:25836914057",
+      "precision_floor": "0.003125",
+      "recommended_step_length": "0.003125",
+      "revisit_frequency_recommendation": "low",
+      "sample_count": 25,
+      "stability_confidence": 0.99999877428547,
+      "transport_divergence_score": 1.225714529984323e-06
+    },
+    {
+      "basin_id": 6,
+      "basin_stability_class": "STABLE_COHERENT_BASIN",
+      "center_x": 152,
+      "center_y": 98,
+      "coherence_decay_radius": 0,
+      "first_stable_outer_bound": 0,
+      "local_coherence_score": 0.9999987738406192,
+      "local_transport_entropy": 0.0,
+      "manifold_fragmentation_count": 1,
+      "object_id": "geometry:25836914057",
+      "precision_floor": "0.003125",
+      "recommended_step_length": "0.003125",
+      "revisit_frequency_recommendation": "low",
+      "sample_count": 37,
+      "stability_confidence": 0.9999987738406192,
+      "transport_divergence_score": 1.226159380807168e-06
+    },
+    {
+      "basin_id": 7,
+      "basin_stability_class": "STABLE_COHERENT_BASIN",
+      "center_x": 160,
+      "center_y": 74,
+      "coherence_decay_radius": 0,
+      "first_stable_outer_bound": 0,
+      "local_coherence_score": 0.9999990069838007,
+      "local_transport_entropy": 0.0,
+      "manifold_fragmentation_count": 1,
+      "object_id": "geometry:25836914057",
+      "precision_floor": "0.003125",
+      "recommended_step_length": "0.003125",
+      "revisit_frequency_recommendation": "low",
+      "sample_count": 25,
+      "stability_confidence": 0.9999990069838007,
+      "transport_divergence_score": 9.930161992688369e-07
+    },
+    {
+      "basin_id": 8,
+      "basin_stability_class": "STABLE_COHERENT_BASIN",
+      "center_x": 160,
+      "center_y": 106,
+      "coherence_decay_radius": 0,
+      "first_stable_outer_bound": 0,
+      "local_coherence_score": 0.9999990036065952,
+      "local_transport_entropy": 0.0,
+      "manifold_fragmentation_count": 1,
+      "object_id": "geometry:25836914057",
+      "precision_floor": "0.003125",
+      "recommended_step_length": "0.003125",
+      "revisit_frequency_recommendation": "low",
+      "sample_count": 25,
+      "stability_confidence": 0.9999990036065952,
+      "transport_divergence_score": 9.963934047840795e-07
+    }
+  ],
+  "unstable_seam_count": 0,
+  "unstable_seams": []
+}

@@ -1,0 +1,67 @@
+[
+  {
+    "budget_exhausted_pixels": 0,
+    "cell": "A0_straight_baseline",
+    "closure_rate": 0.16,
+    "hit_pixels": 2304,
+    "max_steps_per_pixel": 500.0,
+    "max_steps_reached_pixels": 0,
+    "mean_steps_per_pixel": 58.88444444444445,
+    "miss_pixels": 12096,
+    "reason": "strict_v1_gate_failed",
+    "total_pixels": 14400,
+    "verdict": "FAIL"
+  },
+  {
+    "budget_exhausted_pixels": 0,
+    "cell": "A1_no_cloud_reference",
+    "closure_rate": 0.15777777777777777,
+    "hit_pixels": 2272,
+    "max_steps_per_pixel": 500.0,
+    "max_steps_reached_pixels": 0,
+    "mean_steps_per_pixel": 58.01555555555556,
+    "miss_pixels": 12128,
+    "reason": "strict_v1_gate_failed",
+    "total_pixels": 14400,
+    "verdict": "FAIL"
+  },
+  {
+    "budget_exhausted_pixels": 0,
+    "cell": "A2_static_hydrogen",
+    "closure_rate": 0.14222222222222222,
+    "hit_pixels": 2048,
+    "max_steps_per_pixel": 500.0,
+    "max_steps_reached_pixels": 0,
+    "mean_steps_per_pixel": 51.095555555555556,
+    "miss_pixels": 12352,
+    "reason": "strict_v1_gate_failed",
+    "total_pixels": 14400,
+    "verdict": "FAIL"
+  },
+  {
+    "budget_exhausted_pixels": 0,
+    "cell": "A3_clocked_hydrogen_tick0",
+    "closure_rate": 0.14,
+    "hit_pixels": 2016,
+    "max_steps_per_pixel": 500.0,
+    "max_steps_reached_pixels": 0,
+    "mean_steps_per_pixel": 50.43555555555555,
+    "miss_pixels": 12384,
+    "reason": "clocked_requires_classification",
+    "total_pixels": 14400,
+    "verdict": "REPORT"
+  },
+  {
+    "budget_exhausted_pixels": 0,
+    "cell": "A3_clocked_hydrogen_tick1",
+    "closure_rate": 0.14444444444444443,
+    "hit_pixels": 2080,
+    "max_steps_per_pixel": 500.0,
+    "max_steps_reached_pixels": 0,
+    "mean_steps_per_pixel": 51.84222222222222,
+    "miss_pixels": 12320,
+    "reason": "clocked_requires_classification",
+    "total_pixels": 14400,
+    "verdict": "REPORT"
+  }
+]

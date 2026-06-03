@@ -1,0 +1,263 @@
+{
+  "high_discontinuity_vectors": 983,
+  "high_threshold": 1.0,
+  "manual_roi_overlap_count": 85,
+  "max_discontinuity_score": 3.0,
+  "mean_discontinuity_score": 2.974562,
+  "missing_optional_fields": [
+    "portal_event_count"
+  ],
+  "shape_region_correlations": [
+    {
+      "boundary_aligns_with_high_vector_density": false,
+      "boundary_flip_count": 3,
+      "collider_id": 26206012821,
+      "max_discontinuity_score": 2.008313,
+      "mean_discontinuity_score": 2.006201,
+      "region_id": 0
+    },
+    {
+      "boundary_aligns_with_high_vector_density": false,
+      "boundary_flip_count": 6,
+      "collider_id": 26105349517,
+      "max_discontinuity_score": 2.008313,
+      "mean_discontinuity_score": 2.006201,
+      "region_id": 1
+    },
+    {
+      "boundary_aligns_with_high_vector_density": false,
+      "boundary_flip_count": 3,
+      "collider_id": 26256344472,
+      "max_discontinuity_score": 2.008313,
+      "mean_discontinuity_score": 2.006201,
+      "region_id": 2
+    },
+    {
+      "boundary_aligns_with_high_vector_density": true,
+      "boundary_flip_count": 54,
+      "collider_id": 26206012821,
+      "max_discontinuity_score": 3.0,
+      "mean_discontinuity_score": 2.944726,
+      "region_id": 3
+    },
+    {
+      "boundary_aligns_with_high_vector_density": true,
+      "boundary_flip_count": 223,
+      "collider_id": 26105349517,
+      "max_discontinuity_score": 3.0,
+      "mean_discontinuity_score": 2.977201,
+      "region_id": 4
+    },
+    {
+      "boundary_aligns_with_high_vector_density": true,
+      "boundary_flip_count": 53,
+      "collider_id": 26256344472,
+      "max_discontinuity_score": 3.0,
+      "mean_discontinuity_score": 2.962417,
+      "region_id": 5
+    },
+    {
+      "boundary_aligns_with_high_vector_density": true,
+      "boundary_flip_count": 56,
+      "collider_id": 26206012821,
+      "max_discontinuity_score": 3.0,
+      "mean_discontinuity_score": 2.929194,
+      "region_id": 6
+    },
+    {
+      "boundary_aligns_with_high_vector_density": true,
+      "boundary_flip_count": 225,
+      "collider_id": 26105349517,
+      "max_discontinuity_score": 3.0,
+      "mean_discontinuity_score": 2.966274,
+      "region_id": 7
+    },
+    {
+      "boundary_aligns_with_high_vector_density": true,
+      "boundary_flip_count": 55,
+      "collider_id": 26256344472,
+      "max_discontinuity_score": 3.0,
+      "mean_discontinuity_score": 2.945929,
+      "region_id": 8
+    },
+    {
+      "boundary_aligns_with_high_vector_density": true,
+      "boundary_flip_count": 55,
+      "collider_id": 26206012821,
+      "max_discontinuity_score": 3.0,
+      "mean_discontinuity_score": 2.945594,
+      "region_id": 9
+    },
+    {
+      "boundary_aligns_with_high_vector_density": true,
+      "boundary_flip_count": 221,
+      "collider_id": 26105349517,
+      "max_discontinuity_score": 3.0,
+      "mean_discontinuity_score": 2.971178,
+      "region_id": 10
+    },
+    {
+      "boundary_aligns_with_high_vector_density": true,
+      "boundary_flip_count": 54,
+      "collider_id": 26256344472,
+      "max_discontinuity_score": 3.0,
+      "mean_discontinuity_score": 2.963096,
+      "region_id": 11
+    }
+  ],
+  "threshold": 0.2,
+  "top_10_discontinuity_locations": [
+    {
+      "boundary_event_delta": 0,
+      "collider_change": 1,
+      "domain_change": 0,
+      "hit_distance_delta": 5.557212,
+      "hit_normal_angle_delta": 0.0,
+      "neighbor_x": 0,
+      "neighbor_y": 23,
+      "ownership_flip_score": 1.0,
+      "path_length_delta": 0.0,
+      "step_count_delta": 700.0,
+      "total_transport_discontinuity_score": 3.0,
+      "x": 0,
+      "y": 22
+    },
+    {
+      "boundary_event_delta": 0,
+      "collider_change": 1,
+      "domain_change": 0,
+      "hit_distance_delta": 5.570318,
+      "hit_normal_angle_delta": 0.0,
+      "neighbor_x": 1,
+      "neighbor_y": 23,
+      "ownership_flip_score": 1.0,
+      "path_length_delta": 0.0,
+      "step_count_delta": 700.0,
+      "total_transport_discontinuity_score": 3.0,
+      "x": 1,
+      "y": 22
+    },
+    {
+      "boundary_event_delta": 0,
+      "collider_change": 1,
+      "domain_change": 0,
+      "hit_distance_delta": 5.583654,
+      "hit_normal_angle_delta": 0.0,
+      "neighbor_x": 2,
+      "neighbor_y": 23,
+      "ownership_flip_score": 1.0,
+      "path_length_delta": 0.0,
+      "step_count_delta": 700.0,
+      "total_transport_discontinuity_score": 3.0,
+      "x": 2,
+      "y": 22
+    },
+    {
+      "boundary_event_delta": 0,
+      "collider_change": 1,
+      "domain_change": 0,
+      "hit_distance_delta": 5.597203,
+      "hit_normal_angle_delta": 0.0,
+      "neighbor_x": 3,
+      "neighbor_y": 23,
+      "ownership_flip_score": 1.0,
+      "path_length_delta": 0.0,
+      "step_count_delta": 700.0,
+      "total_transport_discontinuity_score": 3.0,
+      "x": 3,
+      "y": 22
+    },
+    {
+      "boundary_event_delta": 0,
+      "collider_change": 1,
+      "domain_change": 0,
+      "hit_distance_delta": 5.610991,
+      "hit_normal_angle_delta": 0.0,
+      "neighbor_x": 4,
+      "neighbor_y": 23,
+      "ownership_flip_score": 1.0,
+      "path_length_delta": 0.0,
+      "step_count_delta": 700.0,
+      "total_transport_discontinuity_score": 3.0,
+      "x": 4,
+      "y": 22
+    },
+    {
+      "boundary_event_delta": 0,
+      "collider_change": 1,
+      "domain_change": 0,
+      "hit_distance_delta": 5.624986,
+      "hit_normal_angle_delta": 0.0,
+      "neighbor_x": 5,
+      "neighbor_y": 23,
+      "ownership_flip_score": 1.0,
+      "path_length_delta": 0.0,
+      "step_count_delta": 700.0,
+      "total_transport_discontinuity_score": 3.0,
+      "x": 5,
+      "y": 22
+    },
+    {
+      "boundary_event_delta": 0,
+      "collider_change": 1,
+      "domain_change": 0,
+      "hit_distance_delta": 5.639237,
+      "hit_normal_angle_delta": 0.0,
+      "neighbor_x": 6,
+      "neighbor_y": 23,
+      "ownership_flip_score": 1.0,
+      "path_length_delta": 0.0,
+      "step_count_delta": 700.0,
+      "total_transport_discontinuity_score": 3.0,
+      "x": 6,
+      "y": 22
+    },
+    {
+      "boundary_event_delta": 0,
+      "collider_change": 1,
+      "domain_change": 0,
+      "hit_distance_delta": 5.653746,
+      "hit_normal_angle_delta": 0.0,
+      "neighbor_x": 7,
+      "neighbor_y": 23,
+      "ownership_flip_score": 1.0,
+      "path_length_delta": 0.0,
+      "step_count_delta": 700.0,
+      "total_transport_discontinuity_score": 3.0,
+      "x": 7,
+      "y": 22
+    },
+    {
+      "boundary_event_delta": 0,
+      "collider_change": 1,
+      "domain_change": 0,
+      "hit_distance_delta": 5.66849,
+      "hit_normal_angle_delta": 0.0,
+      "neighbor_x": 8,
+      "neighbor_y": 23,
+      "ownership_flip_score": 1.0,
+      "path_length_delta": 0.0,
+      "step_count_delta": 700.0,
+      "total_transport_discontinuity_score": 3.0,
+      "x": 8,
+      "y": 22
+    },
+    {
+      "boundary_event_delta": 0,
+      "collider_change": 1,
+      "domain_change": 0,
+      "hit_distance_delta": 5.683475,
+      "hit_normal_angle_delta": 0.0,
+      "neighbor_x": 9,
+      "neighbor_y": 23,
+      "ownership_flip_score": 1.0,
+      "path_length_delta": 0.0,
+      "step_count_delta": 700.0,
+      "total_transport_discontinuity_score": 3.0,
+      "x": 9,
+      "y": 22
+    }
+  ],
+  "total_vectors": 983,
+  "transport_shape_region_overlap_count": 983
+}

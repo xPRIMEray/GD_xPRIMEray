@@ -1,0 +1,29 @@
+{
+  "bounds": {
+    "axis_max": 2.465409,
+    "axis_min": -2.496187,
+    "z_max": 0.60675,
+    "z_min": -4.65175
+  },
+  "camera_metadata": "",
+  "camera_metadata_note": "no camera metadata supplied; camera origin assumed at inset origin",
+  "camera_metadata_used": false,
+  "draw_frustum": true,
+  "draw_hit_normals": true,
+  "hit_counts": {
+    "horizontal": 0,
+    "vertical": 32
+  },
+  "hit_csv": "output/reference_transport_oracle_unresolved_island/20260506T035920Z/cells/unresolved_island/domain_resolver_stress__reference_transport_oracle_unresolved_island_unresolved_island__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+  "image": "output/reference_transport_oracle_unresolved_island/20260506T035920Z/cells/unresolved_island/domain_resolver_stress__reference_transport_oracle_unresolved_island_unresolved_island__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+  "minimap_position": "top-right",
+  "minimap_size": 220,
+  "post_process_only": true,
+  "roi_bbox": "",
+  "sample_counts": {
+    "horizontal": 80,
+    "vertical": 45
+  },
+  "sample_stride": 4,
+  "slice_mode": "both"
+}

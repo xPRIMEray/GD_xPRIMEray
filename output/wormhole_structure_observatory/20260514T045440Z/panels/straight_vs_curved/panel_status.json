@@ -1,0 +1,11 @@
+{
+  "panel_id": "straight_vs_curved",
+  "title": "Straight reference vs curved transport",
+  "status": "ok",
+  "exit_code": 0,
+  "duration_seconds": 37.0,
+  "timed_out": false,
+  "image": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045440Z/panels/straight_vs_curved/straight_vs_curved_composed.png",
+  "log": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T045440Z/logs/straight_vs_curved.log",
+  "notes": "capture_found"
+}

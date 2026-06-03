@@ -1,0 +1,542 @@
+{
+  "folder": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T033059Z/curved/oracle",
+  "hit_csv": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T033059Z/curved/oracle/curved_minimal_backdrop__curved_reference_transport_oracle__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+  "image": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T033059Z/curved/oracle/curved_minimal_backdrop__curved_reference_transport_oracle__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+  "merge_split_assessment": "No merge/split rows were present in this graph packet.",
+  "merge_split_row_count": 0,
+  "node_coherence": [
+    {
+      "coherence_label": "incoherent",
+      "hit_sample_count": 1920,
+      "max_normal_angle_from_mean_deg": 127.800797,
+      "mean_normal_angle_from_mean_deg": 31.102218,
+      "node_id": "0"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 82,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "1"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 80,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "2"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 80,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "3"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 85,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "4"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 117,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "5"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 114,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "6"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 48,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "7"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 25,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "8"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 34,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "9"
+    },
+    {
+      "coherence_label": "mixed",
+      "hit_sample_count": 38,
+      "max_normal_angle_from_mean_deg": 35.877522,
+      "mean_normal_angle_from_mean_deg": 15.300613,
+      "node_id": "10"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 29,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "11"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 26,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "12"
+    },
+    {
+      "coherence_label": "incoherent",
+      "hit_sample_count": 64,
+      "max_normal_angle_from_mean_deg": 61.678946,
+      "mean_normal_angle_from_mean_deg": 24.321152,
+      "node_id": "13"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 21,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "14"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 21,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "15"
+    },
+    {
+      "coherence_label": "incoherent",
+      "hit_sample_count": 78,
+      "max_normal_angle_from_mean_deg": 67.931651,
+      "mean_normal_angle_from_mean_deg": 28.857439,
+      "node_id": "16"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 16,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "17"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 16,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "18"
+    },
+    {
+      "coherence_label": "incoherent",
+      "hit_sample_count": 90,
+      "max_normal_angle_from_mean_deg": 96.278653,
+      "mean_normal_angle_from_mean_deg": 34.117387,
+      "node_id": "19"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 16,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "20"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 12,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "21"
+    },
+    {
+      "coherence_label": "incoherent",
+      "hit_sample_count": 96,
+      "max_normal_angle_from_mean_deg": 98.795463,
+      "mean_normal_angle_from_mean_deg": 35.968459,
+      "node_id": "22"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 12,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "23"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 3,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "24"
+    },
+    {
+      "coherence_label": "incoherent",
+      "hit_sample_count": 100,
+      "max_normal_angle_from_mean_deg": 108.686074,
+      "mean_normal_angle_from_mean_deg": 37.580381,
+      "node_id": "25"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 3,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "26"
+    },
+    {
+      "coherence_label": "incoherent",
+      "hit_sample_count": 100,
+      "max_normal_angle_from_mean_deg": 103.069795,
+      "mean_normal_angle_from_mean_deg": 37.165161,
+      "node_id": "27"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 2,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "28"
+    },
+    {
+      "coherence_label": "incoherent",
+      "hit_sample_count": 98,
+      "max_normal_angle_from_mean_deg": 116.962136,
+      "mean_normal_angle_from_mean_deg": 36.92489,
+      "node_id": "29"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 2,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "30"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 3,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "31"
+    },
+    {
+      "coherence_label": "incoherent",
+      "hit_sample_count": 92,
+      "max_normal_angle_from_mean_deg": 87.926041,
+      "mean_normal_angle_from_mean_deg": 34.26656,
+      "node_id": "32"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 3,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "33"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 4,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "34"
+    },
+    {
+      "coherence_label": "incoherent",
+      "hit_sample_count": 86,
+      "max_normal_angle_from_mean_deg": 89.268636,
+      "mean_normal_angle_from_mean_deg": 33.082431,
+      "node_id": "35"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 4,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "36"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 7,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "37"
+    },
+    {
+      "coherence_label": "incoherent",
+      "hit_sample_count": 74,
+      "max_normal_angle_from_mean_deg": 69.154725,
+      "mean_normal_angle_from_mean_deg": 28.688781,
+      "node_id": "38"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 7,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "39"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 9,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "40"
+    },
+    {
+      "coherence_label": "incoherent",
+      "hit_sample_count": 54,
+      "max_normal_angle_from_mean_deg": 46.565532,
+      "mean_normal_angle_from_mean_deg": 20.939395,
+      "node_id": "41"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 9,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "42"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 14,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "43"
+    },
+    {
+      "coherence_label": "mixed",
+      "hit_sample_count": 10,
+      "max_normal_angle_from_mean_deg": 12.773562,
+      "mean_normal_angle_from_mean_deg": 7.364899,
+      "node_id": "44"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 14,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "45"
+    },
+    {
+      "coherence_label": "coherent",
+      "hit_sample_count": 22,
+      "max_normal_angle_from_mean_deg": 0.0,
+      "mean_normal_angle_from_mean_deg": 0.0,
+      "node_id": "46"
+    }
+  ],
+  "notes": [],
+  "outputs": {
+    "full_frame_hit_normals": "full_frame_hit_normals.png",
+    "unstable_subgraph_hit_normals": "unstable_subgraph_hit_normals.png"
+  },
+  "overlay_summaries": {
+    "full_frame": {
+      "camera_facing_or_projection_degenerate_count": 0,
+      "compare_csv": "",
+      "compare_sample_count": 0,
+      "flip_y": true,
+      "hit_count": 70,
+      "hit_csv": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T033059Z/curved/oracle/curved_minimal_backdrop__curved_reference_transport_oracle__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+      "hit_normal_x_stats": {
+        "max": 0.997,
+        "mean": -0.0,
+        "min": -0.997
+      },
+      "hit_normal_y_stats": {
+        "max": 0.99117,
+        "mean": 0.110511,
+        "min": -0.984952
+      },
+      "hit_normal_z_stats": {
+        "max": 1.0,
+        "mean": 0.755328,
+        "min": -0.707306
+      },
+      "hit_projected_xy_magnitude_histogram": {
+        ">1.0": 0,
+        "[0,1e-6)": 0,
+        "[0.5,1.0]": 1812,
+        "[1e-1,0.5)": 108,
+        "[1e-2,1e-1)": 0,
+        "[1e-3,1e-2)": 0,
+        "[1e-4,1e-3)": 0,
+        "[1e-6,1e-4)": 0
+      },
+      "hit_rows_with_valid_normal_xyz": 1920,
+      "image": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T033059Z/curved/oracle/curved_minimal_backdrop__curved_reference_transport_oracle__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+      "max_compare_normal_angle_delta_deg": 0.0,
+      "mean_compare_normal_angle_delta_deg": "",
+      "min_projected_magnitude": 1e-06,
+      "mode": "fixed",
+      "no_hit_count": 850,
+      "normal_field_names_found": [
+        "normal_x",
+        "normal_y",
+        "normal_z",
+        "first_accepted_normal_x",
+        "first_accepted_normal_y",
+        "first_accepted_normal_z"
+      ],
+      "normal_x_stats": {
+        "max": 0.997,
+        "mean": -0.0,
+        "min": -0.997
+      },
+      "normal_y_stats": {
+        "max": 0.99117,
+        "mean": 0.003684,
+        "min": -0.984952
+      },
+      "normal_z_stats": {
+        "max": 1.0,
+        "mean": 0.025178,
+        "min": -0.707306
+      },
+      "post_process_only": true,
+      "projected_xy_magnitude_histogram": {
+        ">1.0": 0,
+        "[0,1e-6)": 55680,
+        "[0.5,1.0]": 1812,
+        "[1e-1,0.5)": 108,
+        "[1e-2,1e-1)": 0,
+        "[1e-3,1e-2)": 0,
+        "[1e-4,1e-3)": 0,
+        "[1e-6,1e-4)": 0
+      },
+      "projection": "xz",
+      "projection_degenerate_normal_count": 0,
+      "roi_bbox": "",
+      "rows_with_valid_normal_xyz": 57600,
+      "sample_count": 920,
+      "sampled_hit_pixels_marked": 70,
+      "sampled_hit_rows_with_valid_normal_xyz": 70,
+      "sampled_projected_xy_magnitude_histogram": {
+        ">1.0": 0,
+        "[0,1e-6)": 0,
+        "[0.5,1.0]": 66,
+        "[1e-1,0.5)": 4,
+        "[1e-2,1e-1)": 0,
+        "[1e-3,1e-2)": 0,
+        "[1e-4,1e-3)": 0,
+        "[1e-6,1e-4)": 0
+      },
+      "scale": 12.0,
+      "stride": 8,
+      "vectors_drawn": 70
+    },
+    "unstable": {
+      "camera_facing_or_projection_degenerate_count": 0,
+      "compare_csv": "",
+      "compare_sample_count": 0,
+      "flip_y": true,
+      "hit_count": 300,
+      "hit_csv": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T033059Z/curved/oracle/curved_minimal_backdrop__curved_reference_transport_oracle__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+      "hit_normal_x_stats": {
+        "max": 0.997,
+        "mean": -0.0,
+        "min": -0.997
+      },
+      "hit_normal_y_stats": {
+        "max": 0.99117,
+        "mean": 0.110511,
+        "min": -0.984952
+      },
+      "hit_normal_z_stats": {
+        "max": 1.0,
+        "mean": 0.755328,
+        "min": -0.707306
+      },
+      "hit_projected_xy_magnitude_histogram": {
+        ">1.0": 0,
+        "[0,1e-6)": 0,
+        "[0.5,1.0]": 1812,
+        "[1e-1,0.5)": 108,
+        "[1e-2,1e-1)": 0,
+        "[1e-3,1e-2)": 0,
+        "[1e-4,1e-3)": 0,
+        "[1e-6,1e-4)": 0
+      },
+      "hit_rows_with_valid_normal_xyz": 1920,
+      "image": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T033059Z/curved/oracle/curved_minimal_backdrop__curved_reference_transport_oracle__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+      "max_compare_normal_angle_delta_deg": 0.0,
+      "mean_compare_normal_angle_delta_deg": "",
+      "min_projected_magnitude": 1e-06,
+      "mode": "fixed",
+      "no_hit_count": 3300,
+      "normal_field_names_found": [
+        "normal_x",
+        "normal_y",
+        "normal_z",
+        "first_accepted_normal_x",
+        "first_accepted_normal_y",
+        "first_accepted_normal_z"
+      ],
+      "normal_x_stats": {
+        "max": 0.997,
+        "mean": -0.0,
+        "min": -0.997
+      },
+      "normal_y_stats": {
+        "max": 0.99117,
+        "mean": 0.003684,
+        "min": -0.984952
+      },
+      "normal_z_stats": {
+        "max": 1.0,
+        "mean": 0.025178,
+        "min": -0.707306
+      },
+      "post_process_only": true,
+      "projected_xy_magnitude_histogram": {
+        ">1.0": 0,
+        "[0,1e-6)": 55680,
+        "[0.5,1.0]": 1812,
+        "[1e-1,0.5)": 108,
+        "[1e-2,1e-1)": 0,
+        "[1e-3,1e-2)": 0,
+        "[1e-4,1e-3)": 0,
+        "[1e-6,1e-4)": 0
+      },
+      "projection": "xz",
+      "projection_degenerate_normal_count": 0,
+      "roi_bbox": "",
+      "rows_with_valid_normal_xyz": 57600,
+      "sample_count": 3600,
+      "sampled_hit_pixels_marked": 300,
+      "sampled_hit_rows_with_valid_normal_xyz": 300,
+      "sampled_projected_xy_magnitude_histogram": {
+        ">1.0": 0,
+        "[0,1e-6)": 0,
+        "[0.5,1.0]": 284,
+        "[1e-1,0.5)": 16,
+        "[1e-2,1e-1)": 0,
+        "[1e-3,1e-2)": 0,
+        "[1e-4,1e-3)": 0,
+        "[1e-6,1e-4)": 0
+      },
+      "scale": 12.0,
+      "stride": 4,
+      "vectors_drawn": 300
+    }
+  },
+  "post_process_only": true,
+  "seam_alignment": {
+    "assessment": "No strong seam/normal-discontinuity alignment was measured.",
+    "edge_count": 46,
+    "edges_with_normal_delta": 46,
+    "max_normal_angle_delta": 0.0
+  },
+  "unstable_assessment": "No unstable subgraph rows were present; no abnormal island normal behavior can be assessed.",
+  "unstable_row_count": 0
+}

@@ -61,6 +61,8 @@ public partial class BoundaryLayerVolume : Node3D
 	/// <summary>
 	/// Behavior applied to rays that interact with this volume.
 	/// The execution timing (continuous vs. crossing) is set by ExecutionMode.
+	/// Phase 1 Material extension adds discrete optical interface behaviors for crisp mirrors
+	/// and smooth refraction while preserving GRIN curvature integration.
 	/// </summary>
 	public enum BoundaryBehavior
 	{
@@ -76,7 +78,21 @@ public partial class BoundaryLayerVolume : Node3D
 		/// Intended for portal/wormhole topology changes where the shell is the
 		/// topological boundary and any surrounding GRIN field remains separate.
 		/// </summary>
-		SceneTransform = 1
+		SceneTransform = 1,
+
+		// === Phase 1 Material System (smallest viable for Recursive Mirror Ghost Portal) ===
+		/// <summary>
+		/// Perfect mirror reflection at crossing (or continuous for thin shells).
+		/// Uses the volume's local "up" or computed normal from shape/position for crisp edges.
+		/// Focus: clean recursion without energy loss or banding at geometry.
+		/// </summary>
+		PerfectMirrorReflection = 2,
+		/// <summary>
+		/// Basic dielectric refraction using Snell's law at the interface.
+		/// Uses IOR (inside vs outside=1.0 air). Direction change applied at crossing.
+		/// Pairs with GRIN fields for smooth optical curvature inside the volume.
+		/// </summary>
+		DielectricRefraction = 3
 	}
 
 	[ExportGroup("Boundary Layer Volume")]
@@ -97,6 +113,15 @@ public partial class BoundaryLayerVolume : Node3D
 	[Export] public BoundaryExecutionMode ExecutionMode = BoundaryExecutionMode.Continuous;
 	/// <summary>Which behavior to apply when the execution condition is met.</summary>
 	[Export] public BoundaryBehavior Behavior = BoundaryBehavior.DirectionBias;
+
+	// === Phase 1 Material Properties (for MaterialPropertiesSOA / interface optics) ===
+	[ExportSubgroup("Material (Phase 1)")]
+	/// <summary>Index of refraction inside the volume (outside assumed 1.0 for air/vacuum). Used for DielectricRefraction.</summary>
+	[Export(PropertyHint.Range, "0.1,5,0.01")] public float IOR = 1.5f;
+	/// <summary>Reflectivity for mirror-like behavior (0..1). For PerfectMirrorReflection use 1.0.</summary>
+	[Export(PropertyHint.Range, "0,1,0.01")] public float Reflectivity = 1.0f;
+	/// <summary>Optional tint for reflected/refracted contribution (debug/visual only in Phase 1).</summary>
+	[Export] public Color MaterialTint = Colors.White;
 	/// <summary>
 	/// Which crossing direction(s) trigger dispatch. Only used when ExecutionMode is CrossingEvent.
 	/// Default EntryOnly preserves legacy behavior. Start-inside rays never synthesize entry.

@@ -1,0 +1,117 @@
+{
+  "folder": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_grin_ladder/20260511T004944Z/cells/A0_straight_baseline",
+  "hit_csv": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_grin_ladder/20260511T004944Z/cells/A0_straight_baseline/atomic_orbital_grin_room__a0_straight_baseline__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+  "image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_grin_ladder/20260511T004944Z/cells/A0_straight_baseline/atomic_orbital_grin_room__a0_straight_baseline__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+  "merge_split_assessment": "No merge/split rows were present in this graph packet.",
+  "merge_split_row_count": 0,
+  "node_coherence": [],
+  "notes": [],
+  "outputs": {
+    "full_frame_hit_normals": "full_frame_hit_normals.png"
+  },
+  "overlay_summaries": {
+    "full_frame": {
+      "camera_facing_or_projection_degenerate_count": 12,
+      "compare_csv": "",
+      "compare_sample_count": 0,
+      "flip_y": true,
+      "hit_count": 15,
+      "hit_csv": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_grin_ladder/20260511T004944Z/cells/A0_straight_baseline/atomic_orbital_grin_room__a0_straight_baseline__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+      "hit_normal_x_stats": {
+        "max": 1.0,
+        "mean": 0.0,
+        "min": -1.0
+      },
+      "hit_normal_y_stats": {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0
+      },
+      "hit_normal_z_stats": {
+        "max": 1.0,
+        "mean": 0.658696,
+        "min": 0.0
+      },
+      "hit_projected_xy_magnitude_histogram": {
+        ">1.0": 0,
+        "[0,1e-6)": 606,
+        "[0.5,1.0]": 314,
+        "[1e-1,0.5)": 0,
+        "[1e-2,1e-1)": 0,
+        "[1e-3,1e-2)": 0,
+        "[1e-4,1e-3)": 0,
+        "[1e-6,1e-4)": 0
+      },
+      "hit_rows_with_valid_normal_xyz": 920,
+      "image": "/home/bb/code/godot_xPRIMEray/output/atomic_orbital_grin_ladder/20260511T004944Z/cells/A0_straight_baseline/atomic_orbital_grin_room__a0_straight_baseline__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+      "max_compare_normal_angle_delta_deg": 0.0,
+      "mean_compare_normal_angle_delta_deg": "",
+      "min_projected_magnitude": 1e-06,
+      "mode": "fixed",
+      "no_hit_count": 0,
+      "normal_field_names_found": [
+        "normal_x",
+        "normal_y",
+        "normal_z",
+        "first_accepted_normal_x",
+        "first_accepted_normal_y",
+        "first_accepted_normal_z"
+      ],
+      "normal_x_stats": {
+        "max": 1.0,
+        "mean": 0.0,
+        "min": -1.0
+      },
+      "normal_y_stats": {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0
+      },
+      "normal_z_stats": {
+        "max": 1.0,
+        "mean": 0.658696,
+        "min": 0.0
+      },
+      "post_process_only": true,
+      "projected_xy_magnitude_histogram": {
+        ">1.0": 0,
+        "[0,1e-6)": 606,
+        "[0.5,1.0]": 314,
+        "[1e-1,0.5)": 0,
+        "[1e-2,1e-1)": 0,
+        "[1e-3,1e-2)": 0,
+        "[1e-4,1e-3)": 0,
+        "[1e-6,1e-4)": 0
+      },
+      "projection": "xy",
+      "projection_degenerate_normal_count": 12,
+      "roi_bbox": "",
+      "rows_with_valid_normal_xyz": 920,
+      "sample_count": 15,
+      "sampled_hit_pixels_marked": 15,
+      "sampled_hit_rows_with_valid_normal_xyz": 15,
+      "sampled_projected_xy_magnitude_histogram": {
+        ">1.0": 0,
+        "[0,1e-6)": 12,
+        "[0.5,1.0]": 3,
+        "[1e-1,0.5)": 0,
+        "[1e-2,1e-1)": 0,
+        "[1e-3,1e-2)": 0,
+        "[1e-4,1e-3)": 0,
+        "[1e-6,1e-4)": 0
+      },
+      "scale": 12.0,
+      "stride": 8,
+      "vectors_drawn": 3
+    }
+  },
+  "post_process_only": true,
+  "seam_alignment": {
+    "assessment": "No graph seam edges were present in this graph packet.",
+    "edge_count": 0,
+    "edges_with_normal_delta": 0,
+    "max_normal_angle_delta": ""
+  },
+  "unstable_assessment": "No unstable subgraph rows were present; no abnormal island normal behavior can be assessed.",
+  "unstable_row_count": 0
+}

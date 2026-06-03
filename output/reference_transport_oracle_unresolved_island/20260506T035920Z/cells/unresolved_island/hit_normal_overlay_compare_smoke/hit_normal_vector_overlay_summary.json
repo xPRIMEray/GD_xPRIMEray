@@ -1,0 +1,22 @@
+{
+  "compare_csv": "output/reference_transport_oracle_unresolved_island/20260506T034644Z/cells/unresolved_island/domain_resolver_stress__reference_transport_oracle_unresolved_island_unresolved_island__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+  "compare_sample_count": 0,
+  "hit_count": 0,
+  "hit_csv": "output/reference_transport_oracle_unresolved_island/20260506T035920Z/cells/unresolved_island/domain_resolver_stress__reference_transport_oracle_unresolved_island_unresolved_island__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+  "image": "output/reference_transport_oracle_unresolved_island/20260506T035920Z/cells/unresolved_island/domain_resolver_stress__reference_transport_oracle_unresolved_island_unresolved_island__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+  "max_compare_normal_angle_delta_deg": 0.0,
+  "mean_compare_normal_angle_delta_deg": "",
+  "mode": "fixed",
+  "no_hit_count": 20,
+  "post_process_only": true,
+  "roi_bbox": [
+    32,
+    27,
+    48,
+    43
+  ],
+  "sample_count": 20,
+  "scale": 12.0,
+  "stride": 4,
+  "zero_projected_normal_count": 0
+}

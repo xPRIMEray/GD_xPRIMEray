@@ -1,0 +1,1 @@
+cd '/home/bb/code/godot_xPRIMEray' && ORACLE_ISLAND_DEEP='1' ORACLE_ISLAND_ROOT='/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260514T030449Z' ORACLE_ISLAND_SMOKE='0' 'bash' '/home/bb/code/godot_xPRIMEray/scripts/run_reference_transport_oracle_unresolved_island.sh'

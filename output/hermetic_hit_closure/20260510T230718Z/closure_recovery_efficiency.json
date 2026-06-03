@@ -1,0 +1,8 @@
+{
+  "guardrail": "adaptive_closure_probe is prototype instrumentation only. It preserves baseline outputs and must not feed production scheduling, hit selection, shading, resolver decisions, traversal, or adaptive precision.",
+  "pair_count": 0,
+  "pairs": [],
+  "recovered_pixel_count": 0,
+  "recovery_budget_cost": 0,
+  "recovery_efficiency_ratio": 0
+}

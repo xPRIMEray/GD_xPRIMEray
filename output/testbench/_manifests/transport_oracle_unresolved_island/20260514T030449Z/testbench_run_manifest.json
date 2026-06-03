@@ -1,0 +1,67 @@
+{
+  "schema": "xprimeray.testbench.run_manifest.v1",
+  "recipe_id": "transport_oracle_unresolved_island",
+  "recipe_title": "Transport Oracle / Unresolved Island Probe",
+  "quality": "full",
+  "overlay": {
+    "mode": "transport_oracle_islands",
+    "placement": "contact_sheet_only",
+    "postprocess_only": true,
+    "placement_descriptive_only": true
+  },
+  "exact_command": "cd \u0027/home/bb/code/godot_xPRIMEray\u0027 \u0026\u0026 ORACLE_ISLAND_DEEP=\u00271\u0027 ORACLE_ISLAND_ROOT=\u0027/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260514T030449Z\u0027 ORACLE_ISLAND_SMOKE=\u00270\u0027 \u0027bash\u0027 \u0027/home/bb/code/godot_xPRIMEray/scripts/run_reference_transport_oracle_unresolved_island.sh\u0027",
+  "working_directory": "/home/bb/code/godot_xPRIMEray",
+  "env": {
+    "ORACLE_ISLAND_SMOKE": "0",
+    "ORACLE_ISLAND_DEEP": "1",
+    "ORACLE_ISLAND_ROOT": "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260514T030449Z"
+  },
+  "planned_output_folder": "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260514T030449Z",
+  "testbench_wrapped_output": false,
+  "source_script_artifacts_preserved": true,
+  "dry_run": true,
+  "status": "blocked_full_requires_smoke",
+  "started_utc": "20260514T030449Z",
+  "updated_utc": "2026-05-14T03:04:49Z",
+  "smoke_success_known": false,
+  "artifacts": {
+    "folder": "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260514T030449Z",
+    "expected_reports": [
+      "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260514T030449Z/unresolved_island_summary.md",
+      "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260514T030449Z/unresolved_island_root_summary.md",
+      "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260514T030449Z/reference_transport_oracle_report.md"
+    ],
+    "expected_contact_sheets": [
+      "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260514T030449Z/diagnostic_overlay_contact_sheet.png",
+      "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260514T030449Z/convergence_ladder_contact_sheet.png",
+      "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260514T030449Z/parent_trajectory_contact_sheet.png"
+    ],
+    "expected_summaries": [
+      "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260514T030449Z/unresolved_island_summary.json",
+      "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260514T030449Z/unresolved_island_root_summary.json"
+    ],
+    "expected_previews": [
+      "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260514T030449Z/island_convergence_ladder.png",
+      "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260514T030449Z/ownership_transition_map.png",
+      "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260514T030449Z/first_stable_step_map.png",
+      "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260514T030449Z/decision_risk_gradient.png",
+      "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260514T030449Z/transport_shape_regions_overlay.png"
+    ]
+  },
+  "guardrail_text": "ReferenceTransportOracle is a renderer-reference comparison, not physical ground truth. Oracle outputs must not feed rendering or resolver decisions.",
+  "visual_grammar": {
+    "straight_reference": "#d8d8d8",
+    "curved_transport": [
+      "#00d7ff",
+      "#ff4fd8"
+    ],
+    "density": "#2f7dff",
+    "curvature": "#f2c14e",
+    "unresolved_failed_transport": [
+      "#ff4b2f",
+      "#ff9a2f"
+    ],
+    "observer_camera": "small_labeled_glyph",
+    "field_center_nucleus": "crosshair"
+  }
+}

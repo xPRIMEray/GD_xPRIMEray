@@ -1,0 +1,59 @@
+{
+  "bounds": {
+    "axis_max": 3.856617,
+    "axis_min": -3.825827,
+    "z_max": 0.60675,
+    "z_min": -4.65175
+  },
+  "camera_metadata": "",
+  "camera_metadata_note": "no camera metadata supplied; camera origin assumed at inset origin",
+  "camera_metadata_used": false,
+  "draw_frustum": true,
+  "draw_hit_normals": true,
+  "hit_counts": {
+    "horizontal": 49,
+    "vertical": 32
+  },
+  "hit_csv": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T033059Z/control/steps/step_0.018/domain_resolver_stress__control_step_0p018__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+  "hit_pixel_count_for_targeting": 18959,
+  "image": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T033059Z/control/steps/step_0.018/domain_resolver_stress__control_step_0p018__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+  "include_cross_section": true,
+  "include_field_arrows": "",
+  "include_hit_normals": true,
+  "include_original": true,
+  "include_transport_graph": true,
+  "layout": "quad_panel",
+  "minimap_position": "top-right",
+  "minimap_size": 140,
+  "post_process_only": true,
+  "quad_panel": {
+    "hit_normal_panel": {
+      "hit_count": 1568,
+      "no_hit_count": 2032,
+      "projection_degenerate_count": 0,
+      "sample_stride": 4,
+      "sampled": 3600,
+      "vectors_drawn": 1568
+    },
+    "panel_size": [
+      320,
+      180
+    ],
+    "transport_panel": {
+      "mode": "ownership_or_seam_overlay",
+      "source": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T033059Z/control/steps/step_0.018/ownership_graph_seam_map.png"
+    }
+  },
+  "quad_panel_output": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T033059Z/control/steps/step_0.018/cross_section_quad_panel/diagnostic_quad_panel.png",
+  "roi_bbox": "",
+  "sample_counts": {
+    "horizontal": 80,
+    "vertical": 45
+  },
+  "sample_stride": 4,
+  "selected_col": 159,
+  "selected_row": 89,
+  "slice_mode": "both",
+  "slice_target": "hit_centroid",
+  "slice_target_note": "centroid of hit pixels within ROI/image"
+}

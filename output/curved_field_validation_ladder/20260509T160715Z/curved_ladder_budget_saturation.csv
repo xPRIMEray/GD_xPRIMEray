@@ -1,0 +1,3 @@
+role,step_length,transport_quality_phase,hit_count,unresolved_count,graph_node_count,graph_edge_count,seam_length_px_total,merge_split_count,budget_exhausted_pixel_count,budget_exhaustion_percent,step_quality_plateau_candidate
+control,0.015,budget_saturated,388,0,3,2,780,0,1248,2.166667,True
+curved,0.015,underresolved,8,0,2,1,18,0,0,0.0,False

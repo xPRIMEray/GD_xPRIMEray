@@ -1,0 +1,59 @@
+{
+  "bounds": {
+    "axis_max": 1.5,
+    "axis_min": -1.5,
+    "z_max": 4.6,
+    "z_min": -0.6
+  },
+  "camera_metadata": "",
+  "camera_metadata_note": "no camera metadata supplied; camera origin assumed at inset origin",
+  "camera_metadata_used": false,
+  "draw_frustum": true,
+  "draw_hit_normals": true,
+  "hit_counts": {
+    "horizontal": 0,
+    "vertical": 0
+  },
+  "hit_csv": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260508T124517Z/curved/oracle/curved_minimal_backdrop__curved_reference_transport_oracle__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+  "hit_pixel_count_for_targeting": 0,
+  "image": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260508T124517Z/curved/oracle/curved_minimal_backdrop__curved_reference_transport_oracle__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+  "include_cross_section": true,
+  "include_field_arrows": "",
+  "include_hit_normals": true,
+  "include_original": true,
+  "include_transport_graph": true,
+  "layout": "quad_panel",
+  "minimap_position": "top-right",
+  "minimap_size": 140,
+  "post_process_only": true,
+  "quad_panel": {
+    "hit_normal_panel": {
+      "hit_count": 0,
+      "no_hit_count": 3600,
+      "projection_degenerate_count": 0,
+      "sample_stride": 4,
+      "sampled": 3600,
+      "vectors_drawn": 0
+    },
+    "panel_size": [
+      320,
+      180
+    ],
+    "transport_panel": {
+      "mode": "ownership_or_seam_overlay",
+      "source": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260508T124517Z/curved/oracle/ownership_graph_seam_map.png"
+    }
+  },
+  "quad_panel_output": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260508T124517Z/curved/oracle/cross_section_quad_panel/diagnostic_quad_panel.png",
+  "roi_bbox": "",
+  "sample_counts": {
+    "horizontal": 80,
+    "vertical": 45
+  },
+  "sample_stride": 4,
+  "selected_col": 160,
+  "selected_row": 90,
+  "slice_mode": "both",
+  "slice_target": "hit_centroid",
+  "slice_target_note": "hit_centroid requested but no hit pixels were available; using center fallback"
+}

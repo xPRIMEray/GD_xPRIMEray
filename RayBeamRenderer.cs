@@ -719,6 +719,12 @@ public partial class RayBeamRenderer : Node3D
 		public Vector3 LinkedCenter;
 		public float LinkedRadius;
 		public float SceneTransformExitOffset;
+
+		// === Phase 1 MaterialProperties (for SOA-style access in hot integrator loop) ===
+		public float IOR;           // for DielectricRefraction
+		public float Reflectivity;  // for PerfectMirrorReflection / partial mirrors
+		public Color MaterialTint;  // visual/debug tint for contributed light
+
 		// Debug fields (captured at snapshot time; not used in hot path unless DebugLogCrossings is set):
 		public string NodeName;
 		public bool DebugLogCrossings;
@@ -4256,6 +4262,12 @@ public partial class RayBeamRenderer : Node3D
 			LinkedCenter = linkedNode?.GlobalPosition ?? Vector3.Zero,
 			LinkedRadius = linkedRadius,
 			SceneTransformExitOffset = Mathf.Max(0f, blv.SceneTransformExitOffset),
+
+			// Phase 1 Material props (smallest viable for crisp mirrors + refraction in GRIN)
+			IOR = Mathf.Max(0.1f, blv.IOR),
+			Reflectivity = Mathf.Clamp(blv.Reflectivity, 0f, 1f),
+			MaterialTint = blv.MaterialTint,
+
 			NodeName          = blv.Name,
 			DebugLogCrossings = blv.DebugLogCrossings
 		};
@@ -4282,6 +4294,31 @@ public partial class RayBeamRenderer : Node3D
 			default:
 				return false;
 		}
+	}
+
+	// === Phase 1 Material Helpers (for crisp geometry edges + smooth GRIN curvature) ===
+	private static Vector3 ComputeBoundaryNormal(Vector3 p, in BoundaryLayerSnap layer)
+	{
+		if (layer.ShapeType == BoundaryLayerVolume.BoundaryShapeType.Sphere)
+		{
+			Vector3 dir = (p - layer.Center);
+			float len = dir.Length();
+			return len > 1e-6f ? dir / len : Vector3.Up;
+		}
+		// Box: approximate with dominant local axis (crisp edges)
+		Vector3 local = layer.InvBasis * (p - layer.Center);
+		float ax = Mathf.Abs(local.X), ay = Mathf.Abs(local.Y), az = Mathf.Abs(local.Z);
+		if (ax >= ay && ax >= az) return (local.X >= 0 ? layer.WorldFromLocal.Basis.X : -layer.WorldFromLocal.Basis.X).Normalized();
+		if (ay >= az) return (local.Y >= 0 ? layer.WorldFromLocal.Basis.Y : -layer.WorldFromLocal.Basis.Y).Normalized();
+		return (local.Z >= 0 ? layer.WorldFromLocal.Basis.Z : -layer.WorldFromLocal.Basis.Z).Normalized();
+	}
+
+	private static Vector3 Refract(Vector3 incident, Vector3 normal, float eta)
+	{
+		float dot = incident.Dot(normal);
+		float k = 1f - eta * eta * (1f - dot * dot);
+		if (k < 0f) return Vector3.Zero; // total internal reflection fallback (caller can treat as reflect)
+		return eta * incident - (eta * dot + Mathf.Sqrt(k)) * normal;
 	}
 
 	// Applies all Continuous-mode boundary layer behaviors at position p and returns the
@@ -4373,6 +4410,20 @@ public partial class RayBeamRenderer : Node3D
 						RecordBoundarySceneTransformValidation();
 						causedTransform = true;
 						break;
+					case BoundaryLayerVolume.BoundaryBehavior.PerfectMirrorReflection:
+						{
+							Vector3 n = ComputeBoundaryNormal(p, in layer);
+							v = SafeNormalized(v - 2f * n * v.Dot(n), v);
+						}
+						break;
+					case BoundaryLayerVolume.BoundaryBehavior.DielectricRefraction:
+						{
+							Vector3 n = ComputeBoundaryNormal(p, in layer);
+							float n1 = 1.0f, n2 = layer.IOR;
+							v = Refract(v, n, n1 / n2);
+							if (v == Vector3.Zero) v = SafeNormalized(v - 2f * n * v.Dot(n), v); // TIR fallback
+						}
+						break;
 				}
 				RecordBoundaryValidationEvent(i, isEntry: true, isExit: false);
 				ledgerDelta.RecordEvent(i, LedgerCrossingKind.Entry, causedTransform);
@@ -4395,6 +4446,20 @@ public partial class RayBeamRenderer : Node3D
 						ApplyBoundarySceneTransform(ref p, ref v, in layer);
 						RecordBoundarySceneTransformValidation();
 						causedTransform = true;
+						break;
+					case BoundaryLayerVolume.BoundaryBehavior.PerfectMirrorReflection:
+						{
+							Vector3 n = ComputeBoundaryNormal(p, in layer);
+							v = SafeNormalized(v - 2f * n * v.Dot(n), v);
+						}
+						break;
+					case BoundaryLayerVolume.BoundaryBehavior.DielectricRefraction:
+						{
+							Vector3 n = ComputeBoundaryNormal(p, in layer);
+							float n1 = layer.IOR, n2 = 1.0f;
+							v = Refract(v, n, n1 / n2);
+							if (v == Vector3.Zero) v = SafeNormalized(v - 2f * n * v.Dot(n), v); // TIR fallback
+						}
 						break;
 				}
 				RecordBoundaryValidationEvent(i, isEntry: false, isExit: true);

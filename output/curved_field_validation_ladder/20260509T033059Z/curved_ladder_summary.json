@@ -1,0 +1,144 @@
+{
+  "beauty_hashes": {
+    "control": "55803ea5e98932bf645a554dc0834f728ab53ee0befe5579dd2f338879429ff0",
+    "curved": "7c55ab5c85bddeeb5fff43e0aefbe217dc0ff225af607815aa99c30a413a753e"
+  },
+  "comparability_status": "warning",
+  "comparability_warnings": [
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.02"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.018"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.016"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.015"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.014"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.013"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.0125"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.011"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.010"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.0075"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.00625"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.003125"
+    }
+  ],
+  "control_comparison_reason": "matched_pose requested, but no safe fixture-level curvature bypass or matched-pose flat variant is available; using configured scene-control, not matched-control",
+  "control_comparison_type": "scene_control",
+  "control_metrics": {
+    "graph_edge_count": 149,
+    "graph_node_count": 92,
+    "high_discontinuity_edge_count": 147,
+    "ladder_persistence_basis": "overlap",
+    "merge_split_count": 782,
+    "node_persistence_rate": 0.39707,
+    "seam_length_px_total": 13181,
+    "step_dir": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T033059Z/control/steps/step_0.015",
+    "unresolved_pixel_count": 0
+  },
+  "curvature_evidence": {
+    "bend_scale": 1.0,
+    "curvature_energy": 2.496387,
+    "curvature_metric_log_present": true,
+    "curved_transport_enabled": true,
+    "field_accel_sum": 2.496387,
+    "field_strength": 1.0,
+    "metric_line": "[CurvedFixture][CurvatureMetric] field_accel_sum=2.496387 curvature_energy=2.496387 max_probe_accel=0.735433 far_accel=0",
+    "nonzero_curvature_params": true,
+    "reason": "ok",
+    "resolved_line": "[CurvedFixture][Resolved] source=canonical curve=Power modeFlags=0 rInner=0 rOuter=4.5 amp=1.15 gamma=2 beta_mode=override beta_scale=1 useIntegrated=1 bendScale=1 fieldStrength=1",
+    "resolved_log_present": true,
+    "valid": true
+  },
+  "curved_metrics": {
+    "graph_edge_count": 46,
+    "graph_node_count": 47,
+    "high_discontinuity_edge_count": 46,
+    "ladder_persistence_basis": "overlap",
+    "merge_split_count": 670,
+    "node_persistence_rate": 0.291755,
+    "seam_length_px_total": 2582,
+    "step_dir": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T033059Z/curved/steps/step_0.015",
+    "unresolved_pixel_count": 0
+  },
+  "curved_validation_status": "warning",
+  "evidence_tiers": {
+    "tier_a_fixture_curvature_engaged": "pass",
+    "tier_b_renderer_diagnostics_changed": "pass",
+    "tier_c_topology_changed_across_step_ladder": "pass",
+    "tier_d_unresolved_island_sealed_or_persisted": "sealed"
+  },
+  "graph_delta_vs_control": {
+    "edge_count_delta": -103,
+    "high_discontinuity_edge_delta": -101,
+    "merge_split_delta": -112,
+    "node_count_delta": -45,
+    "seam_length_delta": -10599,
+    "unresolved_count_delta": 0
+  },
+  "guardrail": "Do not describe visible band/support artifacts as caused by curvature unless comparison metrics support that claim; use 'associated with curved transport fixture under tested settings.'",
+  "requested_control_mode": "matched_pose",
+  "study": "curved_field_validation_ladder",
+  "validation_inference": {
+    "diagnostics_changed_vs_control": true,
+    "oracle_comparison_count": 768,
+    "ownership_topology_differs_from_control": true,
+    "unresolved_island_summary_available": true
+  },
+  "visible_support_wording": "visible band/support metrics"
+}

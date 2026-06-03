@@ -1,0 +1,11 @@
+{
+  "panel_id": "clean_curved",
+  "title": "Clean curved render",
+  "status": "ok",
+  "exit_code": 0,
+  "duration_seconds": 22.0,
+  "timed_out": false,
+  "image": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T043518Z/panels/clean_curved/clean_curved_film.png",
+  "log": "/home/bb/code/godot_xPRIMEray/output/wormhole_structure_observatory/20260514T043518Z/logs/clean_curved.log",
+  "notes": "capture_found"
+}

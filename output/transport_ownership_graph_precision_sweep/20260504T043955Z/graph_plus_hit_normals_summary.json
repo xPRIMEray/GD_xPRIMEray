@@ -1,0 +1,94 @@
+{
+  "folder": "output/transport_ownership_graph_precision_sweep/20260504T043955Z",
+  "hit_csv": "output/transport_ownership_graph_precision_sweep/20260504T043955Z/cells/step_0.003125/checkerboard_stride_1/domain_resolver_stress__graph_checkerboard_stride_1__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+  "image": "output/transport_ownership_graph_precision_sweep/20260504T043955Z/cells/step_0.003125/checkerboard_stride_1/domain_resolver_stress__graph_checkerboard_stride_1__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+  "merge_split_assessment": "No merge/split rows were present in this graph packet.",
+  "merge_split_row_count": 0,
+  "node_coherence": [
+    {
+      "coherence_label": "no-hit-or-insufficient-samples",
+      "hit_sample_count": 0,
+      "max_normal_angle_from_mean_deg": "",
+      "mean_normal_angle_from_mean_deg": "",
+      "node_id": "0"
+    }
+  ],
+  "notes": [],
+  "outputs": {
+    "full_frame_hit_normals": "full_frame_hit_normals.png",
+    "roi_hit_normals": "roi_hit_normals.png",
+    "unstable_subgraph_hit_normals": "unstable_subgraph_hit_normals.png"
+  },
+  "overlay_summaries": {
+    "full_frame": {
+      "compare_csv": "",
+      "compare_sample_count": 0,
+      "hit_count": 0,
+      "hit_csv": "output/transport_ownership_graph_precision_sweep/20260504T043955Z/cells/step_0.003125/checkerboard_stride_1/domain_resolver_stress__graph_checkerboard_stride_1__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+      "image": "output/transport_ownership_graph_precision_sweep/20260504T043955Z/cells/step_0.003125/checkerboard_stride_1/domain_resolver_stress__graph_checkerboard_stride_1__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+      "max_compare_normal_angle_delta_deg": 0.0,
+      "mean_compare_normal_angle_delta_deg": "",
+      "mode": "fixed",
+      "no_hit_count": 920,
+      "post_process_only": true,
+      "roi_bbox": "",
+      "sample_count": 920,
+      "scale": 12.0,
+      "stride": 8,
+      "zero_projected_normal_count": 0
+    },
+    "roi": {
+      "compare_csv": "",
+      "compare_sample_count": 0,
+      "hit_count": 0,
+      "hit_csv": "output/transport_ownership_graph_precision_sweep/20260504T043955Z/cells/step_0.003125/checkerboard_stride_1/domain_resolver_stress__graph_checkerboard_stride_1__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+      "image": "output/transport_ownership_graph_precision_sweep/20260504T043955Z/cells/step_0.003125/checkerboard_stride_1/domain_resolver_stress__graph_checkerboard_stride_1__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+      "max_compare_normal_angle_delta_deg": 0.0,
+      "mean_compare_normal_angle_delta_deg": "",
+      "mode": "fixed",
+      "no_hit_count": 20,
+      "post_process_only": true,
+      "roi_bbox": [
+        32,
+        27,
+        48,
+        43
+      ],
+      "sample_count": 20,
+      "scale": 12.0,
+      "stride": 4,
+      "zero_projected_normal_count": 0
+    },
+    "unstable": {
+      "compare_csv": "",
+      "compare_sample_count": 0,
+      "hit_count": 0,
+      "hit_csv": "output/transport_ownership_graph_precision_sweep/20260504T043955Z/cells/step_0.003125/checkerboard_stride_1/domain_resolver_stress__graph_checkerboard_stride_1__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+      "image": "output/transport_ownership_graph_precision_sweep/20260504T043955Z/cells/step_0.003125/checkerboard_stride_1/domain_resolver_stress__graph_checkerboard_stride_1__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+      "max_compare_normal_angle_delta_deg": 0.0,
+      "mean_compare_normal_angle_delta_deg": "",
+      "mode": "fixed",
+      "no_hit_count": 25,
+      "post_process_only": true,
+      "roi_bbox": [
+        30,
+        25,
+        50,
+        45
+      ],
+      "sample_count": 25,
+      "scale": 12.0,
+      "stride": 4,
+      "zero_projected_normal_count": 0
+    }
+  },
+  "post_process_only": true,
+  "seam_alignment": {
+    "assessment": "No graph seam edges were present in this graph packet.",
+    "edge_count": 0,
+    "edges_with_normal_delta": 0,
+    "max_normal_angle_delta": ""
+  },
+  "unstable_assessment": "No unstable subgraph rows were present; no abnormal island normal behavior can be assessed.",
+  "unstable_row_count": 0
+}

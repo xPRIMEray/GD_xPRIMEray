@@ -1,0 +1,97 @@
+{
+  "analysis_label": "analysis_only_phase_coherence_guided_hit_selection_proxy",
+  "diagnostics_dir": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current",
+  "visible_mask_dir": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-22T18-12-54",
+  "outputs": {
+    "phase_coherence_map": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/phase_guided_first_hit_selection_2026-04-25/phase_coherence_map.png",
+    "phase_guided_render_preview": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/phase_guided_first_hit_selection_2026-04-25/phase_guided_render_preview.png",
+    "phase_guided_hit_selection_diff": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/phase_guided_first_hit_selection_2026-04-25/phase_guided_hit_selection_diff.png",
+    "band_reduction_estimate": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/phase_guided_first_hit_selection_2026-04-25/band_reduction_metrics.json",
+    "summary_md": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/phase_guided_first_hit_selection_2026-04-25/phase_guided_hit_selection_summary.md"
+  },
+  "method": {
+    "phase_map": "adaptive tile phase coherence from normal variance, segment variance, edge orientation variance, and collider switch rate",
+    "candidate_proxy": "local 3x3 accepted hits gated by first_accepted_candidate_count > 1; actual candidate lists are unavailable",
+    "selection_score": "normalized distance + lambda * phase mismatch; phase mismatch weights normal 0.45, segment index 0.35, collider identity 0.20",
+    "lambda": 0.35,
+    "band_reduction": "compare visible-band correlation and visible-band phase-boundary coverage before vs after proxy selection"
+  },
+  "checkpoints": [
+    {
+      "checkpoint": "mouth",
+      "inputs": {
+        "tile_summary": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/00_mouth_tile_summary.json",
+        "hit_diagnostics_csv": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/00_mouth_hit_diagnostics.csv",
+        "visible_band_mask": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-22T18-12-54/mouth_visible_band_mask.png"
+      },
+      "outputs": {
+        "phase_coherence_map": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/phase_guided_first_hit_selection_2026-04-25/00_mouth_phase_coherence_map.png",
+        "phase_guided_hit_selection_diff": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/phase_guided_first_hit_selection_2026-04-25/00_mouth_phase_guided_hit_selection_diff.png",
+        "phase_guided_render_preview": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/phase_guided_first_hit_selection_2026-04-25/00_mouth_phase_guided_render_preview.png"
+      },
+      "simulation_limits": "CSV artifacts do not contain actual candidate hit lists. Candidate set is proxied by accepted hits in the local 3x3 neighborhood when first_accepted_candidate_count > 1.",
+      "metrics": {
+        "lambda": 0.35,
+        "candidate_proxy_pixels": 129522,
+        "changed_pixel_fraction": 0.4404398148148148,
+        "mean_selection_score_before": 0.17033642530441284,
+        "mean_selection_score_after": 0.12061011046171188,
+        "mean_selection_score_reduction": 0.047137945890426636,
+        "mean_phase_mismatch_before": 0.2428230494260788,
+        "mean_phase_mismatch_after": 0.17931318283081055,
+        "mean_phase_coherence_before": 0.7523720264434814,
+        "mean_phase_coherence_after": 0.773803174495697,
+        "visible_band_incoherence_corr_before": 0.30894760864369525,
+        "visible_band_incoherence_corr_after": 0.27624442501496327,
+        "visible_band_incoherence_corr_delta": -0.03270318362873198,
+        "visible_band_boundary_fraction_before": 0.2883329905388729,
+        "visible_band_boundary_fraction_after": 0.277072192513369,
+        "visible_band_boundary_fraction_delta": -0.011260798025503893,
+        "neighbor_normal_delta_corr_before": 0.2001639315358085,
+        "neighbor_normal_delta_corr_after": 0.16206654167927748,
+        "neighbor_normal_delta_corr_delta": -0.03809738985653102
+      }
+    },
+    {
+      "checkpoint": "post_throat_backstep_01",
+      "inputs": {
+        "tile_summary": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/01_post_throat_backstep_01_tile_summary.json",
+        "hit_diagnostics_csv": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/01_post_throat_backstep_01_hit_diagnostics.csv",
+        "visible_band_mask": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-22T18-12-54/post_throat_backstep_01_visible_band_mask.png"
+      },
+      "outputs": {
+        "phase_coherence_map": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/phase_guided_first_hit_selection_2026-04-25/01_post_throat_backstep_01_phase_coherence_map.png",
+        "phase_guided_hit_selection_diff": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/phase_guided_first_hit_selection_2026-04-25/01_post_throat_backstep_01_phase_guided_hit_selection_diff.png",
+        "phase_guided_render_preview": "output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-24T01-44-23_first_hit_baseline_current/phase_guided_first_hit_selection_2026-04-25/01_post_throat_backstep_01_phase_guided_render_preview.png"
+      },
+      "simulation_limits": "CSV artifacts do not contain actual candidate hit lists. Candidate set is proxied by accepted hits in the local 3x3 neighborhood when first_accepted_candidate_count > 1.",
+      "metrics": {
+        "lambda": 0.35,
+        "candidate_proxy_pixels": 129600,
+        "changed_pixel_fraction": 0.43516203703703704,
+        "mean_selection_score_before": 0.13004393875598907,
+        "mean_selection_score_after": 0.09577865153551102,
+        "mean_selection_score_reduction": 0.03314836695790291,
+        "mean_phase_mismatch_before": 0.2163228541612625,
+        "mean_phase_mismatch_after": 0.16296841204166412,
+        "mean_phase_coherence_before": 0.7879914045333862,
+        "mean_phase_coherence_after": 0.8162339329719543,
+        "visible_band_incoherence_corr_before": 0.07130824856969192,
+        "visible_band_incoherence_corr_after": 0.038948786659105346,
+        "visible_band_incoherence_corr_delta": -0.03235946191058658,
+        "visible_band_boundary_fraction_before": 0.1625267859837624,
+        "visible_band_boundary_fraction_after": 0.15981046086982767,
+        "visible_band_boundary_fraction_delta": -0.002716325113934742,
+        "neighbor_normal_delta_corr_before": 0.19383247573189205,
+        "neighbor_normal_delta_corr_after": 0.22803804250165524,
+        "neighbor_normal_delta_corr_delta": 0.03420556676976319
+      }
+    }
+  ],
+  "aggregate": {
+    "mean_visible_band_incoherence_corr_delta": -0.03253132276965928,
+    "mean_visible_band_boundary_fraction_delta": -0.006988561569719318,
+    "mean_phase_score_reduction": 0.04014315642416477
+  },
+  "verdict": "Proxy phase-guided selection shows weak or inconclusive band-reduction evidence."
+}

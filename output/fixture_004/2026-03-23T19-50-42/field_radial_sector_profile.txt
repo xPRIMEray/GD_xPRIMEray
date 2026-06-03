@@ -1,0 +1,20 @@
+Field Radial Sector Profile
+Capture Path: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_004/2026-03-23T19-50-42/capture.png
+Analysis Capture Mode: categorical_final
+Bin Count: 8
+Field Center Pixel: (89.3352, 134.5)
+Max Radius Px: 412.2243
+Sector Definition: left=(x <= field_center_x) right=(x > field_center_x)
+Legend: bin radius_px | left/right px hit nohit unrendered hit_frac_rendered rendered_coverage other
+Field World Origin: (-3.0, 0.0, 0.0)
+bin0   0.000- 51.528 L(px= 4184 hit=   59 nohit= 3449 unrendered=  676 hitFrac=0.0168 renderedCov=0.8384 other=    0) R(px= 4150 hit=    0 nohit= 3481 unrendered=  669 hitFrac=0.0000 renderedCov=0.8388 other=    0)
+bin1  51.528-103.056 L(px=11630 hit=    0 nohit= 7009 unrendered= 4621 hitFrac=0.0000 renderedCov=0.6027 other=    0) R(px=12508 hit=    0 nohit= 7793 unrendered= 4715 hitFrac=0.0000 renderedCov=0.6230 other=    0)
+bin2 103.056-154.584 L(px= 8358 hit=    0 nohit= 4179 unrendered= 4179 hitFrac=0.0000 renderedCov=0.5000 other=    0) R(px=18838 hit=   89 nohit=10834 unrendered= 7915 hitFrac=0.0081 renderedCov=0.5798 other=    0)
+bin3 154.584-206.112 L(px=  128 hit=    0 nohit=   64 unrendered=   64 hitFrac=0.0000 renderedCov=0.5000 other=    0) R(px=15832 hit=  315 nohit= 9106 unrendered= 6411 hitFrac=0.0334 renderedCov=0.5951 other=    0)
+bin4 206.112-257.640 L(px=    0 hit=    0 nohit=    0 unrendered=    0 hitFrac=na renderedCov=na other=    0) R(px=14856 hit=   20 nohit= 8900 unrendered= 5936 hitFrac=0.0022 renderedCov=0.6004 other=    0)
+bin5 257.640-309.168 L(px=    0 hit=    0 nohit=    0 unrendered=    0 hitFrac=na renderedCov=na other=    0) R(px=14518 hit=    3 nohit= 8760 unrendered= 5755 hitFrac=0.0003 renderedCov=0.6036 other=    0)
+bin6 309.168-360.696 L(px=    0 hit=    0 nohit=    0 unrendered=    0 hitFrac=na renderedCov=na other=    0) R(px=14318 hit=   33 nohit= 8619 unrendered= 5666 hitFrac=0.0038 renderedCov=0.6043 other=    0)
+bin7 360.696-412.224 L(px=    0 hit=    0 nohit=    0 unrendered=    0 hitFrac=na renderedCov=na other=    0) R(px=10280 hit=    0 nohit= 6007 unrendered= 4273 hitFrac=0.0000 renderedCov=0.5843 other=    0)
+Totals left: px=24300 hit=59 nohit=14701 unrendered=9540 hitFrac=0.0040 renderedCov=0.6074 other=0
+Totals right: px=105300 hit=460 nohit=63500 unrendered=41340 hitFrac=0.0072 renderedCov=0.6074 other=0
+Totals combined: px=129600 hit=519 nohit=78201 unrendered=50880 hitFrac=0.0066 renderedCov=0.6074 other=0

@@ -1,0 +1,1 @@
+cd '/home/bb/code/godot_xPRIMEray' && WORMHOLE_STRUCTURE_PANEL_TIMEOUT_SECONDS='95' WORMHOLE_STRUCTURE_QUALITY='quick_review' 'bash' '/home/bb/code/godot_xPRIMEray/scripts/run_wormhole_structure_observatory_quick.sh' '20260514T043518Z'

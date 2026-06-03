@@ -1,0 +1,24 @@
+Fixture: fixture_001
+Timestamp: 2026-03-21T22-42-27
+Scene: res://test-grin-basic-visual-minimal.tscn
+Status: failed
+Runtime Seconds: 30.925
+Traced Pixels: 51904
+Source Hits: 2501
+Miss Hits: 49403
+Capture Succeeded: false
+Launch Audit Status: ok
+Guard Progress Exits: 0
+Forced Advance Events: 0
+Render Health Step: 41
+Processed Rows: 164
+Total Rows Considered: 164
+Total Rows Processed: 164
+Total Rows Skipped: 0
+Processed Row Window: 0..163
+Zero-Hit Rows: 0
+Row Participation Summary: proc=0-163|skip=-|zero=-
+Runtime Fingerprint: None
+Turn Threshold: 2
+Output Path: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_001/2026-03-21T22-42-27
+Failure Reason: missing_capture_png

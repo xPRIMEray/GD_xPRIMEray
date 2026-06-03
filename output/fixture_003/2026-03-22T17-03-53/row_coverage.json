@@ -1,0 +1,7 @@
+{
+  "total_rows_considered": 164,
+  "total_rows_processed": 164,
+  "zero_hit_rows": 8,
+  "coverage_visual": "ZZZZZZZZPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP",
+  "coverage_legend": "P=processed_with_hits Z=processed_zero_hits S=skipped .=unseen"
+}

@@ -1,0 +1,462 @@
+[
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "BendScale=1.0",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_blackhole_minimal.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": true,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "CanonicalGamma=8.0;BendScale=1.0",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_blackhole_minimal_grin.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": true,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "CanonicalGamma=8.0;BendScale=1.0",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_blackhole_minimal_metric.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": false,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": false,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_boundary_nested_shell_modes.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": false,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_boundary_shell_entry_basic.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": false,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": false,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_boundary_shell_policy_compare.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "curved_minimal_fingerprint",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_curved_minimal.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "curved_minimal_fingerprint",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_curved_minimal_backdrop.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "BendScale=1.0",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_einstein_ring_minimal.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": true,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "CanonicalGamma=8.0;BendScale=1.0",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_einstein_ring_minimal_grin.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": true,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "CanonicalGamma=8.0;BendScale=1.0",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_einstein_ring_minimal_metric.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "BendScale=1.0",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_grin_basic_visual.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "BendScale=1.0",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_grin_basic_visual_linear.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "BendScale=1.0",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_grin_basic_visual_linear_dual_attractor.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "BendScale=1.0",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_grin_basic_visual_linear_offset.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": true,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "CanonicalGamma=2.4;BendScale=1.0",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_grin_basic_visual_offaxis.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": true,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "CanonicalGamma=2.4;BendScale=1.0",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_grin_basic_visual_offaxis_observe.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": true,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "CanonicalGamma=2.4;BendScale=1.0",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_grin_basic_visual_straight.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": true,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "CanonicalGamma=2.4;BendScale=1.0",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_grin_basic_visual_straight_offaxis.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": true,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "CanonicalGamma=2.4;BendScale=1.0",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_grin_basic_visual_straight_offaxis_observe.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": true,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "BendScale=1.0",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_metric_basic_visual.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": true,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "BendScale=1.0",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_metric_basic_visual_offaxis.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": true,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "BendScale=1.0",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/Fixtures/fixture_metric_basic_visual_offaxis_observe.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": false,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": false,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-blackhole-minimal-grin.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": false,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": false,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-blackhole-minimal-metric.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": false,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": false,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "",
+    "prior_output_example": "/home/bb/code/godot_xPRIMEray/output/domain_resolver_stress/blackhole_minimal/20260429T012810Z/telemetry_on/blackhole_minimal__telemetry_on__baseline_prune_off__scheduler-baseline__targetms-1000__stride-2__runid-1.selection_flip.png",
+    "prior_outputs_available": true,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-blackhole-minimal.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": false,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": false,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-boundary-nested-shell-modes.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": false,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": false,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-boundary-shell-entry-basic.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": false,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": false,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-boundary-shell-policy-compare.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": true,
+    "field_node_present": false,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "BendScale=1.0",
+    "prior_output_example": "/home/bb/code/godot_xPRIMEray/output/threaded_band_eval/curved_minimal_backdrop_threaded4_95s.log",
+    "prior_outputs_available": true,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-curved-minimal-backdrop.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": true,
+    "field_node_present": false,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "BendScale=1.0",
+    "prior_output_example": "/home/bb/code/godot_xPRIMEray/output/wormhole_test/launch_curved_minimal_probe.log",
+    "prior_outputs_available": true,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-curved-minimal.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": false,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": false,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-einstein-ring-minimal-grin.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": false,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": false,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-einstein-ring-minimal-metric.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": false,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": false,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "",
+    "prior_output_example": "/home/bb/code/godot_xPRIMEray/output/domain_resolver_stress/einstein_ring_minimal",
+    "prior_outputs_available": true,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-einstein-ring-minimal.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "DefaultGammaOverride=1.8",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-grin-basic-visual-linear-dual-attractor-minimal.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "DefaultGammaOverride=1.8",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-grin-basic-visual-linear-minimal.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "DefaultGammaOverride=1.8",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-grin-basic-visual-linear-offset-minimal.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "DefaultGammaOverride=1.8",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-grin-basic-visual-minimal-offaxis-observe.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "DefaultGammaOverride=1.8",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-grin-basic-visual-minimal-offaxis.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "DefaultGammaOverride=1.8",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-grin-basic-visual-minimal.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "DefaultGammaOverride=2.4",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-grin-basic-visual-offaxis-observe.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "DefaultGammaOverride=2.4",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-grin-basic-visual-offaxis.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "DefaultGammaOverride=2.4",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-grin-basic-visual-straight-offaxis-observe.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "DefaultGammaOverride=2.4",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-grin-basic-visual-straight-offaxis.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "DefaultGammaOverride=2.4",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-grin-basic-visual-straight.tscn"
+  },
+  {
+    "curvature_or_grin_params_nonzero": true,
+    "curved_transport_enabled_hint": false,
+    "field_node_present": true,
+    "hit_diagnostics_available": false,
+    "nonzero_param_evidence": "DefaultGammaOverride=2.4",
+    "prior_output_example": "",
+    "prior_outputs_available": false,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-grin-basic-visual.tscn"
+  }
+]

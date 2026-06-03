@@ -1,0 +1,87 @@
+{
+  "beauty_hashes": {
+    "control": "5083d5c6aa120c481253696b7e9cfc5506e5d131d2b1fe563dfc8d0a5874ac6a",
+    "curved": "a7ee73eb4dfa61b2107e6293d32e59790628883906ce75263ef215b6f18497ad"
+  },
+  "comparability_status": "warning",
+  "comparability_warnings": [
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.015"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.00625"
+    },
+    {
+      "control": "domain_resolver_stress:res://test-domain-resolver-stress.tscn",
+      "curved": "curved_minimal_backdrop:res://test-curved-minimal-backdrop.tscn",
+      "field": "camera_pose_key",
+      "step": "0.003125"
+    }
+  ],
+  "control_metrics": {
+    "graph_edge_count": 2,
+    "graph_node_count": 3,
+    "high_discontinuity_edge_count": 2,
+    "ladder_persistence_basis": "overlap",
+    "merge_split_count": 8,
+    "node_persistence_rate": 0.0,
+    "seam_length_px_total": 780,
+    "step_dir": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260508T124517Z/control/steps/step_0.015",
+    "unresolved_pixel_count": 0
+  },
+  "curvature_evidence": {
+    "bend_scale": 1.0,
+    "curvature_energy": 2.496387,
+    "curvature_metric_log_present": true,
+    "curved_transport_enabled": true,
+    "field_accel_sum": 2.496387,
+    "field_strength": 1.0,
+    "metric_line": "[CurvedFixture][CurvatureMetric] field_accel_sum=2.496387 curvature_energy=2.496387 max_probe_accel=0.735433 far_accel=0",
+    "nonzero_curvature_params": true,
+    "reason": "ok",
+    "resolved_line": "[CurvedFixture][Resolved] source=canonical curve=Power modeFlags=0 rInner=0 rOuter=4.5 amp=1.15 gamma=2 beta_mode=override beta_scale=1 useIntegrated=1 bendScale=1 fieldStrength=1",
+    "resolved_log_present": true,
+    "valid": true
+  },
+  "curved_metrics": {
+    "graph_edge_count": 0,
+    "graph_node_count": 1,
+    "high_discontinuity_edge_count": 0,
+    "ladder_persistence_basis": "overlap",
+    "merge_split_count": 0,
+    "node_persistence_rate": 1.0,
+    "seam_length_px_total": 0,
+    "step_dir": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260508T124517Z/curved/steps/step_0.015",
+    "unresolved_pixel_count": 0
+  },
+  "curved_validation_status": "warning",
+  "evidence_tiers": {
+    "tier_a_fixture_curvature_engaged": "pass",
+    "tier_b_renderer_diagnostics_changed": "pass",
+    "tier_c_topology_changed_across_step_ladder": "pass",
+    "tier_d_unresolved_island_sealed_or_persisted": "persisted"
+  },
+  "graph_delta_vs_control": {
+    "edge_count_delta": -2,
+    "high_discontinuity_edge_delta": -2,
+    "merge_split_delta": -8,
+    "node_count_delta": -2,
+    "seam_length_delta": -780,
+    "unresolved_count_delta": 0
+  },
+  "guardrail": "Do not describe visible band/support artifacts as caused by curvature unless comparison metrics support that claim; use 'associated with curved transport fixture under tested settings.'",
+  "study": "curved_field_validation_ladder",
+  "validation_inference": {
+    "diagnostics_changed_vs_control": true,
+    "oracle_comparison_count": 24,
+    "ownership_topology_differs_from_control": true,
+    "unresolved_island_summary_available": true
+  },
+  "visible_support_wording": "visible band/support metrics"
+}

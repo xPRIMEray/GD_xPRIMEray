@@ -1,0 +1,94 @@
+{
+  "camera_facing_or_projection_degenerate_count": 0,
+  "compare_csv": "",
+  "compare_sample_count": 0,
+  "flip_y": true,
+  "hit_count": 400,
+  "hit_csv": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T033059Z/control/steps/step_0.016/domain_resolver_stress__control_step_0p016__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+  "hit_normal_x_stats": {
+    "max": 0.815914,
+    "mean": -0.015242,
+    "min": -0.815914
+  },
+  "hit_normal_y_stats": {
+    "max": 0.769698,
+    "mean": -6.8e-05,
+    "min": -0.775017
+  },
+  "hit_normal_z_stats": {
+    "max": 1.0,
+    "mean": 0.998434,
+    "min": 0.184707
+  },
+  "hit_projected_xy_magnitude_histogram": {
+    ">1.0": 0,
+    "[0,1e-6)": 0,
+    "[0.5,1.0]": 18613,
+    "[1e-1,0.5)": 0,
+    "[1e-2,1e-1)": 0,
+    "[1e-3,1e-2)": 0,
+    "[1e-4,1e-3)": 0,
+    "[1e-6,1e-4)": 0
+  },
+  "hit_rows_with_valid_normal_xyz": 18613,
+  "image": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T033059Z/control/steps/step_0.016/domain_resolver_stress__control_step_0p016__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+  "max_compare_normal_angle_delta_deg": 0.0,
+  "mean_compare_normal_angle_delta_deg": "",
+  "min_projected_magnitude": 1e-06,
+  "mode": "fixed",
+  "no_hit_count": 520,
+  "normal_field_names_found": [
+    "normal_x",
+    "normal_y",
+    "normal_z",
+    "first_accepted_normal_x",
+    "first_accepted_normal_y",
+    "first_accepted_normal_z"
+  ],
+  "normal_x_stats": {
+    "max": 0.815914,
+    "mean": -0.004925,
+    "min": -0.815914
+  },
+  "normal_y_stats": {
+    "max": 0.769698,
+    "mean": -2.2e-05,
+    "min": -0.775017
+  },
+  "normal_z_stats": {
+    "max": 1.0,
+    "mean": 0.322636,
+    "min": 0.0
+  },
+  "post_process_only": true,
+  "projected_xy_magnitude_histogram": {
+    ">1.0": 0,
+    "[0,1e-6)": 38987,
+    "[0.5,1.0]": 18613,
+    "[1e-1,0.5)": 0,
+    "[1e-2,1e-1)": 0,
+    "[1e-3,1e-2)": 0,
+    "[1e-4,1e-3)": 0,
+    "[1e-6,1e-4)": 0
+  },
+  "projection": "xz",
+  "projection_degenerate_normal_count": 0,
+  "roi_bbox": "",
+  "rows_with_valid_normal_xyz": 57600,
+  "sample_count": 920,
+  "sampled_hit_pixels_marked": 400,
+  "sampled_hit_rows_with_valid_normal_xyz": 400,
+  "sampled_projected_xy_magnitude_histogram": {
+    ">1.0": 0,
+    "[0,1e-6)": 0,
+    "[0.5,1.0]": 400,
+    "[1e-1,0.5)": 0,
+    "[1e-2,1e-1)": 0,
+    "[1e-3,1e-2)": 0,
+    "[1e-4,1e-3)": 0,
+    "[1e-6,1e-4)": 0
+  },
+  "scale": 12.0,
+  "stride": 8,
+  "vectors_drawn": 400
+}

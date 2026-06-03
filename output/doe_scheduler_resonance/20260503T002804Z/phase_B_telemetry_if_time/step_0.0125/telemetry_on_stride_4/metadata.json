@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-05-03T03:46:10Z",
+  "phase": "B_telemetry_if_time",
+  "step_length": "0.0125",
+  "mode": "telemetry_on",
+  "stride": "4",
+  "cell_dir": "/home/bb/code/godot_xPRIMEray/output/doe_scheduler_resonance/20260503T002804Z/phase_B_telemetry_if_time/step_0.0125/telemetry_on_stride_4",
+  "exit_code": 134,
+  "effective_status": 0,
+  "notes": "godot_shutdown_abort_after_harness_success"
+}

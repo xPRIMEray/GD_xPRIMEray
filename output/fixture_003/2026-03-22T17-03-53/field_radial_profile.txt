@@ -1,0 +1,23 @@
+Field Radial Profile
+Capture Path: output/fixture_runs/fixture_003/2026-03-22T17-03-53/capture.png
+Analysis Capture Mode: categorical_final
+Bin Count: 8
+Field Center Pixel: (339.6099, 134.5)
+Max Radius Px: 365.2741
+Legend: bin radius_px pixels final_hit rendered_no_hit unrendered hit_frac_rendered rendered_coverage other
+Field World Origin: (2.0, 0.0, 0.0)
+bin0   0.000- 45.659 px= 6558 hit=   22 nohit= 5716 unrendered=  820 hitFrac=0.0038 renderedCov=0.8750 other=    0
+bin1  45.659- 91.319 px=19626 hit=    0 nohit=12558 unrendered= 7068 hitFrac=0.0000 renderedCov=0.6399 other=    0
+bin2  91.319-136.978 px=32636 hit=    0 nohit=19000 unrendered=13636 hitFrac=0.0000 renderedCov=0.5822 other=    0
+bin3 136.978-182.637 px=23032 hit=  112 nohit=12847 unrendered=10073 hitFrac=0.0086 renderedCov=0.5627 other=    0
+bin4 182.637-228.296 px=13752 hit=  879 nohit= 7328 unrendered= 5545 hitFrac=0.1071 renderedCov=0.5968 other=    0
+bin5 228.296-273.955 px=13024 hit=    0 nohit= 7841 unrendered= 5183 hitFrac=0.0000 renderedCov=0.6020 other=    0
+bin6 273.955-319.615 px=12796 hit=    0 nohit= 7718 unrendered= 5078 hitFrac=0.0000 renderedCov=0.6032 other=    0
+bin7 319.615-365.274 px= 8176 hit=    0 nohit= 4699 unrendered= 3477 hitFrac=0.0000 renderedCov=0.5747 other=    0
+Totals
+Pixels: 129600
+Final Hit Pixels: 1013
+Rendered No-Hit Pixels: 77707
+Unrendered Pixels: 50880
+Overall Hit Fraction Within Rendered Area: 0.012868
+Overall Rendered Coverage Fraction: 0.607407

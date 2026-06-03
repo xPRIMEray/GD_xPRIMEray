@@ -32,6 +32,40 @@ __pycache__/
 .godot/mono/temp/
 .godot/imported/
 
-# Outputs if overfilled
-/output/
-/output/**
+# ─────────────────────────────────────────────────────────────────────────────
+# xPRIMEray Output Directory
+# ─────────────────────────────────────────────────────────────────────────────
+# output/ is the active lab bench: 4.2 GB+, ~19 000 files, never fully tracked.
+# Curated artifact metadata (README.md, *.md, *.json, *.csv, *.txt) is tracked.
+# Raw renders (*.png), logs (*.log, already global above), and binary content
+# remain ignored. See misterylabs_artifacts/ for website-ready copies.
+output/**/*
+!output/
+!output/README.md
+!output/**/
+!output/**/README.md
+!output/**/*.md
+!output/**/*.json
+!output/**/*.txt
+!output/**/*.csv
+
+# Re-ignore known-large raw dump files even though their extensions are allowed above.
+# oracle ray-segment dumps: 80 MB – 720 MB per file
+output/**/*_oracle_segments.csv
+# ray parent-path trace dumps: 11 MB – 96 MB per file
+output/**/*_parent_paths.jsonl
+# per-ray hit diagnostic dumps: 10 MB – 19 MB per file (matches _hit or .hit separator)
+output/**/*hit_diagnostics.csv
+# raw integration escape vector dumps: up to 12 MB
+output/**/*_escape_vectors.csv
+# line-delimited JSON (always large in this project)
+output/**/*.jsonl
+
+# Re-ignore binary / venv content that can land in output/ as a side-effect.
+# Example: output/v0.0-pre/video/.capture-venv — a full Python venv with
+# numpy, imageio, and a 77 MB ffmpeg binary that has no place in Git.
+output/**/.capture-venv/**
+output/**/*.so
+output/**/*.pyc
+output/**/*.exe
+output/**/*.npy

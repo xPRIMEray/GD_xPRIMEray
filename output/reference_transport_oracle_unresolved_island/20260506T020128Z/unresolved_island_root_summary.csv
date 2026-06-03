@@ -1,0 +1,2 @@
+cell,effective_status,sample_count,comparison_count,sealed_at_0.00625,stable_at_0.00625_count,unresolved_at_0.003125_count,oracle_replay_failure_count,local_continuity_vector_count,local_transport_shape_region_count,oracle_step_length,cell_dir
+unresolved_island,0,25,75,False,0,25,0,0,0,0.0015625,/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260506T020128Z/cells/unresolved_island

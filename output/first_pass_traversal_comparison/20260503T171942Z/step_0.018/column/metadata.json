@@ -1,0 +1,10 @@
+{
+  "timestamp": "2026-05-03T17:32:51Z",
+  "step_length": "0.018",
+  "traversal": "column",
+  "mode": "off",
+  "cell_dir": "/home/bb/code/godot_xPRIMEray/output/first_pass_traversal_comparison/20260503T171942Z/step_0.018/column",
+  "exit_code": 0,
+  "effective_status": 0,
+  "notes": "clean_exit"
+}

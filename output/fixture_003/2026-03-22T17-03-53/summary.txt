@@ -1,0 +1,68 @@
+Fixture: fixture_003
+Timestamp: 2026-03-22T17-03-53
+Scene: res://test-grin-basic-visual-linear-offset-minimal.tscn
+Status: ok
+Runtime Seconds: 29.029
+Traced Pixels: 70464
+Source Hits: 1013
+Miss Hits: 69451
+Capture Succeeded: true
+Launch Audit Status: ok
+Guard Progress Exits: 0
+Forced Advance Events: 0
+Render Health Step: 41
+Processed Rows: 164
+Total Rows Considered: 164
+Total Rows Processed: 164
+Total Rows Skipped: 0
+Processed Row Window: 0..163
+Zero-Hit Rows: 8
+Row Participation Summary: proc=0-163|skip=-|zero=0-7
+Row Coverage: ZZZZZZZZPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
+Visual Mode: diagnostic_flat
+Visual Shading Mode: DepthHeatmap
+Baseline Shading Mode: NormalRGB
+Analysis Capture Mode: categorical_final
+Analysis Capture Written: 1
+Debug Capture Written: 1
+Categorical Final Written: 1
+Overlay Enabled For Analysis Capture: 0
+White Streak Likely Source: none_detected
+Rows Started: 164
+Rows Completed: 158
+Rows Partially Written: 0
+Rows Early Terminated: 0
+Final Hit Pixel Count: 1013
+Traversal Write Pixel Count: 0
+Rendered Bright Rows: 0
+RenderHealth Geom Segments Queried: 574730
+Bottom Region Likely Cause: background_fill_in_unrendered_image_area
+Analysis Unrendered Rows: 106
+Analysis Band Matches Unrendered Rows: 1
+Radial Bin Count: 8
+Radial Overall Hit Fraction: 0.012868
+Radial Overall Rendered Coverage: 0.607407
+Radial Profile Path: output/fixture_runs/fixture_003/2026-03-22T17-03-53/radial_profile.json
+Radial Sector Left Hit Fraction: 0.025178
+Radial Sector Right Hit Fraction: 0.000559
+Radial Sector Left Rendered Coverage: 0.607407
+Radial Sector Right Rendered Coverage: 0.607407
+Radial Sector Profile Path: output/fixture_runs/fixture_003/2026-03-22T17-03-53/radial_sector_profile.json
+Field Center Pixel: (339.6099, 134.5)
+Field World Origin: (2.0, 0.0, 0.0)
+Field Radial Overall Hit Fraction: 0.012868
+Field Radial Overall Rendered Coverage: 0.607407
+Field Radial Profile Path: output/fixture_runs/fixture_003/2026-03-22T17-03-53/field_radial_profile.json
+Field Sector Left Hit Fraction: 0.017773
+Field Sector Right Hit Fraction: 0.000958
+Field Sector Left Rendered Coverage: 0.607407
+Field Sector Right Rendered Coverage: 0.607407
+Field Radial Sector Profile Path: output/fixture_runs/fixture_003/2026-03-22T17-03-53/field_radial_sector_profile.json
+Runtime Fingerprint: fixture003_runtime_fingerprint_v1_git_b9453cb564e6_utc_20260322T220358Z_sha_fc8ae0ad07762ef8
+Assembly Timestamp Present: true
+Requested Step Match: true
+Row Diagnostics Present: true
+Scheduler Clean: true
+Run Verified: true
+Turn Threshold: 2.4
+Output Path: output/fixture_runs/fixture_003/2026-03-22T17-03-53

@@ -1,0 +1,9 @@
+x,y,classification,first_stable_step,max_decision_risk,max_path_length_delta,max_normal_angle_delta,ownership_transition,stable_at_0.00625,stable_at_0.003125,risk_0.00625,risk_0.003125,path_delta_0.00625,path_delta_0.003125,normal_delta_0.00625,normal_delta_0.003125
+39,34,extra_fine_required,,6.810292,43.59819,0.0,0,0,0,3.0,1.0,19.20543,6.401809,0.0,0.0
+39,35,extra_fine_required,,6.810292,43.59819,0.0,0,0,0,3.0,1.0,19.20543,6.401809,0.0,0.0
+39,36,extra_fine_required,,6.810292,43.59819,0.0,0,0,0,3.0,1.0,19.20543,6.401809,0.0,0.0
+40,34,extra_fine_required,,6.810292,43.59819,0.0,0,0,0,3.0,1.0,19.20543,6.401809,0.0,0.0
+40,35,extra_fine_required,,6.810292,43.59819,0.0,0,0,0,3.0,1.0,19.20543,6.401809,0.0,0.0
+40,36,extra_fine_required,,6.810292,43.59819,0.0,0,0,0,3.0,1.0,19.20543,6.401809,0.0,0.0
+41,34,extra_fine_required,,6.810292,43.59819,0.0,0,0,0,3.0,1.0,19.20543,6.401809,0.0,0.0
+41,35,extra_fine_required,,6.810292,43.59819,0.0,0,0,0,3.0,1.0,19.20543,6.401809,0.0,0.0

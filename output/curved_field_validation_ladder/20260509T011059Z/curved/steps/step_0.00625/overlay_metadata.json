@@ -1,0 +1,53 @@
+{
+  "beauty_hash": "879f922289cbae62aa5cf45b4f102aa0daf8ffb908e93eabbdbb407664944287",
+  "beauty_path": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T011059Z/curved/steps/step_0.00625/curved_minimal_backdrop__curved_step_0p00625__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+  "capture_stem": "curved_minimal_backdrop__curved_step_0p00625__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1",
+  "enabled_layers": {
+    "cartesian": true,
+    "continuity": true,
+    "labels": true,
+    "risk": true,
+    "spacetime": false,
+    "transport": true
+  },
+  "hit_diagnostics_csv": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T011059Z/curved/steps/step_0.00625/curved_minimal_backdrop__curved_step_0p00625__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+  "hit_region_count": 0,
+  "manual_rois": [
+    {
+      "x": 40,
+      "y": 35
+    }
+  ],
+  "missing_inputs": [
+    "continuity_optional_field_portal_event_count"
+  ],
+  "object_count": 5,
+  "opencv_requested": false,
+  "opencv_used": false,
+  "post_process_only": true,
+  "primitive_count_by_layer": {
+    "cartesian_lines": 60,
+    "cartesian_points": 115,
+    "manual_rois": 1,
+    "spacetime_events": 0,
+    "spacetime_polylines": 0
+  },
+  "primitive_path": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T011059Z/curved/steps/step_0.00625/curved_minimal_backdrop__curved_step_0p00625__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.diagnostic_wireframe_primitives.json",
+  "schema_version": 1,
+  "transport_continuity_summary": {
+    "high_discontinuity_vectors": 0,
+    "high_threshold": 1.0,
+    "manual_roi_overlap_count": 0,
+    "max_discontinuity_score": 0.0,
+    "mean_discontinuity_score": 0.0,
+    "missing_optional_fields": [
+      "portal_event_count"
+    ],
+    "shape_region_correlations": [],
+    "threshold": 0.2,
+    "top_10_discontinuity_locations": [],
+    "total_vectors": 0,
+    "transport_shape_region_overlap_count": 0
+  },
+  "transport_continuity_vectors_csv": "/home/bb/code/godot_xPRIMEray/output/curved_field_validation_ladder/20260509T011059Z/curved/steps/step_0.00625/transport_continuity_vectors.csv"
+}

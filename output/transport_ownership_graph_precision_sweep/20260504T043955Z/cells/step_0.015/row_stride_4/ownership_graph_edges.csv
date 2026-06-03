@@ -1,0 +1,5 @@
+edge_id,node_a,node_b,seam_length_px,mean_continuity_discontinuity_score,max_continuity_discontinuity_score,collider_flip_count,domain_flip_count,path_length_delta_mean,path_length_delta_max,step_count_delta_mean,step_count_delta_max,boundary_event_delta_mean,boundary_event_delta_max
+1,0,1,648,2.299449,2.349033,648,0,1.493061,1.745166,0.0,0.0,0.0,0.0
+2,1,2,264,1.206542,1.247314,264,0,0.067768,0.134779,0.106061,1.0,0.0,0.0
+3,1,3,16,1.606363,1.623506,16,0,0.100709,0.124346,0.25,1.0,0.0,0.0
+4,1,4,16,1.486537,1.496167,16,0,0.103733,0.12781,0.0,0.0,0.0,0.0

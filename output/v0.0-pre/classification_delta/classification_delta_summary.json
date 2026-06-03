@@ -1,0 +1,170 @@
+{
+  "class_counts": {
+    "curved": {
+      "background_hit": 230400
+    },
+    "straight": {
+      "background_hit": 230400
+    }
+  },
+  "coverage": {
+    "curved": {
+      "analysis_capture_mode": "transport_classification",
+      "case_id": "hermetic_grin",
+      "classification_path": "output/v0.0-pre/hermetic_grin_transport_classification.png",
+      "coverage": {
+        "analysisCaptureMode": "transport_classification",
+        "backgroundHitPixels": 230400,
+        "budgetExhaustedPixels": 0,
+        "classifiedCoverageRatio": 1,
+        "classifiedPixels": 230400,
+        "escapedNoHitPixels": 0,
+        "fixture": "hermetic_observatory_grin",
+        "geomHitPixels": 0,
+        "hermeticRuleSatisfied": 1,
+        "portalHitPixels": 0,
+        "summary": "geom=0|portal=0|throat=0|t_entry=0|t_exit=0|t_xform=0|t_absorb=0|background=230400|escaped=0|budget=0|cov=1",
+        "throatEntryPixels": 0,
+        "throatEventPixels": 0,
+        "throatExitPixels": 0,
+        "throatInnerAbsorbPixels": 0,
+        "throatShellTransformPixels": 0,
+        "totalPixels": 230400,
+        "unclassifiedPixels": 0
+      },
+      "fixture_label": "hermetic GRIN",
+      "schema": "xprimeray.classification_export_coverage.v1",
+      "summary_metrics": {
+        "budget_exhausted_pixels": 0,
+        "classified_pixels": 230400,
+        "escaped_no_hit_pixels": 0,
+        "hermetic_rule_satisfied": 1,
+        "total_pixels": 230400
+      },
+      "transport_assumption": "curved_grin"
+    },
+    "straight": {
+      "analysis_capture_mode": "transport_classification",
+      "case_id": "hermetic_straight",
+      "classification_path": "output/v0.0-pre/hermetic_straight_transport_classification.png",
+      "coverage": {
+        "analysisCaptureMode": "transport_classification",
+        "backgroundHitPixels": 230400,
+        "budgetExhaustedPixels": 0,
+        "classifiedCoverageRatio": 1,
+        "classifiedPixels": 230400,
+        "escapedNoHitPixels": 0,
+        "fixture": "hermetic_observatory_straight",
+        "geomHitPixels": 0,
+        "hermeticRuleSatisfied": 1,
+        "portalHitPixels": 0,
+        "summary": "geom=0|portal=0|throat=0|t_entry=0|t_exit=0|t_xform=0|t_absorb=0|background=230400|escaped=0|budget=0|cov=1",
+        "throatEntryPixels": 0,
+        "throatEventPixels": 0,
+        "throatExitPixels": 0,
+        "throatInnerAbsorbPixels": 0,
+        "throatShellTransformPixels": 0,
+        "totalPixels": 230400,
+        "unclassifiedPixels": 0
+      },
+      "fixture_label": "hermetic straight",
+      "schema": "xprimeray.classification_export_coverage.v1",
+      "summary_metrics": {
+        "budget_exhausted_pixels": 0,
+        "classified_pixels": 230400,
+        "escaped_no_hit_pixels": 0,
+        "hermetic_rule_satisfied": 1,
+        "total_pixels": 230400
+      },
+      "transport_assumption": "straight_reference"
+    }
+  },
+  "guardrails": [
+    "presentation-only instrumentation",
+    "no transport semantic changes",
+    "no scheduler modifications",
+    "no hit selection changes",
+    "no resolver decision changes",
+    "no oracle behavior changes",
+    "no synthetic field energy, glow, particles, or turbulence"
+  ],
+  "image": {
+    "height": 360,
+    "total_pixels": 230400,
+    "width": 640
+  },
+  "inputs": {
+    "curved_classification_image": "output/v0.0-pre/hermetic_grin_transport_classification.png",
+    "curved_coverage": "output/v0.0-pre/hermetic_grin_transport_classification_coverage.json",
+    "curved_metadata": "output/v0.0-pre/hermetic_grin_transport_classification_metadata.json",
+    "straight_classification_image": "output/v0.0-pre/hermetic_straight_transport_classification.png",
+    "straight_coverage": "output/v0.0-pre/hermetic_straight_transport_classification_coverage.json",
+    "straight_metadata": "output/v0.0-pre/hermetic_straight_transport_classification_metadata.json"
+  },
+  "metadata": {
+    "compared": [
+      {
+        "curved": 640,
+        "key": "width",
+        "match": true,
+        "straight": 640
+      },
+      {
+        "curved": 360,
+        "key": "height",
+        "match": true,
+        "straight": 360
+      },
+      {
+        "curved": "hermetic_observatory_v0_pre",
+        "key": "camera_pose_key",
+        "match": true,
+        "straight": "hermetic_observatory_v0_pre"
+      },
+      {
+        "curved": "row",
+        "key": "traversal_mode",
+        "match": true,
+        "straight": "row"
+      },
+      {
+        "curved": "row",
+        "key": "scheduler_mode",
+        "match": true,
+        "straight": "row"
+      },
+      {
+        "curved": "row",
+        "key": "render_test_traversal_pass1_pass2",
+        "match": true,
+        "straight": "row"
+      }
+    ],
+    "present": true,
+    "require_metadata": true,
+    "warnings": []
+  },
+  "metrics": {
+    "changed_pixels": 0,
+    "changed_ratio": 0.0,
+    "resolved_compared_pixels": 230400,
+    "unchanged_pixels": 230400,
+    "unresolved_pixels": 0,
+    "unresolved_ratio": 0.0
+  },
+  "outputs": {
+    "classification_delta": "output/v0.0-pre/classification_delta/classification_delta.png",
+    "classification_delta_contours": "output/v0.0-pre/classification_delta/classification_delta_contours.png",
+    "classification_delta_summary": "output/v0.0-pre/classification_delta/classification_delta_summary.json"
+  },
+  "schema_version": 1,
+  "tool": "classification_delta_compare.py",
+  "top_transition_buckets": [],
+  "visual_language": {
+    "changed_pixels": "restrained blue-cyan tint",
+    "contours": "single-pixel changed/unresolved mask edges",
+    "synthetic_effects": "none",
+    "unchanged_pixels": "transparent",
+    "unresolved_pixels": "neutral gray mark"
+  }
+}

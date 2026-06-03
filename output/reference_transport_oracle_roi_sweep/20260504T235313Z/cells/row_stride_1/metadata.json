@@ -1,0 +1,18 @@
+{
+  "timestamp": "2026-05-04T23:53:37Z",
+  "study": "reference_transport_oracle_roi_sweep",
+  "fixture": "domain_resolver_stress",
+  "traversal": "row",
+  "stride": 1,
+  "resolution": "320x180",
+  "production_steps": "0.015",
+  "oracle_step_length": "0.0015625",
+  "oracle_tolerance": "0.0001",
+  "roi_sources": "40,35",
+  "diagnostic_only": true,
+  "guardrail": "ReferenceTransportOracle outputs must not feed rendering, scheduling, hit selection, shading, resolver decisions, traversal, or adaptive precision.",
+  "cell_dir": "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_roi_sweep/20260504T235313Z/cells/row_stride_1",
+  "exit_code": 0,
+  "effective_status": 0,
+  "notes": "clean_exit"
+}

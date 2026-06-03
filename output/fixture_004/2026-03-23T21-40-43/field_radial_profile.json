@@ -1,0 +1,176 @@
+{
+  "enabled": true,
+  "analysis_capture_mode": "categorical_final",
+  "capture_path": "/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_004/2026-03-23T21-40-43/capture.png",
+  "bin_count": 8,
+  "profile_label": "field_relative",
+  "field_center_pixel": {
+    "x": -10.7746,
+    "y": 134.5
+  },
+  "origin_label": "Field Center Pixel",
+  "max_radius_px": 507.9069,
+  "categorical_palette": {
+    "final_hit_rgba": [
+      255,
+      209,
+      46,
+      255
+    ],
+    "rendered_no_hit_rgba": [
+      18,
+      23,
+      46,
+      255
+    ],
+    "unrendered_rgba": [
+      0,
+      0,
+      0,
+      255
+    ]
+  },
+  "field_analysis_origin": {
+    "resolved": true,
+    "scene_path": "/home/bb/code/godot_xPRIMEray/test-grin-basic-visual-linear-dual-attractor-minimal.tscn",
+    "field_path": "FixtureGrinBasicVisualLinearDualAttractor/FieldSource3DPrimary",
+    "camera_path": "FixtureGrinBasicVisualLinearDualAttractor/Camera3D",
+    "field_world_origin": {
+      "x": -5.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "field_center_pixel": {
+      "x": -10.7746,
+      "y": 134.5
+    },
+    "camera_fov_degrees": 42.0,
+    "camera_space_point": {
+      "x": -5.0,
+      "y": 0.0,
+      "z": -7.0
+    },
+    "projection_basis": "scene_camera_perspective"
+  },
+  "field_world_origin": {
+    "x": -5.0,
+    "y": 0.0,
+    "z": 0.0
+  },
+  "bins": [
+    {
+      "bin_index": 0,
+      "radius_start_px": 0.0,
+      "radius_end_px": 63.4884,
+      "pixel_count": 5028,
+      "final_hit_pixel_count": 0,
+      "rendered_no_hit_pixel_count": 3989,
+      "unrendered_pixel_count": 1039,
+      "other_pixel_count": 0,
+      "rendered_pixel_count": 3989,
+      "hit_fraction_within_rendered_area": 0.0,
+      "rendered_coverage_fraction": 0.793357
+    },
+    {
+      "bin_index": 1,
+      "radius_start_px": 63.4884,
+      "radius_end_px": 126.9767,
+      "pixel_count": 17696,
+      "final_hit_pixel_count": 0,
+      "rendered_no_hit_pixel_count": 10726,
+      "unrendered_pixel_count": 6970,
+      "other_pixel_count": 0,
+      "rendered_pixel_count": 10726,
+      "hit_fraction_within_rendered_area": 0.0,
+      "rendered_coverage_fraction": 0.606126
+    },
+    {
+      "bin_index": 2,
+      "radius_start_px": 126.9767,
+      "radius_end_px": 190.4651,
+      "pixel_count": 21218,
+      "final_hit_pixel_count": 0,
+      "rendered_no_hit_pixel_count": 12459,
+      "unrendered_pixel_count": 8759,
+      "other_pixel_count": 0,
+      "rendered_pixel_count": 12459,
+      "hit_fraction_within_rendered_area": 0.0,
+      "rendered_coverage_fraction": 0.58719
+    },
+    {
+      "bin_index": 3,
+      "radius_start_px": 190.4651,
+      "radius_end_px": 253.9534,
+      "pixel_count": 18474,
+      "final_hit_pixel_count": 524,
+      "rendered_no_hit_pixel_count": 10562,
+      "unrendered_pixel_count": 7388,
+      "other_pixel_count": 0,
+      "rendered_pixel_count": 11086,
+      "hit_fraction_within_rendered_area": 0.047267,
+      "rendered_coverage_fraction": 0.600087
+    },
+    {
+      "bin_index": 4,
+      "radius_start_px": 253.9534,
+      "radius_end_px": 317.4418,
+      "pixel_count": 17860,
+      "final_hit_pixel_count": 364,
+      "rendered_no_hit_pixel_count": 10409,
+      "unrendered_pixel_count": 7087,
+      "other_pixel_count": 0,
+      "rendered_pixel_count": 10773,
+      "hit_fraction_within_rendered_area": 0.033788,
+      "rendered_coverage_fraction": 0.603191
+    },
+    {
+      "bin_index": 5,
+      "radius_start_px": 317.4418,
+      "radius_end_px": 380.9302,
+      "pixel_count": 17602,
+      "final_hit_pixel_count": 0,
+      "rendered_no_hit_pixel_count": 10647,
+      "unrendered_pixel_count": 6955,
+      "other_pixel_count": 0,
+      "rendered_pixel_count": 10647,
+      "hit_fraction_within_rendered_area": 0.0,
+      "rendered_coverage_fraction": 0.604874
+    },
+    {
+      "bin_index": 6,
+      "radius_start_px": 380.9302,
+      "radius_end_px": 444.4185,
+      "pixel_count": 17468,
+      "final_hit_pixel_count": 0,
+      "rendered_no_hit_pixel_count": 10574,
+      "unrendered_pixel_count": 6894,
+      "other_pixel_count": 0,
+      "rendered_pixel_count": 10574,
+      "hit_fraction_within_rendered_area": 0.0,
+      "rendered_coverage_fraction": 0.605335
+    },
+    {
+      "bin_index": 7,
+      "radius_start_px": 444.4185,
+      "radius_end_px": 507.9069,
+      "pixel_count": 14254,
+      "final_hit_pixel_count": 0,
+      "rendered_no_hit_pixel_count": 8466,
+      "unrendered_pixel_count": 5788,
+      "other_pixel_count": 0,
+      "rendered_pixel_count": 8466,
+      "hit_fraction_within_rendered_area": 0.0,
+      "rendered_coverage_fraction": 0.593939
+    }
+  ],
+  "totals": {
+    "pixel_count": 129600,
+    "final_hit_pixel_count": 888,
+    "rendered_no_hit_pixel_count": 77832,
+    "unrendered_pixel_count": 50880,
+    "other_pixel_count": 0,
+    "rendered_pixel_count": 78720,
+    "hit_fraction_within_rendered_area": 0.01128,
+    "rendered_coverage_fraction": 0.607407
+  }
+}

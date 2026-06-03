@@ -1,0 +1,9 @@
+group_key,from_step,to_step,lineage_type,from_node,to_node,overlap_px,centroid_distance,persistence_basis
+domain_resolver_stress|row|1|,0.015,0.00625,merge,0,0,57212,0.0,overlap
+domain_resolver_stress|row|1|,0.015,0.00625,split,1,1,158,0.0,overlap
+domain_resolver_stress|row|1|,0.015,0.00625,split,1,0,36,0.0,overlap
+domain_resolver_stress|row|1|,0.015,0.00625,split,2,2,160,0.0,overlap
+domain_resolver_stress|row|1|,0.015,0.00625,split,2,0,34,0.0,overlap
+domain_resolver_stress|row|1|,0.00625,0.003125,merge,0,0,57282,0.0,overlap
+domain_resolver_stress|row|1|,0.00625,0.003125,merge,1,0,158,0.0,overlap
+domain_resolver_stress|row|1|,0.00625,0.003125,merge,2,0,160,0.0,overlap

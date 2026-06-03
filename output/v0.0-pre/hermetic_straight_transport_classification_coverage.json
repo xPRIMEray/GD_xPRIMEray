@@ -1,0 +1,35 @@
+{
+  "analysis_capture_mode": "transport_classification",
+  "case_id": "hermetic_straight",
+  "classification_path": "output/v0.0-pre/hermetic_straight_transport_classification.png",
+  "coverage": {
+    "analysisCaptureMode": "transport_classification",
+    "backgroundHitPixels": 230400,
+    "budgetExhaustedPixels": 0,
+    "classifiedCoverageRatio": 1,
+    "classifiedPixels": 230400,
+    "escapedNoHitPixels": 0,
+    "fixture": "hermetic_observatory_straight",
+    "geomHitPixels": 0,
+    "hermeticRuleSatisfied": 1,
+    "portalHitPixels": 0,
+    "summary": "geom=0|portal=0|throat=0|t_entry=0|t_exit=0|t_xform=0|t_absorb=0|background=230400|escaped=0|budget=0|cov=1",
+    "throatEntryPixels": 0,
+    "throatEventPixels": 0,
+    "throatExitPixels": 0,
+    "throatInnerAbsorbPixels": 0,
+    "throatShellTransformPixels": 0,
+    "totalPixels": 230400,
+    "unclassifiedPixels": 0
+  },
+  "fixture_label": "hermetic straight",
+  "schema": "xprimeray.classification_export_coverage.v1",
+  "summary_metrics": {
+    "budget_exhausted_pixels": 0,
+    "classified_pixels": 230400,
+    "escaped_no_hit_pixels": 0,
+    "hermetic_rule_satisfied": 1,
+    "total_pixels": 230400
+  },
+  "transport_assumption": "straight_reference"
+}

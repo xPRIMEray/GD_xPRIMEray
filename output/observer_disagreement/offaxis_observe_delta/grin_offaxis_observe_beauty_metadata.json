@@ -1,0 +1,50 @@
+{
+  "analysis_capture_mode": "resolved_film",
+  "analysis_height": 270,
+  "analysis_width": 480,
+  "camera_pose_key": "basic_visual_offaxis_observe_v0_pre",
+  "capture_config": {
+    "exit_after_capture": 1,
+    "min_rows": 268,
+    "overlay_enabled_for_analysis_capture": 0,
+    "settle_frames": 12
+  },
+  "capture_failure": null,
+  "capture_path": "output/observer_disagreement/offaxis_observe_delta/grin_offaxis_observe_beauty.png",
+  "case_id": "grin_offaxis_observe",
+  "deterministic_capture_path": "grin_offaxis_observe_beauty.png",
+  "film_height": 270,
+  "film_width": 480,
+  "fixture": "grin_basic_visual_offaxis",
+  "fixture_id": "grin_offaxis_observe",
+  "fixture_label": "curved GRIN off-axis observe",
+  "guardrails": [
+    "Beauty frame is observatory context only.",
+    "No transport, scheduler, traversal, hit-selection, or oracle changes.",
+    "No synthetic visual effects are added."
+  ],
+  "launch_audit": {
+    "actual_fixture": "grin_basic_visual_offaxis",
+    "actual_scene": "res://test-grin-basic-visual-offaxis-observe.tscn",
+    "fixture_match": 1,
+    "requested_launcher": "run_grin_basic_visual_offaxis_observe",
+    "scene_match": 1,
+    "status": "ok"
+  },
+  "log_path": "output/observer_disagreement/offaxis_observe_delta/logs/grin_offaxis_observe_beauty.log",
+  "render_test_traversal_pass1_pass2": "row",
+  "row_participation": {
+    "processed_row_end": 269,
+    "processed_row_ranges": "0-269",
+    "processed_row_start": 0,
+    "total_rows_processed": 270
+  },
+  "scene": "res://test-grin-basic-visual-offaxis-observe.tscn",
+  "scheduler_mode": "row",
+  "schema": "xprimeray.offaxis_beauty_metadata.v1",
+  "semantic_scope": "presentation_only_observatory_context",
+  "status": "PASS",
+  "transport_assumption": "curved_grin",
+  "traversal_mode": "row",
+  "validation_failures": []
+}

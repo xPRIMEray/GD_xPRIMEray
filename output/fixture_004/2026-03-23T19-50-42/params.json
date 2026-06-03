@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-03-23T19-50-42",
+  "fixture_id": "fixture_004",
+  "scene": "res://test-grin-basic-visual-linear-dual-attractor-minimal.tscn",
+  "launcher": "run_fixture_004",
+  "resolved_fixture_identity": "grin_basic_visual_linear_dual_attractor_minimal",
+  "run_dir": "/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_004/2026-03-23T19-50-42",
+  "capture_path": "/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_004/2026-03-23T19-50-42/capture.png",
+  "log_path": "/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_004/2026-03-23T19-50-42/run.log",
+  "requested_transport_model": null,
+  "requested_step_length": 0.04,
+  "requested_min_step_length": null,
+  "requested_steps_per_ray": null,
+  "requested_turn_threshold": 2.4,
+  "requested_error_tolerance": 0.01,
+  "thresholds": {
+    "settle_frames": 12,
+    "min_render_health_step": 20,
+    "min_processed_rows": 64,
+    "capture_film_opacity": "1.0",
+    "compare_grid": "1",
+    "compare_crosshair": "1",
+    "radial_bin_count": 8
+  }
+}

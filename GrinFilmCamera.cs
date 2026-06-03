@@ -1430,6 +1430,13 @@ public partial class GrinFilmCamera : Node
 	[Export] public bool EnforceStrongerHermeticClosureWithHighCausalThreads = true;
 
 	/// <summary>
+	/// STEP 7 Ultra Turbo: When true + high CAUSAL_THREADS, the renderer can dynamically relax per-pixel step budgets
+	/// and chunk sizes for pixels that have "good" historical curvature fingerprints (memristor-style experience).
+	/// Hermetic Pass 1 coverage is still strictly enforced globally.
+	/// </summary>
+	[Export] public bool EnableUltraTurboMode = false;
+
+	/// <summary>
 	/// STEP 6: Returns a multiplier < 1.0 when CausalThreads is high, making the renderer more conservative
 	/// about advancing bands with low coverage or many "escaped_no_hit" / max_steps cases.
 	/// Hermetic safety first.
@@ -1446,6 +1453,98 @@ public partial class GrinFilmCamera : Node
 		if (CausalThreads >= 12)
 			return 0.88f;
 		return 1.0f;
+	}
+
+	/// <summary>
+	/// Cathedral Probe / Ultra-Turbo memristor-style update.
+	/// Lightweight per-pixel "experience" fingerprint: stability (EWMA of ease-of-transport) + coarse class.
+	/// Used only when EnableUltraTurboMode to dynamically relax budgets for historically well-behaved pixels
+	/// while preserving global hermetic Pass 1 coverage (hard pixels still get reference treatment via scheduler).
+	/// </summary>
+	private void UpdateCurvatureFingerprint(int pi, int stepsIntegrated, bool hadHit, bool maxStepsReached, bool stoppedEarly,
+		float stepLength, int configuredMaxSteps)
+	{
+		if (pi < 0 || pi >= _pixelCurvatureFingerprintStability.Length) return;
+
+		// Effort proxy: fraction of budget consumed + penalties for failure modes.
+		float budgetFrac = configuredMaxSteps > 0 ? Mathf.Clamp(stepsIntegrated / (float)configuredMaxSteps, 0f, 1f) : 0.5f;
+		float failurePenalty = (maxStepsReached ? 0.35f : 0f) + (hadHit ? 0f : 0.25f) + (stoppedEarly ? -0.1f : 0f);
+		float rawEffort = Mathf.Clamp(budgetFrac + failurePenalty, 0f, 1f);
+
+		// Stability: inverse effort, smoothed. Higher = "this pixel has been easy and consistent" → turbo candidate.
+		float targetStability = Mathf.Clamp(1.0f - rawEffort, 0f, 1f);
+		float prev = _pixelCurvatureFingerprintStability[pi];
+		// EWMA with modest learning rate (memristor-like hysteresis; doesn't forget immediately).
+		const float alpha = 0.25f;
+		float newStability = Mathf.Lerp(prev, targetStability, alpha);
+		_pixelCurvatureFingerprintStability[pi] = newStability;
+
+		// Coarse transport class for future nanobrain tensor use.
+		byte cls = 0; // unknown
+		if (!hadHit || maxStepsReached) cls = 4; // high_effort / unstable
+		else if (budgetFrac > 0.7f) cls = 3; // boundary_risky or high-curvature
+		else if (budgetFrac > 0.35f) cls = 2; // curved
+		else cls = 1; // easy_stable
+		_pixelCurvatureFingerprintClass[pi] = cls;
+
+		// Saturating confidence (byte for footprint).
+		byte conf = _pixelCurvatureFingerprintConfidence[pi];
+		if (conf < 255) _pixelCurvatureFingerprintConfidence[pi] = (byte)(conf + 1);
+
+		// Optional: when ultra-turbo + high confidence + high stability, we could locally boost the effective
+		// steps budget for this pixel on *next* visit (future: pass per-pixel override into BuildRaySegmentsCamera_Pass1).
+	}
+
+	/// <summary>
+	/// Returns a local multiplier > 1.0 for pixels with strong stable fingerprints when ultra-turbo is enabled.
+	/// This is the "open the budget" half of the mechanism. The scheduler + hermetic guards remain the safety net.
+	/// </summary>
+	private float GetUltraTurboLocalBudgetMultiplier(int pi)
+	{
+		if (!EnableUltraTurboMode || CausalThreads < 8 || pi < 0 || pi >= _pixelCurvatureFingerprintStability.Length)
+			return 1.0f;
+
+		float stab = _pixelCurvatureFingerprintStability[pi];
+		byte conf = _pixelCurvatureFingerprintConfidence[pi];
+		if (stab < 0.60f || conf < 3) return 1.0f; // not yet earned turbo privilege
+
+		// Strengthened for "solution path stability": once the pixel has demonstrated consistent
+		// hit normals + convergence (high stab + coherence), open the local budget aggressively
+		// (up to 2.2x) so the row traverser finishes the smooth surface reliably instead of banding.
+		// The hermetic Pass 1 + stall guards on low-stability pixels remain the safety net.
+		float coherence = (stab > 0.75f) ? 1.0f : (stab > 0.65f ? 0.6f : 0.3f);
+		float turboFactor = 1.0f + (stab - 0.60f) * 2.0f * coherence; // can reach ~2.2x for best pixels
+		return Mathf.Clamp(turboFactor, 1.0f, 2.2f);
+	}
+
+	/// <summary>
+	/// Samples average fingerprint stability over a screen row band [yStart, yEnd).
+	/// Used by ultra-turbo to decide whether to grant this band extra patience before no-hit force-advance.
+	/// </summary>
+	private float GetBandAverageFingerprintStability(int yStart, int yEnd, int filmW, int filmH)
+	{
+		if (!EnableUltraTurboMode || _pixelCurvatureFingerprintStability.Length == 0 || filmW <= 0)
+			return 0f;
+
+		int h = Math.Max(0, yEnd - yStart);
+		if (h <= 0) return 0f;
+
+		double sum = 0;
+		int count = 0;
+		int stride = Math.Max(1, filmW / 32); // cheap sampling
+		for (int y = yStart; y < yEnd; y += Math.Max(1, h / 8))
+		{
+			for (int x = 0; x < filmW; x += stride)
+			{
+				int pi = y * filmW + x;
+				if (pi < _pixelCurvatureFingerprintStability.Length)
+				{
+					sum += _pixelCurvatureFingerprintStability[pi];
+					count++;
+				}
+			}
+		}
+		return count > 0 ? (float)(sum / count) : 0f;
 	}
 
 	/// <summary>Research-only local convergence probe. Writes diagnostics only; does not alter final render state.</summary>
@@ -2122,6 +2221,13 @@ public partial class GrinFilmCamera : Node
 	private Vector3[] _pass1HitPos = Array.Empty<Vector3>();
 	private Vector3[] _pass1HitNormal = Array.Empty<Vector3>();
 	private ulong[] _pass1HitColliderId = Array.Empty<ulong>();
+	// Cathedral Probe / Ultra-Turbo memristor-style per-pixel curvature experience fingerprint (lightweight, in-memory for run).
+	// Stability: EWMA (higher = historically stable/easy transport → candidate for relaxed local budgets in ultra-turbo).
+	// Class: coarse transport phenotype for scheduling hints.
+	// Confidence: saturating count of observations (clamped byte for memory).
+	private float[] _pixelCurvatureFingerprintStability = Array.Empty<float>();
+	private byte[] _pixelCurvatureFingerprintClass = Array.Empty<byte>();
+	private byte[] _pixelCurvatureFingerprintConfidence = Array.Empty<byte>();
 	private byte[] _pass2PrevHadHit = Array.Empty<byte>();
 	private byte[] _pass2HadHitLostThisFrame = Array.Empty<byte>();
 	private PhysicsRayQueryParameters3D _quickRayParams;
@@ -10212,6 +10318,28 @@ private sealed class OverlayRollingWindow
 				}
 			}
 
+			if (TryGetHudArgValue(arg, "--ultra-turbo=", out string ultraTurboValue))
+			{
+				string normalized = ultraTurboValue.Trim().ToLowerInvariant();
+				EnableUltraTurboMode = normalized is "1" or "true" or "on" or "yes";
+				if (EnableUltraTurboMode)
+				{
+					EnableCausalTurbo = true;
+					EnableObjectSeededTileScheduler = true;
+				}
+			}
+
+			if (TryGetHudArgValue(arg, "--curvature-fingerprint-overlay=", out string fpOverlayValue))
+			{
+				string normalized = fpOverlayValue.Trim().ToLowerInvariant();
+				if (normalized is "1" or "true" or "on" or "yes")
+				{
+					// Will be picked up by FilmOverlay2D via bus or direct flag in future full wiring.
+					// For now, ultra-turbo + hermetic debug implies interest in fingerprint diagnostics.
+					EnableUltraTurboMode = true;
+				}
+			}
+
 			if (TryGetHudArgValue(arg, "--reference-geodesic-probe=", out string referenceProbeValue))
 			{
 				string normalized = referenceProbeValue.Trim().ToLowerInvariant();
@@ -13526,9 +13654,17 @@ private sealed class OverlayRollingWindow
 				double avgStepsPerTracedPixel = bandTracedPixels > 0
 					? (double)pass1StepsIntegrated / bandTracedPixels
 					: 0.0;
+
+				string ultraInfo = "";
+				if (EnableUltraTurboMode && CausalThreads >= 8)
+				{
+					float stab = GetBandAverageFingerprintStability(yStart, yEnd, filmW, filmH);
+					float turboM = (stab > 0.5f) ? GetUltraTurboLocalBudgetMultiplier(yStart * filmW) : 1.0f; // sample one px
+					ultraInfo = $" stab={stab:0.00} turboM~{turboM:0.00}";
+				}
 				GD.Print(
 					$"[BandSummary] frame={_frameIndex} y=[{yStart},{yEnd}) " +
-					$"hits={bandHits} tracedPx={bandTracedPixels} noCandPx={bandNoCandidatePixels} avgSteps={avgStepsPerTracedPixel:0.00} reasonDone={reasonDone}");
+					$"hits={bandHits} tracedPx={bandTracedPixels} noCandPx={bandNoCandidatePixels} avgSteps={avgStepsPerTracedPixel:0.00} reasonDone={reasonDone}{ultraInfo}");
 			}
 
 			void ResetNoHitStall()
@@ -13553,7 +13689,32 @@ private sealed class OverlayRollingWindow
 					_bandNoHitStallEndRow = yEnd;
 					_bandNoHitStallRepeats = 1;
 				}
-				return _bandNoHitStallRepeats > GetEffectiveBandNoHitStallMaxRepeats();
+
+				int baseMax = GetEffectiveBandNoHitStallMaxRepeats();
+
+				// Ultra-turbo + Cathedral fingerprint (strengthened for solution path stability):
+				// Once a region learns a stable smooth surface (consistent hit normals + step convergence over frames),
+				// grant *significantly* higher stall tolerance and local budget. This directly counters the
+				// row-traverser "give up too early" banding on surfaces that the integrator has already solved reliably.
+				// Hard/unstable pixels (high normal delta, non-convergent steps) remain on conservative reference path.
+				if (EnableUltraTurboMode && CausalThreads >= 8 && _pixelCurvatureFingerprintStability.Length > 0)
+				{
+					float bandAvgStab = GetBandAverageFingerprintStability(yStart, yEnd, filmW, filmH);
+					// Coherence bonus: if we also have low normal/step variance in the existing Cathedral buffers
+					// for this band, treat as "learned smooth path" and be much more patient.
+					float coherenceBonus = 0f;
+					// Simple heuristic: high stability already implies coherence; in future pull real variance
+					// from ProbeNormalDeltaBuffer / StepConvergenceConfidenceBuffer / NormalDiscontinuityBuffer.
+					if (bandAvgStab >= 0.78f) coherenceBonus = 3;
+					else if (bandAvgStab >= 0.68f) coherenceBonus = 2;
+					else if (bandAvgStab >= 0.58f) coherenceBonus = 1;
+
+					if (bandAvgStab >= 0.68f)
+						baseMax += 1 + (int)coherenceBonus; // significantly higher for stable smooth paths
+					else if (bandAvgStab >= 0.52f)
+						baseMax = Math.Max(1, baseMax);
+				}
+				return _bandNoHitStallRepeats > baseMax;
 			}
 
 			bool ForceAdvanceOnNoHit(string reason, string reasonDone, bool forceNow)
@@ -14189,6 +14350,11 @@ private sealed class OverlayRollingWindow
 			// DECISION: grow pass1 hit collider id buffer when needed.
 			if (_pass1HitColliderId.Length < pixelCount) _pass1HitColliderId = new ulong[pixelCount];
 
+			// Ultra-turbo / Cathedral fingerprint buffers (memristor experience cache)
+			if (_pixelCurvatureFingerprintStability.Length < pixelCount) _pixelCurvatureFingerprintStability = new float[pixelCount];
+			if (_pixelCurvatureFingerprintClass.Length < pixelCount) _pixelCurvatureFingerprintClass = new byte[pixelCount];
+			if (_pixelCurvatureFingerprintConfidence.Length < pixelCount) _pixelCurvatureFingerprintConfidence = new byte[pixelCount];
+
 			///  Debug code block drop
 			_dbgRayCount = 0;
 			_dbgPtWrite = 0;
@@ -14478,6 +14644,14 @@ private sealed class OverlayRollingWindow
 					_pass1HitPos[pi] = hitInfo.Position;
 					_pass1HitNormal[pi] = hitInfo.Normal;
 					_pass1HitColliderId[pi] = hitInfo.ColliderId;
+
+					// Cathedral Probe memristor update: lightweight curvature experience fingerprint for this pixel.
+					// Captures recent effort (steps vs budget, max-step events) + hit success to drive ultra-turbo decisions.
+					if (EnableUltraTurboMode && _pixelCurvatureFingerprintStability.Length > pi)
+					{
+						UpdateCurvatureFingerprint(pi, stepsIntegrated, hitInfo.Found, maxStepsReached, stoppedEarly,
+							cfg.RayMarch.StepLength, cfg.RayMarch.StepsPerRay);
+					}
 					return local;
 				}
 

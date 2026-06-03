@@ -1,0 +1,128 @@
+{
+  "theta_bins": 16,
+  "radial_bins": 4,
+  "direction_bins": 8,
+  "layer_count": 2,
+  "entry_count": 24,
+  "occupied_cells": 21,
+  "max_cell_samples": 209488,
+  "validation_camera_pose_profile": {
+    "preset": "validation_nearfield",
+    "override_active": false,
+    "effective_backoff": 0,
+    "validation_nearfield_backoff": 0,
+    "presentation_mid_backoff": 5,
+    "presentation_far_backoff": 10
+  },
+  "low_value_throttle_profile": {
+    "enabled": true,
+    "layer": 0,
+    "radial_bin": 3,
+    "theta_bins_csv": "13,14,15,0",
+    "period": 2
+  },
+  "invariant_contract": {
+    "layer": 1,
+    "radial_bin": 3,
+    "min_hit_density": 800,
+    "min_hit_continuity_ratio": 0.95,
+    "min_positive_overlap_continuity_ratio": 0.95,
+    "min_radial_gradient": 600
+  },
+  "invariant_result": {
+    "target_found": true,
+    "passed": false,
+    "failure_reason": "hit_density_below_threshold",
+    "hit_density_delta": -236.1111,
+    "hit_continuity_delta": -0.2,
+    "positive_overlap_continuity_delta": -0.325,
+    "radial_gradient_delta": -90.5111
+  },
+  "low_value_sector_budget_contract": {
+    "layer": 0,
+    "radial_bin": 3,
+    "baseline_query_share": 0.4011,
+    "max_query_share_scale": 0.9,
+    "maximum_allowed_query_share": 0.361
+  },
+  "low_value_sector_budget_result": {
+    "target_found": true,
+    "passed": true,
+    "failure_reason": "ok",
+    "actual_query_share": 0.1205,
+    "maximum_allowed_query_share": 0.361,
+    "query_share_delta": 0.2405,
+    "target_query_samples": 150468,
+    "total_query_samples": 1248822
+  },
+  "proto_caustic": {
+    "stable_annular_bands": 0,
+    "sharp_radial_transitions": 1,
+    "sharp_angular_transitions": 1,
+    "max_hit_density": 563.8889,
+    "max_radial_gradient": 509.4889,
+    "max_angular_variation": 0.3652
+  },
+  "usefulness_summary": {
+    "total_query_samples": 1248822,
+    "total_hit_samples": 5347,
+    "invariant_ring_query_share": 0.8705,
+    "non_invariant_query_share": 0.1295,
+    "high_cost_low_value": [
+      {"layer": 1, "radial_bin": 3, "theta_bin": 2, "invariant_ring": true, "query_samples": 209488, "candidate_samples": 209488, "hit_samples": 0, "query_share": 0.1677, "query_hit_yield": 0, "dominant_hit_kind": "none", "low_value_score": 52372, "high_value_score": 0},
+      {"layer": 1, "radial_bin": 3, "theta_bin": 8, "invariant_ring": true, "query_samples": 203823, "candidate_samples": 203823, "hit_samples": 408, "query_share": 0.1632, "query_hit_yield": 0.002, "dominant_hit_kind": "background", "low_value_score": 50853.75, "high_value_score": 550.8},
+      {"layer": 0, "radial_bin": 3, "theta_bin": 15, "invariant_ring": false, "query_samples": 39873, "candidate_samples": 79760, "hit_samples": 0, "query_share": 0.0319, "query_hit_yield": 0, "dominant_hit_kind": "none", "low_value_score": 39873, "high_value_score": 0}
+    ],
+    "high_value": [
+      {"layer": 1, "radial_bin": 3, "theta_bin": 7, "invariant_ring": true, "query_samples": 137627, "candidate_samples": 137627, "hit_samples": 1937, "query_share": 0.1102, "query_hit_yield": 0.0141, "dominant_hit_kind": "background", "low_value_score": 33922.5, "high_value_score": 2614.95},
+      {"layer": 1, "radial_bin": 3, "theta_bin": 6, "invariant_ring": true, "query_samples": 68929, "candidate_samples": 68929, "hit_samples": 1186, "query_share": 0.0552, "query_hit_yield": 0.0172, "dominant_hit_kind": "background", "low_value_score": 16935.75, "high_value_score": 1601.1},
+      {"layer": 1, "radial_bin": 3, "theta_bin": 5, "invariant_ring": true, "query_samples": 51416, "candidate_samples": 51416, "hit_samples": 791, "query_share": 0.0412, "query_hit_yield": 0.0154, "dominant_hit_kind": "background", "low_value_score": 12656.25, "high_value_score": 1067.85}
+    ]
+  },
+  "ring_metrics": [
+    {"layer": 0, "radial_bin": 0, "occupied_theta_cells": 0, "adjacency_pairs": 0, "candidate_continuity_pairs": 0, "hit_continuity_pairs": 0, "positive_overlap_continuity_pairs": 0, "candidate_invariant_cells": 0, "positive_overlap_cells": 0, "positive_overlap_invariant_cells": 0, "total_samples": 0, "total_hit_samples": 0, "min_hit_samples_per_theta": 0, "max_hit_samples_per_theta": 0, "mean_samples_per_theta": 0, "mean_hit_samples_per_theta": 0, "positive_overlap_density": 0, "candidate_continuity_ratio": 0, "hit_continuity_ratio": 0, "positive_overlap_continuity_ratio": 0, "angular_hit_variation": 0, "angular_sample_variation": 0, "radial_hit_gradient_from_prev": 0, "radial_sample_gradient_from_prev": 0, "proto_caustic_score": 0, "stable_annular_hit_band": false, "sharp_radial_transition": false, "sharp_angular_transition": false},
+    {"layer": 0, "radial_bin": 1, "occupied_theta_cells": 0, "adjacency_pairs": 0, "candidate_continuity_pairs": 0, "hit_continuity_pairs": 0, "positive_overlap_continuity_pairs": 0, "candidate_invariant_cells": 0, "positive_overlap_cells": 0, "positive_overlap_invariant_cells": 0, "total_samples": 0, "total_hit_samples": 0, "min_hit_samples_per_theta": 0, "max_hit_samples_per_theta": 0, "mean_samples_per_theta": 0, "mean_hit_samples_per_theta": 0, "positive_overlap_density": 0, "candidate_continuity_ratio": 0, "hit_continuity_ratio": 0, "positive_overlap_continuity_ratio": 0, "angular_hit_variation": 0, "angular_sample_variation": 0, "radial_hit_gradient_from_prev": 0, "radial_sample_gradient_from_prev": 0, "proto_caustic_score": 0, "stable_annular_hit_band": false, "sharp_radial_transition": false, "sharp_angular_transition": false},
+    {"layer": 0, "radial_bin": 2, "occupied_theta_cells": 0, "adjacency_pairs": 0, "candidate_continuity_pairs": 0, "hit_continuity_pairs": 0, "positive_overlap_continuity_pairs": 0, "candidate_invariant_cells": 0, "positive_overlap_cells": 0, "positive_overlap_invariant_cells": 0, "total_samples": 0, "total_hit_samples": 0, "min_hit_samples_per_theta": 0, "max_hit_samples_per_theta": 0, "mean_samples_per_theta": 0, "mean_hit_samples_per_theta": 0, "positive_overlap_density": 0, "candidate_continuity_ratio": 0, "hit_continuity_ratio": 0, "positive_overlap_continuity_ratio": 0, "angular_hit_variation": 0, "angular_sample_variation": 0, "radial_hit_gradient_from_prev": 0, "radial_sample_gradient_from_prev": 0, "proto_caustic_score": 0, "stable_annular_hit_band": false, "sharp_radial_transition": false, "sharp_angular_transition": false},
+    {"layer": 0, "radial_bin": 3, "occupied_theta_cells": 7, "adjacency_pairs": 6, "candidate_continuity_pairs": 1, "hit_continuity_pairs": 6, "positive_overlap_continuity_pairs": 0, "candidate_invariant_cells": 4, "positive_overlap_cells": 0, "positive_overlap_invariant_cells": 0, "total_samples": 210945, "total_hit_samples": 0, "min_hit_samples_per_theta": 0, "max_hit_samples_per_theta": 0, "mean_samples_per_theta": 30135, "mean_hit_samples_per_theta": 0, "positive_overlap_density": 0, "candidate_continuity_ratio": 0.1667, "hit_continuity_ratio": 1, "positive_overlap_continuity_ratio": 0, "angular_hit_variation": 0, "angular_sample_variation": 0.7197, "radial_hit_gradient_from_prev": 0, "radial_sample_gradient_from_prev": 30135, "proto_caustic_score": 0, "stable_annular_hit_band": false, "sharp_radial_transition": false, "sharp_angular_transition": false},
+    {"layer": 1, "radial_bin": 0, "occupied_theta_cells": 0, "adjacency_pairs": 0, "candidate_continuity_pairs": 0, "hit_continuity_pairs": 0, "positive_overlap_continuity_pairs": 0, "candidate_invariant_cells": 0, "positive_overlap_cells": 0, "positive_overlap_invariant_cells": 0, "total_samples": 0, "total_hit_samples": 0, "min_hit_samples_per_theta": 0, "max_hit_samples_per_theta": 0, "mean_samples_per_theta": 0, "mean_hit_samples_per_theta": 0, "positive_overlap_density": 0, "candidate_continuity_ratio": 0, "hit_continuity_ratio": 0, "positive_overlap_continuity_ratio": 0, "angular_hit_variation": 0, "angular_sample_variation": 0, "radial_hit_gradient_from_prev": 0, "radial_sample_gradient_from_prev": 0, "proto_caustic_score": 0, "stable_annular_hit_band": false, "sharp_radial_transition": false, "sharp_angular_transition": false},
+    {"layer": 1, "radial_bin": 1, "occupied_theta_cells": 0, "adjacency_pairs": 0, "candidate_continuity_pairs": 0, "hit_continuity_pairs": 0, "positive_overlap_continuity_pairs": 0, "candidate_invariant_cells": 0, "positive_overlap_cells": 0, "positive_overlap_invariant_cells": 0, "total_samples": 0, "total_hit_samples": 0, "min_hit_samples_per_theta": 0, "max_hit_samples_per_theta": 0, "mean_samples_per_theta": 0, "mean_hit_samples_per_theta": 0, "positive_overlap_density": 0, "candidate_continuity_ratio": 0, "hit_continuity_ratio": 0, "positive_overlap_continuity_ratio": 0, "angular_hit_variation": 0, "angular_sample_variation": 0, "radial_hit_gradient_from_prev": 0, "radial_sample_gradient_from_prev": 0, "proto_caustic_score": 0, "stable_annular_hit_band": false, "sharp_radial_transition": false, "sharp_angular_transition": false},
+    {"layer": 1, "radial_bin": 2, "occupied_theta_cells": 5, "adjacency_pairs": 4, "candidate_continuity_pairs": 0, "hit_continuity_pairs": 3, "positive_overlap_continuity_pairs": 3, "candidate_invariant_cells": 1, "positive_overlap_cells": 4, "positive_overlap_invariant_cells": 4, "total_samples": 11277, "total_hit_samples": 272, "min_hit_samples_per_theta": 0, "max_hit_samples_per_theta": 102, "mean_samples_per_theta": 2255.4, "mean_hit_samples_per_theta": 54.4, "positive_overlap_density": 0.8, "candidate_continuity_ratio": 0, "hit_continuity_ratio": 0.75, "positive_overlap_continuity_ratio": 0.75, "angular_hit_variation": 0.3652, "angular_sample_variation": 0.727, "radial_hit_gradient_from_prev": 54.4, "radial_sample_gradient_from_prev": 2255.4, "proto_caustic_score": 0.2808, "stable_annular_hit_band": false, "sharp_radial_transition": false, "sharp_angular_transition": true},
+    {"layer": 1, "radial_bin": 3, "occupied_theta_cells": 9, "adjacency_pairs": 8, "candidate_continuity_pairs": 0, "hit_continuity_pairs": 6, "positive_overlap_continuity_pairs": 5, "candidate_invariant_cells": 1, "positive_overlap_cells": 6, "positive_overlap_invariant_cells": 6, "total_samples": 1087077, "total_hit_samples": 5075, "min_hit_samples_per_theta": 0, "max_hit_samples_per_theta": 1937, "mean_samples_per_theta": 120786.3, "mean_hit_samples_per_theta": 563.8889, "positive_overlap_density": 0.6667, "candidate_continuity_ratio": 0, "hit_continuity_ratio": 0.75, "positive_overlap_continuity_ratio": 0.625, "angular_hit_variation": 0.25, "angular_sample_variation": 0.4673, "radial_hit_gradient_from_prev": 509.4889, "radial_sample_gradient_from_prev": 118530.9, "proto_caustic_score": 0.9369, "stable_annular_hit_band": false, "sharp_radial_transition": true, "sharp_angular_transition": false}
+  ],
+  "rings": [
+    {"layer": 0, "radial_bin": 0, "occupied_theta_cells": 0, "adjacency_pairs": 0, "candidate_continuity_pairs": 0, "hit_continuity_pairs": 0, "positive_overlap_continuity_pairs": 0},
+    {"layer": 0, "radial_bin": 1, "occupied_theta_cells": 0, "adjacency_pairs": 0, "candidate_continuity_pairs": 0, "hit_continuity_pairs": 0, "positive_overlap_continuity_pairs": 0},
+    {"layer": 0, "radial_bin": 2, "occupied_theta_cells": 0, "adjacency_pairs": 0, "candidate_continuity_pairs": 0, "hit_continuity_pairs": 0, "positive_overlap_continuity_pairs": 0},
+    {"layer": 0, "radial_bin": 3, "occupied_theta_cells": 7, "adjacency_pairs": 6, "candidate_continuity_pairs": 1, "hit_continuity_pairs": 6, "positive_overlap_continuity_pairs": 0},
+    {"layer": 1, "radial_bin": 0, "occupied_theta_cells": 0, "adjacency_pairs": 0, "candidate_continuity_pairs": 0, "hit_continuity_pairs": 0, "positive_overlap_continuity_pairs": 0},
+    {"layer": 1, "radial_bin": 1, "occupied_theta_cells": 0, "adjacency_pairs": 0, "candidate_continuity_pairs": 0, "hit_continuity_pairs": 0, "positive_overlap_continuity_pairs": 0},
+    {"layer": 1, "radial_bin": 2, "occupied_theta_cells": 5, "adjacency_pairs": 4, "candidate_continuity_pairs": 0, "hit_continuity_pairs": 3, "positive_overlap_continuity_pairs": 3},
+    {"layer": 1, "radial_bin": 3, "occupied_theta_cells": 9, "adjacency_pairs": 8, "candidate_continuity_pairs": 0, "hit_continuity_pairs": 6, "positive_overlap_continuity_pairs": 5}
+  ],
+  "entries": [
+    {"layer": 1, "theta_bin": 4, "radial_bin": 3, "direction_bin": 4, "remap_bin": 1, "query_samples": 55015, "candidate_samples": 55015, "first_candidate_count": 7, "first_candidate_hash": "10932112391262515765", "candidate_invariant": false, "positive_overlap_samples": 866, "first_positive_overlap_count": 1, "positive_overlap_invariant": true, "hit_samples": 705, "background_hits": 705, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 1, "theta_bin": 5, "radial_bin": 3, "direction_bin": 4, "remap_bin": 1, "query_samples": 51416, "candidate_samples": 51416, "first_candidate_count": 7, "first_candidate_hash": "10932112391262515765", "candidate_invariant": false, "positive_overlap_samples": 959, "first_positive_overlap_count": 1, "positive_overlap_invariant": true, "hit_samples": 791, "background_hits": 791, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 1, "theta_bin": 6, "radial_bin": 3, "direction_bin": 4, "remap_bin": 1, "query_samples": 68929, "candidate_samples": 68929, "first_candidate_count": 7, "first_candidate_hash": "10932112391262515765", "candidate_invariant": false, "positive_overlap_samples": 1491, "first_positive_overlap_count": 1, "positive_overlap_invariant": true, "hit_samples": 1186, "background_hits": 1186, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 1, "theta_bin": 7, "radial_bin": 3, "direction_bin": 4, "remap_bin": 1, "query_samples": 134891, "candidate_samples": 134891, "first_candidate_count": 7, "first_candidate_hash": "10932112391262515765", "candidate_invariant": false, "positive_overlap_samples": 2607, "first_positive_overlap_count": 1, "positive_overlap_invariant": true, "hit_samples": 1937, "background_hits": 1937, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 1, "theta_bin": 1, "radial_bin": 3, "direction_bin": 4, "remap_bin": 1, "query_samples": 151650, "candidate_samples": 151650, "first_candidate_count": 4, "first_candidate_hash": "8214498311374706688", "candidate_invariant": false, "positive_overlap_samples": 0, "first_positive_overlap_count": -1, "positive_overlap_invariant": true, "hit_samples": 0, "background_hits": 0, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 1, "theta_bin": 2, "radial_bin": 3, "direction_bin": 4, "remap_bin": 1, "query_samples": 209488, "candidate_samples": 209488, "first_candidate_count": 4, "first_candidate_hash": "8214498311374706688", "candidate_invariant": false, "positive_overlap_samples": 0, "first_positive_overlap_count": -1, "positive_overlap_invariant": true, "hit_samples": 0, "background_hits": 0, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 1, "theta_bin": 3, "radial_bin": 3, "direction_bin": 4, "remap_bin": 1, "query_samples": 88540, "candidate_samples": 88540, "first_candidate_count": 8, "first_candidate_hash": "8598806716982567627", "candidate_invariant": false, "positive_overlap_samples": 76, "first_positive_overlap_count": 1, "positive_overlap_invariant": true, "hit_samples": 48, "background_hits": 48, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 1, "theta_bin": 8, "radial_bin": 3, "direction_bin": 4, "remap_bin": 1, "query_samples": 194569, "candidate_samples": 194569, "first_candidate_count": 4, "first_candidate_hash": "8214498311374706688", "candidate_invariant": false, "positive_overlap_samples": 568, "first_positive_overlap_count": 1, "positive_overlap_invariant": true, "hit_samples": 408, "background_hits": 408, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 1, "theta_bin": 9, "radial_bin": 3, "direction_bin": 4, "remap_bin": 1, "query_samples": 97949, "candidate_samples": 97949, "first_candidate_count": 4, "first_candidate_hash": "8214498311374706688", "candidate_invariant": true, "positive_overlap_samples": 0, "first_positive_overlap_count": -1, "positive_overlap_invariant": true, "hit_samples": 0, "background_hits": 0, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 1, "theta_bin": 7, "radial_bin": 3, "direction_bin": 5, "remap_bin": 1, "query_samples": 2736, "candidate_samples": 2736, "first_candidate_count": 8, "first_candidate_hash": "8598806716982567627", "candidate_invariant": false, "positive_overlap_samples": 0, "first_positive_overlap_count": -1, "positive_overlap_invariant": true, "hit_samples": 0, "background_hits": 0, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 1, "theta_bin": 8, "radial_bin": 3, "direction_bin": 5, "remap_bin": 1, "query_samples": 9254, "candidate_samples": 9254, "first_candidate_count": 4, "first_candidate_hash": "8214498311374706688", "candidate_invariant": false, "positive_overlap_samples": 0, "first_positive_overlap_count": -1, "positive_overlap_invariant": true, "hit_samples": 0, "background_hits": 0, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 1, "theta_bin": 9, "radial_bin": 3, "direction_bin": 5, "remap_bin": 1, "query_samples": 22640, "candidate_samples": 22640, "first_candidate_count": 4, "first_candidate_hash": "8214498311374706688", "candidate_invariant": true, "positive_overlap_samples": 0, "first_positive_overlap_count": -1, "positive_overlap_invariant": true, "hit_samples": 0, "background_hits": 0, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 0, "theta_bin": 2, "radial_bin": 3, "direction_bin": 7, "remap_bin": 2, "query_samples": 31206, "candidate_samples": 31206, "first_candidate_count": 4, "first_candidate_hash": "4077222801895912540", "candidate_invariant": true, "positive_overlap_samples": 0, "first_positive_overlap_count": -1, "positive_overlap_invariant": true, "hit_samples": 0, "background_hits": 0, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 0, "theta_bin": 0, "radial_bin": 3, "direction_bin": 7, "remap_bin": 2, "query_samples": 20591, "candidate_samples": 41181, "first_candidate_count": 3, "first_candidate_hash": "8219869720308779922", "candidate_invariant": true, "positive_overlap_samples": 0, "first_positive_overlap_count": -1, "positive_overlap_invariant": true, "hit_samples": 0, "background_hits": 0, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 0, "theta_bin": 15, "radial_bin": 3, "direction_bin": 7, "remap_bin": 2, "query_samples": 39873, "candidate_samples": 79760, "first_candidate_count": 3, "first_candidate_hash": "8219869720308779922", "candidate_invariant": true, "positive_overlap_samples": 0, "first_positive_overlap_count": -1, "positive_overlap_invariant": true, "hit_samples": 0, "background_hits": 0, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 0, "theta_bin": 3, "radial_bin": 3, "direction_bin": 7, "remap_bin": 2, "query_samples": 31883, "candidate_samples": 31883, "first_candidate_count": 4, "first_candidate_hash": "4077222801895912540", "candidate_invariant": false, "positive_overlap_samples": 0, "first_positive_overlap_count": -1, "positive_overlap_invariant": true, "hit_samples": 0, "background_hits": 0, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 0, "theta_bin": 4, "radial_bin": 3, "direction_bin": 7, "remap_bin": 2, "query_samples": 19775, "candidate_samples": 19775, "first_candidate_count": 4, "first_candidate_hash": "4077222801895912540", "candidate_invariant": false, "positive_overlap_samples": 0, "first_positive_overlap_count": -1, "positive_overlap_invariant": true, "hit_samples": 0, "background_hits": 0, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 0, "theta_bin": 1, "radial_bin": 3, "direction_bin": 7, "remap_bin": 2, "query_samples": 6254, "candidate_samples": 6254, "first_candidate_count": 4, "first_candidate_hash": "4077222801895912540", "candidate_invariant": false, "positive_overlap_samples": 0, "first_positive_overlap_count": -1, "positive_overlap_invariant": true, "hit_samples": 0, "background_hits": 0, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 1, "theta_bin": 5, "radial_bin": 2, "direction_bin": 4, "remap_bin": 1, "query_samples": 3835, "candidate_samples": 3835, "first_candidate_count": 8, "first_candidate_hash": "8598806716982567627", "candidate_invariant": false, "positive_overlap_samples": 126, "first_positive_overlap_count": 1, "positive_overlap_invariant": true, "hit_samples": 102, "background_hits": 102, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 1, "theta_bin": 4, "radial_bin": 2, "direction_bin": 4, "remap_bin": 1, "query_samples": 3958, "candidate_samples": 3958, "first_candidate_count": 8, "first_candidate_hash": "8598806716982567627", "candidate_invariant": false, "positive_overlap_samples": 119, "first_positive_overlap_count": 1, "positive_overlap_invariant": true, "hit_samples": 101, "background_hits": 101, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 1, "theta_bin": 6, "radial_bin": 2, "direction_bin": 4, "remap_bin": 1, "query_samples": 2127, "candidate_samples": 2127, "first_candidate_count": 8, "first_candidate_hash": "8598806716982567627", "candidate_invariant": false, "positive_overlap_samples": 16, "first_positive_overlap_count": 1, "positive_overlap_invariant": true, "hit_samples": 14, "background_hits": 14, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 1, "theta_bin": 3, "radial_bin": 2, "direction_bin": 4, "remap_bin": 1, "query_samples": 1253, "candidate_samples": 1253, "first_candidate_count": 7, "first_candidate_hash": "10932112391262515765", "candidate_invariant": false, "positive_overlap_samples": 69, "first_positive_overlap_count": 1, "positive_overlap_invariant": true, "hit_samples": 55, "background_hits": 55, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 0, "theta_bin": 5, "radial_bin": 3, "direction_bin": 7, "remap_bin": 2, "query_samples": 886, "candidate_samples": 886, "first_candidate_count": 4, "first_candidate_hash": "4077222801895912540", "candidate_invariant": true, "positive_overlap_samples": 0, "first_positive_overlap_count": -1, "positive_overlap_invariant": true, "hit_samples": 0, "background_hits": 0, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0},
+    {"layer": 1, "theta_bin": 7, "radial_bin": 2, "direction_bin": 4, "remap_bin": 1, "query_samples": 104, "candidate_samples": 104, "first_candidate_count": 8, "first_candidate_hash": "8598806716982567627", "candidate_invariant": true, "positive_overlap_samples": 0, "first_positive_overlap_count": -1, "positive_overlap_invariant": true, "hit_samples": 0, "background_hits": 0, "source_hits": 0, "unclassified_hits": 0, "absorbed_hits": 0, "miss_hits": 0}
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "classification_counts": {
+    "stable": 64
+  },
+  "comparison_count": 768,
+  "cost_curve_rows": 832,
+  "diagnostic_only": true,
+  "first_stable_step_counts": {
+    "0.02": 64
+  },
+  "guardrail": "Outputs must not feed rendering, scheduling, hit selection, shading, resolver decisions, traversal, or adaptive precision.",
+  "local_continuity_vector_count": 0,
+  "local_patch_bbox": {
+    "x0": 32,
+    "x1": 48,
+    "y0": 27,
+    "y1": 43
+  },
+  "local_transport_shape_region_count": 0,
+  "oracle_replay_failure_count": 0,
+  "oracle_step_length": 0.001563,
+  "risk_delta_0.00625_vs_0.003125_max": 9e-05,
+  "risk_delta_0.00625_vs_0.003125_mean": 9e-05,
+  "sample_count": 64,
+  "sealed_at_0.00625": true,
+  "sealed_step": 0.00625,
+  "stable_at_0.00625_count": 64,
+  "study": "reference_transport_oracle_unresolved_island",
+  "target_bbox": {
+    "x0": 36,
+    "x1": 44,
+    "y0": 31,
+    "y1": 37
+  },
+  "unresolved_at_0.003125_count": 0
+}

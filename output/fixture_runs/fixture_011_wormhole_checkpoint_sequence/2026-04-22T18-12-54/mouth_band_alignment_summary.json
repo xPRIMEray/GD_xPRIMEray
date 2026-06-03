@@ -1,0 +1,39 @@
+{
+  "checkpoint": "mouth",
+  "run_directory": "/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-22T18-12-54",
+  "debug_image_source": "/home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_011_wormhole_checkpoint_sequence/2026-04-22T18-12-54/00_mouth_debug_normal_rgb.png",
+  "visible_band_mask_threshold": 0.001953125,
+  "visible_band_mask_nonzero_pixels": 38896,
+  "visible_band_signal_mean": 0.0688808262348175,
+  "metrics": {
+    "neighbor_normal_delta": {
+      "pearson_to_visible_band_mask": 0.9744534439549657,
+      "iou_to_visible_band_mask": 0.9978661044837516,
+      "mean_signal": 0.15985247492790222,
+      "threshold": 0.001953125,
+      "nonzero_pixels": 38813
+    },
+    "neighbor_collider_switch": {
+      "pearson_to_visible_band_mask": 0.3423263245985546,
+      "iou_to_visible_band_mask": 0.2131107231552288,
+      "mean_signal": 0.08055555820465088,
+      "threshold": 0.001953125,
+      "nonzero_pixels": 10440
+    },
+    "neighbor_hit_distance_delta": {
+      "pearson_to_visible_band_mask": 0.30949905240735026,
+      "iou_to_visible_band_mask": 0.15421973338619357,
+      "mean_signal": 0.05754224956035614,
+      "threshold": 0.314453125,
+      "nonzero_pixels": 114378
+    }
+  },
+  "best_alignment": {
+    "heatmap": "neighbor_normal_delta",
+    "pearson_to_visible_band_mask": 0.9744534439549657,
+    "iou_to_visible_band_mask": 0.9978661044837516,
+    "mean_signal": 0.15985247492790222,
+    "threshold": 0.001953125,
+    "nonzero_pixels": 38813
+  }
+}

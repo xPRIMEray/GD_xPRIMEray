@@ -1,0 +1,42 @@
+Total Pixels: 129600
+Classified Pixels: 129600
+Classified Coverage Ratio: 1
+Causal Observed Pixels: 150720
+Boundary Crossings Total: 14878
+Scene Transform Events Total: 7439
+Entry Events Total: 7439
+Exit Events Total: 7439
+Max Transform Count Seen: 3
+Ambiguous Order Pixels: 0
+Throat Classification Inferred Pixels: 0
+Continuation Attempted Pixels: 0
+Continuation Success Pixels: 0
+Continuation Failed Pixels: 0
+Frontface Hit Pixels: 99231
+Backface Hit Pixels: 0
+Backface Only Pixels: 0
+Frontface Ratio: 1
+Path Length Mean: 7.373369
+Path Length Max: 11.832738
+Optical Path Tracked: 0
+Phase Tracked: 0
+Observer Camera Path: /root/TestOverspaceHermeticFixture/FixtureOverspaceHermeticRoom/Camera3D
+Observer Camera Instance Id: 26893878653
+Geom Hit Pixels: 119424
+Portal Hit Pixels: 6243
+Throat Event Pixels: 3933
+Throat Entry Pixels: 0
+Throat Exit Pixels: 0
+Throat Shell Transform Pixels: 3933
+Throat Inner Absorb Pixels: 0
+Background Hit Pixels: 0
+Escaped No-Hit Pixels: 0
+Budget Exhausted Pixels: 0
+Unclassified Pixels: 0
+Hermetic Rule Satisfied: True
+Coverage Summary: geom=119424|portal=6243|throat=3933|t_entry=0|t_exit=0|t_xform=3933|t_absorb=0|background=0|escaped=0|budget=0|cov=1
+Causal Summary: obs=150720|cross=14878|xform=7439|entry=7439|exit=7439|ambig=0|infer=0|contAttempt=0|contSuccess=0|contFail=0|front=99231|back=0|backOnly=0|frontRatio=1|pathMean=7.373|pathMax=11.833
+Coverage Mix: G:0.921 P:0.048 TT:0.030
+Legend: G=geom_hit P=portal_hit TE=throat_entry TX=throat_exit TT=throat_shell_transform TA=throat_inner_absorb T=throat_event_total B=background_hit E=escaped_no_hit X=budget_exhausted U=unclassified
+Legend Image: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_009_wormhole_witness_throat/2026-04-19T14-30-36/coverage_legend.png
+Annotated Image: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_009_wormhole_witness_throat/2026-04-19T14-30-36/coverage_annotated.png

@@ -1,0 +1,20 @@
+{
+  "study": "curved_field_validation_ladder",
+  "timestamp": "20260508T124517Z",
+  "curved_scene": "res://test-curved-minimal-backdrop.tscn",
+  "curved_fixture": "curved_minimal_backdrop",
+  "control_scene": "res://test-domain-resolver-stress.tscn",
+  "control_fixture": "domain_resolver_stress",
+  "resolution": "320x180",
+  "frames": 5,
+  "warmup": 0,
+  "stride": 1,
+  "traversal": "row",
+  "scheduler_mode": "row",
+  "primary_step": "0.015",
+  "reference_step": "0.003125",
+  "step_ladder": "0.015,0.00625,0.003125",
+  "manual_rois": "40,35",
+  "diagnostic_only": true,
+  "guardrail": "Do not describe visible band/support artifacts as caused by curvature unless comparison metrics support that claim."
+}

@@ -1,0 +1,38 @@
+Total Pixels: 129600
+Classified Pixels: 129600
+Classified Coverage Ratio: 1
+Causal Observed Pixels: 150720
+Boundary Crossings Total: 141548
+Scene Transform Events Total: 70774
+Entry Events Total: 70774
+Exit Events Total: 70774
+Max Transform Count Seen: 16
+Ambiguous Order Pixels: 0
+Throat Classification Inferred Pixels: 0
+Continuation Attempted Pixels: 0
+Continuation Success Pixels: 0
+Continuation Failed Pixels: 0
+Path Length Mean: 9.191435
+Path Length Max: 14.147435
+Optical Path Tracked: 0
+Phase Tracked: 0
+Observer Camera Path: /root/TestOverspaceHermeticFixture/FixtureOverspaceHermeticRoom/Camera3D
+Observer Camera Instance Id: 26776438141
+Geom Hit Pixels: 75404
+Portal Hit Pixels: 32371
+Throat Event Pixels: 21825
+Throat Entry Pixels: 0
+Throat Exit Pixels: 134
+Throat Shell Transform Pixels: 21691
+Throat Inner Absorb Pixels: 0
+Background Hit Pixels: 0
+Escaped No-Hit Pixels: 0
+Budget Exhausted Pixels: 0
+Unclassified Pixels: 0
+Hermetic Rule Satisfied: True
+Coverage Summary: geom=75404|portal=32371|throat=21825|t_entry=0|t_exit=134|t_xform=21691|t_absorb=0|background=0|escaped=0|budget=0|cov=1
+Causal Summary: obs=150720|cross=141548|xform=70774|entry=70774|exit=70774|ambig=0|infer=0|contAttempt=0|contSuccess=0|contFail=0|pathMean=9.191|pathMax=14.147
+Coverage Mix: G:0.582 P:0.250 TX:0.001 TT:0.167
+Legend: G=geom_hit P=portal_hit TE=throat_entry TX=throat_exit TT=throat_shell_transform TA=throat_inner_absorb T=throat_event_total B=background_hit E=escaped_no_hit X=budget_exhausted U=unclassified
+Legend Image: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_007_field/2026-04-13T23-01-46/coverage_legend.png
+Annotated Image: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_007_field/2026-04-13T23-01-46/coverage_annotated.png

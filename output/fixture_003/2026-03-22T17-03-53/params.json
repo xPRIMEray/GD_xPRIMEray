@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-03-22T17-03-53",
+  "fixture_id": "fixture_003",
+  "scene": "res://test-grin-basic-visual-linear-offset-minimal.tscn",
+  "launcher": "run_fixture_003",
+  "resolved_fixture_identity": "grin_basic_visual_linear_offset_minimal",
+  "run_dir": "output/fixture_runs/fixture_003/2026-03-22T17-03-53",
+  "capture_path": "output/fixture_runs/fixture_003/2026-03-22T17-03-53/capture.png",
+  "log_path": "output/fixture_runs/fixture_003/2026-03-22T17-03-53/run.log",
+  "requested_transport_model": null,
+  "requested_step_length": 0.04,
+  "requested_min_step_length": null,
+  "requested_steps_per_ray": null,
+  "requested_turn_threshold": 2.4,
+  "requested_error_tolerance": 0.01,
+  "thresholds": {
+    "settle_frames": 12,
+    "min_render_health_step": 20,
+    "min_processed_rows": 64,
+    "capture_film_opacity": "1.0",
+    "compare_grid": "1",
+    "compare_crosshair": "1",
+    "radial_bin_count": 8
+  }
+}

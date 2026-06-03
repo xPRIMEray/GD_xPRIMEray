@@ -1,0 +1,4 @@
+node_id,hit,collider_id,domain_id,area_px,centroid_x,centroid_y,bbox_x0,bbox_y0,bbox_x1,bbox_y1,mean_path_length,mean_step_count,mean_boundary_event_count
+0,0,0,0,57212,159.5,89.91,0,0,319,179,21.030069,10.130742,0.0
+1,1,25836914057,0,194,159.5,27.0,63,27,256,27,8.448055,700.0,0.0
+2,1,25836914057,0,194,159.5,31.0,63,31,256,31,8.420865,700.0,0.0

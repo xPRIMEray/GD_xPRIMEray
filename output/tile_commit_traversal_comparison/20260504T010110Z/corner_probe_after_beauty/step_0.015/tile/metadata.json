@@ -1,0 +1,18 @@
+{
+  "timestamp": "2026-05-04T01:51:30Z",
+  "phase": "corner_probe_after_beauty",
+  "step_length": "0.015",
+  "traversal": "tile",
+  "resolution": "320x180",
+  "film_width": 320,
+  "film_height": 180,
+  "stride": 1,
+  "traversal_flag_scope": "render-test pass1 acquisition + pass2 commit/write order",
+  "diagnostic_wireframe_overlay": 1,
+  "diagnostic_wireframe_continuity": 1,
+  "diagnostic_wireframe_manual_rois": "40,35;280,35;40,145;280,145",
+  "cell_dir": "/home/bb/code/godot_xPRIMEray/output/tile_commit_traversal_comparison/20260504T010110Z/corner_probe_after_beauty/step_0.015/tile",
+  "exit_code": 0,
+  "effective_status": 0,
+  "notes": "clean_exit"
+}

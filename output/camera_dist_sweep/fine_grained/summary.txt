@@ -1,0 +1,16 @@
+Wormhole Fine-Grained Near-Field Backoff Sweep
+
+backoff | hitRate | totalHits | geomHits | finalWritePx | pass2.query(ms) | pass2.physics(ms) | proto | budget | hitDensity | radialGradient
+    0.0 |   29.25 |     22662 |     8840 |         8840 |         4434.38 |          46725.90 | false |   true |   982.2222 |       982.2222
+         camera_pos=(-2.35,1.4,0) elapsedToWrap=20.59s full_pass=yes queries=1722978 actual_query_share=0.0189
+    0.5 |   30.70 |     23844 |    23844 |        23844 |         4019.86 |          41807.53 |  true |   true |  1258.3750 |      1129.7500
+         camera_pos=(-2.78,1.656,0) elapsedToWrap=50.90s full_pass=yes queries=4534423 actual_query_share=0.1200
+    1.0 |   21.47 |     16748 |    16748 |        16748 |         4158.27 |          39325.55 |  true |   true |   906.0000 |       821.0625
+         camera_pos=(-3.209,1.912,0) elapsedToWrap=48.60s full_pass=yes queries=3922290 actual_query_share=0.0766
+    1.5 |   14.83 |     11507 |    11507 |        11507 |         4678.88 |          37838.47 | false |   true |   630.5625 |       581.3125
+         camera_pos=(-3.639,2.168,0) elapsedToWrap=48.16s full_pass=yes queries=3505177 actual_query_share=0.0664
+    2.0 |   10.51 |      8051 |     8051 |         8051 |         4781.06 |          37184.59 | false |   true |   445.8125 |       414.0625
+         camera_pos=(-4.068,2.424,0) elapsedToWrap=48.12s full_pass=yes queries=3005787 actual_query_share=0.0622
+
+Largest tested backoff that still preserved the proto-caustic invariant: 1.0
+First tested failure beyond that preserved point: 1.5

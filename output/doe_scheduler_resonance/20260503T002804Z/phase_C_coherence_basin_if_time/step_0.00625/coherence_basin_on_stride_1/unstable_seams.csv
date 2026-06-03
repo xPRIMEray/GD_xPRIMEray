@@ -1,0 +1,1 @@
+seam_id,object_id,center_x,center_y,sample_count,seam_class,local_coherence_score,transport_divergence_score,local_transport_entropy,manifold_fragmentation_count,precision_floor,scheduler_resonance_hint

@@ -1,0 +1,37 @@
+Fixture: fixture_001
+Timestamp: 2026-03-22T13-11-52
+Scene: res://test-grin-basic-visual-minimal.tscn
+Status: ok
+Runtime Seconds: 28.249
+Traced Pixels: 70016
+Source Hits: 3188
+Miss Hits: 66828
+Capture Succeeded: true
+Launch Audit Status: ok
+Guard Progress Exits: 0
+Forced Advance Events: 0
+Render Health Step: 41
+Processed Rows: 164
+Total Rows Considered: 164
+Total Rows Processed: 164
+Total Rows Skipped: 0
+Processed Row Window: 0..163
+Zero-Hit Rows: 0
+Row Participation Summary: proc=0-163|skip=-|zero=-
+Row Coverage: PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
+Visual Mode: diagnostic_flat
+Visual Shading Mode: DepthHeatmap
+Baseline Shading Mode: NormalRGB
+Analysis Capture Written: 1
+Debug Capture Written: 1
+Overlay Enabled For Analysis Capture: 0
+White Streak Likely Source: rendered_film_with_overlay_inputs
+Bottom Region Likely Cause: row_coverage_termination_or_unrendered_area
+Runtime Fingerprint: fixture001_runtime_fingerprint_v1_git_5a207a0e6c35_utc_20260322T181156Z_sha_0300efc4a0c00dc2
+Assembly Timestamp Present: true
+Requested Step Match: true
+Row Diagnostics Present: true
+Scheduler Clean: true
+Run Verified: true
+Turn Threshold: 3.2
+Output Path: /home/bb/code/godot_xPRIMEray/output/fixture_runs/fixture_001/2026-03-22T13-11-52
