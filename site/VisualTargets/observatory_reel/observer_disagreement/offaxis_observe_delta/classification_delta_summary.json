@@ -1,0 +1,191 @@
+{
+  "class_counts": {
+    "curved": {
+      "budget_exhausted": 22464,
+      "escaped_no_hit": 60295,
+      "geom_hit": 46841
+    },
+    "straight": {
+      "budget_exhausted": 38336,
+      "escaped_no_hit": 20964,
+      "geom_hit": 70300
+    }
+  },
+  "coverage": {
+    "curved": {
+      "analysis_capture_mode": "transport_classification",
+      "case_id": "grin_offaxis_observe",
+      "classification_path": "output/observer_disagreement/offaxis_observe_delta/grin_offaxis_observe_transport_classification.png",
+      "coverage": {
+        "analysisCaptureMode": "transport_classification",
+        "backgroundHitPixels": 0,
+        "budgetExhaustedPixels": 22464,
+        "classifiedCoverageRatio": 1,
+        "classifiedPixels": 129600,
+        "escapedNoHitPixels": 60295,
+        "fixture": "grin_basic_visual_offaxis",
+        "geomHitPixels": 46841,
+        "hermeticRuleSatisfied": 0,
+        "portalHitPixels": 0,
+        "summary": "geom=46841|portal=0|throat=0|t_entry=0|t_exit=0|t_xform=0|t_absorb=0|background=0|escaped=60295|budget=22464|cov=1",
+        "throatEntryPixels": 0,
+        "throatEventPixels": 0,
+        "throatExitPixels": 0,
+        "throatInnerAbsorbPixels": 0,
+        "throatShellTransformPixels": 0,
+        "totalPixels": 129600,
+        "unclassifiedPixels": 0
+      },
+      "fixture_label": "curved GRIN off-axis observe",
+      "schema": "xprimeray.classification_export_coverage.v1",
+      "summary_metrics": {
+        "background_hits": 44401,
+        "budget_exhausted_pixels": 22464,
+        "classified_pixels": 129600,
+        "escaped_no_hit_pixels": 60295,
+        "hermetic_rule_satisfied": 0,
+        "miss_hits": 62232,
+        "source_hits": 5815,
+        "total_pixels": 129600
+      },
+      "transport_assumption": "curved_grin"
+    },
+    "straight": {
+      "analysis_capture_mode": "transport_classification",
+      "case_id": "straight_offaxis_observe",
+      "classification_path": "output/observer_disagreement/offaxis_observe_delta/straight_offaxis_observe_transport_classification.png",
+      "coverage": {
+        "analysisCaptureMode": "transport_classification",
+        "backgroundHitPixels": 0,
+        "budgetExhaustedPixels": 38336,
+        "classifiedCoverageRatio": 1,
+        "classifiedPixels": 129600,
+        "escapedNoHitPixels": 20964,
+        "fixture": "grin_basic_visual_straight_offaxis",
+        "geomHitPixels": 70300,
+        "hermeticRuleSatisfied": 0,
+        "portalHitPixels": 0,
+        "summary": "geom=70300|portal=0|throat=0|t_entry=0|t_exit=0|t_xform=0|t_absorb=0|background=0|escaped=20964|budget=38336|cov=1",
+        "throatEntryPixels": 0,
+        "throatEventPixels": 0,
+        "throatExitPixels": 0,
+        "throatInnerAbsorbPixels": 0,
+        "throatShellTransformPixels": 0,
+        "totalPixels": 129600,
+        "unclassifiedPixels": 0
+      },
+      "fixture_label": "straight off-axis observe",
+      "schema": "xprimeray.classification_export_coverage.v1",
+      "summary_metrics": {
+        "background_hits": 67911,
+        "budget_exhausted_pixels": 38336,
+        "classified_pixels": 129600,
+        "escaped_no_hit_pixels": 20964,
+        "hermetic_rule_satisfied": 0,
+        "miss_hits": 22927,
+        "source_hits": 5098,
+        "total_pixels": 129600
+      },
+      "transport_assumption": "straight_reference"
+    }
+  },
+  "guardrails": [
+    "presentation-only instrumentation",
+    "no transport semantic changes",
+    "no scheduler modifications",
+    "no hit selection changes",
+    "no resolver decision changes",
+    "no oracle behavior changes",
+    "no synthetic field energy, glow, particles, or turbulence"
+  ],
+  "image": {
+    "height": 270,
+    "total_pixels": 129600,
+    "width": 480
+  },
+  "inputs": {
+    "curved_classification_image": "output/observer_disagreement/offaxis_observe_delta/grin_offaxis_observe_transport_classification.png",
+    "curved_coverage": "output/observer_disagreement/offaxis_observe_delta/grin_offaxis_observe_transport_classification_coverage.json",
+    "curved_metadata": "output/observer_disagreement/offaxis_observe_delta/grin_offaxis_observe_transport_classification_metadata.json",
+    "straight_classification_image": "output/observer_disagreement/offaxis_observe_delta/straight_offaxis_observe_transport_classification.png",
+    "straight_coverage": "output/observer_disagreement/offaxis_observe_delta/straight_offaxis_observe_transport_classification_coverage.json",
+    "straight_metadata": "output/observer_disagreement/offaxis_observe_delta/straight_offaxis_observe_transport_classification_metadata.json"
+  },
+  "metadata": {
+    "compared": [
+      {
+        "curved": 480,
+        "key": "width",
+        "match": true,
+        "straight": 480
+      },
+      {
+        "curved": 270,
+        "key": "height",
+        "match": true,
+        "straight": 270
+      },
+      {
+        "curved": "basic_visual_offaxis_observe_v0_pre",
+        "key": "camera_pose_key",
+        "match": true,
+        "straight": "basic_visual_offaxis_observe_v0_pre"
+      },
+      {
+        "curved": "row",
+        "key": "traversal_mode",
+        "match": true,
+        "straight": "row"
+      },
+      {
+        "curved": "row",
+        "key": "scheduler_mode",
+        "match": true,
+        "straight": "row"
+      },
+      {
+        "curved": "row",
+        "key": "render_test_traversal_pass1_pass2",
+        "match": true,
+        "straight": "row"
+      }
+    ],
+    "present": true,
+    "require_metadata": true,
+    "warnings": []
+  },
+  "metrics": {
+    "changed_pixels": 30839,
+    "changed_ratio": 0.23795524691358025,
+    "resolved_compared_pixels": 78368,
+    "unchanged_pixels": 47529,
+    "unresolved_pixels": 51232,
+    "unresolved_ratio": 0.39530864197530863
+  },
+  "outputs": {
+    "classification_delta": "output/observer_disagreement/offaxis_observe_delta/classification_delta.png",
+    "classification_delta_contours": "output/observer_disagreement/offaxis_observe_delta/classification_delta_contours.png",
+    "classification_delta_summary": "output/observer_disagreement/offaxis_observe_delta/classification_delta_summary.json"
+  },
+  "schema_version": 1,
+  "tool": "classification_delta_compare.py",
+  "top_transition_buckets": [
+    {
+      "count": 27619,
+      "ratio": 0.21310956790123456,
+      "transition": "geom_hit->escaped_no_hit"
+    },
+    {
+      "count": 3220,
+      "ratio": 0.02484567901234568,
+      "transition": "escaped_no_hit->geom_hit"
+    }
+  ],
+  "visual_language": {
+    "changed_pixels": "restrained blue-cyan tint",
+    "contours": "single-pixel changed/unresolved mask edges",
+    "synthetic_effects": "none",
+    "unchanged_pixels": "transparent",
+    "unresolved_pixels": "neutral gray mark"
+  }
+}

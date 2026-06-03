@@ -1,0 +1,38 @@
+{
+  "analysis_capture_mode": "transport_classification",
+  "case_id": "straight_offaxis_observe",
+  "classification_path": "output/observer_disagreement/offaxis_observe_delta/straight_offaxis_observe_transport_classification.png",
+  "coverage": {
+    "analysisCaptureMode": "transport_classification",
+    "backgroundHitPixels": 0,
+    "budgetExhaustedPixels": 38336,
+    "classifiedCoverageRatio": 1,
+    "classifiedPixels": 129600,
+    "escapedNoHitPixels": 20964,
+    "fixture": "grin_basic_visual_straight_offaxis",
+    "geomHitPixels": 70300,
+    "hermeticRuleSatisfied": 0,
+    "portalHitPixels": 0,
+    "summary": "geom=70300|portal=0|throat=0|t_entry=0|t_exit=0|t_xform=0|t_absorb=0|background=0|escaped=20964|budget=38336|cov=1",
+    "throatEntryPixels": 0,
+    "throatEventPixels": 0,
+    "throatExitPixels": 0,
+    "throatInnerAbsorbPixels": 0,
+    "throatShellTransformPixels": 0,
+    "totalPixels": 129600,
+    "unclassifiedPixels": 0
+  },
+  "fixture_label": "straight off-axis observe",
+  "schema": "xprimeray.classification_export_coverage.v1",
+  "summary_metrics": {
+    "background_hits": 67911,
+    "budget_exhausted_pixels": 38336,
+    "classified_pixels": 129600,
+    "escaped_no_hit_pixels": 20964,
+    "hermetic_rule_satisfied": 0,
+    "miss_hits": 22927,
+    "source_hits": 5098,
+    "total_pixels": 129600
+  },
+  "transport_assumption": "straight_reference"
+}
