@@ -132,11 +132,23 @@ extra:
 nav:
   - Home: index.md
 
+  - Start Here: start_here.md
+
   - Overview:
       - Transport Observatory: Overview/TRANSPORT_OBSERVATORY_OVERVIEW.md
       - Feature Index: FEATURE_INDEX.md
 
   - Observatory:
+      - Observatory Atlas: Observatory/observatory_atlas.md
+      - Chapters:
+          - Ch 1 — Dual Reality: Observatory/chapters/chapter_01.md
+          - Ch 2 — Observer Disagreement: Observatory/chapters/chapter_02.md
+          - Ch 3 — Hermetic Closure: Observatory/chapters/chapter_03.md
+          - Ch 4 — Coherence Basin: Observatory/chapters/chapter_04.md
+          - Ch 5 — Cathedral Probe: Observatory/chapters/chapter_05.md
+      - Sample Worlds: Observatory/sample_worlds.md
+      - Artifact Gallery: Observatory/artifacts.md
+      - Validation Philosophy: Observatory/validation_philosophy.md
       - Overlay Master List: Observatory/OVERLAY_MASTER_LIST.md
       - Atomic Visual Observatory: Research/atomic_orbital_visual_observatory_fixture.md
       - Wormhole Structure Observatory: Research/wormhole_dual_reality_transport_workflow.md
