@@ -1,0 +1,330 @@
+{
+  "_schema": "xprimeray-atlas-manifest-v1",
+  "_date": "2026-06-02",
+  "_description": "Dependency graph linking artifacts → worlds → chapters → validation tests. Every edge is directional: A → B means 'B depends on A' or 'A supports B'.",
+
+  "nodes": {
+    "artifacts": [
+      {
+        "id": "a01",
+        "ref": "wormhole-dual-reality-story",
+        "files": [
+          "misterylabs_artifacts/visuals/wormhole-dual-reality-story.png",
+          "misterylabs_artifacts/visuals/wormhole-dual-reality-full-stack.png",
+          "misterylabs_artifacts/visuals/wormhole-dual-reality-curvature-map.png",
+          "misterylabs_artifacts/cards/wormhole-dual-reality-story.md"
+        ],
+        "tier": 1,
+        "complete": true
+      },
+      {
+        "id": "a02",
+        "ref": "wormhole-structure-observatory",
+        "files": [
+          "misterylabs_artifacts/visuals/wormhole-structure-observatory.png",
+          "misterylabs_artifacts/visuals/wormhole-structure-straight-vs-curved.png",
+          "misterylabs_artifacts/visuals/wormhole-structure-resonance-chamber.png",
+          "misterylabs_artifacts/visuals/wormhole-structure-domain-diagnostics.png"
+        ],
+        "tier": 1,
+        "complete": true
+      },
+      {
+        "id": "a03",
+        "ref": "observer-disagreement",
+        "files": [
+          "misterylabs_artifacts/visuals/observer-disagreement-contact-sheet.png",
+          "misterylabs_artifacts/visuals/observer-disagreement-observability.png",
+          "misterylabs_artifacts/datasets/observer-disagreement.json"
+        ],
+        "tier": 2,
+        "complete": true
+      },
+      {
+        "id": "a04",
+        "ref": "hermetic-hit-closure",
+        "files": [
+          "misterylabs_artifacts/visuals/hermetic-hit-closure-storyboard.png",
+          "misterylabs_artifacts/visuals/hermetic-hit-closure-recovery.png",
+          "misterylabs_artifacts/validation/hermetic-hit-closure.md"
+        ],
+        "tier": 2,
+        "complete": true,
+        "missing": ["side-by-side budget=32 vs budget=700 render"]
+      },
+      {
+        "id": "a05",
+        "ref": "transport-coherence-basin",
+        "files": [
+          "misterylabs_artifacts/visuals/transport-coherence-radial.png",
+          "misterylabs_artifacts/visuals/transport-coherence-risk-vs-step.png",
+          "misterylabs_artifacts/datasets/transport-coherence-risk-nodes.csv",
+          "misterylabs_artifacts/validation/transport-coherence-basin.md"
+        ],
+        "tier": 3,
+        "complete": false,
+        "missing": ["beauty render at resolution where 289 regions are individually distinguishable"]
+      },
+      {
+        "id": "a06",
+        "ref": "doe-scheduler-resonance",
+        "files": [
+          "misterylabs_artifacts/visuals/doe-scheduler-resonance-heatmap.png",
+          "misterylabs_artifacts/visuals/doe-scheduler-resonance-stride-plot.png",
+          "misterylabs_artifacts/datasets/doe-scheduler-resonance.csv"
+        ],
+        "tier": 2,
+        "complete": true
+      },
+      {
+        "id": "a07",
+        "ref": "cathedral-probe-composite",
+        "files": [
+          "Docs/assets/cathedral_probe/cathedral_probe_overlay_row_0015.png",
+          "Docs/assets/cathedral_probe/cathedral_probe_contact_sheet_row_0015.png",
+          "Docs/assets/cathedral_probe/continuity_vectors_row_0015.png",
+          "Docs/assets/cathedral_probe/traversal_contact_sheet_4mode_0015.png",
+          "Docs/assets/cathedral_probe/band_support_by_mode_0015.png"
+        ],
+        "tier": 2,
+        "complete": true,
+        "note": "Repo-tracked in Docs/assets/, not yet promoted to misterylabs_artifacts/. Promote before Chapter 5 goes live."
+      },
+      {
+        "id": "a08",
+        "ref": "atomic-orbital-observatory",
+        "files": [
+          "misterylabs_artifacts/visuals/atomic-orbital-observatory.png"
+        ],
+        "tier": 1,
+        "complete": true,
+        "note": "Standalone exhibit. Not part of the main atlas arc — best as a parallel exhibit on the GRIN physics page."
+      },
+      {
+        "id": "a09",
+        "ref": "overspace-first-milestone",
+        "files": [
+          "misterylabs_artifacts/visuals/overspace-first-milestone.png",
+          "misterylabs_artifacts/visuals/overspace-path-60pct.png"
+        ],
+        "tier": 1,
+        "complete": true,
+        "note": "Visual milestone. Best as a site hero image or intro page, not a chapter in the atlas arc."
+      },
+      {
+        "id": "a10",
+        "ref": "recursive-mirror-ghost-portal",
+        "files": [
+          "misterylabs_artifacts/cards/recursive-mirror-ghost-portal.md"
+        ],
+        "tier": 3,
+        "complete": false,
+        "missing": ["benchmark PNG — test-recursive-mirror-ghost-portal.tscn must be run and the beauty captured"]
+      }
+    ],
+
+    "worlds": [
+      {
+        "id": "w01",
+        "ref": "dual_reality_view_world",
+        "path": "sample_worlds/dual_reality_view_world/",
+        "scene": "res://test-overspace-wormhole-witness-fixture.tscn",
+        "status": "design_proposal",
+        "build_priority": 1
+      },
+      {
+        "id": "w02",
+        "ref": "observer_disagreement_world",
+        "path": "sample_worlds/observer_disagreement_world/",
+        "scene": "res://test-grin-basic-visual-minimal-offaxis-observe.tscn",
+        "status": "design_proposal",
+        "build_priority": 2
+      },
+      {
+        "id": "w03",
+        "ref": "hermetic_closure_world",
+        "path": "sample_worlds/hermetic_closure_world/",
+        "scene": "res://test-hermetic-curved-room.tscn",
+        "status": "design_proposal",
+        "build_priority": 3
+      },
+      {
+        "id": "w04",
+        "ref": "cathedral_probe_world",
+        "path": "sample_worlds/cathedral_probe_world/",
+        "scene": "res://test-domain-resolver-stress.tscn",
+        "status": "design_proposal",
+        "build_priority": 4
+      },
+      {
+        "id": "w05",
+        "ref": "transport_coherence_basin_world",
+        "path": "sample_worlds/transport_coherence_basin_world/",
+        "scene": "res://test-domain-resolver-stress.tscn",
+        "status": "design_proposal",
+        "build_priority": 5
+      }
+    ],
+
+    "chapters": [
+      {
+        "id": "c01",
+        "ref": "chapter_01_dual_reality",
+        "path": "observatory_atlas/chapters/chapter_01_dual_reality/",
+        "act": 1,
+        "sequence": 1,
+        "status": "ready",
+        "core_question": "What does a wormhole look like, and how do we know the bending is real?"
+      },
+      {
+        "id": "c02",
+        "ref": "chapter_02_observer_disagreement",
+        "path": "observatory_atlas/chapters/chapter_02_observer_disagreement/",
+        "act": 1,
+        "sequence": 2,
+        "status": "ready",
+        "core_question": "How much does curved transport change what you see — and in which direction?"
+      },
+      {
+        "id": "c03",
+        "ref": "chapter_03_hermetic_closure",
+        "path": "observatory_atlas/chapters/chapter_03_hermetic_closure/",
+        "act": 2,
+        "sequence": 3,
+        "status": "ready",
+        "core_question": "When is a render silently wrong, and how do you detect it?"
+      },
+      {
+        "id": "c04",
+        "ref": "chapter_04_coherence_basin",
+        "path": "observatory_atlas/chapters/chapter_04_coherence_basin/",
+        "act": 3,
+        "sequence": 4,
+        "status": "partial",
+        "core_question": "Where does transport refuse to converge regardless of precision?",
+        "blocked_by": ["beauty render at distinguishable resolution"]
+      },
+      {
+        "id": "c05",
+        "ref": "chapter_05_cathedral_probe",
+        "path": "observatory_atlas/chapters/chapter_05_cathedral_probe/",
+        "act": 3,
+        "sequence": 5,
+        "status": "ready",
+        "core_question": "How do you diagnose transport failures without a crash or an oracle?",
+        "note": "Promote Docs/assets/cathedral_probe/ images to misterylabs_artifacts/ before Chapter 5 goes live."
+      }
+    ],
+
+    "validation_tests": [
+      {
+        "id": "v01",
+        "chapter": "c01",
+        "question": "Is the curvature hot zone in frame 03 at the portal boundary or at the throat?",
+        "expected": "boundary",
+        "falsification": "If throat is hotter than the boundary annulus, the GRIN field parameterization has changed."
+      },
+      {
+        "id": "v02",
+        "chapter": "c02",
+        "question": "How many pixels differ between curved and straight transport at the canonical off-axis pose?",
+        "expected": "30,839 (23.8%)",
+        "falsification": "Below 5% or above 40% indicates scene or transport configuration mismatch."
+      },
+      {
+        "id": "v03",
+        "chapter": "c02",
+        "question": "What is the dominant disagreement transition direction?",
+        "expected": "geom_hit → escaped_no_hit (27,619 pixels, ~90% of changed pixels)",
+        "falsification": "If escaped → geom_hit dominates, the GRIN field is acting as a focusing lens — unexpected for this configuration."
+      },
+      {
+        "id": "v04",
+        "chapter": "c03",
+        "question": "At budget=700, step=0.015, row traversal: what is the closure percentage?",
+        "expected": "100.0% (plateau phase)",
+        "falsification": "Below 95% indicates integrator regression or scene configuration mismatch."
+      },
+      {
+        "id": "v05",
+        "chapter": "c03",
+        "question": "At budget=32, same settings: what is the closure percentage?",
+        "expected": "0.0% (budget_saturated phase)",
+        "falsification": "Above 5% indicates the scene is less expensive than the artifact baseline."
+      },
+      {
+        "id": "v06",
+        "chapter": "c04",
+        "question": "At epsilon=0.05, precision floor 0.003125: how many UNSEALED regions does the oracle find?",
+        "expected": "289",
+        "falsification": "Significantly fewer may indicate a field parameterization change that reduced instability (investigate as potential improvement)."
+      },
+      {
+        "id": "v07",
+        "chapter": "c04",
+        "question": "Are the instability bands symmetric around the scene's vertical midline?",
+        "expected": "yes (bands at rows ~58 and ~122, symmetric around ~135)",
+        "falsification": "Asymmetry indicates field parameterization change or numerical artifact."
+      },
+      {
+        "id": "v08",
+        "chapter": "c05",
+        "question": "At stride=4, step=0.015, row traversal: what band coverage percentage should the DOE produce?",
+        "expected": "0.22–0.45%",
+        "falsification": "Above 5% means the resonance effect has been suppressed — verify scheduler mode."
+      },
+      {
+        "id": "v09",
+        "chapter": "c05",
+        "question": "Does corner instability persist across all traversal modes?",
+        "expected": "yes (468 ownership-change samples, mode-independent)",
+        "falsification": "If corner instability varies with traversal mode, it has a scheduling component not identified in the original study."
+      }
+    ]
+  },
+
+  "edges": {
+    "artifact_supports_chapter": [
+      { "from": "a01", "to": "c01", "role": "primary" },
+      { "from": "a02", "to": "c01", "role": "context" },
+      { "from": "a03", "to": "c02", "role": "primary" },
+      { "from": "a04", "to": "c03", "role": "primary" },
+      { "from": "a05", "to": "c04", "role": "primary" },
+      { "from": "a06", "to": "c05", "role": "primary" },
+      { "from": "a07", "to": "c05", "role": "primary" }
+    ],
+    "world_demonstrates_chapter": [
+      { "from": "w01", "to": "c01" },
+      { "from": "w02", "to": "c02" },
+      { "from": "w03", "to": "c03" },
+      { "from": "w05", "to": "c04" },
+      { "from": "w04", "to": "c05" }
+    ],
+    "chapter_requires_chapter": [
+      { "from": "c01", "to": "c02", "rationale": "Chapter 2 needs 'two transport modes' concept established by Chapter 1." },
+      { "from": "c02", "to": "c04", "rationale": "Chapter 4 instability is most meaningful after seeing the disagreement measurement." },
+      { "from": "c03", "to": "c04", "rationale": "Chapter 4 builds on the closure correctness concept from Chapter 3." },
+      { "from": "c04", "to": "c05", "rationale": "Chapter 5 references the topological instability identified in Chapter 4." },
+      { "from": "c03", "to": "c05", "rationale": "Chapter 5's closure validation references hermetic closure from Chapter 3." }
+    ],
+    "validation_test_belongs_to_chapter": [
+      { "from": "v01", "to": "c01" },
+      { "from": "v02", "to": "c02" },
+      { "from": "v03", "to": "c02" },
+      { "from": "v04", "to": "c03" },
+      { "from": "v05", "to": "c03" },
+      { "from": "v06", "to": "c04" },
+      { "from": "v07", "to": "c04" },
+      { "from": "v08", "to": "c05" },
+      { "from": "v09", "to": "c05" }
+    ]
+  },
+
+  "sequences": {
+    "recommended": ["c01", "c02", "c03", "c04", "c05"],
+    "minimum_viable_observatory": ["c01", "c02", "c03"],
+    "research_track": ["c03", "c04", "c05"],
+    "visual_track": ["c01", "c02"],
+    "standalone_exhibits": ["a08", "a09", "a10"]
+  }
+}
