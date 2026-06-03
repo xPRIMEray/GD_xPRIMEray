@@ -1,0 +1,64 @@
+{
+  "description": "Observer disagreement: curved GRIN vs straight reference transport",
+  "image_dims": {
+    "height": 270,
+    "total_pixels": 129600,
+    "width": 480
+  },
+  "class_counts": {
+    "curved": {
+      "analysisCaptureMode": "transport_classification",
+      "backgroundHitPixels": 0,
+      "budgetExhaustedPixels": 22464,
+      "classifiedCoverageRatio": 1,
+      "classifiedPixels": 129600,
+      "escapedNoHitPixels": 60295,
+      "fixture": "grin_basic_visual_offaxis",
+      "geomHitPixels": 46841,
+      "hermeticRuleSatisfied": 0,
+      "portalHitPixels": 0,
+      "summary": "geom=46841|portal=0|throat=0|t_entry=0|t_exit=0|t_xform=0|t_absorb=0|background=0|escaped=60295|budget=22464|cov=1",
+      "throatEntryPixels": 0,
+      "throatEventPixels": 0,
+      "throatExitPixels": 0,
+      "throatInnerAbsorbPixels": 0,
+      "throatShellTransformPixels": 0,
+      "totalPixels": 129600,
+      "unclassifiedPixels": 0
+    },
+    "straight": {
+      "analysisCaptureMode": "transport_classification",
+      "backgroundHitPixels": 0,
+      "budgetExhaustedPixels": 38336,
+      "classifiedCoverageRatio": 1,
+      "classifiedPixels": 129600,
+      "escapedNoHitPixels": 20964,
+      "fixture": "grin_basic_visual_straight_offaxis",
+      "geomHitPixels": 70300,
+      "hermeticRuleSatisfied": 0,
+      "portalHitPixels": 0,
+      "summary": "geom=70300|portal=0|throat=0|t_entry=0|t_exit=0|t_xform=0|t_absorb=0|background=0|escaped=20964|budget=38336|cov=1",
+      "throatEntryPixels": 0,
+      "throatEventPixels": 0,
+      "throatExitPixels": 0,
+      "throatInnerAbsorbPixels": 0,
+      "throatShellTransformPixels": 0,
+      "totalPixels": 129600,
+      "unclassifiedPixels": 0
+    }
+  },
+  "changed_pixels": 30839,
+  "changed_ratio": 0.23795524691358025,
+  "top_transitions": [
+    {
+      "count": 27619,
+      "ratio": 0.21310956790123456,
+      "transition": "geom_hit->escaped_no_hit"
+    },
+    {
+      "count": 3220,
+      "ratio": 0.02484567901234568,
+      "transition": "escaped_no_hit->geom_hit"
+    }
+  ]
+}

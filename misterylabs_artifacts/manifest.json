@@ -1,235 +1,192 @@
 {
   "_schema": "xprimeray-artifact-manifest-v1",
-  "_generated": "2026-05-31",
-  "_note": "All source_output_folder paths are relative to the repo root. in_misterylabs=true means this artifact has been promoted into misterylabs_artifacts/.",
+  "_updated": "2026-06-02",
+  "_promoted_count": 10,
   "artifacts": [
     {
-      "id": "atomic-orbital-visual-observatory",
-      "title": "GRIN Atomic Orbital — Parameter Ladder",
-      "source_output_folder": "output/atomic_orbital_visual_observatory",
-      "artifact_type": "visual_reference",
-      "status": "Visual reference",
-      "in_misterylabs": false,
-      "suggested_files": [
-        "output/atomic_orbital_visual_observatory/<latest>/atomic_visual_contact_sheet.png",
-        "output/atomic_orbital_visual_observatory/<latest>/atomic_visual_observatory_report.md"
-      ],
-      "summary": "Five side-by-side renders showing how electron count, field radius, field strength, and temporal phase sculpt light through a hydrogen-like GRIN field. No rasterization — every pixel is an integrated ray path.",
-      "next_step": "Select the best contact sheet PNG (<2 MB) and promote to visuals/. Write a 3-sentence explainer for the site card."
-    },
-    {
       "id": "wormhole-dual-reality-story",
-      "title": "Wormhole Dual Reality — Storytelling Sequence",
+      "title": "Wormhole Dual Reality — Six Steps from Perception to Interpretation",
       "source_output_folder": "output/wormhole_DR_Story",
       "artifact_type": "visual_reference",
       "status": "Visual reference",
-      "in_misterylabs": false,
-      "suggested_files": [
-        "output/wormhole_DR_Story/latest/wormhole_dual_reality_storytelling_contact_sheet.png",
-        "output/wormhole_DR_Story/latest/storytelling_sequence.md"
+      "tier": 1,
+      "category": "observatory",
+      "in_misterylabs": true,
+      "thumbnail": "visuals/wormhole-dual-reality-story.png",
+      "promoted_files": [
+        "visuals/wormhole-dual-reality-story.png",
+        "visuals/wormhole-dual-reality-full-stack.png",
+        "visuals/wormhole-dual-reality-curvature-map.png",
+        "cards/wormhole-dual-reality-story.md"
       ],
-      "summary": "Six frames that walk the viewer step-by-step through a wormhole's DualRealityTransport: bare curved render, reference-reality inset, curvature heat map, semantic glyphs, collision radar, and the full stack simultaneously. Designed to make bent light legible without equations.",
-      "next_step": "This is the most site-ready artifact. Promote the contact sheet to visuals/ and storytelling_sequence.md to cards/."
+      "summary": "Six frames that walk a visitor from bare curved render → straight-path comparison → curvature heat map → semantic glyphs → collision radar → full interpretive stack. The clearest public demonstration of DualRealityTransport.",
+      "next_step": "Animate as a crossfade carousel. Add a seventh frame showing the derivative step count heatmap."
     },
     {
       "id": "wormhole-structure-observatory",
-      "title": "Wormhole Anatomy — Contact Sheet",
+      "title": "Wormhole Structure Observatory — Six Diagnostic Views of One Scene",
       "source_output_folder": "output/wormhole_structure_observatory",
       "artifact_type": "visual_reference",
       "status": "Visual reference",
-      "in_misterylabs": false,
-      "suggested_files": [
-        "output/wormhole_structure_observatory/<latest>/wormhole_structure_contact_sheet.png",
-        "output/wormhole_structure_observatory/<latest>/wormhole_structure_report.md"
+      "tier": 1,
+      "category": "observatory",
+      "in_misterylabs": true,
+      "thumbnail": "visuals/wormhole-structure-observatory.png",
+      "promoted_files": [
+        "visuals/wormhole-structure-observatory.png",
+        "visuals/wormhole-structure-straight-vs-curved.png",
+        "visuals/wormhole-structure-resonance-chamber.png",
+        "visuals/wormhole-structure-domain-diagnostics.png",
+        "cards/wormhole-structure-observatory.md"
       ],
-      "summary": "A multi-panel contact sheet showing the wormhole's mouth, throat, and exit under curvature and collision-radar overlays. A companion timeout probe confirms graceful degradation when render budget runs out.",
-      "next_step": "Check PNG file size. If <2 MB promote to visuals/. Copy wormhole_structure_report.md to cards/."
+      "summary": "The same wormhole rendered six ways: clean curved, straight vs. curved, depth heatmap, step budget heatmap, domain diagnostics, structure minimap. Plus a resonance chamber overlay synthesizing all diagnostic layers into one annotated image.",
+      "next_step": "Run the observatory on additional scene types (GRIN room, mirror portal) for comparison."
+    },
+    {
+      "id": "atomic-orbital-observatory",
+      "title": "Atomic Orbital GRIN Observatory — Light Bent by a Hydrogen Field",
+      "source_output_folder": "output/atomic_orbital_visual_observatory",
+      "artifact_type": "visual_reference",
+      "status": "Visual reference",
+      "tier": 1,
+      "category": "grin_rendering",
+      "in_misterylabs": true,
+      "thumbnail": "visuals/atomic-orbital-observatory.png",
+      "promoted_files": [
+        "visuals/atomic-orbital-observatory.png",
+        "cards/atomic-orbital-observatory.md"
+      ],
+      "summary": "Five renders spanning no-field baseline to exaggerated hydrogen GRIN lensing to temporally modulated orbital fringes. Demonstrates GRIN field rendering at the physics level: 2–11% of pixels visibly shift between temporal ticks.",
+      "next_step": "Add helium (two-electron) variant. Render at higher resolution for finer fringe detail."
     },
     {
       "id": "overspace-first-milestone",
-      "title": "Overspace Gallery — Path Approach Ladder",
+      "title": "Overspace First Milestone — Approaching the Gallery Orb",
       "source_output_folder": "output/overspace_first_milestone",
       "artifact_type": "visual_reference",
       "status": "Visual reference",
-      "in_misterylabs": false,
-      "suggested_files": [
-        "output/overspace_first_milestone/latest/overspace_first_milestone_contact_sheet.png",
-        "output/overspace_first_milestone/latest/storytelling_sequence.md"
+      "tier": 1,
+      "category": "milestone",
+      "in_misterylabs": true,
+      "thumbnail": "visuals/overspace-first-milestone.png",
+      "promoted_files": [
+        "visuals/overspace-first-milestone.png",
+        "visuals/overspace-path-60pct.png",
+        "cards/overspace-first-milestone.md"
       ],
-      "summary": "The first complete overspace render: five frames tracing a camera approach toward a gallery orb through GRIN curvature, portal boundaries, and CausalDoppler overlays. A milestone image in xPRIMEray's visual development.",
-      "next_step": "Promote contact sheet to visuals/. This should be a featured card on the site."
+      "summary": "Five path-progress frames (0–80%) from an auto-path camera approaching a gallery orb through overspace. The first complete render of a non-Euclidean scene in xPRIMEray. Proves the auto-path, GRIN integrator, and overlay pipeline work together under a moving observer.",
+      "next_step": "Render the 100% approach frame (orb entry). Animate the sequence as the site hero."
     },
     {
       "id": "observer-disagreement",
-      "title": "Observer Disagreement — Curved vs. Straight",
+      "title": "Observer Disagreement — How Curved Transport Changes What You See",
       "source_output_folder": "output/observer_disagreement",
       "artifact_type": "validation_candidate",
       "status": "Validation candidate",
-      "in_misterylabs": false,
-      "suggested_files": [
-        "output/observer_disagreement/<run>/classification_delta.png",
-        "output/observer_disagreement/<run>/classification_delta_summary.json"
+      "tier": 2,
+      "category": "transport_analysis",
+      "in_misterylabs": true,
+      "thumbnail": "visuals/observer-disagreement-contact-sheet.png",
+      "promoted_files": [
+        "visuals/observer-disagreement-contact-sheet.png",
+        "visuals/observer-disagreement-observability.png",
+        "datasets/observer-disagreement.json",
+        "cards/observer-disagreement.md"
       ],
-      "summary": "A disagreement map: the same scene traced with straight and curved transport. The difference in ray outcomes — which rays escape, hit geometry, or exhaust budget — makes GRIN curvature measurable rather than just visible.",
-      "next_step": "Promote classification_delta.png to visuals/ and the summary JSON to datasets/."
-    },
-    {
-      "id": "curved-field-validation-ladder",
-      "title": "GRIN Field — Curved vs. Straight Storyboard",
-      "source_output_folder": "output/curved_field_validation_ladder",
-      "artifact_type": "validation_candidate",
-      "status": "Validation candidate",
-      "in_misterylabs": false,
-      "suggested_files": [
-        "output/curved_field_validation_ladder/<latest>/curved_vs_control_storyboard.png",
-        "output/curved_field_validation_ladder/<latest>/curved_ladder_summary.md"
-      ],
-      "summary": "Systematic validation confirming the GRIN field bends rays correctly: five runs pairing each curved render against its straight-field control so the bending effect is directly visible.",
-      "next_step": "Promote curved_vs_control_storyboard.png as the site's GRIN explainer image."
+      "summary": "23.8% of pixels classify differently between curved GRIN and straight reference transport. The dominant shift (27k pixels): geometry hits become escaped rays — GRIN deflects them past surfaces entirely. Quantifies what curvature costs the observer in missed surface contacts.",
+      "next_step": "Build a disagreement heatmap over observer pose space. Map the angular dependence."
     },
     {
       "id": "hermetic-hit-closure",
-      "title": "Hermetic Hit Closure — Integration Escape Audit",
+      "title": "Hermetic Hit Closure — The Budget Required for Complete Integration",
       "source_output_folder": "output/hermetic_hit_closure",
       "artifact_type": "validation_candidate",
       "status": "Validation candidate",
-      "in_misterylabs": false,
-      "suggested_files": [
-        "output/hermetic_hit_closure/<latest>/hermetic_closure_ladder.png",
-        "output/hermetic_hit_closure/<latest>/hermetic_failure_storyboard.png",
-        "output/hermetic_hit_closure/<latest>/hermetic_hit_closure_summary.md"
+      "tier": 2,
+      "category": "validation",
+      "in_misterylabs": true,
+      "thumbnail": "visuals/hermetic-hit-closure-storyboard.png",
+      "promoted_files": [
+        "visuals/hermetic-hit-closure-storyboard.png",
+        "visuals/hermetic-hit-closure-recovery.png",
+        "validation/hermetic-hit-closure.md",
+        "cards/hermetic-hit-closure.md"
       ],
-      "summary": "A closure audit tracking every ray that enters a hermetic volume and confirming it exits. Failure islands and adaptive recovery heatmaps reveal exactly where the integrator needs finer step sizes.",
-      "next_step": "Promote closure_ladder.png and failure_storyboard.png to visuals/. Copy summary.md to validation/."
-    },
-    {
-      "id": "transport-coherence-basin-smoke",
-      "title": "Transport Coherence — Convergence Risk Map",
-      "source_output_folder": "output/transport_coherence_basin_smoke",
-      "artifact_type": "validation_candidate",
-      "status": "Validation candidate",
-      "in_misterylabs": false,
-      "suggested_files": [
-        "output/transport_coherence_basin_smoke/<latest>/convergence_class_heatmap.png",
-        "output/transport_coherence_basin_smoke/<latest>/risk_region_report.md",
-        "output/transport_coherence_basin_smoke/<latest>/transport_risk_nodes.csv"
-      ],
-      "summary": "289 instability regions, all UNSEALED_NONCONVERGENT, symmetrically distributed in the high-curvature band. The convergence heatmap makes systematic transport instability measurable.",
-      "next_step": "Promote convergence_class_heatmap.png to visuals/ and risk_region_report.md to validation/."
-    },
-    {
-      "id": "doe-overnight",
-      "title": "Overnight DOE — Step Length vs. Telemetry",
-      "source_output_folder": "output/doe_overnight",
-      "artifact_type": "dataset",
-      "status": "Test output",
-      "in_misterylabs": false,
-      "suggested_files": [
-        "output/doe_overnight/<latest>/DOE_overnight_summary.csv",
-        "output/doe_overnight/<latest>/DOE_overnight_summary.md",
-        "output/doe_overnight/<latest>/DOE_overnight_band_plot.png"
-      ],
-      "summary": "18-cell DOE quantifying the step-length / telemetry-overhead tradeoff: fine steps capture 26% of high-curvature pixels vs. 0.6% at coarse, with telemetry adding measurable pixel change at most resolutions.",
-      "next_step": "Promote DOE_overnight_summary.csv to datasets/ and the band plot to visuals/."
+      "summary": "Budget=32: 0% closure. Budget=700: 100% closure. A cliff edge separates plausible-looking renders from correctly classified ones. Failure storyboard shows the spatial clustering of failures; recovery heatmap shows where adaptive scaling rescues them.",
+      "next_step": "Map the closure cliff surface across (step_size, budget) space."
     },
     {
       "id": "doe-scheduler-resonance",
-      "title": "Scheduler DOE — Stride Resonance",
+      "title": "DOE Scheduler Resonance — Why Stride 4 Destroys the Image",
       "source_output_folder": "output/doe_scheduler_resonance",
       "artifact_type": "dataset",
       "status": "Test output",
-      "in_misterylabs": false,
-      "suggested_files": [
-        "output/doe_scheduler_resonance/<latest>/scheduler_DOE_summary.csv",
-        "output/doe_scheduler_resonance/<latest>/band_by_row_mod_stride_heatmap.png"
+      "tier": 2,
+      "category": "methodology",
+      "in_misterylabs": true,
+      "thumbnail": "visuals/doe-scheduler-resonance-heatmap.png",
+      "promoted_files": [
+        "visuals/doe-scheduler-resonance-heatmap.png",
+        "visuals/doe-scheduler-resonance-stride-plot.png",
+        "datasets/doe-scheduler-resonance.csv",
+        "cards/doe-scheduler-resonance.md"
       ],
-      "summary": "A DOE identifying resonance between render stride and scheduler row-skip cadence. The band-by-row heatmap shows which stride values create periodic banding artifacts.",
-      "next_step": "Promote the resonance heatmap to visuals/ — it clearly illustrates a subtle rendering pathology."
+      "summary": "Stride 2: 26% band coverage. Stride 4: 0.3% coverage. A 68-cell DOE reveals systematic resonance between row-skip cadence and scene curvature geometry. The heatmap makes the periodic collapse structure visible. Motivated the tile scheduler that solved it.",
+      "next_step": "Repeat sweep with tile scheduler to confirm resonance elimination. Publish as canonical sampling-resonance illustration."
     },
     {
-      "id": "reference-transport-oracle-unresolved-island",
-      "title": "Transport Oracle — Unresolved Island Investigation",
-      "source_output_folder": "output/reference_transport_oracle_unresolved_island",
+      "id": "transport-coherence-basin",
+      "title": "Transport Coherence Basin — 289 Instability Regions",
+      "source_output_folder": "output/transport_coherence_basin_smoke",
       "artifact_type": "validation_candidate",
       "status": "Validation candidate",
-      "in_misterylabs": false,
-      "suggested_files": [
-        "output/reference_transport_oracle_unresolved_island/island_convergence_ladder.png",
-        "output/reference_transport_oracle_unresolved_island/unresolved_island_summary.md",
-        "output/reference_transport_oracle_unresolved_island/ownership_transition_map.png"
+      "tier": 3,
+      "category": "transport_analysis",
+      "in_misterylabs": true,
+      "thumbnail": "visuals/transport-coherence-radial.png",
+      "promoted_files": [
+        "visuals/transport-coherence-radial.png",
+        "visuals/transport-coherence-risk-vs-step.png",
+        "datasets/transport-coherence-risk-nodes.csv",
+        "validation/transport-coherence-basin.md",
+        "cards/transport-coherence-basin.md"
       ],
-      "summary": "A targeted investigation of pixels the transport oracle cannot converge on even at finest precision. The convergence ladder and ownership transition map reveal the domain resolver's confidence boundary.",
-      "next_step": "Promote ladder + transition map to visuals/. Large _oracle_segments.csv files (up to 720 MB) should go to a GitHub Release, not Git."
+      "summary": "289 UNSEALED_NONCONVERGENT regions, all requiring precision=0.003125, all clustered symmetrically around the GRIN field boundary annulus. Uniformity of the precision floor is itself a finding — it points to a topological feature rather than random noise.",
+      "next_step": "Re-run after softening the IOR gradient at the GRIN outer shell to test whether the instability is parameterization-dependent."
+    },
+    {
+      "id": "doe-overnight",
+      "title": "DOE Overnight — The Resolution Cost of Seeing the Curvature Band",
+      "source_output_folder": "output/doe_overnight",
+      "artifact_type": "dataset",
+      "status": "Test output",
+      "tier": 3,
+      "category": "methodology",
+      "in_misterylabs": true,
+      "thumbnail": "visuals/doe-overnight-band-plot.png",
+      "promoted_files": [
+        "visuals/doe-overnight-band-plot.png",
+        "datasets/doe-overnight.csv",
+        "cards/doe-overnight.md"
+      ],
+      "summary": "Step=0.00625 captures 26% of the curvature band. Step=0.025 captures 0.6%. An 18-cell overnight sweep establishes the step-length operating floor and documents that telemetry-on changes pixel output — confirming it must be treated as a separate rendering mode.",
+      "next_step": "Run adaptive step length to test whether fine-step quality is achievable at coarse-step cost."
     },
     {
       "id": "recursive-mirror-ghost-portal",
-      "title": "Recursive Mirror Ghost Portal — Phase 1",
+      "title": "Recursive Mirror Ghost Portal — Phase 1: Material System",
       "source_output_folder": "output/recursive_mirror_ghost_portal",
       "artifact_type": "visual_reference",
       "status": "Draft",
-      "in_misterylabs": false,
-      "suggested_files": [],
-      "summary": "The canonical stress test for xPRIMEray's optical transport: two facing mirror shells with a GRIN corridor creating infinite recursive depth. Phase 1 material system (Snell's law refraction + perfect mirror reflection) validated; dedicated scene and beauty PNG pending.",
-      "next_step": "Create test-recursive-mirror-ghost-portal.tscn, re-run testbench, promote the resulting PNG as the front-page benchmark image."
-    },
-    {
-      "id": "wormhole-dr-analysis",
-      "title": "Wormhole Dual Reality — Transport Analysis",
-      "source_output_folder": "output/wormhole_DR_analysis",
-      "artifact_type": "validation_candidate",
-      "status": "Test output",
-      "in_misterylabs": false,
-      "suggested_files": [
-        "output/wormhole_DR_analysis/<latest>/wormhole_clean_curved.png",
-        "output/wormhole_DR_analysis/<latest>/wormhole_full_stack_curvature.png",
-        "output/wormhole_DR_analysis/<latest>/summary.json"
+      "tier": 3,
+      "category": "benchmark",
+      "in_misterylabs": true,
+      "thumbnail": null,
+      "promoted_files": [
+        "cards/recursive-mirror-ghost-portal.md"
       ],
-      "summary": "Four view layers per run (clean curved, straight reference, reference+collision, full stack) tracking how transport changes affect the wormhole image. The before/after record for any DualRealityTransport modification.",
-      "next_step": "Promote clean_curved.png and full_stack_curvature.png to visuals/ for the site's wormhole explainer."
-    },
-    {
-      "id": "tile-commit-traversal-comparison",
-      "title": "Tile-Commit Traversal — Mode Comparison",
-      "source_output_folder": "output/tile_commit_traversal_comparison",
-      "artifact_type": "dataset",
-      "status": "Test output",
-      "in_misterylabs": false,
-      "suggested_files": [
-        "output/tile_commit_traversal_comparison/<latest>/traversal_contact_sheet.png",
-        "output/tile_commit_traversal_comparison/<latest>/band_support_by_mode.png",
-        "output/tile_commit_traversal_comparison/<latest>/tile_commit_traversal_summary.csv"
-      ],
-      "summary": "Nine-run comparison of tile-commit, row, and checkerboard traversal: the band-coverage plot shows tile-commit reaches high-curvature regions in fewer passes — the key advantage for interactive convergence.",
-      "next_step": "Promote band_support_by_mode.png and summary CSV to datasets/."
-    },
-    {
-      "id": "first-pass-traversal-comparison",
-      "title": "Traversal Mode — Row vs. Column vs. Tile",
-      "source_output_folder": "output/first_pass_traversal_comparison",
-      "artifact_type": "dataset",
-      "status": "Test output",
-      "in_misterylabs": false,
-      "suggested_files": [
-        "output/first_pass_traversal_comparison/<latest>/traversal_mode_contact_sheet.png",
-        "output/first_pass_traversal_comparison/<latest>/corner_roi_convergence_by_traversal.png",
-        "output/first_pass_traversal_comparison/<latest>/traversal_comparison_summary.csv"
-      ],
-      "summary": "Head-to-head comparison of three first-pass traversal strategies showing how traversal order affects convergence speed and banding. The corner ROI plot reveals which mode resolves the hardest pixels fastest.",
-      "next_step": "Promote ROI convergence plot to visuals/."
-    },
-    {
-      "id": "v0-pre-baseline",
-      "title": "Pre-Release v0 — Hermetic Straight Baseline",
-      "source_output_folder": "output/v0.0-pre",
-      "artifact_type": "visual_reference",
-      "status": "Archived",
-      "in_misterylabs": false,
-      "suggested_files": [
-        "output/v0.0-pre/hermetic_straight_tile.png",
-        "output/v0.0-pre/hermetic_straight_transport_classification.png"
-      ],
-      "summary": "The pre-release v0 baseline: the first hermetic straight-scene render to pass full-pixel validation, alongside a transport classification map showing which rays traced, escaped, or budget-exhausted. Historical anchor point.",
-      "next_step": "These are historical. Promote classification map to visuals/ as a 'how the renderer sees the scene' explainer."
+      "summary": "Phase 1 complete: PerfectMirrorReflection and DielectricRefraction validated at 140k crossing events/frame with zero stalls. Dedicated scene not yet built; benchmark PNG pending. Intended to become the project's front-page hero image.",
+      "next_step": "Create test-recursive-mirror-ghost-portal.tscn. Run testbench. Promote the resulting PNG."
     }
   ]
 }
