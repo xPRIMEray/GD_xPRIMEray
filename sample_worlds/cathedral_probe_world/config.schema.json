@@ -1,0 +1,106 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "xprimeray.sample_world.cathedral_probe.v0",
+  "title": "Cathedral Probe World — Runtime Configuration Schema",
+  "description": "Placeholder schema. No runtime implementation exists yet. This world requires six individually-controllable overlay layers which do not yet have a unified runtime API.",
+  "type": "object",
+  "properties": {
+    "scene": {
+      "type": "string",
+      "const": "res://test-domain-resolver-stress.tscn"
+    },
+    "transport": {
+      "type": "object",
+      "properties": {
+        "step_length": {
+          "type": "number",
+          "description": "0.015 matches the reference composite overlay (cathedral_probe_overlay_row_0015.png).",
+          "default": 0.015
+        },
+        "traversal_mode": {
+          "type": "string",
+          "enum": ["row", "tile", "checkerboard"],
+          "description": "Row traversal activates scheduler resonance at stride >= 4. Tile traversal eliminates it.",
+          "default": "row"
+        },
+        "stride": {
+          "type": "integer",
+          "enum": [1, 2, 4, 8],
+          "description": "Row stride. Stride=4 produces the resonance collapse (0.22% band coverage vs 33% at stride=1).",
+          "default": 1
+        }
+      }
+    },
+    "cathedral_probe_layers": {
+      "type": "object",
+      "description": "Individual Cathedral Probe layer configuration. Each layer can be enabled independently and composited.",
+      "properties": {
+        "coherence_vectors": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "opacity": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.6 },
+            "blend_mode": { "type": "string", "enum": ["additive", "multiply", "overlay"], "default": "additive" }
+          }
+        },
+        "normal_discontinuity": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "opacity": { "type": "number", "default": 0.4 },
+            "blend_mode": { "type": "string", "default": "multiply" }
+          }
+        },
+        "curvature_accumulation": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "opacity": { "type": "number", "default": 0.3 },
+            "blend_mode": { "type": "string", "default": "additive" }
+          }
+        },
+        "domain_ownership": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "opacity": { "type": "number", "default": 0.5 },
+            "blend_mode": { "type": "string", "default": "overlay" }
+          }
+        },
+        "transport_seams": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "opacity": { "type": "number", "default": 0.8 },
+            "blend_mode": { "type": "string", "default": "additive" }
+          }
+        },
+        "step_budget": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "opacity": { "type": "number", "default": 0.4 },
+            "blend_mode": { "type": "string", "default": "additive" }
+          }
+        }
+      }
+    },
+    "exhibit": {
+      "type": "object",
+      "properties": {
+        "artifact_ids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["doe-scheduler-resonance", "transport-coherence-basin"]
+        },
+        "exhibit_title": { "type": "string", "default": "Cathedral Probe" },
+        "reference_composite": {
+          "type": "string",
+          "description": "Path to the reference composite overlay for validation comparison.",
+          "default": "Docs/assets/cathedral_probe/cathedral_probe_overlay_row_0015.png"
+        }
+      }
+    }
+  },
+  "required": ["scene", "transport"]
+}

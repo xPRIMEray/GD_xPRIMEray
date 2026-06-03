@@ -1,0 +1,102 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "xprimeray.sample_world.hermetic_closure.v0",
+  "title": "Hermetic Closure World — Runtime Configuration Schema",
+  "description": "Placeholder schema. No runtime implementation exists yet.",
+  "type": "object",
+  "properties": {
+    "scene": {
+      "type": "string",
+      "const": "res://test-hermetic-curved-room.tscn"
+    },
+    "camera": {
+      "type": "object",
+      "properties": {
+        "pose_key": {
+          "type": "string",
+          "description": "Named camera pose. Default matches the promoted artifact parameterization.",
+          "default": "hermetic_default"
+        }
+      }
+    },
+    "transport": {
+      "type": "object",
+      "properties": {
+        "step_length": {
+          "type": "number",
+          "description": "Integration step size. 0.015 is the parameterization used in the promoted artifact.",
+          "default": 0.015
+        },
+        "max_steps": {
+          "type": "integer",
+          "description": "Maximum integration steps per ray. Cliff edge is approximately 300. Budget=700 achieves 100% closure; budget=32 achieves 0%.",
+          "minimum": 1,
+          "maximum": 2000,
+          "default": 700,
+          "examples": [32, 300, 700]
+        },
+        "adaptive_budget_scaling": {
+          "type": "boolean",
+          "description": "Allow the integrator to grant additional steps to rays in high-curvature regions. Recovery heatmap shows where this helps.",
+          "default": false
+        },
+        "traversal_mode": {
+          "type": "string",
+          "enum": ["row", "tile", "checkerboard"],
+          "description": "First-pass traversal mode. 'row' matches the promoted artifact; 'tile' is the production default.",
+          "default": "row"
+        }
+      }
+    },
+    "overlays": {
+      "type": "object",
+      "properties": {
+        "hermetic_closure": {
+          "type": "boolean",
+          "description": "Per-pixel classification coloring. Required for this world — should default true.",
+          "default": true
+        },
+        "validation_hud": {
+          "type": "boolean",
+          "description": "Closure %, budget pressure, classification counts. Required for this world.",
+          "default": true
+        },
+        "heatmap_normals": { "type": "boolean", "default": false },
+        "ray_traces": { "type": "boolean", "default": false },
+        "cathedral_probe": { "type": "boolean", "default": false }
+      }
+    },
+    "budget_presets": {
+      "type": "array",
+      "description": "Named budget presets for the visitor toggle. 'failure' and 'success' are the two artifact cells.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "max_steps": { "type": "integer" },
+          "expected_closure_percent": { "type": "number" },
+          "label": { "type": "string" }
+        }
+      },
+      "default": [
+        { "name": "failure", "max_steps": 32, "expected_closure_percent": 0.0, "label": "Budget=32 (silent failure)" },
+        { "name": "transition", "max_steps": 300, "expected_closure_percent": 50.0, "label": "Budget=300 (cliff edge)" },
+        { "name": "success", "max_steps": 700, "expected_closure_percent": 100.0, "label": "Budget=700 (full closure)" }
+      ]
+    },
+    "exhibit": {
+      "type": "object",
+      "properties": {
+        "artifact_id": { "type": "string", "const": "hermetic-hit-closure" },
+        "exhibit_title": { "type": "string", "default": "Hermetic Closure" },
+        "show_closure_hud": { "type": "boolean", "default": true },
+        "warn_on_low_closure": {
+          "type": "boolean",
+          "description": "Show a prominent warning when closure drops below 50%. Makes the silent failure mode visually explicit.",
+          "default": true
+        }
+      }
+    }
+  },
+  "required": ["scene", "transport"]
+}

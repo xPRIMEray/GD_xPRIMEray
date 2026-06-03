@@ -2,6 +2,66 @@
   "_schema": "xprimeray-artifact-manifest-v1",
   "_updated": "2026-06-02",
   "_promoted_count": 10,
+  "sample_worlds": {
+    "_note": "Design proposals only. No runtime implementation exists. Each entry references the backing promoted artifacts.",
+    "worlds": [
+      {
+        "id": "dual_reality_view_world",
+        "title": "Dual Reality View",
+        "status": "Design proposal",
+        "build_priority": 1,
+        "tier": 1,
+        "scene": "res://test-overspace-wormhole-witness-fixture.tscn",
+        "backing_artifact_ids": ["wormhole-dual-reality-story", "wormhole-structure-observatory"],
+        "visitor_question": "What does a wormhole look like, and how do we know the bending is real?",
+        "path": "sample_worlds/dual_reality_view_world/"
+      },
+      {
+        "id": "observer_disagreement_world",
+        "title": "Observer Disagreement",
+        "status": "Design proposal",
+        "build_priority": 2,
+        "tier": 1,
+        "scene": "res://test-grin-basic-visual-minimal-offaxis-observe.tscn",
+        "backing_artifact_ids": ["observer-disagreement"],
+        "visitor_question": "How much does curved transport change what you see vs. straight?",
+        "path": "sample_worlds/observer_disagreement_world/"
+      },
+      {
+        "id": "hermetic_closure_world",
+        "title": "Hermetic Closure",
+        "status": "Design proposal",
+        "build_priority": 3,
+        "tier": 1,
+        "scene": "res://test-hermetic-curved-room.tscn",
+        "backing_artifact_ids": ["hermetic-hit-closure"],
+        "visitor_question": "When does the integrator fail silently, and what does failure look like?",
+        "path": "sample_worlds/hermetic_closure_world/"
+      },
+      {
+        "id": "cathedral_probe_world",
+        "title": "Cathedral Probe",
+        "status": "Design proposal",
+        "build_priority": 4,
+        "tier": 2,
+        "scene": "res://test-domain-resolver-stress.tscn",
+        "backing_artifact_ids": ["doe-scheduler-resonance", "transport-coherence-basin"],
+        "visitor_question": "How do you diagnose a renderer that produces wrong pixels without crashing?",
+        "path": "sample_worlds/cathedral_probe_world/"
+      },
+      {
+        "id": "transport_coherence_basin_world",
+        "title": "Transport Coherence Basin",
+        "status": "Design proposal",
+        "build_priority": 5,
+        "tier": 2,
+        "scene": "res://test-domain-resolver-stress.tscn",
+        "backing_artifact_ids": ["transport-coherence-basin"],
+        "visitor_question": "Where in the scene does transport refuse to converge, and why there?",
+        "path": "sample_worlds/transport_coherence_basin_world/"
+      }
+    ]
+  },
   "artifacts": [
     {
       "id": "wormhole-dual-reality-story",

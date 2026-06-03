@@ -1,0 +1,116 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "xprimeray.sample_world.dual_reality_view.v0",
+  "title": "Dual Reality View World — Runtime Configuration Schema",
+  "description": "Placeholder schema for future runtime settings. No runtime implementation exists yet. Properties document intended configuration surface for the dual_reality_view_world.",
+  "type": "object",
+  "properties": {
+    "scene": {
+      "type": "string",
+      "description": "Godot scene path to load.",
+      "const": "res://test-overspace-wormhole-witness-fixture.tscn"
+    },
+    "camera": {
+      "type": "object",
+      "description": "Observer camera configuration.",
+      "properties": {
+        "pose_key": {
+          "type": "string",
+          "description": "Named camera pose. 'basic_visual_offaxis_observe_v0_pre' matches the promoted artifact.",
+          "enum": ["basic_visual_offaxis_observe_v0_pre", "on_axis_throat", "exit_looking_back"],
+          "default": "basic_visual_offaxis_observe_v0_pre"
+        },
+        "allow_free_look": {
+          "type": "boolean",
+          "description": "Whether the visitor can move the camera freely. False = locked to pose_key.",
+          "default": false
+        },
+        "path_mode": {
+          "type": "string",
+          "description": "Optional guided camera path. 'approach' rides the overspace approach trajectory.",
+          "enum": ["locked", "approach", "orbit"],
+          "default": "locked"
+        }
+      }
+    },
+    "transport": {
+      "type": "object",
+      "description": "Ray transport settings.",
+      "properties": {
+        "primary_mode": {
+          "type": "string",
+          "enum": ["curved_grin", "straight_reference"],
+          "default": "curved_grin"
+        },
+        "dual_reality_enabled": {
+          "type": "boolean",
+          "description": "Enable the straight-ray Reference Reality inset.",
+          "default": false
+        },
+        "dual_reality_layout": {
+          "type": "string",
+          "enum": ["picture_in_picture", "split_screen", "toggle"],
+          "description": "How the reference reality is displayed alongside the primary render.",
+          "default": "picture_in_picture"
+        },
+        "step_length": {
+          "type": "number",
+          "minimum": 0.005,
+          "maximum": 0.025,
+          "description": "Integration step size. Values below 0.013 are required to capture the full curvature band.",
+          "default": 0.010
+        },
+        "max_steps": {
+          "type": "integer",
+          "minimum": 200,
+          "maximum": 2000,
+          "description": "Maximum integration steps per ray. Budget=700 achieves 100% closure for the hermetic scene.",
+          "default": 700
+        }
+      }
+    },
+    "overlays": {
+      "type": "object",
+      "description": "Initial overlay state. Each key matches a code name from overlays.md.",
+      "properties": {
+        "curved_ray": { "type": "boolean", "default": true },
+        "dual_reality": { "type": "boolean", "default": false },
+        "heatmap_normals": { "type": "boolean", "default": false },
+        "atlas_labels": { "type": "boolean", "default": false },
+        "validation_hud": { "type": "boolean", "default": false },
+        "ray_traces": { "type": "boolean", "default": false },
+        "cathedral_probe": { "type": "boolean", "default": false }
+      }
+    },
+    "hud": {
+      "type": "object",
+      "description": "Validation HUD display options.",
+      "properties": {
+        "show_classification_counts": { "type": "boolean", "default": true },
+        "show_closure_percent": { "type": "boolean", "default": true },
+        "show_budget_pressure": { "type": "boolean", "default": true },
+        "show_frame_telemetry": { "type": "boolean", "default": false }
+      }
+    },
+    "exhibit": {
+      "type": "object",
+      "description": "MisterY Labs exhibit metadata.",
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "const": "wormhole-dual-reality-story"
+        },
+        "exhibit_title": {
+          "type": "string",
+          "default": "Wormhole Dual Reality"
+        },
+        "show_card_link": {
+          "type": "boolean",
+          "description": "Show a link to the MisterY Labs card for this artifact.",
+          "default": true
+        }
+      }
+    }
+  },
+  "required": ["scene", "transport"]
+}

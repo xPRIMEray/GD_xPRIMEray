@@ -1,0 +1,106 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "xprimeray.sample_world.observer_disagreement.v0",
+  "title": "Observer Disagreement World — Runtime Configuration Schema",
+  "description": "Placeholder schema. No runtime implementation exists yet.",
+  "type": "object",
+  "properties": {
+    "scene": {
+      "type": "string",
+      "description": "Primary scene. The straight-reference scene runs in parallel for comparison.",
+      "const": "res://test-grin-basic-visual-minimal-offaxis-observe.tscn"
+    },
+    "reference_scene": {
+      "type": "string",
+      "description": "Straight-transport reference scene for disagreement comparison.",
+      "const": "res://test-grin-basic-visual-straight-offaxis-observe.tscn"
+    },
+    "camera": {
+      "type": "object",
+      "properties": {
+        "pose_key": {
+          "type": "string",
+          "description": "Named pose. 'basic_visual_offaxis_observe_v0_pre' matches the promoted artifact (480x270, off-axis).",
+          "enum": ["basic_visual_offaxis_observe_v0_pre", "on_axis", "far_offaxis"],
+          "default": "basic_visual_offaxis_observe_v0_pre"
+        },
+        "allow_free_look": {
+          "type": "boolean",
+          "default": false,
+          "description": "Free look changes the disagreement fraction. Enabling this is the 'angular dependence' experiment."
+        }
+      }
+    },
+    "transport": {
+      "type": "object",
+      "properties": {
+        "display_mode": {
+          "type": "string",
+          "enum": ["curved", "straight", "disagreement_delta", "split_screen"],
+          "description": "Which render to show. 'disagreement_delta' computes and displays the per-pixel classification diff.",
+          "default": "curved"
+        },
+        "disagreement_color": {
+          "type": "object",
+          "description": "Color encoding for the disagreement delta overlay.",
+          "properties": {
+            "geom_to_escaped": {
+              "type": "string",
+              "description": "Color for pixels that were geom_hit in straight but escaped in curved.",
+              "default": "#4488FF"
+            },
+            "escaped_to_geom": {
+              "type": "string",
+              "description": "Color for pixels that were escaped in straight but geom_hit in curved.",
+              "default": "#88FFEE"
+            },
+            "unresolved": {
+              "type": "string",
+              "description": "Color for pixels where at least one transport hit budget limit.",
+              "default": "#888888"
+            },
+            "unchanged": {
+              "type": "string",
+              "description": "Color for pixels classified identically by both transports.",
+              "default": "transparent"
+            }
+          }
+        },
+        "expected_metrics": {
+          "type": "object",
+          "description": "Reference values from the promoted artifact. Used by the validation HUD to flag unexpected deviations.",
+          "properties": {
+            "changed_pixels": { "type": "integer", "const": 30839 },
+            "changed_ratio": { "type": "number", "const": 0.23795524691358025 },
+            "dominant_transition": { "type": "string", "const": "geom_hit->escaped_no_hit" },
+            "dominant_transition_count": { "type": "integer", "const": 27619 }
+          }
+        }
+      }
+    },
+    "overlays": {
+      "type": "object",
+      "properties": {
+        "curved_ray": { "type": "boolean", "default": true },
+        "straight_ray": { "type": "boolean", "default": false },
+        "observer_disagreement": { "type": "boolean", "default": false },
+        "heatmap_normals": { "type": "boolean", "default": false },
+        "atlas_labels": { "type": "boolean", "default": false },
+        "validation_hud": { "type": "boolean", "default": false }
+      }
+    },
+    "exhibit": {
+      "type": "object",
+      "properties": {
+        "artifact_id": { "type": "string", "const": "observer-disagreement" },
+        "exhibit_title": { "type": "string", "default": "Observer Disagreement" },
+        "show_pixel_count_hud": {
+          "type": "boolean",
+          "description": "Show live disagreement pixel count, matching the artifact's measured value.",
+          "default": true
+        }
+      }
+    }
+  },
+  "required": ["scene", "reference_scene", "transport"]
+}

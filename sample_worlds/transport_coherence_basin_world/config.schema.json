@@ -1,0 +1,100 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "xprimeray.sample_world.transport_coherence_basin.v0",
+  "title": "Transport Coherence Basin World — Runtime Configuration Schema",
+  "description": "Placeholder schema. No runtime implementation exists yet.",
+  "type": "object",
+  "properties": {
+    "scene": {
+      "type": "string",
+      "const": "res://test-domain-resolver-stress.tscn"
+    },
+    "transport": {
+      "type": "object",
+      "properties": {
+        "step_length": {
+          "type": "number",
+          "description": "Step length used in the coherence basin smoke run. Confirm before using as validation reference.",
+          "default": 0.015
+        },
+        "traversal_mode": {
+          "type": "string",
+          "enum": ["row", "tile"],
+          "default": "row"
+        },
+        "stride": {
+          "type": "integer",
+          "default": 4,
+          "description": "Stride=4 was used in the coherence_basin_on_stride_4 cells in the DOE."
+        }
+      }
+    },
+    "oracle": {
+      "type": "object",
+      "description": "Transport oracle configuration for coherence basin probing.",
+      "properties": {
+        "epsilon": {
+          "type": "number",
+          "description": "Convergence threshold. 0.05 was used in the promoted artifact. All 289 regions unsealed at this value.",
+          "default": 0.05
+        },
+        "precision_floor": {
+          "type": "number",
+          "description": "Finest precision level the oracle will attempt. 0.003125 is the finest used in the promoted artifact.",
+          "default": 0.003125
+        },
+        "expected_risk_regions": {
+          "type": "integer",
+          "description": "Reference value from the promoted artifact. Deviations trigger HUD warning.",
+          "default": 289
+        },
+        "expected_sealed_regions": {
+          "type": "integer",
+          "description": "Expected number of sealed convergent regions. 0 in the promoted artifact.",
+          "default": 0
+        }
+      }
+    },
+    "field_experiment": {
+      "type": "object",
+      "description": "Planned parameterization experiment: vary the IOR gradient at the GRIN outer shell to test whether instability is parameterization-dependent or topological.",
+      "properties": {
+        "ior_gradient_mode": {
+          "type": "string",
+          "enum": ["current", "softened", "sharp"],
+          "description": "IOR gradient profile at the GRIN outer shell boundary. 'current' matches the promoted artifact.",
+          "default": "current"
+        },
+        "show_instability_diff": {
+          "type": "boolean",
+          "description": "When true, show a diff overlay between risk regions at current vs. modified parameterization.",
+          "default": false
+        }
+      }
+    },
+    "overlays": {
+      "type": "object",
+      "properties": {
+        "transport_coherence": { "type": "boolean", "default": true },
+        "validation_hud": { "type": "boolean", "default": true },
+        "heatmap_normals": { "type": "boolean", "default": false },
+        "atlas_labels": { "type": "boolean", "default": false },
+        "cathedral_probe": { "type": "boolean", "default": false }
+      }
+    },
+    "exhibit": {
+      "type": "object",
+      "properties": {
+        "artifact_id": { "type": "string", "const": "transport-coherence-basin" },
+        "exhibit_title": { "type": "string", "default": "Transport Coherence Basin" },
+        "audience": {
+          "type": "string",
+          "enum": ["general", "researcher", "contributor"],
+          "description": "Intended audience. This world is rated 'researcher' — requires coherence basin methodology background.",
+          "default": "researcher"
+        }
+      }
+    }
+  },
+  "required": ["scene", "transport", "oracle"]
+}
