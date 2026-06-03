@@ -30,5 +30,19 @@ The engine is a curvature-inspired rendering platform and visual research tool. 
 
 ---
 
+## Outputs & Artifact System
+
+All experiment outputs, renders, and validation logs live in [`output/`](output/) — the active lab bench. It is not fully tracked by Git (4 GB+); only small metadata files (`.md`, `.json`, `.csv`, `.txt`) are committed. Raw renders, oracle dumps, and binary content are gitignored.
+
+Curated, website-ready artifacts are staged in [`misterylabs_artifacts/`](misterylabs_artifacts/), which is fully tracked. To promote an output to the site:
+
+```bash
+./scripts/export_to_misterylabs.sh <output_folder_name> [--png <file>] [--csv <file>]
+```
+
+See [`misterylabs_artifacts/README.md`](misterylabs_artifacts/README.md) and [`misterylabs_artifacts/manifest.json`](misterylabs_artifacts/manifest.json) for the full artifact index and promotion workflow.
+
+---
+
 **License:** MIT  
 **Citation templates:** [Docs/papers/shared_bibliography.bib](Docs/papers/shared_bibliography.bib)
