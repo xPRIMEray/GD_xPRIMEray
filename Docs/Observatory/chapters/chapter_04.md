@@ -16,9 +16,23 @@ description: Where does transport refuse to converge regardless of precision —
 ---
 
 <figure markdown>
-  ![Transport Coherence — radial risk profile](../../assets/observatory/transport-coherence-radial.png)
-  <figcaption>Radial risk profile by node. Risk magnitude decays with distance from the instability band centers but never reaches zero. A step discontinuity in the decay curve is consistent with a topological feature in the transport field. Source: <code>output/transport_coherence_basin_smoke/20260503T001944Z/</code></figcaption>
+  ![Coherence Basin Hero — 960×540 raw render + risk region overlay](../../assets/observatory/coherence-basin-hero.png)
+  <figcaption><strong>First 960×540 coherence basin map.</strong> Left: raw transport render at full resolution. Right: risk region overlay — 276 threshold_snap nodes all at precision=0.003125, clustered in two symmetric horizontal bands at the GRIN field boundary annulus. Source: <code>output/transport_coherence_basin_smoke/20260604T023051Z_960x540/</code></figcaption>
 </figure>
+
+<figure markdown>
+  ![Transport Coherence — radial risk profile](../../assets/observatory/transport-coherence-radial.png)
+  <figcaption>Radial risk profile by node. Risk magnitude decays with distance from the instability band centers but never reaches zero. The step discontinuity in the decay curve is the quantitative signature of a topological feature at the GRIN field boundary. Source: <code>output/transport_coherence_basin_smoke/20260503T001944Z/</code></figcaption>
+</figure>
+
+---
+
+!!! tip "What to look at"
+    **Inspect:** The radial risk profile chart. Notice the step discontinuity in the decay curve — the risk does not taper smoothly to zero. That non-smooth decay is the quantitative signature of a topological feature at the GRIN field boundary.
+
+    **Contradiction:** If instability were purely numerical, you would expect a distribution of required precision floors across the 289 regions. Instead, every single region shares the same floor (0.003125). Uniformity at the finest level implies the instability is structural, not stochastic.
+
+    **What would make it stronger:** A beauty render at ≥960×540 resolution where the 289 individual instability regions appear as distinguishable spatial features rather than merged symmetric bands. At the current 480×270 resolution the regions overlap. See [capture recipe](#capture-recipe-coherence-basin-beauty-render) below.
 
 ---
 
@@ -108,6 +122,25 @@ Expected: **289**.
 [Chapter 5 — Cathedral Probe →](chapter_05.md): Chapter 4 identified *where* the transport field is unstable using the oracle. Chapter 5 provides the diagnostic toolkit for finding the same instability zones from the rendered output alone — without running the oracle explicitly.
 
 *Bridge:* "We know where the field is unstable. But we can't run the oracle on every frame. How do we find the same zones from the render itself?"
+
+---
+
+## Capture Recipe — Coherence Basin Beauty Render
+
+**Target:** A beauty render of `test-domain-resolver-stress.tscn` at ≥960×540 resolution with the `transport_coherence` overlay active, so the 289 individual instability regions appear as distinguishable spatial features rather than merged bands.
+
+**Steps:**
+
+1. Open `test-domain-resolver-stress.tscn` in the Godot editor.
+2. Set film resolution to **960×540** (or 1280×720 for higher fidelity). Parameter: `GrinFilmCamera.FilmWidth = 960`, `FilmHeight = 540`.
+3. Enable `transport_coherence` overlay (`DualRealityOverlayMode` → coherence mode, or the specific coherence overlay flag). The 289 instability regions should appear as two symmetric horizontal bands of high-risk pixels.
+4. Run a full traversal pass. Screenshot the film output. Save as `coherence-basin-beauty-960.png`.
+5. Copy to `Docs/assets/observatory/coherence-basin-beauty-960.png`.
+6. Add a second `<figure>` block in this chapter using the new image.
+
+**Expected output:** Two symmetric bright bands at pixel rows ~58 and ~122 (scaled for 540 rows → rows ~115 and ~243). The bands should be visually separable, not merged into a single wide stripe.
+
+**Promotion path:** Copy to `misterylabs_artifacts/visuals/coherence-basin-beauty-960.png` and update `manifest.json` artifact `a05`.
 
 ---
 

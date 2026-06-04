@@ -73,42 +73,41 @@ Visual references immediately suitable for public presentation.
 
 ---
 
-## Tier 2 — Research Atlas
-
-Validation candidates and analysis outputs for the research atlas pages.
-
----
-
-### Observer Disagreement
+### Observer Disagreement Hero — 23.8% of the Frame Classifies Differently
 
 <figure markdown>
-  ![Observer Disagreement](../assets/observatory/observer-disagreement-contact-sheet.png)
-  <figcaption>Three-view comparison: curved (left), straight (center), disagreement delta (right). 30,839 pixels differ — dominant transition geometry-hit → escaped at 9:1 ratio.</figcaption>
+  ![Observer Disagreement Hero](../assets/observatory/observer-disagreement-hero.png)
+  <figcaption><strong>Same observer, two transport models.</strong> Curved GRIN (left): 46,841 hits. Straight reference (center): 70,300 hits. Disagreement delta (right): 30,839 pixels differ. Blue = hits→escapes (27,619). Cyan = escapes→hits (3,220). Ratio 8.6:1 — GRIN is defocusing.</figcaption>
 </figure>
 
 **Source:** `output/observer_disagreement/offaxis_observe_delta/`  
 **Atlas chapter:** [Chapter 2 — Observer Disagreement](chapters/chapter_02.md)  
-**Dataset:** `misterylabs_artifacts/datasets/observer-disagreement.json`  
-**Card:** `misterylabs_artifacts/cards/observer-disagreement.md`
+**Hero card:** `misterylabs_artifacts/cards/observer-disagreement-hero.md`  
+**Dataset:** `misterylabs_artifacts/datasets/observer-disagreement.json`
 
 ---
 
-### Hermetic Hit Closure
+### Hermetic Closure Hero — Same Scene, Two Budgets, Opposite Truth
 
 <figure markdown>
-  ![Hermetic Hit Closure Storyboard](../assets/observatory/hermetic-hit-closure-storyboard.png)
-  <figcaption>Failure pixel distribution at budget=32 (0% closure). Failures cluster in the high-curvature annular region — not random noise.</figcaption>
+  ![Hermetic Closure Hero](../assets/observatory/hermetic-closure-hero.png)
+  <figcaption><strong>Left: budget=32 — 0.0% closure, every pixel noise. Right: budget=700 — 100.0% closure, every pixel real.</strong> The renders look identical. The color-coded labels are the proof. New hero render at 640×360, June 2026.</figcaption>
 </figure>
 
 <figure markdown>
-  ![Hermetic Hit Closure Recovery](../assets/observatory/hermetic-hit-closure-recovery.png)
-  <figcaption>Adaptive recovery heatmap. High recovery in the curvature band; low recovery at corners.</figcaption>
+  ![Hermetic Closure 3-panel](../assets/observatory/hermetic-closure-hero-3panel.png)
+  <figcaption>3-panel extended: silent failure · budget exhaustion map · full closure. Middle panel shows failures clustering in the high-curvature annulus — the same zone Chapter 1 identified as optically expensive.</figcaption>
 </figure>
 
-**Source:** `output/hermetic_hit_closure/20260514T040157Z/`  
+**Source:** `output/hermetic_hit_closure/20260604T023019Z/`  
 **Atlas chapter:** [Chapter 3 — Hermetic Closure](chapters/chapter_03.md)  
-**Validation report:** `misterylabs_artifacts/validation/hermetic-hit-closure.md`  
-**Card:** `misterylabs_artifacts/cards/hermetic-hit-closure.md`
+**Hero card:** `misterylabs_artifacts/cards/hermetic-closure-hero.md`
+
+---
+
+## Tier 2 — Research Atlas
+
+Validation candidates and analysis outputs for the research atlas pages.
 
 ---
 
@@ -126,17 +125,30 @@ Validation candidates and analysis outputs for the research atlas pages.
 
 ---
 
+### Coherence Basin Beauty — First 960×540 Instability Map
+
+<figure markdown>
+  ![Coherence Basin Hero — 960×540](../assets/observatory/coherence-basin-hero.png)
+  <figcaption><strong>First 960×540 coherence basin render.</strong> Left: raw transport render. Right: risk region overlay — 276 threshold_snap nodes, all at precision=0.003125, in two symmetric horizontal bands at the GRIN field boundary. New hero capture June 2026.</figcaption>
+</figure>
+
+**Source:** `output/transport_coherence_basin_smoke/20260604T023051Z_960x540/`  
+**Atlas chapter:** [Chapter 4 — Coherence Basin](chapters/chapter_04.md)  
+**Hero card:** `misterylabs_artifacts/cards/coherence-basin-beauty.md`
+
+---
+
 ## Tier 3 — Research Depth
 
 Analytical artifacts requiring additional visual context.
 
 ---
 
-### Transport Coherence Basin
+### Transport Coherence Basin — Radial Analysis
 
 <figure markdown>
   ![Transport Coherence Radial Profile](../assets/observatory/transport-coherence-radial.png)
-  <figcaption>Radial risk profile: risk magnitude vs. distance from instability band centers. Step discontinuity in decay curve consistent with topological feature. 289 UNSEALED_NONCONVERGENT regions, all at precision=0.003125.</figcaption>
+  <figcaption>Radial risk profile: risk magnitude vs. distance from instability band centers. Step discontinuity in the decay curve is the quantitative signature of a topological feature. 289 UNSEALED_NONCONVERGENT regions, all at precision=0.003125.</figcaption>
 </figure>
 
 **Source:** `output/transport_coherence_basin_smoke/20260503T001944Z/`  

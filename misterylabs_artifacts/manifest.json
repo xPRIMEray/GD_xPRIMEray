@@ -1,7 +1,7 @@
 {
   "_schema": "xprimeray-artifact-manifest-v1",
-  "_updated": "2026-06-02",
-  "_promoted_count": 10,
+  "_updated": "2026-06-03",
+  "_promoted_count": 13,
   "sample_worlds": {
     "_note": "Design proposals only. No runtime implementation exists. Each entry references the backing promoted artifacts.",
     "worlds": [
@@ -139,40 +139,49 @@
     },
     {
       "id": "observer-disagreement",
-      "title": "Observer Disagreement — How Curved Transport Changes What You See",
+      "title": "Observer Disagreement — 23.8% of the Frame Classifies Differently",
       "source_output_folder": "output/observer_disagreement",
       "artifact_type": "validation_candidate",
-      "status": "Validation candidate",
-      "tier": 2,
+      "status": "Hero produced",
+      "tier": 1,
       "category": "transport_analysis",
       "in_misterylabs": true,
-      "thumbnail": "visuals/observer-disagreement-contact-sheet.png",
+      "thumbnail": "visuals/observer-disagreement-hero.png",
       "promoted_files": [
+        "visuals/observer-disagreement-hero.png",
+        "visuals/observer-disagreement-hero-web.png",
+        "visuals/observer-disagreement-hero-pres.png",
         "visuals/observer-disagreement-contact-sheet.png",
         "visuals/observer-disagreement-observability.png",
         "datasets/observer-disagreement.json",
+        "cards/observer-disagreement-hero.md",
         "cards/observer-disagreement.md"
       ],
-      "summary": "23.8% of pixels classify differently between curved GRIN and straight reference transport. The dominant shift (27k pixels): geometry hits become escaped rays — GRIN deflects them past surfaces entirely. Quantifies what curvature costs the observer in missed surface contacts.",
-      "next_step": "Build a disagreement heatmap over observer pose space. Map the angular dependence."
+      "summary": "Three-panel hero: curved GRIN (46,841 hits) · straight reference (70,300 hits) · disagreement delta (30,839 pixels, 23.8%). Blue pixels (27,619) are hits that became escapes — GRIN defocuses, removing 33% of surface contacts. 8.6:1 asymmetry visible at a glance.",
+      "next_step": "Second camera pose at different off-axis angle — the angular dependence sweep."
     },
     {
       "id": "hermetic-hit-closure",
-      "title": "Hermetic Hit Closure — The Budget Required for Complete Integration",
+      "title": "Hermetic Closure Hero — Same Scene, Two Budgets, Opposite Truth",
       "source_output_folder": "output/hermetic_hit_closure",
       "artifact_type": "validation_candidate",
-      "status": "Validation candidate",
-      "tier": 2,
+      "status": "Hero produced",
+      "tier": 1,
       "category": "validation",
       "in_misterylabs": true,
-      "thumbnail": "visuals/hermetic-hit-closure-storyboard.png",
+      "thumbnail": "visuals/hermetic-closure-hero.png",
       "promoted_files": [
+        "visuals/hermetic-closure-hero.png",
+        "visuals/hermetic-closure-hero-3panel.png",
+        "visuals/hermetic-closure-hero-web.png",
+        "visuals/hermetic-closure-hero-pres.png",
         "visuals/hermetic-hit-closure-storyboard.png",
         "visuals/hermetic-hit-closure-recovery.png",
         "validation/hermetic-hit-closure.md",
+        "cards/hermetic-closure-hero.md",
         "cards/hermetic-hit-closure.md"
       ],
-      "summary": "Budget=32: 0% closure. Budget=700: 100% closure. A cliff edge separates plausible-looking renders from correctly classified ones. Failure storyboard shows the spatial clustering of failures; recovery heatmap shows where adaptive scaling rescues them.",
+      "summary": "Side-by-side hero at 640×360: budget=32 (0.0% closure, silent failure) next to budget=700 (100.0% closure, every pixel real). The renders look identical. The labels are the only proof. 3-panel variant adds the failure map showing failures cluster in the curvature annulus.",
       "next_step": "Map the closure cliff surface across (step_size, budget) space."
     },
     {
@@ -196,23 +205,28 @@
     },
     {
       "id": "transport-coherence-basin",
-      "title": "Transport Coherence Basin — 289 Instability Regions",
+      "title": "Coherence Basin Beauty — First 960×540 Instability Map",
       "source_output_folder": "output/transport_coherence_basin_smoke",
       "artifact_type": "validation_candidate",
-      "status": "Validation candidate",
-      "tier": 3,
+      "status": "Hero produced",
+      "tier": 2,
       "category": "transport_analysis",
       "in_misterylabs": true,
-      "thumbnail": "visuals/transport-coherence-radial.png",
+      "thumbnail": "visuals/coherence-basin-hero.png",
       "promoted_files": [
+        "visuals/coherence-basin-beauty-960.png",
+        "visuals/coherence-basin-hero.png",
+        "visuals/coherence-basin-hero-web.png",
+        "visuals/coherence-basin-hero-pres.png",
         "visuals/transport-coherence-radial.png",
         "visuals/transport-coherence-risk-vs-step.png",
         "datasets/transport-coherence-risk-nodes.csv",
         "validation/transport-coherence-basin.md",
+        "cards/coherence-basin-beauty.md",
         "cards/transport-coherence-basin.md"
       ],
-      "summary": "289 UNSEALED_NONCONVERGENT regions, all requiring precision=0.003125, all clustered symmetrically around the GRIN field boundary annulus. Uniformity of the precision floor is itself a finding — it points to a topological feature rather than random noise.",
-      "next_step": "Re-run after softening the IOR gradient at the GRIN outer shell to test whether the instability is parameterization-dependent."
+      "summary": "First 960×540 render of the domain-resolver-stress scene with coherence risk overlay. 276 threshold_snap nodes at precision=0.003125 (consistent with 289 at 320×180). Two-panel hero: raw render + risk overlay makes the symmetric instability bands visible at full resolution.",
+      "next_step": "Vary IOR gradient at GRIN outer shell to distinguish parameterization-dependent vs. topological instability."
     },
     {
       "id": "doe-overnight",

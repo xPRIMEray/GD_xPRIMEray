@@ -89,8 +89,8 @@ Three chapters that communicate the essence of xPRIMEray without background.
 ### Step 2 — Observer Disagreement (7 min)
 
 <figure markdown>
-  ![Observer Disagreement — contact sheet](assets/observatory/observer-disagreement-contact-sheet.png)
-  <figcaption>Curved vs. straight transport at the same camera pose. Blue pixels: hits that became escapes. 23.8% of pixels classify differently.</figcaption>
+  ![Observer Disagreement Hero — curved GRIN vs straight vs delta, labeled](assets/observatory/observer-disagreement-hero.png)
+  <figcaption>Curved GRIN (left) · straight reference (center) · disagreement delta (right). Blue pixels: geometry hits that became escapes under curved transport. 8.6:1 asymmetry — the GRIN field is defocusing, not focusing.</figcaption>
 </figure>
 
 **What you see:** 30,839 pixels that classify differently between curved and straight transport at the same camera position.
@@ -104,8 +104,8 @@ Three chapters that communicate the essence of xPRIMEray without background.
 ### Step 3 — Hermetic Closure (5 min)
 
 <figure markdown>
-  ![Hermetic hit closure failure storyboard](assets/observatory/hermetic-hit-closure-storyboard.png)
-  <figcaption>Failure pixel distribution at budget=32. Every pixel is budget-saturated. The render looks plausible. Closure: 0.0%.</figcaption>
+  ![Hermetic Closure Hero — budget=32 (0% closure) vs budget=700 (100% closure) side by side](assets/observatory/hermetic-closure-hero.png)
+  <figcaption>Left: budget=32 — 0.0% closure, every pixel is unresolved noise. Right: budget=700 — 100.0% closure, every pixel real. The images look identical. The labels are the proof.</figcaption>
 </figure>
 
 **What you see:** A render that looks correct. The Validation HUD shows 0% closure — every pixel is unresolved budget noise.

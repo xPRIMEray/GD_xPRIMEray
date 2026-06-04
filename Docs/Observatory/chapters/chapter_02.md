@@ -16,9 +16,18 @@ description: How much does curved transport change what you see — measured at 
 ---
 
 <figure markdown>
-  ![Observer Disagreement — three-view contact sheet](../../assets/observatory/observer-disagreement-contact-sheet.png)
-  <figcaption>1600×1300 contact sheet: curved GRIN render (left), straight reference render (center), disagreement delta (right). Blue pixels were geometry hits in straight transport that became escapes in curved. Source: <code>output/observer_disagreement/offaxis_observe_delta/</code></figcaption>
+  ![Observer Disagreement Hero — curved GRIN vs straight vs delta, labeled](../../assets/observatory/observer-disagreement-hero.png)
+  <figcaption><strong>Same observer, two transport models.</strong> Left: curved GRIN — 46,841 hits. Center: straight reference — 70,300 hits. Right: disagreement delta — 30,839 pixels differ (23.8%). Blue = hits that became escapes. Ratio 8.6:1 blue to cyan. Source: <code>output/observer_disagreement/offaxis_observe_delta/</code></figcaption>
 </figure>
+
+---
+
+!!! tip "What to look at"
+    **Inspect:** The disagreement delta panel (right). Look at the color balance — how much blue vs. cyan? The 9:1 ratio toward blue tells you the GRIN field is *defocusing*, not focusing.
+
+    **Contradiction:** A first guess might be "curved light bends toward objects, so you'd see *more* hits." The data says the opposite: 27,619 hits became escapes; only 3,220 escapes became hits. Curved transport removes surface contacts in this configuration.
+
+    **What would make it stronger:** A second camera pose at a different off-axis angle — if the disagreement fraction changes with pose, the asymmetry is pose-dependent, not an intrinsic field property. (This sweep is the missing artifact for Chapter 2.)
 
 ---
 

@@ -16,9 +16,23 @@ description: When is a render silently wrong — and what does the failure look 
 ---
 
 <figure markdown>
-  ![Hermetic hit closure failure storyboard](../../assets/observatory/hermetic-hit-closure-storyboard.png)
-  <figcaption>Failure pixel distribution at budget=32. Failures cluster in the high-curvature annular region — not random noise. Every pixel in this render is budget-saturated (unresolved). Closure: 0.0%. Source: <code>output/hermetic_hit_closure/20260510T060138Z/</code></figcaption>
+  ![Hermetic Closure Hero — budget=32 vs budget=700 side by side at 640×360](../../assets/observatory/hermetic-closure-hero.png)
+  <figcaption><strong>Same scene. Same camera. Opposite truth.</strong> Left: budget=32, closure 0.0% — every pixel is unresolved budget noise that looks like a render. Right: budget=700, closure 100.0% — every pixel is a real transport result. The renders are visually indistinguishable. Source: <code>output/hermetic_hit_closure/20260604T023019Z/</code></figcaption>
 </figure>
+
+<figure markdown>
+  ![Hermetic Closure — 3-panel with failure map](../../assets/observatory/hermetic-closure-hero-3panel.png)
+  <figcaption>3-panel extended view: silent failure · budget exhaustion heatmap · full closure. The middle panel shows <em>where</em> the budget is exhausted — failures cluster in the high-curvature annular zone, not randomly.</figcaption>
+</figure>
+
+---
+
+!!! tip "What to look at"
+    **Inspect:** The failure storyboard image — look at *where* the failure pixels cluster. They are not random; they trace the annular high-curvature zone from Chapter 1's heat map.
+
+    **Contradiction:** The budget=32 render looks reasonable. No obvious holes, no glitch artifacts. The Validation HUD is the only thing that reveals 0.0% closure — 100% of pixels are unresolved budget noise.
+
+    **What would make it stronger:** A side-by-side render with both HUDs visible simultaneously — budget=32 (left, HUD: 0%) and budget=700 (right, HUD: 100%). This is the chapter's highest-priority pending screenshot. See [capture recipe](#capture-recipe-side-by-side-hud) below.
 
 ---
 
@@ -134,6 +148,29 @@ This is why the hermetic fixture contract exists: transport correctness is not g
 [Chapter 4 — Coherence Basin →](chapter_04.md): Chapter 3 showed that insufficient budget causes transport failure. Chapter 4 asks whether there are regions where no amount of budget or precision can achieve convergence.
 
 *Bridge:* "We know budget determines closure. But what if the problem isn't budget at all — what if some regions of the field are fundamentally unstable?"
+
+---
+
+## Capture Recipe — Side-by-Side HUD
+
+**Target:** A single composite image showing budget=32 (left half, HUD visible) and budget=700 (right half, HUD visible) rendered from the same camera pose on `test-hermetic-curved-room.tscn`.
+
+**Steps:**
+
+1. Open `test-hermetic-curved-room.tscn` in the Godot editor.
+2. Set `RayBeamRenderer.MaxSteps = 32`. Run and screenshot the full viewport including the Validation HUD overlay. Save as `budget_32_hud.png`.
+3. Set `RayBeamRenderer.MaxSteps = 700`. Run and screenshot. Save as `budget_700_hud.png`.
+4. Composite side-by-side (e.g., ImageMagick: `convert budget_32_hud.png budget_700_hud.png +append chapter_03_sbs_hud.png`).
+5. Copy result to `Docs/assets/observatory/hermetic-closure-sbs-hud.png` and update the figure in this chapter.
+
+**Expected HUD values:**
+
+| Panel | MaxSteps | Closure | Phase |
+|-------|----------|---------|-------|
+| Left  | 32       | 0.0%    | budget\_saturated |
+| Right | 700      | 100.0%  | plateau |
+
+**Promotion path:** Copy to `misterylabs_artifacts/visuals/hermetic-closure-sbs-hud.png` and update `manifest.json` artifact `a04`.
 
 ---
 
