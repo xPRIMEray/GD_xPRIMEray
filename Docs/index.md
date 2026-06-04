@@ -3,15 +3,70 @@ title: xPRIMEray
 description: Curved-ray optical transport observatory — GRIN field integration, wormhole rendering, curvature domain diagnostics, and observer-relative overlays in Godot 4 C#
 ---
 
-<div align="center">
+<div class="xp-hero" align="center">
   <img src="/GD_xPRIMEray/assets/xPRIMEray_Logo_Hero_960.png?v=phase0-2" alt="xPRIMEray" width="460">
-  <br>
-  <em>Where physics performs.</em>
+  <div class="xp-tagline">Where physics performs.</div>
 </div>
 
----
+<div class="xp-lobby-intro">
+  A curved-ray renderer that solves, not simulates. Every ray is integrated through a refractive field. Every pixel is classified. The validator tells you whether the render is real.
+</div>
 
-xPRIMEray is a curved-ray optical transport observatory built in Godot 4 C# for visualizing propagation, boundary behavior, curvature domains, GRIN fields, wormhole seams, and observer-relative diagnostics. It integrates null geodesics of the Gordon effective metric — `ẋ = p/n(x)`, `ṗ = ∇n(x)` — and validates every render against a hermetic fixture contract: 100% pixel classification, zero unresolved exits. The engine reveals transport structure. It does not assert physics.
+<div class="xp-motto">Observation precedes explanation. Plausible ≠ Correct.</div>
+
+<div class="xp-exhibit-grid" markdown>
+
+<div class="xp-exhibit-card" markdown>
+
+![Observer Disagreement — 23.8% of pixels classify differently](assets/observatory/observer-disagreement-hero.png)
+
+<div class="xp-exhibit-body">
+<span class="xp-stat">23.8%</span>
+<span class="xp-stat-label">of pixels classify differently</span>
+<div class="xp-hook">Same scene. Same camera. Two transport models. Curved rays miss geometry that straight rays hit — not randomly, but directionally: 9 misses for every 1 new contact.</div>
+<div class="xp-why">A straight-ray renderer would report 33% more geometry hits for this scene. The difference is not a visual effect. It is physics.</div>
+<a class="xp-exhibit-link" href="Observatory/chapters/chapter_02.md">Ch 2 — Observer Disagreement →</a>
+</div>
+
+</div>
+
+<div class="xp-exhibit-card" markdown>
+
+![Hermetic Closure — budget=32 (0% closure) vs budget=700 (100% closure)](assets/observatory/hermetic-closure-hero.png)
+
+<div class="xp-exhibit-body">
+<span class="xp-stat">0%</span>
+<span class="xp-stat-label">closure at budget = 32</span>
+<div class="xp-hook">Two renders that look identical. Left panel: every pixel is unresolved budget noise. Right panel: every pixel is a real transport result. The images are indistinguishable by eye.</div>
+<div class="xp-why">A render can pass visual inspection while being completely wrong. The Validation HUD is the only reliable detector. Plausible ≠ correct.</div>
+<a class="xp-exhibit-link" href="Observatory/chapters/chapter_03.md">Ch 3 — Hermetic Closure →</a>
+</div>
+
+</div>
+
+<div class="xp-exhibit-card" markdown>
+
+![Coherence Basin — 960×540 instability map with risk overlay](assets/observatory/coherence-basin-hero.png)
+
+<div class="xp-exhibit-body">
+<span class="xp-stat">276</span>
+<span class="xp-stat-label">instability nodes, all at the same precision floor</span>
+<div class="xp-hook">Two symmetric horizontal bands that no integration budget can eliminate. The oracle finds them at every precision level. Their uniformity is the finding — it points to topology, not noise.</div>
+<div class="xp-why">Some transport failures are structural. The field geometry creates a convergence floor the integrator cannot cross. Scheduler decorrelation reduces banding; it does not remove these zones.</div>
+<a class="xp-exhibit-link" href="Observatory/chapters/chapter_04.md">Ch 4 — Coherence Basin →</a>
+</div>
+
+</div>
+
+</div>
+
+<div class="xp-action-row" markdown>
+
+[Take the 20-Minute Tour](start_here.md){ .md-button .md-button--primary }
+[Observatory Atlas](Observatory/observatory_atlas.md){ .md-button }
+[Artifact Gallery](Observatory/artifacts.md){ .md-button }
+
+</div>
 
 ---
 
