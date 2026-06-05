@@ -1274,6 +1274,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#capture-recipe-side-by-side-hud" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Capture Recipe — Side-by-Side HUD
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#related-documentation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5918,10 +5929,22 @@
 <p><em>When is a render silently wrong — and what does the failure look like from the outside?</em></p>
 <hr />
 <figure>
-<p><img alt="Hermetic hit closure failure storyboard" src="../../../assets/observatory/hermetic-hit-closure-storyboard.png" />
+<p><img alt="Hermetic Closure Hero — budget=32 vs budget=700 side by side at 640×360" src="../../../assets/observatory/hermetic-closure-hero.png" />
   </p>
-<figcaption>Failure pixel distribution at budget=32. Failures cluster in the high-curvature annular region — not random noise. Every pixel in this render is budget-saturated (unresolved). Closure: 0.0%. Source: <code>output/hermetic_hit_closure/20260510T060138Z/</code></figcaption>
+<figcaption><strong>Same scene. Same camera. Opposite truth.</strong> Left: budget=32, closure 0.0% — every pixel is unresolved budget noise that looks like a render. Right: budget=700, closure 100.0% — every pixel is a real transport result. The renders are visually indistinguishable. Source: <code>output/hermetic_hit_closure/20260604T023019Z/</code></figcaption>
 </figure>
+<figure>
+<p><img alt="Hermetic Closure — 3-panel with failure map" src="../../../assets/observatory/hermetic-closure-hero-3panel.png" />
+  </p>
+<figcaption>3-panel extended view: silent failure · budget exhaustion heatmap · full closure. The middle panel shows <em>where</em> the budget is exhausted — failures cluster in the high-curvature annular zone, not randomly.</figcaption>
+</figure>
+<hr />
+<div class="admonition tip">
+<p class="admonition-title">What to look at</p>
+<p><strong>Inspect:</strong> The failure storyboard image — look at <em>where</em> the failure pixels cluster. They are not random; they trace the annular high-curvature zone from Chapter 1's heat map.</p>
+<p><strong>Contradiction:</strong> The budget=32 render looks reasonable. No obvious holes, no glitch artifacts. The Validation HUD is the only thing that reveals 0.0% closure — 100% of pixels are unresolved budget noise.</p>
+<p><strong>What would make it stronger:</strong> A side-by-side render with both HUDs visible simultaneously — budget=32 (left, HUD: 0%) and budget=700 (right, HUD: 100%). This is the chapter's highest-priority pending screenshot. See <a href="#capture-recipe-side-by-side-hud">capture recipe</a> below.</p>
+</div>
 <hr />
 <h2 id="what-the-visitor-sees">What the Visitor Sees<a class="headerlink" href="#what-the-visitor-sees" title="Permanent link">&para;</a></h2>
 <p><strong>The hermetic contract:</strong> Every ray entering a hermetic scene volume must reach a definitive classification (geometry hit, escaped, portal event) before the integrator exits. A render that satisfies the contract is <em>closed</em> — every pixel is a real transport result. One that violates it is <em>open</em> — some pixels are unresolved budget exhaustion, displayed as noise that looks like a legitimate render.</p>
@@ -6043,6 +6066,43 @@
 <p><a href="../chapter_04/">Chapter 4 — Coherence Basin →</a>: Chapter 3 showed that insufficient budget causes transport failure. Chapter 4 asks whether there are regions where no amount of budget or precision can achieve convergence.</p>
 <p><em>Bridge:</em> "We know budget determines closure. But what if the problem isn't budget at all — what if some regions of the field are fundamentally unstable?"</p>
 <hr />
+<h2 id="capture-recipe-side-by-side-hud">Capture Recipe — Side-by-Side HUD<a class="headerlink" href="#capture-recipe-side-by-side-hud" title="Permanent link">&para;</a></h2>
+<p><strong>Target:</strong> A single composite image showing budget=32 (left half, HUD visible) and budget=700 (right half, HUD visible) rendered from the same camera pose on <code>test-hermetic-curved-room.tscn</code>.</p>
+<p><strong>Steps:</strong></p>
+<ol>
+<li>Open <code>test-hermetic-curved-room.tscn</code> in the Godot editor.</li>
+<li>Set <code>RayBeamRenderer.MaxSteps = 32</code>. Run and screenshot the full viewport including the Validation HUD overlay. Save as <code>budget_32_hud.png</code>.</li>
+<li>Set <code>RayBeamRenderer.MaxSteps = 700</code>. Run and screenshot. Save as <code>budget_700_hud.png</code>.</li>
+<li>Composite side-by-side (e.g., ImageMagick: <code>convert budget_32_hud.png budget_700_hud.png +append chapter_03_sbs_hud.png</code>).</li>
+<li>Copy result to <code>Docs/assets/observatory/hermetic-closure-sbs-hud.png</code> and update the figure in this chapter.</li>
+</ol>
+<p><strong>Expected HUD values:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Panel</th>
+<th>MaxSteps</th>
+<th>Closure</th>
+<th>Phase</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Left</td>
+<td>32</td>
+<td>0.0%</td>
+<td>budget_saturated</td>
+</tr>
+<tr>
+<td>Right</td>
+<td>700</td>
+<td>100.0%</td>
+<td>plateau</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Promotion path:</strong> Copy to <code>misterylabs_artifacts/visuals/hermetic-closure-sbs-hud.png</code> and update <code>manifest.json</code> artifact <code>a04</code>.</p>
+<hr />
 <h2 id="related-documentation">Related Documentation<a class="headerlink" href="#related-documentation" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../../../validation/hermetic_fixture_rule/">Validation — Hermetic Fixture Rule</a></li>
@@ -6071,7 +6131,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 3, 2026 04:57:58 UTC">June 3, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 4, 2026 04:37:46 UTC">June 4, 2026</span>
   </span>
 
     
@@ -6081,7 +6141,7 @@
     <span class="md-icon" title="Created">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 3, 2026 04:57:58 UTC">June 3, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 3, 2026 05:01:29 UTC">June 3, 2026</span>
   </span>
 
     

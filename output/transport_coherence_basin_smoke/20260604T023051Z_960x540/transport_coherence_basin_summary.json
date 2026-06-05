@@ -1,0 +1,21 @@
+{
+  "basin_count": 8,
+  "diagnostic_only_guardrail": "Analysis only. SceneTransportMemory must not feed render scheduling, hit selection, shading, resolver decisions, or adaptive precision yet.",
+  "input_files": [
+    "/home/bb/code/godot_xPRIMEray/output/transport_coherence_basin_smoke/20260604T023051Z_960x540/domain_resolver_stress__transport_coherence_basin_960x540__baseline_prune_off__scheduler-baseline__targetms-1000__stride-4__runid-1.reference_geodesic_probe.csv"
+  ],
+  "input_hash": "a78404c0b9ca669db6f32be83c6575e20a366fa857c9193b704acb19e7633469",
+  "max_manifold_fragmentation_count": 0,
+  "mean_local_coherence_score": 0.9999989090802569,
+  "mean_transport_entropy": 0.0,
+  "probe_budget": {
+    "budget_metadata_found": true,
+    "centers_skipped_due_to_budget": 33,
+    "max_centers_used": 8,
+    "probe_runtime_ms": 3336,
+    "probe_sample_count": 1204,
+    "rows_written": 1204
+  },
+  "scheduler_resonance_seam_count": 0,
+  "unstable_seam_count": 0
+}

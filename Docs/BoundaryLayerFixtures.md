@@ -8,12 +8,12 @@ Minimal deterministic fixtures for validating boundary crossing behavior, crossi
 
 Start with:
 
-- [`fixture_boundary_shell_entry_basic.tscn`](#fixture-1----fixture_boundary_shell_entry_basic) — simplest possible CrossingEvent baseline; confirms one entry event per ray, no exit event, clear visual displacement.
+- [`fixture_boundary_shell_entry_basic.tscn`](#fixture-1-fixture_boundary_shell_entry_basic) — simplest possible CrossingEvent baseline; confirms one entry event per ray, no exit event, clear visual displacement.
 
 Then progress to:
 
-- [`fixture_boundary_shell_policy_compare.tscn`](#fixture-2----fixture_boundary_shell_policy_compare) — side-by-side EntryOnly / ExitOnly / EntryAndExit; confirms policy routing and relative displacement magnitude.
-- [`fixture_boundary_nested_shell_modes.tscn`](#fixture-3----fixture_boundary_nested_shell_modes) — two concentric shells with different policies and bias directions; confirms bitmask tracking, snap index ordering, and correct suppression of inner exit events.
+- [`fixture_boundary_shell_policy_compare.tscn`](#fixture-2-fixture_boundary_shell_policy_compare) — side-by-side EntryOnly / ExitOnly / EntryAndExit; confirms policy routing and relative displacement magnitude.
+- [`fixture_boundary_nested_shell_modes.tscn`](#fixture-3-fixture_boundary_nested_shell_modes) — two concentric shells with different policies and bias directions; confirms bitmask tracking, snap index ordering, and correct suppression of inner exit events.
 
 Run them in this order. If the entry-basic fixture does not produce the expected single-event log, do not advance to the others — the crossing dispatch path has a regression that will produce misleading results in the later fixtures.
 

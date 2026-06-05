@@ -22,6 +22,15 @@ description: How do you diagnose transport failures without a crash or an oracle
 
 ---
 
+!!! tip "What to look at"
+    **Inspect:** The resonance heatmap — compare the stride=1 row (26% band coverage) against the stride=4 row (0.22%). The collapse is a factor of 100× from a single parameter change. Then look at the continuity vector overlay: the high-magnitude clusters appear at rows ~58 and ~122 — the same instability bands Chapter 4's oracle identified.
+
+    **Contradiction:** The intuitive debug response to banding artifacts is "increase integration precision." The DOE shows this makes the banding *worse* at stride=1 (finer steps expose more transport boundary structure). The actual fix is changing the *traversal schedule*, not the integration precision.
+
+    **What would make it stronger:** A four-panel stride comparison (stride=1, 2, 4, 8) rendered at the same step length side-by-side, with band coverage percentages annotated on each panel. The DOE dataset has the numbers; the missing piece is the composite visual.
+
+---
+
 ## What the Visitor Sees
 
 ### The Entry Finding: Scheduler Resonance

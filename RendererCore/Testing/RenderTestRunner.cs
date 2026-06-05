@@ -108,6 +108,9 @@ public partial class RenderTestRunner : Node
 	private const string RenderTestCaptureCmdArgPrefix = "--render-test-capture=";
 	private const string RenderTestCaptureDirCmdArgPrefix = "--render-test-capture-dir=";
 	private const string RenderTestCaptureModeCmdArgPrefix = "--render-test-capture-mode=";
+	private const string CurvatureFpsBenchmarkCmdArgPrefix = "--curvature-fps-benchmark=";
+	private const string CurvatureFpsPercentCmdArgPrefix = "--curvature-fps-percent=";
+	private const string CurvatureFpsAmplitudeCmdArgPrefix = "--curvature-fps-amplitude=";
 	private const string RenderTestFramesCmdArgPrefix = "--render-test-frames=";
 	private const string RenderTestWarmupCmdArgPrefix = "--render-test-warmup=";
 	private const string DomainAuditQuickCmdArgToken = "--domain-audit-quick";
@@ -201,6 +204,9 @@ public partial class RenderTestRunner : Node
 	private bool _renderTestCaptureEnabled = false;
 	private string _renderTestCaptureDir = string.Empty;
 	private string _renderTestCaptureModeLabel = string.Empty;
+	private bool _curvatureFpsBenchmarkMode = false;
+	private int _curvatureFpsPercent = -1;
+	private float _curvatureFpsAmplitude = float.NaN;
 	private bool _domainAuditQuickMode = false;
 	private bool _telemetryHeatmapCliOverrideKnown = false;
 	private bool _exportTelemetryHeatmaps = false;
@@ -554,6 +560,9 @@ public partial class RenderTestRunner : Node
 				$"capture={(_renderTestCaptureEnabled ? 1 : 0)} " +
 				$"capture_dir={Sanitize(string.IsNullOrWhiteSpace(_renderTestCaptureDir) ? "auto" : _renderTestCaptureDir)} " +
 				$"capture_mode={Sanitize(string.IsNullOrWhiteSpace(_renderTestCaptureModeLabel) ? "auto" : _renderTestCaptureModeLabel)} " +
+				$"curvature_fps_benchmark={(_curvatureFpsBenchmarkMode ? 1 : 0)} " +
+				$"curvature_fps_percent={(_curvatureFpsPercent >= 0 ? _curvatureFpsPercent.ToString() : "na")} " +
+				$"curvature_fps_amplitude={(float.IsFinite(_curvatureFpsAmplitude) ? _curvatureFpsAmplitude.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture) : "na")} " +
 				$"telemetry_heatmaps={(ResolveTelemetryHeatmapExportEnabledForLogging() ? 1 : 0)} " +
 				$"telemetry_heatmap_dir={Sanitize(ResolveTelemetryHeatmapDirForLogging())} " +
 				$"telemetry_heatmap_mode={Sanitize(ResolveTelemetryHeatmapModeForLogging())} " +
@@ -956,6 +965,12 @@ public partial class RenderTestRunner : Node
 		_film.TargetMsPerFrame = 1000;
 		_film.EnableProfiling = false;
 		_film.EnableFramePerf = false;
+		if (_curvatureFpsBenchmarkMode)
+		{
+			_film.EnableProfiling = true;
+			_film.EnableFramePerf = true;
+			_film.FramePerfVerbose = false;
+		}
 		_film.RenderStepPhaseLog = false;
 		_film.RenderStepBandLog = false;
 		_film.DebugSnapshotLog = false;
@@ -2411,9 +2426,40 @@ public partial class RenderTestRunner : Node
 				$"derivativeStepAfterMean={(hasMetricDiag ? derivativeDiag.MeanStepAfter.ToString("0.######") : "na")} " +
 				$"derivativeDifficultyMean={(hasMetricDiag ? derivativeDiag.MeanDifficulty.ToString("0.######") : "na")} " +
 				$"derivativeMetricRetries={(hasMetricDiag ? derivativeDiag.MetricSubdivisionRetryCount.ToString() : "na")}");
-			TryWriteRenderTestCapture(in run, runExecId);
-
 			bool hasRhLiveSnapshot = TryGetLatestRenderHealthLiveSnapshot(out RenderHealthLiveSnapshot finalRhSnap);
+			string benchmarkCaptureDir = ResolveRenderTestCaptureDir();
+			string benchmarkCapturePath = BuildRenderTestCapturePath(in run, runExecId, benchmarkCaptureDir);
+			TryWriteRenderTestCapture(in run, runExecId);
+			if (_curvatureFpsBenchmarkMode)
+			{
+				TryWriteCurvatureFpsBenchmarkResult(
+					in run,
+					runExecId,
+					benchmarkCaptureDir,
+					benchmarkCapturePath,
+					sampleCount,
+					meanMs,
+					p95Ms,
+					runElapsedMs,
+					runElapsedKnown,
+					hasFixtureStats,
+					fixtureStats,
+					hasWriteDiag,
+					writeDiag,
+					fixtureHitRateKnown,
+					fixtureHitRate,
+					hasRh,
+					trusted,
+					savedPctAvailable,
+					savedPct,
+					trustReason,
+					hasRhLiveSnapshot,
+					finalRhSnap,
+					hasMetricDiag,
+					metricDiag,
+					derivativeDiag);
+			}
+
 			bool filmValidForMetrics = _film != null && GodotObject.IsInstanceValid(_film);
 			CaptureSmartScaleProbeCursorAndFilmHeightAtRunBoundary(isRunStart: false);
 			ApplySmartScaleCoarseCounterFallbackIfNeeded();
@@ -3219,10 +3265,281 @@ public partial class RenderTestRunner : Node
 		}
 	}
 
+	private void TryWriteCurvatureFpsBenchmarkResult(
+		in GrinFilmCamera.TestRunConfig run,
+		ulong runExecId,
+		string captureDir,
+		string capturePath,
+		int sampleCount,
+		double meanMs,
+		double p95Ms,
+		double elapsedMs,
+		bool elapsedKnown,
+		bool hasFixtureStats,
+		GrinFilmCamera.FixtureDebugStatsSnapshot fixtureStats,
+		bool hasWriteDiag,
+		GrinFilmCamera.FixtureWriteDiagnosticsSnapshot writeDiag,
+		bool fixtureHitRateKnown,
+		double fixtureHitRate,
+		bool hasRenderHealth,
+		bool renderHealthTrusted,
+		bool renderHealthSavedPctAvailable,
+		double renderHealthSavedPct,
+		string renderHealthTrustReason,
+		bool hasRenderHealthLiveSnapshot,
+		RenderHealthLiveSnapshot renderHealthLive,
+		bool hasMetricDiag,
+		RayBeamRenderer.MetricTransportDiagnosticsSnapshot metricDiag,
+		RayBeamRenderer.DerivativeAwareSteppingDiagnosticsSnapshot derivativeDiag)
+	{
+		try
+		{
+			if (string.IsNullOrWhiteSpace(captureDir))
+			{
+				captureDir = ResolveRenderTestCaptureDir();
+			}
+			Directory.CreateDirectory(captureDir);
+			string resultPath = Path.Combine(captureDir, "curvature_fps_result.json");
+			double meanFps = sampleCount > 0 && double.IsFinite(meanMs) && meanMs > 0.0 ? 1000.0 / meanMs : 0.0;
+			long visibleHits = hasFixtureStats
+				? fixtureStats.SourceHits + fixtureStats.BackgroundHits + fixtureStats.UnclassifiedHits
+				: 0L;
+			long missCount = hasFixtureStats ? fixtureStats.MissHits : 0L;
+			long totalRays = hasFixtureStats ? fixtureStats.TracedPixels : 0L;
+			double missRate = totalRays > 0 ? missCount / (double)totalRays : 0.0;
+			double hitPercent = fixtureHitRateKnown ? fixtureHitRate * 100.0 : (totalRays > 0 ? visibleHits * 100.0 / totalRays : 0.0);
+
+			PerfFrameReport perf = default;
+			GrinFilmCamera.FixtureAdaptiveSteppingDiagnosticsSnapshot adaptive = default;
+			GrinFilmCamera.FilmCaptureDiagnosticsSnapshot filmCapture = default;
+			bool hasPerf = _film != null &&
+				GodotObject.IsInstanceValid(_film) &&
+				_film.TryGetLatestPerfFrameReportForTesting(out perf);
+			bool hasAdaptive = _film != null &&
+				GodotObject.IsInstanceValid(_film) &&
+				_film.TryGetFixtureAdaptiveSteppingDiagnosticsForTesting(out adaptive);
+			bool hasFilmCapture = _film != null &&
+				GodotObject.IsInstanceValid(_film) &&
+				_film.TryGetFilmCaptureDiagnosticsForTesting(out filmCapture);
+
+			var sb = new System.Text.StringBuilder(4096);
+			sb.Append("{\n");
+			AppendJsonString(sb, "study", "curvature_fps_benchmark", comma: true);
+			AppendJsonNumber(sb, "run_id", (long)runExecId, comma: true);
+			AppendJsonString(sb, "fixture", GetHudFixtureToken(_requestedFixture), comma: true);
+			AppendJsonString(sb, "scene", GetTree().CurrentScene?.SceneFilePath ?? string.Empty, comma: true);
+			AppendJsonString(sb, "run_name", run.Name ?? string.Empty, comma: true);
+			AppendJsonNumber(sb, "curvature_percent", _curvatureFpsPercent, comma: true);
+			AppendJsonFloat(sb, "field_amplitude", _curvatureFpsAmplitude, comma: true);
+			AppendJsonNumber(sb, "frames", FramesPerRun, comma: true);
+			AppendJsonNumber(sb, "warmup", WarmupFrames, comma: true);
+			AppendJsonNumber(sb, "sample_count", sampleCount, comma: true);
+			AppendJsonDouble(sb, "mean_fps", meanFps, comma: true);
+			AppendJsonDouble(sb, "mean_frame_time_ms", meanMs, comma: true);
+			AppendJsonDouble(sb, "p95_frame_time_ms", p95Ms, comma: true);
+			AppendJsonDoubleOrNull(sb, "elapsed_ms", elapsedKnown ? elapsedMs : double.NaN, comma: true);
+			AppendJsonString(sb, "screenshot_path", capturePath ?? string.Empty, comma: true);
+			AppendJsonNumber(sb, "total_rays_pixels_evaluated", totalRays, comma: true);
+			AppendJsonNumber(sb, "hit_count", visibleHits, comma: true);
+			AppendJsonNumber(sb, "absorbed_hit_count", hasFixtureStats ? fixtureStats.AbsorbedHits : 0L, comma: true);
+			AppendJsonNumber(sb, "miss_count", missCount, comma: true);
+			AppendJsonDouble(sb, "miss_rate", missRate, comma: true);
+			AppendJsonDouble(sb, "hit_percent", hitPercent, comma: true);
+			AppendJsonBool(sb, "sealed_hit_validation_passed", totalRays > 0 && missCount == 0, comma: true);
+			AppendJsonString(sb, "closure_contract", "all pixels expected to hit sealed-room receiver; no valid exceptions in v1", comma: true);
+			AppendJsonString(sb, "closure_truth_scope", "scene-contract closure, not physical correctness", comma: true);
+			AppendJsonString(sb, "curved_minimal_reference", "100pct amplitude 1.15 follows CurvedMinimalFingerprint canonical fixture amplitude", comma: true);
+			sb.Append("\"fixture_stats\":{");
+			AppendJsonNumberInline(sb, "known", hasFixtureStats ? 1 : 0, comma: true);
+			AppendJsonNumberInline(sb, "source_hits", hasFixtureStats ? fixtureStats.SourceHits : 0L, comma: true);
+			AppendJsonNumberInline(sb, "background_hits", hasFixtureStats ? fixtureStats.BackgroundHits : 0L, comma: true);
+			AppendJsonNumberInline(sb, "unclassified_hits", hasFixtureStats ? fixtureStats.UnclassifiedHits : 0L, comma: true);
+			AppendJsonNumberInline(sb, "absorbed_hits", hasFixtureStats ? fixtureStats.AbsorbedHits : 0L, comma: true);
+			AppendJsonNumberInline(sb, "miss_hits", hasFixtureStats ? fixtureStats.MissHits : 0L, comma: true);
+			AppendJsonNumberInline(sb, "traced_pixels", hasFixtureStats ? fixtureStats.TracedPixels : 0L, comma: false);
+			sb.Append("},\n");
+			sb.Append("\"write_diagnostics\":{");
+			AppendJsonNumberInline(sb, "known", hasWriteDiag ? 1 : 0, comma: true);
+			AppendJsonNumberInline(sb, "beauty_expected_pixels", hasWriteDiag ? writeDiag.BeautyExpectedPixels : 0, comma: true);
+			AppendJsonNumberInline(sb, "beauty_pixels_written_once", hasWriteDiag ? writeDiag.BeautyPixelsWrittenOnce : 0, comma: true);
+			AppendJsonNumberInline(sb, "beauty_pixels_unwritten", hasWriteDiag ? writeDiag.BeautyPixelsUnwritten : 0, comma: true);
+			AppendJsonNumberInline(sb, "beauty_pixels_multi_written", hasWriteDiag ? writeDiag.BeautyPixelsMultiWritten : 0, comma: true);
+			AppendJsonNumberInline(sb, "rows_completed", hasWriteDiag ? writeDiag.RowsCompleted : 0, comma: false);
+			sb.Append("},\n");
+			sb.Append("\"render_health\":{");
+			AppendJsonNumberInline(sb, "known", hasRenderHealth ? 1 : 0, comma: true);
+			AppendJsonNumberInline(sb, "trusted", renderHealthTrusted ? 1 : 0, comma: true);
+			AppendJsonDoubleInlineOrNull(sb, "geom_ray_tests_saved_pct", renderHealthSavedPctAvailable ? renderHealthSavedPct : double.NaN, comma: true);
+			AppendJsonStringInline(sb, "trust_reason", renderHealthTrustReason ?? string.Empty, comma: true);
+			AppendJsonNumberInline(sb, "live_known", hasRenderHealthLiveSnapshot ? 1 : 0, comma: true);
+			AppendJsonNumberInline(sb, "step", hasRenderHealthLiveSnapshot && renderHealthLive.StepKnown ? renderHealthLive.Step : -1, comma: true);
+			AppendJsonNumberInline(sb, "rows_advanced", hasRenderHealthLiveSnapshot ? renderHealthLive.RowsAdv : 0, comma: true);
+			AppendJsonNumberInline(sb, "bands", hasRenderHealthLiveSnapshot ? renderHealthLive.Bands : 0, comma: true);
+			AppendJsonNumberInline(sb, "geom_pix_processed", hasRenderHealthLiveSnapshot && renderHealthLive.GeomPixProcessedKnown ? renderHealthLive.GeomPixProcessed : 0L, comma: true);
+			AppendJsonNumberInline(sb, "geom_ray_tests_total", hasRenderHealthLiveSnapshot && renderHealthLive.GeomRayTestsTotalKnown ? renderHealthLive.GeomRayTestsTotal : 0L, comma: true);
+			AppendJsonNumberInline(sb, "geom_segments_queried_raw", hasRenderHealthLiveSnapshot && renderHealthLive.GeomSegQueriedRawKnown ? renderHealthLive.GeomSegQueriedRaw : 0L, comma: true);
+			AppendJsonNumberInline(sb, "pass2_sampled_segments_raw", hasRenderHealthLiveSnapshot && renderHealthLive.P2SampRawKnown ? renderHealthLive.P2SampRaw : 0L, comma: true);
+			AppendJsonStringInline(sb, "budget_exit_reason", hasRenderHealthLiveSnapshot && renderHealthLive.BudgetExitReasonKnown ? renderHealthLive.BudgetExitReason : string.Empty, comma: false);
+			sb.Append("},\n");
+			sb.Append("\"latest_perf_frame_report\":");
+			AppendPerfFrameReportJson(sb, hasPerf, hasPerf ? perf : default);
+			sb.Append(",\n");
+			sb.Append("\"adaptive_stepping\":{");
+			AppendJsonNumberInline(sb, "known", hasAdaptive ? 1 : 0, comma: true);
+			AppendJsonStringInline(sb, "summary", hasAdaptive ? adaptive.Summary : string.Empty, comma: true);
+			AppendJsonDoubleInlineOrNull(sb, "average_segments_per_ray", hasAdaptive && adaptive.AverageSegmentsPerRay.HasValue ? adaptive.AverageSegmentsPerRay.Value : double.NaN, comma: true);
+			AppendJsonDoubleInlineOrNull(sb, "average_turn_angle", hasAdaptive && adaptive.AverageTurnAngle.HasValue ? adaptive.AverageTurnAngle.Value : double.NaN, comma: true);
+			AppendJsonDoubleInlineOrNull(sb, "max_turn_angle", hasAdaptive && adaptive.MaxTurnAngle.HasValue ? adaptive.MaxTurnAngle.Value : double.NaN, comma: false);
+			sb.Append("},\n");
+			sb.Append("\"metric_diagnostics\":{");
+			AppendJsonNumberInline(sb, "known", hasMetricDiag ? 1 : 0, comma: true);
+			AppendJsonNumberInline(sb, "steering_turn_count", hasMetricDiag ? metricDiag.SteeringTurnCount : 0, comma: true);
+			AppendJsonDoubleInlineOrNull(sb, "steering_mean_turn", hasMetricDiag ? metricDiag.MeanTurn : double.NaN, comma: true);
+			AppendJsonDoubleInlineOrNull(sb, "steering_max_turn", hasMetricDiag ? metricDiag.MaxTurn : double.NaN, comma: true);
+			AppendJsonDoubleInlineOrNull(sb, "metric_contribution_ratio", hasMetricDiag ? metricDiag.MetricContributionRatio : double.NaN, comma: true);
+			AppendJsonStringInline(sb, "steering_radial_summary", hasMetricDiag ? metricDiag.RadialTurnSummary ?? string.Empty : string.Empty, comma: true);
+			AppendJsonStringInline(sb, "metric_zero_reason_summary", hasMetricDiag ? metricDiag.ZeroReasonSummary ?? string.Empty : string.Empty, comma: false);
+			sb.Append("},\n");
+			sb.Append("\"derivative_step\":{");
+			AppendJsonNumberInline(sb, "enabled", derivativeDiag.Enabled ? 1 : 0, comma: true);
+			AppendJsonNumberInline(sb, "sample_count", derivativeDiag.SampleCount, comma: true);
+			AppendJsonNumberInline(sb, "metric_subdivision_retry_count", derivativeDiag.MetricSubdivisionRetryCount, comma: true);
+			AppendJsonDoubleInlineOrNull(sb, "mean_difficulty", derivativeDiag.MeanDifficulty, comma: true);
+			AppendJsonDoubleInlineOrNull(sb, "mean_step_before", derivativeDiag.MeanStepBefore, comma: true);
+			AppendJsonDoubleInlineOrNull(sb, "mean_step_after", derivativeDiag.MeanStepAfter, comma: false);
+			sb.Append("},\n");
+			sb.Append("\"film_capture\":{");
+			AppendJsonNumberInline(sb, "known", hasFilmCapture ? 1 : 0, comma: true);
+			AppendJsonNumberInline(sb, "width", hasFilmCapture ? filmCapture.FilmWidth : 0, comma: true);
+			AppendJsonNumberInline(sb, "height", hasFilmCapture ? filmCapture.FilmHeight : 0, comma: true);
+			AppendJsonNumberInline(sb, "rays_traced", hasFilmCapture ? filmCapture.FrameRaysTraced : 0L, comma: true);
+			AppendJsonNumberInline(sb, "segments_integrated", hasFilmCapture ? filmCapture.FrameSegmentsIntegrated : 0L, comma: true);
+			AppendJsonNumberInline(sb, "segments_tested", hasFilmCapture ? filmCapture.FrameSegmentsTested : 0L, comma: true);
+			AppendJsonNumberInline(sb, "physics_queries", hasFilmCapture ? filmCapture.FramePhysicsQueries : 0L, comma: false);
+			sb.Append("}\n");
+			sb.Append("}\n");
+
+			File.WriteAllText(resultPath, sb.ToString());
+			GD.Print($"[CurvatureFPS][Result] path={resultPath} curvature={_curvatureFpsPercent} mean_fps={meanFps:0.###} miss_count={missCount}");
+		}
+		catch (Exception ex)
+		{
+			GD.PrintErr($"[CurvatureFPS][Result][FAIL] exception={ex.GetType().Name}");
+		}
+	}
+
 	private static string FormatJsonFloat(float value)
 	{
 		float safe = (float.IsNaN(value) || float.IsInfinity(value)) ? 0f : value;
 		return safe.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture);
+	}
+
+	private static string FormatJsonDouble(double value)
+	{
+		double safe = (double.IsNaN(value) || double.IsInfinity(value)) ? 0.0 : value;
+		return safe.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture);
+	}
+
+	private static void AppendJsonString(System.Text.StringBuilder sb, string name, string value, bool comma)
+	{
+		sb.Append("\"").Append(JsonEscape(name)).Append("\":\"").Append(JsonEscape(value ?? string.Empty)).Append("\"");
+		sb.Append(comma ? ",\n" : "\n");
+	}
+
+	private static void AppendJsonNumber(System.Text.StringBuilder sb, string name, long value, bool comma)
+	{
+		sb.Append("\"").Append(JsonEscape(name)).Append("\":").Append(value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+		sb.Append(comma ? ",\n" : "\n");
+	}
+
+	private static void AppendJsonFloat(System.Text.StringBuilder sb, string name, float value, bool comma)
+	{
+		sb.Append("\"").Append(JsonEscape(name)).Append("\":");
+		if (float.IsNaN(value) || float.IsInfinity(value))
+			sb.Append("null");
+		else
+			sb.Append(value.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture));
+		sb.Append(comma ? ",\n" : "\n");
+	}
+
+	private static void AppendJsonDouble(System.Text.StringBuilder sb, string name, double value, bool comma)
+	{
+		sb.Append("\"").Append(JsonEscape(name)).Append("\":").Append(FormatJsonDouble(value));
+		sb.Append(comma ? ",\n" : "\n");
+	}
+
+	private static void AppendJsonDoubleOrNull(System.Text.StringBuilder sb, string name, double value, bool comma)
+	{
+		sb.Append("\"").Append(JsonEscape(name)).Append("\":");
+		if (double.IsNaN(value) || double.IsInfinity(value))
+			sb.Append("null");
+		else
+			sb.Append(value.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture));
+		sb.Append(comma ? ",\n" : "\n");
+	}
+
+	private static void AppendJsonBool(System.Text.StringBuilder sb, string name, bool value, bool comma)
+	{
+		sb.Append("\"").Append(JsonEscape(name)).Append("\":").Append(value ? "true" : "false");
+		sb.Append(comma ? ",\n" : "\n");
+	}
+
+	private static void AppendJsonNumberInline(System.Text.StringBuilder sb, string name, long value, bool comma)
+	{
+		sb.Append("\"").Append(JsonEscape(name)).Append("\":").Append(value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+		if (comma) sb.Append(",");
+	}
+
+	private static void AppendJsonDoubleInlineOrNull(System.Text.StringBuilder sb, string name, double value, bool comma)
+	{
+		sb.Append("\"").Append(JsonEscape(name)).Append("\":");
+		if (double.IsNaN(value) || double.IsInfinity(value))
+			sb.Append("null");
+		else
+			sb.Append(value.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture));
+		if (comma) sb.Append(",");
+	}
+
+	private static void AppendJsonStringInline(System.Text.StringBuilder sb, string name, string value, bool comma)
+	{
+		sb.Append("\"").Append(JsonEscape(name)).Append("\":\"").Append(JsonEscape(value ?? string.Empty)).Append("\"");
+		if (comma) sb.Append(",");
+	}
+
+	private static void AppendPerfFrameReportJson(System.Text.StringBuilder sb, bool known, PerfFrameReport perf)
+	{
+		sb.Append("{");
+		AppendJsonNumberInline(sb, "known", known ? 1 : 0, comma: true);
+		AppendJsonDoubleInlineOrNull(sb, "pass1_ms", known ? perf.Pass1Ms : double.NaN, comma: true);
+		AppendJsonDoubleInlineOrNull(sb, "pass2_phys_ms", known ? perf.Pass2PhysMs : double.NaN, comma: true);
+		AppendJsonDoubleInlineOrNull(sb, "pass2_query_ms", known ? perf.Pass2QueryMs : double.NaN, comma: true);
+		AppendJsonDoubleInlineOrNull(sb, "pass2_hit_resolve_ms", known ? perf.Pass2HitResolveMs : double.NaN, comma: true);
+		AppendJsonDoubleInlineOrNull(sb, "pass2_shade_ms", known ? perf.Pass2ShadeMs : double.NaN, comma: true);
+		AppendJsonDoubleInlineOrNull(sb, "pass2_commit_ms", known ? perf.Pass2CommitMs : double.NaN, comma: true);
+		AppendJsonDoubleInlineOrNull(sb, "scheduler_ms", known ? perf.SchedulerMs : double.NaN, comma: true);
+		AppendJsonDoubleInlineOrNull(sb, "film_update_ms", known ? perf.FilmUpdateMs : double.NaN, comma: true);
+		AppendJsonDoubleInlineOrNull(sb, "overlay_build_ms", known ? perf.OverlayBuildMs : double.NaN, comma: true);
+		AppendJsonNumberInline(sb, "pixels", known ? perf.Pixels : 0, comma: true);
+		AppendJsonNumberInline(sb, "traced_pixels", known ? perf.TracedPixels : 0, comma: true);
+		AppendJsonNumberInline(sb, "filled_pixels", known ? perf.FilledPixels : 0, comma: true);
+		AppendJsonNumberInline(sb, "effective_render_pixels", known ? perf.EffectiveRenderPixels : 0, comma: true);
+		AppendJsonNumberInline(sb, "segments", known ? perf.Segs : 0, comma: true);
+		AppendJsonNumberInline(sb, "segments_tested", known ? perf.SegsTested : 0, comma: true);
+		AppendJsonNumberInline(sb, "hits", known ? perf.Hits : 0, comma: true);
+		AppendJsonNumberInline(sb, "intersect_ray_calls", known ? perf.IntersectRayCalls : 0, comma: true);
+		AppendJsonNumberInline(sb, "intersect_shape_calls", known ? perf.IntersectShapeCalls : 0, comma: true);
+		AppendJsonNumberInline(sb, "subdivided_ray_calls", known ? perf.SubdividedRayCalls : 0, comma: true);
+		AppendJsonNumberInline(sb, "subdivided_ray_queries", known ? perf.SubdividedRayQueries : 0, comma: true);
+		AppendJsonNumberInline(sb, "soft_gate_attempts", known ? perf.Pass2SoftGateAttempts : 0L, comma: true);
+		AppendJsonNumberInline(sb, "soft_gate_hits", known ? perf.Pass2SoftGateHits : 0L, comma: true);
+		AppendJsonNumberInline(sb, "band_segments_integrated", known ? perf.BandSegsIntegrated : 0L, comma: true);
+		AppendJsonNumberInline(sb, "band_segments_tested", known ? perf.BandSegsTested : 0L, comma: true);
+		AppendJsonNumberInline(sb, "band_physics_queries", known ? perf.BandPhysicsQueries : 0L, comma: true);
+		AppendJsonNumberInline(sb, "present_pixels_updated", known ? perf.PresentPixelsUpdated : 0, comma: true);
+		AppendJsonDoubleInlineOrNull(sb, "present_coverage_ratio", known ? perf.PresentCoverageRatio : double.NaN, comma: true);
+		AppendJsonDoubleInlineOrNull(sb, "effective_full_refresh_fps", known ? perf.EffectiveFullRefreshFps : double.NaN, comma: true);
+		AppendJsonStringInline(sb, "reason_flags", known ? perf.ReasonFlags.ToString() : string.Empty, comma: false);
+		sb.Append("}");
 	}
 
 	private static string JsonEscape(string value)
@@ -4231,6 +4548,9 @@ public partial class RenderTestRunner : Node
 		_renderTestCaptureEnabled = false;
 		_renderTestCaptureDir = string.Empty;
 		_renderTestCaptureModeLabel = string.Empty;
+		_curvatureFpsBenchmarkMode = false;
+		_curvatureFpsPercent = -1;
+		_curvatureFpsAmplitude = float.NaN;
 		_telemetryHeatmapCliOverrideKnown = false;
 		_exportTelemetryHeatmaps = false;
 		_telemetryHeatmapOutputDirCliOverrideKnown = false;
@@ -4309,6 +4629,20 @@ public partial class RenderTestRunner : Node
 			!string.IsNullOrWhiteSpace(renderTestCaptureMode))
 		{
 			_renderTestCaptureModeLabel = SanitizeTokenForFilename(renderTestCaptureMode);
+		}
+		if (TryGetBoolCmdArgValue(CurvatureFpsBenchmarkCmdArgPrefix, out bool curvatureFpsBenchmark))
+		{
+			_curvatureFpsBenchmarkMode = curvatureFpsBenchmark;
+		}
+		if (TryGetIntCmdArgValue(CurvatureFpsPercentCmdArgPrefix, out int curvatureFpsPercent))
+		{
+			_curvatureFpsPercent = Math.Clamp(curvatureFpsPercent, 0, 100);
+		}
+		if (TryGetStringCmdArgValue(CurvatureFpsAmplitudeCmdArgPrefix, out string curvatureFpsAmplitudeRaw) &&
+			!string.IsNullOrWhiteSpace(curvatureFpsAmplitudeRaw) &&
+			float.TryParse(curvatureFpsAmplitudeRaw.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float curvatureFpsAmplitude))
+		{
+			_curvatureFpsAmplitude = curvatureFpsAmplitude;
 		}
 		if (TryGetIntCmdArgValue(RenderTestFramesCmdArgPrefix, out int renderTestFrames))
 		{

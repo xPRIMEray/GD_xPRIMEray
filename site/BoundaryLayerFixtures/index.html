@@ -6026,12 +6026,12 @@
 <h2 id="validation-entry-point">Validation Entry Point<a class="headerlink" href="#validation-entry-point" title="Permanent link">&para;</a></h2>
 <p>Start with:</p>
 <ul>
-<li><a href="#fixture-1----fixture_boundary_shell_entry_basic"><code>fixture_boundary_shell_entry_basic.tscn</code></a> — simplest possible CrossingEvent baseline; confirms one entry event per ray, no exit event, clear visual displacement.</li>
+<li><a href="#fixture-1-fixture_boundary_shell_entry_basic"><code>fixture_boundary_shell_entry_basic.tscn</code></a> — simplest possible CrossingEvent baseline; confirms one entry event per ray, no exit event, clear visual displacement.</li>
 </ul>
 <p>Then progress to:</p>
 <ul>
-<li><a href="#fixture-2----fixture_boundary_shell_policy_compare"><code>fixture_boundary_shell_policy_compare.tscn</code></a> — side-by-side EntryOnly / ExitOnly / EntryAndExit; confirms policy routing and relative displacement magnitude.</li>
-<li><a href="#fixture-3----fixture_boundary_nested_shell_modes"><code>fixture_boundary_nested_shell_modes.tscn</code></a> — two concentric shells with different policies and bias directions; confirms bitmask tracking, snap index ordering, and correct suppression of inner exit events.</li>
+<li><a href="#fixture-2-fixture_boundary_shell_policy_compare"><code>fixture_boundary_shell_policy_compare.tscn</code></a> — side-by-side EntryOnly / ExitOnly / EntryAndExit; confirms policy routing and relative displacement magnitude.</li>
+<li><a href="#fixture-3-fixture_boundary_nested_shell_modes"><code>fixture_boundary_nested_shell_modes.tscn</code></a> — two concentric shells with different policies and bias directions; confirms bitmask tracking, snap index ordering, and correct suppression of inner exit events.</li>
 </ul>
 <p>Run them in this order. If the entry-basic fixture does not produce the expected single-event log, do not advance to the others — the crossing dispatch path has a regression that will produce misleading results in the later fixtures.</p>
 <hr />

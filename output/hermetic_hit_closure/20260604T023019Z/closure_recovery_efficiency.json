@@ -1,0 +1,36 @@
+{
+  "guardrail": "adaptive_closure_probe is prototype instrumentation only. It preserves baseline outputs and must not feed production scheduling, hit selection, shading, resolver decisions, traversal, or adaptive precision.",
+  "pair_count": 1,
+  "pairs": [
+    {
+      "baseline_cell": "cells/step_0.015/budget_32/curvature_0/row",
+      "baseline_steps_per_ray": 32,
+      "curvature_strength": "0",
+      "failed_pixel_count_before": 15392,
+      "graph_delta_after_recovery": {
+        "edge_count_delta": 13,
+        "high_discontinuity_edge_delta": 7,
+        "node_count_delta": 7,
+        "seam_length_delta": 1933.0
+      },
+      "guardrail": "adaptive_closure_probe is prototype instrumentation only. It preserves baseline outputs and must not feed production scheduling, hit selection, shading, resolver decisions, traversal, or adaptive precision.",
+      "recovered_pixel_count": 1728,
+      "recovery_budget_cost": 703392,
+      "recovery_efficiency_ratio": 0.002456667,
+      "retry_cell": "cells/step_0.015/budget_700/curvature_0/row",
+      "retry_region_count": 2,
+      "retry_steps_per_ray": 700,
+      "seam_delta_after_recovery": 1933.0,
+      "step_length": "0.015",
+      "still_unresolved_pixel_count_after": 13664,
+      "traversal": "row",
+      "unresolved_before_after": [
+        15392,
+        13664
+      ]
+    }
+  ],
+  "recovered_pixel_count": 1728,
+  "recovery_budget_cost": 703392,
+  "recovery_efficiency_ratio": 0.002456667
+}

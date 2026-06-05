@@ -22,6 +22,15 @@ description: What does a wormhole look like from the inside, and how do we know 
 
 ---
 
+!!! tip "What to look at"
+    **Inspect:** Frame 03 (curvature heat map) — is the portal *boundary ring* the hottest zone, or is it the throat interior?
+
+    **Contradiction:** Most visitors expect the throat to be the most distorted region. The heat map shows the opposite: the boundary ring glows brightest; the throat interior is cooler.
+
+    **What would make it stronger:** A second heat map at a different observer pose or a different GRIN field strength, to verify the boundary-ring dominance holds across configurations, not just at this one parameterization.
+
+---
+
 ## What the Visitor Sees
 
 **Frame 01 — Clean curved render.** The bare wormhole. No overlays. The annular ring compression at the portal boundary, the throat distortion, the asymmetric background distribution — all computed by integrating null geodesics through the GRIN field. Nothing is post-processed.

@@ -253,6 +253,140 @@
   opacity: 0.6;
 }
 
+/* ════════════════════════════════════════════════════════════
+   Observatory Lobby — index.md first-impressions layout
+   ════════════════════════════════════════════════════════════ */
+
+/* One-line orientation sentence under logo */
+.xp-lobby-intro {
+  text-align: center;
+  font-size: 1.05rem;
+  letter-spacing: 0.025em;
+  opacity: 0.88;
+  margin: 0.6rem auto 0.4rem;
+  max-width: 52rem;
+  line-height: 1.5;
+}
+
+/* Full-width motto bar */
+.xp-motto {
+  text-align: center;
+  font-size: 0.92rem;
+  letter-spacing: 0.08em;
+  opacity: 0.5;
+  font-style: italic;
+  margin: 0.3rem 0 1.6rem;
+}
+
+/* Three-column exhibit grid */
+.xp-exhibit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.1rem;
+  margin: 0.5rem 0 1.4rem;
+}
+
+/* Individual exhibit card */
+.xp-exhibit-card {
+  border: 1px solid rgba(120, 100, 220, 0.28);
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(14, 14, 22, 0.55);
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s;
+}
+
+.xp-exhibit-card:hover {
+  border-color: rgba(150, 120, 255, 0.55);
+}
+
+/* Image fills full card width, no border/padding/background from global img rule */
+.xp-exhibit-card > p:first-child img,
+.xp-exhibit-card img:first-of-type {
+  width: 100%;
+  border: none !important;
+  padding: 0 !important;
+  background: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  display: block;
+  margin: 0 !important;
+}
+
+/* Card body (text area below image) */
+.xp-exhibit-body {
+  padding: 0.85rem 0.95rem 0.75rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Big stat number */
+.xp-stat {
+  display: block;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #9966ff;
+  line-height: 1;
+  margin: 0.45rem 0 0.2rem;
+  letter-spacing: -0.02em;
+}
+
+/* Stat sub-label */
+.xp-stat-label {
+  font-size: 0.72rem;
+  opacity: 0.6;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.55rem;
+  text-transform: uppercase;
+}
+
+/* Hook sentence */
+.xp-hook {
+  font-size: 0.88rem;
+  line-height: 1.5;
+  margin-bottom: 0.5rem;
+  flex: 1;
+}
+
+/* "Why this matters" stripe */
+.xp-why {
+  font-size: 0.72rem;
+  opacity: 0.58;
+  border-top: 1px solid rgba(128, 128, 128, 0.18);
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+  font-style: italic;
+  line-height: 1.45;
+}
+
+/* Exhibit link at bottom of card */
+.xp-exhibit-link {
+  display: inline-block;
+  margin-top: 0.65rem;
+  font-size: 0.78rem;
+  color: #9966ff !important;
+  letter-spacing: 0.03em;
+}
+
+/* Action button row */
+.xp-action-row {
+  display: flex;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 0.5rem 0 2rem;
+}
+
+.xp-action-row .md-button {
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  min-width: 10rem;
+  text-align: center;
+}
+
 /* ── Print / paper export ──────────────────────────────────── */
 @media print {
   .md-header,

@@ -588,8 +588,8 @@ The following are required before any Oracle Scheduler v0.2 implementation begin
 - [cathedral_probe_architecture.md](cathedral_probe_architecture.md) — DOE evidence: step length vs. banding; tile vs. row scheduler comparison
 - [scheduler_decorrelation_and_local_coherence.md](scheduler_decorrelation_and_local_coherence.md) — Row-phase resonance; decorrelation direction
 - [object_seeded_null_geodesic_tiling_scheduler.md](object_seeded_null_geodesic_tiling_scheduler.md) — Object-seeded v1/v2/v3 architecture; TransportRiskField; SceneTransportFingerprint
-- [../../ReleaseToProduction/ORACLE_SCHEDULER_V02_DIRECTION.md](../../ReleaseToProduction/ORACLE_SCHEDULER_V02_DIRECTION.md) — High-level direction note with scheduling primitive table
-- [../../ReleaseToProduction/PHASE2_HERMETIC_CLOSURE_MILESTONE.md](../../ReleaseToProduction/PHASE2_HERMETIC_CLOSURE_MILESTONE.md) — Hermetic closure baseline; traversalRowsCompleted semantic correction
+- [ReleaseToProduction/ORACLE_SCHEDULER_V02_DIRECTION.md](https://github.com/AetherTopologist/GD_xPRIMEray/tree/main/ReleaseToProduction/ORACLE_SCHEDULER_V02_DIRECTION.md) — High-level direction note with scheduling primitive table
+- [ReleaseToProduction/PHASE2_HERMETIC_CLOSURE_MILESTONE.md](https://github.com/AetherTopologist/GD_xPRIMEray/tree/main/ReleaseToProduction/PHASE2_HERMETIC_CLOSURE_MILESTONE.md) — Hermetic closure baseline; traversalRowsCompleted semantic correction
 - `RendererCore/Validation/ReferenceTransportOracle.cs` — Oracle guardrail; EpsilonStabilityClass; OracleIntegrationSettings
 - `GrinFilmCamera.cs` — `_rowCursor`, `_fixtureRowsCompleted`, `ResetRowCursor`, `_img` retention
 - `tools/hermetic_observatory_observe.py` — `check_hermetic()`; traversalRowsCompleted gate
