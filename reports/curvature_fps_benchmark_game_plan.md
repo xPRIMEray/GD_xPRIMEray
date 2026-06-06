@@ -37,6 +37,17 @@ Add a one-command runner:
 bash scripts/run_curvature_fps_benchmark.sh
 ```
 
+Resolution presets:
+
+| Preset | Resolution |
+|---|---:|
+| `smoke` | 40x22 |
+| `mini` | 160x112 |
+| `SNES` | 256x224 |
+| `tiny-HD` | 320x180 |
+
+`tiny-HD` is the default. Override with `CURVATURE_FPS_PRESET=smoke|mini|SNES|tiny-HD`, or pass `CURVATURE_FPS_RES=<width>x<height>` for an explicit custom resolution.
+
 The runner will:
 
 - build the C# project;
@@ -45,6 +56,7 @@ The runner will:
 - pass `--hermetic-curvature-strength=<amplitude>` for each curvature level;
 - enable render-test capture and existing diagnostic overlays;
 - run existing post-process tools for wireframes, ownership graph, hit normals, graph-plus-hit-normal summaries, and hermetic closure analysis;
+- record resolved fixture curvature after scene load and hash per-cell visual artifacts;
 - aggregate results into `output/curvature_fps_benchmark/<timestamp>/summary.json`;
 - generate `reports/weekend_fps_curvature_sweep.md`;
 - copy report-local visual assets into `reports/weekend_fps_curvature_sweep_assets/`.
@@ -80,6 +92,7 @@ Each curvature result should include, where available:
 - fixture fingerprint or fixture contract lines;
 - optional oracle/cathedral/island/closure fingerprints only when existing systems already produced them;
 - paths to visual artifacts such as normal overlay, hit/miss map, traversal-step heatmap, budget/precision map, renderer-health overlay, and diagnostic overlays.
+- per-artifact SHA-256 hashes and sweep-level visual identity checks.
 
 ## Final Report
 
@@ -91,6 +104,8 @@ Executive summary:
 - Did Godot exit cleanly?
 - Did all five curvature levels complete?
 - Did sealed-scene hit validation pass?
+- Did resolved fixture curvature vary as requested?
+- Were visual outputs identical across curvature levels?
 - Did FPS reach 30?
 - Did FPS reach 60?
 - Biggest observed bottleneck.

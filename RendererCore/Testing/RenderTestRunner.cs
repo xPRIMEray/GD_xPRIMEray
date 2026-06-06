@@ -3265,6 +3265,108 @@ public partial class RenderTestRunner : Node
 		}
 	}
 
+	private readonly struct CurvatureFpsFixtureCurvatureSnapshot
+	{
+		public readonly bool FieldPresent;
+		public readonly bool FieldEnabled;
+		public readonly bool ResolvedEnabled;
+		public readonly string ResolveReason;
+		public readonly float ResolvedAmp;
+		public readonly float ResolvedRInner;
+		public readonly float ResolvedROuter;
+		public readonly bool RendererPresent;
+		public readonly bool RendererUseIntegratedField;
+		public readonly float RendererFieldStrength;
+		public readonly float RendererBendScale;
+		public readonly bool CurvedTransportEnabled;
+
+		public CurvatureFpsFixtureCurvatureSnapshot(
+			bool fieldPresent,
+			bool fieldEnabled,
+			bool resolvedEnabled,
+			string resolveReason,
+			float resolvedAmp,
+			float resolvedRInner,
+			float resolvedROuter,
+			bool rendererPresent,
+			bool rendererUseIntegratedField,
+			float rendererFieldStrength,
+			float rendererBendScale,
+			bool curvedTransportEnabled)
+		{
+			FieldPresent = fieldPresent;
+			FieldEnabled = fieldEnabled;
+			ResolvedEnabled = resolvedEnabled;
+			ResolveReason = resolveReason ?? string.Empty;
+			ResolvedAmp = resolvedAmp;
+			ResolvedRInner = resolvedRInner;
+			ResolvedROuter = resolvedROuter;
+			RendererPresent = rendererPresent;
+			RendererUseIntegratedField = rendererUseIntegratedField;
+			RendererFieldStrength = rendererFieldStrength;
+			RendererBendScale = rendererBendScale;
+			CurvedTransportEnabled = curvedTransportEnabled;
+		}
+	}
+
+	private bool TryGetCurvatureFpsFixtureCurvatureSnapshot(out CurvatureFpsFixtureCurvatureSnapshot snapshot)
+	{
+		snapshot = default;
+		FieldSource3D field = FindFirstNodeOfType<FieldSource3D>(GetTree()?.CurrentScene);
+		bool hasRenderer = TryGetSharedRayBeamRenderer(out RayBeamRenderer renderer) && GodotObject.IsInstanceValid(renderer);
+		if (field == null && !hasRenderer)
+		{
+			return false;
+		}
+
+		FieldSource3D.ResolvedFieldParams resolved = default;
+		string resolveReason = field != null ? "unresolved" : "missing_field";
+		if (field != null)
+		{
+			resolved = field.ResolveEffectiveParams(out resolveReason);
+		}
+
+		bool curvedTransportEnabled = hasRenderer &&
+			renderer.UseIntegratedField &&
+			MathF.Abs(renderer.FieldStrength) > 1e-7f;
+		snapshot = new CurvatureFpsFixtureCurvatureSnapshot(
+			fieldPresent: field != null,
+			fieldEnabled: field != null && field.Enabled,
+			resolvedEnabled: field != null && resolved.enabled,
+			resolveReason: resolveReason,
+			resolvedAmp: field != null ? resolved.amp : 0f,
+			resolvedRInner: field != null ? resolved.rInner : 0f,
+			resolvedROuter: field != null ? resolved.rOuter : 0f,
+			rendererPresent: hasRenderer,
+			rendererUseIntegratedField: hasRenderer && renderer.UseIntegratedField,
+			rendererFieldStrength: hasRenderer ? renderer.FieldStrength : 0f,
+			rendererBendScale: hasRenderer ? renderer.BendScale : 0f,
+			curvedTransportEnabled: curvedTransportEnabled);
+		return true;
+	}
+
+	private static T FindFirstNodeOfType<T>(Node node) where T : Node
+	{
+		if (node == null)
+		{
+			return null;
+		}
+		if (node is T match)
+		{
+			return match;
+		}
+		foreach (Node child in node.GetChildren())
+		{
+			T found = FindFirstNodeOfType<T>(child);
+			if (found != null)
+			{
+				return found;
+			}
+		}
+
+		return null;
+	}
+
 	private void TryWriteCurvatureFpsBenchmarkResult(
 		in GrinFilmCamera.TestRunConfig run,
 		ulong runExecId,
@@ -3318,9 +3420,10 @@ public partial class RenderTestRunner : Node
 			bool hasAdaptive = _film != null &&
 				GodotObject.IsInstanceValid(_film) &&
 				_film.TryGetFixtureAdaptiveSteppingDiagnosticsForTesting(out adaptive);
-			bool hasFilmCapture = _film != null &&
-				GodotObject.IsInstanceValid(_film) &&
-				_film.TryGetFilmCaptureDiagnosticsForTesting(out filmCapture);
+				bool hasFilmCapture = _film != null &&
+					GodotObject.IsInstanceValid(_film) &&
+					_film.TryGetFilmCaptureDiagnosticsForTesting(out filmCapture);
+				bool hasResolvedCurvature = TryGetCurvatureFpsFixtureCurvatureSnapshot(out CurvatureFpsFixtureCurvatureSnapshot resolvedCurvature);
 
 			var sb = new System.Text.StringBuilder(4096);
 			sb.Append("{\n");
@@ -3346,10 +3449,26 @@ public partial class RenderTestRunner : Node
 			AppendJsonDouble(sb, "miss_rate", missRate, comma: true);
 			AppendJsonDouble(sb, "hit_percent", hitPercent, comma: true);
 			AppendJsonBool(sb, "sealed_hit_validation_passed", totalRays > 0 && missCount == 0, comma: true);
-			AppendJsonString(sb, "closure_contract", "all pixels expected to hit sealed-room receiver; no valid exceptions in v1", comma: true);
-			AppendJsonString(sb, "closure_truth_scope", "scene-contract closure, not physical correctness", comma: true);
-			AppendJsonString(sb, "curved_minimal_reference", "100pct amplitude 1.15 follows CurvedMinimalFingerprint canonical fixture amplitude", comma: true);
-			sb.Append("\"fixture_stats\":{");
+				AppendJsonString(sb, "closure_contract", "all pixels expected to hit sealed-room receiver; no valid exceptions in v1", comma: true);
+				AppendJsonString(sb, "closure_truth_scope", "scene-contract closure, not physical correctness", comma: true);
+				AppendJsonString(sb, "curved_minimal_reference", "100pct amplitude 1.15 follows CurvedMinimalFingerprint canonical fixture amplitude", comma: true);
+				sb.Append("\"resolved_fixture_curvature\":{");
+				AppendJsonNumberInline(sb, "known", hasResolvedCurvature ? 1 : 0, comma: true);
+				AppendJsonDoubleInlineOrNull(sb, "requested_amplitude", _curvatureFpsAmplitude, comma: true);
+				AppendJsonNumberInline(sb, "field_present", hasResolvedCurvature && resolvedCurvature.FieldPresent ? 1 : 0, comma: true);
+				AppendJsonNumberInline(sb, "field_enabled", hasResolvedCurvature && resolvedCurvature.FieldEnabled ? 1 : 0, comma: true);
+				AppendJsonStringInline(sb, "resolved_reason", hasResolvedCurvature ? resolvedCurvature.ResolveReason : string.Empty, comma: true);
+				AppendJsonNumberInline(sb, "resolved_enabled", hasResolvedCurvature && resolvedCurvature.ResolvedEnabled ? 1 : 0, comma: true);
+				AppendJsonDoubleInlineOrNull(sb, "resolved_amp", hasResolvedCurvature ? resolvedCurvature.ResolvedAmp : double.NaN, comma: true);
+				AppendJsonDoubleInlineOrNull(sb, "resolved_r_inner", hasResolvedCurvature ? resolvedCurvature.ResolvedRInner : double.NaN, comma: true);
+				AppendJsonDoubleInlineOrNull(sb, "resolved_r_outer", hasResolvedCurvature ? resolvedCurvature.ResolvedROuter : double.NaN, comma: true);
+				AppendJsonNumberInline(sb, "renderer_present", hasResolvedCurvature && resolvedCurvature.RendererPresent ? 1 : 0, comma: true);
+				AppendJsonNumberInline(sb, "renderer_use_integrated_field", hasResolvedCurvature && resolvedCurvature.RendererUseIntegratedField ? 1 : 0, comma: true);
+				AppendJsonDoubleInlineOrNull(sb, "renderer_field_strength", hasResolvedCurvature ? resolvedCurvature.RendererFieldStrength : double.NaN, comma: true);
+				AppendJsonDoubleInlineOrNull(sb, "renderer_bend_scale", hasResolvedCurvature ? resolvedCurvature.RendererBendScale : double.NaN, comma: true);
+				AppendJsonNumberInline(sb, "curved_transport_enabled", hasResolvedCurvature && resolvedCurvature.CurvedTransportEnabled ? 1 : 0, comma: false);
+				sb.Append("},\n");
+				sb.Append("\"fixture_stats\":{");
 			AppendJsonNumberInline(sb, "known", hasFixtureStats ? 1 : 0, comma: true);
 			AppendJsonNumberInline(sb, "source_hits", hasFixtureStats ? fixtureStats.SourceHits : 0L, comma: true);
 			AppendJsonNumberInline(sb, "background_hits", hasFixtureStats ? fixtureStats.BackgroundHits : 0L, comma: true);

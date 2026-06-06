@@ -1,0 +1,10 @@
+{
+  "baseline_curvature_percent": 0,
+  "changed_pixel_count": 0,
+  "compared_pixel_count": 880,
+  "comparison": "curved_vs_straight",
+  "current_curvature_percent": 25,
+  "max_abs_step_delta": 0,
+  "mean_abs_step_delta": 0.0,
+  "source_metric": "traversal_final_step_count"
+}

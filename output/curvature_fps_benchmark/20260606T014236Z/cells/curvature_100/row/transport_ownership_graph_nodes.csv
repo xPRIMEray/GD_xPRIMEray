@@ -1,0 +1,4 @@
+node_id,transport_signature,had_hit,collider_id,domain_id,boundary_event_bucket,area_px,centroid_x,centroid_y,bbox_x0,bbox_y0,bbox_x1,bbox_y1,mean_hit_distance,mean_path_length,mean_step_count,mean_boundary_event_count,mean_normal_x,mean_normal_y,mean_normal_z,is_unresolved_island_member,precision_floor_label,epsilon_stable_area_px,source_step_length,traversal,stride
+0,1|26206012821|0|0,1,26206012821,0,0,163,3.226994,10.932515,0,0,7,21,5.885512,5.885512,678.95092,0.0,1.0,0.0,0.0,0,,,0.015,row,1
+1,1|26105349517|0|0,1,26105349517,0,0,554,19.5,10.245487,6,0,33,21,5.519132,5.519132,676.429603,0.0,0.0,0.0,1.0,0,,,0.015,row,1
+2,1|26256344472|0|0,1,26256344472,0,0,163,35.773006,10.932515,32,0,39,21,5.885512,5.885512,678.95092,0.0,-1.0,0.0,0.0,0,,,0.015,row,1

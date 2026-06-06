@@ -1,0 +1,3949 @@
+{
+  "all_five_levels_complete": true,
+  "all_levels_completed": true,
+  "beauty_capture_health": {
+    "blank_beauty_count": 5,
+    "entries": [
+      {
+        "curvature_percent": 0,
+        "path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/hermetic_curved_room__curvature_fps_0__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+        "reason": "valid PNG contains only one clear/background color",
+        "solid_rgba": [
+          40,
+          61,
+          102,
+          255
+        ],
+        "status": "BLANK BEAUTY",
+        "usable_for_visual_confirmation": false
+      },
+      {
+        "curvature_percent": 25,
+        "path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/hermetic_curved_room__curvature_fps_25__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+        "reason": "valid PNG contains only one clear/background color",
+        "solid_rgba": [
+          40,
+          61,
+          102,
+          255
+        ],
+        "status": "BLANK BEAUTY",
+        "usable_for_visual_confirmation": false
+      },
+      {
+        "curvature_percent": 50,
+        "path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/hermetic_curved_room__curvature_fps_50__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+        "reason": "valid PNG contains only one clear/background color",
+        "solid_rgba": [
+          40,
+          61,
+          102,
+          255
+        ],
+        "status": "BLANK BEAUTY",
+        "usable_for_visual_confirmation": false
+      },
+      {
+        "curvature_percent": 75,
+        "path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/hermetic_curved_room__curvature_fps_75__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+        "reason": "valid PNG contains only one clear/background color",
+        "solid_rgba": [
+          40,
+          61,
+          102,
+          255
+        ],
+        "status": "BLANK BEAUTY",
+        "usable_for_visual_confirmation": false
+      },
+      {
+        "curvature_percent": 100,
+        "path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/hermetic_curved_room__curvature_fps_100__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+        "reason": "valid PNG contains only one clear/background color",
+        "solid_rgba": [
+          40,
+          61,
+          102,
+          255
+        ],
+        "status": "BLANK BEAUTY",
+        "usable_for_visual_confirmation": false
+      }
+    ],
+    "invalid_beauty_count": 0,
+    "missing_beauty_count": 0,
+    "overall_status": "BLANK BEAUTY",
+    "visual_render_confirmation_passed": false
+  },
+  "cell_count": 5,
+  "curvature_application": {
+    "curvature_application_passed": true,
+    "entries": [
+      {
+        "curvature_percent": 0,
+        "curved_transport_enabled": 0,
+        "matches_requested": true,
+        "renderer_field_strength": 0.0,
+        "requested_amplitude": 0.0,
+        "resolved_amp": 0.0,
+        "source": "curvature_fps_result.json"
+      },
+      {
+        "curvature_percent": 25,
+        "curved_transport_enabled": 1,
+        "matches_requested": true,
+        "renderer_field_strength": 0.2875,
+        "requested_amplitude": 0.2875,
+        "resolved_amp": 0.2875,
+        "source": "curvature_fps_result.json"
+      },
+      {
+        "curvature_percent": 50,
+        "curved_transport_enabled": 1,
+        "matches_requested": true,
+        "renderer_field_strength": 0.575,
+        "requested_amplitude": 0.575,
+        "resolved_amp": 0.575,
+        "source": "curvature_fps_result.json"
+      },
+      {
+        "curvature_percent": 75,
+        "curved_transport_enabled": 1,
+        "matches_requested": true,
+        "renderer_field_strength": 0.8625,
+        "requested_amplitude": 0.8625,
+        "resolved_amp": 0.8625,
+        "source": "curvature_fps_result.json"
+      },
+      {
+        "curvature_percent": 100,
+        "curved_transport_enabled": 1,
+        "matches_requested": true,
+        "renderer_field_strength": 1.15,
+        "requested_amplitude": 1.15,
+        "resolved_amp": 1.15,
+        "source": "curvature_fps_result.json"
+      }
+    ],
+    "resolved_curvature_varied": true
+  },
+  "diagnostic_artifact_health": {
+    "diagnostic_artifacts_valid": true,
+    "entries": [
+      {
+        "curvature_percent": 0,
+        "hit_diagnostics_csv": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/hermetic_curved_room__curvature_fps_0__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+        "missing_required_artifacts": [],
+        "status": "OK",
+        "total_pixels_rays_evaluated": 880
+      },
+      {
+        "curvature_percent": 25,
+        "hit_diagnostics_csv": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/hermetic_curved_room__curvature_fps_25__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+        "missing_required_artifacts": [],
+        "status": "OK",
+        "total_pixels_rays_evaluated": 880
+      },
+      {
+        "curvature_percent": 50,
+        "hit_diagnostics_csv": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/hermetic_curved_room__curvature_fps_50__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+        "missing_required_artifacts": [],
+        "status": "OK",
+        "total_pixels_rays_evaluated": 880
+      },
+      {
+        "curvature_percent": 75,
+        "hit_diagnostics_csv": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/hermetic_curved_room__curvature_fps_75__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+        "missing_required_artifacts": [],
+        "status": "OK",
+        "total_pixels_rays_evaluated": 880
+      },
+      {
+        "curvature_percent": 100,
+        "hit_diagnostics_csv": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/hermetic_curved_room__curvature_fps_100__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+        "missing_required_artifacts": [],
+        "status": "OK",
+        "total_pixels_rays_evaluated": 880
+      }
+    ],
+    "overall_status": "OK",
+    "required_artifacts": [
+      "budget_heatmap",
+      "budget_overlay",
+      "curvature_field_view",
+      "curved_vs_straight_difference",
+      "diagnostic_contact_sheet",
+      "geometry_explanation",
+      "hit_miss_map",
+      "normal_overlay",
+      "raw_visual",
+      "transport_ownership",
+      "traversal_step_heatmap"
+    ]
+  },
+  "did_run": true,
+  "godot_clean_exit": true,
+  "guardrail": "Hermetic closure validates transport completion within a known scene contract. It does not establish physical correctness.",
+  "hardware": {
+    "core(s)_per_socket": "12",
+    "cpu(s)": "24",
+    "model_name": "AMD Ryzen 9 7900X 12-Core Processor",
+    "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "processor": "x86_64",
+    "python": "3.12.3",
+    "thread(s)_per_core": "2"
+  },
+  "results": [
+    {
+      "absorbed_hit_count": 0,
+      "adaptive_stepping": {
+        "average_segments_per_ray": 586,
+        "average_turn_angle": 0,
+        "known": 1,
+        "max_turn_angle": 0,
+        "summary": "segs=616000|avgSeg=586|maxSeg=na|adaptiveSubdiv=165420|meanTurn=0|maxTurn=0|meanErr=na|maxErr=na|steeringTurns=764000|parallelRaw=0|sourceHits=0|backgroundHits=1120|terminated=1120|fallbackUsed=0"
+      },
+      "artifact_hashes": {
+        "budget_heatmap": {
+          "bytes": 121,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/budget_exhaustion_heatmap.png",
+          "sha256": "69c1759e80290d7d816716c0480425c09de311bc6e9cb6a25df3762420b181b5"
+        },
+        "budget_overlay": {
+          "bytes": 122,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/budget_exhaustion_overlay.png",
+          "sha256": "58e9192556046a2eea66acd8cf5dd88e2677c82c7408269e7e7fbf1e718b7b89"
+        },
+        "cartesian_wireframe_overlay": {
+          "bytes": 213,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/layer1_cartesian_wireframe.png",
+          "sha256": "5f51fd70b4be10d124fe4a1411da4127c8b59a47420f7e132a401a6f1aa3c5a1"
+        },
+        "combined_diagnostic_overlay": {
+          "bytes": 1152,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/combined_diagnostic_overlay.png",
+          "sha256": "74826f941dcd41a997ae4be3f00ae4400d5903e43425573ff7aafb6bad6d5895"
+        },
+        "curvature_field_view": {
+          "bytes": 2086,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/curvature_field_view.png",
+          "sha256": "b4d9940ae53e40cf3a732e86e82f796abf8d9cae31dd377b704ec42dc8c454ff"
+        },
+        "curved_vs_straight_difference": {
+          "bytes": 1232,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/curved_vs_straight_difference.png",
+          "sha256": "03b1790b1583a1590b9e4aea94384358460a5ff84e0fcf91afd57d98059dbbc2"
+        },
+        "diagnostic_contact_sheet": {
+          "bytes": 41691,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/diagnostic_overlay_contact_sheet.png",
+          "sha256": "ce9eed88ba3c212127c5029d60152d0f191e90d666cff7e2901ab7d272fdf3f2"
+        },
+        "geometry_explanation": {
+          "bytes": 690,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/cartesian_scene_geometry.png",
+          "sha256": "4296e866600cf5e9074f76fca10d7bf8543f3f5f6f17b136547275007dcc076b"
+        },
+        "hit_miss_map": {
+          "bytes": 310,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/hit_miss_map.png",
+          "sha256": "021365dce07967c7e1697588c9b3c151d9a2ddefc9a68781470e105d0cd0f975"
+        },
+        "normal_overlay": {
+          "bytes": 662,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/full_frame_hit_normals.png",
+          "sha256": "05f0cdaed4c4ece71306afb53cef08116eb6717cdfe6c3ad0414d98455b7d062"
+        },
+        "ownership_seams": {
+          "bytes": 2352,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/ownership_graph_seam_map.png",
+          "sha256": "678aedbe0494b244e727131036d3729772edc54c8435ffbe08c5a41c5868080e"
+        },
+        "raw_visual": {
+          "bytes": 115,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/layer0_beauty.png",
+          "sha256": "0dbe3a13ed38628b2c0229b848ef33c755d749a114fff8ec814f620d838cafb2"
+        },
+        "screenshot": {
+          "bytes": 128,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/hermetic_curved_room__curvature_fps_0__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+          "sha256": "d6a158bcbf8e514d397b729083617f97e9b2cc90882efa44beddeb3f4ec3fe9e"
+        },
+        "transport_continuity": {
+          "bytes": 317,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/layer5_transport_continuity_vectors.png",
+          "sha256": "c9d1dc418646ffe211a62f7d69858e7395365f6221979b66be479db708c5d5fd"
+        },
+        "transport_ownership": {
+          "bytes": 231,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/layer2_transport_ownership.png",
+          "sha256": "c007d2b0fb4efd37d31cf3f5ef6927b6d151a6244f708b340eaae9f5ef802600"
+        },
+        "traversal_step_heatmap": {
+          "bytes": 326,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/traversal_step_heatmap.png",
+          "sha256": "e4a90bb08d028c4cb99c0dc9cc901b0115a1541e5ace270bafd6dd90c81d4ec9"
+        }
+      },
+      "average_traversal_steps": 677.2727272727273,
+      "beauty_capture_health": {
+        "bytes": 128,
+        "channel_extrema": [
+          [
+            40,
+            40
+          ],
+          [
+            61,
+            61
+          ],
+          [
+            102,
+            102
+          ],
+          [
+            255,
+            255
+          ]
+        ],
+        "height": 22,
+        "mode": "RGBA",
+        "near_zero_variation": true,
+        "path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/hermetic_curved_room__curvature_fps_0__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+        "reason": "valid PNG contains only one clear/background color",
+        "solid_color": true,
+        "solid_rgba": [
+          40,
+          61,
+          102,
+          255
+        ],
+        "status": "BLANK BEAUTY",
+        "unique_color_count": 1,
+        "usable_for_visual_confirmation": false,
+        "width": 40
+      },
+      "budget_exhausted_without_hit_count": 0,
+      "budget_exhaustion_summary": {
+        "budget_exhausted_hit_count": 640,
+        "budget_exhausted_no_hit_count": 0,
+        "budget_exhausted_pixel_count": 640,
+        "budget_exhaustion_percent": 72.727273,
+        "budget_fields_present": [
+          "budget_exhausted_without_hit",
+          "final_path_length",
+          "final_step_count",
+          "hit_found_after_budget_warning",
+          "max_steps_reached"
+        ],
+        "final_path_length_max": 7.551971,
+        "final_path_length_mean": 5.65486,
+        "final_step_count_max": 701,
+        "final_step_count_mean": 677.272727,
+        "hit_found_after_budget_warning_count": 640,
+        "max_steps_reached_pixel_count": 640,
+        "step_quality_plateau_candidate": true
+      },
+      "cell": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row",
+      "closure_contract": "all pixels expected to hit sealed-room receiver; no valid exceptions in v1",
+      "closure_summary_available": true,
+      "closure_truth_scope": "scene-contract closure, not physical correctness",
+      "curvature_percent": 0,
+      "curved_minimal_reference": "100pct amplitude 1.15 follows CurvedMinimalFingerprint canonical fixture amplitude",
+      "derivative_step": {
+        "enabled": 0,
+        "mean_difficulty": 0,
+        "mean_step_after": 0,
+        "mean_step_before": 0,
+        "metric_subdivision_retry_count": 0,
+        "sample_count": 0
+      },
+      "effective_status": "0",
+      "elapsed_ms": 3210.852,
+      "field_amplitude": 0,
+      "film_capture": {
+        "height": 22,
+        "known": 1,
+        "physics_queries": 113972,
+        "rays_traced": 240,
+        "segments_integrated": 146880,
+        "segments_tested": 45488,
+        "width": 40
+      },
+      "fixture": "hermetic_curved_room",
+      "fixture_stats": {
+        "absorbed_hits": 0,
+        "background_hits": 1120,
+        "known": 1,
+        "miss_hits": 0,
+        "source_hits": 0,
+        "traced_pixels": 1120,
+        "unclassified_hits": 0
+      },
+      "frames": 10,
+      "godot_exit_code": 0,
+      "hit_count": 880,
+      "hit_diagnostics_csv": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/hermetic_curved_room__curvature_fps_0__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+      "hit_found_on_overrun_step_count": 640,
+      "hit_percent": 100.0,
+      "latest_perf_frame_report": {
+        "band_physics_queries": 22446,
+        "band_segments_integrated": 28000,
+        "band_segments_tested": 8750,
+        "effective_full_refresh_fps": 0.403011,
+        "effective_render_pixels": 880,
+        "filled_pixels": 880,
+        "film_update_ms": 0.169,
+        "hits": 880,
+        "intersect_ray_calls": 0,
+        "intersect_shape_calls": 0,
+        "known": 1,
+        "overlay_build_ms": 0,
+        "pass1_ms": 467.788,
+        "pass2_commit_ms": 0,
+        "pass2_hit_resolve_ms": 12.834,
+        "pass2_phys_ms": 1852.912,
+        "pass2_query_ms": 1740.187,
+        "pass2_shade_ms": 4.327,
+        "pixels": 880,
+        "present_coverage_ratio": 0.045455,
+        "present_pixels_updated": 40,
+        "reason_flags": "None",
+        "scheduler_ms": 2.285,
+        "segments": 616000,
+        "segments_tested": 165420,
+        "soft_gate_attempts": 0,
+        "soft_gate_hits": 0,
+        "subdivided_ray_calls": 165420,
+        "subdivided_ray_queries": 414300,
+        "traced_pixels": 880
+      },
+      "max_steps_reached_count": 640,
+      "max_traversal_steps": 701,
+      "mean_fps": 3.349069,
+      "mean_frame_time_ms": 298.590457,
+      "metric_diagnostics": {
+        "known": 1,
+        "metric_contribution_ratio": 0,
+        "metric_zero_reason_summary": "none",
+        "steering_max_turn": 0,
+        "steering_mean_turn": 0,
+        "steering_radial_summary": "r<0.5R:0@89600,0.5R-1R:0@88480,1R-2R:0@176960,2R-4R:0@349160,4R-8R:0@59800,r>=8R:0@0",
+        "steering_turn_count": 764000
+      },
+      "miss_count": 0,
+      "miss_rate": 0.0,
+      "overlay_metadata": {
+        "beauty_capture_health": {
+          "bytes": 128,
+          "channel_extrema": [
+            [
+              40,
+              40
+            ],
+            [
+              61,
+              61
+            ],
+            [
+              102,
+              102
+            ],
+            [
+              255,
+              255
+            ]
+          ],
+          "height": 22,
+          "mode": "RGBA",
+          "near_zero_variation": true,
+          "path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/hermetic_curved_room__curvature_fps_0__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+          "reason": "valid PNG contains only one clear/background color",
+          "solid_color": true,
+          "solid_rgba": [
+            40,
+            61,
+            102,
+            255
+          ],
+          "status": "BLANK BEAUTY",
+          "unique_color_count": 1,
+          "usable_for_visual_confirmation": false,
+          "width": 40
+        },
+        "beauty_hash": "d6a158bcbf8e514d397b729083617f97e9b2cc90882efa44beddeb3f4ec3fe9e",
+        "beauty_path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/hermetic_curved_room__curvature_fps_0__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+        "budget_exhaustion_heatmap": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/budget_exhaustion_heatmap.png",
+        "budget_exhaustion_overlay": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/budget_exhaustion_overlay.png",
+        "budget_exhaustion_summary": {
+          "budget_exhausted_hit_count": 640,
+          "budget_exhausted_no_hit_count": 0,
+          "budget_exhausted_pixel_count": 640,
+          "budget_exhaustion_percent": 72.727273,
+          "budget_fields_present": [
+            "budget_exhausted_without_hit",
+            "final_path_length",
+            "final_step_count",
+            "hit_found_after_budget_warning",
+            "max_steps_reached"
+          ],
+          "final_path_length_max": 7.551971,
+          "final_path_length_mean": 5.65486,
+          "final_step_count_max": 701,
+          "final_step_count_mean": 677.272727,
+          "hit_found_after_budget_warning_count": 640,
+          "max_steps_reached_pixel_count": 640,
+          "step_quality_plateau_candidate": true
+        },
+        "capture_stem": "hermetic_curved_room__curvature_fps_0__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1",
+        "cartesian_scene_geometry": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/cartesian_scene_geometry.png",
+        "compact_contact_sheet_mode": true,
+        "contact_sheet_layout": {
+          "caption_band_below_image": true,
+          "image_canvas_unobscured": true,
+          "rendered_pixels_are_not_annotated_by_contact_sheet": true,
+          "title_band_above_image": true
+        },
+        "contact_sheet_legends_suppressed": true,
+        "curvature_field_view": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/curvature_field_view.png",
+        "enabled_layers": {
+          "cartesian": true,
+          "continuity": true,
+          "labels": false,
+          "risk": true,
+          "spacetime": false,
+          "transport": true
+        },
+        "hit_diagnostics_csv": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/hermetic_curved_room__curvature_fps_0__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+        "hit_region_count": 3,
+        "manual_rois": [
+          {
+            "x": 5,
+            "y": 4
+          },
+          {
+            "x": 35,
+            "y": 4
+          },
+          {
+            "x": 5,
+            "y": 17
+          },
+          {
+            "x": 35,
+            "y": 17
+          }
+        ],
+        "missing_inputs": [
+          "continuity_optional_field_portal_event_count"
+        ],
+        "object_count": 4,
+        "opencv_requested": false,
+        "opencv_used": false,
+        "post_process_only": true,
+        "primitive_count_by_layer": {
+          "cartesian_lines": 0,
+          "cartesian_points": 9,
+          "manual_rois": 4,
+          "spacetime_events": 0,
+          "spacetime_polylines": 0
+        },
+        "primitive_path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/hermetic_curved_room__curvature_fps_0__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.diagnostic_wireframe_primitives.json",
+        "schema_version": 1,
+        "smoke_contact_sheet_mode": true,
+        "transport_continuity_summary": {
+          "high_discontinuity_vectors": 48,
+          "high_threshold": 1.0,
+          "manual_roi_overlap_count": 48,
+          "max_discontinuity_score": 2.112576,
+          "mean_discontinuity_score": 2.049648,
+          "missing_optional_fields": [
+            "portal_event_count"
+          ],
+          "shape_region_correlations": [
+            {
+              "boundary_aligns_with_high_vector_density": true,
+              "boundary_flip_count": 24,
+              "collider_id": 26206012821,
+              "max_discontinuity_score": 2.112576,
+              "mean_discontinuity_score": 2.049648,
+              "region_id": 0
+            },
+            {
+              "boundary_aligns_with_high_vector_density": true,
+              "boundary_flip_count": 48,
+              "collider_id": 26105349517,
+              "max_discontinuity_score": 2.112576,
+              "mean_discontinuity_score": 2.049648,
+              "region_id": 1
+            },
+            {
+              "boundary_aligns_with_high_vector_density": true,
+              "boundary_flip_count": 24,
+              "collider_id": 26256344472,
+              "max_discontinuity_score": 2.112576,
+              "mean_discontinuity_score": 2.049648,
+              "region_id": 2
+            }
+          ],
+          "threshold": 0.2,
+          "top_10_discontinuity_locations": [
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.28144,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 8,
+              "neighbor_y": 21,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.28144,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.112576,
+              "x": 7,
+              "y": 21
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.28144,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 32,
+              "neighbor_y": 21,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.28144,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.112576,
+              "x": 31,
+              "y": 21
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.270754,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 6,
+              "neighbor_y": 0,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.270754,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.108302,
+              "x": 5,
+              "y": 0
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.270754,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 34,
+              "neighbor_y": 0,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.270754,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.108302,
+              "x": 33,
+              "y": 0
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.229251,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 8,
+              "neighbor_y": 12,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.229251,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.0917,
+              "x": 7,
+              "y": 12
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.229251,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 32,
+              "neighbor_y": 12,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.229251,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.0917,
+              "x": 31,
+              "y": 12
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.209481,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 8,
+              "neighbor_y": 20,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.209481,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.083792,
+              "x": 7,
+              "y": 20
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.209481,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 32,
+              "neighbor_y": 20,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.209481,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.083792,
+              "x": 31,
+              "y": 20
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.199457,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 7,
+              "neighbor_y": 11,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.199457,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.079783,
+              "x": 6,
+              "y": 11
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.199457,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 33,
+              "neighbor_y": 11,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.199457,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.079783,
+              "x": 32,
+              "y": 11
+            }
+          ],
+          "total_vectors": 48,
+          "transport_shape_region_overlap_count": 48
+        },
+        "transport_continuity_vectors_csv": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/transport_continuity_vectors.csv"
+      },
+      "p95_frame_time_ms": 350.799411,
+      "precision_epsilon_warnings": [
+        "max_steps_reached=640",
+        "hit_found_on_overrun_step=640"
+      ],
+      "render_health": {
+        "bands": 1,
+        "budget_exit_reason": "",
+        "geom_pix_processed": 120,
+        "geom_ray_tests_saved_pct": null,
+        "geom_ray_tests_total": 55171,
+        "geom_segments_queried_raw": 0,
+        "known": 0,
+        "live_known": 1,
+        "pass2_sampled_segments_raw": 2758,
+        "rows_advanced": 3,
+        "step": 10,
+        "trust_reason": "na",
+        "trusted": 0
+      },
+      "report_artifacts": {
+        "budget_heatmap": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_000_budget_heatmap.png",
+        "budget_overlay": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_000_budget_overlay.png",
+        "cartesian_wireframe_overlay": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_000_cartesian_wireframe_overlay.png",
+        "combined_diagnostic_overlay": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_000_combined_diagnostic_overlay.png",
+        "curvature_field_view": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_000_curvature_field_view.png",
+        "curved_vs_straight_difference": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_000_curved_vs_straight_difference.png",
+        "diagnostic_contact_sheet": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_000_diagnostic_contact_sheet.png",
+        "geometry_explanation": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_000_geometry_explanation.png",
+        "hit_miss_map": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_000_hit_miss_map.png",
+        "normal_overlay": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_000_normal_overlay.png",
+        "ownership_seams": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_000_ownership_seams.png",
+        "raw_visual": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_000_raw_visual.png",
+        "screenshot": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_000_screenshot.png",
+        "transport_continuity": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_000_transport_continuity.png",
+        "transport_ownership": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_000_transport_ownership.png",
+        "traversal_step_heatmap": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_000_traversal_step_heatmap.png"
+      },
+      "resolved_fixture_curvature": {
+        "curved_transport_enabled": 0,
+        "field_enabled": 0,
+        "field_present": 1,
+        "known": 1,
+        "renderer_bend_scale": 1,
+        "renderer_field_strength": 0,
+        "renderer_present": 1,
+        "renderer_use_integrated_field": 1,
+        "requested_amplitude": 0,
+        "resolved_amp": 0,
+        "resolved_enabled": 0,
+        "resolved_r_inner": 0,
+        "resolved_r_outer": 4.75,
+        "resolved_reason": "canonical",
+        "source": "curvature_fps_result.json"
+      },
+      "run_id": 1,
+      "run_name": "baseline_prune_off",
+      "sample_count": 8,
+      "scene": "res://test-hermetic-curved-room.tscn",
+      "screenshot_path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/hermetic_curved_room__curvature_fps_0__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+      "sealed_hit_validation_passed": true,
+      "study": "curvature_fps_benchmark",
+      "total_pixels_rays_evaluated": 880,
+      "total_rays_pixels_evaluated": 1120,
+      "visual_artifacts": {
+        "budget_heatmap": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/budget_exhaustion_heatmap.png",
+        "budget_overlay": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/budget_exhaustion_overlay.png",
+        "cartesian_wireframe_overlay": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/layer1_cartesian_wireframe.png",
+        "combined_diagnostic_overlay": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/combined_diagnostic_overlay.png",
+        "curvature_field_view": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/curvature_field_view.png",
+        "curved_vs_straight_difference": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/curved_vs_straight_difference.png",
+        "diagnostic_contact_sheet": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/diagnostic_overlay_contact_sheet.png",
+        "geometry_explanation": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/cartesian_scene_geometry.png",
+        "hit_miss_map": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/hit_miss_map.png",
+        "normal_overlay": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/full_frame_hit_normals.png",
+        "ownership_seams": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/ownership_graph_seam_map.png",
+        "raw_visual": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/layer0_beauty.png",
+        "screenshot": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/hermetic_curved_room__curvature_fps_0__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+        "transport_continuity": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/layer5_transport_continuity_vectors.png",
+        "transport_ownership": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/layer2_transport_ownership.png",
+        "traversal_step_heatmap": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/traversal_step_heatmap.png"
+      },
+      "warmup": 2,
+      "write_diagnostics": {
+        "beauty_expected_pixels": 880,
+        "beauty_pixels_multi_written": 240,
+        "beauty_pixels_unwritten": 0,
+        "beauty_pixels_written_once": 640,
+        "known": 1,
+        "rows_completed": 22
+      }
+    },
+    {
+      "absorbed_hit_count": 0,
+      "adaptive_stepping": {
+        "average_segments_per_ray": 586,
+        "average_turn_angle": 0,
+        "known": 1,
+        "max_turn_angle": 0,
+        "summary": "segs=616000|avgSeg=586|maxSeg=na|adaptiveSubdiv=165750|meanTurn=0|maxTurn=0|meanErr=na|maxErr=na|steeringTurns=764000|parallelRaw=0|sourceHits=0|backgroundHits=1120|terminated=1120|fallbackUsed=0"
+      },
+      "artifact_hashes": {
+        "budget_heatmap": {
+          "bytes": 121,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/budget_exhaustion_heatmap.png",
+          "sha256": "69c1759e80290d7d816716c0480425c09de311bc6e9cb6a25df3762420b181b5"
+        },
+        "budget_overlay": {
+          "bytes": 122,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/budget_exhaustion_overlay.png",
+          "sha256": "58e9192556046a2eea66acd8cf5dd88e2677c82c7408269e7e7fbf1e718b7b89"
+        },
+        "cartesian_wireframe_overlay": {
+          "bytes": 213,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/layer1_cartesian_wireframe.png",
+          "sha256": "5f51fd70b4be10d124fe4a1411da4127c8b59a47420f7e132a401a6f1aa3c5a1"
+        },
+        "combined_diagnostic_overlay": {
+          "bytes": 1152,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/combined_diagnostic_overlay.png",
+          "sha256": "74826f941dcd41a997ae4be3f00ae4400d5903e43425573ff7aafb6bad6d5895"
+        },
+        "curvature_field_view": {
+          "bytes": 2377,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/curvature_field_view.png",
+          "sha256": "3f4830531091c2aa102df64d413a7cb63761e5a39aa5744b11910199b79ee7bf"
+        },
+        "curved_vs_straight_difference": {
+          "bytes": 98,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/curved_vs_straight_difference.png",
+          "sha256": "b77cef36075a96ca233f600abcf4bc6bdd3ca343ae0185149f583a195c140c85"
+        },
+        "diagnostic_contact_sheet": {
+          "bytes": 44410,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/diagnostic_overlay_contact_sheet.png",
+          "sha256": "862a97f8161571d61484e394f5e6bea835b96ce5b88ca9d9fef932970e3cd566"
+        },
+        "geometry_explanation": {
+          "bytes": 1377,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/cartesian_scene_geometry.png",
+          "sha256": "e4f6e8eeac21b03c86077c3f1c79e11a0ea13b7c9618f6d3041807fc9ddbe75a"
+        },
+        "hit_miss_map": {
+          "bytes": 310,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/hit_miss_map.png",
+          "sha256": "021365dce07967c7e1697588c9b3c151d9a2ddefc9a68781470e105d0cd0f975"
+        },
+        "normal_overlay": {
+          "bytes": 662,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/full_frame_hit_normals.png",
+          "sha256": "05f0cdaed4c4ece71306afb53cef08116eb6717cdfe6c3ad0414d98455b7d062"
+        },
+        "ownership_seams": {
+          "bytes": 2352,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/ownership_graph_seam_map.png",
+          "sha256": "678aedbe0494b244e727131036d3729772edc54c8435ffbe08c5a41c5868080e"
+        },
+        "raw_visual": {
+          "bytes": 115,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/layer0_beauty.png",
+          "sha256": "0dbe3a13ed38628b2c0229b848ef33c755d749a114fff8ec814f620d838cafb2"
+        },
+        "screenshot": {
+          "bytes": 128,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/hermetic_curved_room__curvature_fps_25__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+          "sha256": "d6a158bcbf8e514d397b729083617f97e9b2cc90882efa44beddeb3f4ec3fe9e"
+        },
+        "transport_continuity": {
+          "bytes": 317,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/layer5_transport_continuity_vectors.png",
+          "sha256": "c9d1dc418646ffe211a62f7d69858e7395365f6221979b66be479db708c5d5fd"
+        },
+        "transport_ownership": {
+          "bytes": 231,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/layer2_transport_ownership.png",
+          "sha256": "c007d2b0fb4efd37d31cf3f5ef6927b6d151a6244f708b340eaae9f5ef802600"
+        },
+        "traversal_step_heatmap": {
+          "bytes": 326,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/traversal_step_heatmap.png",
+          "sha256": "e4a90bb08d028c4cb99c0dc9cc901b0115a1541e5ace270bafd6dd90c81d4ec9"
+        }
+      },
+      "average_traversal_steps": 677.2727272727273,
+      "beauty_capture_health": {
+        "bytes": 128,
+        "channel_extrema": [
+          [
+            40,
+            40
+          ],
+          [
+            61,
+            61
+          ],
+          [
+            102,
+            102
+          ],
+          [
+            255,
+            255
+          ]
+        ],
+        "height": 22,
+        "mode": "RGBA",
+        "near_zero_variation": true,
+        "path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/hermetic_curved_room__curvature_fps_25__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+        "reason": "valid PNG contains only one clear/background color",
+        "solid_color": true,
+        "solid_rgba": [
+          40,
+          61,
+          102,
+          255
+        ],
+        "status": "BLANK BEAUTY",
+        "unique_color_count": 1,
+        "usable_for_visual_confirmation": false,
+        "width": 40
+      },
+      "budget_exhausted_without_hit_count": 0,
+      "budget_exhaustion_summary": {
+        "budget_exhausted_hit_count": 640,
+        "budget_exhausted_no_hit_count": 0,
+        "budget_exhausted_pixel_count": 640,
+        "budget_exhaustion_percent": 72.727273,
+        "budget_fields_present": [
+          "budget_exhausted_without_hit",
+          "final_path_length",
+          "final_step_count",
+          "hit_found_after_budget_warning",
+          "max_steps_reached"
+        ],
+        "final_path_length_max": 7.55198,
+        "final_path_length_mean": 5.65486,
+        "final_step_count_max": 701,
+        "final_step_count_mean": 677.272727,
+        "hit_found_after_budget_warning_count": 640,
+        "max_steps_reached_pixel_count": 640,
+        "step_quality_plateau_candidate": true
+      },
+      "cell": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row",
+      "closure_contract": "all pixels expected to hit sealed-room receiver; no valid exceptions in v1",
+      "closure_summary_available": true,
+      "closure_truth_scope": "scene-contract closure, not physical correctness",
+      "curvature_percent": 25,
+      "curved_minimal_reference": "100pct amplitude 1.15 follows CurvedMinimalFingerprint canonical fixture amplitude",
+      "derivative_step": {
+        "enabled": 0,
+        "mean_difficulty": 0,
+        "mean_step_after": 0,
+        "mean_step_before": 0,
+        "metric_subdivision_retry_count": 0,
+        "sample_count": 0
+      },
+      "effective_status": "0",
+      "elapsed_ms": 2883.2186,
+      "field_amplitude": 0.2875,
+      "film_capture": {
+        "height": 22,
+        "known": 1,
+        "physics_queries": 95257,
+        "rays_traced": 240,
+        "segments_integrated": 146880,
+        "segments_tested": 45580,
+        "width": 40
+      },
+      "fixture": "hermetic_curved_room",
+      "fixture_stats": {
+        "absorbed_hits": 0,
+        "background_hits": 1120,
+        "known": 1,
+        "miss_hits": 0,
+        "source_hits": 0,
+        "traced_pixels": 1120,
+        "unclassified_hits": 0
+      },
+      "frames": 10,
+      "godot_exit_code": 0,
+      "hit_count": 880,
+      "hit_diagnostics_csv": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/hermetic_curved_room__curvature_fps_25__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+      "hit_found_on_overrun_step_count": 640,
+      "hit_percent": 100.0,
+      "latest_perf_frame_report": {
+        "band_physics_queries": 19127,
+        "band_segments_integrated": 28000,
+        "band_segments_tested": 8768,
+        "effective_full_refresh_fps": 0.446909,
+        "effective_render_pixels": 880,
+        "filled_pixels": 880,
+        "film_update_ms": 0.176,
+        "hits": 880,
+        "intersect_ray_calls": 0,
+        "intersect_shape_calls": 0,
+        "known": 1,
+        "overlay_build_ms": 0,
+        "pass1_ms": 555.65,
+        "pass2_commit_ms": 0,
+        "pass2_hit_resolve_ms": 12.824,
+        "pass2_phys_ms": 1530.372,
+        "pass2_query_ms": 1414.39,
+        "pass2_shade_ms": 4.055,
+        "pixels": 880,
+        "present_coverage_ratio": 0.045455,
+        "present_pixels_updated": 40,
+        "reason_flags": "None",
+        "scheduler_ms": 2.256,
+        "segments": 616000,
+        "segments_tested": 165750,
+        "soft_gate_attempts": 0,
+        "soft_gate_hits": 0,
+        "subdivided_ray_calls": 165750,
+        "subdivided_ray_queries": 344710,
+        "traced_pixels": 880
+      },
+      "max_steps_reached_count": 640,
+      "max_traversal_steps": 701,
+      "mean_fps": 3.748132,
+      "mean_frame_time_ms": 266.799536,
+      "metric_diagnostics": {
+        "known": 1,
+        "metric_contribution_ratio": 0,
+        "metric_zero_reason_summary": "none",
+        "steering_max_turn": 0,
+        "steering_mean_turn": 0,
+        "steering_radial_summary": "r<0.5R:0@89600,0.5R-1R:0@88480,1R-2R:0@176960,2R-4R:0@349160,4R-8R:0@59800,r>=8R:0@0",
+        "steering_turn_count": 764000
+      },
+      "miss_count": 0,
+      "miss_rate": 0.0,
+      "overlay_metadata": {
+        "beauty_capture_health": {
+          "bytes": 128,
+          "channel_extrema": [
+            [
+              40,
+              40
+            ],
+            [
+              61,
+              61
+            ],
+            [
+              102,
+              102
+            ],
+            [
+              255,
+              255
+            ]
+          ],
+          "height": 22,
+          "mode": "RGBA",
+          "near_zero_variation": true,
+          "path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/hermetic_curved_room__curvature_fps_25__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+          "reason": "valid PNG contains only one clear/background color",
+          "solid_color": true,
+          "solid_rgba": [
+            40,
+            61,
+            102,
+            255
+          ],
+          "status": "BLANK BEAUTY",
+          "unique_color_count": 1,
+          "usable_for_visual_confirmation": false,
+          "width": 40
+        },
+        "beauty_hash": "d6a158bcbf8e514d397b729083617f97e9b2cc90882efa44beddeb3f4ec3fe9e",
+        "beauty_path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/hermetic_curved_room__curvature_fps_25__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+        "budget_exhaustion_heatmap": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/budget_exhaustion_heatmap.png",
+        "budget_exhaustion_overlay": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/budget_exhaustion_overlay.png",
+        "budget_exhaustion_summary": {
+          "budget_exhausted_hit_count": 640,
+          "budget_exhausted_no_hit_count": 0,
+          "budget_exhausted_pixel_count": 640,
+          "budget_exhaustion_percent": 72.727273,
+          "budget_fields_present": [
+            "budget_exhausted_without_hit",
+            "final_path_length",
+            "final_step_count",
+            "hit_found_after_budget_warning",
+            "max_steps_reached"
+          ],
+          "final_path_length_max": 7.55198,
+          "final_path_length_mean": 5.65486,
+          "final_step_count_max": 701,
+          "final_step_count_mean": 677.272727,
+          "hit_found_after_budget_warning_count": 640,
+          "max_steps_reached_pixel_count": 640,
+          "step_quality_plateau_candidate": true
+        },
+        "capture_stem": "hermetic_curved_room__curvature_fps_25__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1",
+        "cartesian_scene_geometry": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/cartesian_scene_geometry.png",
+        "compact_contact_sheet_mode": true,
+        "contact_sheet_layout": {
+          "caption_band_below_image": true,
+          "image_canvas_unobscured": true,
+          "rendered_pixels_are_not_annotated_by_contact_sheet": true,
+          "title_band_above_image": true
+        },
+        "contact_sheet_legends_suppressed": true,
+        "curvature_field_view": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/curvature_field_view.png",
+        "enabled_layers": {
+          "cartesian": true,
+          "continuity": true,
+          "labels": false,
+          "risk": true,
+          "spacetime": false,
+          "transport": true
+        },
+        "hit_diagnostics_csv": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/hermetic_curved_room__curvature_fps_25__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+        "hit_region_count": 3,
+        "manual_rois": [
+          {
+            "x": 5,
+            "y": 4
+          },
+          {
+            "x": 35,
+            "y": 4
+          },
+          {
+            "x": 5,
+            "y": 17
+          },
+          {
+            "x": 35,
+            "y": 17
+          }
+        ],
+        "missing_inputs": [
+          "continuity_optional_field_portal_event_count"
+        ],
+        "object_count": 5,
+        "opencv_requested": false,
+        "opencv_used": false,
+        "post_process_only": true,
+        "primitive_count_by_layer": {
+          "cartesian_lines": 0,
+          "cartesian_points": 10,
+          "manual_rois": 4,
+          "spacetime_events": 0,
+          "spacetime_polylines": 0
+        },
+        "primitive_path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/hermetic_curved_room__curvature_fps_25__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.diagnostic_wireframe_primitives.json",
+        "schema_version": 1,
+        "smoke_contact_sheet_mode": true,
+        "transport_continuity_summary": {
+          "high_discontinuity_vectors": 48,
+          "high_threshold": 1.0,
+          "manual_roi_overlap_count": 48,
+          "max_discontinuity_score": 2.11258,
+          "mean_discontinuity_score": 2.049647,
+          "missing_optional_fields": [
+            "portal_event_count"
+          ],
+          "shape_region_correlations": [
+            {
+              "boundary_aligns_with_high_vector_density": true,
+              "boundary_flip_count": 24,
+              "collider_id": 26206012821,
+              "max_discontinuity_score": 2.11258,
+              "mean_discontinuity_score": 2.049647,
+              "region_id": 0
+            },
+            {
+              "boundary_aligns_with_high_vector_density": true,
+              "boundary_flip_count": 48,
+              "collider_id": 26105349517,
+              "max_discontinuity_score": 2.11258,
+              "mean_discontinuity_score": 2.049647,
+              "region_id": 1
+            },
+            {
+              "boundary_aligns_with_high_vector_density": true,
+              "boundary_flip_count": 24,
+              "collider_id": 26256344472,
+              "max_discontinuity_score": 2.11258,
+              "mean_discontinuity_score": 2.049647,
+              "region_id": 2
+            }
+          ],
+          "threshold": 0.2,
+          "top_10_discontinuity_locations": [
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.28145,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 8,
+              "neighbor_y": 21,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.28145,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.11258,
+              "x": 7,
+              "y": 21
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.28145,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 32,
+              "neighbor_y": 21,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.28145,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.11258,
+              "x": 31,
+              "y": 21
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.270762,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 6,
+              "neighbor_y": 0,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.270762,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.108305,
+              "x": 5,
+              "y": 0
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.270762,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 34,
+              "neighbor_y": 0,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.270762,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.108305,
+              "x": 33,
+              "y": 0
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.229245,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 8,
+              "neighbor_y": 12,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.229245,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.091698,
+              "x": 7,
+              "y": 12
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.229245,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 32,
+              "neighbor_y": 12,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.229245,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.091698,
+              "x": 31,
+              "y": 12
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.209474,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 8,
+              "neighbor_y": 20,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.209474,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.08379,
+              "x": 7,
+              "y": 20
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.209474,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 32,
+              "neighbor_y": 20,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.209474,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.08379,
+              "x": 31,
+              "y": 20
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.19946,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 7,
+              "neighbor_y": 11,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.19946,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.079784,
+              "x": 6,
+              "y": 11
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.19946,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 33,
+              "neighbor_y": 11,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.19946,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.079784,
+              "x": 32,
+              "y": 11
+            }
+          ],
+          "total_vectors": 48,
+          "transport_shape_region_overlap_count": 48
+        },
+        "transport_continuity_vectors_csv": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/transport_continuity_vectors.csv"
+      },
+      "p95_frame_time_ms": 327.416624,
+      "precision_epsilon_warnings": [
+        "max_steps_reached=640",
+        "hit_found_on_overrun_step=640"
+      ],
+      "render_health": {
+        "bands": 1,
+        "budget_exit_reason": "",
+        "geom_pix_processed": 120,
+        "geom_ray_tests_saved_pct": null,
+        "geom_ray_tests_total": 45877,
+        "geom_segments_queried_raw": 0,
+        "known": 0,
+        "live_known": 1,
+        "pass2_sampled_segments_raw": 2763,
+        "rows_advanced": 3,
+        "step": 10,
+        "trust_reason": "na",
+        "trusted": 0
+      },
+      "report_artifacts": {
+        "budget_heatmap": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_025_budget_heatmap.png",
+        "budget_overlay": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_025_budget_overlay.png",
+        "cartesian_wireframe_overlay": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_025_cartesian_wireframe_overlay.png",
+        "combined_diagnostic_overlay": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_025_combined_diagnostic_overlay.png",
+        "curvature_field_view": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_025_curvature_field_view.png",
+        "curved_vs_straight_difference": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_025_curved_vs_straight_difference.png",
+        "diagnostic_contact_sheet": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_025_diagnostic_contact_sheet.png",
+        "geometry_explanation": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_025_geometry_explanation.png",
+        "hit_miss_map": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_025_hit_miss_map.png",
+        "normal_overlay": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_025_normal_overlay.png",
+        "ownership_seams": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_025_ownership_seams.png",
+        "raw_visual": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_025_raw_visual.png",
+        "screenshot": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_025_screenshot.png",
+        "transport_continuity": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_025_transport_continuity.png",
+        "transport_ownership": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_025_transport_ownership.png",
+        "traversal_step_heatmap": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_025_traversal_step_heatmap.png"
+      },
+      "resolved_fixture_curvature": {
+        "curved_transport_enabled": 1,
+        "field_enabled": 1,
+        "field_present": 1,
+        "known": 1,
+        "renderer_bend_scale": 1,
+        "renderer_field_strength": 0.2875,
+        "renderer_present": 1,
+        "renderer_use_integrated_field": 1,
+        "requested_amplitude": 0.2875,
+        "resolved_amp": 0.2875,
+        "resolved_enabled": 1,
+        "resolved_r_inner": 0,
+        "resolved_r_outer": 4.75,
+        "resolved_reason": "canonical",
+        "source": "curvature_fps_result.json"
+      },
+      "run_id": 1,
+      "run_name": "baseline_prune_off",
+      "sample_count": 8,
+      "scene": "res://test-hermetic-curved-room.tscn",
+      "screenshot_path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/hermetic_curved_room__curvature_fps_25__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+      "sealed_hit_validation_passed": true,
+      "study": "curvature_fps_benchmark",
+      "total_pixels_rays_evaluated": 880,
+      "total_rays_pixels_evaluated": 1120,
+      "visual_artifacts": {
+        "budget_heatmap": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/budget_exhaustion_heatmap.png",
+        "budget_overlay": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/budget_exhaustion_overlay.png",
+        "cartesian_wireframe_overlay": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/layer1_cartesian_wireframe.png",
+        "combined_diagnostic_overlay": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/combined_diagnostic_overlay.png",
+        "curvature_field_view": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/curvature_field_view.png",
+        "curved_vs_straight_difference": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/curved_vs_straight_difference.png",
+        "diagnostic_contact_sheet": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/diagnostic_overlay_contact_sheet.png",
+        "geometry_explanation": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/cartesian_scene_geometry.png",
+        "hit_miss_map": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/hit_miss_map.png",
+        "normal_overlay": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/full_frame_hit_normals.png",
+        "ownership_seams": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/ownership_graph_seam_map.png",
+        "raw_visual": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/layer0_beauty.png",
+        "screenshot": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/hermetic_curved_room__curvature_fps_25__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+        "transport_continuity": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/layer5_transport_continuity_vectors.png",
+        "transport_ownership": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/layer2_transport_ownership.png",
+        "traversal_step_heatmap": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/traversal_step_heatmap.png"
+      },
+      "warmup": 2,
+      "write_diagnostics": {
+        "beauty_expected_pixels": 880,
+        "beauty_pixels_multi_written": 240,
+        "beauty_pixels_unwritten": 0,
+        "beauty_pixels_written_once": 640,
+        "known": 1,
+        "rows_completed": 22
+      }
+    },
+    {
+      "absorbed_hit_count": 0,
+      "adaptive_stepping": {
+        "average_segments_per_ray": 587,
+        "average_turn_angle": 0,
+        "known": 1,
+        "max_turn_angle": 0,
+        "summary": "segs=616000|avgSeg=587|maxSeg=na|adaptiveSubdiv=166612|meanTurn=0|maxTurn=0|meanErr=na|maxErr=na|steeringTurns=764240|parallelRaw=0|sourceHits=0|backgroundHits=1120|terminated=1120|fallbackUsed=0"
+      },
+      "artifact_hashes": {
+        "budget_heatmap": {
+          "bytes": 121,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/budget_exhaustion_heatmap.png",
+          "sha256": "69c1759e80290d7d816716c0480425c09de311bc6e9cb6a25df3762420b181b5"
+        },
+        "budget_overlay": {
+          "bytes": 122,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/budget_exhaustion_overlay.png",
+          "sha256": "58e9192556046a2eea66acd8cf5dd88e2677c82c7408269e7e7fbf1e718b7b89"
+        },
+        "cartesian_wireframe_overlay": {
+          "bytes": 213,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/layer1_cartesian_wireframe.png",
+          "sha256": "5f51fd70b4be10d124fe4a1411da4127c8b59a47420f7e132a401a6f1aa3c5a1"
+        },
+        "combined_diagnostic_overlay": {
+          "bytes": 1152,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/combined_diagnostic_overlay.png",
+          "sha256": "74826f941dcd41a997ae4be3f00ae4400d5903e43425573ff7aafb6bad6d5895"
+        },
+        "curvature_field_view": {
+          "bytes": 2361,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/curvature_field_view.png",
+          "sha256": "2ebd03009abfa63abf70293f9bb41f2ed099ed7cdb8e992de816fd6ecab5c956"
+        },
+        "curved_vs_straight_difference": {
+          "bytes": 106,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/curved_vs_straight_difference.png",
+          "sha256": "84897ca9da325893ae2858de4120c212d0a984d5412198e46dfa4c243033c266"
+        },
+        "diagnostic_contact_sheet": {
+          "bytes": 44460,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/diagnostic_overlay_contact_sheet.png",
+          "sha256": "4ad184a6decf15575dd87250f6e56d774eb2a663109cdaae98b5203a96872981"
+        },
+        "geometry_explanation": {
+          "bytes": 1377,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/cartesian_scene_geometry.png",
+          "sha256": "e4f6e8eeac21b03c86077c3f1c79e11a0ea13b7c9618f6d3041807fc9ddbe75a"
+        },
+        "hit_miss_map": {
+          "bytes": 310,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/hit_miss_map.png",
+          "sha256": "021365dce07967c7e1697588c9b3c151d9a2ddefc9a68781470e105d0cd0f975"
+        },
+        "normal_overlay": {
+          "bytes": 662,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/full_frame_hit_normals.png",
+          "sha256": "05f0cdaed4c4ece71306afb53cef08116eb6717cdfe6c3ad0414d98455b7d062"
+        },
+        "ownership_seams": {
+          "bytes": 2352,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/ownership_graph_seam_map.png",
+          "sha256": "678aedbe0494b244e727131036d3729772edc54c8435ffbe08c5a41c5868080e"
+        },
+        "raw_visual": {
+          "bytes": 115,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/layer0_beauty.png",
+          "sha256": "0dbe3a13ed38628b2c0229b848ef33c755d749a114fff8ec814f620d838cafb2"
+        },
+        "screenshot": {
+          "bytes": 128,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/hermetic_curved_room__curvature_fps_50__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+          "sha256": "d6a158bcbf8e514d397b729083617f97e9b2cc90882efa44beddeb3f4ec3fe9e"
+        },
+        "transport_continuity": {
+          "bytes": 317,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/layer5_transport_continuity_vectors.png",
+          "sha256": "c9d1dc418646ffe211a62f7d69858e7395365f6221979b66be479db708c5d5fd"
+        },
+        "transport_ownership": {
+          "bytes": 231,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/layer2_transport_ownership.png",
+          "sha256": "c007d2b0fb4efd37d31cf3f5ef6927b6d151a6244f708b340eaae9f5ef802600"
+        },
+        "traversal_step_heatmap": {
+          "bytes": 326,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/traversal_step_heatmap.png",
+          "sha256": "80784e792f0f6b3cf2eee822699bc13e235a7355585d8bae4271139e3aff997c"
+        }
+      },
+      "average_traversal_steps": 677.5454545454545,
+      "beauty_capture_health": {
+        "bytes": 128,
+        "channel_extrema": [
+          [
+            40,
+            40
+          ],
+          [
+            61,
+            61
+          ],
+          [
+            102,
+            102
+          ],
+          [
+            255,
+            255
+          ]
+        ],
+        "height": 22,
+        "mode": "RGBA",
+        "near_zero_variation": true,
+        "path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/hermetic_curved_room__curvature_fps_50__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+        "reason": "valid PNG contains only one clear/background color",
+        "solid_color": true,
+        "solid_rgba": [
+          40,
+          61,
+          102,
+          255
+        ],
+        "status": "BLANK BEAUTY",
+        "unique_color_count": 1,
+        "usable_for_visual_confirmation": false,
+        "width": 40
+      },
+      "budget_exhausted_without_hit_count": 0,
+      "budget_exhaustion_summary": {
+        "budget_exhausted_hit_count": 640,
+        "budget_exhausted_no_hit_count": 0,
+        "budget_exhausted_pixel_count": 640,
+        "budget_exhaustion_percent": 72.727273,
+        "budget_fields_present": [
+          "budget_exhausted_without_hit",
+          "final_path_length",
+          "final_step_count",
+          "hit_found_after_budget_warning",
+          "max_steps_reached"
+        ],
+        "final_path_length_max": 7.55198,
+        "final_path_length_mean": 5.65486,
+        "final_step_count_max": 701,
+        "final_step_count_mean": 677.545455,
+        "hit_found_after_budget_warning_count": 640,
+        "max_steps_reached_pixel_count": 640,
+        "step_quality_plateau_candidate": true
+      },
+      "cell": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row",
+      "closure_contract": "all pixels expected to hit sealed-room receiver; no valid exceptions in v1",
+      "closure_summary_available": true,
+      "closure_truth_scope": "scene-contract closure, not physical correctness",
+      "curvature_percent": 50,
+      "curved_minimal_reference": "100pct amplitude 1.15 follows CurvedMinimalFingerprint canonical fixture amplitude",
+      "derivative_step": {
+        "enabled": 0,
+        "mean_difficulty": 0,
+        "mean_step_after": 0,
+        "mean_step_before": 0,
+        "metric_subdivision_retry_count": 0,
+        "sample_count": 0
+      },
+      "effective_status": "0",
+      "elapsed_ms": 3035.238,
+      "field_amplitude": 0.575,
+      "film_capture": {
+        "height": 22,
+        "known": 1,
+        "physics_queries": 95848,
+        "rays_traced": 240,
+        "segments_integrated": 147120,
+        "segments_tested": 45810,
+        "width": 40
+      },
+      "fixture": "hermetic_curved_room",
+      "fixture_stats": {
+        "absorbed_hits": 0,
+        "background_hits": 1120,
+        "known": 1,
+        "miss_hits": 0,
+        "source_hits": 0,
+        "traced_pixels": 1120,
+        "unclassified_hits": 0
+      },
+      "frames": 10,
+      "godot_exit_code": 0,
+      "hit_count": 880,
+      "hit_diagnostics_csv": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/hermetic_curved_room__curvature_fps_50__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+      "hit_found_on_overrun_step_count": 640,
+      "hit_percent": 100.0,
+      "latest_perf_frame_report": {
+        "band_physics_queries": 19175,
+        "band_segments_integrated": 28000,
+        "band_segments_tested": 8808,
+        "effective_full_refresh_fps": 0.424724,
+        "effective_render_pixels": 880,
+        "filled_pixels": 880,
+        "film_update_ms": 0.17,
+        "hits": 880,
+        "intersect_ray_calls": 0,
+        "intersect_shape_calls": 0,
+        "known": 1,
+        "overlay_build_ms": 0,
+        "pass1_ms": 602.811,
+        "pass2_commit_ms": 0,
+        "pass2_hit_resolve_ms": 13.112,
+        "pass2_phys_ms": 1598.187,
+        "pass2_query_ms": 1484.909,
+        "pass2_shade_ms": 4.21,
+        "pixels": 880,
+        "present_coverage_ratio": 0.045455,
+        "present_pixels_updated": 40,
+        "reason_flags": "None",
+        "scheduler_ms": 2.333,
+        "segments": 616000,
+        "segments_tested": 166612,
+        "soft_gate_attempts": 0,
+        "soft_gate_hits": 0,
+        "subdivided_ray_calls": 166612,
+        "subdivided_ray_queries": 346846,
+        "traced_pixels": 880
+      },
+      "max_steps_reached_count": 640,
+      "max_traversal_steps": 701,
+      "mean_fps": 3.556037,
+      "mean_frame_time_ms": 281.211908,
+      "metric_diagnostics": {
+        "known": 1,
+        "metric_contribution_ratio": 0,
+        "metric_zero_reason_summary": "none",
+        "steering_max_turn": 0,
+        "steering_mean_turn": 0,
+        "steering_radial_summary": "r<0.5R:0@90720,0.5R-1R:0@88480,1R-2R:0@176960,2R-4R:0@349160,4R-8R:0@58920,r>=8R:0@0",
+        "steering_turn_count": 764240
+      },
+      "miss_count": 0,
+      "miss_rate": 0.0,
+      "overlay_metadata": {
+        "beauty_capture_health": {
+          "bytes": 128,
+          "channel_extrema": [
+            [
+              40,
+              40
+            ],
+            [
+              61,
+              61
+            ],
+            [
+              102,
+              102
+            ],
+            [
+              255,
+              255
+            ]
+          ],
+          "height": 22,
+          "mode": "RGBA",
+          "near_zero_variation": true,
+          "path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/hermetic_curved_room__curvature_fps_50__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+          "reason": "valid PNG contains only one clear/background color",
+          "solid_color": true,
+          "solid_rgba": [
+            40,
+            61,
+            102,
+            255
+          ],
+          "status": "BLANK BEAUTY",
+          "unique_color_count": 1,
+          "usable_for_visual_confirmation": false,
+          "width": 40
+        },
+        "beauty_hash": "d6a158bcbf8e514d397b729083617f97e9b2cc90882efa44beddeb3f4ec3fe9e",
+        "beauty_path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/hermetic_curved_room__curvature_fps_50__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+        "budget_exhaustion_heatmap": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/budget_exhaustion_heatmap.png",
+        "budget_exhaustion_overlay": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/budget_exhaustion_overlay.png",
+        "budget_exhaustion_summary": {
+          "budget_exhausted_hit_count": 640,
+          "budget_exhausted_no_hit_count": 0,
+          "budget_exhausted_pixel_count": 640,
+          "budget_exhaustion_percent": 72.727273,
+          "budget_fields_present": [
+            "budget_exhausted_without_hit",
+            "final_path_length",
+            "final_step_count",
+            "hit_found_after_budget_warning",
+            "max_steps_reached"
+          ],
+          "final_path_length_max": 7.55198,
+          "final_path_length_mean": 5.65486,
+          "final_step_count_max": 701,
+          "final_step_count_mean": 677.545455,
+          "hit_found_after_budget_warning_count": 640,
+          "max_steps_reached_pixel_count": 640,
+          "step_quality_plateau_candidate": true
+        },
+        "capture_stem": "hermetic_curved_room__curvature_fps_50__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1",
+        "cartesian_scene_geometry": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/cartesian_scene_geometry.png",
+        "compact_contact_sheet_mode": true,
+        "contact_sheet_layout": {
+          "caption_band_below_image": true,
+          "image_canvas_unobscured": true,
+          "rendered_pixels_are_not_annotated_by_contact_sheet": true,
+          "title_band_above_image": true
+        },
+        "contact_sheet_legends_suppressed": true,
+        "curvature_field_view": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/curvature_field_view.png",
+        "enabled_layers": {
+          "cartesian": true,
+          "continuity": true,
+          "labels": false,
+          "risk": true,
+          "spacetime": false,
+          "transport": true
+        },
+        "hit_diagnostics_csv": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/hermetic_curved_room__curvature_fps_50__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+        "hit_region_count": 3,
+        "manual_rois": [
+          {
+            "x": 5,
+            "y": 4
+          },
+          {
+            "x": 35,
+            "y": 4
+          },
+          {
+            "x": 5,
+            "y": 17
+          },
+          {
+            "x": 35,
+            "y": 17
+          }
+        ],
+        "missing_inputs": [
+          "continuity_optional_field_portal_event_count"
+        ],
+        "object_count": 5,
+        "opencv_requested": false,
+        "opencv_used": false,
+        "post_process_only": true,
+        "primitive_count_by_layer": {
+          "cartesian_lines": 0,
+          "cartesian_points": 10,
+          "manual_rois": 4,
+          "spacetime_events": 0,
+          "spacetime_polylines": 0
+        },
+        "primitive_path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/hermetic_curved_room__curvature_fps_50__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.diagnostic_wireframe_primitives.json",
+        "schema_version": 1,
+        "smoke_contact_sheet_mode": true,
+        "transport_continuity_summary": {
+          "high_discontinuity_vectors": 48,
+          "high_threshold": 1.0,
+          "manual_roi_overlap_count": 48,
+          "max_discontinuity_score": 2.112578,
+          "mean_discontinuity_score": 2.049647,
+          "missing_optional_fields": [
+            "portal_event_count"
+          ],
+          "shape_region_correlations": [
+            {
+              "boundary_aligns_with_high_vector_density": true,
+              "boundary_flip_count": 24,
+              "collider_id": 26206012821,
+              "max_discontinuity_score": 2.112578,
+              "mean_discontinuity_score": 2.049647,
+              "region_id": 0
+            },
+            {
+              "boundary_aligns_with_high_vector_density": true,
+              "boundary_flip_count": 48,
+              "collider_id": 26105349517,
+              "max_discontinuity_score": 2.112578,
+              "mean_discontinuity_score": 2.049647,
+              "region_id": 1
+            },
+            {
+              "boundary_aligns_with_high_vector_density": true,
+              "boundary_flip_count": 24,
+              "collider_id": 26256344472,
+              "max_discontinuity_score": 2.112578,
+              "mean_discontinuity_score": 2.049647,
+              "region_id": 2
+            }
+          ],
+          "threshold": 0.2,
+          "top_10_discontinuity_locations": [
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.281446,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 8,
+              "neighbor_y": 21,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.281446,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.112578,
+              "x": 7,
+              "y": 21
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.281446,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 32,
+              "neighbor_y": 21,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.281446,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.112578,
+              "x": 31,
+              "y": 21
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.270743,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 6,
+              "neighbor_y": 0,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.270743,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.108297,
+              "x": 5,
+              "y": 0
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.270743,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 34,
+              "neighbor_y": 0,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.270743,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.108297,
+              "x": 33,
+              "y": 0
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.229245,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 8,
+              "neighbor_y": 12,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.229245,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.091698,
+              "x": 7,
+              "y": 12
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.229245,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 32,
+              "neighbor_y": 12,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.229245,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.091698,
+              "x": 31,
+              "y": 12
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.209476,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 8,
+              "neighbor_y": 20,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.209476,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.08379,
+              "x": 7,
+              "y": 20
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.209474,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 32,
+              "neighbor_y": 20,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.209474,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.08379,
+              "x": 31,
+              "y": 20
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.199474,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 7,
+              "neighbor_y": 11,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.199474,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.07979,
+              "x": 6,
+              "y": 11
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.199474,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 33,
+              "neighbor_y": 11,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.199474,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.07979,
+              "x": 32,
+              "y": 11
+            }
+          ],
+          "total_vectors": 48,
+          "transport_shape_region_overlap_count": 48
+        },
+        "transport_continuity_vectors_csv": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/transport_continuity_vectors.csv"
+      },
+      "p95_frame_time_ms": 339.129974,
+      "precision_epsilon_warnings": [
+        "max_steps_reached=640",
+        "hit_found_on_overrun_step=640"
+      ],
+      "render_health": {
+        "bands": 1,
+        "budget_exit_reason": "",
+        "geom_pix_processed": 120,
+        "geom_ray_tests_saved_pct": null,
+        "geom_ray_tests_total": 46136,
+        "geom_segments_queried_raw": 0,
+        "known": 0,
+        "live_known": 1,
+        "pass2_sampled_segments_raw": 2777,
+        "rows_advanced": 3,
+        "step": 10,
+        "trust_reason": "na",
+        "trusted": 0
+      },
+      "report_artifacts": {
+        "budget_heatmap": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_050_budget_heatmap.png",
+        "budget_overlay": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_050_budget_overlay.png",
+        "cartesian_wireframe_overlay": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_050_cartesian_wireframe_overlay.png",
+        "combined_diagnostic_overlay": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_050_combined_diagnostic_overlay.png",
+        "curvature_field_view": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_050_curvature_field_view.png",
+        "curved_vs_straight_difference": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_050_curved_vs_straight_difference.png",
+        "diagnostic_contact_sheet": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_050_diagnostic_contact_sheet.png",
+        "geometry_explanation": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_050_geometry_explanation.png",
+        "hit_miss_map": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_050_hit_miss_map.png",
+        "normal_overlay": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_050_normal_overlay.png",
+        "ownership_seams": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_050_ownership_seams.png",
+        "raw_visual": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_050_raw_visual.png",
+        "screenshot": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_050_screenshot.png",
+        "transport_continuity": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_050_transport_continuity.png",
+        "transport_ownership": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_050_transport_ownership.png",
+        "traversal_step_heatmap": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_050_traversal_step_heatmap.png"
+      },
+      "resolved_fixture_curvature": {
+        "curved_transport_enabled": 1,
+        "field_enabled": 1,
+        "field_present": 1,
+        "known": 1,
+        "renderer_bend_scale": 1,
+        "renderer_field_strength": 0.575,
+        "renderer_present": 1,
+        "renderer_use_integrated_field": 1,
+        "requested_amplitude": 0.575,
+        "resolved_amp": 0.575,
+        "resolved_enabled": 1,
+        "resolved_r_inner": 0,
+        "resolved_r_outer": 4.75,
+        "resolved_reason": "canonical",
+        "source": "curvature_fps_result.json"
+      },
+      "run_id": 1,
+      "run_name": "baseline_prune_off",
+      "sample_count": 8,
+      "scene": "res://test-hermetic-curved-room.tscn",
+      "screenshot_path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/hermetic_curved_room__curvature_fps_50__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+      "sealed_hit_validation_passed": true,
+      "study": "curvature_fps_benchmark",
+      "total_pixels_rays_evaluated": 880,
+      "total_rays_pixels_evaluated": 1120,
+      "visual_artifacts": {
+        "budget_heatmap": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/budget_exhaustion_heatmap.png",
+        "budget_overlay": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/budget_exhaustion_overlay.png",
+        "cartesian_wireframe_overlay": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/layer1_cartesian_wireframe.png",
+        "combined_diagnostic_overlay": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/combined_diagnostic_overlay.png",
+        "curvature_field_view": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/curvature_field_view.png",
+        "curved_vs_straight_difference": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/curved_vs_straight_difference.png",
+        "diagnostic_contact_sheet": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/diagnostic_overlay_contact_sheet.png",
+        "geometry_explanation": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/cartesian_scene_geometry.png",
+        "hit_miss_map": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/hit_miss_map.png",
+        "normal_overlay": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/full_frame_hit_normals.png",
+        "ownership_seams": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/ownership_graph_seam_map.png",
+        "raw_visual": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/layer0_beauty.png",
+        "screenshot": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/hermetic_curved_room__curvature_fps_50__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+        "transport_continuity": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/layer5_transport_continuity_vectors.png",
+        "transport_ownership": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/layer2_transport_ownership.png",
+        "traversal_step_heatmap": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/traversal_step_heatmap.png"
+      },
+      "warmup": 2,
+      "write_diagnostics": {
+        "beauty_expected_pixels": 880,
+        "beauty_pixels_multi_written": 240,
+        "beauty_pixels_unwritten": 0,
+        "beauty_pixels_written_once": 640,
+        "known": 1,
+        "rows_completed": 22
+      }
+    },
+    {
+      "absorbed_hit_count": 0,
+      "adaptive_stepping": {
+        "average_segments_per_ray": 589,
+        "average_turn_angle": 0,
+        "known": 1,
+        "max_turn_angle": 0,
+        "summary": "segs=616000|avgSeg=589|maxSeg=na|adaptiveSubdiv=167992|meanTurn=0|maxTurn=0|meanErr=na|maxErr=na|steeringTurns=764720|parallelRaw=0|sourceHits=0|backgroundHits=1120|terminated=1120|fallbackUsed=0"
+      },
+      "artifact_hashes": {
+        "budget_heatmap": {
+          "bytes": 121,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/budget_exhaustion_heatmap.png",
+          "sha256": "69c1759e80290d7d816716c0480425c09de311bc6e9cb6a25df3762420b181b5"
+        },
+        "budget_overlay": {
+          "bytes": 122,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/budget_exhaustion_overlay.png",
+          "sha256": "58e9192556046a2eea66acd8cf5dd88e2677c82c7408269e7e7fbf1e718b7b89"
+        },
+        "cartesian_wireframe_overlay": {
+          "bytes": 213,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/layer1_cartesian_wireframe.png",
+          "sha256": "5f51fd70b4be10d124fe4a1411da4127c8b59a47420f7e132a401a6f1aa3c5a1"
+        },
+        "combined_diagnostic_overlay": {
+          "bytes": 1152,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/combined_diagnostic_overlay.png",
+          "sha256": "74826f941dcd41a997ae4be3f00ae4400d5903e43425573ff7aafb6bad6d5895"
+        },
+        "curvature_field_view": {
+          "bytes": 2336,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/curvature_field_view.png",
+          "sha256": "20b66dd2c02318ca1ef2aa9d5c3825471c59b74990ba2b547c952fdf2b326711"
+        },
+        "curved_vs_straight_difference": {
+          "bytes": 106,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/curved_vs_straight_difference.png",
+          "sha256": "84897ca9da325893ae2858de4120c212d0a984d5412198e46dfa4c243033c266"
+        },
+        "diagnostic_contact_sheet": {
+          "bytes": 44403,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/diagnostic_overlay_contact_sheet.png",
+          "sha256": "f86a5712ec78c0598bc69cad4e7bf292e2c7521926ce815b3330ca5ab14c0e4f"
+        },
+        "geometry_explanation": {
+          "bytes": 1377,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/cartesian_scene_geometry.png",
+          "sha256": "e4f6e8eeac21b03c86077c3f1c79e11a0ea13b7c9618f6d3041807fc9ddbe75a"
+        },
+        "hit_miss_map": {
+          "bytes": 310,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/hit_miss_map.png",
+          "sha256": "021365dce07967c7e1697588c9b3c151d9a2ddefc9a68781470e105d0cd0f975"
+        },
+        "normal_overlay": {
+          "bytes": 662,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/full_frame_hit_normals.png",
+          "sha256": "05f0cdaed4c4ece71306afb53cef08116eb6717cdfe6c3ad0414d98455b7d062"
+        },
+        "ownership_seams": {
+          "bytes": 2352,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/ownership_graph_seam_map.png",
+          "sha256": "678aedbe0494b244e727131036d3729772edc54c8435ffbe08c5a41c5868080e"
+        },
+        "raw_visual": {
+          "bytes": 115,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/layer0_beauty.png",
+          "sha256": "0dbe3a13ed38628b2c0229b848ef33c755d749a114fff8ec814f620d838cafb2"
+        },
+        "screenshot": {
+          "bytes": 128,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/hermetic_curved_room__curvature_fps_75__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+          "sha256": "d6a158bcbf8e514d397b729083617f97e9b2cc90882efa44beddeb3f4ec3fe9e"
+        },
+        "transport_continuity": {
+          "bytes": 317,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/layer5_transport_continuity_vectors.png",
+          "sha256": "c9d1dc418646ffe211a62f7d69858e7395365f6221979b66be479db708c5d5fd"
+        },
+        "transport_ownership": {
+          "bytes": 231,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/layer2_transport_ownership.png",
+          "sha256": "c007d2b0fb4efd37d31cf3f5ef6927b6d151a6244f708b340eaae9f5ef802600"
+        },
+        "traversal_step_heatmap": {
+          "bytes": 326,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/traversal_step_heatmap.png",
+          "sha256": "c6a347f41e3375902bee370df76f36fad8f98265444b6cb0fc5f7038287cec92"
+        }
+      },
+      "average_traversal_steps": 678.0909090909091,
+      "beauty_capture_health": {
+        "bytes": 128,
+        "channel_extrema": [
+          [
+            40,
+            40
+          ],
+          [
+            61,
+            61
+          ],
+          [
+            102,
+            102
+          ],
+          [
+            255,
+            255
+          ]
+        ],
+        "height": 22,
+        "mode": "RGBA",
+        "near_zero_variation": true,
+        "path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/hermetic_curved_room__curvature_fps_75__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+        "reason": "valid PNG contains only one clear/background color",
+        "solid_color": true,
+        "solid_rgba": [
+          40,
+          61,
+          102,
+          255
+        ],
+        "status": "BLANK BEAUTY",
+        "unique_color_count": 1,
+        "usable_for_visual_confirmation": false,
+        "width": 40
+      },
+      "budget_exhausted_without_hit_count": 0,
+      "budget_exhaustion_summary": {
+        "budget_exhausted_hit_count": 640,
+        "budget_exhausted_no_hit_count": 0,
+        "budget_exhausted_pixel_count": 640,
+        "budget_exhaustion_percent": 72.727273,
+        "budget_fields_present": [
+          "budget_exhausted_without_hit",
+          "final_path_length",
+          "final_step_count",
+          "hit_found_after_budget_warning",
+          "max_steps_reached"
+        ],
+        "final_path_length_max": 7.551982,
+        "final_path_length_mean": 5.654859,
+        "final_step_count_max": 701,
+        "final_step_count_mean": 678.090909,
+        "hit_found_after_budget_warning_count": 640,
+        "max_steps_reached_pixel_count": 640,
+        "step_quality_plateau_candidate": true
+      },
+      "cell": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row",
+      "closure_contract": "all pixels expected to hit sealed-room receiver; no valid exceptions in v1",
+      "closure_summary_available": true,
+      "closure_truth_scope": "scene-contract closure, not physical correctness",
+      "curvature_percent": 75,
+      "curved_minimal_reference": "100pct amplitude 1.15 follows CurvedMinimalFingerprint canonical fixture amplitude",
+      "derivative_step": {
+        "enabled": 0,
+        "mean_difficulty": 0,
+        "mean_step_after": 0,
+        "mean_step_before": 0,
+        "metric_subdivision_retry_count": 0,
+        "sample_count": 0
+      },
+      "effective_status": "0",
+      "elapsed_ms": 2948.459,
+      "field_amplitude": 0.8625,
+      "film_capture": {
+        "height": 22,
+        "known": 1,
+        "physics_queries": 96472,
+        "rays_traced": 240,
+        "segments_integrated": 147600,
+        "segments_tested": 46188,
+        "width": 40
+      },
+      "fixture": "hermetic_curved_room",
+      "fixture_stats": {
+        "absorbed_hits": 0,
+        "background_hits": 1120,
+        "known": 1,
+        "miss_hits": 0,
+        "source_hits": 0,
+        "traced_pixels": 1120,
+        "unclassified_hits": 0
+      },
+      "frames": 10,
+      "godot_exit_code": 0,
+      "hit_count": 880,
+      "hit_diagnostics_csv": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/hermetic_curved_room__curvature_fps_75__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+      "hit_found_on_overrun_step_count": 640,
+      "hit_percent": 100.0,
+      "latest_perf_frame_report": {
+        "band_physics_queries": 19078,
+        "band_segments_integrated": 28000,
+        "band_segments_tested": 8868,
+        "effective_full_refresh_fps": 0.430093,
+        "effective_render_pixels": 880,
+        "filled_pixels": 880,
+        "film_update_ms": 0.18,
+        "hits": 880,
+        "intersect_ray_calls": 0,
+        "intersect_shape_calls": 0,
+        "known": 1,
+        "overlay_build_ms": 0,
+        "pass1_ms": 556.057,
+        "pass2_commit_ms": 0,
+        "pass2_hit_resolve_ms": 12.795,
+        "pass2_phys_ms": 1617.884,
+        "pass2_query_ms": 1505.007,
+        "pass2_shade_ms": 4.221,
+        "pixels": 880,
+        "present_coverage_ratio": 0.045455,
+        "present_pixels_updated": 40,
+        "reason_flags": "None",
+        "scheduler_ms": 2.308,
+        "segments": 616000,
+        "segments_tested": 167992,
+        "soft_gate_attempts": 0,
+        "soft_gate_hits": 0,
+        "subdivided_ray_calls": 167992,
+        "subdivided_ray_queries": 349151,
+        "traced_pixels": 880
+      },
+      "max_steps_reached_count": 640,
+      "max_traversal_steps": 701,
+      "mean_fps": 3.632775,
+      "mean_frame_time_ms": 275.271683,
+      "metric_diagnostics": {
+        "known": 1,
+        "metric_contribution_ratio": 0,
+        "metric_zero_reason_summary": "none",
+        "steering_max_turn": 0,
+        "steering_mean_turn": 0,
+        "steering_radial_summary": "r<0.5R:0@91840,0.5R-1R:0@89600,1R-2R:0@176960,2R-4R:0@349160,4R-8R:0@57160,r>=8R:0@0",
+        "steering_turn_count": 764720
+      },
+      "miss_count": 0,
+      "miss_rate": 0.0,
+      "overlay_metadata": {
+        "beauty_capture_health": {
+          "bytes": 128,
+          "channel_extrema": [
+            [
+              40,
+              40
+            ],
+            [
+              61,
+              61
+            ],
+            [
+              102,
+              102
+            ],
+            [
+              255,
+              255
+            ]
+          ],
+          "height": 22,
+          "mode": "RGBA",
+          "near_zero_variation": true,
+          "path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/hermetic_curved_room__curvature_fps_75__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+          "reason": "valid PNG contains only one clear/background color",
+          "solid_color": true,
+          "solid_rgba": [
+            40,
+            61,
+            102,
+            255
+          ],
+          "status": "BLANK BEAUTY",
+          "unique_color_count": 1,
+          "usable_for_visual_confirmation": false,
+          "width": 40
+        },
+        "beauty_hash": "d6a158bcbf8e514d397b729083617f97e9b2cc90882efa44beddeb3f4ec3fe9e",
+        "beauty_path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/hermetic_curved_room__curvature_fps_75__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+        "budget_exhaustion_heatmap": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/budget_exhaustion_heatmap.png",
+        "budget_exhaustion_overlay": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/budget_exhaustion_overlay.png",
+        "budget_exhaustion_summary": {
+          "budget_exhausted_hit_count": 640,
+          "budget_exhausted_no_hit_count": 0,
+          "budget_exhausted_pixel_count": 640,
+          "budget_exhaustion_percent": 72.727273,
+          "budget_fields_present": [
+            "budget_exhausted_without_hit",
+            "final_path_length",
+            "final_step_count",
+            "hit_found_after_budget_warning",
+            "max_steps_reached"
+          ],
+          "final_path_length_max": 7.551982,
+          "final_path_length_mean": 5.654859,
+          "final_step_count_max": 701,
+          "final_step_count_mean": 678.090909,
+          "hit_found_after_budget_warning_count": 640,
+          "max_steps_reached_pixel_count": 640,
+          "step_quality_plateau_candidate": true
+        },
+        "capture_stem": "hermetic_curved_room__curvature_fps_75__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1",
+        "cartesian_scene_geometry": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/cartesian_scene_geometry.png",
+        "compact_contact_sheet_mode": true,
+        "contact_sheet_layout": {
+          "caption_band_below_image": true,
+          "image_canvas_unobscured": true,
+          "rendered_pixels_are_not_annotated_by_contact_sheet": true,
+          "title_band_above_image": true
+        },
+        "contact_sheet_legends_suppressed": true,
+        "curvature_field_view": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/curvature_field_view.png",
+        "enabled_layers": {
+          "cartesian": true,
+          "continuity": true,
+          "labels": false,
+          "risk": true,
+          "spacetime": false,
+          "transport": true
+        },
+        "hit_diagnostics_csv": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/hermetic_curved_room__curvature_fps_75__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+        "hit_region_count": 3,
+        "manual_rois": [
+          {
+            "x": 5,
+            "y": 4
+          },
+          {
+            "x": 35,
+            "y": 4
+          },
+          {
+            "x": 5,
+            "y": 17
+          },
+          {
+            "x": 35,
+            "y": 17
+          }
+        ],
+        "missing_inputs": [
+          "continuity_optional_field_portal_event_count"
+        ],
+        "object_count": 5,
+        "opencv_requested": false,
+        "opencv_used": false,
+        "post_process_only": true,
+        "primitive_count_by_layer": {
+          "cartesian_lines": 0,
+          "cartesian_points": 10,
+          "manual_rois": 4,
+          "spacetime_events": 0,
+          "spacetime_polylines": 0
+        },
+        "primitive_path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/hermetic_curved_room__curvature_fps_75__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.diagnostic_wireframe_primitives.json",
+        "schema_version": 1,
+        "smoke_contact_sheet_mode": true,
+        "transport_continuity_summary": {
+          "high_discontinuity_vectors": 48,
+          "high_threshold": 1.0,
+          "manual_roi_overlap_count": 48,
+          "max_discontinuity_score": 2.11258,
+          "mean_discontinuity_score": 2.049646,
+          "missing_optional_fields": [
+            "portal_event_count"
+          ],
+          "shape_region_correlations": [
+            {
+              "boundary_aligns_with_high_vector_density": true,
+              "boundary_flip_count": 24,
+              "collider_id": 26206012821,
+              "max_discontinuity_score": 2.11258,
+              "mean_discontinuity_score": 2.049646,
+              "region_id": 0
+            },
+            {
+              "boundary_aligns_with_high_vector_density": true,
+              "boundary_flip_count": 48,
+              "collider_id": 26105349517,
+              "max_discontinuity_score": 2.11258,
+              "mean_discontinuity_score": 2.049646,
+              "region_id": 1
+            },
+            {
+              "boundary_aligns_with_high_vector_density": true,
+              "boundary_flip_count": 24,
+              "collider_id": 26256344472,
+              "max_discontinuity_score": 2.11258,
+              "mean_discontinuity_score": 2.049647,
+              "region_id": 2
+            }
+          ],
+          "threshold": 0.2,
+          "top_10_discontinuity_locations": [
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.281449,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 8,
+              "neighbor_y": 21,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.281449,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.11258,
+              "x": 7,
+              "y": 21
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.281449,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 32,
+              "neighbor_y": 21,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.281449,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.11258,
+              "x": 31,
+              "y": 21
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.270741,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 34,
+              "neighbor_y": 0,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.270741,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.108296,
+              "x": 33,
+              "y": 0
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.270723,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 6,
+              "neighbor_y": 0,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.270723,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.108289,
+              "x": 5,
+              "y": 0
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.229246,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 8,
+              "neighbor_y": 12,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.229246,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.091698,
+              "x": 7,
+              "y": 12
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.229246,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 32,
+              "neighbor_y": 12,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.229246,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.091698,
+              "x": 31,
+              "y": 12
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.209475,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 32,
+              "neighbor_y": 20,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.209475,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.08379,
+              "x": 31,
+              "y": 20
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.209473,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 8,
+              "neighbor_y": 20,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.209473,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.083789,
+              "x": 7,
+              "y": 20
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.199459,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 7,
+              "neighbor_y": 11,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.199459,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.079784,
+              "x": 6,
+              "y": 11
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.199459,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 33,
+              "neighbor_y": 11,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.199459,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.079784,
+              "x": 32,
+              "y": 11
+            }
+          ],
+          "total_vectors": 48,
+          "transport_shape_region_overlap_count": 48
+        },
+        "transport_continuity_vectors_csv": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/transport_continuity_vectors.csv"
+      },
+      "p95_frame_time_ms": 344.146869,
+      "precision_epsilon_warnings": [
+        "max_steps_reached=640",
+        "hit_found_on_overrun_step=640"
+      ],
+      "render_health": {
+        "bands": 1,
+        "budget_exit_reason": "",
+        "geom_pix_processed": 120,
+        "geom_ray_tests_saved_pct": null,
+        "geom_ray_tests_total": 46569,
+        "geom_segments_queried_raw": 0,
+        "known": 0,
+        "live_known": 1,
+        "pass2_sampled_segments_raw": 2801,
+        "rows_advanced": 3,
+        "step": 10,
+        "trust_reason": "na",
+        "trusted": 0
+      },
+      "report_artifacts": {
+        "budget_heatmap": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_075_budget_heatmap.png",
+        "budget_overlay": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_075_budget_overlay.png",
+        "cartesian_wireframe_overlay": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_075_cartesian_wireframe_overlay.png",
+        "combined_diagnostic_overlay": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_075_combined_diagnostic_overlay.png",
+        "curvature_field_view": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_075_curvature_field_view.png",
+        "curved_vs_straight_difference": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_075_curved_vs_straight_difference.png",
+        "diagnostic_contact_sheet": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_075_diagnostic_contact_sheet.png",
+        "geometry_explanation": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_075_geometry_explanation.png",
+        "hit_miss_map": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_075_hit_miss_map.png",
+        "normal_overlay": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_075_normal_overlay.png",
+        "ownership_seams": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_075_ownership_seams.png",
+        "raw_visual": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_075_raw_visual.png",
+        "screenshot": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_075_screenshot.png",
+        "transport_continuity": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_075_transport_continuity.png",
+        "transport_ownership": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_075_transport_ownership.png",
+        "traversal_step_heatmap": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_075_traversal_step_heatmap.png"
+      },
+      "resolved_fixture_curvature": {
+        "curved_transport_enabled": 1,
+        "field_enabled": 1,
+        "field_present": 1,
+        "known": 1,
+        "renderer_bend_scale": 1,
+        "renderer_field_strength": 0.8625,
+        "renderer_present": 1,
+        "renderer_use_integrated_field": 1,
+        "requested_amplitude": 0.8625,
+        "resolved_amp": 0.8625,
+        "resolved_enabled": 1,
+        "resolved_r_inner": 0,
+        "resolved_r_outer": 4.75,
+        "resolved_reason": "canonical",
+        "source": "curvature_fps_result.json"
+      },
+      "run_id": 1,
+      "run_name": "baseline_prune_off",
+      "sample_count": 8,
+      "scene": "res://test-hermetic-curved-room.tscn",
+      "screenshot_path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/hermetic_curved_room__curvature_fps_75__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+      "sealed_hit_validation_passed": true,
+      "study": "curvature_fps_benchmark",
+      "total_pixels_rays_evaluated": 880,
+      "total_rays_pixels_evaluated": 1120,
+      "visual_artifacts": {
+        "budget_heatmap": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/budget_exhaustion_heatmap.png",
+        "budget_overlay": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/budget_exhaustion_overlay.png",
+        "cartesian_wireframe_overlay": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/layer1_cartesian_wireframe.png",
+        "combined_diagnostic_overlay": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/combined_diagnostic_overlay.png",
+        "curvature_field_view": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/curvature_field_view.png",
+        "curved_vs_straight_difference": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/curved_vs_straight_difference.png",
+        "diagnostic_contact_sheet": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/diagnostic_overlay_contact_sheet.png",
+        "geometry_explanation": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/cartesian_scene_geometry.png",
+        "hit_miss_map": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/hit_miss_map.png",
+        "normal_overlay": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/full_frame_hit_normals.png",
+        "ownership_seams": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/ownership_graph_seam_map.png",
+        "raw_visual": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/layer0_beauty.png",
+        "screenshot": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/hermetic_curved_room__curvature_fps_75__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+        "transport_continuity": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/layer5_transport_continuity_vectors.png",
+        "transport_ownership": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/layer2_transport_ownership.png",
+        "traversal_step_heatmap": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/traversal_step_heatmap.png"
+      },
+      "warmup": 2,
+      "write_diagnostics": {
+        "beauty_expected_pixels": 880,
+        "beauty_pixels_multi_written": 240,
+        "beauty_pixels_unwritten": 0,
+        "beauty_pixels_written_once": 640,
+        "known": 1,
+        "rows_completed": 22
+      }
+    },
+    {
+      "absorbed_hit_count": 0,
+      "adaptive_stepping": {
+        "average_segments_per_ray": 591,
+        "average_turn_angle": 0,
+        "known": 1,
+        "max_turn_angle": 0,
+        "summary": "segs=616000|avgSeg=591|maxSeg=na|adaptiveSubdiv=170028|meanTurn=0|maxTurn=0|meanErr=na|maxErr=na|steeringTurns=765200|parallelRaw=0|sourceHits=0|backgroundHits=1120|terminated=1120|fallbackUsed=0"
+      },
+      "artifact_hashes": {
+        "budget_heatmap": {
+          "bytes": 121,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/budget_exhaustion_heatmap.png",
+          "sha256": "69c1759e80290d7d816716c0480425c09de311bc6e9cb6a25df3762420b181b5"
+        },
+        "budget_overlay": {
+          "bytes": 122,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/budget_exhaustion_overlay.png",
+          "sha256": "58e9192556046a2eea66acd8cf5dd88e2677c82c7408269e7e7fbf1e718b7b89"
+        },
+        "cartesian_wireframe_overlay": {
+          "bytes": 213,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/layer1_cartesian_wireframe.png",
+          "sha256": "5f51fd70b4be10d124fe4a1411da4127c8b59a47420f7e132a401a6f1aa3c5a1"
+        },
+        "combined_diagnostic_overlay": {
+          "bytes": 1152,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/combined_diagnostic_overlay.png",
+          "sha256": "74826f941dcd41a997ae4be3f00ae4400d5903e43425573ff7aafb6bad6d5895"
+        },
+        "curvature_field_view": {
+          "bytes": 2339,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/curvature_field_view.png",
+          "sha256": "6c9647a25d87649785fcb1e2b09351169d25c12d216143cbf14834e1d2e048d1"
+        },
+        "curved_vs_straight_difference": {
+          "bytes": 106,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/curved_vs_straight_difference.png",
+          "sha256": "84897ca9da325893ae2858de4120c212d0a984d5412198e46dfa4c243033c266"
+        },
+        "diagnostic_contact_sheet": {
+          "bytes": 44340,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/diagnostic_overlay_contact_sheet.png",
+          "sha256": "a75578e44f2b2c44179be00551c37b613331cd39869c715cedca853db60db044"
+        },
+        "geometry_explanation": {
+          "bytes": 1377,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/cartesian_scene_geometry.png",
+          "sha256": "e4f6e8eeac21b03c86077c3f1c79e11a0ea13b7c9618f6d3041807fc9ddbe75a"
+        },
+        "hit_miss_map": {
+          "bytes": 310,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/hit_miss_map.png",
+          "sha256": "021365dce07967c7e1697588c9b3c151d9a2ddefc9a68781470e105d0cd0f975"
+        },
+        "normal_overlay": {
+          "bytes": 662,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/full_frame_hit_normals.png",
+          "sha256": "05f0cdaed4c4ece71306afb53cef08116eb6717cdfe6c3ad0414d98455b7d062"
+        },
+        "ownership_seams": {
+          "bytes": 2352,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/ownership_graph_seam_map.png",
+          "sha256": "678aedbe0494b244e727131036d3729772edc54c8435ffbe08c5a41c5868080e"
+        },
+        "raw_visual": {
+          "bytes": 115,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/layer0_beauty.png",
+          "sha256": "0dbe3a13ed38628b2c0229b848ef33c755d749a114fff8ec814f620d838cafb2"
+        },
+        "screenshot": {
+          "bytes": 128,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/hermetic_curved_room__curvature_fps_100__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+          "sha256": "d6a158bcbf8e514d397b729083617f97e9b2cc90882efa44beddeb3f4ec3fe9e"
+        },
+        "transport_continuity": {
+          "bytes": 317,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/layer5_transport_continuity_vectors.png",
+          "sha256": "c9d1dc418646ffe211a62f7d69858e7395365f6221979b66be479db708c5d5fd"
+        },
+        "transport_ownership": {
+          "bytes": 231,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/layer2_transport_ownership.png",
+          "sha256": "c007d2b0fb4efd37d31cf3f5ef6927b6d151a6244f708b340eaae9f5ef802600"
+        },
+        "traversal_step_heatmap": {
+          "bytes": 326,
+          "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/traversal_step_heatmap.png",
+          "sha256": "ba876e5a8eeeb358b6d7e1f0a9275603b08e14854f49118639b1687a239b7cdf"
+        }
+      },
+      "average_traversal_steps": 678.6363636363636,
+      "beauty_capture_health": {
+        "bytes": 128,
+        "channel_extrema": [
+          [
+            40,
+            40
+          ],
+          [
+            61,
+            61
+          ],
+          [
+            102,
+            102
+          ],
+          [
+            255,
+            255
+          ]
+        ],
+        "height": 22,
+        "mode": "RGBA",
+        "near_zero_variation": true,
+        "path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/hermetic_curved_room__curvature_fps_100__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+        "reason": "valid PNG contains only one clear/background color",
+        "solid_color": true,
+        "solid_rgba": [
+          40,
+          61,
+          102,
+          255
+        ],
+        "status": "BLANK BEAUTY",
+        "unique_color_count": 1,
+        "usable_for_visual_confirmation": false,
+        "width": 40
+      },
+      "budget_exhausted_without_hit_count": 0,
+      "budget_exhaustion_summary": {
+        "budget_exhausted_hit_count": 640,
+        "budget_exhausted_no_hit_count": 0,
+        "budget_exhausted_pixel_count": 640,
+        "budget_exhaustion_percent": 72.727273,
+        "budget_fields_present": [
+          "budget_exhausted_without_hit",
+          "final_path_length",
+          "final_step_count",
+          "hit_found_after_budget_warning",
+          "max_steps_reached"
+        ],
+        "final_path_length_max": 7.551981,
+        "final_path_length_mean": 5.654859,
+        "final_step_count_max": 701,
+        "final_step_count_mean": 678.636364,
+        "hit_found_after_budget_warning_count": 640,
+        "max_steps_reached_pixel_count": 640,
+        "step_quality_plateau_candidate": true
+      },
+      "cell": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row",
+      "closure_contract": "all pixels expected to hit sealed-room receiver; no valid exceptions in v1",
+      "closure_summary_available": true,
+      "closure_truth_scope": "scene-contract closure, not physical correctness",
+      "curvature_percent": 100,
+      "curved_minimal_reference": "100pct amplitude 1.15 follows CurvedMinimalFingerprint canonical fixture amplitude",
+      "derivative_step": {
+        "enabled": 0,
+        "mean_difficulty": 0,
+        "mean_step_after": 0,
+        "mean_step_before": 0,
+        "metric_subdivision_retry_count": 0,
+        "sample_count": 0
+      },
+      "effective_status": "0",
+      "elapsed_ms": 2982.8457,
+      "field_amplitude": 1.15,
+      "film_capture": {
+        "height": 22,
+        "known": 1,
+        "physics_queries": 97652,
+        "rays_traced": 240,
+        "segments_integrated": 148080,
+        "segments_tested": 46740,
+        "width": 40
+      },
+      "fixture": "hermetic_curved_room",
+      "fixture_stats": {
+        "absorbed_hits": 0,
+        "background_hits": 1120,
+        "known": 1,
+        "miss_hits": 0,
+        "source_hits": 0,
+        "traced_pixels": 1120,
+        "unclassified_hits": 0
+      },
+      "frames": 10,
+      "godot_exit_code": 0,
+      "hit_count": 880,
+      "hit_diagnostics_csv": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/hermetic_curved_room__curvature_fps_100__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+      "hit_found_on_overrun_step_count": 640,
+      "hit_percent": 100.0,
+      "latest_perf_frame_report": {
+        "band_physics_queries": 19356,
+        "band_segments_integrated": 28000,
+        "band_segments_tested": 8960,
+        "effective_full_refresh_fps": 0.428182,
+        "effective_render_pixels": 880,
+        "filled_pixels": 880,
+        "film_update_ms": 0.176,
+        "hits": 880,
+        "intersect_ray_calls": 0,
+        "intersect_shape_calls": 0,
+        "known": 1,
+        "overlay_build_ms": 0,
+        "pass1_ms": 554.603,
+        "pass2_commit_ms": 0,
+        "pass2_hit_resolve_ms": 14.986,
+        "pass2_phys_ms": 1612.794,
+        "pass2_query_ms": 1495.439,
+        "pass2_shade_ms": 4.122,
+        "pixels": 880,
+        "present_coverage_ratio": 0.045455,
+        "present_pixels_updated": 40,
+        "reason_flags": "None",
+        "scheduler_ms": 2.29,
+        "segments": 616000,
+        "segments_tested": 170028,
+        "soft_gate_attempts": 0,
+        "soft_gate_hits": 0,
+        "subdivided_ray_calls": 170028,
+        "subdivided_ray_queries": 353541,
+        "traced_pixels": 880
+      },
+      "max_steps_reached_count": 640,
+      "max_traversal_steps": 701,
+      "mean_fps": 3.62199,
+      "mean_frame_time_ms": 276.091293,
+      "metric_diagnostics": {
+        "known": 1,
+        "metric_contribution_ratio": 0,
+        "metric_zero_reason_summary": "none",
+        "steering_max_turn": 0,
+        "steering_mean_turn": 0,
+        "steering_radial_summary": "r<0.5R:0@94080,0.5R-1R:0@89600,1R-2R:0@176960,2R-4R:0@349160,4R-8R:0@55400,r>=8R:0@0",
+        "steering_turn_count": 765200
+      },
+      "miss_count": 0,
+      "miss_rate": 0.0,
+      "overlay_metadata": {
+        "beauty_capture_health": {
+          "bytes": 128,
+          "channel_extrema": [
+            [
+              40,
+              40
+            ],
+            [
+              61,
+              61
+            ],
+            [
+              102,
+              102
+            ],
+            [
+              255,
+              255
+            ]
+          ],
+          "height": 22,
+          "mode": "RGBA",
+          "near_zero_variation": true,
+          "path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/hermetic_curved_room__curvature_fps_100__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+          "reason": "valid PNG contains only one clear/background color",
+          "solid_color": true,
+          "solid_rgba": [
+            40,
+            61,
+            102,
+            255
+          ],
+          "status": "BLANK BEAUTY",
+          "unique_color_count": 1,
+          "usable_for_visual_confirmation": false,
+          "width": 40
+        },
+        "beauty_hash": "d6a158bcbf8e514d397b729083617f97e9b2cc90882efa44beddeb3f4ec3fe9e",
+        "beauty_path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/hermetic_curved_room__curvature_fps_100__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+        "budget_exhaustion_heatmap": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/budget_exhaustion_heatmap.png",
+        "budget_exhaustion_overlay": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/budget_exhaustion_overlay.png",
+        "budget_exhaustion_summary": {
+          "budget_exhausted_hit_count": 640,
+          "budget_exhausted_no_hit_count": 0,
+          "budget_exhausted_pixel_count": 640,
+          "budget_exhaustion_percent": 72.727273,
+          "budget_fields_present": [
+            "budget_exhausted_without_hit",
+            "final_path_length",
+            "final_step_count",
+            "hit_found_after_budget_warning",
+            "max_steps_reached"
+          ],
+          "final_path_length_max": 7.551981,
+          "final_path_length_mean": 5.654859,
+          "final_step_count_max": 701,
+          "final_step_count_mean": 678.636364,
+          "hit_found_after_budget_warning_count": 640,
+          "max_steps_reached_pixel_count": 640,
+          "step_quality_plateau_candidate": true
+        },
+        "capture_stem": "hermetic_curved_room__curvature_fps_100__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1",
+        "cartesian_scene_geometry": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/cartesian_scene_geometry.png",
+        "compact_contact_sheet_mode": true,
+        "contact_sheet_layout": {
+          "caption_band_below_image": true,
+          "image_canvas_unobscured": true,
+          "rendered_pixels_are_not_annotated_by_contact_sheet": true,
+          "title_band_above_image": true
+        },
+        "contact_sheet_legends_suppressed": true,
+        "curvature_field_view": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/curvature_field_view.png",
+        "enabled_layers": {
+          "cartesian": true,
+          "continuity": true,
+          "labels": false,
+          "risk": true,
+          "spacetime": false,
+          "transport": true
+        },
+        "hit_diagnostics_csv": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/hermetic_curved_room__curvature_fps_100__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+        "hit_region_count": 3,
+        "manual_rois": [
+          {
+            "x": 5,
+            "y": 4
+          },
+          {
+            "x": 35,
+            "y": 4
+          },
+          {
+            "x": 5,
+            "y": 17
+          },
+          {
+            "x": 35,
+            "y": 17
+          }
+        ],
+        "missing_inputs": [
+          "continuity_optional_field_portal_event_count"
+        ],
+        "object_count": 5,
+        "opencv_requested": false,
+        "opencv_used": false,
+        "post_process_only": true,
+        "primitive_count_by_layer": {
+          "cartesian_lines": 0,
+          "cartesian_points": 10,
+          "manual_rois": 4,
+          "spacetime_events": 0,
+          "spacetime_polylines": 0
+        },
+        "primitive_path": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/hermetic_curved_room__curvature_fps_100__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.diagnostic_wireframe_primitives.json",
+        "schema_version": 1,
+        "smoke_contact_sheet_mode": true,
+        "transport_continuity_summary": {
+          "high_discontinuity_vectors": 48,
+          "high_threshold": 1.0,
+          "manual_roi_overlap_count": 48,
+          "max_discontinuity_score": 2.11258,
+          "mean_discontinuity_score": 2.049646,
+          "missing_optional_fields": [
+            "portal_event_count"
+          ],
+          "shape_region_correlations": [
+            {
+              "boundary_aligns_with_high_vector_density": true,
+              "boundary_flip_count": 24,
+              "collider_id": 26206012821,
+              "max_discontinuity_score": 2.112579,
+              "mean_discontinuity_score": 2.049646,
+              "region_id": 0
+            },
+            {
+              "boundary_aligns_with_high_vector_density": true,
+              "boundary_flip_count": 48,
+              "collider_id": 26105349517,
+              "max_discontinuity_score": 2.11258,
+              "mean_discontinuity_score": 2.049646,
+              "region_id": 1
+            },
+            {
+              "boundary_aligns_with_high_vector_density": true,
+              "boundary_flip_count": 24,
+              "collider_id": 26256344472,
+              "max_discontinuity_score": 2.11258,
+              "mean_discontinuity_score": 2.049646,
+              "region_id": 2
+            }
+          ],
+          "threshold": 0.2,
+          "top_10_discontinuity_locations": [
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.28145,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 32,
+              "neighbor_y": 21,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.28145,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.11258,
+              "x": 31,
+              "y": 21
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.281448,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 8,
+              "neighbor_y": 21,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.281448,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.112579,
+              "x": 7,
+              "y": 21
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.270721,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 6,
+              "neighbor_y": 0,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.270721,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.108288,
+              "x": 5,
+              "y": 0
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.270721,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 34,
+              "neighbor_y": 0,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.270721,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.108288,
+              "x": 33,
+              "y": 0
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.229244,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 8,
+              "neighbor_y": 12,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.229244,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.091698,
+              "x": 7,
+              "y": 12
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.229244,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 32,
+              "neighbor_y": 12,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.229244,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.091698,
+              "x": 31,
+              "y": 12
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.20947,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 8,
+              "neighbor_y": 20,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.20947,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.083788,
+              "x": 7,
+              "y": 20
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.20947,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 32,
+              "neighbor_y": 20,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.20947,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.083788,
+              "x": 31,
+              "y": 20
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.199462,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 7,
+              "neighbor_y": 11,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.199462,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.079785,
+              "x": 6,
+              "y": 11
+            },
+            {
+              "boundary_event_delta": 0,
+              "collider_change": 1,
+              "domain_change": 0,
+              "hit_distance_delta": 0.199462,
+              "hit_normal_angle_delta": 90.0,
+              "neighbor_x": 33,
+              "neighbor_y": 11,
+              "ownership_flip_score": 1.0,
+              "path_length_delta": 0.199462,
+              "step_count_delta": 0.0,
+              "total_transport_discontinuity_score": 2.079785,
+              "x": 32,
+              "y": 11
+            }
+          ],
+          "total_vectors": 48,
+          "transport_shape_region_overlap_count": 48
+        },
+        "transport_continuity_vectors_csv": "output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/transport_continuity_vectors.csv"
+      },
+      "p95_frame_time_ms": 332.401653,
+      "precision_epsilon_warnings": [
+        "max_steps_reached=640",
+        "hit_found_on_overrun_step=640"
+      ],
+      "render_health": {
+        "bands": 1,
+        "budget_exit_reason": "",
+        "geom_pix_processed": 120,
+        "geom_ray_tests_saved_pct": null,
+        "geom_ray_tests_total": 47236,
+        "geom_segments_queried_raw": 0,
+        "known": 0,
+        "live_known": 1,
+        "pass2_sampled_segments_raw": 2835,
+        "rows_advanced": 3,
+        "step": 10,
+        "trust_reason": "na",
+        "trusted": 0
+      },
+      "report_artifacts": {
+        "budget_heatmap": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_100_budget_heatmap.png",
+        "budget_overlay": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_100_budget_overlay.png",
+        "cartesian_wireframe_overlay": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_100_cartesian_wireframe_overlay.png",
+        "combined_diagnostic_overlay": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_100_combined_diagnostic_overlay.png",
+        "curvature_field_view": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_100_curvature_field_view.png",
+        "curved_vs_straight_difference": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_100_curved_vs_straight_difference.png",
+        "diagnostic_contact_sheet": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_100_diagnostic_contact_sheet.png",
+        "geometry_explanation": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_100_geometry_explanation.png",
+        "hit_miss_map": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_100_hit_miss_map.png",
+        "normal_overlay": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_100_normal_overlay.png",
+        "ownership_seams": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_100_ownership_seams.png",
+        "raw_visual": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_100_raw_visual.png",
+        "screenshot": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_100_screenshot.png",
+        "transport_continuity": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_100_transport_continuity.png",
+        "transport_ownership": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_100_transport_ownership.png",
+        "traversal_step_heatmap": "/home/bb/code/godot_xPRIMEray/reports/weekend_fps_curvature_sweep_assets/curvature_100_traversal_step_heatmap.png"
+      },
+      "resolved_fixture_curvature": {
+        "curved_transport_enabled": 1,
+        "field_enabled": 1,
+        "field_present": 1,
+        "known": 1,
+        "renderer_bend_scale": 1,
+        "renderer_field_strength": 1.15,
+        "renderer_present": 1,
+        "renderer_use_integrated_field": 1,
+        "requested_amplitude": 1.15,
+        "resolved_amp": 1.15,
+        "resolved_enabled": 1,
+        "resolved_r_inner": 0,
+        "resolved_r_outer": 4.75,
+        "resolved_reason": "canonical",
+        "source": "curvature_fps_result.json"
+      },
+      "run_id": 1,
+      "run_name": "baseline_prune_off",
+      "sample_count": 8,
+      "scene": "res://test-hermetic-curved-room.tscn",
+      "screenshot_path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/hermetic_curved_room__curvature_fps_100__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+      "sealed_hit_validation_passed": true,
+      "study": "curvature_fps_benchmark",
+      "total_pixels_rays_evaluated": 880,
+      "total_rays_pixels_evaluated": 1120,
+      "visual_artifacts": {
+        "budget_heatmap": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/budget_exhaustion_heatmap.png",
+        "budget_overlay": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/budget_exhaustion_overlay.png",
+        "cartesian_wireframe_overlay": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/layer1_cartesian_wireframe.png",
+        "combined_diagnostic_overlay": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/combined_diagnostic_overlay.png",
+        "curvature_field_view": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/curvature_field_view.png",
+        "curved_vs_straight_difference": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/curved_vs_straight_difference.png",
+        "diagnostic_contact_sheet": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/diagnostic_overlay_contact_sheet.png",
+        "geometry_explanation": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/cartesian_scene_geometry.png",
+        "hit_miss_map": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/hit_miss_map.png",
+        "normal_overlay": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/full_frame_hit_normals.png",
+        "ownership_seams": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/ownership_graph_seam_map.png",
+        "raw_visual": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/layer0_beauty.png",
+        "screenshot": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/hermetic_curved_room__curvature_fps_100__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+        "transport_continuity": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/layer5_transport_continuity_vectors.png",
+        "transport_ownership": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/layer2_transport_ownership.png",
+        "traversal_step_heatmap": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/traversal_step_heatmap.png"
+      },
+      "warmup": 2,
+      "write_diagnostics": {
+        "beauty_expected_pixels": 880,
+        "beauty_pixels_multi_written": 240,
+        "beauty_pixels_unwritten": 0,
+        "beauty_pixels_written_once": 640,
+        "known": 1,
+        "rows_completed": 22
+      }
+    }
+  ],
+  "sealed_hit_validation_passed": true,
+  "study": "curvature_fps_benchmark",
+  "visual_identity": {
+    "any_non_identical_visual_artifact": true,
+    "by_artifact_key": {
+      "budget_heatmap": {
+        "complete": true,
+        "entries": [
+          {
+            "curvature_percent": 0,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/budget_exhaustion_heatmap.png",
+            "sha256": "69c1759e80290d7d816716c0480425c09de311bc6e9cb6a25df3762420b181b5"
+          },
+          {
+            "curvature_percent": 25,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/budget_exhaustion_heatmap.png",
+            "sha256": "69c1759e80290d7d816716c0480425c09de311bc6e9cb6a25df3762420b181b5"
+          },
+          {
+            "curvature_percent": 50,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/budget_exhaustion_heatmap.png",
+            "sha256": "69c1759e80290d7d816716c0480425c09de311bc6e9cb6a25df3762420b181b5"
+          },
+          {
+            "curvature_percent": 75,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/budget_exhaustion_heatmap.png",
+            "sha256": "69c1759e80290d7d816716c0480425c09de311bc6e9cb6a25df3762420b181b5"
+          },
+          {
+            "curvature_percent": 100,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/budget_exhaustion_heatmap.png",
+            "sha256": "69c1759e80290d7d816716c0480425c09de311bc6e9cb6a25df3762420b181b5"
+          }
+        ],
+        "identical_across_curvature": true,
+        "unique_hash_count": 1
+      },
+      "budget_overlay": {
+        "complete": true,
+        "entries": [
+          {
+            "curvature_percent": 0,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/budget_exhaustion_overlay.png",
+            "sha256": "58e9192556046a2eea66acd8cf5dd88e2677c82c7408269e7e7fbf1e718b7b89"
+          },
+          {
+            "curvature_percent": 25,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/budget_exhaustion_overlay.png",
+            "sha256": "58e9192556046a2eea66acd8cf5dd88e2677c82c7408269e7e7fbf1e718b7b89"
+          },
+          {
+            "curvature_percent": 50,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/budget_exhaustion_overlay.png",
+            "sha256": "58e9192556046a2eea66acd8cf5dd88e2677c82c7408269e7e7fbf1e718b7b89"
+          },
+          {
+            "curvature_percent": 75,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/budget_exhaustion_overlay.png",
+            "sha256": "58e9192556046a2eea66acd8cf5dd88e2677c82c7408269e7e7fbf1e718b7b89"
+          },
+          {
+            "curvature_percent": 100,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/budget_exhaustion_overlay.png",
+            "sha256": "58e9192556046a2eea66acd8cf5dd88e2677c82c7408269e7e7fbf1e718b7b89"
+          }
+        ],
+        "identical_across_curvature": true,
+        "unique_hash_count": 1
+      },
+      "cartesian_wireframe_overlay": {
+        "complete": true,
+        "entries": [
+          {
+            "curvature_percent": 0,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/layer1_cartesian_wireframe.png",
+            "sha256": "5f51fd70b4be10d124fe4a1411da4127c8b59a47420f7e132a401a6f1aa3c5a1"
+          },
+          {
+            "curvature_percent": 25,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/layer1_cartesian_wireframe.png",
+            "sha256": "5f51fd70b4be10d124fe4a1411da4127c8b59a47420f7e132a401a6f1aa3c5a1"
+          },
+          {
+            "curvature_percent": 50,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/layer1_cartesian_wireframe.png",
+            "sha256": "5f51fd70b4be10d124fe4a1411da4127c8b59a47420f7e132a401a6f1aa3c5a1"
+          },
+          {
+            "curvature_percent": 75,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/layer1_cartesian_wireframe.png",
+            "sha256": "5f51fd70b4be10d124fe4a1411da4127c8b59a47420f7e132a401a6f1aa3c5a1"
+          },
+          {
+            "curvature_percent": 100,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/layer1_cartesian_wireframe.png",
+            "sha256": "5f51fd70b4be10d124fe4a1411da4127c8b59a47420f7e132a401a6f1aa3c5a1"
+          }
+        ],
+        "identical_across_curvature": true,
+        "unique_hash_count": 1
+      },
+      "combined_diagnostic_overlay": {
+        "complete": true,
+        "entries": [
+          {
+            "curvature_percent": 0,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/combined_diagnostic_overlay.png",
+            "sha256": "74826f941dcd41a997ae4be3f00ae4400d5903e43425573ff7aafb6bad6d5895"
+          },
+          {
+            "curvature_percent": 25,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/combined_diagnostic_overlay.png",
+            "sha256": "74826f941dcd41a997ae4be3f00ae4400d5903e43425573ff7aafb6bad6d5895"
+          },
+          {
+            "curvature_percent": 50,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/combined_diagnostic_overlay.png",
+            "sha256": "74826f941dcd41a997ae4be3f00ae4400d5903e43425573ff7aafb6bad6d5895"
+          },
+          {
+            "curvature_percent": 75,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/combined_diagnostic_overlay.png",
+            "sha256": "74826f941dcd41a997ae4be3f00ae4400d5903e43425573ff7aafb6bad6d5895"
+          },
+          {
+            "curvature_percent": 100,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/combined_diagnostic_overlay.png",
+            "sha256": "74826f941dcd41a997ae4be3f00ae4400d5903e43425573ff7aafb6bad6d5895"
+          }
+        ],
+        "identical_across_curvature": true,
+        "unique_hash_count": 1
+      },
+      "curvature_field_view": {
+        "complete": true,
+        "entries": [
+          {
+            "curvature_percent": 0,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/curvature_field_view.png",
+            "sha256": "b4d9940ae53e40cf3a732e86e82f796abf8d9cae31dd377b704ec42dc8c454ff"
+          },
+          {
+            "curvature_percent": 25,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/curvature_field_view.png",
+            "sha256": "3f4830531091c2aa102df64d413a7cb63761e5a39aa5744b11910199b79ee7bf"
+          },
+          {
+            "curvature_percent": 50,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/curvature_field_view.png",
+            "sha256": "2ebd03009abfa63abf70293f9bb41f2ed099ed7cdb8e992de816fd6ecab5c956"
+          },
+          {
+            "curvature_percent": 75,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/curvature_field_view.png",
+            "sha256": "20b66dd2c02318ca1ef2aa9d5c3825471c59b74990ba2b547c952fdf2b326711"
+          },
+          {
+            "curvature_percent": 100,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/curvature_field_view.png",
+            "sha256": "6c9647a25d87649785fcb1e2b09351169d25c12d216143cbf14834e1d2e048d1"
+          }
+        ],
+        "identical_across_curvature": false,
+        "unique_hash_count": 5
+      },
+      "curved_vs_straight_difference": {
+        "complete": true,
+        "entries": [
+          {
+            "curvature_percent": 0,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/curved_vs_straight_difference.png",
+            "sha256": "03b1790b1583a1590b9e4aea94384358460a5ff84e0fcf91afd57d98059dbbc2"
+          },
+          {
+            "curvature_percent": 25,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/curved_vs_straight_difference.png",
+            "sha256": "b77cef36075a96ca233f600abcf4bc6bdd3ca343ae0185149f583a195c140c85"
+          },
+          {
+            "curvature_percent": 50,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/curved_vs_straight_difference.png",
+            "sha256": "84897ca9da325893ae2858de4120c212d0a984d5412198e46dfa4c243033c266"
+          },
+          {
+            "curvature_percent": 75,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/curved_vs_straight_difference.png",
+            "sha256": "84897ca9da325893ae2858de4120c212d0a984d5412198e46dfa4c243033c266"
+          },
+          {
+            "curvature_percent": 100,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/curved_vs_straight_difference.png",
+            "sha256": "84897ca9da325893ae2858de4120c212d0a984d5412198e46dfa4c243033c266"
+          }
+        ],
+        "identical_across_curvature": false,
+        "unique_hash_count": 3
+      },
+      "diagnostic_contact_sheet": {
+        "complete": true,
+        "entries": [
+          {
+            "curvature_percent": 0,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/diagnostic_overlay_contact_sheet.png",
+            "sha256": "ce9eed88ba3c212127c5029d60152d0f191e90d666cff7e2901ab7d272fdf3f2"
+          },
+          {
+            "curvature_percent": 25,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/diagnostic_overlay_contact_sheet.png",
+            "sha256": "862a97f8161571d61484e394f5e6bea835b96ce5b88ca9d9fef932970e3cd566"
+          },
+          {
+            "curvature_percent": 50,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/diagnostic_overlay_contact_sheet.png",
+            "sha256": "4ad184a6decf15575dd87250f6e56d774eb2a663109cdaae98b5203a96872981"
+          },
+          {
+            "curvature_percent": 75,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/diagnostic_overlay_contact_sheet.png",
+            "sha256": "f86a5712ec78c0598bc69cad4e7bf292e2c7521926ce815b3330ca5ab14c0e4f"
+          },
+          {
+            "curvature_percent": 100,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/diagnostic_overlay_contact_sheet.png",
+            "sha256": "a75578e44f2b2c44179be00551c37b613331cd39869c715cedca853db60db044"
+          }
+        ],
+        "identical_across_curvature": false,
+        "unique_hash_count": 5
+      },
+      "geometry_explanation": {
+        "complete": true,
+        "entries": [
+          {
+            "curvature_percent": 0,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/cartesian_scene_geometry.png",
+            "sha256": "4296e866600cf5e9074f76fca10d7bf8543f3f5f6f17b136547275007dcc076b"
+          },
+          {
+            "curvature_percent": 25,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/cartesian_scene_geometry.png",
+            "sha256": "e4f6e8eeac21b03c86077c3f1c79e11a0ea13b7c9618f6d3041807fc9ddbe75a"
+          },
+          {
+            "curvature_percent": 50,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/cartesian_scene_geometry.png",
+            "sha256": "e4f6e8eeac21b03c86077c3f1c79e11a0ea13b7c9618f6d3041807fc9ddbe75a"
+          },
+          {
+            "curvature_percent": 75,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/cartesian_scene_geometry.png",
+            "sha256": "e4f6e8eeac21b03c86077c3f1c79e11a0ea13b7c9618f6d3041807fc9ddbe75a"
+          },
+          {
+            "curvature_percent": 100,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/cartesian_scene_geometry.png",
+            "sha256": "e4f6e8eeac21b03c86077c3f1c79e11a0ea13b7c9618f6d3041807fc9ddbe75a"
+          }
+        ],
+        "identical_across_curvature": false,
+        "unique_hash_count": 2
+      },
+      "hit_miss_map": {
+        "complete": true,
+        "entries": [
+          {
+            "curvature_percent": 0,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/hit_miss_map.png",
+            "sha256": "021365dce07967c7e1697588c9b3c151d9a2ddefc9a68781470e105d0cd0f975"
+          },
+          {
+            "curvature_percent": 25,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/hit_miss_map.png",
+            "sha256": "021365dce07967c7e1697588c9b3c151d9a2ddefc9a68781470e105d0cd0f975"
+          },
+          {
+            "curvature_percent": 50,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/hit_miss_map.png",
+            "sha256": "021365dce07967c7e1697588c9b3c151d9a2ddefc9a68781470e105d0cd0f975"
+          },
+          {
+            "curvature_percent": 75,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/hit_miss_map.png",
+            "sha256": "021365dce07967c7e1697588c9b3c151d9a2ddefc9a68781470e105d0cd0f975"
+          },
+          {
+            "curvature_percent": 100,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/hit_miss_map.png",
+            "sha256": "021365dce07967c7e1697588c9b3c151d9a2ddefc9a68781470e105d0cd0f975"
+          }
+        ],
+        "identical_across_curvature": true,
+        "unique_hash_count": 1
+      },
+      "normal_overlay": {
+        "complete": true,
+        "entries": [
+          {
+            "curvature_percent": 0,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/full_frame_hit_normals.png",
+            "sha256": "05f0cdaed4c4ece71306afb53cef08116eb6717cdfe6c3ad0414d98455b7d062"
+          },
+          {
+            "curvature_percent": 25,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/full_frame_hit_normals.png",
+            "sha256": "05f0cdaed4c4ece71306afb53cef08116eb6717cdfe6c3ad0414d98455b7d062"
+          },
+          {
+            "curvature_percent": 50,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/full_frame_hit_normals.png",
+            "sha256": "05f0cdaed4c4ece71306afb53cef08116eb6717cdfe6c3ad0414d98455b7d062"
+          },
+          {
+            "curvature_percent": 75,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/full_frame_hit_normals.png",
+            "sha256": "05f0cdaed4c4ece71306afb53cef08116eb6717cdfe6c3ad0414d98455b7d062"
+          },
+          {
+            "curvature_percent": 100,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/full_frame_hit_normals.png",
+            "sha256": "05f0cdaed4c4ece71306afb53cef08116eb6717cdfe6c3ad0414d98455b7d062"
+          }
+        ],
+        "identical_across_curvature": true,
+        "unique_hash_count": 1
+      },
+      "ownership_seams": {
+        "complete": true,
+        "entries": [
+          {
+            "curvature_percent": 0,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/ownership_graph_seam_map.png",
+            "sha256": "678aedbe0494b244e727131036d3729772edc54c8435ffbe08c5a41c5868080e"
+          },
+          {
+            "curvature_percent": 25,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/ownership_graph_seam_map.png",
+            "sha256": "678aedbe0494b244e727131036d3729772edc54c8435ffbe08c5a41c5868080e"
+          },
+          {
+            "curvature_percent": 50,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/ownership_graph_seam_map.png",
+            "sha256": "678aedbe0494b244e727131036d3729772edc54c8435ffbe08c5a41c5868080e"
+          },
+          {
+            "curvature_percent": 75,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/ownership_graph_seam_map.png",
+            "sha256": "678aedbe0494b244e727131036d3729772edc54c8435ffbe08c5a41c5868080e"
+          },
+          {
+            "curvature_percent": 100,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/ownership_graph_seam_map.png",
+            "sha256": "678aedbe0494b244e727131036d3729772edc54c8435ffbe08c5a41c5868080e"
+          }
+        ],
+        "identical_across_curvature": true,
+        "unique_hash_count": 1
+      },
+      "raw_visual": {
+        "complete": true,
+        "entries": [
+          {
+            "curvature_percent": 0,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/layer0_beauty.png",
+            "sha256": "0dbe3a13ed38628b2c0229b848ef33c755d749a114fff8ec814f620d838cafb2"
+          },
+          {
+            "curvature_percent": 25,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/layer0_beauty.png",
+            "sha256": "0dbe3a13ed38628b2c0229b848ef33c755d749a114fff8ec814f620d838cafb2"
+          },
+          {
+            "curvature_percent": 50,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/layer0_beauty.png",
+            "sha256": "0dbe3a13ed38628b2c0229b848ef33c755d749a114fff8ec814f620d838cafb2"
+          },
+          {
+            "curvature_percent": 75,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/layer0_beauty.png",
+            "sha256": "0dbe3a13ed38628b2c0229b848ef33c755d749a114fff8ec814f620d838cafb2"
+          },
+          {
+            "curvature_percent": 100,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/layer0_beauty.png",
+            "sha256": "0dbe3a13ed38628b2c0229b848ef33c755d749a114fff8ec814f620d838cafb2"
+          }
+        ],
+        "identical_across_curvature": true,
+        "unique_hash_count": 1
+      },
+      "screenshot": {
+        "complete": true,
+        "entries": [
+          {
+            "curvature_percent": 0,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/hermetic_curved_room__curvature_fps_0__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+            "sha256": "d6a158bcbf8e514d397b729083617f97e9b2cc90882efa44beddeb3f4ec3fe9e"
+          },
+          {
+            "curvature_percent": 25,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/hermetic_curved_room__curvature_fps_25__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+            "sha256": "d6a158bcbf8e514d397b729083617f97e9b2cc90882efa44beddeb3f4ec3fe9e"
+          },
+          {
+            "curvature_percent": 50,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/hermetic_curved_room__curvature_fps_50__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+            "sha256": "d6a158bcbf8e514d397b729083617f97e9b2cc90882efa44beddeb3f4ec3fe9e"
+          },
+          {
+            "curvature_percent": 75,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/hermetic_curved_room__curvature_fps_75__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+            "sha256": "d6a158bcbf8e514d397b729083617f97e9b2cc90882efa44beddeb3f4ec3fe9e"
+          },
+          {
+            "curvature_percent": 100,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/hermetic_curved_room__curvature_fps_100__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+            "sha256": "d6a158bcbf8e514d397b729083617f97e9b2cc90882efa44beddeb3f4ec3fe9e"
+          }
+        ],
+        "identical_across_curvature": true,
+        "unique_hash_count": 1
+      },
+      "transport_continuity": {
+        "complete": true,
+        "entries": [
+          {
+            "curvature_percent": 0,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/layer5_transport_continuity_vectors.png",
+            "sha256": "c9d1dc418646ffe211a62f7d69858e7395365f6221979b66be479db708c5d5fd"
+          },
+          {
+            "curvature_percent": 25,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/layer5_transport_continuity_vectors.png",
+            "sha256": "c9d1dc418646ffe211a62f7d69858e7395365f6221979b66be479db708c5d5fd"
+          },
+          {
+            "curvature_percent": 50,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/layer5_transport_continuity_vectors.png",
+            "sha256": "c9d1dc418646ffe211a62f7d69858e7395365f6221979b66be479db708c5d5fd"
+          },
+          {
+            "curvature_percent": 75,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/layer5_transport_continuity_vectors.png",
+            "sha256": "c9d1dc418646ffe211a62f7d69858e7395365f6221979b66be479db708c5d5fd"
+          },
+          {
+            "curvature_percent": 100,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/layer5_transport_continuity_vectors.png",
+            "sha256": "c9d1dc418646ffe211a62f7d69858e7395365f6221979b66be479db708c5d5fd"
+          }
+        ],
+        "identical_across_curvature": true,
+        "unique_hash_count": 1
+      },
+      "transport_ownership": {
+        "complete": true,
+        "entries": [
+          {
+            "curvature_percent": 0,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/layer2_transport_ownership.png",
+            "sha256": "c007d2b0fb4efd37d31cf3f5ef6927b6d151a6244f708b340eaae9f5ef802600"
+          },
+          {
+            "curvature_percent": 25,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/layer2_transport_ownership.png",
+            "sha256": "c007d2b0fb4efd37d31cf3f5ef6927b6d151a6244f708b340eaae9f5ef802600"
+          },
+          {
+            "curvature_percent": 50,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/layer2_transport_ownership.png",
+            "sha256": "c007d2b0fb4efd37d31cf3f5ef6927b6d151a6244f708b340eaae9f5ef802600"
+          },
+          {
+            "curvature_percent": 75,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/layer2_transport_ownership.png",
+            "sha256": "c007d2b0fb4efd37d31cf3f5ef6927b6d151a6244f708b340eaae9f5ef802600"
+          },
+          {
+            "curvature_percent": 100,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/layer2_transport_ownership.png",
+            "sha256": "c007d2b0fb4efd37d31cf3f5ef6927b6d151a6244f708b340eaae9f5ef802600"
+          }
+        ],
+        "identical_across_curvature": true,
+        "unique_hash_count": 1
+      },
+      "traversal_step_heatmap": {
+        "complete": true,
+        "entries": [
+          {
+            "curvature_percent": 0,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/traversal_step_heatmap.png",
+            "sha256": "e4a90bb08d028c4cb99c0dc9cc901b0115a1541e5ace270bafd6dd90c81d4ec9"
+          },
+          {
+            "curvature_percent": 25,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/traversal_step_heatmap.png",
+            "sha256": "e4a90bb08d028c4cb99c0dc9cc901b0115a1541e5ace270bafd6dd90c81d4ec9"
+          },
+          {
+            "curvature_percent": 50,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/traversal_step_heatmap.png",
+            "sha256": "80784e792f0f6b3cf2eee822699bc13e235a7355585d8bae4271139e3aff997c"
+          },
+          {
+            "curvature_percent": 75,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/traversal_step_heatmap.png",
+            "sha256": "c6a347f41e3375902bee370df76f36fad8f98265444b6cb0fc5f7038287cec92"
+          },
+          {
+            "curvature_percent": 100,
+            "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/traversal_step_heatmap.png",
+            "sha256": "ba876e5a8eeeb358b6d7e1f0a9275603b08e14854f49118639b1687a239b7cdf"
+          }
+        ],
+        "identical_across_curvature": false,
+        "unique_hash_count": 4
+      }
+    },
+    "explanation": "At least one visual artifact family changes across curvature levels; the sweep is not visually byte-identical.",
+    "identical_visual_artifact_keys": [
+      "budget_heatmap",
+      "budget_overlay",
+      "cartesian_wireframe_overlay",
+      "combined_diagnostic_overlay",
+      "hit_miss_map",
+      "normal_overlay",
+      "ownership_seams",
+      "raw_visual",
+      "screenshot",
+      "transport_continuity",
+      "transport_ownership"
+    ],
+    "missing_visual_artifact_keys": [],
+    "non_identical_visual_artifact_keys": [
+      "curvature_field_view",
+      "curved_vs_straight_difference",
+      "diagnostic_contact_sheet",
+      "geometry_explanation",
+      "traversal_step_heatmap"
+    ]
+  }
+}

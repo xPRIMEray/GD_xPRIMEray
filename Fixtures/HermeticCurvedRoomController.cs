@@ -66,7 +66,7 @@ public partial class HermeticCurvedRoomController : Node3D
 
 	private static float ReadCurvatureStrength()
 	{
-		foreach (string arg in OS.GetCmdlineArgs())
+		foreach (string arg in GetCmdArgsForParsing())
 		{
 			if (string.IsNullOrWhiteSpace(arg) ||
 				!arg.StartsWith(CurvatureStrengthPrefix, StringComparison.OrdinalIgnoreCase))
@@ -82,5 +82,52 @@ public partial class HermeticCurvedRoomController : Node3D
 		}
 
 		return 0.0f;
+	}
+
+	private static string[] GetCmdArgsForParsing()
+	{
+		string[] userArgs = OS.GetCmdlineUserArgs();
+		string[] args = OS.GetCmdlineArgs();
+		if ((userArgs == null || userArgs.Length == 0) && (args == null || args.Length == 0))
+		{
+			return Array.Empty<string>();
+		}
+		if (userArgs == null || userArgs.Length == 0)
+		{
+			return args ?? Array.Empty<string>();
+		}
+		if (args == null || args.Length == 0)
+		{
+			return userArgs;
+		}
+
+		var merged = new System.Collections.Generic.HashSet<string>(StringComparer.Ordinal);
+		var ordered = new System.Collections.Generic.List<string>(userArgs.Length + args.Length);
+		foreach (string raw in userArgs)
+		{
+			if (string.IsNullOrWhiteSpace(raw))
+			{
+				continue;
+			}
+			string token = raw.Trim();
+			if (merged.Add(token))
+			{
+				ordered.Add(token);
+			}
+		}
+		foreach (string raw in args)
+		{
+			if (string.IsNullOrWhiteSpace(raw))
+			{
+				continue;
+			}
+			string token = raw.Trim();
+			if (merged.Add(token))
+			{
+				ordered.Add(token);
+			}
+		}
+
+		return ordered.ToArray();
 	}
 }

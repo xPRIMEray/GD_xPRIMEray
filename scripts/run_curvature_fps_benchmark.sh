@@ -2,7 +2,7 @@
 # Hermetic curvature FPS benchmark.
 #
 # Smoke:
-#   CURVATURE_FPS_FRAMES=10 CURVATURE_FPS_WARMUP=2 CURVATURE_FPS_FILM_SCALE=0.125 bash scripts/run_curvature_fps_benchmark.sh
+#   CURVATURE_FPS_PRESET=smoke CURVATURE_FPS_FRAMES=10 CURVATURE_FPS_WARMUP=2 bash scripts/run_curvature_fps_benchmark.sh
 
 set -u -o pipefail
 
@@ -21,7 +21,28 @@ fi
 
 SCENE="${CURVATURE_FPS_SCENE:-res://test-hermetic-curved-room.tscn}"
 FIXTURE="${CURVATURE_FPS_FIXTURE:-hermetic_curved_room}"
-RES="${CURVATURE_FPS_RES:-320x180}"
+PRESET="${CURVATURE_FPS_PRESET:-tiny-HD}"
+case "$PRESET" in
+	smoke)
+		PRESET_RES="40x22"
+		;;
+	mini)
+		PRESET_RES="160x112"
+		;;
+	SNES|snes)
+		PRESET_RES="256x224"
+		PRESET="SNES"
+		;;
+	tiny-HD|tiny-hd|tiny_hd|tinyhd)
+		PRESET_RES="320x180"
+		PRESET="tiny-HD"
+		;;
+	*)
+		echo "[curvature-fps] unknown CURVATURE_FPS_PRESET='$PRESET' (expected smoke, mini, SNES, tiny-HD)" >&2
+		exit 2
+		;;
+esac
+RES="${CURVATURE_FPS_RES:-$PRESET_RES}"
 FILM_W="${RES%x*}"
 FILM_H="${RES#*x}"
 FILM_SCALE="${CURVATURE_FPS_FILM_SCALE:-1.0}"
@@ -31,7 +52,11 @@ STEP="${CURVATURE_FPS_STEP:-0.015}"
 BUDGET="${CURVATURE_FPS_STEPS_PER_RAY:-700}"
 STRIDE="${CURVATURE_FPS_STRIDE:-1}"
 TRAVERSAL="${CURVATURE_FPS_TRAVERSAL:-row}"
-MANUAL_ROIS="${CURVATURE_FPS_MANUAL_ROIS:-40,35;280,35;40,145;280,145}"
+ROI_X1=$(( FILM_W / 8 ))
+ROI_X2=$(( FILM_W * 7 / 8 ))
+ROI_Y1=$(( FILM_H / 5 ))
+ROI_Y2=$(( FILM_H * 4 / 5 ))
+MANUAL_ROIS="${CURVATURE_FPS_MANUAL_ROIS:-${ROI_X1},${ROI_Y1};${ROI_X2},${ROI_Y1};${ROI_X1},${ROI_Y2};${ROI_X2},${ROI_Y2}}"
 SWEEP="${CURVATURE_FPS_SWEEP:-0:0.0 25:0.2875 50:0.575 75:0.8625 100:1.15}"
 
 mkdir -p "$OUTPUT_DIR" "$ROOT/reports"
@@ -40,7 +65,7 @@ exec > >(tee -a "$LOG") 2>&1
 
 echo "[curvature-fps] output=$OUTPUT_DIR"
 echo "[curvature-fps] scene=$SCENE fixture=$FIXTURE"
-echo "[curvature-fps] frames=$FRAMES warmup=$WARMUP res=${FILM_W}x${FILM_H} scale=$FILM_SCALE stride=$STRIDE"
+echo "[curvature-fps] preset=$PRESET frames=$FRAMES warmup=$WARMUP res=${FILM_W}x${FILM_H} scale=$FILM_SCALE stride=$STRIDE"
 echo "[curvature-fps] step=$STEP steps_per_ray=$BUDGET traversal=$TRAVERSAL"
 echo "[curvature-fps] sweep=$SWEEP"
 echo "[curvature-fps] contract=every evaluated pixel should hit a sealed-room receiver"
@@ -73,6 +98,7 @@ write_metadata() {
   "study": "curvature_fps_benchmark",
   "fixture": "$FIXTURE",
   "scene": "$SCENE",
+  "resolution_preset": "$PRESET",
   "curvature_percent": $percent,
   "curvature_strength": "$amplitude",
   "field_amplitude": "$amplitude",

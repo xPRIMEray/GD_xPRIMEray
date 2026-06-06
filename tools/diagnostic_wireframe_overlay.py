@@ -18,9 +18,16 @@ from PIL import Image, ImageDraw, ImageFont
 
 SCHEMA_VERSION = 1
 DEFAULT_MANUAL_ROIS = "40,35;280,35;40,145;280,145"
+MIN_ANNOTATION_SIZE = (160, 90)
+CONTACT_THUMB_SIZE = (240, 135)
+CONTACT_TITLE_BAND = 22
+CONTACT_CAPTION_BAND = 68
+CONTACT_CELL_PAD = 8
 GENERATED_NAMES = {
     "layer0_beauty.png",
     "layer1_cartesian_wireframe.png",
+    "cartesian_scene_geometry.png",
+    "curvature_field_view.png",
     "layer2_transport_ownership.png",
     "layer3_risk_probe_markers.png",
     "layer4_spacetime_transport_diagram.png",
@@ -30,6 +37,8 @@ GENERATED_NAMES = {
     "transport_shape_regions_overlay.png",
     "budget_exhaustion_overlay.png",
     "budget_exhaustion_heatmap.png",
+    "hit_miss_map.png",
+    "traversal_step_heatmap.png",
 }
 DIAGNOSTIC_SUFFIXES = (
     ".boundary_confidence.png",
@@ -100,6 +109,102 @@ def find_beauty_png(folder: Path) -> Path | None:
         return None
     candidates.sort(key=lambda p: p.stat().st_size if p.exists() else 0, reverse=True)
     return candidates[0]
+
+
+def classify_beauty_capture(path: Path | None) -> tuple[dict[str, Any], Image.Image | None]:
+    if path is None or not path.exists():
+        return {
+            "status": "MISSING BEAUTY",
+            "usable_for_visual_confirmation": False,
+            "reason": "beauty capture is missing",
+            "path": str(path) if path else "",
+        }, None
+    try:
+        image = Image.open(path).convert("RGBA")
+    except Exception as exc:
+        return {
+            "status": "INVALID BEAUTY",
+            "usable_for_visual_confirmation": False,
+            "reason": f"beauty capture could not be decoded: {type(exc).__name__}",
+            "path": str(path),
+            "bytes": path.stat().st_size if path.exists() else 0,
+        }, None
+
+    extrema = image.getextrema()
+    colors = image.getcolors(maxcolors=2)
+    unique_color_count = len(colors) if colors is not None else None
+    solid_color = colors is not None and len(colors) == 1
+    near_zero_variation = all((hi - lo) <= 1 for lo, hi in extrema)
+    health = {
+        "status": "OK",
+        "usable_for_visual_confirmation": True,
+        "reason": "beauty capture has visible color variation",
+        "path": str(path),
+        "bytes": path.stat().st_size,
+        "width": image.width,
+        "height": image.height,
+        "mode": image.mode,
+        "unique_color_count": unique_color_count if unique_color_count is not None else "more_than_2",
+        "solid_color": solid_color,
+        "near_zero_variation": near_zero_variation,
+        "channel_extrema": [[int(lo), int(hi)] for lo, hi in extrema],
+    }
+    if solid_color:
+        rgba = tuple(int(v) for v in colors[0][1])
+        health.update({
+            "status": "BLANK BEAUTY",
+            "usable_for_visual_confirmation": False,
+            "reason": "valid PNG contains only one clear/background color",
+            "solid_rgba": list(rgba),
+        })
+    elif near_zero_variation:
+        health.update({
+            "status": "BLANK BEAUTY",
+            "usable_for_visual_confirmation": False,
+            "reason": "valid PNG has near-zero color variation",
+        })
+
+    return health, image
+
+
+def is_smoke_capture(metadata: dict[str, Any], width: int, height: int) -> bool:
+    preset = str(metadata.get("resolution_preset", "")).strip().lower()
+    if preset == "smoke":
+        return True
+    return width <= 40 and height <= 22
+
+
+def is_compact_contact_sheet(metadata: dict[str, Any], width: int, height: int) -> bool:
+    preset = str(metadata.get("resolution_preset", "")).strip().lower()
+    return preset in {"smoke", "mini"} or width < MIN_ANNOTATION_SIZE[0] or height < MIN_ANNOTATION_SIZE[1]
+
+
+def ensure_min_annotation_size(img: Image.Image, minimum: tuple[int, int] = MIN_ANNOTATION_SIZE) -> Image.Image:
+    if img.width >= minimum[0] and img.height >= minimum[1]:
+        return img
+    scale = max(minimum[0] / max(1, img.width), minimum[1] / max(1, img.height))
+    width = max(minimum[0], int(round(img.width * scale)))
+    height = max(minimum[1], int(round(img.height * scale)))
+    return img.resize((width, height), Image.Resampling.NEAREST)
+
+
+def maybe_add_legend(img: Image.Image, labels: list[tuple[str, tuple[int, int, int, int]]], suppress: bool) -> Image.Image:
+    if suppress:
+        return img
+    return add_legend(ensure_min_annotation_size(img), labels)
+
+
+def parse_float(value: Any, default: float = 0.0) -> float:
+    try:
+        if value in ("", None, "nan", "NaN"):
+            return default
+        return float(value)
+    except Exception:
+        return default
+
+
+def load_curvature_result(folder: Path) -> dict[str, Any]:
+    return load_json(folder / "curvature_fps_result.json")
 
 
 def parse_rois(raw: str | None) -> list[tuple[int, int]]:
@@ -342,6 +447,39 @@ def draw_regions(base: Image.Image, had: np.ndarray, collider: np.ndarray, regio
         draw.rectangle((x0, y0, x1, y1), outline=(0, 220, 255, 170), width=1)
         circle(draw, int(float(r["centroid_x"])), int(float(r["centroid_y"])), 2, (0, 255, 255, 220), fill=(0, 255, 255, 160))
     return img
+
+
+def write_hit_and_traversal_maps(folder: Path, hit_fields: dict[str, Any], width: int, height: int) -> tuple[Path, Path]:
+    had = hit_fields["had"]
+    no_hit_budget = hit_fields["budget_exhausted_without_hit"]
+    step_count = hit_fields["final_step_count"]
+    fallback_steps = hit_fields["step_count"]
+
+    hit_img = Image.new("RGBA", (width, height), (28, 30, 40, 255))
+    step_img = Image.new("RGBA", (width, height), (6, 8, 18, 255))
+    hit_px = hit_img.load()
+    step_px = step_img.load()
+    valid_final = step_count[step_count >= 0]
+    valid_fallback = fallback_steps[fallback_steps >= 0]
+    max_step = int(np.max(valid_final)) if valid_final.size else (int(np.max(valid_fallback)) if valid_fallback.size else 1)
+    for y in range(height):
+        for x in range(width):
+            if bool(had[y, x]):
+                hit_px[x, y] = (35, 190, 120, 255)
+            elif bool(no_hit_budget[y, x]):
+                hit_px[x, y] = (255, 145, 35, 255)
+            else:
+                hit_px[x, y] = (240, 50, 95, 255)
+            step = int(step_count[y, x]) if int(step_count[y, x]) >= 0 else int(fallback_steps[y, x])
+            if step >= 0:
+                t = min(1.0, step / max(1, max_step))
+                step_px[x, y] = (int(30 + 225 * t), int(70 + 120 * (1.0 - t)), int(210 * (1.0 - t)), 255)
+
+    hit_path = folder / "hit_miss_map.png"
+    step_path = folder / "traversal_step_heatmap.png"
+    hit_img.save(hit_path)
+    step_img.save(step_path)
+    return hit_path, step_path
 
 
 def draw_cartesian(base: Image.Image, primitives: dict[str, Any], labels: bool) -> Image.Image:
@@ -676,23 +814,188 @@ def add_legend(img: Image.Image, labels: list[tuple[str, tuple[int, int, int, in
     return out
 
 
-def save_contact_sheet(folder: Path, images: list[tuple[str, Path]]) -> None:
-    thumbs: list[tuple[str, Image.Image]] = []
-    for title, path in images:
-        if not path.exists():
+def world_to_panel(x: float, z: float, box: tuple[int, int, int, int], extent: float = 5.25) -> tuple[int, int]:
+    x0, y0, x1, y1 = box
+    sx = (x + extent) / (2.0 * extent)
+    sz = (z + extent) / (2.0 * extent)
+    return (
+        int(round(x0 + sx * (x1 - x0))),
+        int(round(y1 - sz * (y1 - y0))),
+    )
+
+
+def draw_scene_geometry_panel(size: tuple[int, int], metadata: dict[str, Any], curvature_result: dict[str, Any]) -> Image.Image:
+    panel = Image.new("RGB", size, (11, 13, 20))
+    draw = ImageDraw.Draw(panel)
+    plot = (30, 18, size[0] - 30, size[1] - 20)
+
+    # Hermetic curved-room contract: six receiver surfaces enclosing a 9x9x9 room.
+    room_min, room_max = -4.5, 4.5
+    p0 = world_to_panel(room_min, room_min, plot)
+    p1 = world_to_panel(room_max, room_max, plot)
+    draw.rectangle((p0[0], p1[1], p1[0], p0[1]), outline=(225, 232, 245), width=2)
+    wall_colors = {
+        "front": (210, 65, 52),
+        "back": (58, 95, 210),
+        "left": (54, 170, 105),
+        "right": (215, 180, 65),
+    }
+    front0 = world_to_panel(room_min, -4.5, plot)
+    front1 = world_to_panel(room_max, -4.5, plot)
+    back0 = world_to_panel(room_min, 4.5, plot)
+    back1 = world_to_panel(room_max, 4.5, plot)
+    left0 = world_to_panel(-4.5, room_min, plot)
+    left1 = world_to_panel(-4.5, room_max, plot)
+    right0 = world_to_panel(4.5, room_min, plot)
+    right1 = world_to_panel(4.5, room_max, plot)
+    draw.line((front0, front1), fill=wall_colors["front"], width=4)
+    draw.line((back0, back1), fill=wall_colors["back"], width=4)
+    draw.line((left0, left1), fill=wall_colors["left"], width=4)
+    draw.line((right0, right1), fill=wall_colors["right"], width=4)
+
+    cam = world_to_panel(0.0, 0.0, plot)
+    draw.ellipse((cam[0] - 4, cam[1] - 4, cam[0] + 4, cam[1] + 4), fill=(255, 255, 255), outline=(20, 20, 30))
+    draw.line((cam[0], cam[1], cam[0], cam[1] - 22), fill=(255, 255, 255), width=2)
+    draw.polygon([(cam[0], cam[1] - 27), (cam[0] - 5, cam[1] - 17), (cam[0] + 5, cam[1] - 17)], fill=(255, 255, 255))
+
+    resolved = curvature_result.get("resolved_fixture_curvature") or {}
+    amp = parse_float(resolved.get("resolved_amp"), parse_float(metadata.get("curvature_strength"), 0.0))
+    field_enabled = parse_float(resolved.get("curved_transport_enabled"), 0.0) > 0.5 or abs(amp) > 1e-7
+    radius = 4.75
+    if field_enabled:
+        cx, cy = world_to_panel(0.0, 0.0, plot)
+        edge, _ = world_to_panel(radius, 0.0, plot)
+        r = max(1, abs(edge - cx))
+        draw.ellipse((cx - r, cy - r, cx + r, cy + r), outline=(150, 110, 255), width=2)
+        draw.ellipse((cx - 3, cy - 3, cx + 3, cy + 3), fill=(190, 160, 255))
+
+    return panel
+
+
+def draw_curvature_field_panel(size: tuple[int, int], metadata: dict[str, Any], curvature_result: dict[str, Any]) -> Image.Image:
+    panel = Image.new("RGB", size, (8, 10, 18))
+    draw = ImageDraw.Draw(panel)
+    plot = (34, 18, size[0] - 34, size[1] - 22)
+    resolved = curvature_result.get("resolved_fixture_curvature") or {}
+    requested = parse_float(curvature_result.get("field_amplitude"), parse_float(metadata.get("curvature_strength"), 0.0))
+    amp = parse_float(resolved.get("resolved_amp"), abs(requested))
+    transport_on = parse_float(resolved.get("curved_transport_enabled"), 0.0) > 0.5
+    radius = 4.75
+
+    center = world_to_panel(0.0, 0.0, plot)
+    edge, _ = world_to_panel(radius, 0.0, plot)
+    r = max(1, abs(edge - center[0]))
+    strength = min(1.0, max(0.0, abs(amp) / 1.15))
+    fill = (int(35 + 80 * strength), int(28 + 35 * strength), int(62 + 145 * strength))
+    outline = (180, 130, 255) if transport_on else (95, 95, 115)
+    draw.ellipse((center[0] - r, center[1] - r, center[0] + r, center[1] + r), fill=fill, outline=outline, width=3)
+    draw.ellipse((center[0] - 4, center[1] - 4, center[0] + 4, center[1] + 4), fill=(240, 220, 255))
+    for frac in (0.35, 0.6, 0.85):
+        rr = int(r * frac)
+        shade = int(80 + 120 * frac)
+        draw.ellipse((center[0] - rr, center[1] - rr, center[0] + rr, center[1] + rr), outline=(shade, 80, 210), width=1)
+    if transport_on:
+        for dx, dy in ((0, -1), (1, 0), (0, 1), (-1, 0)):
+            x0 = int(center[0] + dx * r * 0.25)
+            y0 = int(center[1] + dy * r * 0.25)
+            x1 = int(center[0] + dx * r * 0.62)
+            y1 = int(center[1] + dy * r * 0.62)
+            draw_arrow(draw, x0, y0, x1, y1, (220, 190, 255, 230), 2)
+    return panel
+
+
+def draw_placeholder_panel(size: tuple[int, int], title: str, status: str, detail: str) -> Image.Image:
+    panel = Image.new("RGB", size, (24, 26, 34))
+    draw = ImageDraw.Draw(panel)
+    font = ImageFont.load_default()
+    draw.rectangle((0, 0, size[0] - 1, size[1] - 1), outline=(190, 70, 70), width=2)
+    draw.text((10, 8), title, fill=(220, 220, 230), font=font)
+    draw.text((10, 44), status, fill=(255, 215, 80), font=font)
+    if detail:
+        draw.text((10, 68), detail[:38], fill=(235, 235, 245), font=font)
+    return panel
+
+
+def fit_panel_image(img: Image.Image, size: tuple[int, int]) -> Image.Image:
+    source = img.convert("RGB")
+    resample = Image.Resampling.NEAREST if source.width < size[0] or source.height < size[1] else Image.Resampling.LANCZOS
+    source.thumbnail(size, resample)
+    panel = Image.new("RGB", size, (248, 248, 248))
+    x = (size[0] - source.width) // 2
+    y = (size[1] - source.height) // 2
+    panel.paste(source, (x, y))
+    return panel
+
+
+def wrap_text(draw: ImageDraw.ImageDraw, text: str, max_width: int, font: ImageFont.ImageFont) -> list[str]:
+    words = str(text or "").split()
+    lines: list[str] = []
+    current = ""
+    for word in words:
+        candidate = word if not current else f"{current} {word}"
+        if draw.textbbox((0, 0), candidate, font=font)[2] <= max_width:
+            current = candidate
             continue
-        img = Image.open(path).convert("RGB")
-        img.thumbnail((240, 135), Image.Resampling.LANCZOS)
-        thumbs.append((title, img))
-    if not thumbs:
+        if current:
+            lines.append(current)
+        current = word
+    if current:
+        lines.append(current)
+    return lines or [""]
+
+
+def make_contact_cell(title: str, image: Image.Image, caption: str, canvas_size: tuple[int, int]) -> Image.Image:
+    font = ImageFont.load_default()
+    width = canvas_size[0] + CONTACT_CELL_PAD * 2
+    height = CONTACT_TITLE_BAND + canvas_size[1] + CONTACT_CAPTION_BAND + CONTACT_CELL_PAD * 2
+    cell = Image.new("RGB", (width, height), (246, 247, 250))
+    draw = ImageDraw.Draw(cell)
+    draw.rectangle((0, 0, width - 1, height - 1), outline=(205, 209, 218))
+    draw.rectangle((0, 0, width - 1, CONTACT_TITLE_BAND - 1), fill=(232, 235, 242))
+    draw.text((8, 6), title, fill=(18, 22, 32), font=font)
+    canvas = fit_panel_image(image, canvas_size)
+    img_x = CONTACT_CELL_PAD
+    img_y = CONTACT_TITLE_BAND + CONTACT_CELL_PAD
+    cell.paste(canvas, (img_x, img_y))
+    cap_y = img_y + canvas_size[1] + 6
+    for idx, line in enumerate(wrap_text(draw, caption, width - 16, font)[:5]):
+        draw.text((8, cap_y + idx * 12), line, fill=(35, 39, 50), font=font)
+    return cell
+
+
+def save_contact_sheet(folder: Path, images: list[dict[str, Any]], beauty_health: dict[str, Any]) -> None:
+    panels: list[Image.Image] = []
+    for item in images:
+        title = str(item.get("title", "artifact"))
+        path = Path(item.get("path", ""))
+        caption = str(item.get("caption", ""))
+        if item.get("kind") == "beauty" and beauty_health.get("status") in {"MISSING BEAUTY", "INVALID BEAUTY", "BLANK BEAUTY"}:
+            detail = ""
+            if beauty_health.get("solid_rgba"):
+                detail = "solid RGBA: " + ",".join(str(v) for v in beauty_health["solid_rgba"])
+            elif beauty_health.get("reason"):
+                detail = str(beauty_health["reason"])
+            img = draw_placeholder_panel(CONTACT_THUMB_SIZE, title, str(beauty_health["status"]), detail)
+            panels.append(make_contact_cell(title, img, caption or detail, CONTACT_THUMB_SIZE))
+            continue
+        if not path.exists():
+            img = draw_placeholder_panel(CONTACT_THUMB_SIZE, title, "MISSING", str(path.name))
+            panels.append(make_contact_cell(title, img, caption, CONTACT_THUMB_SIZE))
+            continue
+        try:
+            img = Image.open(path).convert("RGB")
+        except Exception:
+            img = draw_placeholder_panel(CONTACT_THUMB_SIZE, title, "INVALID", str(path.name))
+            panels.append(make_contact_cell(title, img, caption, CONTACT_THUMB_SIZE))
+            continue
+        panels.append(make_contact_cell(title, img, caption, CONTACT_THUMB_SIZE))
+    if not panels:
         return
-    w, h, label_h = 240, 135, 24
-    sheet = Image.new("RGB", (w * len(thumbs), h + label_h), "white")
-    draw = ImageDraw.Draw(sheet)
-    for i, (title, img) in enumerate(thumbs):
-        x = i * w
-        draw.text((x + 6, 6), title, fill=(0, 0, 0))
-        sheet.paste(img, (x, label_h))
+    w = max(panel.width for panel in panels)
+    h = max(panel.height for panel in panels)
+    sheet = Image.new("RGB", (w * len(panels), h), "white")
+    for i, img in enumerate(panels):
+        sheet.paste(img, (i * w, 0))
     sheet.save(folder / "diagnostic_overlay_contact_sheet.png")
 
 
@@ -767,7 +1070,7 @@ def build_budget_exhaustion_summary(hit_fields: dict[str, Any], width: int, heig
     }
 
 
-def draw_budget_exhaustion(base: Image.Image, hit_fields: dict[str, Any], summary: dict[str, Any]) -> tuple[Image.Image, Image.Image]:
+def draw_budget_exhaustion(base: Image.Image, hit_fields: dict[str, Any], summary: dict[str, Any], suppress_legends: bool) -> tuple[Image.Image, Image.Image]:
     width, height = base.size
     had = hit_fields["had"]
     max_steps = hit_fields["max_steps_reached"]
@@ -791,10 +1094,10 @@ def draw_budget_exhaustion(base: Image.Image, hit_fields: dict[str, Any], summar
         else:
             px[int(x), int(y)] = (255, 120, 0, 150)
     overlay = Image.alpha_composite(overlay, alpha)
-    overlay = add_legend(overlay, [
+    overlay = maybe_add_legend(overlay, [
         ("Budget exhausted no-hit", (255, 35, 35, 230)),
         ("Hit after budget warning", (255, 220, 40, 230)),
-    ])
+    ], suppress_legends)
 
     heatmap = Image.new("RGBA", (width, height), (0, 0, 0, 255))
     hpx = heatmap.load()
@@ -809,10 +1112,10 @@ def draw_budget_exhaustion(base: Image.Image, hit_fields: dict[str, Any], summar
             hpx[int(x), int(y)] = (intensity, intensity, 20, 255)
         else:
             hpx[int(x), int(y)] = (intensity, 100, 0, 255)
-    heatmap = add_legend(heatmap, [
+    heatmap = maybe_add_legend(heatmap, [
         (f"Budget exhaustion: {summary.get('budget_exhaustion_percent', 0)}%", (255, 80, 80, 230)),
         ("Brightness tracks final_step_count", (255, 255, 255, 230)),
-    ])
+    ], suppress_legends)
     return overlay, heatmap
 
 
@@ -857,11 +1160,11 @@ def main() -> int:
 
     folder = args.capture_folder
     beauty_path = find_beauty_png(folder)
-    if beauty_path is None:
-        raise SystemExit(f"no beauty png found in {folder}")
-    beauty = Image.open(beauty_path).convert("RGBA")
+    beauty_health, beauty = classify_beauty_capture(beauty_path)
+    if beauty is None:
+        beauty = Image.new("RGBA", MIN_ANNOTATION_SIZE, (24, 26, 34, 255))
     width, height = beauty.size
-    stem = beauty_path.stem
+    stem = beauty_path.stem if beauty_path is not None else "missing_beauty"
     primitives_path = folder / f"{stem}.diagnostic_wireframe_primitives.json"
     if not primitives_path.exists():
         found = sorted(folder.glob("*.diagnostic_wireframe_primitives.json"))
@@ -873,9 +1176,13 @@ def main() -> int:
         hit_csv = found[0] if found else hit_csv
     metadata_path = folder / "metadata.json"
     metadata = load_json(metadata_path if metadata_path.exists() else None)
+    curvature_result = load_curvature_result(folder)
 
     enabled = primitives.get("enabled_layers") or {}
-    labels_enabled = bool(enabled.get("labels", True))
+    smoke_capture = is_smoke_capture(metadata, width, height)
+    compact_contact_sheet = is_compact_contact_sheet(metadata, width, height)
+    suppress_legends = compact_contact_sheet
+    labels_enabled = bool(enabled.get("labels", True)) and not compact_contact_sheet and width >= MIN_ANNOTATION_SIZE[0] and height >= MIN_ANNOTATION_SIZE[1]
     rois = primitive_rois(primitives, args.manual_rois or metadata.get("diagnostic_wireframe_manual_rois") or DEFAULT_MANUAL_ROIS)
     missing: list[str] = []
     if not primitives_path.exists():
@@ -886,8 +1193,12 @@ def main() -> int:
     beauty.save(folder / "layer0_beauty.png")
 
     layer1 = draw_cartesian(beauty, primitives, labels_enabled)
-    layer1 = add_legend(layer1, [("Cartesian object projection", (255, 40, 30, 230))])
+    layer1 = maybe_add_legend(layer1, [("Cartesian object projection", (255, 40, 30, 230))], suppress_legends)
     layer1.save(folder / "layer1_cartesian_wireframe.png")
+    scene_geometry = draw_scene_geometry_panel(CONTACT_THUMB_SIZE, metadata, curvature_result)
+    scene_geometry.save(folder / "cartesian_scene_geometry.png")
+    curvature_field = draw_curvature_field_panel(CONTACT_THUMB_SIZE, metadata, curvature_result)
+    curvature_field.save(folder / "curvature_field_view.png")
 
     hit_fields = load_hit_fields(hit_csv if hit_csv.exists() else None, width, height)
     budget_summary = build_budget_exhaustion_summary(hit_fields, width, height)
@@ -896,7 +1207,8 @@ def main() -> int:
             token = f"budget_optional_field_{field}"
             if token not in missing:
                 missing.append(token)
-    budget_overlay, budget_heatmap = draw_budget_exhaustion(beauty, hit_fields, budget_summary)
+    hit_miss_map, traversal_step_heatmap = write_hit_and_traversal_maps(folder, hit_fields, width, height)
+    budget_overlay, budget_heatmap = draw_budget_exhaustion(beauty, hit_fields, budget_summary, suppress_legends)
     budget_overlay.save(folder / "budget_exhaustion_overlay.png")
     budget_heatmap.save(folder / "budget_exhaustion_heatmap.png")
     (folder / "budget_exhaustion_summary.json").write_text(json.dumps(budget_summary, indent=2, sort_keys=True) + "\n")
@@ -910,17 +1222,17 @@ def main() -> int:
     collider = hit_fields["collider"]
     regions = extract_regions(had, collider) if hit_csv.exists() else []
     layer2 = draw_regions(beauty, had, collider, regions)
-    layer2 = add_legend(layer2, [("Transport ownership", (0, 220, 255, 200))])
+    layer2 = maybe_add_legend(layer2, [("Transport ownership", (0, 220, 255, 200))], suppress_legends)
     layer2.save(folder / "layer2_transport_ownership.png")
     layer2.save(folder / "transport_shape_regions_overlay.png")
 
     layer3 = draw_risk(beauty, folder, rois)
-    layer3 = add_legend(layer3, [("Manual ROI", (255, 230, 20, 230)), ("Risk/probe sample", (255, 0, 220, 230))])
+    layer3 = maybe_add_legend(layer3, [("Manual ROI", (255, 230, 20, 230)), ("Risk/probe sample", (255, 0, 220, 230))], suppress_legends)
     layer3.save(folder / "layer3_risk_probe_markers.png")
 
     layer4 = draw_spacetime(beauty, primitives)
     if layer4 is not None:
-        layer4 = add_legend(layer4, [("Symbolic path", (40, 220, 80, 220)), ("First-hit event", (255, 145, 20, 220))])
+        layer4 = maybe_add_legend(layer4, [("Symbolic path", (40, 220, 80, 220)), ("First-hit event", (255, 145, 20, 220))], suppress_legends)
         layer4.save(folder / "layer4_spacetime_transport_diagram.png")
 
     continuity_enabled = bool(args.continuity or enabled.get("continuity", False))
@@ -935,12 +1247,12 @@ def main() -> int:
         ) if hit_csv.exists() else []
         regions = correlate_vectors_with_regions(regions, continuity_vectors, max(args.continuity_high_threshold, args.continuity_threshold))
         layer5 = draw_continuity_vectors(beauty, continuity_vectors, args.continuity_max_vectors)
-        layer5 = add_legend(layer5, [
+        layer5 = maybe_add_legend(layer5, [
             ("Collider/domain flip", (255, 0, 220, 235)),
             ("Normal delta", (255, 230, 20, 220)),
             ("Distance/path delta", (0, 220, 255, 220)),
             ("Boundary event delta", (255, 140, 0, 230)),
-        ])
+        ], suppress_legends)
         if not hit_csv.exists():
             draw_label(ImageDraw.Draw(layer5), (8, height - 18), "continuity unavailable: missing hit diagnostics", (255, 255, 255, 240))
         layer5.save(folder / "layer5_transport_continuity_vectors.png")
@@ -969,29 +1281,73 @@ def main() -> int:
         p = folder / layer_path
         if p.exists():
             layer = Image.open(p).convert("RGBA")
+            if layer.size != combined.size:
+                layer = layer.resize(combined.size, Image.Resampling.NEAREST)
             # Blend layer overlays softly with the original beauty to preserve context.
             blend = 0.50 if "transport_ownership" in layer_path else 0.72
             if "continuity" in layer_path:
                 blend = 0.78
             combined = Image.blend(combined, layer, blend)
-    combined = add_legend(combined, [
+    combined = maybe_add_legend(combined, [
         ("Cartesian", (255, 40, 30, 230)),
         ("Transport", (0, 220, 255, 200)),
         ("Risk/probe", (255, 230, 20, 230)),
         ("Continuity", (255, 0, 220, 235)),
-    ])
+    ], suppress_legends)
     combined.save(folder / "combined_diagnostic_overlay.png")
 
+    resolved_contact = curvature_result.get("resolved_fixture_curvature") or {}
+    resolved_amp = parse_float(resolved_contact.get("resolved_amp"), parse_float(metadata.get("curvature_strength"), 0.0))
+    transport_state = "on" if parse_float(resolved_contact.get("curved_transport_enabled"), 0.0) > 0.5 else "off"
     contact_items = [
-        ("beauty", folder / "layer0_beauty.png"),
-        ("Cartesian", folder / "layer1_cartesian_wireframe.png"),
-        ("transport", folder / "layer2_transport_ownership.png"),
-        ("risk/probe", folder / "layer3_risk_probe_markers.png"),
-        ("continuity", folder / "layer5_transport_continuity_vectors.png"),
-        ("budget", folder / "budget_exhaustion_overlay.png"),
-        ("combined", folder / "combined_diagnostic_overlay.png"),
+        {
+            "title": "Raw visual",
+            "kind": "beauty",
+            "path": folder / "layer0_beauty.png",
+            "caption": "Q: What did the camera actually see? Academic: final beauty/render output. Analogy: lab camera photo of the fixture.",
+        },
+        {
+            "title": "Scene geometry",
+            "path": folder / "cartesian_scene_geometry.png",
+            "caption": "Q: What objects exist in the scene? Academic: Cartesian object/receiver geometry. Analogy: blueprint of the test chamber.",
+        },
+        {
+            "title": "Curvature field",
+            "path": folder / "curvature_field_view.png",
+            "caption": f"Q: What field is bending the rays? Academic: field-source volume and resolved amplitude. Analogy: wind/weather map inside the chamber. amp={resolved_amp:.4g}, transport={transport_state}.",
+        },
+        {
+            "title": "Transport ownership",
+            "path": folder / "layer2_transport_ownership.png",
+            "caption": "Q: Where did each ray end up? Academic: receiver/domain ownership. Analogy: delivery zones for photons.",
+        },
+        {
+            "title": "Hit/miss map",
+            "path": hit_miss_map,
+            "caption": "Q: Did every ray find a target? Academic: hermetic closure validation. Analogy: target board hit test.",
+        },
+        {
+            "title": "Traversal steps",
+            "path": traversal_step_heatmap,
+            "caption": "Q: How hard was the trip? Academic: per-pixel integration/traversal cost. Analogy: traffic/congestion map.",
+        },
+        {
+            "title": "Budget stress",
+            "path": folder / "budget_exhaustion_heatmap.png",
+            "caption": "Q: Which rays nearly ran out of budget? Academic: max-step / overrun-step stress. Analogy: fuel warning light.",
+        },
+        {
+            "title": "Combined diagnostic",
+            "path": folder / "combined_diagnostic_overlay.png",
+            "caption": "Q: What do all diagnostics look like together? Academic: composite diagnostic overlay. Analogy: mission-control dashboard.",
+        },
+        {
+            "title": "Curved vs straight",
+            "path": folder / "curved_vs_straight_difference.png",
+            "caption": "Q: What changed because curvature was turned on? Academic: difference map versus 0% baseline. Analogy: before/after inspection photo.",
+        },
     ]
-    save_contact_sheet(folder, contact_items)
+    save_contact_sheet(folder, contact_items, beauty_health)
 
     counts = primitives.get("primitive_count_by_layer") or {}
     object_count = int(primitives.get("object_count", 0) or 0)
@@ -1007,12 +1363,22 @@ def main() -> int:
             "labels": labels_enabled,
         },
         "missing_inputs": missing,
+        "beauty_capture_health": beauty_health,
+        "smoke_contact_sheet_mode": smoke_capture,
+        "compact_contact_sheet_mode": compact_contact_sheet,
+        "contact_sheet_legends_suppressed": suppress_legends,
+        "contact_sheet_layout": {
+            "title_band_above_image": True,
+            "image_canvas_unobscured": True,
+            "caption_band_below_image": True,
+            "rendered_pixels_are_not_annotated_by_contact_sheet": True,
+        },
         "object_count": object_count,
         "primitive_count_by_layer": counts,
         "hit_region_count": len(regions),
         "manual_rois": [{"x": x, "y": y} for x, y in rois],
-        "beauty_hash": sha256_file(beauty_path),
-        "beauty_path": str(beauty_path),
+        "beauty_hash": sha256_file(beauty_path) if beauty_path is not None and beauty_path.exists() else "",
+        "beauty_path": str(beauty_path) if beauty_path is not None else "",
         "primitive_path": str(primitives_path) if primitives_path.exists() else "",
         "hit_diagnostics_csv": str(hit_csv) if hit_csv.exists() else "",
         "post_process_only": True,
@@ -1020,6 +1386,8 @@ def main() -> int:
         "transport_continuity_summary": continuity_summary,
         "budget_exhaustion_overlay": str(folder / "budget_exhaustion_overlay.png"),
         "budget_exhaustion_heatmap": str(folder / "budget_exhaustion_heatmap.png"),
+        "cartesian_scene_geometry": str(folder / "cartesian_scene_geometry.png"),
+        "curvature_field_view": str(folder / "curvature_field_view.png"),
         "budget_exhaustion_summary": budget_summary,
         "opencv_requested": bool(args.use_opencv_contours),
         "opencv_used": False,
