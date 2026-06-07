@@ -1,0 +1,91 @@
+{
+  "available_panel_count": 3,
+  "contact_sheet": "/home/bb/code/godot_xPRIMEray/reports/observatory_fixtures/oracle_closure/diagnostic_contact_sheet.png",
+  "fixture": "oracle_closure",
+  "hit_metrics": {},
+  "layout": {
+    "columns": 3,
+    "row_major_order": true,
+    "rows": 3,
+    "selected": "square"
+  },
+  "metadata": {
+    "cell_dir": "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_roi_sweep/20260505T034858Z/cells/row_stride_1",
+    "diagnostic_only": true,
+    "effective_status": 0,
+    "exit_code": 0,
+    "fixture": "domain_resolver_stress",
+    "guardrail": "ReferenceTransportOracle outputs must not feed rendering, scheduling, hit selection, shading, resolver decisions, traversal, or adaptive precision.",
+    "notes": "clean_exit",
+    "oracle_step_length": "0.0015625",
+    "oracle_tolerance": "0.0001",
+    "production_steps": "0.02,0.015,0.0125,0.00625,0.003125",
+    "resolution": "320x180",
+    "roi_sources": "40,35;280,35;40,145;280,145;79,25;150,28;150,32;150,36;104,40;158,40;214,40;104,44;160,44;211,44;104,48;160,48;211,48;104,52;160,52;211,52;104,56;160,56;211,56;84,60;107,60;128,60;158,60;214,60;104,64;158,64;214,64;100,68;160,68;214,68;104,72;158,72;214,72;102,76;160,76;214,76;104,80;158,80;214,80;104,84;158,84;214,84;104,88;160,88;211,88;104,92;158,92;214,92;104,96;158,96;214,96;104,100;158,100;214,100;102,104;160,104;214,104;104,108;158,108;214,108;102,112;160,112;214,112;104,116;158,116;214,116;104,120;158,120;191,120;212,120;236,120;102,124;160,124;214,124;102,128;160,128;214,128;104,132;160,132;211,132;102,136;160,136;214,136;104,140;158,140;214,140;150,144;150,148;150,152",
+    "stride": 1,
+    "study": "reference_transport_oracle_roi_sweep",
+    "timestamp": "2026-05-05T03:55:11Z",
+    "traversal": "row"
+  },
+  "missing_panel_count": 6,
+  "note": "ReferenceTransportOracle/closure comparison output. Proves passive oracle diagnostics are available without feeding renderer decisions.",
+  "panels": [
+    {
+      "key": "raw_visual",
+      "path": "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_roi_sweep/20260505T034858Z/cells/row_stride_1/domain_resolver_stress__reference_transport_oracle_row_stride_1__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+      "status": "available",
+      "title": "Raw visual"
+    },
+    {
+      "key": "geometry",
+      "path": "",
+      "status": "missing",
+      "title": "Scene geometry"
+    },
+    {
+      "key": "field",
+      "path": "",
+      "status": "missing",
+      "title": "Curvature field"
+    },
+    {
+      "key": "ownership",
+      "path": "",
+      "status": "missing",
+      "title": "Transport ownership"
+    },
+    {
+      "key": "hit_miss",
+      "path": "",
+      "status": "missing",
+      "title": "Hit/miss map"
+    },
+    {
+      "key": "traversal",
+      "path": "",
+      "status": "missing",
+      "title": "Traversal steps"
+    },
+    {
+      "key": "budget",
+      "path": "",
+      "status": "missing",
+      "title": "Budget stress"
+    },
+    {
+      "key": "combined",
+      "path": "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_roi_sweep/20260505T034858Z/cells/row_stride_1/parent_trajectory_contact_sheet.png",
+      "status": "available",
+      "title": "Combined diagnostic"
+    },
+    {
+      "key": "signature",
+      "path": "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_roi_sweep/20260505T034858Z/cells/row_stride_1/production_vs_oracle_diff.png",
+      "status": "available",
+      "title": "Curvature signature"
+    }
+  ],
+  "selection": "latest reference oracle ROI row_stride_1 cell, or curved oracle fallback",
+  "source_dir": "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_roi_sweep/20260505T034858Z/cells/row_stride_1",
+  "study": "reference_transport_oracle_roi_sweep"
+}

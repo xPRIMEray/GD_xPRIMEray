@@ -1,0 +1,83 @@
+{
+  "available_panel_count": 6,
+  "contact_sheet": "/home/bb/code/godot_xPRIMEray/reports/observatory_fixtures/cathedral_probe/diagnostic_contact_sheet.png",
+  "fixture": "cathedral_probe",
+  "hit_metrics": {},
+  "layout": {
+    "columns": 3,
+    "row_major_order": true,
+    "rows": 3,
+    "selected": "square"
+  },
+  "metadata": {
+    "cell_dir": "/home/bb/code/godot_xPRIMEray/output/first_pass_traversal_comparison/20260503T171942Z/step_0.015/row",
+    "effective_status": 0,
+    "exit_code": 134,
+    "mode": "off",
+    "notes": "godot_shutdown_abort_after_harness_success",
+    "step_length": "0.015",
+    "timestamp": "2026-05-03T17:52:21Z",
+    "traversal": "row"
+  },
+  "missing_panel_count": 3,
+  "note": "Mapped to existing first-pass corner/reference probe outputs; no literal cathedral_probe run folder was discovered.",
+  "panels": [
+    {
+      "key": "raw_visual",
+      "path": "/home/bb/code/godot_xPRIMEray/output/first_pass_traversal_comparison/20260503T171942Z/step_0.015/row/domain_resolver_stress__traversal_row__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.png",
+      "status": "available",
+      "title": "Raw visual"
+    },
+    {
+      "key": "geometry",
+      "path": "",
+      "status": "missing",
+      "title": "Scene geometry"
+    },
+    {
+      "key": "field",
+      "path": "/home/bb/code/godot_xPRIMEray/output/first_pass_traversal_comparison/20260503T171942Z/step_0.015/row/corner_required_precision_map.png",
+      "status": "available",
+      "title": "Curvature field"
+    },
+    {
+      "key": "ownership",
+      "path": "",
+      "status": "missing",
+      "title": "Transport ownership"
+    },
+    {
+      "key": "hit_miss",
+      "path": "/home/bb/code/godot_xPRIMEray/output/first_pass_traversal_comparison/20260503T171942Z/step_0.015/row/corner_collider_flip_map.png",
+      "status": "available",
+      "title": "Hit/miss map"
+    },
+    {
+      "key": "traversal",
+      "path": "/home/bb/code/godot_xPRIMEray/output/first_pass_traversal_comparison/20260503T171942Z/step_0.015/row/corner_convergence_profile.png",
+      "status": "available",
+      "title": "Traversal steps"
+    },
+    {
+      "key": "budget",
+      "path": "/home/bb/code/godot_xPRIMEray/output/first_pass_traversal_comparison/20260503T171942Z/step_0.015/row/corner_required_precision_map.png",
+      "status": "available",
+      "title": "Budget stress"
+    },
+    {
+      "key": "combined",
+      "path": "",
+      "status": "missing",
+      "title": "Combined diagnostic"
+    },
+    {
+      "key": "signature",
+      "path": "/home/bb/code/godot_xPRIMEray/output/first_pass_traversal_comparison/20260503T171942Z/step_0.015/row/corner_required_precision_map.png",
+      "status": "available",
+      "title": "Curvature signature"
+    }
+  ],
+  "selection": "latest step_0.015 row probe cell; no literal cathedral_probe output discovered",
+  "source_dir": "/home/bb/code/godot_xPRIMEray/output/first_pass_traversal_comparison/20260503T171942Z/step_0.015/row",
+  "study": "first_pass_traversal_comparison"
+}

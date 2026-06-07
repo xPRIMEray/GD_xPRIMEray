@@ -1,0 +1,105 @@
+{
+  "available_panel_count": 7,
+  "contact_sheet": "/home/bb/code/godot_xPRIMEray/reports/observatory_fixtures/object_island/diagnostic_contact_sheet.png",
+  "fixture": "object_island",
+  "hit_metrics": {
+    "average_traversal_steps": 382.135478,
+    "budget_exhausted_without_hit_count": 0,
+    "hit_count": 18539,
+    "hit_diagnostics_csv": "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260506T035920Z/cells/unresolved_island/domain_resolver_stress__reference_transport_oracle_unresolved_island_unresolved_island__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+    "hit_percent": 49.055356,
+    "max_traversal_steps": 700,
+    "miss_count": 19253,
+    "total_pixels_rays_evaluated": 37792
+  },
+  "layout": {
+    "columns": 3,
+    "row_major_order": true,
+    "rows": 3,
+    "selected": "square"
+  },
+  "metadata": {
+    "cell_dir": "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260506T035920Z/cells/unresolved_island",
+    "center": "40,34",
+    "diagnostic_only": true,
+    "effective_status": 0,
+    "exit_code": 0,
+    "fixture": "domain_resolver_stress",
+    "guardrail": "ReferenceTransportOracle outputs must not feed rendering, scheduling, hit selection, shading, resolver decisions, traversal, or adaptive precision.",
+    "local_patch_bbox": "32,27,48,43",
+    "max_pixels": 289,
+    "mode": "unresolved_island",
+    "notes": "clean_exit",
+    "oracle_step_length": "0.00078125",
+    "oracle_tolerance": "0.0001",
+    "patch_size": 17,
+    "production_steps": "0.02,0.018,0.016,0.015,0.014,0.013,0.0125,0.011,0.010,0.0075,0.00625,0.003125",
+    "resolution": "320x180",
+    "stride": 1,
+    "study": "reference_transport_oracle_unresolved_island",
+    "target_bbox": "36,31,44,37",
+    "timestamp": "2026-05-06T04:07:04Z",
+    "traversal": "row"
+  },
+  "missing_panel_count": 2,
+  "note": "ReferenceTransportOracle unresolved-island output. Proves island/convergence diagnostics around ambiguous or unresolved transport regions.",
+  "panels": [
+    {
+      "key": "raw_visual",
+      "path": "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260506T035920Z/cells/unresolved_island/layer0_beauty.png",
+      "status": "available",
+      "title": "Raw visual"
+    },
+    {
+      "key": "geometry",
+      "path": "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260506T035920Z/cells/unresolved_island/layer1_cartesian_wireframe.png",
+      "status": "available",
+      "title": "Scene geometry"
+    },
+    {
+      "key": "field",
+      "path": "",
+      "status": "missing",
+      "title": "Curvature field"
+    },
+    {
+      "key": "ownership",
+      "path": "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260506T035920Z/cells/unresolved_island/layer2_transport_ownership.png",
+      "status": "available",
+      "title": "Transport ownership"
+    },
+    {
+      "key": "hit_miss",
+      "path": "/home/bb/code/godot_xPRIMEray/reports/observatory_fixtures/object_island/assets/generated_hit_miss_map.png",
+      "status": "available",
+      "title": "Hit/miss map"
+    },
+    {
+      "key": "traversal",
+      "path": "/home/bb/code/godot_xPRIMEray/reports/observatory_fixtures/object_island/assets/generated_traversal_step_heatmap.png",
+      "status": "available",
+      "title": "Traversal steps"
+    },
+    {
+      "key": "budget",
+      "path": "",
+      "status": "missing",
+      "title": "Budget stress"
+    },
+    {
+      "key": "combined",
+      "path": "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260506T035920Z/cells/unresolved_island/combined_diagnostic_overlay.png",
+      "status": "available",
+      "title": "Combined diagnostic"
+    },
+    {
+      "key": "signature",
+      "path": "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260506T035920Z/cells/unresolved_island/island_convergence_ladder.png",
+      "status": "available",
+      "title": "Curvature signature"
+    }
+  ],
+  "selection": "latest unresolved_island cell",
+  "source_dir": "/home/bb/code/godot_xPRIMEray/output/reference_transport_oracle_unresolved_island/20260506T035920Z/cells/unresolved_island",
+  "study": "reference_transport_oracle_unresolved_island"
+}

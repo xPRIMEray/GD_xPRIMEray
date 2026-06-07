@@ -3,9 +3,18 @@ title: Artifact Gallery
 description: Curated visual references, validation outputs, and datasets from xPRIMEray experiments
 ---
 
-# Artifact Gallery
+# Artifact Gallery (Legacy)
 
-Promoted artifacts are curated outputs from `output/` — the raw experiment lab bench — copied into `misterylabs_artifacts/` for web use. Each artifact is small enough for Git (under 2 MB), backed by an experiment README, and tied to a specific research finding.
+The primary public museum experience for the observatory is the new **Observatory Gallery**:
+
+- [Home](../Observatory_Gallery/index.md)
+- [Canonical Fixtures](../Observatory_Gallery/canonical_fixtures.md)
+- [Curvature Benchmark](../Observatory_Gallery/curvature_benchmark.md)
+- [Closure Diagnostics](../Observatory_Gallery/closure_diagnostics.md)
+- [Research Fixtures](../Observatory_Gallery/research_fixtures.md)
+- [Experimental Archive](../Observatory_Gallery/experimental_archive.md)
+
+This page is retained as the technical index into `misterylabs_artifacts/` and the raw `output/` folders. Promoted artifacts are curated outputs from `output/` — the raw experiment lab bench — copied into `misterylabs_artifacts/` for web use. Each artifact is small enough for Git (under 2 MB), backed by an experiment README, and tied to a specific research finding.
 
 The full manifest is at `misterylabs_artifacts/manifest.json`.
 

@@ -1,0 +1,109 @@
+{
+  "available_panel_count": 9,
+  "contact_sheet": "/home/bb/code/godot_xPRIMEray/reports/observatory_fixtures/hermetic_curved_room/diagnostic_contact_sheet.png",
+  "fixture": "hermetic_curved_room",
+  "hit_metrics": {
+    "average_traversal_steps": 271.25,
+    "budget_exhausted_without_hit_count": 0,
+    "hit_count": 17920,
+    "hit_diagnostics_csv": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T195525Z/cells/curvature_100/row/hermetic_curved_room__curvature_fps_100__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+    "hit_percent": 100.0,
+    "max_traversal_steps": 273,
+    "miss_count": 0,
+    "total_pixels_rays_evaluated": 17920
+  },
+  "layout": {
+    "columns": 3,
+    "row_major_order": true,
+    "rows": 3,
+    "selected": "square"
+  },
+  "metadata": {
+    "closure_contract": "all pixels expected to hit sealed-room receiver; no valid exceptions in v1",
+    "closure_truth_scope": "scene-contract closure, not physical correctness",
+    "curvature_percent": 100,
+    "curvature_strength": "1.15",
+    "curved_minimal_reference": "100pct amplitude 1.15 follows CurvedMinimalFingerprint canonical fixture amplitude",
+    "diagnostic_only": true,
+    "effective_status": 0,
+    "exit_code": 0,
+    "field_amplitude": "1.15",
+    "film_height": 112,
+    "film_scale": 1.0,
+    "film_width": 160,
+    "fixture": "hermetic_curved_room",
+    "frames": 90,
+    "notes": "clean_exit",
+    "resolution": "160x112",
+    "resolution_preset": "mini",
+    "scene": "res://test-hermetic-curved-room.tscn",
+    "step_length": "0.015",
+    "steps_per_ray": "700",
+    "stride": 1,
+    "study": "curvature_fps_benchmark",
+    "timestamp": "2026-06-06T20:05:49Z",
+    "traversal": "row",
+    "warmup": 5
+  },
+  "missing_panel_count": 0,
+  "note": "Sealed-room closure and curvature FPS fixture. Proves every evaluated ray can hit a receiver under a curvature ramp.",
+  "panels": [
+    {
+      "key": "raw_visual",
+      "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T195525Z/cells/curvature_100/row/layer0_beauty.png",
+      "status": "available",
+      "title": "Raw visual"
+    },
+    {
+      "key": "geometry",
+      "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T195525Z/cells/curvature_100/row/cartesian_scene_geometry.png",
+      "status": "available",
+      "title": "Scene geometry"
+    },
+    {
+      "key": "field",
+      "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T195525Z/cells/curvature_100/row/curvature_field_view.png",
+      "status": "available",
+      "title": "Curvature field"
+    },
+    {
+      "key": "ownership",
+      "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T195525Z/cells/curvature_100/row/layer2_transport_ownership.png",
+      "status": "available",
+      "title": "Transport ownership"
+    },
+    {
+      "key": "hit_miss",
+      "path": "/home/bb/code/godot_xPRIMEray/reports/observatory_fixtures/hermetic_curved_room/assets/generated_hit_miss_map.png",
+      "status": "available",
+      "title": "Hit/miss map"
+    },
+    {
+      "key": "traversal",
+      "path": "/home/bb/code/godot_xPRIMEray/reports/observatory_fixtures/hermetic_curved_room/assets/generated_traversal_step_heatmap.png",
+      "status": "available",
+      "title": "Traversal steps"
+    },
+    {
+      "key": "budget",
+      "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T195525Z/cells/curvature_100/row/budget_exhaustion_heatmap.png",
+      "status": "available",
+      "title": "Budget stress"
+    },
+    {
+      "key": "combined",
+      "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T195525Z/cells/curvature_100/row/combined_diagnostic_overlay.png",
+      "status": "available",
+      "title": "Combined diagnostic"
+    },
+    {
+      "key": "signature",
+      "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T195525Z/cells/curvature_100/row/curved_vs_straight_difference.png",
+      "status": "available",
+      "title": "Curvature signature"
+    }
+  ],
+  "selection": "latest curvature_fps_benchmark 100% cell",
+  "source_dir": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T195525Z/cells/curvature_100/row",
+  "study": "curvature_fps_benchmark"
+}

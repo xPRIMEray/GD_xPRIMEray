@@ -65,8 +65,14 @@
   "compact_contact_sheet_mode": true,
   "contact_sheet_layout": {
     "caption_band_below_image": true,
+    "columns": 3,
     "image_canvas_unobscured": true,
+    "panel_count": 9,
     "rendered_pixels_are_not_annotated_by_contact_sheet": true,
+    "requested": "square",
+    "row_major_order": true,
+    "rows": 3,
+    "selected": "square",
     "title_band_above_image": true
   },
   "contact_sheet_legends_suppressed": true,

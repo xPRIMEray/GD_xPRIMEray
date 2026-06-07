@@ -7,19 +7,18 @@ Hermetic closure validates transport completion within a known scene contract. I
 - Did it run? yes
 - Did Godot exit cleanly? yes
 - Did all five curvature levels complete? yes
-- Did sealed-scene hit validation pass? yes
-- Beauty capture status: BLANK BEAUTY
+- Run scale: smoke (40×22) — telemetry/instrumentation
+- Did sealed transport closure pass? yes — 0 misses across all traced pixels
+- Traversal budget stress: 72.7% of pixels exhausted step budget; all found hit on overrun step (budget+1); budget_exhausted_without_hit = 0. The loop permits one extra overrun step by design; no pixel failed to find a hit.
+- Visual render confirmation: not applicable at smoke scale — telemetry only; run at mini (160×112) or larger for visual evidence
 - Diagnostic artifact health: OK
-- Blank beauty does not fail sealed-hit validation, but it does fail visual-render confirmation.
-- Traversal budget stress: 72.7% of pixels exhausted step budget; all found hit on overrun step (budget+1); budget_exhausted_without_hit = 0
-- Screenshot capture: suspected blank or unusable for visual proof; verify layer0_beauty capture
 - Did resolved fixture curvature vary as requested? yes
 - Are visual outputs identical across curvature levels? no
 - Artifact families that changed with curvature: `curvature_field_view, curved_vs_straight_difference, diagnostic_contact_sheet, geometry_explanation, traversal_step_heatmap`
+- Contact sheet layout: `square` (3 columns x 3 rows, row-major order)
 - Did FPS reach 30? no
 - Did FPS reach 60? no
 - Biggest bottleneck observed: pass2_phys_ms averaged 1642.430 ms across available cells.
-- Visual sanity: non-identical; At least one visual artifact family changes across curvature levels; the sweep is not visually byte-identical.
 
 Beauty capture status: BLANK BEAUTY.
 The beauty frame is a valid PNG but contains only the clear/background color.
@@ -48,22 +47,28 @@ This means the benchmark currently proves traversal/evaluation behavior, but not
 
 - beauty_capture_health: `BLANK BEAUTY`
 - diagnostic_artifact_health: `OK`
-- visual_render_confirmation_passed: `false`
+- visual_render_confirmation_required: `false` (smoke preset)
+- visual_render_confirmation_passed: `not applicable — telemetry preset`
 - diagnostic_artifacts_valid: `true`
   - Note: `transport_continuity` is curvature-invariant in this run. This overlay likely renders fixed-geometry transport paths rather than field-bent integration curves. Confirm it consumes curved transport data if curvature sensitivity is required.
+  - Note: `geometry_explanation` (cartesian_scene_geometry.png) varies because it embeds a field-activation glyph — absent at 0%, present at 25–100%. Room geometry is fixed; only the field-circle overlay changes. Expected behavior.
 
 ## Diagnostic Layers
 
-The contact sheet is an Observatory Story: read left-to-right as a sequence of questions.
+The contact sheet is an Observatory Story: read left-to-right as a sequence of nine questions.
+Selected layout: `square` (3 columns x 3 rows). Reading order remains row-major: 1 -> 2 -> 3, then 4 -> 5 -> 6, then 7 -> 8 -> 9 in square mode.
 
-- Raw visual: `layer0_beauty.png` / screenshot capture, reported separately as `beauty_capture_health`.
-- Geometry explanation: `cartesian_scene_geometry.png` shows sealed room bounds, receiver surfaces, camera/ray origin, and field volume outline.
-- Curvature field: `curvature_field_view.png` shows field bounds, center, resolved amplitude, and whether curved transport was enabled.
-- Transport diagnostics: ownership regions, normal vectors, transport continuity, and combined diagnostic overlays.
-- Closure diagnostics: hit/miss maps, hit counts, miss counts, miss rate, and hermetic closure summaries.
-- Budget/precision diagnostics: traversal-step heatmaps, budget stress maps, and precision/epsilon warnings.
-- Curved-vs-straight difference: `curved_vs_straight_difference.png` compares traversal-step cost against the 0% baseline; 0% is labeled as the baseline reference.
-- Contact-sheet rule: title and caption bands are outside the image canvas; rendered/source pixels are not annotated by the sheet itself.
+1. **Raw visual** — Q: What did the camera actually see? Academic: final beauty/render output. Reported as `beauty_capture_health`.
+2. **Scene geometry** — Q: What objects exist in the scene? Academic: Cartesian object/receiver geometry (sealed room bounds, surfaces, ray origin, field volume).
+3. **Curvature field** — Q: What field is bending the rays? Academic: field-source volume and resolved amplitude; shows whether curved transport was enabled.
+4. **Transport ownership** — Q: Where did each ray end up? Academic: receiver/domain ownership (territory map — which zone claimed each incoming ray).
+5. **Hit/miss map** — Q: Did every ray find a target? Academic: hermetic closure validation (green = hit, orange = budget-exhausted hit, red = miss).
+6. **Traversal steps** — Q: How hard was the trip? Academic: per-pixel integration/traversal cost (traffic/congestion map).
+7. **Budget stress** — Q: Which rays nearly ran out of budget? Academic: max-step / overrun-step stress (fuel warning light).
+8. **Combined diagnostic** — Q: What do all diagnostics look like together? Academic: composite diagnostic overlay (mission-control dashboard).
+9. **Curvature signature** — Difference relative to 0% baseline. Q: What changed when curvature was activated? Academic: per-pixel traversal-step delta relative to 0% baseline; color encodes magnitude and sign of change. Analogy: weather-change map. 0% cell is the baseline reference.
+
+Contact-sheet rule: title and caption bands are outside the image canvas; rendered/source pixels are not annotated by the sheet itself.
 
 ## Hardware
 
@@ -80,3 +85,4 @@ The contact sheet is an Observatory Story: read left-to-right as a sequence of q
 - Primary gate: hermetic sealed-room hit closure.
 - Optional ownership, oracle, island, and cathedral-style diagnostics are report attachments only when existing tools produce them.
 - Raw output root: `/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z`
+- Curvature Signature Ladder: [curvature_signature_ladder.png](weekend_fps_curvature_sweep_assets/curvature_signature_ladder.png)

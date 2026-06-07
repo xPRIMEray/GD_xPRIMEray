@@ -138,6 +138,15 @@ nav:
       - Transport Observatory: Overview/TRANSPORT_OBSERVATORY_OVERVIEW.md
       - Feature Index: FEATURE_INDEX.md
 
+  - Observatory Gallery:
+      - Home: Observatory_Gallery/index.md
+      - Read This First: Observatory_Gallery/what_the_observatory_measures.md
+      - Canonical Fixtures: Observatory_Gallery/canonical_fixtures.md
+      - Curvature Benchmark: Observatory_Gallery/curvature_benchmark.md
+      - Closure Diagnostics: Observatory_Gallery/closure_diagnostics.md
+      - Research Fixtures: Observatory_Gallery/research_fixtures.md
+      - Experimental Archive: Observatory_Gallery/experimental_archive.md
+
   - Observatory:
       - Observatory Atlas: Observatory/observatory_atlas.md
       - Chapters:

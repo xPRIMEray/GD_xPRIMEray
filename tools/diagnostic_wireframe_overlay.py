@@ -23,6 +23,7 @@ CONTACT_THUMB_SIZE = (240, 135)
 CONTACT_TITLE_BAND = 22
 CONTACT_CAPTION_BAND = 68
 CONTACT_CELL_PAD = 8
+CONTACT_LAYOUT_CHOICES = {"storyboard", "square", "vertical", "two-column", "auto"}
 GENERATED_NAMES = {
     "layer0_beauty.png",
     "layer1_cartesian_wireframe.png",
@@ -205,6 +206,27 @@ def parse_float(value: Any, default: float = 0.0) -> float:
 
 def load_curvature_result(folder: Path) -> dict[str, Any]:
     return load_json(folder / "curvature_fps_result.json")
+
+
+def normalize_contact_sheet_layout(value: Any, panel_count: int = 9) -> str:
+    token = str(value or os.environ.get("CURVATURE_CONTACT_SHEET_LAYOUT", "storyboard")).strip().lower()
+    if token not in CONTACT_LAYOUT_CHOICES:
+        token = "storyboard"
+    if token == "auto":
+        return "square" if panel_count == 9 else "storyboard"
+    return token
+
+
+def contact_sheet_columns(layout: str, panel_count: int) -> int:
+    if panel_count <= 0:
+        return 1
+    if layout == "square":
+        return 3 if panel_count == 9 else max(1, int(np.ceil(np.sqrt(panel_count))))
+    if layout == "vertical":
+        return 1
+    if layout == "two-column":
+        return min(2, panel_count)
+    return panel_count
 
 
 def parse_rois(raw: str | None) -> list[tuple[int, int]]:
@@ -928,19 +950,22 @@ def fit_panel_image(img: Image.Image, size: tuple[int, int]) -> Image.Image:
 
 
 def wrap_text(draw: ImageDraw.ImageDraw, text: str, max_width: int, font: ImageFont.ImageFont) -> list[str]:
-    words = str(text or "").split()
     lines: list[str] = []
-    current = ""
-    for word in words:
-        candidate = word if not current else f"{current} {word}"
-        if draw.textbbox((0, 0), candidate, font=font)[2] <= max_width:
-            current = candidate
-            continue
+    for source_line in str(text or "").splitlines():
+        words = source_line.split()
+        current = ""
+        for word in words:
+            candidate = word if not current else f"{current} {word}"
+            if draw.textbbox((0, 0), candidate, font=font)[2] <= max_width:
+                current = candidate
+                continue
+            if current:
+                lines.append(current)
+            current = word
         if current:
             lines.append(current)
-        current = word
-    if current:
-        lines.append(current)
+        elif not words:
+            lines.append("")
     return lines or [""]
 
 
@@ -963,7 +988,7 @@ def make_contact_cell(title: str, image: Image.Image, caption: str, canvas_size:
     return cell
 
 
-def save_contact_sheet(folder: Path, images: list[dict[str, Any]], beauty_health: dict[str, Any]) -> None:
+def save_contact_sheet(folder: Path, images: list[dict[str, Any]], beauty_health: dict[str, Any], layout: str) -> dict[str, Any]:
     panels: list[Image.Image] = []
     for item in images:
         title = str(item.get("title", "artifact"))
@@ -990,13 +1015,26 @@ def save_contact_sheet(folder: Path, images: list[dict[str, Any]], beauty_health
             continue
         panels.append(make_contact_cell(title, img, caption, CONTACT_THUMB_SIZE))
     if not panels:
-        return
+        return {"selected": layout, "columns": 0, "rows": 0, "panel_count": 0}
     w = max(panel.width for panel in panels)
     h = max(panel.height for panel in panels)
-    sheet = Image.new("RGB", (w * len(panels), h), "white")
+    selected = normalize_contact_sheet_layout(layout, len(panels))
+    cols = contact_sheet_columns(selected, len(panels))
+    rows = int(np.ceil(len(panels) / max(1, cols)))
+    sheet = Image.new("RGB", (w * cols, h * rows), "white")
     for i, img in enumerate(panels):
-        sheet.paste(img, (i * w, 0))
+        row = i // cols
+        col = i % cols
+        sheet.paste(img, (col * w, row * h))
     sheet.save(folder / "diagnostic_overlay_contact_sheet.png")
+    return {
+        "selected": selected,
+        "requested": layout,
+        "columns": cols,
+        "rows": rows,
+        "panel_count": len(panels),
+        "row_major_order": True,
+    }
 
 
 def write_regions_csv(path: Path, regions: list[dict[str, Any]]) -> None:
@@ -1156,6 +1194,12 @@ def main() -> int:
     parser.add_argument("--continuity-high-threshold", type=float, default=1.0)
     parser.add_argument("--continuity-diagonal", type=int, default=0)
     parser.add_argument("--continuity-max-vectors", type=int, default=2500)
+    parser.add_argument(
+        "--contact-sheet-layout",
+        choices=sorted(CONTACT_LAYOUT_CHOICES),
+        default=os.environ.get("CURVATURE_CONTACT_SHEET_LAYOUT", "storyboard"),
+        help="Contact sheet layout: storyboard, square, vertical, two-column, or auto.",
+    )
     args = parser.parse_args()
 
     folder = args.capture_folder
@@ -1299,55 +1343,56 @@ def main() -> int:
     resolved_contact = curvature_result.get("resolved_fixture_curvature") or {}
     resolved_amp = parse_float(resolved_contact.get("resolved_amp"), parse_float(metadata.get("curvature_strength"), 0.0))
     transport_state = "on" if parse_float(resolved_contact.get("curved_transport_enabled"), 0.0) > 0.5 else "off"
+    requested_contact_layout = normalize_contact_sheet_layout(args.contact_sheet_layout, 9)
     contact_items = [
         {
             "title": "Raw visual",
             "kind": "beauty",
             "path": folder / "layer0_beauty.png",
-            "caption": "Q: What did the camera actually see? Academic: final beauty/render output. Analogy: lab camera photo of the fixture.",
+            "caption": "Question: What did the camera actually see?\nAcademic: final beauty/render output.\nAnalogy: lab camera photo of the fixture.",
         },
         {
             "title": "Scene geometry",
             "path": folder / "cartesian_scene_geometry.png",
-            "caption": "Q: What objects exist in the scene? Academic: Cartesian object/receiver geometry. Analogy: blueprint of the test chamber.",
+            "caption": "Question: What objects exist in the scene?\nAcademic: Cartesian object/receiver geometry.\nAnalogy: blueprint of the test chamber.",
         },
         {
             "title": "Curvature field",
             "path": folder / "curvature_field_view.png",
-            "caption": f"Q: What field is bending the rays? Academic: field-source volume and resolved amplitude. Analogy: wind/weather map inside the chamber. amp={resolved_amp:.4g}, transport={transport_state}.",
+            "caption": f"Question: What field is bending the rays?\nAcademic: field-source volume and resolved amplitude.\nAnalogy: wind/weather map inside the chamber. amp={resolved_amp:.4g}, transport={transport_state}.",
         },
         {
             "title": "Transport ownership",
             "path": folder / "layer2_transport_ownership.png",
-            "caption": "Q: Where did each ray end up? Academic: receiver/domain ownership. Analogy: delivery zones for photons.",
+            "caption": "Question: Where did each ray end up?\nAcademic: receiver/domain ownership.\nAnalogy: delivery zones for photons.",
         },
         {
             "title": "Hit/miss map",
             "path": hit_miss_map,
-            "caption": "Q: Did every ray find a target? Academic: hermetic closure validation. Analogy: target board hit test.",
+            "caption": "Question: Did every ray find a target?\nAcademic: hermetic closure validation.\nAnalogy: target board hit test.",
         },
         {
             "title": "Traversal steps",
             "path": traversal_step_heatmap,
-            "caption": "Q: How hard was the trip? Academic: per-pixel integration/traversal cost. Analogy: traffic/congestion map.",
+            "caption": "Question: How hard was the trip?\nAcademic: per-pixel integration/traversal cost.\nAnalogy: traffic/congestion map.",
         },
         {
             "title": "Budget stress",
             "path": folder / "budget_exhaustion_heatmap.png",
-            "caption": "Q: Which rays nearly ran out of budget? Academic: max-step / overrun-step stress. Analogy: fuel warning light.",
+            "caption": "Question: Which rays nearly ran out of budget?\nAcademic: max-step / overrun-step stress.\nAnalogy: fuel warning light.",
         },
         {
             "title": "Combined diagnostic",
             "path": folder / "combined_diagnostic_overlay.png",
-            "caption": "Q: What do all diagnostics look like together? Academic: composite diagnostic overlay. Analogy: mission-control dashboard.",
+            "caption": "Question: What do all diagnostics look like together?\nAcademic: composite diagnostic overlay.\nAnalogy: mission-control dashboard.",
         },
         {
-            "title": "Curved vs straight",
+            "title": "Curvature signature",
             "path": folder / "curved_vs_straight_difference.png",
-            "caption": "Q: What changed because curvature was turned on? Academic: difference map versus 0% baseline. Analogy: before/after inspection photo.",
+            "caption": "Difference relative to 0% baseline.\nQuestion: What changed when curvature was activated?\nAcademic: per-pixel traversal-step delta; color encodes sign/magnitude.\nAnalogy: weather-change map.",
         },
     ]
-    save_contact_sheet(folder, contact_items, beauty_health)
+    contact_layout_meta = save_contact_sheet(folder, contact_items, beauty_health, requested_contact_layout)
 
     counts = primitives.get("primitive_count_by_layer") or {}
     object_count = int(primitives.get("object_count", 0) or 0)
@@ -1368,6 +1413,7 @@ def main() -> int:
         "compact_contact_sheet_mode": compact_contact_sheet,
         "contact_sheet_legends_suppressed": suppress_legends,
         "contact_sheet_layout": {
+            **contact_layout_meta,
             "title_band_above_image": True,
             "image_canvas_unobscured": True,
             "caption_band_below_image": True,

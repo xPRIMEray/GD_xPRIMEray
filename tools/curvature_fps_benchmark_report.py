@@ -13,6 +13,7 @@ import csv
 import hashlib
 import json
 import math
+import os
 import platform
 import re
 import shutil
@@ -26,10 +27,20 @@ CONTACT_THUMB_SIZE = (320, 180)
 CONTACT_TITLE_BAND = 30
 CONTACT_CAPTION_BAND = 112
 CONTACT_CELL_PAD = 8
+CONTACT_LAYOUT_CHOICES = {"storyboard", "square", "vertical", "two-column", "auto"}
 GUARDRAIL = (
     "Hermetic closure validates transport completion within a known scene "
     "contract. It does not establish physical correctness."
 )
+
+# Preset ontology: each preset has a purpose, success criteria, and whether
+# visual render confirmation is required (i.e. a blank beauty frame is a failure).
+PRESET_ONTOLOGY = {
+    (40, 22):   {"name": "smoke",   "purpose": "telemetry/instrumentation",      "visual_confirmation_required": False},
+    (160, 112): {"name": "mini",    "purpose": "visual sanity",                  "visual_confirmation_required": True},
+    (256, 224): {"name": "SNES",    "purpose": "demonstration",                  "visual_confirmation_required": True},
+    (320, 180): {"name": "tiny-HD", "purpose": "performance characterization",   "visual_confirmation_required": True},
+}
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -369,20 +380,93 @@ def create_curvature_difference_artifacts(root: Path) -> None:
         }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def detect_preset(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    for row in rows:
+        fc = row.get("film_capture") or {}
+        w = parse_int(fc.get("width"), 0)
+        h = parse_int(fc.get("height"), 0)
+        if w > 0 and h > 0:
+            preset = PRESET_ONTOLOGY.get((w, h))
+            if preset:
+                return {"width": w, "height": h, **preset}
+            return {"width": w, "height": h, "name": f"{w}x{h}", "purpose": "custom", "visual_confirmation_required": True}
+    return {"width": 0, "height": 0, "name": "unknown", "purpose": "unknown", "visual_confirmation_required": True}
+
+
+def build_curvature_signature_ladder(root: Path, assets_dir: Path | None = None) -> str | None:
+    try:
+        from PIL import Image, ImageDraw
+    except Exception:
+        return None
+
+    LABEL_H = 24
+    LEGEND_H = 28
+    THUMB_W = 128
+    THUMB_H = 72
+    PAD = 6
+    panels: list[tuple[int, Any]] = []
+    for percent in CURVATURE_ORDER:
+        cell = root / "cells" / f"curvature_{percent:03d}" / "row"
+        for name in ("curvature_signature.png", "curved_vs_straight_difference.png"):
+            p = cell / name
+            if p.exists():
+                try:
+                    img = Image.open(p).convert("RGB")
+                    panels.append((percent, img))
+                except Exception:
+                    pass
+                break
+
+    if not panels:
+        return None
+
+    total_w = len(panels) * THUMB_W
+    total_h = LABEL_H + THUMB_H + LEGEND_H
+    ladder = Image.new("RGB", (total_w, total_h), (18, 20, 28))
+    draw = ImageDraw.Draw(ladder)
+    font = load_contact_font(12)
+    label_font = load_contact_font(13)
+
+    for col_idx, (percent, img) in enumerate(panels):
+        x = col_idx * THUMB_W
+        label = f"{percent}%"
+        draw.rectangle((x, 0, x + THUMB_W - 1, LABEL_H - 1), fill=(28, 30, 42), outline=(68, 72, 88))
+        bbox = draw.textbbox((0, 0), label, font=label_font)
+        draw.text((x + (THUMB_W - (bbox[2] - bbox[0])) // 2, 4), label, fill=(230, 232, 245), font=label_font)
+        draw.rectangle((x, LABEL_H, x + THUMB_W - 1, LABEL_H + THUMB_H - 1), fill=(246, 247, 250), outline=(68, 72, 88))
+        thumb = img.resize((THUMB_W - PAD * 2, THUMB_H - PAD * 2), Image.Resampling.NEAREST)
+        ladder.paste(thumb, (x + PAD, LABEL_H + PAD))
+
+    legend_y = LABEL_H + THUMB_H
+    draw.rectangle((0, legend_y, total_w - 1, total_h - 1), fill=(12, 14, 20))
+    draw.text((8, legend_y + 6), "Curvature signature ladder: blue = easier, black = no change, red = harder traversal", fill=(180, 185, 200), font=font)
+
+    out = root / "curvature_signature_ladder.png"
+    ladder.save(out)
+    if assets_dir:
+        dest = assets_dir / "curvature_signature_ladder.png"
+        shutil.copy2(out, dest)
+        return str(dest)
+    return str(out)
+
+
 def wrap_text(draw: Any, text: str, max_width: int, font: Any) -> list[str]:
-    words = str(text or "").split()
     lines: list[str] = []
-    current = ""
-    for word in words:
-        candidate = word if not current else f"{current} {word}"
-        if draw.textbbox((0, 0), candidate, font=font)[2] <= max_width:
-            current = candidate
-            continue
+    for source_line in str(text or "").splitlines():
+        words = source_line.split()
+        current = ""
+        for word in words:
+            candidate = word if not current else f"{current} {word}"
+            if draw.textbbox((0, 0), candidate, font=font)[2] <= max_width:
+                current = candidate
+                continue
+            if current:
+                lines.append(current)
+            current = word
         if current:
             lines.append(current)
-        current = word
-    if current:
-        lines.append(current)
+        elif not words:
+            lines.append("")
     return lines or [""]
 
 
@@ -449,23 +533,69 @@ def make_story_contact_cell(title: str, image: Any, caption: str) -> Any:
     return cell
 
 
-def build_observatory_story_contact_sheets(root: Path) -> None:
+def normalize_contact_sheet_layout(value: Any, panel_count: int = 9) -> str:
+    token = str(value or os.environ.get("CURVATURE_CONTACT_SHEET_LAYOUT", "storyboard")).strip().lower()
+    if token not in CONTACT_LAYOUT_CHOICES:
+        token = "storyboard"
+    if token == "auto":
+        return "square" if panel_count == 9 else "storyboard"
+    return token
+
+
+def contact_sheet_columns(layout: str, panel_count: int) -> int:
+    if panel_count <= 0:
+        return 1
+    if layout == "square":
+        return 3 if panel_count == 9 else max(1, int(math.ceil(math.sqrt(panel_count))))
+    if layout == "vertical":
+        return 1
+    if layout == "two-column":
+        return min(2, panel_count)
+    return panel_count
+
+
+def write_overlay_contact_layout_metadata(cell: Path, layout_meta: dict[str, Any]) -> None:
+    metadata_path = cell / "overlay_metadata.json"
+    metadata = load_json(metadata_path)
+    existing = metadata.get("contact_sheet_layout") or {}
+    existing.update(layout_meta)
+    existing.update({
+        "title_band_above_image": True,
+        "image_canvas_unobscured": True,
+        "caption_band_below_image": True,
+        "rendered_pixels_are_not_annotated_by_contact_sheet": True,
+    })
+    metadata["contact_sheet_layout"] = existing
+    metadata_path.write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def build_observatory_story_contact_sheets(root: Path, layout: str) -> dict[str, Any]:
     try:
         from PIL import Image
     except Exception:
-        return
+        return {"selected": normalize_contact_sheet_layout(layout, 9), "error": "PIL unavailable"}
 
     story = [
-        ("Raw visual", "raw_visual", "Q: What did the camera actually see? Academic: final beauty/render output. Analogy: lab camera photo of the fixture."),
-        ("Scene geometry", "geometry_explanation", "Q: What objects exist in the scene? Academic: Cartesian object/receiver geometry. Analogy: blueprint of the test chamber."),
-        ("Curvature field", "curvature_field_view", "Q: What field is bending the rays? Academic: field-source volume and resolved amplitude. Analogy: wind/weather map inside the chamber."),
-        ("Transport ownership", "transport_ownership", "Q: Where did each ray end up? Academic: receiver/domain ownership. Analogy: delivery zones for photons."),
-        ("Hit/miss map", "hit_miss_map", "Q: Did every ray find a target? Academic: hermetic closure validation. Analogy: target board hit test."),
-        ("Traversal steps", "traversal_step_heatmap", "Q: How hard was the trip? Academic: per-pixel integration/traversal cost. Analogy: traffic/congestion map."),
-        ("Budget stress", "budget_heatmap", "Q: Which rays nearly ran out of budget? Academic: max-step / overrun-step stress. Analogy: fuel warning light."),
-        ("Combined diagnostic", "combined_diagnostic_overlay", "Q: What do all diagnostics look like together? Academic: composite diagnostic overlay. Analogy: mission-control dashboard."),
-        ("Curved vs straight", "curved_vs_straight_difference", "Q: What changed because curvature was turned on? Academic: difference map against 0% baseline using traversal steps. Analogy: before/after inspection photo."),
+        ("Raw visual", "raw_visual", "Question: What did the camera actually see?\nAcademic: final beauty/render output.\nAnalogy: lab camera photo of the fixture."),
+        ("Scene geometry", "geometry_explanation", "Question: What objects exist in the scene?\nAcademic: Cartesian object/receiver geometry.\nAnalogy: blueprint of the test chamber."),
+        ("Curvature field", "curvature_field_view", "Question: What field is bending the rays?\nAcademic: field-source volume and resolved amplitude.\nAnalogy: wind/weather map inside the chamber."),
+        ("Transport ownership", "transport_ownership", "Question: Where did each ray end up?\nAcademic: receiver/domain ownership.\nAnalogy: territory map for photon delivery zones."),
+        ("Hit/miss map", "hit_miss_map", "Question: Did every ray find a target?\nAcademic: hermetic closure validation.\nAnalogy: target board hit test."),
+        ("Traversal steps", "traversal_step_heatmap", "Question: How hard was the trip?\nAcademic: per-pixel integration/traversal cost.\nAnalogy: traffic/congestion map."),
+        ("Budget stress", "budget_heatmap", "Question: Which rays nearly ran out of budget?\nAcademic: max-step / overrun-step stress.\nAnalogy: fuel warning light."),
+        ("Combined diagnostic", "combined_diagnostic_overlay", "Question: What do all diagnostics look like together?\nAcademic: composite diagnostic overlay.\nAnalogy: mission-control dashboard."),
+        ("Curvature signature", "curved_vs_straight_difference", "Difference relative to 0% baseline.\nQuestion: What changed when curvature was activated?\nAcademic: per-pixel traversal-step delta; color encodes sign/magnitude.\nAnalogy: weather-change map."),
     ]
+
+    selected_layout = normalize_contact_sheet_layout(layout, len(story))
+    layout_meta: dict[str, Any] = {
+        "selected": selected_layout,
+        "requested": layout,
+        "columns": contact_sheet_columns(selected_layout, len(story)),
+        "rows": int(math.ceil(len(story) / max(1, contact_sheet_columns(selected_layout, len(story))))),
+        "panel_count": len(story),
+        "row_major_order": True,
+    }
 
     for percent in CURVATURE_ORDER:
         cell = root / "cells" / f"curvature_{percent:03d}" / "row"
@@ -490,15 +620,23 @@ def build_observatory_story_contact_sheets(root: Path) -> None:
             else:
                 img = placeholder_panel(title, "MISSING", key)
             if key == "curved_vs_straight_difference" and percent == 0:
-                caption = "Q: What changed because curvature was turned on? Baseline reference for later before/after comparisons."
+                caption = "Difference relative to 0% baseline.\nQuestion: What changed when curvature was activated?\nBaseline: 0% is the straight-ray anchor for all delta maps."
             panels.append(make_story_contact_cell(title, img, caption))
         if panels:
             w = max(panel.width for panel in panels)
             h = max(panel.height for panel in panels)
-            sheet = Image.new("RGB", (w * len(panels), h), "white")
+            cols = contact_sheet_columns(selected_layout, len(panels))
+            rows = int(math.ceil(len(panels) / max(1, cols)))
+            sheet = Image.new("RGB", (w * cols, h * rows), "white")
             for index, panel in enumerate(panels):
-                sheet.paste(panel, (index * w, 0))
+                row = index // cols
+                col = index % cols
+                sheet.paste(panel, (col * w, row * h))
             sheet.save(cell / "diagnostic_overlay_contact_sheet.png")
+            cell_layout = dict(layout_meta)
+            cell_layout.update({"columns": cols, "rows": rows, "panel_count": len(panels)})
+            write_overlay_contact_layout_metadata(cell, cell_layout)
+    return layout_meta
 
 
 def discover_visual_artifacts(cell: Path, generated: dict[str, str]) -> dict[str, str]:
@@ -511,7 +649,7 @@ def discover_visual_artifacts(cell: Path, generated: dict[str, str]) -> dict[str
         "normal_overlay": ["full_frame_hit_normals.png", "hit_normal_vector_overlay.png"],
         "hit_miss_map": ["hit_miss_map.png"],
         "traversal_step_heatmap": ["traversal_step_heatmap.png"],
-        "curved_vs_straight_difference": ["curved_vs_straight_difference.png"],
+        "curved_vs_straight_difference": ["curved_vs_straight_difference.png", "curvature_signature.png"],
         "budget_heatmap": ["budget_exhaustion_heatmap.png"],
         "budget_overlay": ["budget_exhaustion_overlay.png"],
         "diagnostic_contact_sheet": ["diagnostic_overlay_contact_sheet.png"],
@@ -816,7 +954,7 @@ def collect_rows(root: Path) -> list[dict[str, Any]]:
     return rows
 
 
-def write_summary(root: Path, rows: list[dict[str, Any]], info: dict[str, str]) -> None:
+def write_summary(root: Path, rows: list[dict[str, Any]], info: dict[str, str], contact_sheet_layout: dict[str, Any]) -> None:
     all_completed = all((Path(r["cell"]) / "curvature_fps_result.json").exists() for r in rows)
     clean_exit = all(parse_int(r.get("godot_exit_code"), -1) == 0 or str(r.get("effective_status")) == "0" for r in rows)
     sealed_pass = all(parse_int(r.get("miss_count"), 1) == 0 for r in rows)
@@ -836,6 +974,7 @@ def write_summary(root: Path, rows: list[dict[str, Any]], info: dict[str, str]) 
         "curvature_application": curvature_application,
         "beauty_capture_health": beauty_capture_health,
         "diagnostic_artifact_health": diagnostic_artifact_health,
+        "contact_sheet_layout": contact_sheet_layout,
         "visual_identity": visual_identity,
         "hardware": info,
         "results": rows,
@@ -850,7 +989,16 @@ def rel(path: str | Path, base: Path) -> str:
         return Path(path).as_posix()
 
 
-def write_report(root: Path, rows: list[dict[str, Any]], report_path: Path, assets_dir: Path, info: dict[str, str]) -> None:
+def write_report(
+    root: Path,
+    rows: list[dict[str, Any]],
+    report_path: Path,
+    assets_dir: Path,
+    info: dict[str, str],
+    *,
+    ladder_path: str | None = None,
+    contact_sheet_layout: dict[str, Any] | None = None,
+) -> None:
     all_completed = all((Path(r["cell"]) / "curvature_fps_result.json").exists() for r in rows)
     clean_exit = all(parse_int(r.get("godot_exit_code"), -1) == 0 or str(r.get("effective_status")) == "0" for r in rows)
     sealed_pass = all(parse_int(r.get("miss_count"), 1) == 0 for r in rows)
@@ -863,6 +1011,10 @@ def write_report(root: Path, rows: list[dict[str, Any]], report_path: Path, asse
     beauty_capture_health = aggregate_beauty_capture_health(rows)
     diagnostic_artifact_health = aggregate_diagnostic_artifact_health(rows)
     visual_status = "non-identical" if visual_identity["any_non_identical_visual_artifact"] else "identical"
+    layout_meta = contact_sheet_layout or {}
+    layout_selected = str(layout_meta.get("selected", "storyboard"))
+    layout_cols = parse_int(layout_meta.get("columns"), 0)
+    layout_rows = parse_int(layout_meta.get("rows"), 0)
     curvature_status = (
         "yes"
         if curvature_application["curvature_application_passed"] and curvature_application["resolved_curvature_varied"]
@@ -893,18 +1045,15 @@ def write_report(root: Path, rows: list[dict[str, Any]], report_path: Path, asse
     else:
         budget_stress_str = "no data"
 
-    # Screenshot sanity check
-    screenshot_sizes: list[int] = []
-    screenshot_sha256s: list[str] = []
-    for r in rows:
-        h = (r.get("artifact_hashes") or {}).get("screenshot") or {}
-        if h.get("bytes") is not None:
-            screenshot_sizes.append(int(h["bytes"]))
-        if h.get("sha256"):
-            screenshot_sha256s.append(h["sha256"])
-    screenshot_suspect = not beauty_capture_health["visual_render_confirmation_passed"]
     beauty_status = beauty_capture_health["overall_status"]
     diagnostic_status = diagnostic_artifact_health["overall_status"]
+    preset_info = detect_preset(rows)
+    preset_label = f"{preset_info['name']} ({preset_info['width']}×{preset_info['height']}) — {preset_info['purpose']}"
+    visual_confirmation_required = preset_info["visual_confirmation_required"]
+    if visual_confirmation_required:
+        visual_conf_str = "yes" if beauty_capture_health["visual_render_confirmation_passed"] else f"FAILED — beauty capture is {beauty_status.lower()}; verify layer0_beauty"
+    else:
+        visual_conf_str = f"not applicable at {preset_info['name']} scale — telemetry only; run at mini (160×112) or larger for visual evidence"
 
     lines = [
         "# Weekend FPS Curvature Sweep",
@@ -916,19 +1065,18 @@ def write_report(root: Path, rows: list[dict[str, Any]], report_path: Path, asse
         f"- Did it run? {'yes' if all_completed else 'no'}",
         f"- Did Godot exit cleanly? {'yes' if clean_exit else 'no'}",
         f"- Did all five curvature levels complete? {'yes' if all_completed else 'no'}",
-        f"- Did sealed-scene hit validation pass? {'yes' if sealed_pass else 'no'}",
-        f"- Beauty capture status: {beauty_status}",
-        f"- Diagnostic artifact health: {diagnostic_status}",
-        "- Blank beauty does not fail sealed-hit validation, but it does fail visual-render confirmation.",
+        f"- Run scale: {preset_label}",
+        f"- Did sealed transport closure pass? {'yes — 0 misses across all traced pixels' if sealed_pass else 'no'}",
         f"- Traversal budget stress: {budget_stress_str}",
-        f"- Screenshot capture: {'suspected blank or unusable for visual proof; verify layer0_beauty capture' if screenshot_suspect else 'ok'}",
+        f"- Visual render confirmation: {visual_conf_str}",
+        f"- Diagnostic artifact health: {diagnostic_status}",
         f"- Did resolved fixture curvature vary as requested? {curvature_status}",
         f"- Are visual outputs identical across curvature levels? {'no' if visual_identity['any_non_identical_visual_artifact'] else 'yes'}",
         f"- Artifact families that changed with curvature: `{', '.join(visual_identity['non_identical_visual_artifact_keys']) or 'none'}`",
+        f"- Contact sheet layout: `{layout_selected}` ({layout_cols} columns x {layout_rows} rows, row-major order)",
         f"- Did FPS reach 30? {'yes' if reaches_30 else 'no'}",
         f"- Did FPS reach 60? {'yes' if reaches_60 else 'no'}",
         f"- Biggest bottleneck observed: {bottleneck}",
-        f"- Visual sanity: {visual_status}; {visual_identity['explanation']}",
     ]
     if beauty_status == "BLANK BEAUTY":
         lines += [
@@ -985,7 +1133,8 @@ def write_report(root: Path, rows: list[dict[str, Any]], report_path: Path, asse
         "",
         f"- beauty_capture_health: `{beauty_status}`",
         f"- diagnostic_artifact_health: `{diagnostic_status}`",
-        f"- visual_render_confirmation_passed: `{str(beauty_capture_health['visual_render_confirmation_passed']).lower()}`",
+        f"- visual_render_confirmation_required: `{str(visual_confirmation_required).lower()}` ({preset_info['name']} preset)",
+        f"- visual_render_confirmation_passed: `{'not applicable — telemetry preset' if not visual_confirmation_required else str(beauty_capture_health['visual_render_confirmation_passed']).lower()}`",
         f"- diagnostic_artifacts_valid: `{str(diagnostic_artifact_health['diagnostic_artifacts_valid']).lower()}`",
     ]
     if "transport_continuity" in visual_identity.get("identical_visual_artifact_keys", []):
@@ -995,21 +1144,31 @@ def write_report(root: Path, rows: list[dict[str, Any]], report_path: Path, asse
             "field-bent integration curves. Confirm it consumes curved transport data "
             "if curvature sensitivity is required."
         )
+    if "geometry_explanation" in visual_identity.get("non_identical_visual_artifact_keys", []):
+        lines.append(
+            "  - Note: `geometry_explanation` (cartesian_scene_geometry.png) varies because it "
+            "embeds a field-activation glyph — absent at 0%, present at 25–100%. "
+            "Room geometry is fixed; only the field-circle overlay changes. Expected behavior."
+        )
 
     lines += [
         "",
         "## Diagnostic Layers",
         "",
-        "The contact sheet is an Observatory Story: read left-to-right as a sequence of questions.",
+        "The contact sheet is an Observatory Story: read left-to-right as a sequence of nine questions.",
+        f"Selected layout: `{layout_selected}` ({layout_cols} columns x {layout_rows} rows). Reading order remains row-major: 1 -> 2 -> 3, then 4 -> 5 -> 6, then 7 -> 8 -> 9 in square mode.",
         "",
-        "- Raw visual: `layer0_beauty.png` / screenshot capture, reported separately as `beauty_capture_health`.",
-        "- Geometry explanation: `cartesian_scene_geometry.png` shows sealed room bounds, receiver surfaces, camera/ray origin, and field volume outline.",
-        "- Curvature field: `curvature_field_view.png` shows field bounds, center, resolved amplitude, and whether curved transport was enabled.",
-        "- Transport diagnostics: ownership regions, normal vectors, transport continuity, and combined diagnostic overlays.",
-        "- Closure diagnostics: hit/miss maps, hit counts, miss counts, miss rate, and hermetic closure summaries.",
-        "- Budget/precision diagnostics: traversal-step heatmaps, budget stress maps, and precision/epsilon warnings.",
-        "- Curved-vs-straight difference: `curved_vs_straight_difference.png` compares traversal-step cost against the 0% baseline; 0% is labeled as the baseline reference.",
-        "- Contact-sheet rule: title and caption bands are outside the image canvas; rendered/source pixels are not annotated by the sheet itself.",
+        "1. **Raw visual** — Q: What did the camera actually see? Academic: final beauty/render output. Reported as `beauty_capture_health`.",
+        "2. **Scene geometry** — Q: What objects exist in the scene? Academic: Cartesian object/receiver geometry (sealed room bounds, surfaces, ray origin, field volume).",
+        "3. **Curvature field** — Q: What field is bending the rays? Academic: field-source volume and resolved amplitude; shows whether curved transport was enabled.",
+        "4. **Transport ownership** — Q: Where did each ray end up? Academic: receiver/domain ownership (territory map — which zone claimed each incoming ray).",
+        "5. **Hit/miss map** — Q: Did every ray find a target? Academic: hermetic closure validation (green = hit, orange = budget-exhausted hit, red = miss).",
+        "6. **Traversal steps** — Q: How hard was the trip? Academic: per-pixel integration/traversal cost (traffic/congestion map).",
+        "7. **Budget stress** — Q: Which rays nearly ran out of budget? Academic: max-step / overrun-step stress (fuel warning light).",
+        "8. **Combined diagnostic** — Q: What do all diagnostics look like together? Academic: composite diagnostic overlay (mission-control dashboard).",
+        "9. **Curvature signature** — Difference relative to 0% baseline. Q: What changed when curvature was activated? Academic: per-pixel traversal-step delta relative to 0% baseline; color encodes magnitude and sign of change. Analogy: weather-change map. 0% cell is the baseline reference.",
+        "",
+        "Contact-sheet rule: title and caption bands are outside the image canvas; rendered/source pixels are not annotated by the sheet itself.",
         "",
         "## Hardware",
         "",
@@ -1025,6 +1184,9 @@ def write_report(root: Path, rows: list[dict[str, Any]], report_path: Path, asse
         "- Optional ownership, oracle, island, and cathedral-style diagnostics are report attachments only when existing tools produce them.",
         f"- Raw output root: `{root}`",
     ]
+    if ladder_path:
+        ladder_rel = rel(ladder_path, report_path.parent)
+        lines.append(f"- Curvature Signature Ladder: [{Path(ladder_path).name}]({ladder_rel})")
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -1035,6 +1197,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     parser.add_argument("--report-path", type=Path, default=Path("reports/weekend_fps_curvature_sweep.md"))
     parser.add_argument("--assets-dir", type=Path, default=Path("reports/weekend_fps_curvature_sweep_assets"))
+    parser.add_argument(
+        "--contact-sheet-layout",
+        choices=sorted(CONTACT_LAYOUT_CHOICES),
+        default=os.environ.get("CURVATURE_CONTACT_SHEET_LAYOUT", "storyboard"),
+        help="Contact sheet layout: storyboard, square, vertical, two-column, or auto.",
+    )
     return parser.parse_args()
 
 
@@ -1045,14 +1213,17 @@ def main() -> int:
     report_path = (repo / args.report_path).resolve() if not args.report_path.is_absolute() else args.report_path
     assets_dir = (repo / args.assets_dir).resolve() if not args.assets_dir.is_absolute() else args.assets_dir
     create_curvature_difference_artifacts(root)
-    build_observatory_story_contact_sheets(root)
+    contact_sheet_layout = build_observatory_story_contact_sheets(root, args.contact_sheet_layout)
     rows = collect_rows(root)
     copy_report_assets(rows, assets_dir)
+    ladder_path = build_curvature_signature_ladder(root, assets_dir)
     info = hardware_info()
-    write_summary(root, rows, info)
-    write_report(root, rows, report_path, assets_dir, info)
+    write_summary(root, rows, info, contact_sheet_layout)
+    write_report(root, rows, report_path, assets_dir, info, ladder_path=ladder_path, contact_sheet_layout=contact_sheet_layout)
     print(f"[curvature-fps-report] summary={root / 'summary.json'}")
     print(f"[curvature-fps-report] report={report_path}")
+    if ladder_path:
+        print(f"[curvature-fps-report] curvature_signature_ladder={ladder_path}")
     return 0
 
 

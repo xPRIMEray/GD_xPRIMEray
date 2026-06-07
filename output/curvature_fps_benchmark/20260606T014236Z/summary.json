@@ -76,6 +76,14 @@
     "visual_render_confirmation_passed": false
   },
   "cell_count": 5,
+  "contact_sheet_layout": {
+    "columns": 3,
+    "panel_count": 9,
+    "requested": "square",
+    "row_major_order": true,
+    "rows": 3,
+    "selected": "square"
+  },
   "curvature_application": {
     "curvature_application_passed": true,
     "entries": [
@@ -235,9 +243,9 @@
           "sha256": "03b1790b1583a1590b9e4aea94384358460a5ff84e0fcf91afd57d98059dbbc2"
         },
         "diagnostic_contact_sheet": {
-          "bytes": 41691,
+          "bytes": 68517,
           "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/diagnostic_overlay_contact_sheet.png",
-          "sha256": "ce9eed88ba3c212127c5029d60152d0f191e90d666cff7e2901ab7d272fdf3f2"
+          "sha256": "e32d459ae21510b88b41b26dbc2fdebfdf7fe1aa60d47cdd7548e9eb94d1107b"
         },
         "geometry_explanation": {
           "bytes": 690,
@@ -500,8 +508,14 @@
         "compact_contact_sheet_mode": true,
         "contact_sheet_layout": {
           "caption_band_below_image": true,
+          "columns": 3,
           "image_canvas_unobscured": true,
+          "panel_count": 9,
           "rendered_pixels_are_not_annotated_by_contact_sheet": true,
+          "requested": "square",
+          "row_major_order": true,
+          "rows": 3,
+          "selected": "square",
           "title_band_above_image": true
         },
         "contact_sheet_legends_suppressed": true,
@@ -877,9 +891,9 @@
           "sha256": "b77cef36075a96ca233f600abcf4bc6bdd3ca343ae0185149f583a195c140c85"
         },
         "diagnostic_contact_sheet": {
-          "bytes": 44410,
+          "bytes": 71076,
           "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/diagnostic_overlay_contact_sheet.png",
-          "sha256": "862a97f8161571d61484e394f5e6bea835b96ce5b88ca9d9fef932970e3cd566"
+          "sha256": "0346f79ac69223e78646a92ef7ff605039a67ff5028973b7309a5ff53e9523d8"
         },
         "geometry_explanation": {
           "bytes": 1377,
@@ -1142,8 +1156,14 @@
         "compact_contact_sheet_mode": true,
         "contact_sheet_layout": {
           "caption_band_below_image": true,
+          "columns": 3,
           "image_canvas_unobscured": true,
+          "panel_count": 9,
           "rendered_pixels_are_not_annotated_by_contact_sheet": true,
+          "requested": "square",
+          "row_major_order": true,
+          "rows": 3,
+          "selected": "square",
           "title_band_above_image": true
         },
         "contact_sheet_legends_suppressed": true,
@@ -1519,9 +1539,9 @@
           "sha256": "84897ca9da325893ae2858de4120c212d0a984d5412198e46dfa4c243033c266"
         },
         "diagnostic_contact_sheet": {
-          "bytes": 44460,
+          "bytes": 71087,
           "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/diagnostic_overlay_contact_sheet.png",
-          "sha256": "4ad184a6decf15575dd87250f6e56d774eb2a663109cdaae98b5203a96872981"
+          "sha256": "14ee5e323fdd403082cec8eb8c29122e9f6f7c0111acc9294ffb11f87e502776"
         },
         "geometry_explanation": {
           "bytes": 1377,
@@ -1784,8 +1804,14 @@
         "compact_contact_sheet_mode": true,
         "contact_sheet_layout": {
           "caption_band_below_image": true,
+          "columns": 3,
           "image_canvas_unobscured": true,
+          "panel_count": 9,
           "rendered_pixels_are_not_annotated_by_contact_sheet": true,
+          "requested": "square",
+          "row_major_order": true,
+          "rows": 3,
+          "selected": "square",
           "title_band_above_image": true
         },
         "contact_sheet_legends_suppressed": true,
@@ -2161,9 +2187,9 @@
           "sha256": "84897ca9da325893ae2858de4120c212d0a984d5412198e46dfa4c243033c266"
         },
         "diagnostic_contact_sheet": {
-          "bytes": 44403,
+          "bytes": 71038,
           "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/diagnostic_overlay_contact_sheet.png",
-          "sha256": "f86a5712ec78c0598bc69cad4e7bf292e2c7521926ce815b3330ca5ab14c0e4f"
+          "sha256": "226a48503cc5450a63319b9f53ee974216ef60fde8cd4ba0a2fe7e29ec102dc9"
         },
         "geometry_explanation": {
           "bytes": 1377,
@@ -2426,8 +2452,14 @@
         "compact_contact_sheet_mode": true,
         "contact_sheet_layout": {
           "caption_band_below_image": true,
+          "columns": 3,
           "image_canvas_unobscured": true,
+          "panel_count": 9,
           "rendered_pixels_are_not_annotated_by_contact_sheet": true,
+          "requested": "square",
+          "row_major_order": true,
+          "rows": 3,
+          "selected": "square",
           "title_band_above_image": true
         },
         "contact_sheet_legends_suppressed": true,
@@ -2803,9 +2835,9 @@
           "sha256": "84897ca9da325893ae2858de4120c212d0a984d5412198e46dfa4c243033c266"
         },
         "diagnostic_contact_sheet": {
-          "bytes": 44340,
+          "bytes": 71010,
           "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/diagnostic_overlay_contact_sheet.png",
-          "sha256": "a75578e44f2b2c44179be00551c37b613331cd39869c715cedca853db60db044"
+          "sha256": "c09e833e89a2f0ac4d808060e1eeefbf46a831eb9aaceb8a1db62eb0636fc385"
         },
         "geometry_explanation": {
           "bytes": 1377,
@@ -3068,8 +3100,14 @@
         "compact_contact_sheet_mode": true,
         "contact_sheet_layout": {
           "caption_band_below_image": true,
+          "columns": 3,
           "image_canvas_unobscured": true,
+          "panel_count": 9,
           "rendered_pixels_are_not_annotated_by_contact_sheet": true,
+          "requested": "square",
+          "row_major_order": true,
+          "rows": 3,
+          "selected": "square",
           "title_band_above_image": true
         },
         "contact_sheet_legends_suppressed": true,
@@ -3608,27 +3646,27 @@
           {
             "curvature_percent": 0,
             "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_000/row/diagnostic_overlay_contact_sheet.png",
-            "sha256": "ce9eed88ba3c212127c5029d60152d0f191e90d666cff7e2901ab7d272fdf3f2"
+            "sha256": "e32d459ae21510b88b41b26dbc2fdebfdf7fe1aa60d47cdd7548e9eb94d1107b"
           },
           {
             "curvature_percent": 25,
             "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_025/row/diagnostic_overlay_contact_sheet.png",
-            "sha256": "862a97f8161571d61484e394f5e6bea835b96ce5b88ca9d9fef932970e3cd566"
+            "sha256": "0346f79ac69223e78646a92ef7ff605039a67ff5028973b7309a5ff53e9523d8"
           },
           {
             "curvature_percent": 50,
             "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_050/row/diagnostic_overlay_contact_sheet.png",
-            "sha256": "4ad184a6decf15575dd87250f6e56d774eb2a663109cdaae98b5203a96872981"
+            "sha256": "14ee5e323fdd403082cec8eb8c29122e9f6f7c0111acc9294ffb11f87e502776"
           },
           {
             "curvature_percent": 75,
             "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_075/row/diagnostic_overlay_contact_sheet.png",
-            "sha256": "f86a5712ec78c0598bc69cad4e7bf292e2c7521926ce815b3330ca5ab14c0e4f"
+            "sha256": "226a48503cc5450a63319b9f53ee974216ef60fde8cd4ba0a2fe7e29ec102dc9"
           },
           {
             "curvature_percent": 100,
             "path": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260606T014236Z/cells/curvature_100/row/diagnostic_overlay_contact_sheet.png",
-            "sha256": "a75578e44f2b2c44179be00551c37b613331cd39869c715cedca853db60db044"
+            "sha256": "c09e833e89a2f0ac4d808060e1eeefbf46a831eb9aaceb8a1db62eb0636fc385"
           }
         ],
         "identical_across_curvature": false,
