@@ -312,8 +312,8 @@ def create_curvature_difference_artifacts(root: Path) -> None:
 
     for percent in CURVATURE_ORDER:
         cell = root / "cells" / f"curvature_{percent:03d}" / "row"
-        out = cell / "curved_vs_straight_difference.png"
-        summary_path = cell / "curved_vs_straight_difference.json"
+        out = cell / "curvature_signature.png"
+        summary_path = cell / "curvature_signature.json"
         if percent == 0:
             img = Image.new("RGB", (base_w, base_h), (18, 22, 32))
             panel = img.resize((max(base_w, 160), max(base_h, 90)), Image.Resampling.NEAREST)
@@ -443,11 +443,15 @@ def compute_coverage_metrics(row: dict[str, Any]) -> dict[str, Any]:
         "evaluated_pixels": evaluated_pixels,
         "shaded_pixels": shaded_pixels,
         "committed_beauty_pixels": committed_beauty_pixels,
+        "traced_pixels": evaluated_pixels,
+        "beauty_written_pixels": committed_beauty_pixels,
         "background_pixels": background_pixels,
         "classified_pixels": classified_pixels,
         "evaluated_pixel_percent": pct(evaluated_pixels, total_film_pixels),
         "shaded_pixel_percent": pct(shaded_pixels, total_film_pixels),
         "committed_beauty_pixel_percent": pct(committed_beauty_pixels, total_film_pixels),
+        "traced_pixel_percent": pct(evaluated_pixels, total_film_pixels),
+        "beauty_written_pixel_percent": pct(committed_beauty_pixels, total_film_pixels),
         "classified_pixel_percent": pct(classified_pixels, total_film_pixels),
         "full_frame_render_passed": full_frame_render_passed,
     }
@@ -651,7 +655,7 @@ def build_observatory_story_contact_sheets(root: Path, layout: str) -> dict[str,
         ("Traversal steps", "traversal_step_heatmap", "Question: How hard was the trip?\nAcademic: per-pixel integration/traversal cost.\nAnalogy: traffic/congestion map."),
         ("Budget stress", "budget_heatmap", "Question: Which rays nearly ran out of budget?\nAcademic: max-step / overrun-step stress.\nAnalogy: fuel warning light."),
         ("Combined diagnostic", "combined_diagnostic_overlay", "Question: What do all diagnostics look like together?\nAcademic: composite diagnostic overlay.\nAnalogy: mission-control dashboard."),
-        ("Curvature signature", "curved_vs_straight_difference", "Difference relative to 0% baseline.\nQuestion: What changed when curvature was activated?\nAcademic: per-pixel traversal-step delta; color encodes sign/magnitude.\nAnalogy: weather-change map."),
+        ("Curvature signature", "curvature_signature", "Difference relative to 0% baseline.\nQuestion: What changed when curvature was activated?\nAcademic: per-pixel traversal-step delta; color encodes sign/magnitude.\nAnalogy: weather-change map."),
     ]
 
     selected_layout = normalize_contact_sheet_layout(layout, len(story))
@@ -686,7 +690,7 @@ def build_observatory_story_contact_sheets(root: Path, layout: str) -> dict[str,
                     img = placeholder_panel(title, "INVALID", path.name)
             else:
                 img = placeholder_panel(title, "MISSING", key)
-            if key == "curved_vs_straight_difference" and percent == 0:
+            if key == "curvature_signature" and percent == 0:
                 caption = "Difference relative to 0% baseline.\nQuestion: What changed when curvature was activated?\nBaseline: 0% is the straight-ray anchor for all delta maps."
             panels.append(make_story_contact_cell(title, img, caption))
         if panels:
@@ -717,7 +721,7 @@ def discover_visual_artifacts(cell: Path, generated: dict[str, str]) -> dict[str
         "hit_miss_map": ["hit_miss_map.png"],
         "frame_coverage_map": ["frame_coverage_map.png"],
         "traversal_step_heatmap": ["traversal_step_heatmap.png"],
-        "curved_vs_straight_difference": ["curved_vs_straight_difference.png", "curvature_signature.png"],
+        "curvature_signature": ["curvature_signature.png", "curved_vs_straight_difference.png"],
         "budget_heatmap": ["budget_exhaustion_heatmap.png"],
         "budget_overlay": ["budget_exhaustion_overlay.png"],
         "diagnostic_contact_sheet": ["diagnostic_overlay_contact_sheet.png"],
@@ -949,7 +953,7 @@ def aggregate_diagnostic_artifact_health(rows: list[dict[str, Any]]) -> dict[str
         "raw_visual",
         "geometry_explanation",
         "curvature_field_view",
-        "curved_vs_straight_difference",
+        "curvature_signature",
         "hit_miss_map",
         "traversal_step_heatmap",
         "budget_heatmap",
@@ -1024,11 +1028,15 @@ def collect_rows(root: Path) -> list[dict[str, Any]]:
             "evaluated_pixels",
             "shaded_pixels",
             "committed_beauty_pixels",
+            "traced_pixels",
+            "beauty_written_pixels",
             "background_pixels",
             "classified_pixels",
             "evaluated_pixel_percent",
             "shaded_pixel_percent",
             "committed_beauty_pixel_percent",
+            "traced_pixel_percent",
+            "beauty_written_pixel_percent",
             "classified_pixel_percent",
             "full_frame_render_passed",
         )}
@@ -1059,6 +1067,8 @@ def write_summary(root: Path, rows: list[dict[str, Any]], info: dict[str, str], 
         "min_evaluated_pixel_percent": min((parse_float(r.get("evaluated_pixel_percent")) for r in rows), default=math.nan),
         "min_shaded_pixel_percent": min((parse_float(r.get("shaded_pixel_percent")) for r in rows), default=math.nan),
         "min_committed_beauty_pixel_percent": min((parse_float(r.get("committed_beauty_pixel_percent")) for r in rows), default=math.nan),
+        "min_traced_pixel_percent": min((parse_float(r.get("traced_pixel_percent")) for r in rows), default=math.nan),
+        "min_beauty_written_pixel_percent": min((parse_float(r.get("beauty_written_pixel_percent")) for r in rows), default=math.nan),
     }
     payload = {
         "study": "curvature_fps_benchmark",
@@ -1114,9 +1124,8 @@ def write_report(
     full_frame_render_passed = bool(rows) and all(bool(r.get("full_frame_render_passed")) for r in rows)
     if full_frame_requested and not full_frame_render_passed:
         beauty_capture_health["visual_render_confirmation_passed"] = False
-    min_eval_pct = min((parse_float(r.get("evaluated_pixel_percent")) for r in rows), default=math.nan)
-    min_shaded_pct = min((parse_float(r.get("shaded_pixel_percent")) for r in rows), default=math.nan)
-    min_committed_pct = min((parse_float(r.get("committed_beauty_pixel_percent")) for r in rows), default=math.nan)
+    min_traced_pct = min((parse_float(r.get("traced_pixel_percent")) for r in rows), default=math.nan)
+    min_beauty_written_pct = min((parse_float(r.get("beauty_written_pixel_percent")) for r in rows), default=math.nan)
     fps_label = "mean FPS" if full_frame_render_passed else "mean diagnostic FPS"
     visual_status = "non-identical" if visual_identity["any_non_identical_visual_artifact"] else "identical"
     layout_meta = contact_sheet_layout or {}
@@ -1175,12 +1184,15 @@ def write_report(
         f"- Did it run? {'yes' if all_completed else 'no'}",
         f"- Did Godot exit cleanly? {'yes' if clean_exit else 'no'}",
         f"- Did all five curvature levels complete? {'yes' if all_completed else 'no'}",
-        f"- Run scale: {preset_label}",
-        f"- Coverage: evaluated {min_eval_pct:.1f}%, shaded {min_shaded_pct:.1f}%, committed beauty {min_committed_pct:.1f}% minimum across cells",
-        f"- Full-frame render passed? {'yes' if full_frame_render_passed else 'no'}",
         f"- Did sealed transport closure pass? {'yes — 0 misses across all traced pixels' if sealed_pass else 'no'}",
-        f"- Traversal budget stress: {budget_stress_str}",
         f"- Visual render confirmation: {visual_conf_str}",
+        f"- Run scale: {preset_label}",
+        f"- Render mode: {'full-frame render' if full_frame_render_passed else f'partial-frame diagnostic snapshot ({min_traced_pct:.1f}% traced minimum)'}",
+        f"- Coverage: traced {min_traced_pct:.1f}%, beauty written {min_beauty_written_pct:.1f}% minimum across cells",
+        "- Closure hit rate is measured over traced pixels only. Coverage metrics measure how many of the film's total pixels have been processed in this partial-frame snapshot; they are orthogonal dimensions.",
+        "- Traced = film pixels that have had rays fired through them. Beauty written = film pixels whose final color has been written to the beauty buffer at least once.",
+        f"- Full-frame coverage: {'complete' if full_frame_render_passed else 'partial'}",
+        f"- Traversal budget stress: {budget_stress_str}",
         f"- Diagnostic artifact health: {diagnostic_status}",
         f"- Did resolved fixture curvature vary as requested? {curvature_status}",
         f"- Are visual outputs identical across curvature levels? {'no' if visual_identity['any_non_identical_visual_artifact'] else 'yes'}",
@@ -1192,6 +1204,7 @@ def write_report(
     ]
     if not full_frame_render_passed:
         lines.append("- This run measures diagnostic throughput, not full-frame rendered FPS.")
+        lines.append("- Mean diagnostic FPS is frames per second in partial-frame diagnostic mode; each frame may process only a subset of film pixels, so it is not production rendering speed.")
     if beauty_status == "BLANK BEAUTY":
         lines += [
             "",
@@ -1204,8 +1217,8 @@ def write_report(
         "",
         "## Detailed Benchmark Table",
         "",
-        f"| curvature % | amplitude | resolved amp | transport | {fps_label} | p95 frame ms | eval % | shaded % | committed % | hit % | miss count | avg traversal steps | max traversal steps | budget stress % | screenshot | visual metrics available |",
-        "|---:|---:|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|",
+        f"| curvature % | amplitude | resolved amp | transport | {fps_label} | p95 frame ms | traced % | beauty written % | hit % | miss count | avg traversal steps | max traversal steps | budget stress % | screenshot | visual metrics available |",
+        "|---:|---:|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|",
     ]
 
     for row in rows:
@@ -1228,9 +1241,8 @@ def write_report(
             f"| {row['curvature_percent']} | {parse_float(row.get('field_amplitude'), 0):.4g} | "
             f"{parse_float(resolved.get('resolved_amp'), 0):.4g} | {transport} | "
             f"{parse_float(row.get('mean_fps'), 0):.2f} | {parse_float(row.get('p95_frame_time_ms'), 0):.2f} | "
-            f"{parse_float(row.get('evaluated_pixel_percent'), 0):.1f} | "
-            f"{parse_float(row.get('shaded_pixel_percent'), 0):.1f} | "
-            f"{parse_float(row.get('committed_beauty_pixel_percent'), 0):.1f} | "
+            f"{parse_float(row.get('traced_pixel_percent'), 0):.1f} | "
+            f"{parse_float(row.get('beauty_written_pixel_percent'), 0):.1f} | "
             f"{parse_float(row.get('hit_percent'), 0):.3f} | {parse_int(row.get('miss_count'), 0)} | "
             f"{parse_float(row.get('average_traversal_steps'), 0):.2f} | {max_steps_str} | "
             f"{budget_pct_str} | {screenshot_link} | {visual_links} |"
