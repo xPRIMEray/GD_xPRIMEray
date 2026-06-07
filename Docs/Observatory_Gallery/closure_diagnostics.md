@@ -4,6 +4,14 @@ Hermetic closure is the scene-contract invariant: every evaluated pixel must rea
 
 ## The Hermetic Closure Hero
 
+![Hermetic Storyboard v2 hero](../assets/observatory/hermetic_storyboard_v2_hero.png)
+
+*Hermetic Storyboard v2 shows the full validation chain for the sealed-room fixture: rendered reference, geometry, transport, seams, closure, coverage, curvature signature, and final fixture verdict. It confirms scene-contract completion for this fixture; it does not claim physical ground truth.*
+
+Detailed 3×3 view: [Hermetic Storyboard v2](../assets/observatory/hermetic_storyboard_v2.png).
+
+Read the scope first in [What the Observatory Measures](./what_the_observatory_measures.md), compare fixture roles in [Canonical Fixtures](./canonical_fixtures.md), and see the latest mini full-coverage benchmark comparison in [Curvature Full-Coverage Mini Experiment](./curvature_full_coverage_experiment.md).
+
 **The canonical image**: Two renders of the identical curved-room scene.
 
 - Left: low integration budget (e.g. 32 steps) — visually plausible.

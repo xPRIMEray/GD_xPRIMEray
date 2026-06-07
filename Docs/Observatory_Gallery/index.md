@@ -12,6 +12,14 @@ Before comparing fixtures, start with [What the Observatory Measures](./what_the
 
 The simplest complete example is **Hermetic Curved Room** in [Canonical Fixtures](./canonical_fixtures.md#hermetic_curved_room). It is the clean 9/9 Observatory Story: a sealed room, a known scene contract, zero misses when closure passes, and a curvature ramp that can be compared against the 0% baseline.
 
+![Hermetic Storyboard v2 hero](../assets/observatory/hermetic_storyboard_v2_hero.png)
+
+*Hermetic Storyboard v2 shows the full validation chain for the sealed-room fixture: rendered reference, geometry, transport, seams, closure, coverage, curvature signature, and final fixture verdict. It confirms scene-contract completion for this fixture; it does not claim physical ground truth.*
+
+For the detailed 3×3 Observatory Story, open the full [Hermetic Storyboard v2](../assets/observatory/hermetic_storyboard_v2.png).
+
+Start with [What the Observatory Measures](./what_the_observatory_measures.md), then compare fixture roles in [Canonical Fixtures](./canonical_fixtures.md). The latest mini full-coverage benchmark comparison is published as [Curvature Full-Coverage Mini Experiment](./curvature_full_coverage_experiment.md).
+
 **15–20 Minute Visitor Path**
 
 - Start with [What the Observatory Measures](./what_the_observatory_measures.md), then the Hermetic Curved Room in **Canonical Fixtures**.

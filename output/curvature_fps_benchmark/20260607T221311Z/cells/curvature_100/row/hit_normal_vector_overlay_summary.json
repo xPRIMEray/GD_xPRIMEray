@@ -1,0 +1,94 @@
+{
+  "camera_facing_or_projection_degenerate_count": 225,
+  "compare_csv": "",
+  "compare_sample_count": 0,
+  "flip_y": true,
+  "hit_count": 280,
+  "hit_csv": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260607T221311Z/cells/curvature_100/row/hermetic_curved_room__curvature_fps_100__baseline_prune_off__scheduler-baseline__targetms-1000__stride-1__runid-1.hit_diagnostics.csv",
+  "hit_normal_x_stats": {
+    "max": 1.0,
+    "mean": 0.0,
+    "min": -1.0
+  },
+  "hit_normal_y_stats": {
+    "max": 1.0,
+    "mean": 0.013504,
+    "min": 0.0
+  },
+  "hit_normal_z_stats": {
+    "max": 1.0,
+    "mean": 0.789062,
+    "min": 0.0
+  },
+  "hit_projected_xy_magnitude_histogram": {
+    ">1.0": 0,
+    "[0,1e-6)": 14140,
+    "[0.5,1.0]": 3780,
+    "[1e-1,0.5)": 0,
+    "[1e-2,1e-1)": 0,
+    "[1e-3,1e-2)": 0,
+    "[1e-4,1e-3)": 0,
+    "[1e-6,1e-4)": 0
+  },
+  "hit_rows_with_valid_normal_xyz": 17920,
+  "image": "/home/bb/code/godot_xPRIMEray/output/curvature_fps_benchmark/20260607T221311Z/cells/curvature_100/row/curvature_field_view.png",
+  "max_compare_normal_angle_delta_deg": 0.0,
+  "mean_compare_normal_angle_delta_deg": "",
+  "min_projected_magnitude": 1e-06,
+  "mode": "fixed",
+  "no_hit_count": 0,
+  "normal_field_names_found": [
+    "normal_x",
+    "normal_y",
+    "normal_z",
+    "first_accepted_normal_x",
+    "first_accepted_normal_y",
+    "first_accepted_normal_z"
+  ],
+  "normal_x_stats": {
+    "max": 1.0,
+    "mean": 0.0,
+    "min": -1.0
+  },
+  "normal_y_stats": {
+    "max": 1.0,
+    "mean": 0.013504,
+    "min": 0.0
+  },
+  "normal_z_stats": {
+    "max": 1.0,
+    "mean": 0.789062,
+    "min": 0.0
+  },
+  "post_process_only": true,
+  "projected_xy_magnitude_histogram": {
+    ">1.0": 0,
+    "[0,1e-6)": 14140,
+    "[0.5,1.0]": 3780,
+    "[1e-1,0.5)": 0,
+    "[1e-2,1e-1)": 0,
+    "[1e-3,1e-2)": 0,
+    "[1e-4,1e-3)": 0,
+    "[1e-6,1e-4)": 0
+  },
+  "projection": "xy",
+  "projection_degenerate_normal_count": 225,
+  "roi_bbox": "",
+  "rows_with_valid_normal_xyz": 17920,
+  "sample_count": 280,
+  "sampled_hit_pixels_marked": 280,
+  "sampled_hit_rows_with_valid_normal_xyz": 280,
+  "sampled_projected_xy_magnitude_histogram": {
+    ">1.0": 0,
+    "[0,1e-6)": 225,
+    "[0.5,1.0]": 55,
+    "[1e-1,0.5)": 0,
+    "[1e-2,1e-1)": 0,
+    "[1e-3,1e-2)": 0,
+    "[1e-4,1e-3)": 0,
+    "[1e-6,1e-4)": 0
+  },
+  "scale": 12.0,
+  "stride": 8,
+  "vectors_drawn": 55
+}

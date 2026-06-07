@@ -1,0 +1,6 @@
+edge_id,node_a,node_b,seam_length_px,collider_flip_count,domain_flip_count,boundary_event_flip_count,mean_continuity_discontinuity_score,max_continuity_discontinuity_score,mean_hit_distance_delta,max_hit_distance_delta,mean_path_length_delta,max_path_length_delta,mean_step_count_delta,max_step_count_delta,mean_normal_angle_delta,max_normal_angle_delta,unresolved_sample_count_on_seam,ownership_transition_count,edge_stability_class
+1,0,1,119,119,0,0,2.01131,2.124599,0.025978,0.081602,0.025978,0.081602,0.058824,7.0,90.0,90.0,0,0,precision_sensitive
+2,0,3,3,3,0,0,2.01006,2.012866,0.025149,0.032165,0.025149,0.032165,0.0,0.0,90.0,90.0,0,0,precision_sensitive
+3,1,2,119,119,0,0,2.01131,2.124599,0.025977,0.081602,0.025977,0.081602,0.058824,7.0,90.0,90.0,0,0,precision_sensitive
+4,1,3,120,120,0,0,2.033175,2.035858,0.004812,0.011519,0.004812,0.011519,2.0,2.0,90.0,90.0,0,0,precision_sensitive
+5,2,3,3,3,0,0,2.01006,2.012866,0.025149,0.032165,0.025149,0.032165,0.0,0.0,90.0,90.0,0,0,precision_sensitive

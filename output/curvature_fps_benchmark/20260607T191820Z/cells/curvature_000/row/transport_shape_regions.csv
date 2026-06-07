@@ -1,0 +1,5 @@
+region_id,collider_id,area,centroid_x,centroid_y,bbox_x0,bbox_y0,bbox_x1,bbox_y1,contour_pixel_count,mean_discontinuity_score,max_discontinuity_score,boundary_flip_count,high_vector_count,boundary_high_vector_density,boundary_aligns_with_high_vector_density
+0,26206012821,1769,7.643,61.167,0,0,19,111,250,2.01128,2.124594,122,122,0.488,True
+1,26105349517,14140,79.5,53.141,11,0,148,109,474,2.023877,2.124594,358,358,0.755274,True
+2,26256344472,1769,151.357,61.167,140,0,159,111,250,2.01128,2.124594,122,122,0.488,True
+3,26306676123,242,79.5,110.504,19,110,140,111,242,2.046955,2.051483,126,126,0.520661,True
