@@ -29,11 +29,11 @@ Use the sidebar or top navigation to move between the permanent sections of the 
 
 ---
 
-## Quick Links to Signature Exhibits
+## Signature Exhibits
 
-- [Hermetic Closure Hero](/output/hermetic_hit_closure/) — The plausible noise detector.
-- [Observer Disagreement Contact Sheet](/output/observer_disagreement/) — 23.8% of pixels classify differently.
-- [Coherence Basin + Cathedral Probe Overlays](/assets/cathedral_probe/) — Topological structure made visible.
-- [Curvature Signature Ladders](/assets/curved_field_validation_ladder/) — Where the field refuses to converge.
+- **Hermetic Closure Hero** ([Closure Diagnostics](./closure_diagnostics.md)) — Two renders that look identical; only the closure status map tells them apart. The plausible noise detector.
+- **Observer Disagreement** ([Ch 2 — Observer Disagreement](../Observatory/chapters/chapter_02.md)) — 23.8% of pixels classify differently between curved and straight transport models in this scene.
+- **Coherence Basin** ([Ch 4 — Coherence Basin](../Observatory/chapters/chapter_04.md)) — Topological instability bands that no integration budget can eliminate.
+- **Curvature Signature Ladders** ([Curvature Benchmark](./curvature_benchmark.md)) — Where and why curved transport diverges from straight-line traversal.
 
-All artifacts are self-contained. Copy any `output/<name>/` folder (with its README.md) to promote to the public MisterY Labs portal.
+Full artifact folders (`output/<name>/`) are self-contained. Each ships with a README.md that serves as the exhibit card.

@@ -6,7 +6,7 @@ The Curvature Signature Ladder and related contact sheets form the core visual l
 
 **What it shows**: For a given scene and observer pose, the minimum step length (or precision floor) required for reference integration to converge on a stable diagnostic classification.
 
-- Every node that reaches the finest available floor (e.g. 0.003125) and still fails is marked as a "risk node" or "unresolved island."
+- Every node that reaches the finest available floor (e.g. 0.003125) and does not converge is marked as a "risk node" or "unresolved island."
 - Bands and clusters are not random; they trace high-curvature boundaries in the GRIN field.
 
 **Primary Exhibits**
@@ -38,7 +38,7 @@ Use the assets in `assets/curved_field_validation_ladder/` and `assets/observato
 
 **Why This Section Exists**
 
-The ladders turn "the field is curved" into a measurable, mappable, falsifiable property. They are the scientific backbone that justifies every other visual in the observatory.
+The ladders turn "the field is curved" into a measurable, mappable, falsifiable property. They are the measurable foundation that makes the other exhibits interpretable — curvature has a signal, and the signal can be mapped.
 
 **Navigation**
 

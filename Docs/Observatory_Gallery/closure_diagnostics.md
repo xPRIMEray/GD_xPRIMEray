@@ -1,6 +1,6 @@
 # Closure Diagnostics
 
-Hermetic closure is the invariant that makes every other claim in xPRIMEray falsifiable: every pixel must reach a terminal classification (geometry hit, escaped, portal event, etc.) before the integrator stops.
+Hermetic closure is the scene-contract invariant: every evaluated pixel must reach a terminal classification before integration declares completion. Closure passing does not validate the renderer's physics; it confirms that no pixel was silently abandoned within the declared scene.
 
 ## The Hermetic Closure Hero
 
@@ -12,7 +12,9 @@ Hermetic closure is the invariant that makes every other claim in xPRIMEray fals
 
 At low budget the closure can be **0.0%** — every pixel is unresolved noise that happens to look like a render. At sufficient budget it reaches **100.0%**.
 
-The red/green accent strips and the failure map are the only reliable indicators. The eye cannot tell.
+100.0% closure means every pixel was classified within the scene contract, not that the classification is physically accurate.
+
+The red/green accent strips and the closure status map are the only reliable indicators. The eye cannot tell.
 
 **Key Artifacts**
 
@@ -44,4 +46,4 @@ The red/green accent strips and the failure map are the only reliable indicators
 - Canonical fixtures (especially Hermetic Curved Room and Boundary Shells) are the repeatable test beds for closure.
 - Failures in closure often appear as banding or unresolved islands in the research fixtures.
 
-This section is the heart of the scene-contract philosophy: without the closure contract, every beautiful image is just a plausible story.
+This section is the heart of the scene-contract philosophy: without the closure contract, every beautiful image is an unverified story — there is no evidence that pixels reached terminal classification rather than stopping mid-journey.

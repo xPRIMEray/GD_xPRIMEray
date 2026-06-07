@@ -970,6 +970,11 @@ public partial class RenderTestRunner : Node
 			_film.EnableProfiling = true;
 			_film.EnableFramePerf = true;
 			_film.FramePerfVerbose = false;
+			// The hermetic fixture scene enables categorical debug-color authority so
+			// closure overlays are easy to read. The curvature FPS beauty capture must
+			// remain a raw render proof, so leave fixture diagnostics enabled but let
+			// normal/depth shading commit to the film image copied by the benchmark.
+			_film.FixtureDebugColorAuthorityEnabled = false;
 		}
 		_film.RenderStepPhaseLog = false;
 		_film.RenderStepBandLog = false;
