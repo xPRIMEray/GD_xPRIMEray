@@ -48,6 +48,7 @@ FILM_H="${RES#*x}"
 FILM_SCALE="${CURVATURE_FPS_FILM_SCALE:-1.0}"
 FRAMES="${CURVATURE_FPS_FRAMES:-90}"
 WARMUP="${CURVATURE_FPS_WARMUP:-5}"
+FULL_FRAME="${CURVATURE_FPS_FULL_FRAME:-0}"
 STEP="${CURVATURE_FPS_STEP:-0.015}"
 BUDGET="${CURVATURE_FPS_STEPS_PER_RAY:-700}"
 STRIDE="${CURVATURE_FPS_STRIDE:-1}"
@@ -66,6 +67,7 @@ exec > >(tee -a "$LOG") 2>&1
 echo "[curvature-fps] output=$OUTPUT_DIR"
 echo "[curvature-fps] scene=$SCENE fixture=$FIXTURE"
 echo "[curvature-fps] preset=$PRESET frames=$FRAMES warmup=$WARMUP res=${FILM_W}x${FILM_H} scale=$FILM_SCALE stride=$STRIDE"
+echo "[curvature-fps] full_frame=$FULL_FRAME"
 echo "[curvature-fps] step=$STEP steps_per_ray=$BUDGET traversal=$TRAVERSAL"
 echo "[curvature-fps] sweep=$SWEEP"
 echo "[curvature-fps] contract=every evaluated pixel should hit a sealed-room receiver"
@@ -112,6 +114,7 @@ write_metadata() {
   "stride": $STRIDE,
   "frames": $FRAMES,
   "warmup": $WARMUP,
+  "full_frame_requested": $FULL_FRAME,
   "closure_contract": "all pixels expected to hit sealed-room receiver; no valid exceptions in v1",
   "closure_truth_scope": "scene-contract closure, not physical correctness",
   "curved_minimal_reference": "100pct amplitude 1.15 follows CurvedMinimalFingerprint canonical fixture amplitude",

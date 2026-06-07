@@ -117,6 +117,26 @@
         "cards/atomic-orbital-observatory.md"
       ],
       "summary": "Five renders spanning no-field baseline to exaggerated hydrogen GRIN lensing to temporally modulated orbital fringes. Demonstrates GRIN field rendering at the physics level: 2–11% of pixels visibly shift between temporal ticks.",
+    },
+    {
+      "id": "resonance-sphere-digital-circus-trophy-room",
+      "title": "Resonance Sphere — Digital Circus Trophy Room (xPRIMEray Portal Echo)",
+      "source_output_folder": "misterylabs/src/data",
+      "artifact_type": "inspiration_resonance",
+      "status": "Design + data model complete",
+      "tier": 1,
+      "category": "inspiration",
+      "in_misterylabs": false,
+      "thumbnail": "visuals/resonance-sphere-trophy-preview.png",
+      "promoted_files": [
+        "misterylabs/src/data/resonance_spheres_data.ts",
+        "misterylabs/src/components/ResonanceSphere.tsx",
+        "misterylabs/src/components/ResonanceSpheresAtlas.tsx",
+        "misterylabs/src/data/sphere_texture_prompt.md"
+      ],
+      "summary": "Central dynamic sphere textured with the Trophy Room (The Amazing Digital Circus) rendered through xPRIMEray-style curved transport + GRIN refraction and wormhole boundary distortion. Orbiting Nobel / physics / pop-culture inspiration nodes with rich media, YT, and explicit 'signal resonance' text explaining the portal / recursion / observer kinship. The living canvas for the FractalInspirationAtlas.",
+      "next_step": "Generate the actual sphere texture using the provided prompt (base: overspace_trophy_room_demo.tscn renders). Wire the React components into the live MisterY Labs site. Add 2-3 more high-coherence nodes (Quake portal tech, Bell Labs visualization history)."
+    }
       "next_step": "Add helium (two-electron) variant. Render at higher resolution for finer fringe detail."
     },
     {

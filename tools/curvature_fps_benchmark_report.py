@@ -231,7 +231,9 @@ def make_heatmaps(hit_csv: Path, out_dir: Path) -> dict[str, str]:
 
     hit_img = Image.new("RGBA", (width, height), (28, 30, 40, 255))
     step_img = Image.new("RGBA", (width, height), (6, 8, 18, 255))
+    coverage_img = Image.new("RGBA", (width, height), (10, 12, 18, 255))
     hit_pix = hit_img.load()
+    coverage_pix = coverage_img.load()
     steps: list[tuple[int, int, int]] = []
     max_step = 1
     for row in rows:
@@ -244,10 +246,13 @@ def make_heatmaps(hit_csv: Path, out_dir: Path) -> dict[str, str]:
             continue
         if parse_bool(row.get("had_hit")):
             hit_pix[x, y] = (35, 190, 120, 255)
+            coverage_pix[x, y] = (58, 202, 136, 255)
         elif parse_bool(row.get("budget_exhausted_without_hit")):
             hit_pix[x, y] = (255, 145, 35, 255)
+            coverage_pix[x, y] = (255, 145, 35, 255)
         else:
             hit_pix[x, y] = (240, 50, 95, 255)
+            coverage_pix[x, y] = (240, 50, 95, 255)
         step = parse_int(row.get("final_step_count") or row.get("step_count"), 0)
         if step > 0:
             steps.append((x, y, step))
@@ -263,6 +268,7 @@ def make_heatmaps(hit_csv: Path, out_dir: Path) -> dict[str, str]:
     for stem, img in (
         ("hit_miss_map", hit_img),
         ("traversal_step_heatmap", step_img),
+        ("frame_coverage_map", coverage_img),
     ):
         resized = img.resize((width * scale, height * scale), Image.Resampling.NEAREST)
         path = out_dir / f"{stem}.png"
@@ -391,6 +397,67 @@ def detect_preset(rows: list[dict[str, Any]]) -> dict[str, Any]:
                 return {"width": w, "height": h, **preset}
             return {"width": w, "height": h, "name": f"{w}x{h}", "purpose": "custom", "visual_confirmation_required": True}
     return {"width": 0, "height": 0, "name": "unknown", "purpose": "unknown", "visual_confirmation_required": True}
+
+
+def pct(numerator: int, denominator: int) -> float:
+    return (100.0 * numerator / denominator) if denominator > 0 else math.nan
+
+
+def compute_coverage_metrics(row: dict[str, Any]) -> dict[str, Any]:
+    fc = row.get("film_capture") or {}
+    wd = row.get("write_diagnostics") or {}
+    fixture = row.get("fixture_stats") or {}
+    perf = row.get("latest_perf_frame_report") or {}
+
+    width = parse_int(fc.get("width"), 0)
+    height = parse_int(fc.get("height"), 0)
+    total_film_pixels = width * height
+    if total_film_pixels <= 0:
+        total_film_pixels = parse_int(wd.get("beauty_expected_pixels"), 0)
+
+    evaluated_pixels = parse_int(row.get("total_pixels_rays_evaluated"), 0)
+    if evaluated_pixels <= 0:
+        evaluated_pixels = parse_int(fixture.get("traced_pixels"), 0)
+    if evaluated_pixels <= 0:
+        evaluated_pixels = parse_int(fc.get("rays_traced"), 0)
+
+    hit_count = parse_int(row.get("hit_count"), 0)
+    miss_count = parse_int(row.get("miss_count"), 0)
+    classified_pixels = hit_count + miss_count
+    shaded_pixels = hit_count
+    if shaded_pixels <= 0:
+        shaded_pixels = parse_int(perf.get("hits"), 0)
+
+    committed_beauty_pixels = parse_int(wd.get("beauty_pixels_written_once"), 0) + parse_int(wd.get("beauty_pixels_multi_written"), 0)
+    background_pixels = parse_int(fixture.get("background_hits"), 0)
+
+    full_frame_render_passed = (
+        total_film_pixels > 0
+        and evaluated_pixels >= total_film_pixels
+        and shaded_pixels >= total_film_pixels
+        and committed_beauty_pixels >= total_film_pixels
+        and classified_pixels >= total_film_pixels
+    )
+    return {
+        "total_film_pixels": total_film_pixels,
+        "evaluated_pixels": evaluated_pixels,
+        "shaded_pixels": shaded_pixels,
+        "committed_beauty_pixels": committed_beauty_pixels,
+        "background_pixels": background_pixels,
+        "classified_pixels": classified_pixels,
+        "evaluated_pixel_percent": pct(evaluated_pixels, total_film_pixels),
+        "shaded_pixel_percent": pct(shaded_pixels, total_film_pixels),
+        "committed_beauty_pixel_percent": pct(committed_beauty_pixels, total_film_pixels),
+        "classified_pixel_percent": pct(classified_pixels, total_film_pixels),
+        "full_frame_render_passed": full_frame_render_passed,
+    }
+
+
+def apply_coverage_metrics(rows: list[dict[str, Any]]) -> None:
+    for row in rows:
+        coverage = compute_coverage_metrics(row)
+        row["coverage"] = coverage
+        row.update(coverage)
 
 
 def build_curvature_signature_ladder(root: Path, assets_dir: Path | None = None) -> str | None:
@@ -648,6 +715,7 @@ def discover_visual_artifacts(cell: Path, generated: dict[str, str]) -> dict[str
         "cartesian_wireframe_overlay": ["layer1_cartesian_wireframe.png"],
         "normal_overlay": ["full_frame_hit_normals.png", "hit_normal_vector_overlay.png"],
         "hit_miss_map": ["hit_miss_map.png"],
+        "frame_coverage_map": ["frame_coverage_map.png"],
         "traversal_step_heatmap": ["traversal_step_heatmap.png"],
         "curved_vs_straight_difference": ["curved_vs_straight_difference.png", "curvature_signature.png"],
         "budget_heatmap": ["budget_exhaustion_heatmap.png"],
@@ -950,11 +1018,26 @@ def collect_rows(root: Path) -> list[dict[str, Any]]:
             "hit_diagnostics_csv": str(hit_csv) if hit_csv else "",
             "closure_summary_available": bool(closure_summary),
         }
+        row.update(compute_coverage_metrics(row))
+        row["coverage"] = {key: row[key] for key in (
+            "total_film_pixels",
+            "evaluated_pixels",
+            "shaded_pixels",
+            "committed_beauty_pixels",
+            "background_pixels",
+            "classified_pixels",
+            "evaluated_pixel_percent",
+            "shaded_pixel_percent",
+            "committed_beauty_pixel_percent",
+            "classified_pixel_percent",
+            "full_frame_render_passed",
+        )}
         rows.append(row)
     return rows
 
 
 def write_summary(root: Path, rows: list[dict[str, Any]], info: dict[str, str], contact_sheet_layout: dict[str, Any]) -> None:
+    apply_coverage_metrics(rows)
     all_completed = all((Path(r["cell"]) / "curvature_fps_result.json").exists() for r in rows)
     clean_exit = all(parse_int(r.get("godot_exit_code"), -1) == 0 or str(r.get("effective_status")) == "0" for r in rows)
     sealed_pass = all(parse_int(r.get("miss_count"), 1) == 0 for r in rows)
@@ -962,6 +1045,21 @@ def write_summary(root: Path, rows: list[dict[str, Any]], info: dict[str, str], 
     curvature_application = analyze_curvature_application(rows)
     beauty_capture_health = aggregate_beauty_capture_health(rows)
     diagnostic_artifact_health = aggregate_diagnostic_artifact_health(rows)
+    full_frame_requested = any(parse_bool((load_json(Path(r["cell"]) / "metadata.json") or {}).get("full_frame_requested")) for r in rows)
+    full_frame_render_passed = bool(rows) and all(bool(r.get("full_frame_render_passed")) for r in rows)
+    visual_render_confirmation_passed = bool(beauty_capture_health.get("visual_render_confirmation_passed"))
+    if full_frame_requested and not full_frame_render_passed:
+        visual_render_confirmation_passed = False
+    beauty_capture_health["visual_render_confirmation_passed"] = visual_render_confirmation_passed
+    beauty_capture_health["full_frame_requested"] = full_frame_requested
+    beauty_capture_health["full_frame_render_passed"] = full_frame_render_passed
+    coverage_summary = {
+        "full_frame_requested": full_frame_requested,
+        "full_frame_render_passed": full_frame_render_passed,
+        "min_evaluated_pixel_percent": min((parse_float(r.get("evaluated_pixel_percent")) for r in rows), default=math.nan),
+        "min_shaded_pixel_percent": min((parse_float(r.get("shaded_pixel_percent")) for r in rows), default=math.nan),
+        "min_committed_beauty_pixel_percent": min((parse_float(r.get("committed_beauty_pixel_percent")) for r in rows), default=math.nan),
+    }
     payload = {
         "study": "curvature_fps_benchmark",
         "guardrail": GUARDRAIL,
@@ -974,6 +1072,7 @@ def write_summary(root: Path, rows: list[dict[str, Any]], info: dict[str, str], 
         "curvature_application": curvature_application,
         "beauty_capture_health": beauty_capture_health,
         "diagnostic_artifact_health": diagnostic_artifact_health,
+        "coverage_summary": coverage_summary,
         "contact_sheet_layout": contact_sheet_layout,
         "visual_identity": visual_identity,
         "hardware": info,
@@ -999,6 +1098,7 @@ def write_report(
     ladder_path: str | None = None,
     contact_sheet_layout: dict[str, Any] | None = None,
 ) -> None:
+    apply_coverage_metrics(rows)
     all_completed = all((Path(r["cell"]) / "curvature_fps_result.json").exists() for r in rows)
     clean_exit = all(parse_int(r.get("godot_exit_code"), -1) == 0 or str(r.get("effective_status")) == "0" for r in rows)
     sealed_pass = all(parse_int(r.get("miss_count"), 1) == 0 for r in rows)
@@ -1010,6 +1110,14 @@ def write_report(
     curvature_application = analyze_curvature_application(rows)
     beauty_capture_health = aggregate_beauty_capture_health(rows)
     diagnostic_artifact_health = aggregate_diagnostic_artifact_health(rows)
+    full_frame_requested = any(parse_bool((load_json(Path(r["cell"]) / "metadata.json") or {}).get("full_frame_requested")) for r in rows)
+    full_frame_render_passed = bool(rows) and all(bool(r.get("full_frame_render_passed")) for r in rows)
+    if full_frame_requested and not full_frame_render_passed:
+        beauty_capture_health["visual_render_confirmation_passed"] = False
+    min_eval_pct = min((parse_float(r.get("evaluated_pixel_percent")) for r in rows), default=math.nan)
+    min_shaded_pct = min((parse_float(r.get("shaded_pixel_percent")) for r in rows), default=math.nan)
+    min_committed_pct = min((parse_float(r.get("committed_beauty_pixel_percent")) for r in rows), default=math.nan)
+    fps_label = "mean FPS" if full_frame_render_passed else "mean diagnostic FPS"
     visual_status = "non-identical" if visual_identity["any_non_identical_visual_artifact"] else "identical"
     layout_meta = contact_sheet_layout or {}
     layout_selected = str(layout_meta.get("selected", "storyboard"))
@@ -1052,6 +1160,8 @@ def write_report(
     visual_confirmation_required = preset_info["visual_confirmation_required"]
     if visual_confirmation_required:
         visual_conf_str = "yes" if beauty_capture_health["visual_render_confirmation_passed"] else f"FAILED — beauty capture is {beauty_status.lower()}; verify layer0_beauty"
+        if full_frame_requested and not full_frame_render_passed:
+            visual_conf_str = "FAILED — full-frame mode requested but coverage is below 100%"
     else:
         visual_conf_str = f"not applicable at {preset_info['name']} scale — telemetry only; run at mini (160×112) or larger for visual evidence"
 
@@ -1066,6 +1176,8 @@ def write_report(
         f"- Did Godot exit cleanly? {'yes' if clean_exit else 'no'}",
         f"- Did all five curvature levels complete? {'yes' if all_completed else 'no'}",
         f"- Run scale: {preset_label}",
+        f"- Coverage: evaluated {min_eval_pct:.1f}%, shaded {min_shaded_pct:.1f}%, committed beauty {min_committed_pct:.1f}% minimum across cells",
+        f"- Full-frame render passed? {'yes' if full_frame_render_passed else 'no'}",
         f"- Did sealed transport closure pass? {'yes — 0 misses across all traced pixels' if sealed_pass else 'no'}",
         f"- Traversal budget stress: {budget_stress_str}",
         f"- Visual render confirmation: {visual_conf_str}",
@@ -1074,10 +1186,12 @@ def write_report(
         f"- Are visual outputs identical across curvature levels? {'no' if visual_identity['any_non_identical_visual_artifact'] else 'yes'}",
         f"- Artifact families that changed with curvature: `{', '.join(visual_identity['non_identical_visual_artifact_keys']) or 'none'}`",
         f"- Contact sheet layout: `{layout_selected}` ({layout_cols} columns x {layout_rows} rows, row-major order)",
-        f"- Did FPS reach 30? {'yes' if reaches_30 else 'no'}",
-        f"- Did FPS reach 60? {'yes' if reaches_60 else 'no'}",
+        f"- Did {fps_label} reach 30? {'yes' if reaches_30 else 'no'}",
+        f"- Did {fps_label} reach 60? {'yes' if reaches_60 else 'no'}",
         f"- Biggest bottleneck observed: {bottleneck}",
     ]
+    if not full_frame_render_passed:
+        lines.append("- This run measures diagnostic throughput, not full-frame rendered FPS.")
     if beauty_status == "BLANK BEAUTY":
         lines += [
             "",
@@ -1090,8 +1204,8 @@ def write_report(
         "",
         "## Detailed Benchmark Table",
         "",
-        "| curvature % | amplitude | resolved amp | transport | mean FPS | p95 frame ms | hit % | miss count | avg traversal steps | max traversal steps | budget stress % | screenshot | visual metrics available |",
-        "|---:|---:|---:|---|---:|---:|---:|---:|---:|---:|---:|---|---|",
+        f"| curvature % | amplitude | resolved amp | transport | {fps_label} | p95 frame ms | eval % | shaded % | committed % | hit % | miss count | avg traversal steps | max traversal steps | budget stress % | screenshot | visual metrics available |",
+        "|---:|---:|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|",
     ]
 
     for row in rows:
@@ -1114,6 +1228,9 @@ def write_report(
             f"| {row['curvature_percent']} | {parse_float(row.get('field_amplitude'), 0):.4g} | "
             f"{parse_float(resolved.get('resolved_amp'), 0):.4g} | {transport} | "
             f"{parse_float(row.get('mean_fps'), 0):.2f} | {parse_float(row.get('p95_frame_time_ms'), 0):.2f} | "
+            f"{parse_float(row.get('evaluated_pixel_percent'), 0):.1f} | "
+            f"{parse_float(row.get('shaded_pixel_percent'), 0):.1f} | "
+            f"{parse_float(row.get('committed_beauty_pixel_percent'), 0):.1f} | "
             f"{parse_float(row.get('hit_percent'), 0):.3f} | {parse_int(row.get('miss_count'), 0)} | "
             f"{parse_float(row.get('average_traversal_steps'), 0):.2f} | {max_steps_str} | "
             f"{budget_pct_str} | {screenshot_link} | {visual_links} |"

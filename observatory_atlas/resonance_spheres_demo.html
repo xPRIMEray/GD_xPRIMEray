@@ -1,0 +1,150 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Resonance Spheres — xPRIMEray Observatory (Interactive Demo)</title>
+  <style>
+    :root { --bg: #0a0a0f; --accent: #00ffff; --amber: #ffcc66; }
+    body { margin:0; background: var(--bg); color:#ddd; font-family: ui-monospace, monospace; }
+    .header { padding: 24px; border-bottom: 1px solid rgba(255,255,255,.1); }
+    .sphere-container { width: 620px; height: 620px; margin: 40px auto; position: relative; }
+    .sphere {
+      width: 600px; height: 600px; border-radius: 50%;
+      background-size: cover; background-position: center;
+      box-shadow: 0 0 120px rgba(0,255,255,.12), inset 0 0 160px rgba(0,0,0,.75);
+      transform: perspective(1400px) rotateY(18deg) rotateX(8deg);
+      transition: transform .6s cubic-bezier(.23,1,.32,1);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    .sphere:hover { transform: perspective(1400px) rotateY(8deg) rotateX(4deg) scale(1.01); }
+    .geodesic { position:absolute; inset:0; background: radial-gradient(circle, rgba(0,255,255,.06) 1px, transparent 2px); background-size: 14px 14px; pointer-events:none; }
+    .node {
+      position: absolute; width: 18px; height: 18px; border-radius: 50%;
+      background: var(--amber); border: 2px solid #112233; cursor: pointer;
+      transition: transform .2s, background .2s;
+      z-index: 2;
+    }
+    .node:hover, .node.highlight { background: var(--accent); transform: scale(1.4); }
+    .node-label { position:absolute; font-size:9px; color:#8899aa; white-space:nowrap; pointer-events:none; transform: translate(-50%, 22px); }
+    .modal { position:fixed; inset:0; background:rgba(0,0,0,.92); display:none; align-items:center; justify-content:center; z-index:100; padding:20px; }
+    .modal.open { display:flex; }
+    .card { background:#0a0a0f; border:1px solid rgba(255,255,255,.1); max-width:860px; width:100%; border-radius:12px; overflow:hidden; }
+    .media { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:20px; }
+    .media img, .media iframe { width:100%; aspect-ratio:16/9; object-fit:cover; background:#111; border:1px solid rgba(255,255,255,.08); }
+    .resonance { padding:0 20px 20px; font-size:13px; color:#aabbcc; line-height:1.45; }
+    .meta { padding:12px 20px; border-top:1px solid rgba(255,255,255,.08); font-size:10px; color:#556677; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0 0 4px;font-size:28px;letter-spacing:3px;">RESONANCE SPHERES</h1>
+    <p style="margin:0;opacity:.6;font-size:13px;">Central Transport Sphere (Trophy Room + xPRIMEray distortion) • Orbiting high-coherence inspiration nodes</p>
+  </div>
+
+  <div class="sphere-container" id="sphereContainer">
+    <!-- The sphere itself (CSS 3D + background image for immediate demo; replace with WebGL/Three in real frontend) -->
+    <div id="sphere" class="sphere"
+         style="background-image: url('https://picsum.photos/id/1015/1200/1200'); /* placeholder — replace with generated xPRIMEray-distorted Trophy Room texture */">
+      <div class="geodesic"></div>
+    </div>
+
+    <!-- Nodes (positioned absolutely for demo; in real use a force layout or the React component) -->
+    <div id="nodes"></div>
+  </div>
+
+  <div style="max-width:820px;margin:0 auto 60px;padding:0 20px;font-size:12px;opacity:.5;">
+    Click a node or the sphere. This is a static HTML prototype of the ResonanceSpheresAtlas experience.<br>
+    In the real React implementation (ResonanceSpheresAtlas.tsx + ResonanceSphere.tsx) the sphere uses Three.js for accurate mapping + refraction simulation, nodes are force-directed, and the modal contains the full media gallery + YT embeds.
+  </div>
+
+  <!-- Modal -->
+  <div id="modal" class="modal" onclick="closeModal()">
+    <div class="card" onclick="event.stopImmediatePropagation()">
+      <div style="padding:18px 24px 0;border-bottom:1px solid rgba(255,255,255,.1);display:flex;justify-content:space-between;align-items:center;">
+        <div id="modalTitle" style="font-size:20px;font-weight:600;"></div>
+        <button onclick="closeModal()" style="background:none;border:none;color:#fff;font-size:28px;line-height:1;cursor:pointer;opacity:.6;">×</button>
+      </div>
+      <div id="modalMedia" class="media"></div>
+      <div id="modalResonance" class="resonance"></div>
+      <div id="modalMeta" class="meta"></div>
+    </div>
+  </div>
+
+  <script>
+    const data = {
+      sphere: {
+        texture: 'https://picsum.photos/id/1015/1200/1200', // ← replace with real generated Trophy Room + xPRIMEray distortion
+        centerNodeId: 'glitch-digital-circus-trophy-room'
+      },
+      nodes: [
+        { id: 'glitch-digital-circus-trophy-room', title: 'Digital Circus — Trophy Room', x: 300, y: 300, tier:1, alignment: 'Ringmaster portals = wormhole mouths. Recursive rooms = infinite mirror recursion. The rendering pipeline delivers the "real" depth that straight-ray approximations destroy.' },
+        { id: 'nobel-kip-thorne', title: 'Kip Thorne (Nobel)', x: 420, y: 210, tier:1, alignment: 'Morris–Thorne wormhole + Interstellar lensing. Direct ancestor of xPRIMEray curved null geodesics and Dual Reality comparison.' },
+        { id: 'nobel-roger-penrose', title: 'Roger Penrose (Nobel)', x: 165, y: 390, tier:1, alignment: 'Trapped surfaces & causal structure. Hermetic closure and unresolved islands are pixel-level Penrose singularities made visible.' },
+        { id: 'interstellar-gargantua', title: 'Interstellar Gargantua', x: 385, y: 445, tier:2, alignment: 'The cinematic gold standard for real Kerr black hole rendering. Same geodesic question xPRIMEray answers with instruments.' }
+      ]
+    };
+
+    const sphereEl = document.getElementById('sphere');
+    const nodesEl = document.getElementById('nodes');
+    const modal = document.getElementById('modal');
+
+    // Place nodes
+    data.nodes.forEach(node => {
+      const el = document.createElement('div');
+      el.className = 'node';
+      el.style.left = (node.x - 9) + 'px';
+      el.style.top = (node.y - 9) + 'px';
+      if (node.id === data.sphere.centerNodeId) el.style.background = '#ffcc66';
+      el.onclick = () => showNode(node);
+      nodesEl.appendChild(el);
+
+      const label = document.createElement('div');
+      label.className = 'node-label';
+      label.style.left = node.x + 'px';
+      label.style.top = node.y + 'px';
+      label.textContent = node.title.split(' — ')[0];
+      nodesEl.appendChild(label);
+    });
+
+    sphereEl.style.backgroundImage = `url(${data.sphere.texture})`;
+    sphereEl.onclick = () => {
+      const central = data.nodes.find(n => n.id === data.sphere.centerNodeId);
+      showNode(central);
+    };
+
+    function showNode(node) {
+      document.getElementById('modalTitle').textContent = node.title;
+      const mediaHtml = `
+        <div style="grid-column:1/-1;background:#111;padding:12px;font-size:11px;border-radius:6px;">
+          <strong>xPRIMEray Signal Resonance</strong><br>${node.alignment}
+        </div>
+        <img src="https://picsum.photos/id/1015/800/450" alt="Hero media" style="grid-column:span 2;">
+        <div style="font-size:10px;opacity:.6;">(In real implementation: actual hero image from the node.media array + YouTube embed + grid thumbnails at consistent 16:9 sizes)</div>
+      `;
+      document.getElementById('modalMedia').innerHTML = mediaHtml;
+      document.getElementById('modalResonance').innerHTML = `<strong>Alignment:</strong> ${node.alignment}`;
+      document.getElementById('modalMeta').innerHTML = `Tier ${node.tier} • ${node.id} • Click outside to close • Tasteful credits live here (Glitch, Nobel, etc.)`;
+      modal.classList.add('open');
+    }
+
+    function closeModal() {
+      modal.classList.remove('open');
+    }
+
+    // Keyboard escape
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    // Bonus: gentle sphere "pulse" on load to draw attention
+    setTimeout(() => {
+      sphereEl.style.boxShadow = '0 0 160px rgba(0,255,255,.22), inset 0 0 160px rgba(0,0,0,.75)';
+      setTimeout(() => {
+        sphereEl.style.boxShadow = '0 0 120px rgba(0,255,255,.12), inset 0 0 160px rgba(0,0,0,.75)';
+      }, 1400);
+    }, 800);
+
+    console.log('%c[Resonance Spheres Demo] Static prototype ready. Replace texture + wire real data + React components for production.', 'color:#556677');
+  </script>
+</body>
+</html>
