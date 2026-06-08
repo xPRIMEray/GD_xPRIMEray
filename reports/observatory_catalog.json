@@ -1,0 +1,178 @@
+[
+  {
+    "artifact_type": "curvature_signature_ladder",
+    "category": "Canonical",
+    "closure": "PASS",
+    "coverage": "MISSING",
+    "fixture": "hermetic_curved_room",
+    "run_id": "20260606T014236Z",
+    "source_path": "output/curvature_fps_benchmark/20260606T014236Z/curvature_signature_ladder.png",
+    "timestamp": "2026-06-06T01:42:41Z",
+    "verdict": "MISSING"
+  },
+  {
+    "artifact_type": "curvature_signature_ladder",
+    "category": "Canonical",
+    "closure": "PASS",
+    "coverage": "MISSING",
+    "fixture": "hermetic_curved_room",
+    "run_id": "20260606T195525Z",
+    "source_path": "output/curvature_fps_benchmark/20260606T195525Z/curvature_signature_ladder.png",
+    "timestamp": "2026-06-06T19:57:43Z",
+    "verdict": "MISSING"
+  },
+  {
+    "artifact_type": "curvature_signature_ladder",
+    "category": "Canonical",
+    "closure": "PASS",
+    "coverage": "MISSING",
+    "fixture": "hermetic_curved_room",
+    "run_id": "20260607T044625Z",
+    "source_path": "output/curvature_fps_benchmark/20260607T044625Z/curvature_signature_ladder.png",
+    "timestamp": "2026-06-07T04:48:47Z",
+    "verdict": "MISSING"
+  },
+  {
+    "artifact_type": "curvature_signature_ladder",
+    "category": "Canonical",
+    "closure": "PASS",
+    "coverage": "MISSING",
+    "fixture": "hermetic_curved_room",
+    "run_id": "20260607T152708Z",
+    "source_path": "output/curvature_fps_benchmark/20260607T152708Z/curvature_signature_ladder.png",
+    "timestamp": "2026-06-07T15:27:34Z",
+    "verdict": "MISSING"
+  },
+  {
+    "artifact_type": "curvature_signature_ladder",
+    "category": "Canonical",
+    "closure": "PASS",
+    "coverage": "PARTIAL",
+    "fixture": "hermetic_curved_room",
+    "run_id": "20260607T155158Z",
+    "source_path": "output/curvature_fps_benchmark/20260607T155158Z/curvature_signature_ladder.png",
+    "timestamp": "2026-06-07T15:52:24Z",
+    "verdict": "PARTIAL"
+  },
+  {
+    "artifact_type": "curvature_signature_ladder",
+    "category": "Canonical",
+    "closure": "PASS",
+    "coverage": "PARTIAL",
+    "fixture": "hermetic_curved_room",
+    "run_id": "20260607T185034Z",
+    "source_path": "output/curvature_fps_benchmark/20260607T185034Z/curvature_signature_ladder.png",
+    "timestamp": "2026-06-07T18:51:05Z",
+    "verdict": "PARTIAL"
+  },
+  {
+    "artifact_type": "curvature_signature_ladder",
+    "category": "Canonical",
+    "closure": "PASS",
+    "coverage": "PASS",
+    "fixture": "hermetic_curved_room",
+    "run_id": "20260607T191143Z",
+    "source_path": "output/curvature_fps_benchmark/20260607T191143Z/curvature_signature_ladder.png",
+    "timestamp": "2026-06-07T19:13:13Z",
+    "verdict": "PASS"
+  },
+  {
+    "artifact_type": "curvature_signature_ladder",
+    "category": "Canonical",
+    "closure": "PASS",
+    "coverage": "PASS",
+    "fixture": "hermetic_curved_room",
+    "run_id": "20260607T191820Z",
+    "source_path": "output/curvature_fps_benchmark/20260607T191820Z/curvature_signature_ladder.png",
+    "timestamp": "2026-06-07T19:19:39Z",
+    "verdict": "PASS"
+  },
+  {
+    "artifact_type": "curvature_signature_ladder",
+    "category": "Canonical",
+    "closure": "PASS",
+    "coverage": "PASS",
+    "fixture": "hermetic_curved_room",
+    "run_id": "20260607T221311Z",
+    "source_path": "output/curvature_fps_benchmark/20260607T221311Z/curvature_signature_ladder.png",
+    "timestamp": "2026-06-07T22:14:29Z",
+    "verdict": "PASS"
+  },
+  {
+    "artifact_type": "curvature_signature_ladder",
+    "category": "Canonical",
+    "closure": "PASS",
+    "coverage": "MISSING",
+    "fixture": "hermetic_curved_room",
+    "run_id": "published",
+    "source_path": "reports/curvature_signature_ladder.png",
+    "timestamp": "2026-06-06T20:50:52Z",
+    "verdict": "MISSING"
+  },
+  {
+    "artifact_type": "curvature_signature_ladder",
+    "category": "Canonical",
+    "closure": "PASS",
+    "coverage": "MISSING",
+    "fixture": "hermetic_curved_room",
+    "run_id": "published",
+    "source_path": "reports/weekend_fps_curvature_sweep_assets/curvature_signature_ladder.png",
+    "timestamp": "2026-06-07T22:19:07Z",
+    "verdict": "MISSING"
+  },
+  {
+    "artifact_type": "hermetic_storyboard_v2",
+    "category": "Canonical",
+    "closure": "PASS",
+    "coverage": "PASS",
+    "fixture": "hermetic_curved_room",
+    "run_id": "published",
+    "source_path": "Docs/assets/observatory/hermetic_storyboard_v2.png",
+    "timestamp": "2026-06-07T22:30:04Z",
+    "verdict": "PASS"
+  },
+  {
+    "artifact_type": "hermetic_storyboard_v2",
+    "category": "Canonical",
+    "closure": "PASS",
+    "coverage": "PASS",
+    "fixture": "hermetic_curved_room",
+    "run_id": "published",
+    "source_path": "reports/hermetic_storyboard_v2.png",
+    "timestamp": "2026-06-07T22:26:47Z",
+    "verdict": "PASS"
+  },
+  {
+    "artifact_type": "observatory_story_reference",
+    "category": "Research",
+    "closure": "MISSING",
+    "coverage": "MISSING",
+    "fixture": "observatory_reference",
+    "run_id": "published",
+    "source_path": "reports/observatory_story_reference.png",
+    "timestamp": "2026-06-07T03:57:57Z",
+    "verdict": "PASS"
+  },
+  {
+    "artifact_type": "observer_storyboard",
+    "category": "Research",
+    "closure": "PARTIAL",
+    "coverage": "PARTIAL",
+    "fixture": "observer_storyboard_framework",
+    "run_id": "published",
+    "source_path": "reports/observer_storyboard_demo.png",
+    "timestamp": "2026-06-08T02:03:54Z",
+    "verdict": "PARTIAL"
+  },
+  {
+    "artifact_type": "renderer_storyboard_v1",
+    "category": "Research",
+    "closure": "PASS",
+    "coverage": "PASS",
+    "fixture": "renderer",
+    "run_id": "published",
+    "source_path": "reports/renderer_storyboard_v1.png",
+    "timestamp": "2026-06-08T00:40:22Z",
+    "verdict": "PASS"
+  }
+]
