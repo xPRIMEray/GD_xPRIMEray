@@ -6,6 +6,8 @@
 
 Read [What the Observatory Measures](./what_the_observatory_measures.md) before comparing fixture cards. It explains why `9/9` or `7/9` panel coverage is evidence coverage, not a physical-correctness score.
 
+Use the [Observatory Maturity Ladder](./observatory_maturity_ladder.md) to distinguish observed artifacts from confirmed, characterized, or canonical ones. **Maturity is evidence strength, not physical truth.**
+
 ---
 
 ## Fixture Overview

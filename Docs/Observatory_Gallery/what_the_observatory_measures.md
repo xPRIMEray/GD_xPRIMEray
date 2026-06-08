@@ -4,6 +4,8 @@ An **Observatory Story** is a nine-panel diagnostic contact sheet. Read it left 
 
 The Observatory Gallery is visitor-facing: it shows what each fixture measures and where evidence comes from. The deeper Observatory chapters are the 20-minute tour for implementation history, experiments, and design rationale.
 
+The [Observatory Maturity Ladder](./observatory_maturity_ladder.md) labels how strongly an artifact should be trusted. **Maturity is evidence strength, not physical truth.**
+
 ## Core Terms
 
 **Transport completion is not physical accuracy.** A run can classify every ray and still not prove the renderer is a physically complete model of light, gravity, or optics.

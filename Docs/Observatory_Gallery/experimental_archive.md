@@ -2,6 +2,8 @@
 
 The complete historical record of every sweep, smoke test, repeatability run, and exploratory harness. This is the lab notebook made public.
 
+Use the [Observatory Maturity Ladder](./observatory_maturity_ladder.md) before promoting an archive result into the Gallery. **Maturity is evidence strength, not physical truth.**
+
 ## Purpose of the Archive
 
 - Reproducibility: Every timestamped folder contains the exact command-line args, scene snapshot summary, and outputs.

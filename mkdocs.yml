@@ -141,6 +141,7 @@ nav:
   - Observatory Gallery:
       - Home: Observatory_Gallery/index.md
       - Read This First: Observatory_Gallery/what_the_observatory_measures.md
+      - Maturity Ladder: Observatory_Gallery/observatory_maturity_ladder.md
       - Canonical Fixtures: Observatory_Gallery/canonical_fixtures.md
       - Curvature Benchmark: Observatory_Gallery/curvature_benchmark.md
       - Full-Coverage Mini Benchmark: Observatory_Gallery/curvature_full_coverage_experiment.md

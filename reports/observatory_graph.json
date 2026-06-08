@@ -1,0 +1,1377 @@
+{
+  "edge_types": [
+    "DERIVED_FROM",
+    "EXPLAINS",
+    "GENERATES",
+    "REFERENCES",
+    "USES"
+  ],
+  "edges": [
+    {
+      "metadata": {
+        "source_path": "reports/observatory_catalog.json"
+      },
+      "source": "artifact:curvature_signature_ladder",
+      "target": "citation:artifact_catalog",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "reports/weekend_fps_curvature_sweep_assets/curvature_signature_ladder.png"
+      },
+      "source": "artifact:curvature_signature_ladder",
+      "target": "citation:source_path",
+      "type": "REFERENCES"
+    },
+    {
+      "source": "artifact:curvature_signature_ladder",
+      "target": "term:curvature_signature",
+      "type": "USES"
+    },
+    {
+      "metadata": {
+        "source_path": "reports/observatory_catalog.json"
+      },
+      "source": "artifact:hermetic_storyboard_v2",
+      "target": "citation:artifact_catalog",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "reports/hermetic_storyboard_v2.png"
+      },
+      "source": "artifact:hermetic_storyboard_v2",
+      "target": "citation:source_path",
+      "type": "REFERENCES"
+    },
+    {
+      "source": "artifact:hermetic_storyboard_v2",
+      "target": "storyboard:hermetic_storyboard_v2",
+      "type": "USES"
+    },
+    {
+      "metadata": {
+        "source_path": "reports/observatory_catalog.json"
+      },
+      "source": "artifact:observatory_story_reference",
+      "target": "citation:artifact_catalog",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "reports/observatory_story_reference.png"
+      },
+      "source": "artifact:observatory_story_reference",
+      "target": "citation:source_path",
+      "type": "REFERENCES"
+    },
+    {
+      "source": "artifact:observatory_story_reference",
+      "target": "storyboard:observatory_story",
+      "type": "USES"
+    },
+    {
+      "metadata": {
+        "source_path": "reports/observatory_catalog.json"
+      },
+      "source": "artifact:observer_storyboard",
+      "target": "citation:artifact_catalog",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "reports/observer_storyboard_demo.png"
+      },
+      "source": "artifact:observer_storyboard",
+      "target": "citation:source_path",
+      "type": "REFERENCES"
+    },
+    {
+      "source": "artifact:observer_storyboard",
+      "target": "storyboard:observer_storyboard_v1",
+      "type": "USES"
+    },
+    {
+      "metadata": {
+        "source_path": "reports/observatory_catalog.json"
+      },
+      "source": "artifact:renderer_storyboard_v1",
+      "target": "citation:artifact_catalog",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "reports/renderer_storyboard_v1.png"
+      },
+      "source": "artifact:renderer_storyboard_v1",
+      "target": "citation:source_path",
+      "type": "REFERENCES"
+    },
+    {
+      "source": "artifact:renderer_storyboard_v1",
+      "target": "storyboard:renderer_storyboard_v1",
+      "type": "USES"
+    },
+    {
+      "source": "docs_page:canonical_fixtures",
+      "target": "citation:docs_page",
+      "type": "USES"
+    },
+    {
+      "source": "docs_page:closure_diagnostics",
+      "target": "citation:docs_page",
+      "type": "USES"
+    },
+    {
+      "source": "docs_page:curvature_benchmark",
+      "target": "citation:docs_page",
+      "type": "USES"
+    },
+    {
+      "source": "docs_page:curvature_full_coverage_experiment",
+      "target": "citation:docs_page",
+      "type": "USES"
+    },
+    {
+      "source": "docs_page:experimental_archive",
+      "target": "citation:docs_page",
+      "type": "USES"
+    },
+    {
+      "source": "docs_page:observatory_gallery_index",
+      "target": "citation:docs_page",
+      "type": "USES"
+    },
+    {
+      "source": "docs_page:research_fixtures",
+      "target": "citation:docs_page",
+      "type": "USES"
+    },
+    {
+      "source": "docs_page:what_the_observatory_measures",
+      "target": "citation:docs_page",
+      "type": "USES"
+    },
+    {
+      "metadata": {
+        "closure": "PASS",
+        "coverage": "MISSING",
+        "run_id": "published",
+        "source_path": "reports/weekend_fps_curvature_sweep_assets/curvature_signature_ladder.png",
+        "verdict": "MISSING"
+      },
+      "source": "fixture:hermetic_curved_room",
+      "target": "artifact:curvature_signature_ladder",
+      "type": "GENERATES"
+    },
+    {
+      "metadata": {
+        "closure": "PASS",
+        "coverage": "PASS",
+        "run_id": "published",
+        "source_path": "reports/hermetic_storyboard_v2.png",
+        "verdict": "PASS"
+      },
+      "source": "fixture:hermetic_curved_room",
+      "target": "artifact:hermetic_storyboard_v2",
+      "type": "GENERATES"
+    },
+    {
+      "source": "fixture:hermetic_curved_room",
+      "target": "term:curvature_signature",
+      "type": "GENERATES"
+    },
+    {
+      "metadata": {
+        "closure": "MISSING",
+        "coverage": "MISSING",
+        "run_id": "published",
+        "source_path": "reports/observatory_story_reference.png",
+        "verdict": "PASS"
+      },
+      "source": "fixture:observatory_reference",
+      "target": "artifact:observatory_story_reference",
+      "type": "GENERATES"
+    },
+    {
+      "metadata": {
+        "closure": "PARTIAL",
+        "coverage": "PARTIAL",
+        "run_id": "published",
+        "source_path": "reports/observer_storyboard_demo.png",
+        "verdict": "PARTIAL"
+      },
+      "source": "fixture:observer_storyboard_framework",
+      "target": "artifact:observer_storyboard",
+      "type": "GENERATES"
+    },
+    {
+      "metadata": {
+        "closure": "PASS",
+        "coverage": "PASS",
+        "run_id": "published",
+        "source_path": "reports/renderer_storyboard_v1.png",
+        "verdict": "PASS"
+      },
+      "source": "fixture:renderer",
+      "target": "artifact:renderer_storyboard_v1",
+      "type": "GENERATES"
+    },
+    {
+      "source": "schema:observer_storyboard_v1",
+      "target": "citation:schema",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:hermetic_storyboard_v2",
+      "target": "storyboard:observatory_story",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:hermetic_storyboard_v2",
+      "target": "term:beauty_capture",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:hermetic_storyboard_v2",
+      "target": "term:budget_stress",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:hermetic_storyboard_v2",
+      "target": "term:coverage",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:hermetic_storyboard_v2",
+      "target": "term:curvature_signature",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:hermetic_storyboard_v2",
+      "target": "term:hermetic_closure",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:hermetic_storyboard_v2",
+      "target": "term:verdict",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:observer_storyboard_v1",
+      "target": "storyboard_spec:observer_storyboard_v1",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "source": "storyboard:observer_storyboard_v1",
+      "target": "schema:observer_storyboard_v1",
+      "type": "REFERENCES"
+    },
+    {
+      "source": "storyboard:observer_storyboard_v1",
+      "target": "term:assumptions",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:observer_storyboard_v1",
+      "target": "term:closure_basin",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:observer_storyboard_v1",
+      "target": "term:coverage",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:observer_storyboard_v1",
+      "target": "term:disagreements",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:observer_storyboard_v1",
+      "target": "term:lineage",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:observer_storyboard_v1",
+      "target": "term:observation",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:observer_storyboard_v1",
+      "target": "term:perspectives",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:observer_storyboard_v1",
+      "target": "term:sensitivity_signature",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:observer_storyboard_v1",
+      "target": "term:verdict",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:renderer_storyboard_v1",
+      "target": "term:beauty_capture",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:renderer_storyboard_v1",
+      "target": "term:coverage",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:renderer_storyboard_v1",
+      "target": "term:curvature_signature",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:renderer_storyboard_v1",
+      "target": "term:hermetic_closure",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:renderer_storyboard_v1",
+      "target": "term:renderer_cost",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:renderer_storyboard_v1",
+      "target": "term:traversal_cost",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard:renderer_storyboard_v1",
+      "target": "term:verdict",
+      "type": "USES"
+    },
+    {
+      "source": "storyboard_spec:observer_storyboard_v1",
+      "target": "citation:docs_page",
+      "type": "USES"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/canonical_fixtures.md"
+      },
+      "source": "term:beauty_capture",
+      "target": "docs_page:canonical_fixtures",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "source": "term:beauty_capture",
+      "target": "term:observation",
+      "type": "EXPLAINS"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/canonical_fixtures.md"
+      },
+      "source": "term:budget_stress",
+      "target": "docs_page:canonical_fixtures",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/curvature_full_coverage_experiment.md"
+      },
+      "source": "term:budget_stress",
+      "target": "docs_page:curvature_full_coverage_experiment",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/index.md"
+      },
+      "source": "term:budget_stress",
+      "target": "docs_page:observatory_gallery_index",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/what_the_observatory_measures.md"
+      },
+      "source": "term:budget_stress",
+      "target": "docs_page:what_the_observatory_measures",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "source": "term:budget_stress",
+      "target": "term:traversal_cost",
+      "type": "EXPLAINS"
+    },
+    {
+      "source": "term:closure_basin",
+      "target": "term:hermetic_closure",
+      "type": "USES"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/closure_diagnostics.md"
+      },
+      "source": "term:closure_diagnostics",
+      "target": "docs_page:closure_diagnostics",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/curvature_benchmark.md"
+      },
+      "source": "term:closure_diagnostics",
+      "target": "docs_page:curvature_benchmark",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/index.md"
+      },
+      "source": "term:closure_diagnostics",
+      "target": "docs_page:observatory_gallery_index",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/curvature_benchmark.md"
+      },
+      "source": "term:coherence_basin",
+      "target": "docs_page:curvature_benchmark",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/index.md"
+      },
+      "source": "term:coherence_basin",
+      "target": "docs_page:observatory_gallery_index",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "source": "term:coherence_basin",
+      "target": "term:observer_disagreement",
+      "type": "EXPLAINS"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/canonical_fixtures.md"
+      },
+      "source": "term:coverage",
+      "target": "docs_page:canonical_fixtures",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/closure_diagnostics.md"
+      },
+      "source": "term:coverage",
+      "target": "docs_page:closure_diagnostics",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/curvature_full_coverage_experiment.md"
+      },
+      "source": "term:coverage",
+      "target": "docs_page:curvature_full_coverage_experiment",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/index.md"
+      },
+      "source": "term:coverage",
+      "target": "docs_page:observatory_gallery_index",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "docs/observer_storyboard/observer_storyboard_v1.schema.json"
+      },
+      "source": "term:coverage",
+      "target": "schema:observer_storyboard_v1",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "docs/observer_storyboard/observer_storyboard_v1.md"
+      },
+      "source": "term:coverage",
+      "target": "storyboard_spec:observer_storyboard_v1",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "source": "term:coverage",
+      "target": "term:full_frame_coverage",
+      "type": "EXPLAINS"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/closure_diagnostics.md"
+      },
+      "source": "term:curvature_benchmark",
+      "target": "docs_page:closure_diagnostics",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/curvature_benchmark.md"
+      },
+      "source": "term:curvature_benchmark",
+      "target": "docs_page:curvature_benchmark",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/experimental_archive.md"
+      },
+      "source": "term:curvature_benchmark",
+      "target": "docs_page:experimental_archive",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/index.md"
+      },
+      "source": "term:curvature_benchmark",
+      "target": "docs_page:observatory_gallery_index",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "source": "term:curvature_benchmark",
+      "target": "term:budget_stress",
+      "type": "USES"
+    },
+    {
+      "source": "term:curvature_benchmark",
+      "target": "term:coverage",
+      "type": "USES"
+    },
+    {
+      "source": "term:curvature_benchmark",
+      "target": "term:curvature_signature",
+      "type": "USES"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/canonical_fixtures.md"
+      },
+      "source": "term:curvature_signature",
+      "target": "docs_page:canonical_fixtures",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/closure_diagnostics.md"
+      },
+      "source": "term:curvature_signature",
+      "target": "docs_page:closure_diagnostics",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/curvature_benchmark.md"
+      },
+      "source": "term:curvature_signature",
+      "target": "docs_page:curvature_benchmark",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/index.md"
+      },
+      "source": "term:curvature_signature",
+      "target": "docs_page:observatory_gallery_index",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/research_fixtures.md"
+      },
+      "source": "term:curvature_signature",
+      "target": "docs_page:research_fixtures",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/what_the_observatory_measures.md"
+      },
+      "source": "term:curvature_signature",
+      "target": "docs_page:what_the_observatory_measures",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "source": "term:curvature_signature",
+      "target": "term:sensitivity_signature",
+      "type": "USES"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/curvature_full_coverage_experiment.md"
+      },
+      "source": "term:full_frame_coverage",
+      "target": "docs_page:curvature_full_coverage_experiment",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/canonical_fixtures.md"
+      },
+      "source": "term:hermetic_closure",
+      "target": "docs_page:canonical_fixtures",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/closure_diagnostics.md"
+      },
+      "source": "term:hermetic_closure",
+      "target": "docs_page:closure_diagnostics",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/curvature_full_coverage_experiment.md"
+      },
+      "source": "term:hermetic_closure",
+      "target": "docs_page:curvature_full_coverage_experiment",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/index.md"
+      },
+      "source": "term:hermetic_closure",
+      "target": "docs_page:observatory_gallery_index",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/what_the_observatory_measures.md"
+      },
+      "source": "term:hermetic_closure",
+      "target": "docs_page:what_the_observatory_measures",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "source": "term:hermetic_closure",
+      "target": "term:scene_contract",
+      "type": "EXPLAINS"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/index.md"
+      },
+      "source": "term:observer_disagreement",
+      "target": "docs_page:observatory_gallery_index",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/canonical_fixtures.md"
+      },
+      "source": "term:oracle",
+      "target": "docs_page:canonical_fixtures",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/experimental_archive.md"
+      },
+      "source": "term:oracle",
+      "target": "docs_page:experimental_archive",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/what_the_observatory_measures.md"
+      },
+      "source": "term:oracle",
+      "target": "docs_page:what_the_observatory_measures",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "source": "term:oracle",
+      "target": "term:reference_integration",
+      "type": "USES"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/canonical_fixtures.md"
+      },
+      "source": "term:physical_accuracy",
+      "target": "docs_page:canonical_fixtures",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/what_the_observatory_measures.md"
+      },
+      "source": "term:physical_accuracy",
+      "target": "docs_page:what_the_observatory_measures",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "source": "term:physical_accuracy",
+      "target": "citation:scene_contract",
+      "type": "REFERENCES"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/canonical_fixtures.md"
+      },
+      "source": "term:reference_integration",
+      "target": "docs_page:canonical_fixtures",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/curvature_benchmark.md"
+      },
+      "source": "term:reference_integration",
+      "target": "docs_page:curvature_benchmark",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/index.md"
+      },
+      "source": "term:reference_integration",
+      "target": "docs_page:observatory_gallery_index",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/what_the_observatory_measures.md"
+      },
+      "source": "term:reference_integration",
+      "target": "docs_page:what_the_observatory_measures",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "source": "term:reference_integration",
+      "target": "citation:reference_integration",
+      "type": "REFERENCES"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/canonical_fixtures.md"
+      },
+      "source": "term:scene_contract",
+      "target": "docs_page:canonical_fixtures",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/closure_diagnostics.md"
+      },
+      "source": "term:scene_contract",
+      "target": "docs_page:closure_diagnostics",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/curvature_full_coverage_experiment.md"
+      },
+      "source": "term:scene_contract",
+      "target": "docs_page:curvature_full_coverage_experiment",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/index.md"
+      },
+      "source": "term:scene_contract",
+      "target": "docs_page:observatory_gallery_index",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/what_the_observatory_measures.md"
+      },
+      "source": "term:scene_contract",
+      "target": "docs_page:what_the_observatory_measures",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "source": "term:sensitivity_signature",
+      "target": "term:observer_disagreement",
+      "type": "EXPLAINS"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/canonical_fixtures.md"
+      },
+      "source": "term:transport_completion",
+      "target": "docs_page:canonical_fixtures",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/curvature_full_coverage_experiment.md"
+      },
+      "source": "term:transport_completion",
+      "target": "docs_page:curvature_full_coverage_experiment",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/what_the_observatory_measures.md"
+      },
+      "source": "term:transport_completion",
+      "target": "docs_page:what_the_observatory_measures",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "source": "term:transport_completion",
+      "target": "term:coverage",
+      "type": "EXPLAINS"
+    },
+    {
+      "source": "term:transport_completion",
+      "target": "term:scene_contract",
+      "type": "USES"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/closure_diagnostics.md"
+      },
+      "source": "term:verdict",
+      "target": "docs_page:closure_diagnostics",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "Docs/Observatory_Gallery/index.md"
+      },
+      "source": "term:verdict",
+      "target": "docs_page:observatory_gallery_index",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "docs/observer_storyboard/observer_storyboard_v1.schema.json"
+      },
+      "source": "term:verdict",
+      "target": "schema:observer_storyboard_v1",
+      "type": "DERIVED_FROM"
+    },
+    {
+      "metadata": {
+        "source_path": "docs/observer_storyboard/observer_storyboard_v1.md"
+      },
+      "source": "term:verdict",
+      "target": "storyboard_spec:observer_storyboard_v1",
+      "type": "DERIVED_FROM"
+    }
+  ],
+  "generated_at": "2026-06-08T04:37:00Z",
+  "generated_from": {
+    "catalog": "reports/observatory_catalog.json",
+    "gallery": "Docs/Observatory_Gallery",
+    "observer_storyboard": "docs/observer_storyboard"
+  },
+  "node_types": [
+    "Artifact",
+    "Citation Type",
+    "Fixture",
+    "Storyboard",
+    "Vocabulary Term"
+  ],
+  "nodes": [
+    {
+      "id": "artifact:curvature_signature_ladder",
+      "label": "Curvature Signature Ladder",
+      "metadata": {
+        "run_ids": [
+          "20260606T014236Z",
+          "20260606T195525Z",
+          "20260607T044625Z",
+          "20260607T152708Z",
+          "20260607T155158Z",
+          "20260607T185034Z",
+          "20260607T191143Z",
+          "20260607T191820Z",
+          "20260607T221311Z",
+          "published"
+        ],
+        "source_paths": [
+          "output/curvature_fps_benchmark/20260606T014236Z/curvature_signature_ladder.png",
+          "output/curvature_fps_benchmark/20260606T195525Z/curvature_signature_ladder.png",
+          "output/curvature_fps_benchmark/20260607T044625Z/curvature_signature_ladder.png",
+          "output/curvature_fps_benchmark/20260607T152708Z/curvature_signature_ladder.png",
+          "output/curvature_fps_benchmark/20260607T155158Z/curvature_signature_ladder.png",
+          "output/curvature_fps_benchmark/20260607T185034Z/curvature_signature_ladder.png",
+          "output/curvature_fps_benchmark/20260607T191143Z/curvature_signature_ladder.png",
+          "output/curvature_fps_benchmark/20260607T191820Z/curvature_signature_ladder.png",
+          "output/curvature_fps_benchmark/20260607T221311Z/curvature_signature_ladder.png",
+          "reports/curvature_signature_ladder.png",
+          "reports/weekend_fps_curvature_sweep_assets/curvature_signature_ladder.png"
+        ],
+        "status_summary": {
+          "closure": [
+            "PASS"
+          ],
+          "coverage": [
+            "MISSING",
+            "PARTIAL",
+            "PASS"
+          ],
+          "verdict": [
+            "MISSING",
+            "PARTIAL",
+            "PASS"
+          ]
+        }
+      },
+      "type": "Artifact"
+    },
+    {
+      "id": "artifact:hermetic_storyboard_v2",
+      "label": "Hermetic Storyboard v2",
+      "metadata": {
+        "run_ids": [
+          "published"
+        ],
+        "source_paths": [
+          "Docs/assets/observatory/hermetic_storyboard_v2.png",
+          "reports/hermetic_storyboard_v2.png"
+        ],
+        "status_summary": {
+          "closure": [
+            "PASS"
+          ],
+          "coverage": [
+            "PASS"
+          ],
+          "verdict": [
+            "PASS"
+          ]
+        }
+      },
+      "type": "Artifact"
+    },
+    {
+      "id": "artifact:observatory_story_reference",
+      "label": "Observatory Story Reference",
+      "metadata": {
+        "run_ids": [
+          "published"
+        ],
+        "source_paths": [
+          "reports/observatory_story_reference.png"
+        ],
+        "status_summary": {
+          "closure": [
+            "MISSING"
+          ],
+          "coverage": [
+            "MISSING"
+          ],
+          "verdict": [
+            "PASS"
+          ]
+        }
+      },
+      "type": "Artifact"
+    },
+    {
+      "id": "artifact:observer_storyboard",
+      "label": "Observer Storyboard",
+      "metadata": {
+        "run_ids": [
+          "published"
+        ],
+        "source_paths": [
+          "reports/observer_storyboard_demo.png"
+        ],
+        "status_summary": {
+          "closure": [
+            "PARTIAL"
+          ],
+          "coverage": [
+            "PARTIAL"
+          ],
+          "verdict": [
+            "PARTIAL"
+          ]
+        }
+      },
+      "type": "Artifact"
+    },
+    {
+      "id": "artifact:renderer_storyboard_v1",
+      "label": "Renderer Storyboard v1",
+      "metadata": {
+        "run_ids": [
+          "published"
+        ],
+        "source_paths": [
+          "reports/renderer_storyboard_v1.png"
+        ],
+        "status_summary": {
+          "closure": [
+            "PASS"
+          ],
+          "coverage": [
+            "PASS"
+          ],
+          "verdict": [
+            "PASS"
+          ]
+        }
+      },
+      "type": "Artifact"
+    },
+    {
+      "id": "citation:artifact_catalog",
+      "label": "Artifact Catalog",
+      "type": "Citation Type"
+    },
+    {
+      "id": "citation:benchmark_report",
+      "label": "Benchmark Report",
+      "type": "Citation Type"
+    },
+    {
+      "id": "citation:docs_page",
+      "label": "Docs Page",
+      "type": "Citation Type"
+    },
+    {
+      "id": "citation:reference_integration",
+      "label": "Reference Integration",
+      "type": "Citation Type"
+    },
+    {
+      "id": "citation:scene_contract",
+      "label": "Scene Contract",
+      "type": "Citation Type"
+    },
+    {
+      "id": "citation:schema",
+      "label": "Schema",
+      "type": "Citation Type"
+    },
+    {
+      "id": "citation:source_path",
+      "label": "Source Path",
+      "type": "Citation Type"
+    },
+    {
+      "id": "citation:storyboard_spec",
+      "label": "Storyboard Specification",
+      "type": "Citation Type"
+    },
+    {
+      "id": "docs_page:canonical_fixtures",
+      "label": "Canonical Fixtures",
+      "metadata": {
+        "citation_kind": "docs_page",
+        "source_path": "Docs/Observatory_Gallery/canonical_fixtures.md"
+      },
+      "type": "Citation Type"
+    },
+    {
+      "id": "docs_page:closure_diagnostics",
+      "label": "Closure Diagnostics",
+      "metadata": {
+        "citation_kind": "docs_page",
+        "source_path": "Docs/Observatory_Gallery/closure_diagnostics.md"
+      },
+      "type": "Citation Type"
+    },
+    {
+      "id": "docs_page:curvature_benchmark",
+      "label": "Curvature Benchmark",
+      "metadata": {
+        "citation_kind": "docs_page",
+        "source_path": "Docs/Observatory_Gallery/curvature_benchmark.md"
+      },
+      "type": "Citation Type"
+    },
+    {
+      "id": "docs_page:curvature_full_coverage_experiment",
+      "label": "Curvature Full Coverage Experiment",
+      "metadata": {
+        "citation_kind": "docs_page",
+        "source_path": "Docs/Observatory_Gallery/curvature_full_coverage_experiment.md"
+      },
+      "type": "Citation Type"
+    },
+    {
+      "id": "docs_page:experimental_archive",
+      "label": "Experimental Archive",
+      "metadata": {
+        "citation_kind": "docs_page",
+        "source_path": "Docs/Observatory_Gallery/experimental_archive.md"
+      },
+      "type": "Citation Type"
+    },
+    {
+      "id": "docs_page:observatory_gallery_index",
+      "label": "Index",
+      "metadata": {
+        "citation_kind": "docs_page",
+        "source_path": "Docs/Observatory_Gallery/index.md"
+      },
+      "type": "Citation Type"
+    },
+    {
+      "id": "docs_page:research_fixtures",
+      "label": "Research Fixtures",
+      "metadata": {
+        "citation_kind": "docs_page",
+        "source_path": "Docs/Observatory_Gallery/research_fixtures.md"
+      },
+      "type": "Citation Type"
+    },
+    {
+      "id": "docs_page:what_the_observatory_measures",
+      "label": "What The Observatory Measures",
+      "metadata": {
+        "citation_kind": "docs_page",
+        "source_path": "Docs/Observatory_Gallery/what_the_observatory_measures.md"
+      },
+      "type": "Citation Type"
+    },
+    {
+      "id": "fixture:corner_probe_reference",
+      "label": "Corner Probe Reference",
+      "metadata": {
+        "category": "Canonical"
+      },
+      "type": "Fixture"
+    },
+    {
+      "id": "fixture:curved_minimal",
+      "label": "Curved Minimal",
+      "metadata": {
+        "category": "Canonical"
+      },
+      "type": "Fixture"
+    },
+    {
+      "id": "fixture:hermetic_curved_room",
+      "label": "Hermetic Curved Room",
+      "metadata": {
+        "category": "Canonical"
+      },
+      "type": "Fixture"
+    },
+    {
+      "id": "fixture:object_island",
+      "label": "Object Island",
+      "metadata": {
+        "category": "Canonical"
+      },
+      "type": "Fixture"
+    },
+    {
+      "id": "fixture:observatory_reference",
+      "label": "Observatory Reference",
+      "metadata": {
+        "category": "Research"
+      },
+      "type": "Fixture"
+    },
+    {
+      "id": "fixture:observer_storyboard_framework",
+      "label": "Observer Storyboard Framework",
+      "metadata": {
+        "category": "Research"
+      },
+      "type": "Fixture"
+    },
+    {
+      "id": "fixture:oracle_closure",
+      "label": "Oracle Closure",
+      "metadata": {
+        "category": "Canonical"
+      },
+      "type": "Fixture"
+    },
+    {
+      "id": "fixture:renderer",
+      "label": "Renderer",
+      "metadata": {
+        "category": "Research"
+      },
+      "type": "Fixture"
+    },
+    {
+      "id": "schema:observer_storyboard_v1",
+      "label": "Observer Storyboard V1.Schema",
+      "metadata": {
+        "citation_kind": "schema",
+        "source_path": "docs/observer_storyboard/observer_storyboard_v1.schema.json"
+      },
+      "type": "Citation Type"
+    },
+    {
+      "id": "storyboard:hermetic_storyboard_v2",
+      "label": "Hermetic Storyboard v2",
+      "type": "Storyboard"
+    },
+    {
+      "id": "storyboard:observatory_story",
+      "label": "Observatory Story",
+      "type": "Storyboard"
+    },
+    {
+      "id": "storyboard:observatory_story_reference",
+      "label": "Observatory Story Reference",
+      "type": "Storyboard"
+    },
+    {
+      "id": "storyboard:observer_storyboard_v1",
+      "label": "Observer Storyboard v1",
+      "type": "Storyboard"
+    },
+    {
+      "id": "storyboard:renderer_storyboard_v1",
+      "label": "Renderer Storyboard v1",
+      "type": "Storyboard"
+    },
+    {
+      "id": "storyboard_spec:observer_storyboard_v1",
+      "label": "Observer Storyboard V1",
+      "metadata": {
+        "citation_kind": "storyboard_spec",
+        "source_path": "docs/observer_storyboard/observer_storyboard_v1.md"
+      },
+      "type": "Citation Type"
+    },
+    {
+      "id": "term:artifact_catalog",
+      "label": "Artifact Catalog",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:assumptions",
+      "label": "Assumptions",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:beauty_capture",
+      "label": "Beauty Capture",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:budget_stress",
+      "label": "Budget Stress",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:closure_basin",
+      "label": "Closure Basin",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:closure_diagnostics",
+      "label": "Closure Diagnostics",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:coherence_basin",
+      "label": "Coherence Basin",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:coverage",
+      "label": "Coverage",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:curvature_benchmark",
+      "label": "Curvature Benchmark",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:curvature_signature",
+      "label": "Curvature Signature",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:disagreements",
+      "label": "Disagreements",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:full_frame_coverage",
+      "label": "Full-Frame Coverage",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:hermetic_closure",
+      "label": "Hermetic Closure",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:lineage",
+      "label": "Lineage",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:observation",
+      "label": "Observation",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:observer_disagreement",
+      "label": "Observer Disagreement",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:oracle",
+      "label": "Oracle",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:perspectives",
+      "label": "Perspectives",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:physical_accuracy",
+      "label": "Physical Accuracy",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:reference_integration",
+      "label": "Reference Integration",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:renderer_cost",
+      "label": "Renderer Cost",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:scene_contract",
+      "label": "Scene Contract",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:sensitivity_signature",
+      "label": "Sensitivity Signature",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:transport_completion",
+      "label": "Transport Completion",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:traversal_cost",
+      "label": "Traversal Cost",
+      "type": "Vocabulary Term"
+    },
+    {
+      "id": "term:verdict",
+      "label": "Verdict",
+      "type": "Vocabulary Term"
+    }
+  ],
+  "schema": "xprimeray.observatory_graph.v1"
+}

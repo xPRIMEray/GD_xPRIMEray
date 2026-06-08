@@ -8,6 +8,8 @@ xPRIMEray is an instrumented curved-ray transport observatory. A strong fixture 
 
 Before comparing fixtures, start with [What the Observatory Measures](./what_the_observatory_measures.md). It defines Observatory Stories, hermetic closure, Curvature Signature, reference integration, budget stress, and the claims xPRIMEray does not make.
 
+Then use the [Observatory Maturity Ladder](./observatory_maturity_ladder.md) to read how strongly each artifact should be trusted. **Maturity is evidence strength, not physical truth.**
+
 ## Start Here
 
 The simplest complete example is **Hermetic Curved Room** in [Canonical Fixtures](./canonical_fixtures.md#hermetic_curved_room). It is the clean 9/9 Observatory Story: a sealed room, a known scene contract, zero misses when closure passes, and a curvature ramp that can be compared against the 0% baseline.

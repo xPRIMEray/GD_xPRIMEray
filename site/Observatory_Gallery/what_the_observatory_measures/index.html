@@ -18,7 +18,7 @@
         <link rel="prev" href="../">
       
       
-        <link rel="next" href="../canonical_fixtures/">
+        <link rel="next" href="../observatory_maturity_ladder/">
       
       
         
@@ -936,6 +936,8 @@
       
         
       
+        
+      
     
     
     
@@ -1098,6 +1100,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../observatory_maturity_ladder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maturity Ladder
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -6146,6 +6176,7 @@
 <h1 id="what-the-observatory-measures">What the Observatory Measures<a class="headerlink" href="#what-the-observatory-measures" title="Permanent link">&para;</a></h1>
 <p>An <strong>Observatory Story</strong> is a nine-panel diagnostic contact sheet. Read it left to right: raw render, scene geometry, curvature field, ray ownership, hit/miss closure, traversal cost, budget stress, combined diagnostics, and curvature signature. The goal is to make one fixture readable as both an image and an instrumented measurement.</p>
 <p>The Observatory Gallery is visitor-facing: it shows what each fixture measures and where evidence comes from. The deeper Observatory chapters are the 20-minute tour for implementation history, experiments, and design rationale.</p>
+<p>The <a href="../observatory_maturity_ladder/">Observatory Maturity Ladder</a> labels how strongly an artifact should be trusted. <strong>Maturity is evidence strength, not physical truth.</strong></p>
 <h2 id="core-terms">Core Terms<a class="headerlink" href="#core-terms" title="Permanent link">&para;</a></h2>
 <p><strong>Transport completion is not physical accuracy.</strong> A run can classify every ray and still not prove the renderer is a physically complete model of light, gravity, or optics.</p>
 <p><strong>Hermetic closure</strong> means every evaluated ray or pixel is classified within a declared scene contract. In a sealed room, the expected contract is simple: every ray should hit a receiver surface. Misses are reported, not hidden.</p>
@@ -6303,13 +6334,13 @@
         
         
           
-          <a href="../canonical_fixtures/" class="md-footer__link md-footer__link--next" aria-label="Next: Canonical Fixtures">
+          <a href="../observatory_maturity_ladder/" class="md-footer__link md-footer__link--next" aria-label="Next: Maturity Ladder">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Canonical Fixtures
+                Maturity Ladder
               </div>
             </div>
             <div class="md-footer__button md-icon">
