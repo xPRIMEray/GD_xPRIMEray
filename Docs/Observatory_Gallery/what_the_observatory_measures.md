@@ -1,10 +1,10 @@
 # What the Observatory Measures
 
-An **Observatory Story** is a nine-panel diagnostic contact sheet. Read it left to right: raw render, scene geometry, curvature field, ray ownership, hit/miss closure, traversal cost, budget stress, combined diagnostics, and curvature signature. The goal is to make one fixture readable as both an image and an instrumented measurement.
+An **Observatory Story** is a nine-panel diagnostic contact sheet. Read it left to right: observation, scene geometry, curvature field, domain ownership, closure map, traversal steps, budget stress, combined overlay (derived), and curvature signature. The goal is to make one fixture readable as both an image and an instrumented measurement.
 
 The Observatory Gallery is visitor-facing: it shows what each fixture measures and where evidence comes from. The deeper Observatory chapters are the 20-minute tour for implementation history, experiments, and design rationale.
 
-The [Observatory Maturity Ladder](./observatory_maturity_ladder.md) labels how strongly an artifact should be trusted. **Maturity is evidence strength, not physical truth.**
+The [Observatory Trust Model](./observatory_trust_model.md) labels how strongly an artifact should be trusted. **Trust stage is evidence strength, not physical truth.**
 
 ## Core Terms
 
@@ -26,12 +26,12 @@ The strongest claim in this gallery is narrower and testable: for a named fixtur
 
 ## Nine-Panel Reading Guide
 
-1. Raw visual: What did the camera see?
+1. Observation: What did the camera see?
 2. Scene geometry: What objects exist?
 3. Curvature field: What field bends the rays?
-4. Transport ownership: Where did each ray end up?
-5. Hit/miss map: Did every ray find a target?
+4. Domain ownership: Where did each ray end up?
+5. Closure map: Did every ray find a target?
 6. Traversal steps: How hard was the trip?
 7. Budget stress: Which rays nearly ran out of budget?
-8. Combined diagnostic: What do all diagnostics show together?
+8. Combined overlay (derived): What do all diagnostics show together?
 9. Curvature Signature: What changed relative to 0% curvature?

@@ -2,7 +2,9 @@
 
 The complete historical record of every sweep, smoke test, repeatability run, and exploratory harness. This is the lab notebook made public.
 
-Use the [Observatory Maturity Ladder](./observatory_maturity_ladder.md) before promoting an archive result into the Gallery. **Maturity is evidence strength, not physical truth.**
+Use the [Observatory Trust Model](./observatory_trust_model.md) before promoting an archive result into the Gallery. **Trust stage is evidence strength, not physical truth.**
+
+For maturity stage equivalents, see the Observatory Trust Model.
 
 ## Purpose of the Archive
 

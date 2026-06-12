@@ -8,7 +8,7 @@ xPRIMEray is an instrumented curved-ray transport observatory. A strong fixture 
 
 Before comparing fixtures, start with [What the Observatory Measures](./what_the_observatory_measures.md). It defines Observatory Stories, hermetic closure, Curvature Signature, reference integration, budget stress, and the claims xPRIMEray does not make.
 
-Then use the [Observatory Maturity Ladder](./observatory_maturity_ladder.md) to read how strongly each artifact should be trusted. **Maturity is evidence strength, not physical truth.**
+Then use the [Observatory Trust Model](./observatory_trust_model.md) to read how strongly each artifact should be trusted. **Trust stage is evidence strength, not physical truth.**
 
 ## Start Here
 
@@ -43,7 +43,7 @@ Use the sidebar or top navigation to move between the permanent sections of the 
 
 - **Hermetic Closure Hero** ([Closure Diagnostics](./closure_diagnostics.md)) — Two renders that look identical; only the closure status map tells them apart. The plausible noise detector.
 - **Observer Disagreement** ([Ch 2 — Observer Disagreement](../Observatory/chapters/chapter_02.md)) — 23.8% of pixels classify differently between curved and straight transport models in this scene.
-- **Coherence Basin** ([Ch 4 — Coherence Basin](../Observatory/chapters/chapter_04.md)) — Topological instability bands that no integration budget can eliminate.
+- **Coherence Basin** ([Ch 4 — Coherence Basin](../Observatory/chapters/chapter_04.md)) — Topological instability bands that no tested integration budget eliminates within this scene configuration.
 - **Curvature Signature Ladders** ([Curvature Benchmark](./curvature_benchmark.md)) — Where and why curved transport diverges from straight-line traversal.
 
 Full artifact folders (`output/<name>/`) are self-contained. Each ships with a README.md that serves as the exhibit card.

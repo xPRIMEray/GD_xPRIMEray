@@ -4,8 +4,6 @@
 
 The Observatory now tracks not only what exists, but how strongly each artifact should be trusted. A higher maturity score means the artifact has stronger evidence, clearer caveats, and a more stable interpretation inside its declared scene contract.
 
-It does not mean the artifact proves physical correctness.
-
 ## How to read artifact maturity
 
 | score | stage | how to read it |
@@ -16,6 +14,8 @@ It does not mean the artifact proves physical correctness.
 | 3 | **Confirmed** | The artifact satisfies its local validation gate for at least one run or fixture. |
 | 4 | **Characterized** | The artifact has repeatable structure, documented interpretation, tooling or schema support, and known caveats. |
 | 5 | **Canonical** | The artifact is part of the stable Observatory language and can anchor other interpretations within a declared fixture contract. |
+
+**Canonical does not mean physically true.** It means the artifact can anchor Observatory interpretation within its declared scene contract.
 
 ## Current Anchors
 
@@ -50,4 +50,4 @@ Use maturity as a trust label for Observatory evidence:
 - **Middle maturity** means the artifact can support a local claim with caveats.
 - **High maturity** means the artifact can teach the Observatory language itself.
 
-Canonical still means only this: the artifact can anchor interpretation within its declared scene contract. It is not a claim of physical ground truth.
+Canonical still means only this: the artifact can anchor interpretation within its declared scene contract.

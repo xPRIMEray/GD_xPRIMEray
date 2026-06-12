@@ -13,6 +13,8 @@ The Observatory now tracks not only what exists, but how strongly each artifact 
 | 4 | **Characterized** | Artifact has repeatable structure, documented interpretation, and known caveats. | Documented method, schema/tooling, or repeated comparable outputs. |
 | 5 | **Canonical** | Artifact is part of the stable Observatory language and can anchor other interpretations. | Promoted visitor-facing artifact, stable fixture contract, and clear non-ground-truth caveats. |
 
+**Canonical does not mean physically true.** It means the artifact can anchor Observatory interpretation within its declared scene contract.
+
 ## Anchor Assignments
 
 | artifact | maturity | score | source | basis |
@@ -45,4 +47,4 @@ The Observatory now tracks not only what exists, but how strongly each artifact 
 
 ## Reading Rule
 
-A higher score means the artifact has stronger evidence, clearer caveats, and more stable interpretation. It does not mean the artifact proves physical correctness. Canonical means it can anchor Observatory interpretation within its declared scene contract.
+A higher score means the artifact has stronger evidence, clearer caveats, and more stable interpretation. Canonical means it can anchor Observatory interpretation within its declared scene contract.

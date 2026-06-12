@@ -1,0 +1,152 @@
+{
+  "schema": "xprimeray.observatory_trust_model.v1",
+  "description": "Shared evidence-strength vocabulary for Observatory maturity, showcase readiness, citation tiers, archive status, and local artifact statuses.",
+  "source_inputs": [
+    "reports/observatory_maturity_ladder.md",
+    "reports/observatory_maturity_ladder.json",
+    "Docs/Observatory_Gallery/observatory_maturity_ladder.md",
+    "Docs/Observatory_Gallery/canonical_fixtures.md",
+    "Docs/Observatory_Gallery/what_the_observatory_measures.md",
+    "Docs/Observatory_Gallery/experimental_archive.md"
+  ],
+  "master_axis": [
+    {
+      "score": 0,
+      "stage": "Proposed",
+      "meaning": "Named concept, expected panel, or intended observatory primitive; repeatable artifact evidence is not yet established.",
+      "minimum_evidence": "Concept document, prompt, architecture note, or missing expected evidence."
+    },
+    {
+      "score": 1,
+      "stage": "Experimental",
+      "meaning": "Artifact or run exists, but the contract, inputs, or interpretation are still unstable or superseded.",
+      "minimum_evidence": "At least one generated artifact, archive record, or report with caveats."
+    },
+    {
+      "score": 2,
+      "stage": "Observed",
+      "meaning": "Artifact has been produced from real run data and can be inspected, but coverage, closure, or interpretation may be partial.",
+      "minimum_evidence": "Source path plus visible artifact, report, or inspectable run output."
+    },
+    {
+      "score": 3,
+      "stage": "Confirmed",
+      "meaning": "Artifact satisfies its local validation gate for at least one run or fixture.",
+      "minimum_evidence": "PASS closure/verdict or equivalent local acceptance gate."
+    },
+    {
+      "score": 4,
+      "stage": "Characterized",
+      "meaning": "Artifact has repeatable structure, documented interpretation, tooling or schema support, and known caveats.",
+      "minimum_evidence": "Documented method, schema/tooling, or repeated comparable outputs."
+    },
+    {
+      "score": 5,
+      "stage": "Canonical",
+      "meaning": "Artifact is part of the stable Observatory language and can anchor other interpretations.",
+      "minimum_evidence": "Promoted visitor-facing artifact, stable fixture contract, and clear non-ground-truth caveats."
+    }
+  ],
+  "guardrail": "Canonical does not mean physically true. It means the artifact can anchor Observatory interpretation within its declared scene contract.",
+  "mappings": {
+    "showcase_status": [
+      {
+        "label": "Strong",
+        "equivalent_score": 4,
+        "equivalent_stage": "Characterized",
+        "reading_rule": "Public showcase is complete enough to teach the fixture, but this does not automatically make it canonical."
+      },
+      {
+        "label": "Partial",
+        "equivalent_score": 2,
+        "equivalent_stage": "Observed",
+        "reading_rule": "Evidence is inspectable and useful, but panel inventory, closure, or interpretation is incomplete."
+      },
+      {
+        "label": "Placeholder",
+        "equivalent_score": 0,
+        "equivalent_stage": "Proposed",
+        "reading_rule": "A slot or intended fixture exists, but public evidence is not established."
+      },
+      {
+        "label": "Experimental",
+        "equivalent_score": 1,
+        "equivalent_stage": "Experimental",
+        "reading_rule": "Internal or exploratory evidence exists, but it is not ready for visitor-facing claims."
+      }
+    ],
+    "citation_tiers": [
+      {
+        "label": "Tier 0",
+        "equivalent_score": 5,
+        "equivalent_stage": "Canonical",
+        "reading_rule": "Source-of-record evidence that can anchor the Observatory language or fixture contract."
+      },
+      {
+        "label": "Tier 1",
+        "equivalent_score": 4,
+        "equivalent_stage": "Characterized",
+        "reading_rule": "Strong standalone evidence with documented interpretation and caveats."
+      },
+      {
+        "label": "Tier 2",
+        "equivalent_score": 3,
+        "equivalent_stage": "Confirmed",
+        "reading_rule": "Supporting evidence that passes or corroborates a local gate."
+      },
+      {
+        "label": "Tier 3",
+        "equivalent_score": 2,
+        "equivalent_stage": "Observed",
+        "reading_rule": "Contextual or narrative evidence that is inspectable but not a validation anchor."
+      }
+    ],
+    "archive_status": [
+      {
+        "label": "Visual reference",
+        "equivalent_score": 4,
+        "equivalent_stage": "Characterized",
+        "reading_rule": "Curated enough to show as a reference, but not automatically canonical or physically true."
+      },
+      {
+        "label": "Validation candidate",
+        "equivalent_score": 3,
+        "equivalent_stage": "Confirmed",
+        "reading_rule": "Strong local evidence, usually needing one more reproducibility pass, crop, or promotion step."
+      },
+      {
+        "label": "Test output",
+        "equivalent_score": 2,
+        "equivalent_stage": "Observed",
+        "reading_rule": "Useful run output exists and can be inspected."
+      },
+      {
+        "label": "Archived",
+        "equivalent_score": 1,
+        "equivalent_stage": "Experimental",
+        "reading_rule": "Historical or superseded evidence remains auditable, but should not carry current claims without revalidation."
+      }
+    ],
+    "artifact_status": [
+      {
+        "label": "PASS",
+        "equivalent_score": 3,
+        "equivalent_stage": "Confirmed",
+        "reading_rule": "The local gate passed for the stated run, fixture, and scene contract."
+      },
+      {
+        "label": "PARTIAL",
+        "equivalent_score": 2,
+        "equivalent_stage": "Observed",
+        "reading_rule": "Evidence exists, but the local gate or coverage is incomplete."
+      },
+      {
+        "label": "MISSING",
+        "equivalent_score": 0,
+        "equivalent_stage": "Proposed",
+        "reading_rule": "The expected evidence is named, but no matching artifact or value is present."
+      }
+    ]
+  },
+  "conflict_rule": "When labels disagree, keep the original local label and add the Trust Model stage beside it. A local PASS does not automatically make a whole artifact Canonical."
+}
