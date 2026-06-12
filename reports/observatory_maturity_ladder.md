@@ -6,7 +6,7 @@ The Observatory now tracks not only what exists, but how strongly each artifact 
 
 | score | stage | meaning | minimum evidence |
 |---:|---|---|---|
-| 0 | **Proposed** | Named concept or intended observatory primitive; design exists but repeatable artifact evidence is not yet established. | Concept document, prompt, or architecture note. |
+| 0 | **Proposed** | A concept, expected panel, or fixture slot has been named, but repeatable artifact evidence is not established yet. | Concept document, prompt, or architecture note. |
 | 1 | **Experimental** | Artifact exists, but the contract, inputs, or interpretation are still unstable. | At least one generated artifact or report with caveats. |
 | 2 | **Observed** | Artifact has been produced from real run data and can be inspected, but coverage or closure may be partial. | Source path plus visible artifact or report. |
 | 3 | **Confirmed** | Artifact satisfies its local validation gate for at least one run or fixture. | PASS closure/verdict or equivalent local gate. |
@@ -21,7 +21,7 @@ The Observatory now tracks not only what exists, but how strongly each artifact 
 |---|---:|---:|---|---|
 | **Hermetic Storyboard** | Canonical | 5 | `Docs/assets/observatory/hermetic_storyboard_v2.png` | Promoted Gallery anchor for the sealed-room fixture with closure, coverage, curvature signature, verdict, and explicit scene-contract caveats. |
 | **Observer Storyboard Demo** | Characterized | 4 | `reports/observer_storyboard_demo.png` | Renderer-agnostic nine-panel framework has a schema, rendering tool, demo artifact, and explicit PASS/FAIL/PARTIAL/MISSING vocabulary. |
-| **Query Observatory** | Observed | 2 | `reports/query_storyboard_v1.png` | A real storyboard artifact exists, but it has not yet been promoted into a stable catalog or canonical visitor-facing contract. |
+| **Query Observatory** | Observed | 2 | `reports/query_storyboard_v1.png` | A storyboard artifact exists, but it has not yet been promoted into a stable catalog or canonical visitor-facing contract. |
 | **Cost Basin** | Proposed | 0 | `reports/cost_basin_v1.md` | Concept architecture is documented; no dedicated Cost Basin artifact generation or validation gate exists yet. |
 
 ## Catalog Artifact Scores
@@ -44,6 +44,11 @@ The Observatory now tracks not only what exists, but how strongly each artifact 
 | `hermetic_curved_room` | `curvature_signature_ladder` | `20260607T152708Z` | Observed | 2 | MISSING | PASS | MISSING | `output/curvature_fps_benchmark/20260607T152708Z/curvature_signature_ladder.png` |
 | `hermetic_curved_room` | `curvature_signature_ladder` | `published` | Observed | 2 | MISSING | PASS | MISSING | `reports/curvature_signature_ladder.png` |
 | `hermetic_curved_room` | `curvature_signature_ladder` | `published` | Observed | 2 | MISSING | PASS | MISSING | `reports/weekend_fps_curvature_sweep_assets/curvature_signature_ladder.png` |
+
+Artifacts without a recorded score are unlabeled, not Proposed.
+Proposed means a concept, expected panel, or fixture slot has been named but repeatable artifact evidence is not established yet.
+
+For the full trust-vocabulary crosswalk, see the Observatory Trust Model.
 
 ## Reading Rule
 

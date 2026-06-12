@@ -11,7 +11,7 @@ For maturity stage equivalents, see the Observatory Trust Model.
 - Reproducibility: Every timestamped folder contains the exact command-line args, scene snapshot summary, and outputs.
 - Regression detection: Old baselines can be re-run against new code.
 - Deep research: The full DOE matrices, telemetry parameter sweeps, and fixture runs live here.
-- Audit trail: When a canonical result is promoted, its source run remains traceable in the archive.
+- Audit trail: When an artifact is promoted to canonical status, its source run remains traceable in the archive.
 
 ## Organization Principles (Information Design)
 
@@ -60,7 +60,7 @@ For maturity stage equivalents, see the Observatory Trust Model.
 The Experimental Archive is deliberately not curated for casual visitors. It is the complete, queryable record that makes every claim in the other five sections auditable and reproducible.
 
 **Status Legend Used in Archive READMEs**
-- Visual reference — ready for homepage / MisterY Labs hero.
-- Validation candidate — strong science, needs one more reproducibility run or better crop.
-- Test output — useful for researchers, not yet promoted.
-- Archived — historical; superseded by later runs.
+- Visual reference (Characterized, score 4) — curated for presentation, not a physical-correctness claim.
+- Validation candidate (Confirmed, score 3) — strong science, needs one more reproducibility run or better crop.
+- Test output (Observed, score 2) — useful for researchers, not yet promoted.
+- Archived (Experimental, score 1) — historical; superseded by later runs.

@@ -1,6 +1,6 @@
 {
-  "schema": "xprimeray.observatory_trust_model.v1",
-  "description": "Shared evidence-strength vocabulary for Observatory maturity, showcase readiness, citation tiers, archive status, and local artifact statuses.",
+  "schema": "xprimeray.observatory_trust_model.v1.1",
+  "description": "Shared evidence-strength vocabulary for Observatory maturity, showcase readiness, citation placement tiers, Xeno/Zeno Atlas tiers, archive status, and local artifact statuses.",
   "source_inputs": [
     "reports/observatory_maturity_ladder.md",
     "reports/observatory_maturity_ladder.json",
@@ -13,7 +13,7 @@
     {
       "score": 0,
       "stage": "Proposed",
-      "meaning": "Named concept, expected panel, or intended observatory primitive; repeatable artifact evidence is not yet established.",
+      "meaning": "A concept, expected panel, or fixture slot has been named, but repeatable artifact evidence is not established yet.",
       "minimum_evidence": "Concept document, prompt, architecture note, or missing expected evidence."
     },
     {
@@ -48,6 +48,8 @@
     }
   ],
   "guardrail": "Canonical does not mean physically true. It means the artifact can anchor Observatory interpretation within its declared scene contract.",
+  "unlabeled_rule": "Unlabeled ≠ Proposed. Artifacts without a recorded score are unlabeled, not Proposed. Proposed means a concept, expected panel, or fixture slot has been named but the evidence pipeline is not established.",
+  "citation_tier_disambiguation": "Citation placement tiers in this Trust Model are distinct from Xeno/Zeno investigation confidence tiers. The Trust Model's placement tiers rank evidence authority; the Xeno/Zeno Atlas tiers rank anomaly-investigation completeness.",
   "mappings": {
     "showcase_status": [
       {
@@ -66,7 +68,7 @@
         "label": "Placeholder",
         "equivalent_score": 0,
         "equivalent_stage": "Proposed",
-        "reading_rule": "A slot or intended fixture exists, but public evidence is not established."
+        "reading_rule": "A concept, expected panel, or fixture slot has been named, but repeatable artifact evidence is not established yet."
       },
       {
         "label": "Experimental",
@@ -101,12 +103,38 @@
         "reading_rule": "Contextual or narrative evidence that is inspectable but not a validation anchor."
       }
     ],
+    "xeno_zeno_atlas_tiers": [
+      {
+        "label": "Atlas Tier 0 Candidate",
+        "equivalent_score": 2,
+        "equivalent_stage": "Observed",
+        "reading_rule": "An anomaly candidate is inspectable, but investigation completeness is still early."
+      },
+      {
+        "label": "Atlas Tier 1 Confirmed",
+        "equivalent_score": 3,
+        "equivalent_stage": "Confirmed",
+        "reading_rule": "The anomaly has a local confirmation basis."
+      },
+      {
+        "label": "Atlas Tier 2 Characterized",
+        "equivalent_score": 4,
+        "equivalent_stage": "Characterized",
+        "reading_rule": "The anomaly has documented structure and caveats."
+      },
+      {
+        "label": "Atlas Tier 3 Explained",
+        "equivalent_score": 5,
+        "equivalent_stage": "Canonical",
+        "reading_rule": "The anomaly explanation can anchor future interpretation within its declared scope."
+      }
+    ],
     "archive_status": [
       {
         "label": "Visual reference",
         "equivalent_score": 4,
         "equivalent_stage": "Characterized",
-        "reading_rule": "Curated enough to show as a reference, but not automatically canonical or physically true."
+        "reading_rule": "Curated for presentation, not a physical-correctness claim."
       },
       {
         "label": "Validation candidate",
@@ -144,7 +172,7 @@
         "label": "MISSING",
         "equivalent_score": 0,
         "equivalent_stage": "Proposed",
-        "reading_rule": "The expected evidence is named, but no matching artifact or value is present."
+        "reading_rule": "A concept, expected panel, or fixture slot has been named, but repeatable artifact evidence is not established yet."
       }
     ]
   },

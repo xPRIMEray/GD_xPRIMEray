@@ -195,7 +195,7 @@ ReferenceTransportOracle ROI sweep: a comparison study that runs reference integ
 
 ### What the acceptance gate tests.
 - The reference-integration pipeline runs without crashing.
-- Reference-integration data does not feed renderer decisions (guardrail confirmed).
+- Reference-integration data does not feed renderer decisions; guardrail verified for this run.
 - Passive comparison between reference and production transport is available as a post-process artifact.
 
 ### What it does NOT claim

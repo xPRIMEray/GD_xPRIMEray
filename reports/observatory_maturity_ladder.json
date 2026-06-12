@@ -169,7 +169,7 @@
       "verdict": "PARTIAL"
     },
     {
-      "basis": "A real storyboard artifact exists, but it has not yet been promoted into a stable catalog or canonical visitor-facing contract.",
+      "basis": "A storyboard artifact exists, but it has not yet been promoted into a stable catalog or canonical visitor-facing contract.",
       "id": "artifact:query_observatory",
       "kind": "Artifact",
       "name": "Query Observatory",
@@ -289,7 +289,7 @@
   },
   "ladder": [
     {
-      "meaning": "Named concept or intended observatory primitive; design exists but repeatable artifact evidence is not yet established.",
+      "meaning": "A concept, expected panel, or fixture slot has been named, but repeatable artifact evidence is not established yet.",
       "minimum_evidence": "Concept document, prompt, or architecture note.",
       "score": 0,
       "stage": "Proposed"

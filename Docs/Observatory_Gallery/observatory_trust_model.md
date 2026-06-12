@@ -1,4 +1,4 @@
-# Observatory Trust Model v1
+# Observatory Trust Model v1.1
 
 The Observatory Trust Model is the shared vocabulary for evidence strength. It keeps maturity, showcase readiness, citation tiers, archive status, closure, coverage, and verdict from being read as the same kind of claim.
 
@@ -15,6 +15,8 @@ The Observatory Trust Model is the shared vocabulary for evidence strength. It k
 
 **Canonical does not mean physically true.** It means the artifact can anchor Observatory interpretation within its declared scene contract.
 
+**Unlabeled ≠ Proposed.** Artifacts without a recorded score are unlabeled, not Proposed. Proposed means a concept, expected panel, or fixture slot has been named but the evidence pipeline is not established.
+
 ## Crosswalk
 
 ### Showcase Status
@@ -23,12 +25,14 @@ The Observatory Trust Model is the shared vocabulary for evidence strength. It k
 |---|---:|---:|---|
 | Strong | Characterized | 4 | Complete enough to teach the fixture, but not automatically canonical. |
 | Partial | Observed | 2 | Inspectable and useful, but incomplete. |
-| Placeholder | Proposed | 0 | Named slot; public evidence not established. |
+| Placeholder | Proposed | 0 | A concept, expected panel, or fixture slot has been named, but repeatable artifact evidence is not established yet. |
 | Experimental | Experimental | 1 | Internal or exploratory; not visitor-ready. |
 
 ### Citation Tiers
 
 Citation tiers are evidence-placement labels, not transport implementation tiers.
+
+Citation placement tiers in this Trust Model are distinct from Xeno/Zeno investigation confidence tiers. The Trust Model's placement tiers rank evidence authority; the Xeno/Zeno Atlas tiers rank anomaly-investigation completeness.
 
 | tier | trust stage | score | read as |
 |---|---:|---:|---|
@@ -37,11 +41,20 @@ Citation tiers are evidence-placement labels, not transport implementation tiers
 | Tier 2 | Confirmed | 3 | Supporting evidence for a local gate. |
 | Tier 3 | Observed | 2 | Context or narrative evidence. |
 
+### Xeno/Zeno Atlas Tiers
+
+| atlas tier | trust stage | score | read as |
+|---|---:|---:|---|
+| Atlas Tier 0 Candidate | Observed | 2 | An anomaly candidate is inspectable, but investigation completeness is still early. |
+| Atlas Tier 1 Confirmed | Confirmed | 3 | The anomaly has a local confirmation basis. |
+| Atlas Tier 2 Characterized | Characterized | 4 | The anomaly has documented structure and caveats. |
+| Atlas Tier 3 Explained | Canonical | 5 | The anomaly explanation can anchor future interpretation within its declared scope. |
+
 ### Archive Status
 
 | archive status | trust stage | score | read as |
 |---|---:|---:|---|
-| Visual reference | Characterized | 4 | Curated reference, not a ground-truth claim. |
+| Visual reference | Characterized | 4 | Curated for presentation, not a physical-correctness claim. |
 | Validation candidate | Confirmed | 3 | Strong local evidence awaiting promotion or another reproducibility pass. |
 | Test output | Observed | 2 | Useful run output exists. |
 | Archived | Experimental | 1 | Historical or superseded evidence; revalidate before using for current claims. |
@@ -54,7 +67,7 @@ Citation tiers are evidence-placement labels, not transport implementation tiers
 |---|---:|---:|---|
 | PASS | Confirmed | 3 | The local gate passed for the stated run, fixture, and scene contract. |
 | PARTIAL | Observed | 2 | Evidence exists, but the local gate or coverage is incomplete. |
-| MISSING | Proposed | 0 | Expected evidence is named, but no matching artifact or value is present. |
+| MISSING | Proposed | 0 | A concept, expected panel, or fixture slot has been named, but repeatable artifact evidence is not established yet. |
 
 ## Reading Rule
 
