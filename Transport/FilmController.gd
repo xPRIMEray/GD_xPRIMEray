@@ -145,6 +145,10 @@ func set_mode(mode: FilmMode) -> void:
 			_film_camera.call("InvalidateCathedralProbeSnapshotForContextChange")
 		_formal_snapshot_requested = false
 		_formal_snapshot_terminal_handled = false
+	if _mode == FilmMode.LIVE and mode != FilmMode.LIVE and _film_camera != null:
+		# LIVE preview owns this performance-only broadphase override. Restore
+		# the scene-authored policy before OFF/SNAPSHOT resumes.
+		_film_camera.set("BroadphasePolicy", 0)
 	_mode = mode
 	match _mode:
 		FilmMode.OFF:
@@ -274,6 +278,10 @@ func _apply_quality_preview() -> void:
 		return
 	_film_camera.set("FilmResolutionScale", 0.5)
 	_film_camera.set("UpdateEveryFrameBudgetMs", 80.0)
+	# Keep broadphase policy scoped to LIVE preview; formal SNAPSHOT retains
+	# its authored configuration and authority path.
+	_film_camera.set("BroadphaseControlMode", 2)
+	_film_camera.set("BroadphasePolicy", 2)
 
 
 func _apply_quality_interactive() -> void:
