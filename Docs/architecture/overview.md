@@ -2,6 +2,8 @@
 
 xPRIMEray is a self-contained rendering system embedded in Godot 4.x. It owns its simulation, intersection, and scheduling logic; Godot provides scene extraction and display. This document describes the pipeline structure, the two rendering passes, the stored-hit system, and the concept of domain emergence.
 
+**LIVE preview is no longer a uniform brute-force classification of every pixel.** Adaptive LIVE acquisition — and its isolation from Formal G — is specified in [Live Acquisition Decision Tree](live-acquisition-decision-tree.md). The hermetic “every pixel classified” contract below applies to **Formal G SNAPSHOT**, not to LIVE film.
+
 Related: [architecture_overview.md](../architecture_overview.md) (detailed subsystem breakdown with code contracts), [SPEC_INDEX.md](../SPEC_INDEX.md) (full spec list).
 
 ---
@@ -39,9 +41,11 @@ Each layer communicates through explicit data contracts. Cross-layer coupling is
 
 ## Pass 1 — Transport (Scout Pass)
 
-Pass 1 integrates rays from the camera outward through the GRIN field, producing classified transport results for every pixel. This is the authoritative validation pass.
+Pass 1 integrates rays from the camera outward through the GRIN field. On **LIVE film**, Pass 1 is a budgeted preview: small scheduling quanta, TLAS pruning, OverlapOnly broadphase, Compute Envelope permission. It does not have to classify every pixel before the interaction clock may proceed.
 
-**Guarantees (hermetic mode):**
+On **Formal G SNAPSHOT**, Pass 1 is the authoritative sealed census: every sample must reach a terminal class. That hermetic contract is **FORMAL ONLY**.
+
+**Guarantees (hermetic Formal G / hermetic mode):**
 
 | Metric | Required value |
 |---|---|

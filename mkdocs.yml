@@ -352,6 +352,7 @@ nav:
           - Transport Observatory: Overview/TRANSPORT_OBSERVATORY_OVERVIEW.md
           - Feature Index: FEATURE_INDEX.md
       - System Architecture:
+          - Live Acquisition Decision Tree: architecture/live-acquisition-decision-tree.md
           - System Architecture: architecture.md
           - Architecture Overview: architecture_overview.md
           - Architecture Subsystems: architecture/overview.md

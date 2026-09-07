@@ -12,7 +12,7 @@ description: Portable Observatory for optical transport — sealed frames, Probe
   Same frame. Same transport. Different questions.
 </div>
 
-<div class="xp-motto">Render the path. Inspect the journey.</div>
+<div class="xp-motto">A hit changes where the instrument looks next. The image grows around evidence.</div>
 
 <figure class="xp-obs-visual" markdown>
   ![Contact Events Probe View of a sealed Complete plate](assets/observatory/artifact_001/stills/contact_events_display.png){ .xp-plate }
@@ -25,29 +25,29 @@ description: Portable Observatory for optical transport — sealed frames, Probe
     <div class="xp-engine-state__row">
       <dt>Formal authority</dt>
       <dd>BVH-v0
-        <span class="xp-quiet">Contact: XPrimeRaySpatialKernel/BVH-v0 · witness LinearScan-v0 · secondary GodotPhysics/DeterministicReplay-v1 · Formal G remains a deterministic single-worker sealed acquisition</span>
+        <span class="xp-quiet">Contact: XPrimeRaySpatialKernel/BVH-v0 · witness LinearScan-v0 · secondary GodotPhysics/DeterministicReplay-v1 · Formal G is a fresh single-worker SNAPSHOT · no PixelMemory · no Meander</span>
       </dd>
     </div>
     <div class="xp-engine-state__row">
       <dt>Just landed</dt>
-      <dd>Stage-aware Compute Envelope
-        <span class="xp-quiet">P2 make time small · P3-C eff87add pixel steal · P3-D 5e503096 fewer physics queries · P3-E 1fee7ce3 stage ceilings · Live Pass1 cap 6 on current host/workload · workers=live:6/stage:6/global:12/host:24</span>
+      <dd>LIVE OverlapOnly broadphase
+        <span class="xp-quiet">717e7230 · TLAS-backed LIVE geometry pruning · interaction row budget · Compute Envelope permission · confirmed LIVE hits · Formal G isolated</span>
       </dd>
     </div>
     <div class="xp-engine-state__row">
       <dt>Now</dt>
-      <dd>Compute Envelope is permission, not obligation
-        <span class="xp-quiet">Live Pass1 qualified at N=6 on current host/workload · 68.10 rows/sec · 183% CPU · wider N did not help · Formal G isolated</span>
+      <dd>PixelMemory shadow instrumentation <span class="xp-chip xp-chip--now">in development</span>
+        <span class="xp-quiet">P3-G1 has no landing commit · a hit will change where LIVE looks next, not what neighbors are measured to be</span>
       </dd>
     </div>
     <div class="xp-engine-state__row">
       <dt>Next</dt>
-      <dd>Third Observer G4/G5
-        <span class="xp-quiet">then Cathedral Probe · progressive sparse/reprojected preview · optical-closure acquisition policy</span>
+      <dd>Pixel Meander frontiers
+        <span class="xp-quiet">then Cathedral Probe object-seeding · Third Observer G4/G5 · Deep Field · optical-closure policy under G</span>
       </dd>
     </div>
   </dl>
-  <p class="xp-engine-state__later">P2 — Make time small. P3-C — Make work wide. P3-D — Ask fewer redundant physics questions. P3-E — Let each stage use only the width that helps. Deferred: Pass2 threading · BVH live prefilter.</p>
+  <p class="xp-engine-state__later">Interaction owns latency. Measurement owns semantics. Compute spends remaining budget on useful unresolved evidence. Envelope is permission, not obligation. Deferred: Pass2 threading · BVH live prefilter.</p>
 </div>
 
 <p class="xp-thesis">Outcome → Contact Events → Transport Effort</p>
@@ -71,12 +71,48 @@ description: Portable Observatory for optical transport — sealed frames, Probe
 
 </div>
 
-<p class="xp-controls">E chooses the experiment · F reveals the field · G measures · Q interrogates<br>V Walk/Fly · Tab telemetry · Esc Workbench<br>Q rereads one sealed acquisition. Third Observer identity names a different observer context. Those are different claims.<br>Experiment chooses the world. Measurement chooses the question. Compute chooses how aggressively the machine may answer. Compute Envelope is permission, not obligation.<br>Three clocks: interaction · live film · Formal G. P2/P3 affect live film only.</p>
+<p class="xp-controls">E chooses the experiment · F reveals the field · G measures · Q interrogates<br>V Walk/Fly · Tab telemetry · Esc Workbench<br>Render the path. Inspect the journey.<br>Q rereads one sealed acquisition. Third Observer identity names a different observer context. Those are different claims.<br>Experiment chooses the world. Measurement chooses the question. Compute chooses how aggressively the machine may answer. Compute Envelope is permission, not obligation.<br>Three clocks: interaction · live film · Formal G. Adaptive acquisition is live film only.</p>
+
+## How a pixel becomes evidence
+
+xPRIMEray does not ask every pixel the same question forever. Confirmed LIVE hits seed where the instrument looks next. Neighbors inherit **priority**, not measured values.
+
+<div class="xp-meander" role="img" aria-label="Two independent object frontiers blooming on a magenta unresolved plate">
+  <svg viewBox="0 0 640 220" xmlns="http://www.w3.org/2000/svg">
+    <rect width="640" height="220" fill="#2a1848"/>
+    <text x="16" y="22" fill="#c4b0e0" font-size="11" font-family="ui-monospace, monospace" letter-spacing="0.12em">MAGENTA / UNRESOLVED PLATE</text>
+    <circle cx="210" cy="120" r="54" fill="#5a2f8a" opacity="0.55"/>
+    <circle cx="210" cy="120" r="32" fill="#7a48b0" opacity="0.7"/>
+    <circle cx="210" cy="120" r="6" fill="#e8d080"/>
+    <text x="210" y="78" text-anchor="middle" fill="#e8d080" font-size="11" font-family="ui-monospace, monospace">Object A seed</text>
+    <text x="210" y="188" text-anchor="middle" fill="#d8c4f0" font-size="10" font-family="ui-monospace, monospace">frontier A · priority only</text>
+    <circle cx="430" cy="128" r="48" fill="#2f6a78" opacity="0.5"/>
+    <circle cx="430" cy="128" r="28" fill="#3e8a96" opacity="0.7"/>
+    <circle cx="430" cy="128" r="6" fill="#9ee8d0"/>
+    <text x="430" y="86" text-anchor="middle" fill="#9ee8d0" font-size="11" font-family="ui-monospace, monospace">Object B seed</text>
+    <text x="430" y="196" text-anchor="middle" fill="#d8c4f0" font-size="10" font-family="ui-monospace, monospace">frontier B · independent</text>
+  </svg>
+  <p class="xp-meander__cap">A hit changes where the instrument looks next, not what its neighbors are measured to be. Pixel Meander is planned. PixelMemory is in development — not landed.</p>
+</div>
+
+<div class="xp-tree">
+  <ol class="xp-tree__list">
+    <li><span class="xp-status xp-status--landed">Landed</span> Observer + experiment → LIVE context → Pass1 → TLAS → OverlapOnly broadphase → contact</li>
+    <li><span class="xp-status xp-status--dev">In development</span> PixelMemory ledger (P3-G1 · no commit yet)</li>
+    <li><span class="xp-status xp-status--planned">Planned</span> Pixel Meander frontiers · Cathedral Probe object-seeding · Deep Field</li>
+    <li><span class="xp-status xp-status--formal">Formal only</span> G SNAPSHOT — fresh, sealed, BVH-v0, no LIVE memory</li>
+  </ol>
+</div>
+
+Magenta / unresolved = not enough LIVE evidence yet. Deferred = budget spent elsewhere. Hit = confirmed LIVE contact. Stronger sealed claims require Formal G.
+
+Canonical tree: [Live Acquisition Decision Tree](architecture/live-acquisition-decision-tree.md)
 
 ## Explore / Demos
 
 <div class="xp-demo-grid">
   <a href="#probe-views">Three Probe Views</a>
+  <a href="architecture/live-acquisition-decision-tree/">Live acquisition tree</a>
   <a href="Observatory/chapters/chapter_02/">Observer Disagreement</a>
   <a href="Observatory/chapters/chapter_03/">Hermetic Closure</a>
   <a href="Observatory_Gallery/">Observatory Gallery</a>

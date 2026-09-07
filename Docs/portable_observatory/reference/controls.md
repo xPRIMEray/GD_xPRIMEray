@@ -16,9 +16,12 @@ Public control legend for the Godot Transport Lens host. Internal names only whe
 ## Compact strip
 
 ```text
-G plate · N display · , . 0 1 field · Tab inspector · Esc evidence
+E experiment · F field structure · G SNAPSHOT · Q probe views
+N display · , . 0 1 field · Tab inspector · Esc evidence
 P probe · J/K region · V walk/fly
 ```
+
+H (Hermetic presentation) is **retired / inert**. Do not teach H as a scene loader.
 
 ---
 
@@ -26,7 +29,10 @@ P probe · J/K region · V walk/fly
 
 | Key | Public name | What it does | Boundary |
 |-----|-------------|--------------|----------|
-| **G** | Plate mode | Cycles Observation Plate OFF → SNAPSHOT → LIVE → OFF | SNAPSHOT for sealed probe work; LIVE exploratory display |
+| **E** | Experiment | Loads authored experiment context (geometry, field, optional viewpoint) | Invalidates any open seal. Not a shader. Not H. |
+| **F** | Field Structure | Authored overlay visibility | Presentation only |
+| **G** | SNAPSHOT | Commits Formal G — freeze context, acquire, seal | Fresh deterministic measurement. Never trusts LIVE PixelMemory. LIVE is a different clock. |
+| **Q** | Probe View | Remaps a sealed Complete plate (Outcome / Contact Events / Transport Effort) | Same frame, same transport, different questions. Not a new acquisition. |
 | **N** | Display Mode | Cycles film shading (Depth / NormalRGB / NdotV / …) | Presentation only |
 | **Tab** | Inspector | Opens Observation Inspector | Numbers/context; not OI PASS |
 | **0** / **1** | Field ends | Field strength → STRAIGHT (0) or FULL (1) | Policy scale—not “nature max” |
@@ -46,13 +52,13 @@ P probe · J/K region · V walk/fly
 | **O** | Orientation display | Proposed dedicated orientation cycle; until bound, use **N** |
 | **D** | Depth display | Proposed shortcut; until bound, use **N** |
 
-**Note on G:** The G binding is a legacy carry-over from the internal `GrinFilmCamera` implementation name. The public label is **Plate mode**—not "GrinFilmCamera key." **L** (Lens) or **T** (Transport Lens) are preferred successors when the input map allows rebinding.
+**Note on G:** G is Formal SNAPSHOT commit. LIVE film is a separate preview clock. Do not remap G for elegance.
 
 ---
 
 ## Operator order (safe)
 
-1. Pose + field → **G** SNAPSHOT until Complete.
+1. **E** Experiment → pose + field → **G** SNAPSHOT until Complete.
 2. **Tab** histogram / validity.
 3. **N** only after you know outcomes (display does not change classes).
 4. **P** only on outcome-defined Unresolved Regions.

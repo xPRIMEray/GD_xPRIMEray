@@ -13,8 +13,8 @@ Documentation-oriented operator notes for the Godot host. Engine build steps rem
 ## Minimal interactive path
 
 1. Launch the Godot project with Transport Chamber / Observatory scenes as shipped.
-2. Choose **Scene** shell (**H** Gallery ↔ Hermetic when available).
-3. Enable **Transport Lens** plate (**G** → SNAPSHOT for scientific work).
+2. Choose **Experiment** (**E**). H (Hermetic presentation) is retired / inert.
+3. Enable **Formal G SNAPSHOT** (**G**) for scientific work. LIVE film is a separate preview clock.
 4. Set field (**0** straight baseline; **1** / fine **,** **.** for curved policy).
 5. Open **Inspector** (**Tab**).
 6. Cycle **Display Mode** (**N**) only after reading outcomes.

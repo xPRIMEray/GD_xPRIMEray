@@ -117,14 +117,15 @@ Not resolved: still max-steps, absorbed-secondary, fault, invalid.
 
 | Key | Role |
 |-----|------|
-| G | Plate / SNAPSHOT |
+| E | Experiment (invalidates seal) |
+| G | Formal SNAPSHOT |
+| Q | Probe View (sealed remap) |
 | P | Region Refinement |
 | J / K | Cycle regions *(when wired)* |
 | R | Reset refinement *(when wired)* |
 | , . 0 1 | Field |
 | N | Display Mode only |
 | Tab | Inspector |
-| H | Scene shell (invalidates context) |
 
 Full legend: [Controls](../reference/controls.md).
 
