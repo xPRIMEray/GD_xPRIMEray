@@ -2271,6 +2271,28 @@ public partial class GrinFilmCamera : Node
 	private PixelDomainState[] _pixelDomainStates = Array.Empty<PixelDomainState>();
 	private float[] _adaptiveEnvelopeMismatchPrior = Array.Empty<float>();
 	private byte[] _adaptiveEnvelopeActiveMask = Array.Empty<byte>();
+	private enum LivePixelMemoryNoHitReason : byte
+	{
+		Unseen = 0,
+		None = 1,
+		TlasNoCandidate = 2,
+		BroadphaseDisabled = 3,
+		BroadphaseNoCandidate = 4,
+		PhysicsMiss = 5,
+		BudgetExhausted = 6,
+		Unresolved = 7
+	}
+
+	// LIVE-only shadow state. These planes are observational and are never read
+	// by transport, scheduling, film presentation, or formal acquisition.
+	private byte[] _livePixelMemoryNoHitReason = Array.Empty<byte>();
+	private ushort[] _livePixelMemorySampleCount = Array.Empty<ushort>();
+	private ulong[] _livePixelMemoryContextKeyHash = Array.Empty<ulong>();
+	private ulong _livePixelMemoryContextHash;
+	private uint _livePixelMemoryContextGeneration;
+	private bool _livePixelMemoryContextInitialized;
+	private int _livePixelMemoryLastSummaryGeneration = -1;
+	private int _livePixelMemoryCompletedPasses;
 	private float[] _adaptiveEnvelopePreviousMismatchPrior = Array.Empty<float>();
 	private byte[] _adaptiveEnvelopePreviousActiveMask = Array.Empty<byte>();
 	private float _adaptiveEnvelopeScaleMinThisRun = 1.0f;
@@ -8126,6 +8148,12 @@ private sealed class OverlayRollingWindow
 			_adaptiveEnvelopeMismatchPrior = new float[safeCount];
 		if (_adaptiveEnvelopeActiveMask.Length != safeCount)
 			_adaptiveEnvelopeActiveMask = new byte[safeCount];
+		if (_livePixelMemoryNoHitReason.Length != safeCount)
+			_livePixelMemoryNoHitReason = new byte[safeCount];
+		if (_livePixelMemorySampleCount.Length != safeCount)
+			_livePixelMemorySampleCount = new ushort[safeCount];
+		if (_livePixelMemoryContextKeyHash.Length != safeCount)
+			_livePixelMemoryContextKeyHash = new ulong[safeCount];
 		if (_adaptiveEnvelopePreviousMismatchPrior.Length != safeCount)
 			_adaptiveEnvelopePreviousMismatchPrior = new float[safeCount];
 		if (_adaptiveEnvelopePreviousActiveMask.Length != safeCount)
@@ -11589,6 +11617,199 @@ private sealed class OverlayRollingWindow
 		AddQuantizedVector3(ref hash, basis.X);
 		AddQuantizedVector3(ref hash, basis.Y);
 		AddQuantizedVector3(ref hash, basis.Z);
+	}
+
+	private ulong ComputeLivePixelMemoryContextHash(in EffectiveConfig cfg)
+	{
+		var hash = new ProbeContextHashBuilder(2166136261u);
+		var hash2 = new ProbeContextHashBuilder(16777619u);
+		void AddInt(int value) { hash.AddInt(value); hash2.AddInt(value); }
+		void AddUInt(uint value) { hash.AddUInt(value); hash2.AddUInt(value); }
+		void AddFloat(float value)
+		{
+			int bits = BitConverter.SingleToInt32Bits(value);
+			AddInt(bits);
+		}
+		void AddBool(bool value) { hash.AddBool(value); hash2.AddBool(value); }
+		void AddVector(Vector3 value)
+		{
+			AddFloat(value.X); AddFloat(value.Y); AddFloat(value.Z);
+		}
+
+		AddInt(_filmWidth);
+		AddInt(_filmHeight);
+		AddFloat(_cam?.Fov ?? 0f);
+		if (_cam != null) AddVector(_cam.GlobalTransform.Origin);
+		else AddVector(Vector3.Zero);
+		if (_cam != null) AddQuantizedBasis(ref hash, _cam.GlobalTransform.Basis);
+		else AddQuantizedBasis(ref hash, Basis.Identity);
+		// Mirror the basis into the second lane to keep the compact hash stable.
+		if (_cam != null)
+		{
+			AddVector(_cam.GlobalTransform.Basis.X);
+			AddVector(_cam.GlobalTransform.Basis.Y);
+			AddVector(_cam.GlobalTransform.Basis.Z);
+		}
+		else
+		{
+			AddVector(Vector3.Right); AddVector(Vector3.Up); AddVector(Vector3.Back);
+		}
+		AddInt(cfg.RayMarch.StepsPerRay);
+		AddFloat(cfg.RayMarch.StepLength);
+		AddFloat(cfg.RayMarch.FieldStrength);
+		AddUInt(cfg.RayMarch.CollisionMask);
+		AddFloat(cfg.Film.MaxDistance);
+		AddFloat(cfg.Pass2GeomEnvelopeRadiusScale);
+		AddFloat(cfg.Pass2GeomEnvelopeAabbExpand);
+		AddInt((int)cfg.Broadphase.Mode);
+		AddInt((int)cfg.Broadphase.Policy);
+		AddBool(cfg.Broadphase.UseQuickRay);
+		AddBool(cfg.Broadphase.UseOverlap);
+		AddFloat(cfg.Broadphase.Margin);
+		AddInt(cfg.Broadphase.MaxResults);
+		AddUInt(HashNodeGroupForProbeContext("field_sources"));
+		AddUInt(HashNodeGroupForProbeContext("raytrace_geometry", "fixture_geometry"));
+		AddUInt(HashNodeGroupForProbeContext("boundary_layer_volumes"));
+		return ((ulong)hash.Value << 32) | hash2.Value;
+	}
+
+	private void BeginLivePixelMemoryContext(ulong contextHash)
+	{
+		if (!_livePixelMemoryContextInitialized || _livePixelMemoryContextHash != contextHash)
+		{
+			// These priors are LIVE scheduler state, not measurement state. A
+			// transport-context change must not carry candidate-discovery history
+			// into the next LIVE context. Formal SNAPSHOT never calls this method.
+			if (_livePixelMemoryContextInitialized)
+			{
+				Array.Clear(_adaptiveEnvelopeMismatchPrior, 0, _adaptiveEnvelopeMismatchPrior.Length);
+				Array.Clear(_adaptiveEnvelopeActiveMask, 0, _adaptiveEnvelopeActiveMask.Length);
+				Array.Clear(_adaptiveEnvelopePreviousMismatchPrior, 0, _adaptiveEnvelopePreviousMismatchPrior.Length);
+				Array.Clear(_adaptiveEnvelopePreviousActiveMask, 0, _adaptiveEnvelopePreviousActiveMask.Length);
+				_adaptiveEnvelopePreviousSnapshotAvailable = false;
+				_adaptiveEnvelopeGlobalQueryMinusCurvatureP50 = 0.0f;
+				_adaptiveEnvelopeGlobalQueryMinusCurvatureP90 = 0.0f;
+				_adaptiveEnvelopeGlobalRelaxedThreshold = 0.0f;
+				_adaptiveEnvelopeGlobalWarmThreshold = 0.0f;
+				_adaptiveEnvelopeGlobalHotThreshold = 0.0f;
+				_adaptiveEnvelopePreviousGlobalQueryMinusCurvatureP50 = 0.0f;
+				_adaptiveEnvelopePreviousGlobalQueryMinusCurvatureP90 = 0.0f;
+				_adaptiveEnvelopePreviousGlobalRelaxedThreshold = 0.0f;
+				_adaptiveEnvelopePreviousGlobalWarmThreshold = 0.0f;
+				_adaptiveEnvelopePreviousGlobalHotThreshold = 0.0f;
+			}
+			_livePixelMemoryContextHash = contextHash;
+			_livePixelMemoryContextGeneration++;
+			_livePixelMemoryContextInitialized = true;
+		}
+	}
+
+	private void EmitLivePixelMemorySummaryIfComplete(in EffectiveConfig cfg)
+	{
+		if (!UpdateEveryFrame || _observationAcquisition.Owner == ObservationAcquisitionOwner.Snapshot)
+			return;
+		if (_livePixelMemoryContextHash == 0UL || _livePixelMemoryNoHitReason.Length != _filmWidth * _filmHeight)
+			return;
+		_livePixelMemoryCompletedPasses++;
+		if (_livePixelMemoryLastSummaryGeneration == (int)_livePixelMemoryContextGeneration
+			&& (_livePixelMemoryCompletedPasses % 30) != 0)
+			return;
+
+		int unseen = 0;
+		int sampled = 0;
+		int hit = 0;
+		long sampleSum = 0;
+		ushort sampleMin = ushort.MaxValue;
+		ushort sampleMax = 0;
+		int[] reasons = new int[8];
+		for (int i = 0; i < _livePixelMemoryContextKeyHash.Length; i++)
+		{
+			if (_livePixelMemoryContextKeyHash[i] != _livePixelMemoryContextHash)
+			{
+				unseen++;
+				continue;
+			}
+			sampled++;
+			ushort sampleCount = _livePixelMemorySampleCount[i];
+			sampleSum += sampleCount;
+			sampleMin = Math.Min(sampleMin, sampleCount);
+			sampleMax = Math.Max(sampleMax, sampleCount);
+			int reason = Math.Min(7, (int)_livePixelMemoryNoHitReason[i]);
+			reasons[reason]++;
+			if (reason == (int)LivePixelMemoryNoHitReason.None) hit++;
+		}
+
+		_livePixelMemoryLastSummaryGeneration = (int)_livePixelMemoryContextGeneration;
+		GD.Print(
+			$"[PixelMemory][LIVE] context={_livePixelMemoryContextHash:x16} generation={_livePixelMemoryContextGeneration} " +
+			$"unseenPx={unseen} sampledPx={sampled} hitPx={hit} " +
+			$"sampleCountMin={(sampled > 0 ? sampleMin : (ushort)0)} sampleCountMean={(sampled > 0 ? (double)sampleSum / sampled : 0.0):F2} sampleCountMax={sampleMax} " +
+			$"tlasNoCandidatePx={reasons[(int)LivePixelMemoryNoHitReason.TlasNoCandidate]} " +
+			$"broadphaseDisabledPx={reasons[(int)LivePixelMemoryNoHitReason.BroadphaseDisabled]} " +
+			$"broadphaseNoCandidatePx={reasons[(int)LivePixelMemoryNoHitReason.BroadphaseNoCandidate]} " +
+			$"physicsMissPx={reasons[(int)LivePixelMemoryNoHitReason.PhysicsMiss]} " +
+			$"budgetExhaustedPx={reasons[(int)LivePixelMemoryNoHitReason.BudgetExhausted]} " +
+			$"unresolvedPx={reasons[(int)LivePixelMemoryNoHitReason.Unresolved]} " +
+			$"authoredRowCap={UpdateEveryFrameMaxRowsPerStep} resolvedRowCap={BandHeightRowsResolved} " +
+			$"adaptiveBandH={_bandHeightRowsResolved} configuredWorkerCeiling={ComputePolicyWorkerCeiling} " +
+			$"actualPeakConcurrentWorkers={(cfg.UseThreadedBands ? ComputeActualPass1WorkerCount() : 1)}");
+	}
+
+	private static byte ClassifyLivePixelMemoryReason(
+		bool hadHit,
+		bool tlasPruning,
+		bool tlasHadCandidate,
+		bool broadphaseEnabled,
+		bool broadphaseHadCandidate,
+		long physicsQueries,
+		bool maxStepsReached,
+		bool budgetStopped)
+	{
+		if (hadHit) return (byte)LivePixelMemoryNoHitReason.None;
+		if (tlasPruning && !tlasHadCandidate) return (byte)LivePixelMemoryNoHitReason.TlasNoCandidate;
+		if (!broadphaseEnabled) return (byte)LivePixelMemoryNoHitReason.BroadphaseDisabled;
+		if (!broadphaseHadCandidate) return (byte)LivePixelMemoryNoHitReason.BroadphaseNoCandidate;
+		if (physicsQueries > 0) return (byte)LivePixelMemoryNoHitReason.PhysicsMiss;
+		if (maxStepsReached || budgetStopped) return (byte)LivePixelMemoryNoHitReason.BudgetExhausted;
+		return (byte)LivePixelMemoryNoHitReason.Unresolved;
+	}
+
+	private void RecordLivePixelMemorySample(
+		int x,
+		int y,
+		int stride,
+		int filmW,
+		int filmH,
+		bool hadHit,
+		bool tlasPruning,
+		bool tlasHadCandidate,
+		bool broadphaseEnabled,
+		bool broadphaseHadCandidate,
+		long physicsQueries,
+		bool maxStepsReached,
+		bool budgetStopped)
+	{
+		if (!UpdateEveryFrame || _observationAcquisition.Owner == ObservationAcquisitionOwner.Snapshot)
+			return;
+		if (_livePixelMemoryContextHash == 0UL || _livePixelMemoryNoHitReason.Length != filmW * filmH)
+			return;
+		byte reason = ClassifyLivePixelMemoryReason(
+			hadHit, tlasPruning, tlasHadCandidate, broadphaseEnabled,
+			broadphaseHadCandidate, physicsQueries, maxStepsReached, budgetStopped);
+		int safeStride = Math.Max(1, stride);
+		int yEnd = Math.Min(filmH, y + safeStride);
+		int xEnd = Math.Min(filmW, x + safeStride);
+		for (int yy = Math.Max(0, y); yy < yEnd; yy++)
+		{
+			for (int xx = Math.Max(0, x); xx < xEnd; xx++)
+			{
+				int index = yy * filmW + xx;
+				_livePixelMemoryNoHitReason[index] = reason;
+				_livePixelMemoryContextKeyHash[index] = _livePixelMemoryContextHash;
+				if (_livePixelMemorySampleCount[index] < ushort.MaxValue)
+					_livePixelMemorySampleCount[index]++;
+			}
+		}
 	}
 
 	private static uint HashVector3Quantized(Vector3 value)
@@ -16599,6 +16820,8 @@ private sealed class OverlayRollingWindow
 					rowCursorResetThisStep = true;
 				}
 			}
+			if (cfg.UpdateEveryFrame && !snapshotAcquisition)
+				BeginLivePixelMemoryContext(ComputeLivePixelMemoryContextHash(in cfg));
 			// DECISION: wrap when we finished all rows.
 			if (_rowCursor >= _filmHeight)
 			{
@@ -23514,6 +23737,16 @@ private sealed class OverlayRollingWindow
 						FillIntBlock(_fixtureDiagnosticBoundaryEventCount, x, y, stride, filmW, filmH, hadHit ? bestBoundaryCrossingsThisPixel : terminalBoundaryCrossingsThisPixel);
 						FillIntBlock(_fixtureDiagnosticThroatEventCount, x, y, stride, filmW, filmH, Math.Max(0, hadHit ? bestEntryCountThisPixel : terminalEntryCountThisPixel) + Math.Max(0, hadHit ? bestExitCountThisPixel : terminalExitCountThisPixel));
 						bool maxStepsReachedThisPixel = _pass1MaxStepsReached.Length > pi && _pass1MaxStepsReached[pi];
+						RecordLivePixelMemorySample(
+							x, y, stride, filmW, filmH,
+							hadHit,
+							useGeomTlasPruningForStep,
+							geomPixelHadAnyCandidatesThisPixel,
+							effQuickRay || effOverlap,
+							hadCandidatesThisPixel,
+							geomRayTestsDeltaThisPixel,
+							maxStepsReachedThisPixel,
+							budgetStop);
 						FillByteBlock(_fixtureDiagnosticMaxStepsReached, x, y, stride, filmW, filmH, maxStepsReachedThisPixel ? (byte)1 : (byte)0);
 						FillByteBlock(_fixtureDiagnosticBudgetExhaustedWithoutHit, x, y, stride, filmW, filmH, maxStepsReachedThisPixel && !hadHit ? (byte)1 : (byte)0);
 						FillByteBlock(_fixtureDiagnosticHitFoundAfterBudgetWarning, x, y, stride, filmW, filmH, maxStepsReachedThisPixel && hadHit ? (byte)1 : (byte)0);
@@ -24060,6 +24293,7 @@ private sealed class OverlayRollingWindow
 				if (_rowCursor >= filmH)
 				{
 					_rbr.EmitBoundaryValidationSummary($"film={filmW}x{filmH}");
+					EmitLivePixelMemorySummaryIfComplete(in cfg);
 					if (!cfg.UpdateEveryFrame)
 						FinalizeCathedralProbeSnapshotSummary(filmW, filmH);
 					ResetRowCursor("completed");
