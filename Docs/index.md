@@ -25,7 +25,7 @@ description: Portable Observatory for optical transport — sealed frames, Probe
     <div class="xp-engine-state__row">
       <dt>Formal authority</dt>
       <dd>BVH-v0
-        <span class="xp-quiet">Contact: XPrimeRaySpatialKernel/BVH-v0 · witness LinearScan-v0 · secondary GodotPhysics/DeterministicReplay-v1 · Formal G is a fresh single-worker SNAPSHOT · no PixelMemory · no Meander</span>
+        <span class="xp-quiet">Contact: XPrimeRaySpatialKernel/BVH-v0 · witness LinearScan-v0 · secondary GodotPhysics/DeterministicReplay-v1 · Formal G is a fresh single-worker SNAPSHOT · PixelMemory shadow only · no Meander</span>
       </dd>
     </div>
     <div class="xp-engine-state__row">
@@ -36,7 +36,7 @@ description: Portable Observatory for optical transport — sealed frames, Probe
     </div>
     <div class="xp-engine-state__row">
       <dt>Now</dt>
-      <dd>PixelMemory shadow instrumentation <span class="xp-chip xp-chip--now">in development</span>
+      <dd>PixelMemory shadow instrumentation <span class="xp-chip xp-chip--now">landed</span>
         <span class="xp-quiet">P3-G1 has no landing commit · a hit will change where LIVE looks next, not what neighbors are measured to be</span>
       </dd>
     </div>
@@ -92,13 +92,13 @@ xPRIMEray does not ask every pixel the same question forever. Confirmed LIVE hit
     <text x="430" y="86" text-anchor="middle" fill="#9ee8d0" font-size="11" font-family="ui-monospace, monospace">Object B seed</text>
     <text x="430" y="196" text-anchor="middle" fill="#d8c4f0" font-size="10" font-family="ui-monospace, monospace">frontier B · independent</text>
   </svg>
-  <p class="xp-meander__cap">A hit changes where the instrument looks next, not what its neighbors are measured to be. Pixel Meander is planned. PixelMemory is in development — not landed.</p>
+  <p class="xp-meander__cap">A hit changes where the instrument looks next, not what its neighbors are measured to be. Pixel Meander is planned. PixelMemory is landed as shadow instrumentation only.</p>
 </div>
 
 <div class="xp-tree">
   <ol class="xp-tree__list">
     <li><span class="xp-status xp-status--landed">Landed</span> Observer + experiment → LIVE context → Pass1 → TLAS → OverlapOnly broadphase → contact</li>
-    <li><span class="xp-status xp-status--dev">In development</span> PixelMemory ledger (P3-G1 · no commit yet)</li>
+    <li><span class="xp-status xp-status--landed">Landed shadow</span> PixelMemory-v0 + hitEntityId object-seed identity</li>
     <li><span class="xp-status xp-status--planned">Planned</span> Pixel Meander frontiers · Cathedral Probe object-seeding · Deep Field</li>
     <li><span class="xp-status xp-status--formal">Formal only</span> G SNAPSHOT — fresh, sealed, BVH-v0, no LIVE memory</li>
   </ol>

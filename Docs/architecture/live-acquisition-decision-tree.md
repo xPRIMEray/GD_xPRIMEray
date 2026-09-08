@@ -21,6 +21,7 @@ The Observatory is evolving toward an **adaptive acquisition** model: confirmed 
 | **LANDED FOUNDATION** | Qualified in the current engine base (`717e7230`) |
 | **IN DEVELOPMENT** | Work in the tree; **no landing commit yet** |
 | **PLANNED** | Architecture, not implemented |
+| **SHADOW INSTRUMENTATION** | Observable diagnostic state; not an authority or scheduler input |
 | **FORMAL ONLY** | Sealed SNAPSHOT path; LIVE memory must not influence it |
 
 ---
@@ -44,7 +45,7 @@ P2/P3 compute work affects **live film** only.
 | Scale | Space | Question | Status |
 |---|---|---|---|
 | **Cathedral Probe** | World-space observer ↔ object | Which objects can this observer reach? | **PLANNED** as an object-seeding scheduler. Existing Cathedral Probe overlays and Probe Views are a different, already-landed instrument. |
-| **Pixel Meander** | Image-space around confirmed seeds | Where should LIVE look next? | **PLANNED** as a scheduler. **PixelMemory-v1** (hit entity IDs and object-seed/frontier foundation) is the next planned memory extension. |
+| **Pixel Meander** | Image-space around confirmed seeds | Where should LIVE look next? | **PLANNED** as a scheduler. **PixelMemory-v1 hitEntityId** is landed as **SHADOW OBJECT-SEED IDENTITY**; Meander activation remains planned. |
 
 Conceptual relationship (architecture, not a claim of shipped code):
 
@@ -58,6 +59,8 @@ Observer
 ```
 
 Do not conflate:
+
+> **NEIGHBORS INHERIT CURIOSITY, NOT EVIDENCE.**
 
 | Phrase | Means |
 |---|---|
@@ -224,7 +227,7 @@ Pass2 threading and BVH live prefilter remain **deferred**.
 
 ## Landed foundation vs not yet
 
-**LANDED FOUNDATION** (`717e7230` engine base):
+**Current landing inventory** (`717e7230` engine base):
 
 - managed LIVE scheduling (small row quanta)
 - interaction row-budget authority
@@ -234,19 +237,21 @@ Pass2 threading and BVH live prefilter remain **deferred**.
 - useful tested segments / confirmed hits
 - Formal BVH-v0 authority isolated from LIVE
 
-**LANDED FOUNDATION:**
+**SHADOW INSTRUMENTATION · LANDED:**
 
 - PixelMemory-v0 shadow instrumentation (ca9d3a51)
 
-**NEXT PLANNED MEMORY STATE:**
+**NEXT PLANNED STATE:**
 
-- PixelMemory-v1: `hitEntityId` + object-seed / frontier foundation
+- Meander activation / frontier policy
 
 P3-G2 shadow object identity is session-scoped LIVE physics identity derived
-from `bestCid`. It is valid only while the pixel's LIVE context hash matches
+from `bestCid` (the current PhysicsBody3D RID / collider identity). It is valid only while the pixel's LIVE context hash matches
 the current context. It is not a FrozenGeometry identity, Contact Event
 identity, sealed provenance value, or formal authority input. Four-neighbor
-frontier counts are diagnostic only; no frontier priority is scheduled.
+frontier counts are diagnostic only; `frontierCandidatePx` counts unique
+frontier pixels while each `frontier*Adjacent` value counts adjacency edges.
+No frontier priority is scheduled.
 
 **PLANNED:**
 

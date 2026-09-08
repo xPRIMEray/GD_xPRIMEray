@@ -11761,6 +11761,19 @@ private sealed class OverlayRollingWindow
 				largestEntitySeedPx = Math.Max(largestEntitySeedPx, entityCount);
 			}
 		}
+		var topEntities = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<ulong, int>>(entitySeedCounts);
+		topEntities.Sort((a, b) =>
+		{
+			int countOrder = b.Value.CompareTo(a.Value);
+			return countOrder != 0 ? countOrder : a.Key.CompareTo(b.Key);
+		});
+		var topEntityText = new System.Text.StringBuilder();
+		for (int entityIndex = 0; entityIndex < Math.Min(8, topEntities.Count); entityIndex++)
+		{
+			if (entityIndex > 0) topEntityText.Append(',');
+			topEntityText.Append(topEntities[entityIndex].Key.ToString("x16", CultureInfo.InvariantCulture));
+			topEntityText.Append(':').Append(topEntities[entityIndex].Value);
+		}
 
 		var frontierPixels = new System.Collections.Generic.HashSet<int>();
 		int sameEntityAdjacent = 0;
@@ -11807,6 +11820,7 @@ private sealed class OverlayRollingWindow
 			$"[PixelMemory][LIVE] context={_livePixelMemoryContextHash:x16} generation={_livePixelMemoryContextGeneration} " +
 			$"unseenPx={unseen} sampledPx={sampled} hitPx={hit} " +
 			$"seededPx={seeded} uniqueLiveEntities={entitySeedCounts.Count} largestEntitySeedPx={largestEntitySeedPx} " +
+			$"topLiveColliderRids={topEntityText} " +
 			$"frontierCandidatePx={frontierPixels.Count} frontierSameEntityAdjacent={sameEntityAdjacent} " +
 			$"frontierOtherEntityAdjacent={otherEntityAdjacent} frontierNoHitAdjacent={noHitAdjacent} frontierUnseenAdjacent={unseenAdjacent} " +
 			$"sampleCountMin={(sampled > 0 ? sampleMin : (ushort)0)} sampleCountMean={(sampled > 0 ? (double)sampleSum / sampled : 0.0):F2} sampleCountMax={sampleMax} " +
