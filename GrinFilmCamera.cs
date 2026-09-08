@@ -2288,6 +2288,7 @@ public partial class GrinFilmCamera : Node
 	private byte[] _livePixelMemoryNoHitReason = Array.Empty<byte>();
 	private ushort[] _livePixelMemorySampleCount = Array.Empty<ushort>();
 	private ulong[] _livePixelMemoryContextKeyHash = Array.Empty<ulong>();
+	private ulong[] _livePixelMemoryHitEntityId = Array.Empty<ulong>();
 	private ulong _livePixelMemoryContextHash;
 	private uint _livePixelMemoryContextGeneration;
 	private bool _livePixelMemoryContextInitialized;
@@ -8160,6 +8161,8 @@ private sealed class OverlayRollingWindow
 			_livePixelMemorySampleCount = new ushort[safeCount];
 		if (_livePixelMemoryContextKeyHash.Length != safeCount)
 			_livePixelMemoryContextKeyHash = new ulong[safeCount];
+		if (_livePixelMemoryHitEntityId.Length != safeCount)
+			_livePixelMemoryHitEntityId = new ulong[safeCount];
 		if (_adaptiveEnvelopePreviousMismatchPrior.Length != safeCount)
 			_adaptiveEnvelopePreviousMismatchPrior = new float[safeCount];
 		if (_adaptiveEnvelopePreviousActiveMask.Length != safeCount)
@@ -11715,7 +11718,8 @@ private sealed class OverlayRollingWindow
 	{
 		if (!UpdateEveryFrame || _observationAcquisition.Owner == ObservationAcquisitionOwner.Snapshot)
 			return;
-		if (_livePixelMemoryContextHash == 0UL || _livePixelMemoryNoHitReason.Length != _filmWidth * _filmHeight)
+		if (_livePixelMemoryContextHash == 0UL || _livePixelMemoryNoHitReason.Length != _filmWidth * _filmHeight
+			|| _livePixelMemoryHitEntityId.Length != _filmWidth * _filmHeight)
 			return;
 		_livePixelMemoryCompletedPasses++;
 		if (_livePixelMemoryLastSummaryGeneration == (int)_livePixelMemoryContextGeneration
@@ -11725,6 +11729,9 @@ private sealed class OverlayRollingWindow
 		int unseen = 0;
 		int sampled = 0;
 		int hit = 0;
+		int seeded = 0;
+		int largestEntitySeedPx = 0;
+		var entitySeedCounts = new System.Collections.Generic.Dictionary<ulong, int>();
 		long sampleSum = 0;
 		ushort sampleMin = ushort.MaxValue;
 		ushort sampleMax = 0;
@@ -11744,12 +11751,64 @@ private sealed class OverlayRollingWindow
 			int reason = Math.Min(7, (int)_livePixelMemoryNoHitReason[i]);
 			reasons[reason]++;
 			if (reason == (int)LivePixelMemoryNoHitReason.None) hit++;
+			ulong entityId = _livePixelMemoryHitEntityId[i];
+			if (entityId != 0UL)
+			{
+				seeded++;
+				entitySeedCounts.TryGetValue(entityId, out int entityCount);
+				entityCount++;
+				entitySeedCounts[entityId] = entityCount;
+				largestEntitySeedPx = Math.Max(largestEntitySeedPx, entityCount);
+			}
+		}
+
+		var frontierPixels = new System.Collections.Generic.HashSet<int>();
+		int sameEntityAdjacent = 0;
+		int otherEntityAdjacent = 0;
+		int noHitAdjacent = 0;
+		int unseenAdjacent = 0;
+		int width = _filmWidth;
+		int height = _filmHeight;
+		int[] neighborOffsets = { -1, 1, -width, width };
+		for (int index = 0; index < _livePixelMemoryHitEntityId.Length; index++)
+		{
+			ulong entityId = _livePixelMemoryHitEntityId[index];
+			if (entityId == 0UL || _livePixelMemoryContextKeyHash[index] != _livePixelMemoryContextHash)
+				continue;
+			int x = index % width;
+			int y = index / width;
+			for (int offsetIndex = 0; offsetIndex < neighborOffsets.Length; offsetIndex++)
+			{
+				int neighbor = index + neighborOffsets[offsetIndex];
+				if (neighbor < 0 || neighbor >= width * height)
+					continue;
+				if ((offsetIndex == 0 && x == 0) || (offsetIndex == 1 && x == width - 1)
+					|| (offsetIndex == 2 && y == 0) || (offsetIndex == 3 && y == height - 1))
+					continue;
+				if (_livePixelMemoryContextKeyHash[neighbor] != _livePixelMemoryContextHash)
+				{
+					unseenAdjacent++;
+					frontierPixels.Add(neighbor);
+				}
+				else if (_livePixelMemoryHitEntityId[neighbor] == 0UL)
+				{
+					noHitAdjacent++;
+					frontierPixels.Add(neighbor);
+				}
+				else if (_livePixelMemoryHitEntityId[neighbor] == entityId)
+					sameEntityAdjacent++;
+				else
+					otherEntityAdjacent++;
+			}
 		}
 
 		_livePixelMemoryLastSummaryGeneration = (int)_livePixelMemoryContextGeneration;
 		GD.Print(
 			$"[PixelMemory][LIVE] context={_livePixelMemoryContextHash:x16} generation={_livePixelMemoryContextGeneration} " +
 			$"unseenPx={unseen} sampledPx={sampled} hitPx={hit} " +
+			$"seededPx={seeded} uniqueLiveEntities={entitySeedCounts.Count} largestEntitySeedPx={largestEntitySeedPx} " +
+			$"frontierCandidatePx={frontierPixels.Count} frontierSameEntityAdjacent={sameEntityAdjacent} " +
+			$"frontierOtherEntityAdjacent={otherEntityAdjacent} frontierNoHitAdjacent={noHitAdjacent} frontierUnseenAdjacent={unseenAdjacent} " +
 			$"sampleCountMin={(sampled > 0 ? sampleMin : (ushort)0)} sampleCountMean={(sampled > 0 ? (double)sampleSum / sampled : 0.0):F2} sampleCountMax={sampleMax} " +
 			$"tlasNoCandidatePx={reasons[(int)LivePixelMemoryNoHitReason.TlasNoCandidate]} " +
 			$"broadphaseDisabledPx={reasons[(int)LivePixelMemoryNoHitReason.BroadphaseDisabled]} " +
@@ -11788,6 +11847,7 @@ private sealed class OverlayRollingWindow
 		int filmW,
 		int filmH,
 		bool hadHit,
+		ulong hitEntityId,
 		bool tlasPruning,
 		bool tlasHadCandidate,
 		bool broadphaseEnabled,
@@ -11815,6 +11875,7 @@ private sealed class OverlayRollingWindow
 					_livePixelMemorySampleCount[index] = 0;
 				_livePixelMemoryNoHitReason[index] = reason;
 				_livePixelMemoryContextKeyHash[index] = _livePixelMemoryContextHash;
+				_livePixelMemoryHitEntityId[index] = hadHit ? hitEntityId : 0UL;
 				if (_livePixelMemorySampleCount[index] < ushort.MaxValue)
 					_livePixelMemorySampleCount[index]++;
 			}
@@ -20451,7 +20512,7 @@ private sealed class OverlayRollingWindow
 							Pass2ShadedSample shaded = shadedSamples[sampleIndex];
 							RecordLivePixelMemorySample(
 								sample.X, sample.Y, sample.Stride, filmW, filmH,
-								sample.HadHit, sample.TlasPruning, sample.TlasHadCandidate,
+								sample.HadHit, sample.BestCid, sample.TlasPruning, sample.TlasHadCandidate,
 								sample.BroadphaseEnabled, sample.BroadphaseHadCandidate,
 								sample.PhysicsQueries, sample.MaxStepsReached, sample.BudgetStopped);
 							if (sample.PostRemapSegmentCount > 0)
@@ -23760,6 +23821,7 @@ private sealed class OverlayRollingWindow
 						RecordLivePixelMemorySample(
 							x, y, stride, filmW, filmH,
 							hadHit,
+							hadHit ? bestCid : 0UL,
 							useGeomTlasPruningForStep,
 							geomPixelHadAnyCandidatesThisPixel,
 							effQuickRay || effOverlap,

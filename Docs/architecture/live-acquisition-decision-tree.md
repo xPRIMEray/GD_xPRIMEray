@@ -242,6 +242,12 @@ Pass2 threading and BVH live prefilter remain **deferred**.
 
 - PixelMemory-v1: `hitEntityId` + object-seed / frontier foundation
 
+P3-G2 shadow object identity is session-scoped LIVE physics identity derived
+from `bestCid`. It is valid only while the pixel's LIVE context hash matches
+the current context. It is not a FrozenGeometry identity, Contact Event
+identity, sealed provenance value, or formal authority input. Four-neighbor
+frontier counts are diagnostic only; no frontier priority is scheduled.
+
 **PLANNED:**
 
 - Pixel Meander frontiers
