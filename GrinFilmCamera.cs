@@ -3977,6 +3977,12 @@ private sealed class OverlayRollingWindow
 		public bool PrevHadHitForSoftGate;
 		public bool TestedAnyInPass0ThisPixel;
 		public bool SoftGateHitThisPixel;
+		public bool TlasPruning;
+		public bool TlasHadCandidate;
+		public bool BroadphaseEnabled;
+		public bool BroadphaseHadCandidate;
+		public long PhysicsQueries;
+		public bool BudgetStopped;
 		public float CandidateCount;
 		public float QueryCount;
 		public float ResolveCount;
@@ -11657,6 +11663,7 @@ private sealed class OverlayRollingWindow
 		AddInt(cfg.RayMarch.StepsPerRay);
 		AddFloat(cfg.RayMarch.StepLength);
 		AddFloat(cfg.RayMarch.FieldStrength);
+		AddFloat(cfg.RayMarch.BendScale);
 		AddUInt(cfg.RayMarch.CollisionMask);
 		AddFloat(cfg.Film.MaxDistance);
 		AddFloat(cfg.Pass2GeomEnvelopeRadiusScale);
@@ -11752,7 +11759,7 @@ private sealed class OverlayRollingWindow
 			$"unresolvedPx={reasons[(int)LivePixelMemoryNoHitReason.Unresolved]} " +
 			$"authoredRowCap={UpdateEveryFrameMaxRowsPerStep} resolvedRowCap={BandHeightRowsResolved} " +
 			$"adaptiveBandH={_bandHeightRowsResolved} configuredWorkerCeiling={ComputePolicyWorkerCeiling} " +
-			$"actualPeakConcurrentWorkers={(cfg.UseThreadedBands ? ComputeActualPass1WorkerCount() : 1)}");
+			$"livePass1StageCeiling={(cfg.UseThreadedBands ? ComputeActualPass1WorkerCount() : 1)}");
 	}
 
 	private static byte ClassifyLivePixelMemoryReason(
@@ -11804,6 +11811,8 @@ private sealed class OverlayRollingWindow
 			for (int xx = Math.Max(0, x); xx < xEnd; xx++)
 			{
 				int index = yy * filmW + xx;
+				if (_livePixelMemoryContextKeyHash[index] != _livePixelMemoryContextHash)
+					_livePixelMemorySampleCount[index] = 0;
 				_livePixelMemoryNoHitReason[index] = reason;
 				_livePixelMemoryContextKeyHash[index] = _livePixelMemoryContextHash;
 				if (_livePixelMemorySampleCount[index] < ushort.MaxValue)
@@ -20440,6 +20449,11 @@ private sealed class OverlayRollingWindow
 						{
 							Pass2ResolvedSample sample = pass2ResolvedSamples[sampleIndex];
 							Pass2ShadedSample shaded = shadedSamples[sampleIndex];
+							RecordLivePixelMemorySample(
+								sample.X, sample.Y, sample.Stride, filmW, filmH,
+								sample.HadHit, sample.TlasPruning, sample.TlasHadCandidate,
+								sample.BroadphaseEnabled, sample.BroadphaseHadCandidate,
+								sample.PhysicsQueries, sample.MaxStepsReached, sample.BudgetStopped);
 							if (sample.PostRemapSegmentCount > 0)
 							{
 								_wormholePostRemapPixelsThisRun++;
@@ -23368,6 +23382,12 @@ private sealed class OverlayRollingWindow
 									PrevHadHitForSoftGate = prevHadHitForSoftGate,
 									TestedAnyInPass0ThisPixel = testedAnyInPass0ThisPixel,
 									SoftGateHitThisPixel = softGateHitThisPixel,
+									TlasPruning = useGeomTlasPruningForStep,
+									TlasHadCandidate = geomPixelHadAnyCandidatesThisPixel,
+									BroadphaseEnabled = effQuickRay || effOverlap,
+									BroadphaseHadCandidate = hadCandidatesThisPixel,
+									PhysicsQueries = geomRayTestsDeltaThisPixel,
+									BudgetStopped = budgetStop,
 									CandidateCount = telemetryCandidateCountThisPixel,
 									QueryCount = telemetryQueryCountThisPixel,
 									ResolveCount = telemetryResolveCountThisPixel,

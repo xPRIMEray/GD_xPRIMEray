@@ -44,7 +44,7 @@ P2/P3 compute work affects **live film** only.
 | Scale | Space | Question | Status |
 |---|---|---|---|
 | **Cathedral Probe** | World-space observer ↔ object | Which objects can this observer reach? | **PLANNED** as an object-seeding scheduler. Existing Cathedral Probe overlays and Probe Views are a different, already-landed instrument. |
-| **Pixel Meander** | Image-space around confirmed seeds | Where should LIVE look next? | **PLANNED** as a scheduler. **PixelMemory** (the ledger Meander would read) is **IN DEVELOPMENT** — P3-G1 has no landing commit. |
+| **Pixel Meander** | Image-space around confirmed seeds | Where should LIVE look next? | **PLANNED** as a scheduler. **PixelMemory-v1** (hit entity IDs and object-seed/frontier foundation) is the next planned memory extension. |
 
 Conceptual relationship (architecture, not a claim of shipped code):
 
@@ -78,7 +78,7 @@ Observer + field + experiment
 LIVE transport context                          LANDED FOUNDATION
         │
         ▼
-PixelMemory context check                       IN DEVELOPMENT (P3-G1 · not landed)
+PixelMemory context check                       SHADOW INSTRUMENTATION · LANDED (ca9d3a51)
         │
         ▼
 acquisition policy
@@ -105,7 +105,7 @@ contact test
         └─ no-hit       → reason recorded (miss / prune / budget)
                 │
                 ▼
-        PixelMemory update                      IN DEVELOPMENT
+        PixelMemory update                      SHADOW MEMORY · LANDED
                 │
                 ▼
         object / frontier importance            PLANNED (Meander)
@@ -117,13 +117,13 @@ contact test
 <div class="xp-tree" aria-label="Live acquisition decision tree">
   <ol class="xp-tree__list">
     <li><span class="xp-status xp-status--landed">Landed</span> Observer + field + experiment → LIVE transport context</li>
-    <li><span class="xp-status xp-status--dev">In development</span> PixelMemory context check</li>
+    <li><span class="xp-status xp-status--landed">Shadow instrumentation · landed</span> PixelMemory context check</li>
     <li><span class="xp-status xp-status--landed">Landed</span> Acquisition policy (Compute Envelope)</li>
     <li><span class="xp-status xp-status--landed">Landed</span> Pixel / region request (interaction row budget)</li>
     <li><span class="xp-status xp-status--planned">Planned</span> Meander / seed priority</li>
     <li><span class="xp-status xp-status--landed">Landed</span> Pass1 transport → geometry TLAS → LIVE OverlapOnly broadphase → contact test</li>
     <li><span class="xp-status xp-status--landed">Landed</span> Hit / no-hit reason</li>
-    <li><span class="xp-status xp-status--dev">In development</span> PixelMemory update</li>
+    <li><span class="xp-status xp-status--landed">Shadow memory · landed</span> PixelMemory update</li>
     <li><span class="xp-status xp-status--planned">Planned</span> Object / frontier importance → next work request</li>
   </ol>
 </div>
@@ -234,9 +234,13 @@ Pass2 threading and BVH live prefilter remain **deferred**.
 - useful tested segments / confirmed hits
 - Formal BVH-v0 authority isolated from LIVE
 
-**IN DEVELOPMENT** (no landing commit at time of this page):
+**LANDED FOUNDATION:**
 
-- PixelMemory shadow instrumentation (P3-G1)
+- PixelMemory-v0 shadow instrumentation (ca9d3a51)
+
+**NEXT PLANNED MEMORY STATE:**
+
+- PixelMemory-v1: `hitEntityId` + object-seed / frontier foundation
 
 **PLANNED:**
 
