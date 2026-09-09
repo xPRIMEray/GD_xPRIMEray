@@ -111,6 +111,9 @@ contact test
         PixelMemory update                      SHADOW MEMORY · LANDED
                 │
                 ▼
+        shadow importance field                 SHADOW INSTRUMENTATION
+                │
+                ▼
         object / frontier importance            PLANNED (Meander)
                 │
                 ▼
@@ -241,6 +244,11 @@ Pass2 threading and BVH live prefilter remain **deferred**.
 
 - PixelMemory-v0 shadow instrumentation (ca9d3a51)
 
+**SHADOW / IN DEVELOPMENT:**
+
+- PixelMemory-v1 object-seed identity and multi-entity qualification
+- PixelMemory-v1 shadow Meander importance field
+
 **NEXT PLANNED STATE:**
 
 - Meander activation / frontier policy
@@ -252,6 +260,32 @@ identity, sealed provenance value, or formal authority input. Four-neighbor
 frontier counts are diagnostic only; `frontierCandidatePx` counts unique
 frontier pixels while each `frontier*Adjacent` value counts adjacency edges.
 No frontier priority is scheduled.
+
+## Pixel evidence state machine
+
+```text
+UNSEEN
+  ↓ sample
+SAMPLED
+  ├─ CONFIRMED HIT
+  │      ↓
+  │   COLLIDER SEED
+  │      ↓
+  │   FRONTIER CURIOSITY
+  │
+  └─ NO HIT
+         ├─ BudgetExhausted
+         ├─ PhysicsMiss
+         ├─ BroadphaseNoCandidate
+         ├─ TlasNoCandidate
+         └─ Unresolved
+```
+
+Context change makes stale memory logically `UNSEEN`; LIVE has no permanent-
+black state. Policy-level deferred/low-value status is future scheduler state,
+not PixelMemory evidence. The shadow importance field reports curiosity only:
+seeded `0`, low-value sampled miss `1`, unseen/uncertain `2`, and unseeded
+four-neighbor frontier `3`. A neighbor never inherits a hit or collider ID.
 
 **PLANNED:**
 

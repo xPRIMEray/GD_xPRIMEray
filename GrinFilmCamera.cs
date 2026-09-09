@@ -2289,6 +2289,7 @@ public partial class GrinFilmCamera : Node
 	private ushort[] _livePixelMemorySampleCount = Array.Empty<ushort>();
 	private ulong[] _livePixelMemoryContextKeyHash = Array.Empty<ulong>();
 	private ulong[] _livePixelMemoryHitEntityId = Array.Empty<ulong>();
+	private byte[] _livePixelMemoryImportance = Array.Empty<byte>();
 	private ulong _livePixelMemoryContextHash;
 	private uint _livePixelMemoryContextGeneration;
 	private bool _livePixelMemoryContextInitialized;
@@ -8163,6 +8164,8 @@ private sealed class OverlayRollingWindow
 			_livePixelMemoryContextKeyHash = new ulong[safeCount];
 		if (_livePixelMemoryHitEntityId.Length != safeCount)
 			_livePixelMemoryHitEntityId = new ulong[safeCount];
+		if (_livePixelMemoryImportance.Length != safeCount)
+			_livePixelMemoryImportance = new byte[safeCount];
 		if (_adaptiveEnvelopePreviousMismatchPrior.Length != safeCount)
 			_adaptiveEnvelopePreviousMismatchPrior = new float[safeCount];
 		if (_adaptiveEnvelopePreviousActiveMask.Length != safeCount)
@@ -11719,7 +11722,8 @@ private sealed class OverlayRollingWindow
 		if (!UpdateEveryFrame || _observationAcquisition.Owner == ObservationAcquisitionOwner.Snapshot)
 			return;
 		if (_livePixelMemoryContextHash == 0UL || _livePixelMemoryNoHitReason.Length != _filmWidth * _filmHeight
-			|| _livePixelMemoryHitEntityId.Length != _filmWidth * _filmHeight)
+			|| _livePixelMemoryHitEntityId.Length != _filmWidth * _filmHeight
+			|| _livePixelMemoryImportance.Length != _filmWidth * _filmHeight)
 			return;
 		_livePixelMemoryCompletedPasses++;
 		if (_livePixelMemoryLastSummaryGeneration == (int)_livePixelMemoryContextGeneration
@@ -11776,6 +11780,7 @@ private sealed class OverlayRollingWindow
 		}
 
 		var frontierPixels = new System.Collections.Generic.HashSet<int>();
+		var frontierByEntity = new System.Collections.Generic.Dictionary<ulong, System.Collections.Generic.HashSet<int>>();
 		int sameEntityAdjacent = 0;
 		int otherEntityAdjacent = 0;
 		int noHitAdjacent = 0;
@@ -11802,17 +11807,49 @@ private sealed class OverlayRollingWindow
 				{
 					unseenAdjacent++;
 					frontierPixels.Add(neighbor);
+					AddFrontierPixel(frontierByEntity, entityId, neighbor);
 				}
 				else if (_livePixelMemoryHitEntityId[neighbor] == 0UL)
 				{
 					noHitAdjacent++;
 					frontierPixels.Add(neighbor);
+					AddFrontierPixel(frontierByEntity, entityId, neighbor);
 				}
 				else if (_livePixelMemoryHitEntityId[neighbor] == entityId)
 					sameEntityAdjacent++;
 				else
 					otherEntityAdjacent++;
 			}
+		}
+		int sharedFrontierPx = 0;
+		int largestEntityFrontierPx = 0;
+		var frontierOwners = new System.Collections.Generic.Dictionary<int, int>();
+		foreach (var frontierSet in frontierByEntity.Values)
+		{
+			largestEntityFrontierPx = Math.Max(largestEntityFrontierPx, frontierSet.Count);
+			foreach (int frontierPixel in frontierSet)
+			{
+				frontierOwners.TryGetValue(frontierPixel, out int ownerCount);
+				frontierOwners[frontierPixel] = ownerCount + 1;
+			}
+		}
+		foreach (int ownerCount in frontierOwners.Values)
+			if (ownerCount > 1) sharedFrontierPx++;
+
+		int[] importanceCounts = new int[4];
+		for (int index = 0; index < _livePixelMemoryImportance.Length; index++)
+		{
+			byte importance = 2;
+			if (_livePixelMemoryContextKeyHash[index] == _livePixelMemoryContextHash)
+			{
+				importance = _livePixelMemoryHitEntityId[index] != 0UL
+					? (byte)0
+					: IsLivePixelMemoryLowValueReason(_livePixelMemoryNoHitReason[index]) ? (byte)1 : (byte)2;
+			}
+			if (frontierPixels.Contains(index) && _livePixelMemoryHitEntityId[index] == 0UL)
+				importance = 3;
+			_livePixelMemoryImportance[index] = importance;
+			importanceCounts[importance]++;
 		}
 
 		_livePixelMemoryLastSummaryGeneration = (int)_livePixelMemoryContextGeneration;
@@ -11823,6 +11860,9 @@ private sealed class OverlayRollingWindow
 			$"topLiveColliderRids={topEntityText} " +
 			$"frontierCandidatePx={frontierPixels.Count} frontierSameEntityAdjacent={sameEntityAdjacent} " +
 			$"frontierOtherEntityAdjacent={otherEntityAdjacent} frontierNoHitAdjacent={noHitAdjacent} frontierUnseenAdjacent={unseenAdjacent} " +
+			$"frontierEntityCount={frontierByEntity.Count} sharedFrontierPx={sharedFrontierPx} largestEntityFrontierPx={largestEntityFrontierPx} " +
+			$"importance0SeededPx={importanceCounts[0]} importance1LowPx={importanceCounts[1]} " +
+			$"importance2MediumPx={importanceCounts[2]} importance3FrontierPx={importanceCounts[3]} " +
 			$"sampleCountMin={(sampled > 0 ? sampleMin : (ushort)0)} sampleCountMean={(sampled > 0 ? (double)sampleSum / sampled : 0.0):F2} sampleCountMax={sampleMax} " +
 			$"tlasNoCandidatePx={reasons[(int)LivePixelMemoryNoHitReason.TlasNoCandidate]} " +
 			$"broadphaseDisabledPx={reasons[(int)LivePixelMemoryNoHitReason.BroadphaseDisabled]} " +
@@ -11833,6 +11873,26 @@ private sealed class OverlayRollingWindow
 			$"authoredRowCap={UpdateEveryFrameMaxRowsPerStep} resolvedRowCap={BandHeightRowsResolved} " +
 			$"adaptiveBandH={_bandHeightRowsResolved} configuredWorkerCeiling={ComputePolicyWorkerCeiling} " +
 			$"livePass1StageCeiling={(cfg.UseThreadedBands ? ComputeActualPass1WorkerCount() : 1)}");
+	}
+
+	private static void AddFrontierPixel(
+		System.Collections.Generic.Dictionary<ulong, System.Collections.Generic.HashSet<int>> frontierByEntity,
+		ulong entityId,
+		int pixelIndex)
+	{
+		if (!frontierByEntity.TryGetValue(entityId, out var frontier))
+		{
+			frontier = new System.Collections.Generic.HashSet<int>();
+			frontierByEntity[entityId] = frontier;
+		}
+		frontier.Add(pixelIndex);
+	}
+
+	private static bool IsLivePixelMemoryLowValueReason(byte reason)
+	{
+		return reason == (byte)LivePixelMemoryNoHitReason.TlasNoCandidate
+			|| reason == (byte)LivePixelMemoryNoHitReason.BroadphaseDisabled
+			|| reason == (byte)LivePixelMemoryNoHitReason.BroadphaseNoCandidate;
 	}
 
 	private static byte ClassifyLivePixelMemoryReason(

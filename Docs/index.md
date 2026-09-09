@@ -99,6 +99,7 @@ xPRIMEray does not ask every pixel the same question forever. Confirmed LIVE hit
   <ol class="xp-tree__list">
     <li><span class="xp-status xp-status--landed">Landed</span> Observer + experiment → LIVE context → Pass1 → TLAS → OverlapOnly broadphase → contact</li>
     <li><span class="xp-status xp-status--landed">Landed shadow</span> PixelMemory-v0 + hitEntityId object-seed identity</li>
+    <li><span class="xp-status xp-status--dev">Shadow / in development</span> PixelMemory-v1 Meander importance field</li>
     <li><span class="xp-status xp-status--planned">Planned</span> Pixel Meander frontiers · Cathedral Probe object-seeding · Deep Field</li>
     <li><span class="xp-status xp-status--formal">Formal only</span> G SNAPSHOT — fresh, sealed, BVH-v0, no LIVE memory</li>
   </ol>
