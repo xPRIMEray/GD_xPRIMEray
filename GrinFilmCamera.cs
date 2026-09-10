@@ -11737,6 +11737,7 @@ private sealed class OverlayRollingWindow
 			_liveImportanceScheduleActive = false;
 			_liveImportanceBandSchedule.Clear();
 			_liveImportanceScheduleCursor = 0;
+			_liveImportanceScheduleTotalBands = 0;
 			_liveImportanceFreshThisPass = false;
 		}
 	}
@@ -17385,6 +17386,7 @@ private sealed class OverlayRollingWindow
 					_liveImportanceScheduleActive = false;
 					_liveImportanceBandSchedule.Clear();
 					_liveImportanceScheduleCursor = 0;
+					_liveImportanceScheduleTotalBands = 0;
 				}
 				_suppressStuckBandRepeatOnce = true;
 				_stuckBandRepeats = 0;
