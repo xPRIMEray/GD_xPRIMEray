@@ -37,7 +37,7 @@ description: Portable Observatory for optical transport — sealed frames, Probe
     <div class="xp-engine-state__row">
       <dt>Now</dt>
       <dd>PixelMemory shadow instrumentation <span class="xp-chip xp-chip--now">landed</span>
-        <span class="xp-quiet">P3-G1 has no landing commit · a hit will change where LIVE looks next, not what neighbors are measured to be</span>
+        <span class="xp-quiet">P3-G1 landed as shadow instrumentation · a hit will change where LIVE looks next, not what neighbors are measured to be</span>
       </dd>
     </div>
     <div class="xp-engine-state__row">
@@ -99,7 +99,7 @@ xPRIMEray does not ask every pixel the same question forever. Confirmed LIVE hit
   <ol class="xp-tree__list">
     <li><span class="xp-status xp-status--landed">Landed</span> Observer + experiment → LIVE context → Pass1 → TLAS → OverlapOnly broadphase → contact</li>
     <li><span class="xp-status xp-status--landed">Landed shadow</span> PixelMemory-v0 + hitEntityId object-seed identity</li>
-    <li><span class="xp-status xp-status--dev">Shadow / in development</span> PixelMemory-v1 Meander importance field</li>
+    <li><span class="xp-status xp-status--landed">Shadow instrumentation · landed</span> PixelMemory-v1 Meander importance field with opt-in G4 band ordering</li>
     <li><span class="xp-status xp-status--planned">Planned</span> Pixel Meander frontiers · Cathedral Probe object-seeding · Deep Field</li>
     <li><span class="xp-status xp-status--formal">Formal only</span> G SNAPSHOT — fresh, sealed, BVH-v0, no LIVE memory</li>
   </ol>

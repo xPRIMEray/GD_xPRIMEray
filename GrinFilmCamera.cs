@@ -1148,6 +1148,12 @@ public partial class GrinFilmCamera : Node
 	[Export] public float DomainAwareFlipPenalty = 0.60f;
 	/// <summary>Enables telemetry-driven adaptive envelope scaling for pass-2 candidate gathering.</summary>
 	[Export] public bool AdaptiveTelemetryEnvelopeScalingEnabled = false;
+	/// <summary>Opt-in LIVE-only band ordering from the shadow PixelMemory importance field.</summary>
+	[Export] public bool UseImportanceOrdering = false;
+	/// <summary>Maximum share of a LIVE pass that may be selected as frontier-first work.</summary>
+	[Export(PropertyHint.Range, "0,1,0.01")] public float MaxFrontierBandFraction = 0.80f;
+	/// <summary>Minimum exploration share when eligible medium-importance bands exist.</summary>
+	[Export(PropertyHint.Range, "0,1,0.01")] public float MinExplorationBandFraction = 0.20f;
 	/// <summary>Selects the adaptive controller layout. "three_state" preserves the current reference behavior; "four_state_warm" enables a hot/warm/neutral/relaxed split.</summary>
 	[Export] public string AdaptiveEnvelopeControllerMode = "three_state";
 	/// <summary>Selects whether adaptive envelope priors come from the same in-progress pass or the previous completed frame/pass snapshot.</summary>
@@ -2295,6 +2301,20 @@ public partial class GrinFilmCamera : Node
 	private bool _livePixelMemoryContextInitialized;
 	private int _livePixelMemoryLastSummaryGeneration = -1;
 	private int _livePixelMemoryCompletedPasses;
+	private readonly List<int> _liveImportanceBandSchedule = new();
+	private bool _liveImportanceScheduleActive;
+	private int _liveImportanceScheduleBandHeight;
+	private int _liveImportanceScheduleCompletedBands;
+	private int _liveImportanceScheduleTotalBands;
+	private int _liveImportanceScheduleFrontierBands;
+	private int _liveImportanceScheduleExplorationBands;
+	private int _liveImportanceScheduleLowBands;
+	private int _liveImportanceScheduleSeededOnlyBands;
+	private int _liveImportanceScheduleFrontierSelections;
+	private int _liveImportanceScheduleExplorationSelections;
+	private int _liveImportanceScheduleCursor;
+	private readonly List<int> _liveImportanceFirstScheduledRows = new();
+	private bool _liveImportanceFreshThisPass;
 	private float[] _adaptiveEnvelopePreviousMismatchPrior = Array.Empty<float>();
 	private byte[] _adaptiveEnvelopePreviousActiveMask = Array.Empty<byte>();
 	private float _adaptiveEnvelopeScaleMinThisRun = 1.0f;
@@ -11714,7 +11734,235 @@ private sealed class OverlayRollingWindow
 			_livePixelMemoryContextHash = contextHash;
 			_livePixelMemoryContextGeneration++;
 			_livePixelMemoryContextInitialized = true;
+			_liveImportanceScheduleActive = false;
+			_liveImportanceBandSchedule.Clear();
+			_liveImportanceScheduleCursor = 0;
+			_liveImportanceFreshThisPass = false;
 		}
+	}
+
+	/// <summary>
+	/// Computes the sole LIVE PixelMemory curiosity field. This is deliberately
+	/// separate from summary emission so scheduling always consumes the field
+	/// produced by the just-completed pass, never a summary cadence artifact.
+	/// </summary>
+	private void ComputeLivePixelMemoryImportance()
+	{
+		int width = _filmWidth;
+		int height = _filmHeight;
+		int total = width * height;
+		if (_livePixelMemoryContextHash == 0UL || width <= 0 || height <= 0
+			|| _livePixelMemoryContextKeyHash.Length != total
+			|| _livePixelMemoryHitEntityId.Length != total
+			|| _livePixelMemoryImportance.Length != total)
+			return;
+
+		var frontierPixels = new HashSet<int>();
+		int[] neighborOffsets = { -1, 1, -width, width };
+		for (int index = 0; index < total; index++)
+		{
+			if (_livePixelMemoryContextKeyHash[index] != _livePixelMemoryContextHash
+				|| _livePixelMemoryHitEntityId[index] == 0UL)
+				continue;
+			int x = index % width;
+			int y = index / width;
+			for (int offsetIndex = 0; offsetIndex < neighborOffsets.Length; offsetIndex++)
+			{
+				int neighbor = index + neighborOffsets[offsetIndex];
+				if (neighbor < 0 || neighbor >= total)
+					continue;
+				if ((offsetIndex == 0 && x == 0) || (offsetIndex == 1 && x == width - 1)
+					|| (offsetIndex == 2 && y == 0) || (offsetIndex == 3 && y == height - 1))
+					continue;
+				if (_livePixelMemoryContextKeyHash[neighbor] != _livePixelMemoryContextHash
+					|| _livePixelMemoryHitEntityId[neighbor] == 0UL)
+					frontierPixels.Add(neighbor);
+			}
+		}
+
+		for (int index = 0; index < total; index++)
+		{
+			byte importance = 2;
+			if (_livePixelMemoryContextKeyHash[index] == _livePixelMemoryContextHash)
+				importance = _livePixelMemoryHitEntityId[index] != 0UL
+					? (byte)0
+					: IsLivePixelMemoryLowValueReason(_livePixelMemoryNoHitReason[index]) ? (byte)1 : (byte)2;
+			if (frontierPixels.Contains(index) && _livePixelMemoryHitEntityId[index] == 0UL)
+				importance = 3;
+			_livePixelMemoryImportance[index] = importance;
+		}
+		_liveImportanceFreshThisPass = true;
+	}
+
+	private enum LiveImportanceBandCategory : byte
+	{
+		Frontier,
+		Exploration,
+		Low,
+		SeededOnly
+	}
+
+	private readonly struct LiveImportanceBandCandidate
+	{
+		public readonly int Start;
+		public readonly int Frontier;
+		public readonly int Medium;
+		public readonly int Low;
+		public readonly int Seeded;
+		public readonly LiveImportanceBandCategory Category;
+
+		public LiveImportanceBandCandidate(int start, int frontier, int medium, int low, int seeded)
+		{
+			Start = start;
+			Frontier = frontier;
+			Medium = medium;
+			Low = low;
+			Seeded = seeded;
+			Category = frontier > 0 ? LiveImportanceBandCategory.Frontier
+				: medium > 0 ? LiveImportanceBandCategory.Exploration
+				: low > 0 ? LiveImportanceBandCategory.Low
+				: LiveImportanceBandCategory.SeededOnly;
+		}
+	}
+
+	private static int CompareLiveImportanceBands(LiveImportanceBandCandidate a, LiveImportanceBandCandidate b)
+	{
+		int compare = b.Frontier.CompareTo(a.Frontier);
+		if (compare != 0) return compare;
+		compare = b.Medium.CompareTo(a.Medium);
+		if (compare != 0) return compare;
+		compare = b.Low.CompareTo(a.Low);
+		return compare != 0 ? compare : a.Start.CompareTo(b.Start);
+	}
+
+	private void PrepareLiveImportanceBandSchedule(int rowsPerFrame, int filmW, int filmH)
+	{
+		if (!UseImportanceOrdering || _observationAcquisition.Owner == ObservationAcquisitionOwner.Snapshot
+			|| _liveImportanceScheduleActive || rowsPerFrame <= 0 || filmW <= 0 || filmH <= 0)
+			return;
+
+		_liveImportanceBandSchedule.Clear();
+		_liveImportanceScheduleCursor = 0;
+		_liveImportanceScheduleCompletedBands = 0;
+		_liveImportanceScheduleFrontierBands = 0;
+		_liveImportanceScheduleExplorationBands = 0;
+		_liveImportanceScheduleLowBands = 0;
+		_liveImportanceScheduleSeededOnlyBands = 0;
+		_liveImportanceScheduleFrontierSelections = 0;
+		_liveImportanceScheduleExplorationSelections = 0;
+		_liveImportanceFirstScheduledRows.Clear();
+		_liveImportanceScheduleBandHeight = rowsPerFrame;
+		var candidates = new List<LiveImportanceBandCandidate>();
+		bool haveFreshImportance = _livePixelMemoryContextHash != 0UL
+			&& _liveImportanceFreshThisPass;
+		for (int start = 0; start < filmH; start += rowsPerFrame)
+		{
+			int end = Math.Min(filmH, start + rowsPerFrame);
+			int frontier = 0, medium = 0, low = 0, seeded = 0;
+			if (haveFreshImportance)
+			{
+				for (int y = start; y < end; y++)
+					for (int x = 0; x < filmW; x++)
+					{
+						byte importance = _livePixelMemoryImportance[y * filmW + x];
+						switch (importance)
+						{
+							case 3: frontier++; break;
+							case 2: medium++; break;
+							case 1: low++; break;
+							default: seeded++; break;
+						}
+					}
+			}
+			candidates.Add(new LiveImportanceBandCandidate(start, frontier, medium, low, seeded));
+		}
+
+		candidates.Sort(CompareLiveImportanceBands);
+		int totalBands = candidates.Count;
+		int explorationDemand = 0;
+		foreach (var candidate in candidates)
+			if (candidate.Category == LiveImportanceBandCategory.Exploration) explorationDemand++;
+		int explorationReserve = explorationDemand > 0
+			? Math.Min(explorationDemand, Math.Max(1, (int)Math.Ceiling(totalBands * Math.Clamp(MinExplorationBandFraction, 0f, 1f))))
+			: 0;
+		int frontierLimit = (int)Math.Floor(totalBands * Math.Clamp(MaxFrontierBandFraction, 0f, 1f));
+		if (frontierDemandExists(candidates) && frontierLimit == 0) frontierLimit = 1;
+
+		var remaining = new List<LiveImportanceBandCandidate>(candidates);
+		for (int slot = 0; slot < totalBands; slot++)
+		{
+			int selected = -1;
+			if (_liveImportanceScheduleExplorationSelections < explorationReserve)
+				selected = FindBestCategory(remaining, LiveImportanceBandCategory.Exploration);
+			if (selected < 0 && _liveImportanceScheduleFrontierSelections < frontierLimit)
+				selected = FindBestCategory(remaining, LiveImportanceBandCategory.Frontier);
+			if (selected < 0)
+			{
+				selected = FindBestNonFrontier(remaining);
+				if (selected < 0) selected = FindBestCategory(remaining, LiveImportanceBandCategory.Frontier);
+			}
+			if (selected < 0) break;
+			LiveImportanceBandCandidate candidate = remaining[selected];
+			remaining.RemoveAt(selected);
+			_liveImportanceBandSchedule.Add(candidate.Start);
+			if (_liveImportanceFirstScheduledRows.Count < 16) _liveImportanceFirstScheduledRows.Add(candidate.Start);
+			switch (candidate.Category)
+			{
+				case LiveImportanceBandCategory.Frontier: _liveImportanceScheduleFrontierBands++; _liveImportanceScheduleFrontierSelections++; break;
+				case LiveImportanceBandCategory.Exploration: _liveImportanceScheduleExplorationBands++; _liveImportanceScheduleExplorationSelections++; break;
+				case LiveImportanceBandCategory.Low: _liveImportanceScheduleLowBands++; break;
+				default: _liveImportanceScheduleSeededOnlyBands++; break;
+			}
+		}
+		_liveImportanceScheduleTotalBands = _liveImportanceBandSchedule.Count;
+		_liveImportanceScheduleActive = _liveImportanceScheduleTotalBands > 0;
+
+		static bool frontierDemandExists(List<LiveImportanceBandCandidate> items)
+		{
+			foreach (var item in items) if (item.Category == LiveImportanceBandCategory.Frontier) return true;
+			return false;
+		}
+	}
+
+	private static int FindBestCategory(List<LiveImportanceBandCandidate> candidates, LiveImportanceBandCategory category)
+	{
+		int best = -1;
+		for (int index = 0; index < candidates.Count; index++)
+			if (candidates[index].Category == category && (best < 0 || CompareLiveImportanceBands(candidates[index], candidates[best]) < 0)) best = index;
+		return best;
+	}
+
+	private static int FindBestNonFrontier(List<LiveImportanceBandCandidate> candidates)
+	{
+		int best = -1;
+		for (int index = 0; index < candidates.Count; index++)
+			if (candidates[index].Category != LiveImportanceBandCategory.Frontier && (best < 0 || CompareLiveImportanceBands(candidates[index], candidates[best]) < 0)) best = index;
+		return best;
+	}
+
+	private bool TrySelectLiveImportanceBand(int rowsPerFrame, int filmH, out int start)
+	{
+		start = 0;
+		if (!UseImportanceOrdering || !_liveImportanceFreshThisPass
+			|| _observationAcquisition.Owner == ObservationAcquisitionOwner.Snapshot || filmH <= 0)
+			return false;
+		if (!_liveImportanceScheduleActive)
+			PrepareLiveImportanceBandSchedule(rowsPerFrame, _filmWidth, filmH);
+		if (!_liveImportanceScheduleActive || _liveImportanceScheduleCursor >= _liveImportanceBandSchedule.Count)
+			return false;
+		start = _liveImportanceBandSchedule[_liveImportanceScheduleCursor];
+		return true;
+	}
+
+	private void CompleteLiveImportanceBand(int bandStart, int bandEnd)
+	{
+		if (!_liveImportanceScheduleActive || _liveImportanceScheduleCursor >= _liveImportanceBandSchedule.Count
+			|| _liveImportanceBandSchedule[_liveImportanceScheduleCursor] != bandStart)
+			return;
+		_liveImportanceScheduleCursor++;
+		_liveImportanceScheduleCompletedBands++;
+		if (_liveImportanceScheduleCursor >= _liveImportanceBandSchedule.Count)
+			_liveImportanceScheduleActive = false;
 	}
 
 	private void EmitLivePixelMemorySummaryIfComplete(in EffectiveConfig cfg)
@@ -11838,19 +12086,7 @@ private sealed class OverlayRollingWindow
 
 		int[] importanceCounts = new int[4];
 		for (int index = 0; index < _livePixelMemoryImportance.Length; index++)
-		{
-			byte importance = 2;
-			if (_livePixelMemoryContextKeyHash[index] == _livePixelMemoryContextHash)
-			{
-				importance = _livePixelMemoryHitEntityId[index] != 0UL
-					? (byte)0
-					: IsLivePixelMemoryLowValueReason(_livePixelMemoryNoHitReason[index]) ? (byte)1 : (byte)2;
-			}
-			if (frontierPixels.Contains(index) && _livePixelMemoryHitEntityId[index] == 0UL)
-				importance = 3;
-			_livePixelMemoryImportance[index] = importance;
-			importanceCounts[importance]++;
-		}
+			importanceCounts[Math.Min(3, (int)_livePixelMemoryImportance[index])]++;
 
 		_livePixelMemoryLastSummaryGeneration = (int)_livePixelMemoryContextGeneration;
 		GD.Print(
@@ -11873,6 +12109,22 @@ private sealed class OverlayRollingWindow
 			$"authoredRowCap={UpdateEveryFrameMaxRowsPerStep} resolvedRowCap={BandHeightRowsResolved} " +
 			$"adaptiveBandH={_bandHeightRowsResolved} configuredWorkerCeiling={ComputePolicyWorkerCeiling} " +
 			$"livePass1StageCeiling={(cfg.UseThreadedBands ? ComputeActualPass1WorkerCount() : 1)}");
+		{
+			int scheduled = _liveImportanceScheduleTotalBands > 0
+				? _liveImportanceScheduleFrontierBands + _liveImportanceScheduleExplorationBands
+					+ _liveImportanceScheduleLowBands + _liveImportanceScheduleSeededOnlyBands
+				: Math.Max(1, (height + Math.Max(1, _bandHeightRowsResolved) - 1) / Math.Max(1, _bandHeightRowsResolved));
+			double frontierFraction = scheduled > 0 ? (double)_liveImportanceScheduleFrontierBands / scheduled : 0.0;
+			double explorationFraction = scheduled > 0 ? (double)_liveImportanceScheduleExplorationBands / scheduled : 0.0;
+			string firstRows = string.Join(",", _liveImportanceFirstScheduledRows);
+			GD.Print(
+			$"[PixelMemory][LIVE][Schedule] policy={(UseImportanceOrdering ? "importance" : "uniform")} " +
+				$"bandsScheduled={scheduled} frontierBands={_liveImportanceScheduleFrontierBands} " +
+				$"explorationBands={_liveImportanceScheduleExplorationBands} lowBands={_liveImportanceScheduleLowBands} " +
+				$"seededOnlyBands={_liveImportanceScheduleSeededOnlyBands} frontierFraction={frontierFraction:0.###} " +
+				$"explorationFraction={explorationFraction:0.###} importanceFreshPass={(_liveImportanceFreshThisPass ? 1 : 0)} " +
+				$"contextGeneration={_livePixelMemoryContextGeneration} firstScheduledRows=[{firstRows}]");
+		}
 	}
 
 	private static void AddFrontierPixel(
@@ -17092,6 +17344,12 @@ private sealed class OverlayRollingWindow
 
 				_rowCursor = nextRow;
 				bandCommittedThisStep = true;
+				if (!preservePendingPass2)
+				{
+					CompleteLiveImportanceBand(bandStart, bandEnd);
+					if (!_liveImportanceScheduleActive && _liveImportanceScheduleTotalBands > 0)
+						_rowCursor = filmHLocal;
+				}
 				if (snapshotAcquisition && bandEnd >= filmHLocal && nextRow == 0)
 					FinalizeCathedralProbeSnapshotSummary(_filmWidth, _filmHeight);
 				ResetNoHitStall();
@@ -17119,6 +17377,15 @@ private sealed class OverlayRollingWindow
 				_bandIncompleteFrameId = frameId;
 				_bandIncompleteRowStart = bandStart;
 				_bandIncompleteRowEnd = bandEnd;
+				// A band that cannot complete within the current cooperative quantum
+				// must not pin the LIVE cursor to an importance-selected row. Resume
+				// with the existing sequential policy on the next pump.
+				if (UseImportanceOrdering && _liveImportanceScheduleActive)
+				{
+					_liveImportanceScheduleActive = false;
+					_liveImportanceBandSchedule.Clear();
+					_liveImportanceScheduleCursor = 0;
+				}
 				_suppressStuckBandRepeatOnce = true;
 				_stuckBandRepeats = 0;
 			}
@@ -17136,6 +17403,9 @@ private sealed class OverlayRollingWindow
 					advanceTarget = 0;
 				_rowCursor = advanceTarget;
 				bandCommittedThisStep = true;
+				CompleteLiveImportanceBand(yStart, yEnd);
+				if (!_liveImportanceScheduleActive && _liveImportanceScheduleTotalBands > 0)
+					_rowCursor = filmHLocal;
 				// DECISION: drop pending pass2 when stopping early to avoid re-entering the same band forever.
 				if (_pendingBandHasPass1)
 				{
@@ -17754,7 +18024,14 @@ private sealed class OverlayRollingWindow
 			}
 			else
 			{
-				yEnd = Mathf.Min(filmH, _rowCursor + rowsPerFrame);
+				if (UseImportanceOrdering && _liveImportanceScheduleActive)
+					rowsPerFrame = _liveImportanceScheduleBandHeight;
+				if (TrySelectLiveImportanceBand(rowsPerFrame, filmH, out int selectedBandStart))
+				{
+					yStart = selectedBandStart;
+					_rowCursor = selectedBandStart;
+				}
+				yEnd = Mathf.Min(filmH, yStart + rowsPerFrame);
 				bandH = yEnd - yStart;
 			}
 			_bandHeightRowsResolved = Math.Max(1, rowsPerFrame);
@@ -24434,6 +24711,9 @@ private sealed class OverlayRollingWindow
 					_pendingBandRowStart = -1;
 					_pendingBandRowCount = 0;
 					_pendingBandHasPass1 = false;
+					CompleteLiveImportanceBand(yStart, yEnd);
+					if (!_liveImportanceScheduleActive && _liveImportanceScheduleTotalBands > 0)
+						_rowCursor = filmH;
 				}
 				if (snapshotAcquisition && yEnd >= filmH)
 				{
@@ -24449,6 +24729,8 @@ private sealed class OverlayRollingWindow
 				if (_rowCursor >= filmH)
 				{
 					_rbr.EmitBoundaryValidationSummary($"film={filmW}x{filmH}");
+					if (cfg.UpdateEveryFrame && !snapshotAcquisition)
+						ComputeLivePixelMemoryImportance();
 					EmitLivePixelMemorySummaryIfComplete(in cfg);
 					if (!cfg.UpdateEveryFrame)
 						FinalizeCathedralProbeSnapshotSummary(filmW, filmH);

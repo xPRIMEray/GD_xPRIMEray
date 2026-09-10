@@ -111,10 +111,10 @@ contact test
         PixelMemory update                      SHADOW MEMORY · LANDED
                 │
                 ▼
-        shadow importance field                 SHADOW INSTRUMENTATION
+        shadow importance field                 SHADOW INSTRUMENTATION · LANDED (recomputed after every completed LIVE pass)
                 │
                 ▼
-        object / frontier importance            PLANNED (Meander)
+        object / frontier importance            SHADOW INSTRUMENTATION · LANDED (G4 opt-in band scheduler)
                 │
                 ▼
         next work request
@@ -130,7 +130,7 @@ contact test
     <li><span class="xp-status xp-status--landed">Landed</span> Pass1 transport → geometry TLAS → LIVE OverlapOnly broadphase → contact test</li>
     <li><span class="xp-status xp-status--landed">Landed</span> Hit / no-hit reason</li>
     <li><span class="xp-status xp-status--landed">Shadow memory · landed</span> PixelMemory update</li>
-    <li><span class="xp-status xp-status--planned">Planned</span> Object / frontier importance → next work request</li>
+    <li><span class="xp-status xp-status--landed">Shadow instrumentation · landed</span> Object / frontier importance → optional LIVE band request</li>
   </ol>
 </div>
 
@@ -164,6 +164,11 @@ Formal G does not become parallel because LIVE Pass1 has worker ceilings. A stag
 ## Object-seed / Pixel Meander
 
 <span class="xp-status xp-status--planned">PLANNED</span> as a LIVE scheduler. The picture below is **pedagogy**, not a screenshot of a shipped Meander pass.
+
+G4 is an opt-in, band-level shadow experiment: importance is recomputed after
+every completed LIVE pass, and an exploration reserve protects discovery of new
+seed gardens while frontier curiosity is serviced. Per-collider fairness remains
+planned for G5. **NEIGHBORS INHERIT CURIOSITY, NOT EVIDENCE.**
 
 A confirmed hit does **not** paint its neighbors. It raises the **priority** of looking next door.
 
@@ -244,10 +249,10 @@ Pass2 threading and BVH live prefilter remain **deferred**.
 
 - PixelMemory-v0 shadow instrumentation (ca9d3a51)
 
-**SHADOW / IN DEVELOPMENT:**
+**SHADOW INSTRUMENTATION · LANDED:**
 
 - PixelMemory-v1 object-seed identity and multi-entity qualification
-- PixelMemory-v1 shadow Meander importance field
+- PixelMemory-v1 shadow Meander importance field; G4 opt-in band ordering
 
 **NEXT PLANNED STATE:**
 
