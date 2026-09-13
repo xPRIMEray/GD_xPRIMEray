@@ -2315,6 +2315,8 @@ public partial class GrinFilmCamera : Node
 	private int _liveImportanceScheduleCursor;
 	private readonly List<int> _liveImportanceFirstScheduledRows = new();
 	private bool _liveImportanceFreshThisPass;
+	private uint _livePassId;
+	private bool _isFirstPassAfterContextReset;
 	private float[] _adaptiveEnvelopePreviousMismatchPrior = Array.Empty<float>();
 	private byte[] _adaptiveEnvelopePreviousActiveMask = Array.Empty<byte>();
 	private float _adaptiveEnvelopeScaleMinThisRun = 1.0f;
@@ -6927,6 +6929,46 @@ private sealed class OverlayRollingWindow
 		return _fixtureCausalObservedPixelsThisRun > 0 ||
 			_fixtureCausalBoundaryCrossingsTotalThisRun > 0 ||
 			_fixtureCausalSceneTransformEventsTotalThisRun > 0;
+	}
+
+	public struct LiveMeanderStateSnapshot
+	{
+		public uint LivePassId;
+		public uint ContextGeneration;
+		public bool IsFirstPassAfterContextReset;
+		public bool ImportanceFreshThisPass;
+		public bool ScheduleActive;
+		public int ScheduleTotalBands;
+		public int ScheduleCursor;
+		public int ScheduleCompletedBands;
+		public bool ContextInitialized;
+		public int RowCursor;
+		public int FrontierBands;
+		public int ExplorationBands;
+		public int LowBands;
+		public int SeededOnlyBands;
+	}
+
+	public bool TryGetLiveMeanderStateForTesting(out LiveMeanderStateSnapshot snapshot)
+	{
+		snapshot = new LiveMeanderStateSnapshot
+		{
+			LivePassId = _livePassId,
+			ContextGeneration = _livePixelMemoryContextGeneration,
+			IsFirstPassAfterContextReset = _isFirstPassAfterContextReset,
+			ImportanceFreshThisPass = _liveImportanceFreshThisPass,
+			ScheduleActive = _liveImportanceScheduleActive,
+			ScheduleTotalBands = _liveImportanceScheduleTotalBands,
+			ScheduleCursor = _liveImportanceScheduleCursor,
+			ScheduleCompletedBands = _liveImportanceScheduleCompletedBands,
+			ContextInitialized = _livePixelMemoryContextInitialized,
+			RowCursor = _rowCursor,
+			FrontierBands = _liveImportanceScheduleFrontierBands,
+			ExplorationBands = _liveImportanceScheduleExplorationBands,
+			LowBands = _liveImportanceScheduleLowBands,
+			SeededOnlyBands = _liveImportanceScheduleSeededOnlyBands,
+		};
+		return _livePixelMemoryContextInitialized;
 	}
 
 	public bool TryGetWormholePostRemapDiagnosticsForTesting(out WormholePostRemapDiagnosticsSnapshot snapshot)
@@ -11710,6 +11752,16 @@ private sealed class OverlayRollingWindow
 	{
 		if (!_livePixelMemoryContextInitialized || _livePixelMemoryContextHash != contextHash)
 		{
+			// Capture diagnostic state before mutation for the Reset telemetry record.
+			ulong oldContext = _livePixelMemoryContextHash;
+			uint oldGeneration = _livePixelMemoryContextGeneration;
+			bool wasScheduleActive = _liveImportanceScheduleActive;
+			bool wasFresh = _liveImportanceFreshThisPass;
+			int cursorBefore = _liveImportanceScheduleCursor;
+			int totalBandsBefore = _liveImportanceScheduleTotalBands;
+			int scheduleCountBefore = _liveImportanceBandSchedule.Count;
+			int rowCursorAtReset = _rowCursor;
+
 			// These priors are LIVE scheduler state, not measurement state. A
 			// transport-context change must not carry candidate-discovery history
 			// into the next LIVE context. Formal SNAPSHOT never calls this method.
@@ -11739,6 +11791,24 @@ private sealed class OverlayRollingWindow
 			_liveImportanceScheduleCursor = 0;
 			_liveImportanceScheduleTotalBands = 0;
 			_liveImportanceFreshThisPass = false;
+			_isFirstPassAfterContextReset = true;
+
+			if (ShouldLog(DiagnosticVerbosity.Summary, DiagnosticCategory.Render))
+			{
+				if (wasScheduleActive)
+					GD.Print($"[PixelMemory][LIVE][ScheduleCompletion] scheduleCompletion=context_reset " +
+						$"scheduleTotalBands={totalBandsBefore} scheduleCursor={cursorBefore} " +
+						$"bandsActuallyCompleted={_liveImportanceScheduleCompletedBands}");
+				GD.Print($"[PixelMemory][LIVE][Reset] " +
+					$"oldGeneration={oldGeneration} newGeneration={_livePixelMemoryContextGeneration} " +
+					$"oldContext={oldContext:x16} newContext={contextHash:x16} " +
+					$"importanceScheduleWasActive={(wasScheduleActive ? 1 : 0)} " +
+					$"importanceFreshBefore={(wasFresh ? 1 : 0)} importanceFreshAfter=0 " +
+					$"scheduleCursorBefore={cursorBefore} scheduleCursorAfter=0 " +
+					$"scheduleTotalBandsBefore={totalBandsBefore} scheduleTotalBandsAfter=0 " +
+					$"scheduleCountBefore={scheduleCountBefore} scheduleCountAfter=0 " +
+					$"rowCursorAtReset={rowCursorAtReset} reason=unknown");
+			}
 		}
 	}
 
@@ -11963,7 +12033,14 @@ private sealed class OverlayRollingWindow
 		_liveImportanceScheduleCursor++;
 		_liveImportanceScheduleCompletedBands++;
 		if (_liveImportanceScheduleCursor >= _liveImportanceBandSchedule.Count)
+		{
 			_liveImportanceScheduleActive = false;
+			if (ShouldLog(DiagnosticVerbosity.Summary, DiagnosticCategory.Render))
+				GD.Print($"[PixelMemory][LIVE][ScheduleCompletion] scheduleCompletion=normal " +
+					$"scheduleTotalBands={_liveImportanceScheduleTotalBands} " +
+					$"scheduleCursor={_liveImportanceScheduleCursor} " +
+					$"bandsActuallyCompleted={_liveImportanceScheduleCompletedBands}");
+		}
 	}
 
 	private void EmitLivePixelMemorySummaryIfComplete(in EffectiveConfig cfg)
@@ -18081,6 +18158,12 @@ private sealed class OverlayRollingWindow
 					RecordRuntimeWatchdog();
 					if (ShouldLog(DiagnosticVerbosity.Frame, DiagnosticCategory.Render))
 						GD.PrintErr($"[RenderStep][WATCHDOG] stuckBand y=[{yStart},{yEnd}) repeats={_stuckBandRepeats} -> forceAdvance");
+					if (_liveImportanceScheduleActive
+						&& ShouldLog(DiagnosticVerbosity.Summary, DiagnosticCategory.Render))
+						GD.Print($"[PixelMemory][LIVE][ScheduleCompletion] scheduleCompletion=fallback " +
+							$"scheduleTotalBands={_liveImportanceScheduleTotalBands} " +
+							$"scheduleCursor={_liveImportanceScheduleCursor} " +
+							$"bandsActuallyCompleted={_liveImportanceScheduleCompletedBands}");
 					LogBudgetExitOnce("guard_stuck_band", _rowCursor);
 					ForceAdvanceRowCursorOnStop("watchdog_stuck_band", yEnd);
 					if (cfg.RenderStepBandLog && ShouldLog(DiagnosticVerbosity.Frame, DiagnosticCategory.Render)) LogBandSummaryOnce("guard");
@@ -24732,7 +24815,29 @@ private sealed class OverlayRollingWindow
 				{
 					_rbr.EmitBoundaryValidationSummary($"film={filmW}x{filmH}");
 					if (cfg.UpdateEveryFrame && !snapshotAcquisition)
+					{
+						bool importanceFreshBeforeCompute = _liveImportanceFreshThisPass;
+						bool isFirstPassAtEnd = _isFirstPassAfterContextReset;
 						ComputeLivePixelMemoryImportance();
+						bool importanceFreshAfterCompute = _liveImportanceFreshThisPass;
+						_isFirstPassAfterContextReset = false;
+						_livePassId++;
+						if (ShouldLog(DiagnosticVerbosity.Summary, DiagnosticCategory.Render))
+						{
+							int expectedBands = rowsPerFrame > 0
+								? (filmH + rowsPerFrame - 1) / rowsPerFrame : 0;
+							string policyUsed = importanceFreshBeforeCompute && UseImportanceOrdering
+								? "importance" : "uniform";
+							GD.Print($"[PixelMemory][LIVE][PassEnd] " +
+								$"livePassId={_livePassId - 1} contextGeneration={_livePixelMemoryContextGeneration} " +
+								$"bandsCompleted={_liveImportanceScheduleCompletedBands} expectedBands={expectedBands} " +
+								$"rowCursor={_rowCursor} " +
+								$"importanceFreshBeforeCompute={(importanceFreshBeforeCompute ? 1 : 0)} " +
+								$"importanceFreshAfterCompute={(importanceFreshAfterCompute ? 1 : 0)} " +
+								$"policyUsed={policyUsed} passComplete=true " +
+								$"isFirstPassAfterContextReset={(isFirstPassAtEnd ? 1 : 0)}");
+						}
+					}
 					EmitLivePixelMemorySummaryIfComplete(in cfg);
 					if (!cfg.UpdateEveryFrame)
 						FinalizeCathedralProbeSnapshotSummary(filmW, filmH);
@@ -26920,6 +27025,18 @@ private sealed class OverlayRollingWindow
 		ResetRefreshAuditTracking();
 		if (ShouldLog(DiagnosticVerbosity.Frame, DiagnosticCategory.Render))
 			GD.Print($"[Observation Plate] reset reason={reason} prevRow={prev} frame={_frameIndex}");
+		if (UpdateEveryFrame && _observationAcquisition.Owner != ObservationAcquisitionOwner.Snapshot
+			&& _livePixelMemoryContextHash != 0UL
+			&& ShouldLog(DiagnosticVerbosity.Summary, DiagnosticCategory.Render))
+		{
+			string passPolicy = _liveImportanceFreshThisPass && UseImportanceOrdering ? "importance" : "uniform";
+			GD.Print($"[PixelMemory][LIVE][PassBegin] " +
+				$"livePassId={_livePassId} contextGeneration={_livePixelMemoryContextGeneration} " +
+				$"rowCursor=0 importanceFresh={(_liveImportanceFreshThisPass ? 1 : 0)} " +
+				$"policy={passPolicy} scheduleActive={(_liveImportanceScheduleActive ? 1 : 0)} " +
+				$"scheduleTotalBands={_liveImportanceScheduleTotalBands} " +
+				$"isFirstPassAfterContextReset={(_isFirstPassAfterContextReset ? 1 : 0)}");
+		}
 	}
 
 	private void QuitTreeDeferred()
