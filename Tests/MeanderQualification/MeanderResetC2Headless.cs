@@ -64,8 +64,10 @@ public partial class MeanderResetC2Headless : Node
 
 	public override void _Ready()
 	{
-		_film = GetNodeOrNull<GrinFilmCamera>("GrinFilmCamera");
-		_rbr = GetNodeOrNull<RayBeamRenderer>("RayBeamRenderer");
+		// The qualification node is attached to the chamber alongside the
+		// production camera/renderer in the Observatory scene.
+		_film = GetParent()?.GetNodeOrNull<GrinFilmCamera>("GrinFilmCamera");
+		_rbr = GetParent()?.GetNodeOrNull<RayBeamRenderer>("RayBeamRenderer");
 
 		if (_film == null)
 		{
@@ -102,7 +104,9 @@ public partial class MeanderResetC2Headless : Node
 			case Phase.WaitStableImportance:
 				// Wait until at least one full pass has completed with importance fresh.
 				if (snap.ImportanceFreshThisPass && snap.ContextInitialized
-					&& snap.ContextGeneration >= 1 && !snap.IsFirstPassAfterContextReset)
+					&& snap.ContextGeneration >= 1 && !snap.IsFirstPassAfterContextReset
+					&& snap.ScheduleTotalBands > 0
+					&& (snap.FrontierBands > 0 || snap.ExplorationBands > 0))
 				{
 					_baselinePassId = snap.LivePassId;
 					_baselineGeneration = snap.ContextGeneration;
@@ -199,6 +203,8 @@ public partial class MeanderResetC2Headless : Node
 					Finish(false, $"FAIL: importanceFreshThisPass=false when checking importance resume (livePassId={snap.LivePassId})");
 					return;
 				}
+				if (snap.ScheduleTotalBands <= 0 || (snap.FrontierBands == 0 && snap.ExplorationBands == 0))
+					break;
 				GD.Print($"[C2] Phase 4: Importance ordering confirmed resumed. " +
 					$"livePassId={snap.LivePassId} contextGeneration={snap.ContextGeneration} " +
 					$"frontierBands={snap.FrontierBands} explorationBands={snap.ExplorationBands}");
