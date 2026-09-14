@@ -4894,7 +4894,11 @@ private sealed class OverlayRollingWindow
 		DebugLogConfig.EnableProbeLog = DebugProbeLog;
 		DebugLogConfig.ProbeLogIntervalSec = Mathf.Max(0.05f, DebugProbeIntervalSec);
 		DebugLogConfig.EnableGeomRejectSample = DebugGeomRejectSampleEnabled;
-		UpdateRuntimeMacroMotionState();
+		// Camera-motion telemetry is LIVE presentation state. Keep the OFF
+		// instrument quiescent instead of sampling and logging motion changes
+		// after film rendering has been disabled.
+		if (UpdateEveryFrame)
+			UpdateRuntimeMacroMotionState();
 
 			SyncAndApplyIfDirty("process");
 			// Keep broadphase controls in sync each frame so the inspector reflects effective state.
