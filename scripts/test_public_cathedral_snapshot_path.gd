@@ -45,6 +45,10 @@ func _initialize() -> void:
 	_assert(bool(film.get("ProbeViewAvailable")), "formal Snapshot seals authority")
 	_assert(int(film.get("SealedProbeViewGeneration")) == 1, "first public Snapshot generation")
 	var generation := int(film.get("SealedProbeViewGeneration"))
+	var terminal_heartbeat_count := int(film.get("RuntimeHealthHeartbeatCount"))
+	await _settle(8)
+	_assert(int(film.get("RuntimeHealthHeartbeatCount")) == terminal_heartbeat_count,
+		"terminal Snapshot stops runtime-health heartbeat work")
 	var measurement_identity := _measurement_identity()
 	var observer_transform := _observer_transform()
 
@@ -75,6 +79,8 @@ func _initialize() -> void:
 	_assert(int(film.get("CurrentProbeView")) == 1, "Shift+Q maps Effort back to Contact Events")
 	_assert(int(film.get("SealedProbeViewGeneration")) == generation, "Q preserves generation")
 	_assert(_measurement_identity() == measurement_identity, "Q changes measurement identity")
+	_assert(int(film.get("RuntimeHealthHeartbeatCount")) == terminal_heartbeat_count,
+		"Q does not restart runtime-health heartbeat work")
 
 	_send_key(KEY_E)
 	await _settle(6)
@@ -90,6 +96,10 @@ func _initialize() -> void:
 	_send_key(KEY_G)
 	await _settle(2)
 	_assert(film_controller.call("GetModeName") == "OFF", "LIVE to OFF transition")
+	var off_heartbeat_count := int(film.get("RuntimeHealthHeartbeatCount"))
+	await _settle(8)
+	_assert(int(film.get("RuntimeHealthHeartbeatCount")) == off_heartbeat_count,
+		"OFF remains free of runtime-health heartbeat work")
 	_send_key(KEY_G)
 	await _settle(2)
 	_assert(film_controller.call("GetModeName") == "SNAPSHOT", "second G enters new Snapshot")

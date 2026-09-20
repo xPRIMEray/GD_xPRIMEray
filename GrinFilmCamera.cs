@@ -1411,6 +1411,7 @@ public partial class GrinFilmCamera : Node
 	private RuntimeDiagnosticPolicy _diagnostics = RuntimeDiagnosticPolicy.LiveDefault;
 	private readonly LiveDiagnosticAggregator _liveDiagnostics = new(TimeSpan.FromSeconds(1));
 	private RuntimeHealthWatchdog _runtimeHealth;
+	private int _runtimeHealthHeartbeatCount;
 	private ResolvedComputeResourcePolicy _computeResourcePolicy;
 	private string _computeResourcePolicyError = string.Empty;
 	private string _runtimeHealthLastCompletedWorkUnit = "startup";
@@ -4768,8 +4769,12 @@ private sealed class OverlayRollingWindow
 
 	private void RecordRuntimeHealthHeartbeat(string phase)
 	{
-		if (_runtimeHealth == null)
+		// Runtime-health heartbeats belong to an active formal acquisition. The
+		// completed query ledger is sealed evidence; canonicalizing it after the
+		// lifecycle has gone terminal turns retained data into recurring work.
+		if (!_probeSnapshotLifecycleActive || _runtimeHealth == null)
 			return;
+		_runtimeHealthHeartbeatCount++;
 		int workers = 1;
 		if (UseThreadedBands) workers = Math.Max(workers, _computeResourcePolicy == null ? ThreadedBandWorkerCount : Math.Min(ThreadedBandWorkerCount, _computeResourcePolicy.EffectiveBandWorkerCount));
 		if (UseThreadedPass2CandidateEval) workers = Math.Max(workers, ThreadedPass2CandidateWorkers);
@@ -5245,6 +5250,7 @@ private sealed class OverlayRollingWindow
 
 	public bool RequestCathedralProbeSnapshot(int budget) => TryRequestCathedralProbeSnapshot(budget, out _);
 	public bool CathedralProbeSnapshotIsTerminal => !_probeSnapshotLifecycleActive && _lastProbeSnapshotLifecycleResult.IsTerminal;
+	public int RuntimeHealthHeartbeatCount => _runtimeHealthHeartbeatCount;
 	public bool CathedralSnapshotLifecycleActive => _probeSnapshotLifecycleActive;
 	public string CathedralSnapshotLifecycleStateName => SnapshotLifecycleStateToken(
 		_probeSnapshotLifecycleActive ? _probeSnapshotLifecycleState : _lastProbeSnapshotLifecycleResult.State);
