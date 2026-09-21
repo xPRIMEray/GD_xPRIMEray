@@ -102,6 +102,8 @@ public partial class FilmOverlay2D : TextureRect
 	[Export] public float FilmGradientScale = 6.0f;
 	/// <summary>Scale applied to debug HUD text while preserving 1.0 as the current maximum/default.</summary>
 	[Export(PropertyHint.Range, "0.6,1.0,0.05")] public float HudFontScale = 1.0f;
+	/// <summary>Presentation-only gate for internal overlay-bus annotations during clean demo capture.</summary>
+	[Export] public bool SuppressDebugOverlayBusPresentation = false;
 
 	[ExportSubgroup("Comparison Overlay")]
 	/// <summary>Draws lightweight comparison gridlines.</summary>
@@ -356,6 +358,8 @@ public partial class FilmOverlay2D : TextureRect
 	
 	public override void _Draw()
 	{
+		if (SuppressDebugOverlayBusPresentation && DebugOverlayBus.Count > 0)
+			DebugOverlayBus.ClearFrame();
 		bool hasCam = _cam != null && IsInstanceValid(_cam);
 		bool hasRayData = hasCam && _rayCount > 0 && _ptCount > 0;
 		bool drawFilmGradient = DrawFilmGradientNormals && _filmImage != null && _filmWidth > 2 && _filmHeight > 2;

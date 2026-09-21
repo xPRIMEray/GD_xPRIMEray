@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://Transport/TransportChamberOrchestrator.gd" id="1_orchestrator"]
 [ext_resource type="PackedScene" path="res://Transport/TransportChamberPlayer.tscn" id="2_player"]
@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://Transport/FilmController.gd" id="9_film_controller"]
 [ext_resource type="Script" path="res://Transport/FieldDialController.gd" id="10_field_dial"]
 [ext_resource type="PackedScene" path="res://Transport/HermeticRoomDisplay.tscn" id="11_hermetic"]
+[ext_resource type="Theme" path="res://UI/ObservatoryHudTheme.tres" id="12_hud_theme"]
 
 [sub_resource type="BoxShape3D" id="BoxShape_floor"]
 size = Vector3(20, 0.25, 22)
@@ -184,20 +185,20 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme = ExtResource("12_hud_theme")
 
-[node name="FilmModuleBackdrop" type="ColorRect" parent="CanvasLayer/HUDRoot"]
+[node name="FilmModuleBackdrop" type="Panel" parent="CanvasLayer/HUDRoot"]
 offset_left = 8.0
 offset_top = 182.0
 offset_right = 358.0
-offset_bottom = 492.0
+offset_bottom = 538.0
 mouse_filter = 2
-color = Color(0.015, 0.025, 0.045, 0.72)
 
 [node name="FilmModule" type="VBoxContainer" parent="CanvasLayer/HUDRoot"]
 offset_left = 12.0
 offset_top = 190.0
 offset_right = 352.0
-offset_bottom = 482.0
+offset_bottom = 530.0
 mouse_filter = 2
 theme_override_constants/separation = 6
 
@@ -294,6 +295,18 @@ offset_bottom = 180.0
 mouse_filter = 2
 theme_override_constants/separation = 4
 
+[node name="TelemetryBackdrop" type="Panel" parent="CanvasLayer/HUDRoot"]
+visible = false
+z_index = -1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -340.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = 188.0
+grow_horizontal = 0
+mouse_filter = 2
+
 [node name="TelemetryLabel" type="Label" parent="CanvasLayer/HUDRoot/TelemetryModule"]
 layout_mode = 2
 mouse_filter = 2
@@ -311,6 +324,17 @@ offset_bottom = -12.0
 mouse_filter = 2
 theme_override_constants/separation = 4
 
+[node name="PortalBackdrop" type="Panel" parent="CanvasLayer/HUDRoot"]
+z_index = -1
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = -80.0
+offset_right = 348.0
+offset_bottom = -4.0
+grow_vertical = 0
+mouse_filter = 2
+
 [node name="PortalStatusLabel" type="Label" parent="CanvasLayer/HUDRoot/PortalModule"]
 layout_mode = 2
 mouse_filter = 2
@@ -323,12 +347,26 @@ anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -332.0
-offset_top = -82.0
+offset_left = -392.0
+offset_top = -102.0
 offset_right = -12.0
 offset_bottom = -12.0
 mouse_filter = 2
 theme_override_constants/separation = 4
+
+[node name="ObserverBackdrop" type="Panel" parent="CanvasLayer/HUDRoot"]
+z_index = -1
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -400.0
+offset_top = -110.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
 
 [node name="ObserverStatusLabel" type="Label" parent="CanvasLayer/HUDRoot/ObserverModule"]
 layout_mode = 2

@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="PackedScene" path="res://HelloObservatoryWorld.tscn" id="1_world"]
 [ext_resource type="PackedScene" path="res://UI/ObservatoryWorkbenchPanel.tscn" id="2_oi"]
 [ext_resource type="PackedScene" path="res://UI/TestBenchPanel.tscn" id="3_bench"]
 [ext_resource type="Script" path="res://UI/ObservatoryWorkbench.gd" id="4_workbench"]
+[ext_resource type="Theme" path="res://UI/ObservatoryHudTheme.tres" id="5_hud_theme"]
 
 [node name="ObservatoryWorkbench" type="Node"]
 script = ExtResource("4_workbench")
@@ -20,6 +21,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme = ExtResource("5_hud_theme")
 
 [node name="LaunchHintPanel" type="PanelContainer" parent="UILayer/UIRoot"]
 offset_left = 12.0

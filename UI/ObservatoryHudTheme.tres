@@ -1,0 +1,21 @@
+[gd_resource type="Theme" load_steps=2 format=3]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud"]
+bg_color = Color(0.012, 0.022, 0.04, 0.86)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.36, 0.58, 0.72, 0.28)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[resource]
+Label/colors/font_color = Color(0.94, 0.97, 1, 1)
+Label/colors/font_shadow_color = Color(0, 0, 0, 0.9)
+Label/constants/shadow_offset_x = 1
+Label/constants/shadow_offset_y = 2
+Panel/styles/panel = SubResource("StyleBoxFlat_hud")
+PanelContainer/styles/panel = SubResource("StyleBoxFlat_hud")

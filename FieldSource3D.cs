@@ -11,6 +11,8 @@ using RendererCore.Fields;
 [Tool]
 public partial class FieldSource3D : Node3D
 {
+	/// <summary>Presentation layer retained by the Observatory optical-only observer camera.</summary>
+	public const uint DebugVisualizationRenderLayer = 1u << 19;
 	public enum ProfileType
 	{
 		Power,
@@ -1423,7 +1425,8 @@ public partial class FieldSource3D : Node3D
 		{
 			Name = "_FieldSourceAcademicViz",
 			Mesh = _debugMesh,
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+			Layers = DebugVisualizationRenderLayer
 		};
 		AddChild(_debugMeshInstance);
 	}

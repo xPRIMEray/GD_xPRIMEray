@@ -8,6 +8,7 @@ extends Node3D
 @onready var _film_camera: Node = $GrinFilmCamera
 @onready var _ray_renderer: Node = $RayBeamRenderer
 @onready var _film_controller: Node = $FilmController
+@onready var _film_overlay: Node = $CanvasLayer/HUDRoot/FilmModule/FilmPlate/FilmOverlay2D
 @onready var _field_dial: Node = $FieldDialController
 @onready var _summary_label: Label = $OverspaceTrophyRoom/CanvasLayer/DemoSummary
 @onready var _overspace_debug_overlay: Control = $OverspaceTrophyRoom/CanvasLayer/OverspaceDebugOverlay
@@ -15,6 +16,7 @@ extends Node3D
 @onready var _earth_field: Node = $EarthFieldSource
 @onready var _hud_root: Control = $CanvasLayer/HUDRoot
 @onready var _telemetry_module: Control = $CanvasLayer/HUDRoot/TelemetryModule
+@onready var _telemetry_backdrop: Control = $CanvasLayer/HUDRoot/TelemetryBackdrop
 @onready var _telemetry_label: Label = $CanvasLayer/HUDRoot/TelemetryModule/TelemetryLabel
 @onready var _portal_label: Label = $CanvasLayer/HUDRoot/PortalModule/PortalStatusLabel
 @onready var _locomotion_label: Label = $CanvasLayer/HUDRoot/ObserverModule/ObserverStatusLabel
@@ -23,6 +25,12 @@ var _cooldown_remaining := 0.0
 var _last_gallery_delta := 0.0
 var _last_earth_delta := 0.0
 var _advanced_telemetry_visible := false
+var _optical_only_presentation := false
+var _normal_observer_cull_mask: int = 0
+var _demo_presentation_enabled := false
+var _demo_restore_advanced_telemetry := false
+
+const FIELD_PRESENTATION_LAYER_MASK := 1 << 19
 
 
 func _ready() -> void:
@@ -33,6 +41,7 @@ func _ready() -> void:
 	_configure_chamber_portals()
 
 	var player_camera: Camera3D = _player.get_camera()
+	_normal_observer_cull_mask = player_camera.cull_mask
 	if _demo.has_method("OverrideViewerCamera"):
 		_demo.call("OverrideViewerCamera", player_camera)
 	if _demo.has_method("SetExternalTraversalOwnerActive"):
@@ -129,6 +138,8 @@ func _set_advanced_telemetry_visible(visible: bool) -> void:
 	_advanced_telemetry_visible = visible
 	if _telemetry_module != null:
 		_telemetry_module.visible = visible
+	if _telemetry_backdrop != null:
+		_telemetry_backdrop.visible = visible
 	if _overspace_debug_overlay != null:
 		_overspace_debug_overlay.visible = false
 	for field in [_gallery_field, _earth_field]:
@@ -140,6 +151,37 @@ func _set_advanced_telemetry_visible(visible: bool) -> void:
 func SetHudVisibleForGameplay(visible: bool) -> void:
 	if _hud_root != null:
 		_hud_root.visible = visible
+
+
+func SetOpticalOnlyPresentation(enabled: bool) -> void:
+	var camera: Camera3D = _player.get_camera()
+	if camera == null:
+		return
+	_optical_only_presentation = enabled
+	camera.cull_mask = FIELD_PRESENTATION_LAYER_MASK if enabled else _normal_observer_cull_mask
+
+
+func IsOpticalOnlyPresentation() -> bool:
+	return _optical_only_presentation
+
+
+func SetDemoPresentationMode(enabled: bool) -> void:
+	if enabled == _demo_presentation_enabled:
+		return
+	_demo_presentation_enabled = enabled
+	if enabled:
+		_demo_restore_advanced_telemetry = _advanced_telemetry_visible
+		_advanced_telemetry_visible = false
+		_telemetry_module.visible = false
+		_telemetry_backdrop.visible = false
+	else:
+		_advanced_telemetry_visible = _demo_restore_advanced_telemetry
+		_telemetry_module.visible = _advanced_telemetry_visible
+		_telemetry_backdrop.visible = _advanced_telemetry_visible
+	_update_telemetry_label()
+	if _film_overlay != null:
+		_film_overlay.set("SuppressDebugOverlayBusPresentation", enabled)
+	SetOpticalOnlyPresentation(enabled)
 
 
 func SetInputEnabled(enabled: bool, release_mouse := true) -> void:

@@ -2412,7 +2412,7 @@ public partial class GrinFilmCamera : Node
 	private ProbeContextKey _sealedProbeViewContextKey;
 	private ProbeViewMode _probeViewMode = ProbeViewMode.Outcome;
 	private Label _probeViewHud;
-	private ColorRect _probeViewHudBackdrop;
+	private Panel _probeViewHudBackdrop;
 	private bool _fieldStructureStatusKnown;
 	private bool _fieldStructureVisible;
 	private ProbeOutcomeCode[] _probeOutcomes = Array.Empty<ProbeOutcomeCode>();
@@ -5437,13 +5437,13 @@ private sealed class OverlayRollingWindow
 
 		CanvasLayer layer = new() { Layer = 12 };
 		AddChild(layer);
-		_probeViewHudBackdrop = new ColorRect
+		_probeViewHudBackdrop = new Panel
 		{
 			Position = new Vector2(380f, 12f),
 			Size = new Vector2(390f, 208f),
-			Color = new Color(0.015f, 0.025f, 0.045f, 0.86f),
 			MouseFilter = Control.MouseFilterEnum.Ignore
 		};
+		_probeViewHudBackdrop.Theme = GD.Load<Theme>("res://UI/ObservatoryHudTheme.tres");
 		layer.AddChild(_probeViewHudBackdrop);
 		_probeViewHud = new Label
 		{

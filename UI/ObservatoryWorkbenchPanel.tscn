@@ -37,6 +37,33 @@ theme_override_font_sizes/font_size = 14
 layout_mode = 2
 text = "Ready"
 
+[node name="PresentationLabel" type="Label" parent="Margin/Root"]
+layout_mode = 2
+text = "Presentation"
+theme_override_font_sizes/font_size = 11
+
+[node name="PresentationControls" type="HBoxContainer" parent="Margin/Root"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="OpticalOnlyCheck" type="CheckButton" parent="Margin/Root/PresentationControls"]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Hide conventional Godot world rendering from the observer camera only. Transport and collision geometry remain active."
+text = "Optical-only world"
+
+[node name="DemoModeCheck" type="CheckButton" parent="Margin/Root/PresentationControls"]
+layout_mode = 2
+tooltip_text = "Select optical-only presentation, hide advanced telemetry, and suppress internal development annotations."
+text = "Demo mode"
+
+[node name="PresentationStatus" type="Label" parent="Margin/Root"]
+layout_mode = 2
+text = "Normal Godot observer view"
+theme_override_colors/font_color = Color(0.68, 0.78, 0.84, 1)
+theme_override_font_sizes/font_size = 10
+autowrap_mode = 3
+
 [node name="ExperimentsLabel" type="Label" parent="Margin/Root"]
 layout_mode = 2
 text = "Observer Instrumentation"
