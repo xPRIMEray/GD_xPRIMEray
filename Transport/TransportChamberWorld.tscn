@@ -371,9 +371,8 @@ mouse_filter = 2
 [node name="ObserverStatusLabel" type="Label" parent="CanvasLayer/HUDRoot/ObserverModule"]
 layout_mode = 2
 mouse_filter = 2
-text = "Walk | V fly | mouse look
-E experiment | F field structure
-G SNAPSHOT | Q probe views | N shading | [ ] opacity
-Tab telemetry | Esc Observatory"
+text = "WASD + mouse | V walk/fly
+F field structure | O optical-only world
+G observation / film | Q probe view | Esc Workbench"
 theme_override_font_sizes/font_size = 12
 autowrap_mode = 3

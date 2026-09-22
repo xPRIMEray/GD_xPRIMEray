@@ -34,9 +34,14 @@ func _initialize() -> void:
 
 	_send_key(KEY_E)
 	await _settle(8)
-	_assert(field_dial.call("GetExperimentName") == "Hermetic", "E selects Hermetic experiment")
-	_assert(bool(hermetic_display.visible), "E does not establish Hermetic apparatus")
-	_assert(not bool(film.get("ProbeViewAvailable")), "E leaves no stale sealed authority")
+	_assert(field_dial.call("GetExperimentName") == "Gallery", "E is reserved and inert")
+	_assert(not bool(hermetic_display.visible), "E does not reveal Hermetic apparatus")
+	_assert(not bool(film.get("ProbeViewAvailable")), "E does not create sealed authority")
+
+	field_dial.call("SetDisplayPresetForTesting", "Hermetic")
+	await _settle(8)
+	_assert(field_dial.call("GetExperimentName") == "Hermetic", "programmatic Hermetic selection remains available")
+	_assert(bool(hermetic_display.visible), "programmatic selection establishes Hermetic apparatus")
 
 	_send_key(KEY_G)
 	await _settle(2)
@@ -84,10 +89,17 @@ func _initialize() -> void:
 
 	_send_key(KEY_E)
 	await _settle(6)
-	_assert(not bool(film.get("ProbeViewAvailable")), "E invalidates sealed authority")
+	_assert(field_dial.call("GetExperimentName") == "Hermetic", "E remains inert after Complete")
+	_assert(bool(film.get("ProbeViewAvailable")), "E preserves sealed authority")
+	_assert(int(film.get("SealedProbeViewGeneration")) == generation, "E preserves generation")
+	_assert(_measurement_identity() == measurement_identity, "E changes measurement identity")
+
+	field_dial.call("SetDisplayPresetForTesting", "Gallery")
+	await _settle(6)
+	_assert(not bool(film.get("ProbeViewAvailable")), "programmatic experiment selection invalidates sealed authority")
 	_assert(not bool(hermetic_display.visible), "Gallery retains Hermetic apparatus")
-	_assert(str(film.get("CathedralSnapshotLifecycleStateName")) == "invalidated", "E invalidation state")
-	_assert(not bool(chamber.get_node("TransportChamberPlayer").call("IsPoseHeld")), "E releases held pose")
+	_assert(str(film.get("CathedralSnapshotLifecycleStateName")) == "invalidated", "experiment invalidation state")
+	_assert(not bool(chamber.get_node("TransportChamberPlayer").call("IsPoseHeld")), "experiment change releases held pose")
 
 	_send_key(KEY_G)
 	await _settle(4)

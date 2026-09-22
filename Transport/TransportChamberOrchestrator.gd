@@ -1,5 +1,7 @@
 extends Node3D
 
+signal optical_only_presentation_changed(enabled: bool)
+
 @onready var _demo = $OverspaceTrophyRoom
 @onready var _player = $TransportChamberPlayer
 @onready var _legacy_camera: Camera3D = $OverspaceTrophyRoom/PlayerCamera
@@ -29,6 +31,7 @@ var _optical_only_presentation := false
 var _normal_observer_cull_mask: int = 0
 var _demo_presentation_enabled := false
 var _demo_restore_advanced_telemetry := false
+var _demo_restore_optical_only := false
 
 const FIELD_PRESENTATION_LAYER_MASK := 1 << 19
 
@@ -72,9 +75,13 @@ func _exit_tree() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_TAB:
-			_set_advanced_telemetry_visible(not _advanced_telemetry_visible)
-			get_viewport().set_input_as_handled()
+		match event.keycode:
+			KEY_TAB:
+				_set_advanced_telemetry_visible(not _advanced_telemetry_visible)
+				get_viewport().set_input_as_handled()
+			KEY_O:
+				ToggleOpticalOnlyPresentation()
+				get_viewport().set_input_as_handled()
 
 
 func _process(delta: float) -> void:
@@ -157,12 +164,25 @@ func SetOpticalOnlyPresentation(enabled: bool) -> void:
 	var camera: Camera3D = _player.get_camera()
 	if camera == null:
 		return
+	if _demo_presentation_enabled and not enabled:
+		return
+	var changed := _optical_only_presentation != enabled
 	_optical_only_presentation = enabled
 	camera.cull_mask = FIELD_PRESENTATION_LAYER_MASK if enabled else _normal_observer_cull_mask
+	if changed:
+		optical_only_presentation_changed.emit(enabled)
+
+
+func ToggleOpticalOnlyPresentation() -> void:
+	SetOpticalOnlyPresentation(not _optical_only_presentation)
 
 
 func IsOpticalOnlyPresentation() -> bool:
 	return _optical_only_presentation
+
+
+func IsDemoPresentationMode() -> bool:
+	return _demo_presentation_enabled
 
 
 func SetDemoPresentationMode(enabled: bool) -> void:
@@ -171,6 +191,7 @@ func SetDemoPresentationMode(enabled: bool) -> void:
 	_demo_presentation_enabled = enabled
 	if enabled:
 		_demo_restore_advanced_telemetry = _advanced_telemetry_visible
+		_demo_restore_optical_only = _optical_only_presentation
 		_advanced_telemetry_visible = false
 		_telemetry_module.visible = false
 		_telemetry_backdrop.visible = false
@@ -181,7 +202,7 @@ func SetDemoPresentationMode(enabled: bool) -> void:
 	_update_telemetry_label()
 	if _film_overlay != null:
 		_film_overlay.set("SuppressDebugOverlayBusPresentation", enabled)
-	SetOpticalOnlyPresentation(enabled)
+	SetOpticalOnlyPresentation(true if enabled else _demo_restore_optical_only)
 
 
 func SetInputEnabled(enabled: bool, release_mouse := true) -> void:
@@ -195,7 +216,7 @@ func SetInputEnabled(enabled: bool, release_mouse := true) -> void:
 func _on_locomotion_mode_changed(mode_name: String) -> void:
 	if _locomotion_label == null:
 		return
-	_locomotion_label.text = "%s | WASD + mouse | Shift sprint | V fly\nE experiment | F field structure\nG SNAPSHOT | Q probe views | N shading | [ ] opacity | , . field\nTab telemetry | Esc Observatory" % mode_name
+	_locomotion_label.text = "%s | WASD + mouse | Shift sprint | V walk/fly\nF field structure | O optical-only world\nG observation / film | Q probe view | Esc Workbench" % mode_name
 
 
 func _on_field_strength_changed(_value: float) -> void:

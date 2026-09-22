@@ -65,9 +65,6 @@ func _unhandled_input(event: InputEvent) -> void:
 				KEY_1:
 					_set_field_strength(1.0)
 					get_viewport().set_input_as_handled()
-				KEY_E:
-					ToggleExperiment()
-					get_viewport().set_input_as_handled()
 		elif (event.keycode == KEY_COMMA and _held_direction < 0) or (event.keycode == KEY_PERIOD and _held_direction > 0):
 			_held_direction = 0
 			_repeat_timer = 0.0

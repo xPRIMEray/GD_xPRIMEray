@@ -4,67 +4,45 @@ title: Controls
 status: partial
 engine_commit: "5ce15c13"
 generated: false
-claim_boundary: "Key bindings document host defaults; some keys may be partially wired. Planned binds are labeled."
+claim_boundary: "Key bindings document host defaults; internal controls are not part of the Demo v1 public vocabulary."
 ---
 
 # Controls
 
-Public control legend for the Godot Transport Lens host. Internal names only where useful.
-
----
+Public Demo v1 controls for the Godot Transport Lens host.
 
 ## Compact strip
 
 ```text
-E experiment · F field structure · G SNAPSHOT · Q probe views
-N display · , . 0 1 field · Tab inspector · Esc evidence
-P probe · J/K region · V walk/fly
+V walk/fly | F field structure | O optical-only world
+G observation / film | Q probe view | Esc Workbench
 ```
 
-H (Hermetic presentation) is **retired / inert**. Do not teach H as a scene loader.
-
----
+E is **reserved / inert** for Demo v1. H remains **retired / inert**.
 
 ## Primary keys
 
 | Key | Public name | What it does | Boundary |
 |-----|-------------|--------------|----------|
-| **E** | Experiment | Loads authored experiment context (geometry, field, optional viewpoint) | Invalidates any open seal. Not a shader. Not H. |
-| **F** | Field Structure | Authored overlay visibility | Presentation only |
-| **G** | SNAPSHOT | Commits Formal G — freeze context, acquire, seal | Fresh deterministic measurement. Never trusts LIVE PixelMemory. LIVE is a different clock. |
-| **Q** | Probe View | Remaps a sealed Complete plate (Outcome / Contact Events / Transport Effort) | Same frame, same transport, different questions. Not a new acquisition. |
-| **N** | Display Mode | Cycles film shading (Depth / NormalRGB / NdotV / …) | Presentation only |
-| **Tab** | Inspector | Opens Observation Inspector | Numbers/context; not OI PASS |
-| **0** / **1** | Field ends | Field strength → STRAIGHT (0) or FULL (1) | Policy scale—not “nature max” |
-| **,** / **.** | Field fine | Step field strength down / up | Field Dial control—not evaluated field map |
-| **P** | Probe deeper | Region Refinement on selection | More Transport Effort—not automatic truth |
-| **J** / **K** | Prev / next region | Cycle Unresolved Regions | When wired |
-| **R** | Reset probe effort | Clear refinement memory for context | When wired |
-| **V** | Walk / Fly | Locomotion | Free-roam camera ≠ Transport Lens |
-| **[** / **]** | Plate opacity | Presentation blend | Not measurement |
-| **Esc** | Evidence Console | Workbench / release mouse | Recipe-bound evidence |
+| **V** | Walk / Fly | Toggles observer locomotion | Free-roam camera is not the Transport Lens |
+| **F** | Field Structure | Toggles authored field overlays | Presentation only |
+| **O** | Optical-only World | Hides conventional world meshes from the observer camera | Presentation only; experiment geometry remains authoritative |
+| **G** | Observation / Film | Cycles Formal SNAPSHOT, LIVE, then OFF | SNAPSHOT remains deterministic and authority-qualified |
+| **Q** | Probe View | Remaps a sealed Complete plate (Outcome / Contact Events / Transport Effort) | Same frame and transport; never a new acquisition |
+| **Esc** | Workbench | Opens configuration and releases the mouse | Does not change experiment state |
+| **E** | Reserved | No public Demo v1 action | Programmatic experiment selection remains available |
+| **H** | Retired | No action | Must not be repurposed |
 
-### Proposed / partial binds
+Internal diagnostic and tuning controls remain available to development workflows, but are not part of the Demo v1 public vocabulary.
 
-| Key | Public name | Note |
-|-----|-------------|------|
-| **L** or **T** | Plate / Transport Lens | Proposed mnemonic replacements for **G**; until the input map is updated, **G** is the active binding |
-| **O** | Orientation display | Proposed dedicated orientation cycle; until bound, use **N** |
-| **D** | Depth display | Proposed shortcut; until bound, use **N** |
+## Operator order
 
-**Note on G:** G is Formal SNAPSHOT commit. LIVE film is a separate preview clock. Do not remap G for elegance.
+1. Use **F** and **O** to choose presentation without changing the experiment.
+2. Use **G** to run SNAPSHOT until Complete.
+3. Use **Q** to inspect the sealed Outcome / Contact Events / Transport Effort views.
+4. Use **Esc** for Workbench configuration.
 
----
-
-## Operator order (safe)
-
-1. **E** Experiment → pose + field → **G** SNAPSHOT until Complete.
-2. **Tab** histogram / validity.
-3. **N** only after you know outcomes (display does not change classes).
-4. **P** only on outcome-defined Unresolved Regions.
-5. **Esc** for fixture recipes—not free-roam PASS.
-
----
+**Note on G:** G is the formal SNAPSHOT commit. LIVE film is a separate preview clock.
 
 ## See also
 

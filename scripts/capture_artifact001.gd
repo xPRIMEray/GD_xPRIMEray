@@ -49,12 +49,12 @@ func _initialize() -> void:
 		_send_key(KEY_F)
 		await _settle(8)
 	_assert(_all_field_sources_runtime_visible(), "F did not enable all field structures")
-	_send_key(KEY_E)
+	field_dial.call("SetDisplayPresetForTesting", "Hermetic")
 	await _settle(10)
-	_assert(field_dial.call("GetExperimentName") == "Hermetic", "E did not select Hermetic experiment")
+	_assert(field_dial.call("GetExperimentName") == "Hermetic", "programmatic selection did not select Hermetic experiment")
 	var experiment_pose: Transform3D = player.global_transform
-	_assert(player.global_transform.is_equal_approx(experiment_pose), "E changed observer pose unexpectedly")
-	_assert(_all_field_sources_runtime_visible(), "Field Structure did not remain enabled after E")
+	_assert(player.global_transform.is_equal_approx(experiment_pose), "observer pose changed after experiment selection settled")
+	_assert(_all_field_sources_runtime_visible(), "Field Structure did not remain enabled after experiment selection")
 	await _capture_stage("hermetic_field_structure.png", "Hermetic", false)
 
 	_send_key(KEY_G)
@@ -164,7 +164,7 @@ func _write_artifact_manifest() -> void:
 	proof["contact_query_count"] = query_count
 	proof["contact_authority"] = str(film.get("CathedralContactAuthorityToken"))
 	manifest["artifact_001"] = {
-		"recipe": "Gallery launch → F optional → E select Hermetic Experiment → G formal SNAPSHOT → Q triad",
+		"recipe": "Gallery launch → select Hermetic Experiment → F optional → G formal SNAPSHOT → Q triad",
 		"field_structure": "ON",
 		"preset": "Hermetic",
 		"snapshot_state": str(film.get("CathedralSnapshotLifecycleStateName")),

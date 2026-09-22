@@ -13,13 +13,12 @@ Documentation-oriented operator notes for the Godot host. Engine build steps rem
 ## Minimal interactive path
 
 1. Launch the Godot project with Transport Chamber / Observatory scenes as shipped.
-2. Choose **Experiment** (**E**). H (Hermetic presentation) is retired / inert.
+2. Use **Field Structure** (**F**) and **Optical-only World** (**O**) to choose the observer presentation.
 3. Enable **Formal G SNAPSHOT** (**G**) for scientific work. LIVE film is a separate preview clock.
-4. Set field (**0** straight baseline; **1** / fine **,** **.** for curved policy).
-5. Open **Inspector** (**Tab**).
-6. Cycle **Display Mode** (**N**) only after reading outcomes.
-7. Use **Region Probe** (**P**) only on Complete outcome planes.
-8. Open **Evidence Console** (**Esc**) for recipes.
+4. Cycle sealed Probe Views with **Q** after Complete.
+5. Open the **Workbench** (**Esc**) for configuration.
+
+For Demo v1, **E** is reserved / inert and **H** remains retired / inert. Experiment selection remains available to internal and programmatic qualification paths.
 
 ## Diagnostics
 

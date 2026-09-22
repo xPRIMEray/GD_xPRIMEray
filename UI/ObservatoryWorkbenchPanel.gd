@@ -80,6 +80,8 @@ func _ready() -> void:
 	if search_root == null:
 		search_root = get_tree().root
 	_presentation_host = _find_presentation_host(search_root)
+	if _presentation_host != null and _presentation_host.has_signal("optical_only_presentation_changed"):
+		_presentation_host.connect("optical_only_presentation_changed", Callable(self, "_on_optical_only_presentation_changed"))
 	_setup_poll_timer()
 	_run_button.pressed.connect(_on_run_pressed)
 	_stop_button.pressed.connect(_on_stop_pressed)
@@ -111,24 +113,30 @@ func _find_presentation_host(root: Node) -> Node:
 func _on_optical_only_toggled(enabled: bool) -> void:
 	if _presentation_host != null:
 		_presentation_host.call("SetOpticalOnlyPresentation", enabled)
-	_update_presentation_status(enabled)
+	_sync_presentation_controls()
 
 
 func _on_demo_mode_toggled(enabled: bool) -> void:
 	if _presentation_host != null:
 		_presentation_host.call("SetDemoPresentationMode", enabled)
-	_optical_only_check.set_pressed_no_signal(enabled)
-	_optical_only_check.disabled = enabled or _presentation_host == null
-	_update_presentation_status(enabled)
+	_sync_presentation_controls()
+
+
+func _on_optical_only_presentation_changed(_enabled: bool) -> void:
+	_sync_presentation_controls()
 
 
 func _sync_presentation_controls() -> void:
 	var enabled := false
+	var demo_enabled := false
 	if _presentation_host != null:
 		enabled = bool(_presentation_host.call("IsOpticalOnlyPresentation"))
-	_optical_only_check.disabled = _presentation_host == null
+		if _presentation_host.has_method("IsDemoPresentationMode"):
+			demo_enabled = bool(_presentation_host.call("IsDemoPresentationMode"))
+	_optical_only_check.disabled = _presentation_host == null or demo_enabled
 	_demo_mode_check.disabled = _presentation_host == null
 	_optical_only_check.set_pressed_no_signal(enabled)
+	_demo_mode_check.set_pressed_no_signal(demo_enabled)
 	_update_presentation_status(enabled)
 
 
