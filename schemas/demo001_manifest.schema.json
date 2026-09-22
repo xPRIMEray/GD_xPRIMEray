@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xprimeray.local/schemas/demo001_manifest.schema.json",
+  "title": "xPRIMEray Demo 001 Demonstration Provenance",
+  "description": "Capture provenance for a visual demonstration. This is not measurement authority.",
+  "type": "object",
+  "required": [
+    "provenance_class",
+    "not_measurement_authority",
+    "demo",
+    "git_commit",
+    "godot_version",
+    "capture",
+    "scene",
+    "production_transitions",
+    "stages",
+    "representative_frames",
+    "sealed_observation_for_q",
+    "qualification",
+    "output"
+  ],
+  "properties": {
+    "provenance_class": { "const": "DEMONSTRATION" },
+    "not_measurement_authority": { "const": true },
+    "demo": {
+      "type": "object",
+      "required": ["name", "version", "choreography_version"]
+    },
+    "created_utc": { "type": "string" },
+    "git_commit": { "type": "string" },
+    "godot_version": { "type": "object" },
+    "capture": {
+      "type": "object",
+      "required": ["mode", "fixed_fps", "resolution", "total_frames", "total_duration_seconds", "choreography_frames", "choreography_duration_seconds", "movie_filename"]
+    },
+    "scene": { "type": "string" },
+    "observer_pose_locked_by_harness": { "type": "boolean" },
+    "production_transitions": { "type": "array", "items": { "type": "string" } },
+    "stages": { "type": "array", "items": { "type": "object" } },
+    "representative_frames": { "type": "array", "minItems": 8, "items": { "type": "object" } },
+    "live_progress": { "type": "object" },
+    "formal_acquisition_before_live": { "type": "object" },
+    "sealed_observation_for_q": { "type": "object" },
+    "qualification": {
+      "type": "object",
+      "required": ["formal_validation_green", "q_mapping_only_verified", "post_g_off_heartbeat_stable", "e_reserved_inert", "h_retired_inert"]
+    },
+    "output": {
+      "type": "object",
+      "required": ["movie", "frames_directory"]
+    }
+  },
+  "additionalProperties": true
+}
