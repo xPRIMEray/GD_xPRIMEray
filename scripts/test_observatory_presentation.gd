@@ -26,15 +26,50 @@ func _initialize() -> void:
 	var active_state_before := _active_experiment_state()
 	var film_overlay: Node = chamber.get_node("CanvasLayer/HUDRoot/FilmModule/FilmPlate/FilmOverlay2D")
 	var telemetry: Control = chamber.get_node("CanvasLayer/HUDRoot/TelemetryModule")
+	_assert(not _field_visuals_camera_visible(), "F starts with field overlays camera-hidden")
+	_send_key(KEY_F)
+	await _settle(12)
+	_assert(_field_visuals_camera_visible(), "normal F ON makes field overlays camera-visible")
+	_send_key(KEY_F)
+	await _settle(4)
+	_assert(not _field_visuals_camera_visible(), "normal F OFF makes field overlays camera-hidden")
+	_send_key(KEY_F)
+	await _settle(4)
+	_assert(_field_visuals_camera_visible(), "normal repeated F ON restores camera-visible overlays")
+
+	chamber.call("SetOpticalOnlyPresentation", true)
+	await _settle(2)
+	_assert(_field_visuals_camera_visible(), "optical-only preserves F ON camera visibility")
+	_send_key(KEY_F)
+	await _settle(2)
+	_assert(not _field_visuals_camera_visible(), "optical-only F OFF makes field overlays camera-hidden")
+	_send_key(KEY_F)
+	await _settle(4)
+	_assert(_field_visuals_camera_visible(), "optical-only F ON makes field overlays camera-visible")
+	chamber.call("SetOpticalOnlyPresentation", false)
+	await _settle(2)
+	_assert(_field_visuals_camera_visible(), "normal restore preserves F ON camera visibility")
+
 	_send_key(KEY_TAB)
 	await _settle(2)
 	_assert(telemetry.visible, "advanced telemetry opens before demo mode")
+	_send_key(KEY_F)
+	await _settle(4)
+	_assert(_field_visuals_camera_visible(), "F ON before demo makes field overlays camera-visible")
 	chamber.call("SetDemoPresentationMode", true)
 	_assert(player_camera.cull_mask == FIELD_PRESENTATION_LAYER_MASK, "demo mode selects optical-only observer")
+	_assert(_field_visuals_camera_visible(), "demo mode preserves F ON camera visibility")
+	_send_key(KEY_F)
+	await _settle(2)
+	_assert(not _field_visuals_camera_visible(), "demo F OFF makes field overlays camera-hidden")
+	_send_key(KEY_F)
+	await _settle(4)
+	_assert(_field_visuals_camera_visible(), "demo F ON makes field overlays camera-visible")
 	_assert(film_overlay.get("SuppressDebugOverlayBusPresentation") == true, "demo mode suppresses development annotations")
 	_assert(not telemetry.visible, "demo mode hides advanced telemetry")
 	chamber.call("SetDemoPresentationMode", false)
 	_assert(player_camera.cull_mask == normal_cull_mask, "demo mode restores normal observer")
+	_assert(_field_visuals_camera_visible(), "demo restore preserves F ON camera visibility")
 	_assert(film_overlay.get("SuppressDebugOverlayBusPresentation") == false, "demo mode restores diagnostic annotations")
 	_assert(telemetry.visible, "demo mode restores prior advanced telemetry state")
 	_send_key(KEY_TAB)
@@ -42,7 +77,7 @@ func _initialize() -> void:
 	_assert(_active_experiment_state() == active_state_before, "demo mode preserves active experiment state")
 
 	_send_key(KEY_F)
-	await _settle(12)
+	await _settle(4)
 	_assert(_all_field_sources_visible(), "F enables FieldSource3D overlays")
 	_assert(_all_field_visuals_use_presentation_layer(), "field overlays use presentation layer")
 	if OS.get_cmdline_user_args().has("--optical-first"):
@@ -65,10 +100,14 @@ func _initialize() -> void:
 	_assert(_active_experiment_state() == active_state_before, "presentation toggle preserves active experiment state")
 	_assert(_all_field_sources_visible(), "F overlays remain enabled in optical-only mode")
 
+	var q_replay_invocations := int(film.get("CathedralContactReplayInvocationCount"))
+	var q_lifecycle_state := str(film.get("CathedralSnapshotLifecycleStateName"))
 	_send_key(KEY_Q)
 	await _settle(2)
 	_assert(int(film.get("SealedProbeViewGeneration")) == generation, "Q remains mapping-only")
 	_assert(_formal_result() == visible_result, "Q preserves formal result")
+	_assert(int(film.get("CathedralContactReplayInvocationCount")) == q_replay_invocations, "Q does not replay contacts")
+	_assert(str(film.get("CathedralSnapshotLifecycleStateName")) == q_lifecycle_state, "Q does not restart acquisition")
 
 	_send_key(KEY_G)
 	await _settle(4)
@@ -157,13 +196,34 @@ func _all_field_sources_visible() -> bool:
 func _all_field_visuals_use_presentation_layer() -> bool:
 	var found := false
 	for source in scene_root.get_tree().get_nodes_in_group("field_sources"):
-		var visual := source.get_node_or_null("_FieldSourceAcademicViz") as VisualInstance3D
+		var visual := source.get_node_or_null("_FieldSourceAcademicViz") as MeshInstance3D
 		if visual == null or not visual.visible:
 			continue
 		found = true
 		if visual.layers != FIELD_PRESENTATION_LAYER_MASK:
 			return false
 	return found
+
+
+func _field_visuals_camera_visible() -> bool:
+	var active_camera := scene_root.get_viewport().get_camera_3d()
+	if active_camera != player_camera or not player_camera.current:
+		return false
+	var found_eligible := false
+	for source in scene_root.get_tree().get_nodes_in_group("field_sources"):
+		if not bool(source.get("Enabled")) or not bool(source.get("DebugVizEnabled")):
+			continue
+		found_eligible = true
+		var visual := source.get_node_or_null("_FieldSourceAcademicViz") as MeshInstance3D
+		if not bool(source.get("DebugVizInGame")):
+			if visual != null and visual.is_visible_in_tree():
+				return true
+			continue
+		if visual == null or visual.mesh == null or visual.mesh.get_surface_count() == 0 or not visual.is_visible_in_tree():
+			return false
+		if (player_camera.cull_mask & visual.layers) == 0:
+			return false
+	return found_eligible and _all_field_sources_visible()
 
 
 func _wait_for_complete() -> void:

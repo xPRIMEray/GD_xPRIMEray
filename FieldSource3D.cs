@@ -403,6 +403,7 @@ public partial class FieldSource3D : Node3D
 		}
 
 		EnsureDebugDraw();
+		_debugMeshInstance.Visible = true;
 		DebugVizState state = GetDebugVizState();
 
 		if (!_debugVizStateValid || !_debugVizState.Equals(state))
