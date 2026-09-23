@@ -27,7 +27,10 @@ var _input_enabled := true
 var _held_direction := 0
 var _repeat_timer := 0.0
 var _experiment := EXPERIMENT_GALLERY
-var _gallery_camera_transform := Transform3D(Basis.IDENTITY, Vector3(0.0, 1.8, 10.0))
+var _gallery_camera_transform := Transform3D(
+	Basis.IDENTITY,
+	Vector3(0.0, 1.775, 10.0)
+)
 var _hermetic_camera_transform := Transform3D(Basis.IDENTITY, Vector3(2.0, 1.6, -1.0))
 
 @onready var _ray_renderer: Node = get_node_or_null(ray_renderer_path)

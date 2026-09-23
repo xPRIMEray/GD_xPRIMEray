@@ -132,7 +132,7 @@ light_energy = 1.6
 omni_range = 18.0
 
 [node name="PlayerCamera" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 10)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.775, 10)
 current = true
 fov = 55.0
 near = 0.01
@@ -180,7 +180,7 @@ mesh = SubResource("BoxMesh_wall")
 material_override = SubResource("Material_trim")
 
 [node name="EarthPedestal" type="Node3D" parent="Gallery"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, -1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 5.5)
 
 [node name="Base" type="MeshInstance3D" parent="Gallery/EarthPedestal"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
@@ -197,7 +197,7 @@ material_override = SubResource("Material_trim")
 [node name="EarthLabel" type="Label3D" parent="Gallery/EarthPedestal"]
 transform = Transform3D(1, 0, 0, 0, 0.965926, -0.258819, 0, 0.258819, 0.965926, 0, 3.4, 1.25)
 text = "EARTH"
-font_size = 64
+font_size = 24
 
 [node name="SunPedestal" type="Node3D" parent="Gallery"]
 visible = false
@@ -242,7 +242,7 @@ text = "MOON"
 font_size = 64
 
 [node name="EarthOrbPortal" type="Node3D" parent="Gallery"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 2.55, -1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 2.55, 5.5)
 script = ExtResource("2_portal")
 LinkedPortalPath = NodePath("../../Worlds/EarthWorld/EarthArrivalPortal")
 WormholeId = "gallery_orb_earth"

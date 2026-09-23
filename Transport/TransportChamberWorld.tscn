@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://Transport/TransportChamberOrchestrator.gd" id="1_orchestrator"]
 [ext_resource type="PackedScene" path="res://Transport/TransportChamberPlayer.tscn" id="2_player"]
@@ -22,11 +22,14 @@ size = Vector3(20, 8, 0.3)
 [sub_resource type="BoxShape3D" id="BoxShape_side_wall"]
 size = Vector3(0.3, 8, 22)
 
+[sub_resource type="BoxShape3D" id="BoxShape_earth_pedestal_base"]
+size = Vector3(1.8, 2.2, 1.8)
+
 [node name="TransportChamberWorld" type="Node3D"]
 script = ExtResource("1_orchestrator")
 
 [node name="TransportChamberPlayer" parent="." instance=ExtResource("2_player")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 10)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 10)
 
 [node name="OverspaceTrophyRoom" parent="." instance=ExtResource("3_overspace")]
 
@@ -69,8 +72,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 4, 0)
 [node name="CollisionShape3D" type="CollisionShape3D" parent="GalleryCollision/RightWall"]
 shape = SubResource("BoxShape_side_wall")
 
+[node name="EarthPedestalBase" type="StaticBody3D" parent="GalleryCollision" groups=["fixture_geometry", "raytrace_geometry"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 1.1, 5.5)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GalleryCollision/EarthPedestalBase"]
+shape = SubResource("BoxShape_earth_pedestal_base")
+
 [node name="GalleryFieldSource" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 2.55, -1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 2.55, 5.5)
 script = ExtResource("6_field")
 ROuter = 2.5
 Amp = 1.0
@@ -84,7 +93,7 @@ Amp = 1.0
 DebugVizInGame = false
 
 [node name="GalleryBoundary" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 2.55, -1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 2.55, 5.5)
 script = ExtResource("7_boundary")
 Radius = 1.1
 ExecutionMode = 1
