@@ -57,7 +57,7 @@ public sealed class PortableProbeCaptureResult
 /// </summary>
 public static class PortableProbeCaptureBundle
 {
-	public const string SchemaVersion = "1.1.0";
+	public const string SchemaVersion = "1.2.0";
 	public const string ArtifactClass = "qualified_visualization";
 	private const int DisplayScale = 24;
 
@@ -217,8 +217,9 @@ public static class PortableProbeCaptureBundle
 			["geometry_epoch"] = input.ContextKey.GeometryEpoch,
 			["boundary_layer_epoch"] = input.ContextKey.BoundaryLayerEpoch,
 			["refinement_policy_version"] = input.ContextKey.RefinementPolicyVersion,
+			["formal_policy_sha256"] = input.ContextKey.FormalPolicySha256,
 			["canonical_sha256"] = contextSha,
-			["canonical_serialization"] = "v2 little-endian: schema_version (uint32), observer_id (uint32 length + UTF-8 bytes), camera_origin_hash, camera_basis_hash, fov_bits, film_width, film_height, base_steps_per_ray, bend_scale_bits, field_strength_bits, field_source_epoch, geometry_epoch, boundary_layer_epoch, refinement_policy_version"
+			["canonical_serialization"] = "v3 little-endian: schema_version (uint32), observer_id (uint32 length + UTF-8 bytes), camera_origin_hash, camera_basis_hash, fov_bits, film_width, film_height, base_steps_per_ray, bend_scale_bits, field_strength_bits, field_source_epoch, geometry_epoch, boundary_layer_epoch, refinement_policy_version, formal_policy_sha256 (uint16 length + UTF-8 bytes)"
 		};
 		Dictionary<string, string> normalizedRuntimeProvenance = new(input.RuntimeProvenance)
 		{
@@ -470,12 +471,13 @@ public static class PortableProbeCaptureBundle
 
 public static class ProbeContextCanonicalSerializer
 {
-	public const uint SchemaVersion = 2;
+	public const uint SchemaVersion = 3;
 
-	/// v2 field order: uint schema version, ObserverId canonical bytes, then uint origin,
+	/// v3 field order: uint schema version, ObserverId canonical bytes, then uint origin,
 	/// uint basis, float fov bits, ushort width, ushort height,
 	/// ushort base steps, float bend bits, float field bits, uint field epoch, uint geometry epoch,
-	/// uint boundary epoch, byte refinement policy. All integral values are little-endian.
+	/// uint boundary epoch, byte refinement policy, then the UTF-8 formal-policy SHA-256
+	/// prefixed by its ushort byte length. All integral values are little-endian.
 	public static byte[] Serialize(in ProbeContextKey key)
 	{
 		using MemoryStream stream = new();
@@ -486,6 +488,11 @@ public static class ProbeContextCanonicalSerializer
 		WriteSingle(stream, key.BendScale); WriteSingle(stream, key.FieldStrength);
 		WriteUInt32(stream, key.FieldSourceEpoch); WriteUInt32(stream, key.GeometryEpoch); WriteUInt32(stream, key.BoundaryLayerEpoch);
 		stream.WriteByte(key.RefinementPolicyVersion);
+		byte[] formalPolicy = Encoding.UTF8.GetBytes(key.FormalPolicySha256 ?? string.Empty);
+		if (formalPolicy.Length > ushort.MaxValue)
+			throw new InvalidDataException("formal_policy_identity_too_long");
+		WriteUInt16(stream, (ushort)formalPolicy.Length);
+		stream.Write(formalPolicy);
 		return stream.ToArray();
 	}
 

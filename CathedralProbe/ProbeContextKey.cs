@@ -18,6 +18,7 @@ public readonly struct ProbeContextKey : System.IEquatable<ProbeContextKey>
 	public readonly uint GeometryEpoch;
 	public readonly uint BoundaryLayerEpoch;
 	public readonly byte RefinementPolicyVersion;
+	public readonly string FormalPolicySha256;
 
 	public ProbeContextKey(
 		ObserverId observerId,
@@ -32,7 +33,8 @@ public readonly struct ProbeContextKey : System.IEquatable<ProbeContextKey>
 		uint fieldSourceEpoch,
 		uint geometryEpoch,
 		uint boundaryLayerEpoch,
-		byte refinementPolicyVersion)
+		byte refinementPolicyVersion,
+		string formalPolicySha256 = "")
 	{
 		ObserverId = observerId;
 		CameraOriginHash = cameraOriginHash;
@@ -47,6 +49,7 @@ public readonly struct ProbeContextKey : System.IEquatable<ProbeContextKey>
 		GeometryEpoch = geometryEpoch;
 		BoundaryLayerEpoch = boundaryLayerEpoch;
 		RefinementPolicyVersion = refinementPolicyVersion;
+		FormalPolicySha256 = formalPolicySha256 ?? string.Empty;
 	}
 
 	public bool Equals(ProbeContextKey other)
@@ -63,7 +66,8 @@ public readonly struct ProbeContextKey : System.IEquatable<ProbeContextKey>
 			&& FieldSourceEpoch == other.FieldSourceEpoch
 			&& GeometryEpoch == other.GeometryEpoch
 			&& BoundaryLayerEpoch == other.BoundaryLayerEpoch
-			&& RefinementPolicyVersion == other.RefinementPolicyVersion;
+			&& RefinementPolicyVersion == other.RefinementPolicyVersion
+			&& string.Equals(FormalPolicySha256, other.FormalPolicySha256, System.StringComparison.Ordinal);
 	}
 
 	public override bool Equals(object? obj)
@@ -87,6 +91,7 @@ public readonly struct ProbeContextKey : System.IEquatable<ProbeContextKey>
 		hash.Add(GeometryEpoch);
 		hash.Add(BoundaryLayerEpoch);
 		hash.Add(RefinementPolicyVersion);
+		hash.Add(FormalPolicySha256, System.StringComparer.Ordinal);
 		return hash.ToHashCode();
 	}
 

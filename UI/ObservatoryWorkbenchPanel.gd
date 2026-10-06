@@ -54,6 +54,8 @@ const FIXTURE_METRIC_DEFS := [
 @onready var _optical_only_check: CheckButton = $Margin/Root/PresentationControls/OpticalOnlyCheck
 @onready var _demo_mode_check: CheckButton = $Margin/Root/PresentationControls/DemoModeCheck
 @onready var _presentation_status: Label = $Margin/Root/PresentationStatus
+@onready var _probe_profile_option: OptionButton = $Margin/Root/InstrumentControls/ProbeProfileOption
+@onready var _probe_profile_status: Label = $Margin/Root/ProbeProfileStatus
 
 @onready var _fixture_chips: Array = [
 	$Margin/Root/Experiments/Oi001Row/Oi001Chip,
@@ -73,6 +75,7 @@ var _is_running := false
 var _poll_timer: Timer
 var _summary := {}  # Cached after _finalize(); used by _get_fixture_metrics().
 var _presentation_host: Node
+var _probe_profile_host: Node
 
 
 func _ready() -> void:
@@ -80,8 +83,13 @@ func _ready() -> void:
 	if search_root == null:
 		search_root = get_tree().root
 	_presentation_host = _find_presentation_host(search_root)
+	_probe_profile_host = _find_probe_profile_host(search_root)
 	if _presentation_host != null and _presentation_host.has_signal("optical_only_presentation_changed"):
 		_presentation_host.connect("optical_only_presentation_changed", Callable(self, "_on_optical_only_presentation_changed"))
+	if _probe_profile_host != null:
+		var profile_signal := &"probe_profile_changed" if _probe_profile_host.has_signal("probe_profile_changed") else &"ProbeProfileChanged"
+		if _probe_profile_host.has_signal(profile_signal):
+			_probe_profile_host.connect(profile_signal, Callable(self, "_on_probe_profile_changed"))
 	_setup_poll_timer()
 	_run_button.pressed.connect(_on_run_pressed)
 	_stop_button.pressed.connect(_on_stop_pressed)
@@ -89,6 +97,7 @@ func _ready() -> void:
 	_open_report_button.pressed.connect(_on_open_report_pressed)
 	_optical_only_check.toggled.connect(_on_optical_only_toggled)
 	_demo_mode_check.toggled.connect(_on_demo_mode_toggled)
+	_probe_profile_option.item_selected.connect(_on_probe_profile_selected)
 	for idx in FIXTURE_IDS.size():
 		var btn: Button = _fixture_btns[idx]
 		btn.pressed.connect(_on_fixture_selected.bind(idx))
@@ -96,6 +105,7 @@ func _ready() -> void:
 	_fixture_btns[0].button_pressed = true
 	_on_fixture_selected(0)
 	_sync_presentation_controls()
+	_setup_probe_profile_control()
 
 
 func _find_presentation_host(root: Node) -> Node:
@@ -108,6 +118,50 @@ func _find_presentation_host(root: Node) -> Node:
 		if found != null:
 			return found
 	return null
+
+
+func _find_probe_profile_host(root: Node) -> Node:
+	if root == null:
+		return null
+	if root.has_method("SetProbeProfileByIndex"):
+		return root
+	for child in root.get_children():
+		var found := _find_probe_profile_host(child)
+		if found != null:
+			return found
+	return null
+
+
+func _setup_probe_profile_control() -> void:
+	_probe_profile_option.clear()
+	if _probe_profile_host == null:
+		_probe_profile_option.disabled = true
+		_probe_profile_status.text = "Probe Profile unavailable"
+		return
+	var count := int(_probe_profile_host.get("ProbeProfileCount"))
+	for index in count:
+		_probe_profile_option.add_item(str(_probe_profile_host.call("GetProbeProfileDisplayNameByIndex", index)), index)
+		_probe_profile_option.set_item_metadata(index, str(_probe_profile_host.call("GetProbeProfileStableIdByIndex", index)))
+	_probe_profile_option.disabled = false
+	_sync_probe_profile_control()
+
+
+func _on_probe_profile_selected(index: int) -> void:
+	if _probe_profile_host != null:
+		_probe_profile_host.call("SetProbeProfileByIndex", index)
+	_sync_probe_profile_control()
+
+
+func _on_probe_profile_changed(_stable_id: String, _display_name: String, _index: int) -> void:
+	_sync_probe_profile_control()
+
+
+func _sync_probe_profile_control() -> void:
+	if _probe_profile_host == null:
+		return
+	var index := int(_probe_profile_host.get("ProbeProfileIndex"))
+	_probe_profile_option.select(index)
+	_probe_profile_status.text = "Selected acquisition strategy: %s" % str(_probe_profile_host.get("ProbeProfileDisplayName"))
 
 
 func _on_optical_only_toggled(enabled: bool) -> void:

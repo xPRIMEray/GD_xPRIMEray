@@ -175,6 +175,8 @@ func set_mode(mode: FilmMode) -> void:
 			if _formal_snapshot_requested:
 				_film_camera.call("RequestCathedralProbeSnapshot", CATHEDRAL_SNAPSHOT_BUDGET_FRAMES)
 		FilmMode.LIVE:
+			if _film_camera != null and _film_camera.has_method("ApplySelectedProbeProfileForLive"):
+				_film_camera.call("ApplySelectedProbeProfileForLive")
 			_apply_quality_preview()
 			_snapshot_timer = 0.0
 			_snapshot_end_msec = 0

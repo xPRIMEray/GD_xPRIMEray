@@ -216,7 +216,7 @@ func SetInputEnabled(enabled: bool, release_mouse := true) -> void:
 func _on_locomotion_mode_changed(mode_name: String) -> void:
 	if _locomotion_label == null:
 		return
-	_locomotion_label.text = "%s | WASD + mouse | Shift sprint | V walk/fly\nF field structure | O optical-only world\nG observation / film | Q probe view | Esc Workbench" % mode_name
+	_locomotion_label.text = "%s | WASD + mouse | Shift sprint | V walk/fly\nF field structure | O optical-only world | P probe profile\nG observation / film | Q probe view | Esc Workbench" % mode_name
 
 
 func _on_field_strength_changed(_value: float) -> void:

@@ -19,15 +19,17 @@ internal static class PortableProbeCaptureBundleTests
 
 	private static void ContextSerializationIsStable()
 	{
-		ProbeContextKey key = new(ObserverId.A, 1, 2, 70.0f, 80, 45, 80, 0.12f, 0.0f, 3, 4, 5, 1);
+		ProbeContextKey key = new(ObserverId.A, 1, 2, 70.0f, 80, 45, 80, 0.12f, 0.0f, 3, 4, 5, 1, "abc123");
 		byte[] first = ProbeContextCanonicalSerializer.Serialize(key);
 		byte[] second = ProbeContextCanonicalSerializer.Serialize(key);
 		TestAssert.True(first.SequenceEqual(second), "context canonical bytes deterministic");
-		TestAssert.Equal(48, first.Length, "context canonical byte length");
+		TestAssert.Equal(56, first.Length, "context canonical byte length");
 		ProbeContextKey changed = new(ObserverId.A, 1, 2, 70.0f, 80, 45, 80, 0.12f, 0.5f, 3, 4, 5, 1);
 		TestAssert.False(SHA256.HashData(first).SequenceEqual(SHA256.HashData(ProbeContextCanonicalSerializer.Serialize(changed))), "changed field changes context hash");
-		TestAssert.Equal((byte)0x02, first[0], "context schema little-endian low byte");
+		TestAssert.Equal((byte)0x03, first[0], "context schema little-endian low byte");
 		TestAssert.Equal((byte)0x01, first[9], "context origin low byte after observer identity");
+		ProbeContextKey changedPolicy = new(ObserverId.A, 1, 2, 70.0f, 80, 45, 80, 0.12f, 0.0f, 3, 4, 5, 1, "def456");
+		TestAssert.False(SHA256.HashData(first).SequenceEqual(SHA256.HashData(ProbeContextCanonicalSerializer.Serialize(changedPolicy))), "changed formal policy changes context hash");
 	}
 
 	private static void ObserverIdentityIsStructuralAndContextScoped()
@@ -56,13 +58,13 @@ internal static class PortableProbeCaptureBundleTests
 			input = CopyWith(input, context: observerB, observerProvenance: "A");
 			TestAssert.True(PortableProbeCaptureBundle.TryWrite(input, out PortableProbeCaptureResult? result, out string reason), reason);
 			using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(result!.ManifestPath));
-			TestAssert.Equal("1.1.0", manifest.RootElement.GetProperty("schema_version").GetString(), "bundle schema version");
+			TestAssert.Equal("1.2.0", manifest.RootElement.GetProperty("schema_version").GetString(), "bundle schema version");
 			TestAssert.Equal("B", manifest.RootElement.GetProperty("acquisition").GetProperty("context").GetProperty("observer_id").GetString(), "context observer attribution");
 			TestAssert.Equal("B", manifest.RootElement.GetProperty("runtime_provenance").GetProperty("observer_id").GetString(), "normalized provenance attribution");
 			TestAssert.Equal("compute-policy-test", manifest.RootElement.GetProperty("runtime_provenance").GetProperty("compute_marker").GetString(), "compute provenance preserved");
 			TestAssert.True(File.ReadAllText(result.SummaryPath).Contains("- Observer: `B`", StringComparison.Ordinal), "summary observer line");
 			string description = manifest.RootElement.GetProperty("acquisition").GetProperty("context").GetProperty("canonical_serialization").GetString() ?? string.Empty;
-			TestAssert.True(description.StartsWith("v2 little-endian: schema_version (uint32), observer_id (uint32 length + UTF-8 bytes)", StringComparison.Ordinal), "v2 serialization description");
+			TestAssert.True(description.StartsWith("v3 little-endian: schema_version (uint32), observer_id (uint32 length + UTF-8 bytes)", StringComparison.Ordinal), "v3 serialization description");
 
 			PortableProbeCaptureInput inputA = CreateInput(Path.Combine(root, "a"));
 			TestAssert.True(PortableProbeCaptureBundle.TryWrite(inputA, out _, out string reasonA), reasonA);

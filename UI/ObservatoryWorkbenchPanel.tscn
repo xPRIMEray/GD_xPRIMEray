@@ -64,6 +64,31 @@ theme_override_colors/font_color = Color(0.68, 0.78, 0.84, 1)
 theme_override_font_sizes/font_size = 10
 autowrap_mode = 3
 
+[node name="InstrumentLabel" type="Label" parent="Margin/Root"]
+layout_mode = 2
+text = "Instrument"
+theme_override_font_sizes/font_size = 11
+
+[node name="InstrumentControls" type="HBoxContainer" parent="Margin/Root"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ProbeProfileLabel" type="Label" parent="Margin/Root/InstrumentControls"]
+layout_mode = 2
+text = "Probe Profile (P)"
+
+[node name="ProbeProfileOption" type="OptionButton" parent="Margin/Root/InstrumentControls"]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Choose the instrument's coherent acquisition strategy. Formal G always starts from that profile's canonical state."
+
+[node name="ProbeProfileStatus" type="Label" parent="Margin/Root"]
+layout_mode = 2
+text = "Selected acquisition strategy"
+theme_override_colors/font_color = Color(0.68, 0.78, 0.84, 1)
+theme_override_font_sizes/font_size = 10
+autowrap_mode = 3
+
 [node name="ExperimentsLabel" type="Label" parent="Margin/Root"]
 layout_mode = 2
 text = "Observer Instrumentation"

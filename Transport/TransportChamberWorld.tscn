@@ -160,6 +160,7 @@ AutoRangeMin = 0.01
 RayBeamRendererPath = NodePath("../RayBeamRenderer")
 FilmViewPath = NodePath("../CanvasLayer/HUDRoot/FilmModule/FilmPlate/FilmView")
 FilmOverlayPath = NodePath("../CanvasLayer/HUDRoot/FilmModule/FilmPlate/FilmOverlay2D")
+RuntimeMacroHotkeysEnabled = false
 
 [node name="FilmController" type="Node" parent="."]
 script = ExtResource("9_film_controller")
@@ -381,7 +382,7 @@ mouse_filter = 2
 layout_mode = 2
 mouse_filter = 2
 text = "WASD + mouse | V walk/fly
-F field structure | O optical-only world
+F field structure | O optical-only world | P probe profile
 G observation / film | Q probe view | Esc Workbench"
 theme_override_font_sizes/font_size = 12
 autowrap_mode = 3

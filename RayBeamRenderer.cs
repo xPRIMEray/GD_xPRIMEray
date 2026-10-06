@@ -678,16 +678,27 @@ public partial class RayBeamRenderer : Node3D
 		}
 	}
 
-	private readonly List<FormalProbeQuery> _formalProbeQueries = new();
+	private readonly Dictionary<int, FormalProbeQuery[]> _formalProbeQueriesByPixel = new();
+	private readonly HashSet<int> _formalProbeCommittedPixels = new();
 	private readonly object _formalProbeQueryLock = new();
 	private bool _formalProbeQueryCaptureEnabled;
+	private int _formalProbeRawQueryAttemptCount;
+	private int _formalProbeWorkUnitCommitCount;
+	private int _formalProbeWorkUnitReplacementCount;
 	public bool FormalProbeQueryCaptureEnabled => _formalProbeQueryCaptureEnabled;
+	public int RawFormalProbeQueryCount => System.Threading.Volatile.Read(ref _formalProbeRawQueryAttemptCount);
+	public int FormalProbeWorkUnitCommitCount => System.Threading.Volatile.Read(ref _formalProbeWorkUnitCommitCount);
+	public int FormalProbeWorkUnitReplacementCount => System.Threading.Volatile.Read(ref _formalProbeWorkUnitReplacementCount);
 
 	public void BeginFormalProbeQueryCapture()
 	{
 		lock (_formalProbeQueryLock)
 		{
-			_formalProbeQueries.Clear();
+			_formalProbeQueriesByPixel.Clear();
+			_formalProbeCommittedPixels.Clear();
+			_formalProbeRawQueryAttemptCount = 0;
+			_formalProbeWorkUnitCommitCount = 0;
+			_formalProbeWorkUnitReplacementCount = 0;
 			_formalProbeQueryCaptureEnabled = true;
 		}
 	}
@@ -701,7 +712,18 @@ public partial class RayBeamRenderer : Node3D
 	{
 		FormalProbeQuery[] queries;
 		lock (_formalProbeQueryLock)
-			queries = _formalProbeQueries.ToArray();
+		{
+			int queryCount = 0;
+			foreach (FormalProbeQuery[] pixelQueries in _formalProbeQueriesByPixel.Values)
+				queryCount += pixelQueries.Length;
+			queries = new FormalProbeQuery[queryCount];
+			int destinationIndex = 0;
+			foreach (FormalProbeQuery[] pixelQueries in _formalProbeQueriesByPixel.Values)
+			{
+				Array.Copy(pixelQueries, 0, queries, destinationIndex, pixelQueries.Length);
+				destinationIndex += pixelQueries.Length;
+			}
+		}
 		Array.Sort(queries, (a, b) =>
 		{
 			int compare = a.PixelIndex.CompareTo(b.PixelIndex);
@@ -710,6 +732,22 @@ public partial class RayBeamRenderer : Node3D
 			return compare != 0 ? compare : CompareFormalQuery(a, b);
 		});
 		return queries;
+	}
+
+	private void CommitFormalProbeWorkUnit(int pixelIndex, List<FormalProbeQuery> queries)
+	{
+		if (pixelIndex < 0 || queries == null)
+			return;
+		lock (_formalProbeQueryLock)
+		{
+			if (!_formalProbeCommittedPixels.Add(pixelIndex))
+				_formalProbeWorkUnitReplacementCount++;
+			_formalProbeWorkUnitCommitCount++;
+			if (queries.Count == 0)
+				_formalProbeQueriesByPixel.Remove(pixelIndex);
+			else
+				_formalProbeQueriesByPixel[pixelIndex] = queries.ToArray();
+		}
 	}
 
 	private static int CompareFormalQuery(in FormalProbeQuery a, in FormalProbeQuery b)
@@ -3660,6 +3698,10 @@ public partial class RayBeamRenderer : Node3D
 		turnSum = 0f;
 		turnMax = 0f;
 		bool hadNumericalFailure = false;
+		List<FormalProbeQuery> formalQueriesForWorkUnit =
+			_formalProbeQueryCaptureEnabled && formalProbePixelIndex >= 0
+				? new List<FormalProbeQuery>()
+				: null;
 
 		hitInfo = new Pass1HitInfo
 		{
@@ -4044,10 +4086,10 @@ public partial class RayBeamRenderer : Node3D
 					pass1Raycasts++;
 					quickRayParams.From = seg.A;
 					quickRayParams.To = seg.B;
-					if (_formalProbeQueryCaptureEnabled && formalProbePixelIndex >= 0)
+					if (formalQueriesForWorkUnit != null)
 					{
-						lock (_formalProbeQueryLock)
-							_formalProbeQueries.Add(new FormalProbeQuery(formalProbePixelIndex, stepsIntegrated, in seg, quickRayParams));
+						System.Threading.Interlocked.Increment(ref _formalProbeRawQueryAttemptCount);
+						formalQueriesForWorkUnit.Add(new FormalProbeQuery(formalProbePixelIndex, stepsIntegrated, in seg, quickRayParams));
 					}
 					if (!TryIntersectRayWithGuard(
 						space,
@@ -4128,6 +4170,7 @@ public partial class RayBeamRenderer : Node3D
 			turnSum = telemetryDerivativeState.TurnSum;
 			turnMax = telemetryDerivativeState.TurnMax;
 			hitInfo.HadNumericalFailure = hadNumericalFailure;
+			CommitFormalProbeWorkUnit(formalProbePixelIndex, formalQueriesForWorkUnit);
 			return written;
 		}
 

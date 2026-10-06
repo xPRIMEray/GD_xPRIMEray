@@ -22,6 +22,9 @@ using RendererCore.Validation;
 
 public partial class GrinFilmCamera : Node
 {
+	[Signal]
+	public delegate void ProbeProfileChangedEventHandler(string stableId, string displayName, int index);
+
 	// ===== Interaction Map =====
 	// Provides to RayBeamRenderer:
 	// - Debug overlay data via UpdateDebugOverlayFromFilm(...) call (points/offsets/counts/hits)
@@ -158,7 +161,10 @@ public partial class GrinFilmCamera : Node
 		public bool Pass2SoftGateEnableQuickRayMiss;
 		public bool Pass2SoftGateScoringEnabled;
 		public int TargetMsPerFrame;
+		public BroadphaseMode BroadphaseControlMode;
+		public BroadphasePolicyMode BroadphasePolicy;
 		public int SharedRbrStepsPerRay;
+		public float SharedRbrStepLength;
 		public float SharedRbrMinStepLength;
 		public float SharedRbrMaxStepLength;
 		public float SharedRbrStepAdaptGain;
@@ -1285,6 +1291,10 @@ public partial class GrinFilmCamera : Node
 	[Export] public bool RuntimeMacroHotkeysEnabled = true;
 	/// <summary>Selected runtime macro mode for hotkeys and optional startup apply.</summary>
 	[Export] public RuntimeMacroMode RuntimeMacroSelectedMode = RuntimeMacroMode.Tight08;
+
+	[ExportGroup("Probe Profile")]
+	/// <summary>Persistent human-selected acquisition strategy. Working acquisition history is never stored here.</summary>
+	[Export] public ProbeProfileId SelectedProbeProfile = ProbeProfileId.Cathedral;
 
 	[ExportGroup("Profiling")]
 	[ExportSubgroup("Runtime Stats")]
@@ -2438,6 +2448,12 @@ public partial class GrinFilmCamera : Node
 		public uint BoundaryEpoch;
 		public int StepsPerRay;
 		public float StepLength;
+		public ProbeProfileId ProbeProfile;
+		public string ProbeProfileStableId;
+		public string ProbeProfileDisplayName;
+		public string FormalPolicyId;
+		public string FormalPolicySha256;
+		public float FormalInitialRange;
 	}
 	private int _probeFrameGeneration = 0;
 	private bool _probeSnapshotComplete = false;
@@ -3140,6 +3156,23 @@ private bool _fixtureDebugHasExplicitBackgroundGroup = false;
 	private SmartScaleProbeConfig[] _smartScaleProbePlan = Array.Empty<SmartScaleProbeConfig>();
 	private TestRunDefaults _runtimeMacroBaselineDefaults;
 	private bool _runtimeMacroBaselineCaptured = false;
+	private TestRunDefaults _canonicalFormalExecutionDefaults;
+	private bool _canonicalFormalPolicyCaptured = false;
+	private float _canonicalFormalRangeSeed = 50f;
+	private float _canonicalFormalMaxDistance = 50f;
+	private bool _canonicalFormalAutoRangeDepth = true;
+	private float _canonicalFormalAutoRangeMin = 0.25f;
+	private float _canonicalFormalAutoRangeMax = 200f;
+	private float _canonicalFormalAutoRangeSmoothing = 0.15f;
+	private float _canonicalFormalAutoRangeSafety = 1.15f;
+	private int _canonicalFormalDepthHistoryFrames = 30;
+	private string _activeFormalPolicySha256 = string.Empty;
+	private string _sealedFormalPolicySha256 = string.Empty;
+	private string _sealedProbeProfileStableId = string.Empty;
+	private string _sealedProbeProfileDisplayName = string.Empty;
+	private string _sealedFormalPolicyId = string.Empty;
+	private float _activeFormalInitialRange = 0f;
+	private int _formalWorkingStateResetCount = 0;
 	private bool _runtimeMacroModeActive = false;
 	private bool _runtimeMacroAvailabilityWarned = false;
 	private bool _runtimeMacroHasMotionSample = false;
@@ -4402,6 +4435,8 @@ private sealed class OverlayRollingWindow
 		SyncAndApplyIfDirty("ready", force: ApplyPresetOnReady);
 		SetProcessUnhandledInput(true);
 		CaptureRuntimeMacroBaselineDefaults();
+		CaptureCanonicalFormalPolicy();
+		ApplySelectedProbeProfileLivePolicy(resetPass: false, emitSignal: false);
 		if (RuntimeMacroApplyOnReady)
 		{
 			TryApplyRuntimeMacroMode(RuntimeMacroSelectedMode, "ready_apply");
@@ -5080,6 +5115,13 @@ private sealed class OverlayRollingWindow
 			return;
 		}
 
+		if (keyEvent.Keycode == Key.P && !keyEvent.CtrlPressed && !keyEvent.AltPressed)
+		{
+			CycleProbeProfile();
+			GetViewport()?.SetInputAsHandled();
+			return;
+		}
+
 		if (!RuntimeMacroHotkeysEnabled)
 			return;
 
@@ -5121,6 +5163,48 @@ private sealed class OverlayRollingWindow
 	public ProbeViewMode CurrentProbeView => _probeViewMode;
 	public bool ProbeViewAvailable => _sealedProbeViewAvailable;
 	public int SealedProbeViewGeneration => _sealedProbeViewGeneration;
+	public int ProbeProfileIndex => (int)SelectedProbeProfile;
+	public int ProbeProfileCount => ProbeProfileCatalog.Count;
+	public string ProbeProfileStableId => ProbeProfileCatalog.Get(SelectedProbeProfile).StableId;
+	public string ProbeProfileDisplayName => ProbeProfileCatalog.Get(SelectedProbeProfile).DisplayName;
+	public string GetProbeProfileDisplayNameByIndex(int index) => ProbeProfileCatalog.Get(ProbeProfileCatalog.FromIndex(index)).DisplayName;
+	public string GetProbeProfileStableIdByIndex(int index) => ProbeProfileCatalog.Get(ProbeProfileCatalog.FromIndex(index)).StableId;
+	public string CathedralSealedProbeProfileStableId => _sealedProbeProfileStableId;
+	public string CathedralSealedProbeProfileDisplayName => _sealedProbeProfileDisplayName;
+	public string CathedralFormalPolicyId => _sealedFormalPolicyId;
+	public string CathedralFormalPolicySha256 => _sealedFormalPolicySha256;
+	public float CathedralFormalInitialRange => _cathedralSnapshotContext.IsValid
+		? _cathedralSnapshotContext.FormalInitialRange
+		: 0f;
+	public int FormalWorkingStateResetCount => _formalWorkingStateResetCount;
+
+	public void CycleProbeProfile()
+	{
+		SetProbeProfileByIndex((int)ProbeProfileCatalog.Next(SelectedProbeProfile));
+	}
+
+	public void SetProbeProfileByIndex(int index)
+	{
+		ProbeProfileId next = ProbeProfileCatalog.FromIndex(index);
+		if (next == SelectedProbeProfile)
+			return;
+		SelectedProbeProfile = next;
+		if (_observationAcquisition.Owner == ObservationAcquisitionOwner.Snapshot)
+		{
+			ProbeProfileDefinition pending = ProbeProfileCatalog.Get(SelectedProbeProfile);
+			UpdateProbeViewHud();
+			EmitSignal(SignalName.ProbeProfileChanged, pending.StableId, pending.DisplayName, (int)pending.Id);
+			if (ShouldLog(DiagnosticVerbosity.Summary, DiagnosticCategory.Lifecycle))
+				GD.Print($"[ProbeProfile] selected={pending.StableId} pendingUntilLive=1 activeFormalPolicy={_activeFormalPolicySha256}");
+			return;
+		}
+		ApplySelectedProbeProfileLivePolicy(resetPass: true, emitSignal: true);
+	}
+
+	public void ApplySelectedProbeProfileForLive()
+	{
+		ApplySelectedProbeProfileLivePolicy(resetPass: true, emitSignal: false);
+	}
 
 	public bool TryCapturePortableObservatoryBundle(
 		string outputDirectory,
@@ -5199,6 +5283,11 @@ private sealed class OverlayRollingWindow
 				["physics_backend"] = ProjectSettings.GetSetting("physics/3d/physics_engine").ToString(),
 				["renderer_backend"] = ProjectSettings.GetSetting("renderer/rendering_method").ToString(),
 				["observer_id"] = _sealedProbeViewContextKey.ObserverId.Label ?? "unknown",
+				["probe_profile_id"] = _sealedProbeProfileStableId,
+				["probe_profile_label"] = _sealedProbeProfileDisplayName,
+				["formal_policy_id"] = _sealedFormalPolicyId,
+				["formal_policy_sha256"] = _sealedFormalPolicySha256,
+				["formal_initial_range"] = _cathedralSnapshotContext.FormalInitialRange.ToString("R", CultureInfo.InvariantCulture),
 				["compute_envelope_schema"] = _computeResourcePolicy?.SchemaVersion ?? "invalid",
 				["compute_profile"] = ComputeResourceProfile,
 				["compute_effective_workers"] = ComputeActualPass1WorkerCount().ToString(CultureInfo.InvariantCulture),
@@ -5277,6 +5366,9 @@ private sealed class OverlayRollingWindow
 	private string CathedralFormalAuthorityToken => _cathedralFormalSpatialQuery?.AuthorityToken ?? string.Empty;
 	public string CathedralContactAuthorityToken => _sealedProbeViewAvailable ? CathedralFormalAuthorityToken : string.Empty;
 	public int CathedralProbeQueryCount => _rbr?.GetFormalProbeQueriesCanonical().Length ?? 0;
+	public int CathedralRawProbeQueryCount => _rbr?.RawFormalProbeQueryCount ?? 0;
+	public int CathedralFormalWorkUnitCommitCount => _rbr?.FormalProbeWorkUnitCommitCount ?? 0;
+	public int CathedralFormalWorkUnitReplacementCount => _rbr?.FormalProbeWorkUnitReplacementCount ?? 0;
 	public string CathedralProbeQueryDatasetSha256 => _rbr?.GetFormalProbeQueryDatasetSha256() ?? string.Empty;
 	public bool CathedralSpatialKernelDualValidationAvailable => _lastSpatialKernelDualValidation != null;
 	public string CathedralSpatialKernelGeometrySnapshotSha256 => _lastSpatialKernelDualValidation?.GeometrySnapshotSha256 ?? string.Empty;
@@ -5440,7 +5532,7 @@ private sealed class OverlayRollingWindow
 		_probeViewHudBackdrop = new Panel
 		{
 			Position = new Vector2(380f, 12f),
-			Size = new Vector2(390f, 208f),
+			Size = new Vector2(390f, 248f),
 			MouseFilter = Control.MouseFilterEnum.Ignore
 		};
 		_probeViewHudBackdrop.Theme = GD.Load<Theme>("res://UI/ObservatoryHudTheme.tres");
@@ -5448,7 +5540,7 @@ private sealed class OverlayRollingWindow
 		_probeViewHud = new Label
 		{
 			Position = new Vector2(394f, 24f),
-			Size = new Vector2(362f, 182f),
+			Size = new Vector2(362f, 222f),
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			Text = "Q probe"
@@ -5470,10 +5562,14 @@ private sealed class OverlayRollingWindow
 		string fieldStructureDescription = IsFieldStructureVisibleForHud()
 			? "\nouter / inner limits · density direction"
 			: string.Empty;
+		string sealedProfileStatus = _sealedProbeViewAvailable
+			? $"\nSealed Profile: {_sealedProbeProfileDisplayName}"
+			: string.Empty;
+		string profileStatus = $"P probe profile\nProbe Profile: {ProbeProfileDisplayName}{sealedProfileStatus}";
 
 		if (!_sealedProbeViewAvailable)
 		{
-			_probeViewHud.Text = $"Q probe\n{fieldStructureStatus}{fieldStructureDescription}\nProbe View unavailable\nComplete SNAPSHOT required";
+			_probeViewHud.Text = $"{profileStatus}\nQ probe\n{fieldStructureStatus}{fieldStructureDescription}\nProbe View unavailable\nComplete SNAPSHOT required";
 			return;
 		}
 
@@ -5484,7 +5580,7 @@ private sealed class OverlayRollingWindow
 			legend.Append(entry.Label);
 		}
 		_probeViewHud.Text =
-			$"Q probe\n{fieldStructureStatus}{fieldStructureDescription}\n" +
+			$"{profileStatus}\nQ probe\n{fieldStructureStatus}{fieldStructureDescription}\n" +
 			$"Probe View: {ProbeViewMapper.DisplayName(_probeViewMode)}\n" +
 			$"{ProbeViewMapper.Description(_probeViewMode)}\nLegend: {legend}";
 	}
@@ -6117,7 +6213,10 @@ private sealed class OverlayRollingWindow
 			Pass2SoftGateEnableQuickRayMiss = Pass2SoftGateEnableQuickRayMiss,
 			Pass2SoftGateScoringEnabled = Pass2SoftGateScoringEnabled,
 			TargetMsPerFrame = TargetMsPerFrame,
+			BroadphaseControlMode = BroadphaseControlMode,
+			BroadphasePolicy = BroadphasePolicy,
 			SharedRbrStepsPerRay = _rbr != null ? _rbr.StepsPerRay : 0,
+			SharedRbrStepLength = _rbr != null ? _rbr.StepLength : 0f,
 			SharedRbrMinStepLength = _rbr != null ? _rbr.MinStepLength : 0f,
 			SharedRbrMaxStepLength = _rbr != null ? _rbr.MaxStepLength : 0f,
 			SharedRbrStepAdaptGain = _rbr != null ? _rbr.StepAdaptGain : 0f
@@ -6128,6 +6227,84 @@ private sealed class OverlayRollingWindow
 	{
 		_runtimeMacroBaselineDefaults = CaptureTestRunDefaults();
 		_runtimeMacroBaselineCaptured = true;
+	}
+
+	private void CaptureCanonicalFormalPolicy()
+	{
+		_canonicalFormalExecutionDefaults = CaptureTestRunDefaults();
+		_canonicalFormalRangeSeed = MaxDistance;
+		_canonicalFormalMaxDistance = MaxDistance;
+		_canonicalFormalAutoRangeDepth = AutoRangeDepth;
+		_canonicalFormalAutoRangeMin = AutoRangeMin;
+		_canonicalFormalAutoRangeMax = AutoRangeMax;
+		_canonicalFormalAutoRangeSmoothing = AutoRangeSmoothing;
+		_canonicalFormalAutoRangeSafety = AutoRangeSafety;
+		_canonicalFormalDepthHistoryFrames = Math.Max(4, DepthHistoryFrames);
+		_canonicalFormalPolicyCaptured = true;
+	}
+
+	private void ApplySelectedProbeProfileLivePolicy(bool resetPass, bool emitSignal)
+	{
+		if (!_runtimeMacroBaselineCaptured)
+			CaptureRuntimeMacroBaselineDefaults();
+
+		bool computeWasEnabled = UpdateEveryFrame;
+		RestoreTestRunDefaults(in _runtimeMacroBaselineDefaults);
+		ProbeProfileDefinition profile = ProbeProfileCatalog.Get(SelectedProbeProfile);
+		if (SelectedProbeProfile == ProbeProfileId.Motion)
+		{
+			TestRunConfig motion = BuildRuntimeMacroModeConfig(RuntimeMacroMode.CheapMotion);
+			ApplyTestRunConfig(in motion);
+			RuntimeMacroSelectedMode = RuntimeMacroMode.CheapMotion;
+		}
+		else
+		{
+			RuntimeMacroSelectedMode = RuntimeMacroMode.Accurate;
+		}
+		UpdateEveryFrame = computeWasEnabled;
+		_runtimeMacroModeActive = true;
+		_runtimeMacroLastAppliedSummary = BuildRuntimeMacroAppliedSummary(RuntimeMacroSelectedMode);
+		SanitizeAndClampSettings();
+		UpdateBroadphaseEffectiveState();
+		if (resetPass && _observationAcquisition.Owner != ObservationAcquisitionOwner.Snapshot)
+			ResetRowCursor($"probe_profile_{profile.StableId}");
+		UpdateProbeViewHud();
+		if (emitSignal)
+			EmitSignal(SignalName.ProbeProfileChanged, profile.StableId, profile.DisplayName, (int)profile.Id);
+		if (ShouldLog(DiagnosticVerbosity.Summary, DiagnosticCategory.Lifecycle))
+			GD.Print($"[ProbeProfile] selected={profile.StableId} label={profile.DisplayName} livePolicy={profile.LiveExecutionPolicyId} formalPolicy={profile.FormalPolicyId}");
+	}
+
+	private void ResetFormalAcquisitionWorkingState()
+	{
+		if (!_canonicalFormalPolicyCaptured)
+			CaptureCanonicalFormalPolicy();
+
+		RestoreTestRunDefaults(in _canonicalFormalExecutionDefaults);
+		MaxDistance = _canonicalFormalMaxDistance;
+		AutoRangeDepth = _canonicalFormalAutoRangeDepth;
+		AutoRangeMin = _canonicalFormalAutoRangeMin;
+		AutoRangeMax = _canonicalFormalAutoRangeMax;
+		AutoRangeSmoothing = _canonicalFormalAutoRangeSmoothing;
+		AutoRangeSafety = _canonicalFormalAutoRangeSafety;
+		DepthHistoryFrames = _canonicalFormalDepthHistoryFrames;
+		EnsureDepthHistory(_canonicalFormalDepthHistoryFrames);
+		Array.Clear(_depthHistory, 0, _depthHistory.Length);
+		_depthHistWrite = 0;
+		_rangeFar = Mathf.Clamp(_canonicalFormalRangeSeed, AutoRangeMin, AutoRangeMax);
+		_activeFormalInitialRange = _rangeFar;
+		_fieldGrid = null;
+		ResetBandHitHistory();
+		_hasLastCamTransform = false;
+		_hasLastRangeFar = false;
+		_adaptiveRowsPerFrame = 0;
+		ResetTelemetryHeatmapsForRunStart();
+		Array.Clear(_pass2PrevHadHit, 0, _pass2PrevHadHit.Length);
+		Array.Clear(_pass2HadHitLostThisFrame, 0, _pass2HadHitLostThisFrame.Length);
+		ResetPass2OverlapCache();
+		ResetPass2QuickRayCache();
+		_wormholePortalSectorStates.Clear();
+		_formalWorkingStateResetCount++;
 	}
 
 	private bool RuntimeMacroSwitchingAllowed()
@@ -6327,7 +6504,7 @@ private sealed class OverlayRollingWindow
 	public void ApplyTestRunConfig(in TestRunConfig run)
 	{
 		ResolveRayBeamRendererReference();
-		UpdateEveryFrame = run.UpdateEveryFrame ?? true;
+		if (run.UpdateEveryFrame.HasValue) UpdateEveryFrame = run.UpdateEveryFrame.Value;
 		if (run.UseGeometryTLASPruning.HasValue) UseGeometryTLASPruning = run.UseGeometryTLASPruning.Value;
 		if (run.Pass2GeomEnvelopeRadiusScale.HasValue) Pass2GeomEnvelopeRadiusScale = Mathf.Max(0.1f, run.Pass2GeomEnvelopeRadiusScale.Value);
 		if (run.Pass2GeomEnvelopeAabbExpand.HasValue) Pass2GeomEnvelopeAabbExpand = Mathf.Max(0.0f, run.Pass2GeomEnvelopeAabbExpand.Value);
@@ -6397,9 +6574,12 @@ private sealed class OverlayRollingWindow
 		Pass2SoftGateEnableQuickRayMiss = defaults.Pass2SoftGateEnableQuickRayMiss;
 		Pass2SoftGateScoringEnabled = defaults.Pass2SoftGateScoringEnabled;
 		TargetMsPerFrame = defaults.TargetMsPerFrame;
+		BroadphaseControlMode = defaults.BroadphaseControlMode;
+		BroadphasePolicy = defaults.BroadphasePolicy;
 		if (_rbr != null)
 		{
 			_rbr.StepsPerRay = Math.Max(1, defaults.SharedRbrStepsPerRay);
+			_rbr.StepLength = Mathf.Max(0.0001f, defaults.SharedRbrStepLength);
 			_rbr.MinStepLength = Mathf.Max(0.0001f, defaults.SharedRbrMinStepLength);
 			_rbr.MaxStepLength = Mathf.Max(0.0001f, defaults.SharedRbrMaxStepLength);
 			_rbr.StepAdaptGain = Mathf.Max(0.0f, defaults.SharedRbrStepAdaptGain);
@@ -10271,6 +10451,10 @@ private sealed class OverlayRollingWindow
 		_sealedProbeViewHeight = 0;
 		_sealedProbeViewGeneration = 0;
 		_sealedProbeViewContextKey = default;
+		_sealedProbeProfileStableId = string.Empty;
+		_sealedProbeProfileDisplayName = string.Empty;
+		_sealedFormalPolicyId = string.Empty;
+		_sealedFormalPolicySha256 = string.Empty;
 		ResetTransportContactHistoryBuffers();
 		if (_probeOutcomes.Length > 0)
 		{
@@ -10361,6 +10545,95 @@ private sealed class OverlayRollingWindow
 		}
 	}
 
+	private string ComputeFormalPolicySha256(in EffectiveConfig cfg)
+	{
+		if (!_canonicalFormalPolicyCaptured)
+			CaptureCanonicalFormalPolicy();
+		ProbeProfileDefinition profile = ProbeProfileCatalog.Get(SelectedProbeProfile);
+		using MemoryStream stream = new();
+		using BinaryWriter writer = new(stream, Encoding.UTF8, leaveOpen: true);
+		void WriteFloat(float value) => writer.Write(BitConverter.SingleToUInt32Bits(value));
+
+		writer.Write(2); // formal-policy canonical schema
+		writer.Write(profile.FormalPolicyId);
+		writer.Write(ProbeProfileCatalog.FormalQueryCanonicalizationPolicy);
+		writer.Write(ProbeProfileCatalog.FormalAdaptiveWorkingStatePolicy);
+		WriteFloat(_canonicalFormalRangeSeed);
+		writer.Write(cfg.AutoRangeDepth);
+		WriteFloat(cfg.AutoRangeMin);
+		WriteFloat(cfg.AutoRangeMax);
+		WriteFloat(cfg.AutoRangeSmoothing);
+		WriteFloat(cfg.AutoRangeSafety);
+		writer.Write(cfg.DepthHistoryFrames);
+		writer.Write(cfg.Film.BaseWidth);
+		writer.Write(cfg.Film.BaseHeight);
+		WriteFloat(cfg.Film.ResolutionScale);
+		writer.Write(cfg.Film.PixelStride);
+		WriteFloat(cfg.Film.MaxDistance);
+		writer.Write(_canonicalFormalExecutionDefaults.SharedRbrStepsPerRay);
+		writer.Write(cfg.RayMarch.CollisionEveryNSteps);
+		WriteFloat(_canonicalFormalExecutionDefaults.SharedRbrStepLength);
+		WriteFloat(_canonicalFormalExecutionDefaults.SharedRbrMinStepLength);
+		WriteFloat(_canonicalFormalExecutionDefaults.SharedRbrMaxStepLength);
+		WriteFloat(_canonicalFormalExecutionDefaults.SharedRbrStepAdaptGain);
+		WriteFloat(_rbr.LowCurvatureStepBoost);
+		WriteFloat(_rbr.LowCurvaturePerpAccel);
+		WriteFloat(_rbr.MetricAdaptiveTurnThresholdDegrees);
+		WriteFloat(_rbr.MetricAdaptiveErrorTolerance);
+		WriteFloat(_rbr.MetricAdaptiveCurvatureGain);
+		writer.Write(_rbr.MetricAdaptiveMaxSubdivisions);
+		WriteFloat(_rbr.RadiusSafety);
+		WriteFloat(_rbr.RadiusMin);
+		writer.Write(cfg.RayMarch.UseIntegratedField);
+		WriteFloat(cfg.RayMarch.BendScale);
+		WriteFloat(cfg.RayMarch.FieldStrength);
+		WriteFloat(cfg.RayMarch.FieldCenter.X);
+		WriteFloat(cfg.RayMarch.FieldCenter.Y);
+		WriteFloat(cfg.RayMarch.FieldCenter.Z);
+		writer.Write(cfg.RayMarch.FieldCenterIsCamera);
+		writer.Write(cfg.RayMarch.CollisionMask);
+		WriteFloat(cfg.RayMarch.CollisionRadius);
+		writer.Write(cfg.RayMarch.UseSphereSweepCollision);
+		writer.Write(cfg.RayMarch.UseInsightPlaneFilter);
+		WriteFloat(cfg.RayMarch.CollisionRaySubdivideThreshold);
+		writer.Write(cfg.RayMarch.MaxCollisionSubsteps);
+		writer.Write(cfg.RayMarch.RequireHitToRender);
+		writer.Write(cfg.RayMarch.StopOnHit);
+		writer.Write(cfg.RayMarch.TerminateTrailOnHit);
+		writer.Write(cfg.RayMarch.UseScreenSpaceCollisionCadence);
+		WriteFloat(cfg.RayMarch.CollisionMaxErrorPixels);
+		WriteFloat(cfg.RayMarch.MinDepthForError);
+		writer.Write(cfg.RayMarch.MinCollisionEveryNSteps);
+		writer.Write(cfg.Pass1DoHitTest);
+		writer.Write(cfg.Pass1ProbeEveryNSegments);
+		// Formal intentionally overrides the LIVE cadence with this canonical value.
+		WriteFloat(0.25f);
+		writer.Write(cfg.UseFieldGrid);
+		WriteFloat(cfg.FieldGridCellSize);
+		writer.Write(cfg.FieldGridRebuildEveryNFrames);
+		WriteFloat(cfg.FieldGridBoundsPadding);
+		writer.Write(cfg.UseCameraPropsBetaGamma);
+		writer.Write(cfg.UseAdaptiveSubsteps);
+		writer.Write(cfg.UseBandHitSkip);
+		writer.Write(_canonicalFormalExecutionDefaults.UseGeometryTLASPruning);
+		writer.Write(_canonicalFormalExecutionDefaults.UsePass2CollisionStride);
+		writer.Write(_canonicalFormalExecutionDefaults.Pass2CollisionStrideNear);
+		writer.Write(_canonicalFormalExecutionDefaults.Pass2CollisionStrideFar);
+		WriteFloat(_canonicalFormalExecutionDefaults.Pass2CollisionStrideFarStartT);
+		WriteFloat(_canonicalFormalExecutionDefaults.MinSegLenForStrideSkip);
+		WriteFloat(_canonicalFormalExecutionDefaults.Pass2GeomEnvelopeRadiusScale);
+		WriteFloat(_canonicalFormalExecutionDefaults.Pass2GeomEnvelopeAabbExpand);
+		writer.Write((int)_canonicalFormalExecutionDefaults.BroadphaseControlMode);
+		writer.Write((int)_canonicalFormalExecutionDefaults.BroadphasePolicy);
+		writer.Write(cfg.Broadphase.UseQuickRay);
+		writer.Write(cfg.Broadphase.UseOverlap);
+		WriteFloat(cfg.Broadphase.Margin);
+		writer.Write(cfg.Broadphase.MaxResults);
+		writer.Write(CathedralProbeRefinementPolicyVersion);
+		writer.Flush();
+		return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(stream.ToArray())).ToLowerInvariant();
+	}
+
 	private sealed class SelectedProbeTransportRequest
 	{
 		public int[] PixelIndices = Array.Empty<int>();
@@ -10407,6 +10680,8 @@ private sealed class OverlayRollingWindow
 			return false;
 		}
 
+		ResolveEffectiveConfig(out EffectiveConfig formalIdentityConfig);
+		string formalPolicySha256 = ComputeFormalPolicySha256(in formalIdentityConfig);
 		contextKey = new ProbeContextKey(
 			ObserverId.A,
 			HashVector3Quantized(_cam.GlobalTransform.Origin),
@@ -10420,7 +10695,8 @@ private sealed class OverlayRollingWindow
 			HashNodeGroupForProbeContext("field_sources"),
 			HashNodeGroupForProbeContext("raytrace_geometry", "fixture_geometry"),
 			HashNodeGroupForProbeContext("boundary_layer_volumes"),
-			refinementPolicyVersion);
+			refinementPolicyVersion,
+			formalPolicySha256);
 		return true;
 	}
 
@@ -11044,7 +11320,8 @@ private sealed class OverlayRollingWindow
 				$"[SpatialKernel][DualValidation] status={level} witnessAuthority={GodotAdapter.SpatialKernelDualValidator.DiagnosticAuthorityToken} " +
 				$"formalAuthorityCandidate={XPrimeRay.Spatial.SpatialBvhQuery.AuthorityTokenValue} geometrySha={result.GeometrySnapshotSha256} " +
 				$"spatialContextSha={result.SpatialAuthorityContextSha256} " +
-				$"primitives={result.PrimitiveCount} queries={result.QueryCount} godotSha={result.GodotContactCountSha256} " +
+				$"primitives={result.PrimitiveCount} rawQueries={_rbr?.RawFormalProbeQueryCount ?? 0} queries={result.QueryCount} " +
+				$"workUnitCommits={_rbr?.FormalProbeWorkUnitCommitCount ?? 0} workUnitReplacements={_rbr?.FormalProbeWorkUnitReplacementCount ?? 0} godotSha={result.GodotContactCountSha256} " +
 				$"linearSha={result.LinearContactCountSha256} countMismatchPixels={result.ContactCountMismatchPixelCount} " +
 				$"semanticMismatchPixels={result.SurfaceSemanticMismatchPixelCount} totalMismatchPixels={result.TotalAuthorityMismatchPixelCount} " +
 				$"mismatchQueries={result.MismatchQueryCount} first={result.FirstMismatch} " +
@@ -11081,6 +11358,7 @@ private sealed class OverlayRollingWindow
 	private bool InitializeCathedralProbeSnapshotLifecycle(out string reason)
 	{
 		reason = string.Empty;
+		ResetFormalAcquisitionWorkingState();
 		ResolveEffectiveConfig(out EffectiveConfig cfg);
 		EnsureFilmImageSize(in cfg);
 		int totalPixels = _filmWidth * _filmHeight;
@@ -11095,6 +11373,8 @@ private sealed class OverlayRollingWindow
 			reason = "context_construction_failed";
 			return false;
 		}
+		_activeFormalPolicySha256 = contextKey.FormalPolicySha256;
+		ProbeProfileDefinition selectedProfile = ProbeProfileCatalog.Get(SelectedProbeProfile);
 		RayBeamRenderer.FieldSourceSnap[] frozenFieldSources = GetFieldSourceSnaps(
 			in cfg, _frameIndex, out bool frozenHasSources, out _).ToArray();
 		_cathedralSnapshotContext = new CathedralSnapshotAcquisitionContext
@@ -11112,7 +11392,13 @@ private sealed class OverlayRollingWindow
 			GeometryEpoch = HashNodeGroupForProbeContext("raytrace_geometry", "fixture_geometry"),
 			BoundaryEpoch = HashNodeGroupForProbeContext("boundary_layer_volumes"),
 			StepsPerRay = cfg.RayMarch.StepsPerRay,
-			StepLength = cfg.RayMarch.StepLength
+			StepLength = cfg.RayMarch.StepLength,
+			ProbeProfile = SelectedProbeProfile,
+			ProbeProfileStableId = selectedProfile.StableId,
+			ProbeProfileDisplayName = selectedProfile.DisplayName,
+			FormalPolicyId = selectedProfile.FormalPolicyId,
+			FormalPolicySha256 = _activeFormalPolicySha256,
+			FormalInitialRange = _activeFormalInitialRange
 		};
 
 		_probeSnapshotLifecycleContextKey = contextKey;
@@ -11165,6 +11451,12 @@ private sealed class OverlayRollingWindow
 		}
 		_rbr?.BeginFormalProbeQueryCapture();
 		UpdateEveryFrame = false;
+		if (ShouldLog(DiagnosticVerbosity.Summary, DiagnosticCategory.Lifecycle))
+		{
+			GD.Print(
+				$"[ProbeProfile][FormalStart] profile={selectedProfile.StableId} formalPolicy={selectedProfile.FormalPolicyId} " +
+				$"formalPolicySha256={_activeFormalPolicySha256} initialRange={_activeFormalInitialRange:R} workingReset={_formalWorkingStateResetCount}");
+		}
 		_probeSnapshotLifecycleInitialized = true;
 		_probeSnapshotLifecycleState = ProbeSnapshotLifecycleState.Capturing;
 		_probeSnapshotLifecycleReason = ProbeSnapshotLifecycleReason.None;
@@ -12847,6 +13139,10 @@ private sealed class OverlayRollingWindow
 		_sealedProbeViewHeight = height;
 		_sealedProbeViewContextKey = contextKey;
 		_sealedProbeViewGeneration = generation;
+		_sealedProbeProfileStableId = _cathedralSnapshotContext.ProbeProfileStableId ?? string.Empty;
+		_sealedProbeProfileDisplayName = _cathedralSnapshotContext.ProbeProfileDisplayName ?? string.Empty;
+		_sealedFormalPolicyId = _cathedralSnapshotContext.FormalPolicyId ?? string.Empty;
+		_sealedFormalPolicySha256 = _cathedralSnapshotContext.FormalPolicySha256 ?? string.Empty;
 		_sealedProbeViewAvailable = true;
 		UpdateProbeViewHud();
 		GD.Print($"[ProbeView] sealed generation={generation} pixels={totalPixels} context={contextKey.GetHashCode():x8}");
@@ -17439,7 +17735,9 @@ private sealed class OverlayRollingWindow
 						_rowCursor = filmHLocal;
 				}
 				if (snapshotAcquisition && bandEnd >= filmHLocal && nextRow == 0)
+				{
 					FinalizeCathedralProbeSnapshotSummary(_filmWidth, _filmHeight);
+				}
 				ResetNoHitStall();
 				if (_pendingBandHasPass1 && !preservePendingPass2)
 				{
@@ -24723,7 +25021,12 @@ private sealed class OverlayRollingWindow
 			}
 
 
-			if (cfg.AutoRangeDepth && frameMaxHit > 0.0001f)
+			// Range/depth history is band-owned scientific working state. A
+			// cooperatively abandoned pass-2 band is retried from the same pass-1
+			// boundary, so only a completely committed band may advance it.
+			bool bandEvidenceCommitted = pass2CompletedThisStep &&
+				(pass1CompletedThisStep || pass1SkippedThisStep);
+			if (cfg.AutoRangeDepth && bandEvidenceCommitted && frameMaxHit > 0.0001f)
 			{
 				// write one sample per RenderStep call (band-based)
 				_depthHistory[_depthHistWrite] = frameMaxHit;
