@@ -7,6 +7,16 @@ extends SceneTree
 const SCENE_PATH := "res://ObservatoryWorkbench.tscn"
 const LIVE_FRAMES := 240
 const FORMAL_TIMEOUT_FRAMES := 1200
+const G5_ACTIVE_SCHEDULE_TIMEOUT_FRAMES := 1200
+const SCHEDULE_PROBE_SCRIPT := preload("res://Tests/MeanderQualification/LiveImportanceScheduleProbe.cs")
+const LOCKED_POLICY_SHA := "317abb82b4d3df9b42476e54f2f9cfab839eb1d161b80a2db795b7e7ce4596da"
+const LOCKED_QUERY_SHA := "954b29ad2cac80cf1dedbb83cb693c9a0d5960f70c2971209cb2c50b4ef116d7"
+const LOCKED_CONTACT_SHA := "a23b3e1b15205fbfe4edbd86a0ab0bb621fa5d65aaeb3613becfcb0b4ec8c73a"
+const LOCKED_OUTCOME_SHA := "2a7a3b5f6cb14cc09aaabd1d8ce102d8cf9fddc2c36e1d3d675b9542cc51cfad"
+const LOCKED_EFFORT_SHA := "4c4fd8b791a27d233cbf18e576fd69d1da2c8ac58a5b3f86e2eb73c772d7ad86"
+const LOCKED_GEOMETRY_SHA := "7f9d193006179d0d359a575ac52dec6822857efc6a78df8621c40f1172c5c32b"
+const LOCKED_SPATIAL_SHA := "249ae1121f465dd05a562cbd2c9c82d0e7e4b4c5cfe7b69a845471d4eaaca894"
+const LOCKED_BVH_SHA := "e41f33da677db9ff03546aff5f85b8b6d5e43ee390eaf94cea665b7da5a6ba7f"
 
 var scenario := "A"
 var profile_index := 0
@@ -18,6 +28,9 @@ var film_controller: Node
 var player: CharacterBody3D
 var workbench_profile_option: OptionButton
 var acquisitions: Array[Dictionary] = []
+var schedule_probe: RefCounted
+var guarded_live_schedule: Dictionary = {}
+var guarded_live_band_height := 0
 
 
 func _initialize() -> void:
@@ -30,6 +43,8 @@ func _initialize() -> void:
 	film_controller = chamber.get_node("FilmController")
 	player = chamber.get_node("TransportChamberPlayer")
 	workbench_profile_option = scene_root.get_node("UILayer/UIRoot/SideDock/Tabs/Observatory/Margin/Root/InstrumentControls/ProbeProfileOption")
+	schedule_probe = SCHEDULE_PROBE_SCRIPT.new()
+	_assert(schedule_probe != null, "LIVE importance schedule probe available")
 	player.set_physics_process(false)
 	await _settle(5)
 
@@ -61,6 +76,14 @@ func _initialize() -> void:
 		"E":
 			await _enable_presentation_pair()
 			await _run_formal("final")
+		"G5":
+			await _prepare_active_g5_live_schedule_then_off()
+			await _run_formal("final", true)
+			_assert_locked_canonical(acquisitions[-1])
+		"G5C":
+			await _prepare_completed_g5_live_schedule_then_off()
+			await _run_formal("final", true)
+			_assert_locked_canonical(acquisitions[-1])
 		_:
 			_fail("unknown scenario " + scenario)
 	if acquisitions.size() > 1:
@@ -124,6 +147,92 @@ func _run_live_then_off() -> void:
 	_assert(str(film_controller.call("GetModeName")) == "OFF", "LIVE returned OFF")
 
 
+func _capture_live_schedule() -> Dictionary:
+	return schedule_probe.call("Capture", film) as Dictionary
+
+
+func _same_live_schedule_position(expected: Dictionary, actual: Dictionary) -> bool:
+	return int(actual.get("context_generation", -1)) == int(expected.get("context_generation", -2)) \
+		and int(actual.get("schedule_id", -1)) == int(expected.get("schedule_id", -2)) \
+		and int(actual.get("executed_count", -1)) == int(expected.get("executed_count", -2)) \
+		and int(actual.get("completed_count", -1)) == int(expected.get("completed_count", -2)) \
+		and int(actual.get("rotation_before", -1)) == int(expected.get("rotation_before", -2)) \
+		and int(actual.get("rotation_after", -1)) == int(expected.get("rotation_after", -2)) \
+		and bool(actual.get("schedule_active", true)) == bool(expected.get("schedule_active", false)) \
+		and int(actual.get("schedule_total_bands", -1)) == int(expected.get("schedule_total_bands", -2)) \
+		and int(actual.get("schedule_cursor", -1)) == int(expected.get("schedule_cursor", -2))
+
+
+func _prepare_active_g5_live_schedule_then_off() -> void:
+	film.set("UseImportanceOrdering", true)
+	film_controller.call("set_mode", 2)
+	await _settle(3)
+	_assert(str(film_controller.call("GetModeName")) == "LIVE", "G5 isolation entered LIVE")
+	var active: Dictionary = {}
+	for _index in G5_ACTIVE_SCHEDULE_TIMEOUT_FRAMES:
+		await process_frame
+		var candidate := _capture_live_schedule()
+		if str(candidate.get("state", "")) == "Prepared" \
+				and int(candidate.get("frontier_eligible_count", 0)) > 0 \
+				and int(candidate.get("prioritized_garden_count", 0)) > 0 \
+				and int(candidate.get("executed_count", 0)) > 0 \
+				and int(candidate.get("executed_count", 0)) < int(candidate.get("prepared_count", 0)):
+			active = candidate
+			break
+	_assert(not active.is_empty(), "G5 LIVE reached an active genuine-frontier schedule")
+	guarded_live_schedule = active.duplicate(true)
+	guarded_live_band_height = int(active.get("resolved_band_height", 0))
+	film_controller.call("set_mode", 0)
+	await _settle(3)
+	_assert(str(film_controller.call("GetModeName")) == "OFF", "active G5 LIVE schedule transitioned OFF")
+	var after_off := _capture_live_schedule()
+	_assert(str(after_off.get("state", "")) == "Prepared", "OFF preserves active LIVE schedule for isolation test")
+	_assert(_same_live_schedule_position(guarded_live_schedule, after_off), "OFF does not consume LIVE schedule")
+	print("G5_FORMAL_ISOLATION ACTIVE context=%d pass=%d schedule=%d executed=%d/%d rotation=%d->%d band_height=%d frontier=%d gardens=%d" % [
+		int(active["context_generation"]), int(active["live_pass_id"]), int(active["schedule_id"]),
+		int(active["executed_count"]), int(active["prepared_count"]), int(active["rotation_before"]),
+		int(active["rotation_after"]), guarded_live_band_height, int(active["frontier_eligible_count"]),
+		int(active["prioritized_garden_count"])])
+
+
+func _prepare_completed_g5_live_schedule_then_off() -> void:
+	film.set("UseImportanceOrdering", true)
+	film_controller.call("set_mode", 2)
+	await _settle(3)
+	_assert(str(film_controller.call("GetModeName")) == "LIVE", "completed G5 isolation entered LIVE")
+	var completed: Dictionary = {}
+	for _index in G5_ACTIVE_SCHEDULE_TIMEOUT_FRAMES:
+		await process_frame
+		var candidate := _capture_live_schedule()
+		if str(candidate.get("state", "")) == "Completed" \
+				and not bool(candidate.get("schedule_active", true)) \
+				and int(candidate.get("schedule_total_bands", 0)) > 0 \
+				and int(candidate.get("schedule_cursor", -1)) == int(candidate.get("schedule_total_bands", -2)) \
+				and int(candidate.get("frontier_eligible_count", 0)) > 0 \
+				and int(candidate.get("prioritized_garden_count", 0)) > 0 \
+				and int(candidate.get("executed_count", 0)) == int(candidate.get("prepared_count", -1)) \
+				and int(candidate.get("completed_count", 0)) == int(candidate.get("prepared_count", -1)):
+			completed = candidate
+			break
+	_assert(not completed.is_empty(), "G5 LIVE reached a genuinely completed frontier schedule")
+	guarded_live_schedule = completed.duplicate(true)
+	guarded_live_band_height = int(completed.get("resolved_band_height", 0))
+	film_controller.call("set_mode", 0)
+	await _settle(3)
+	_assert(str(film_controller.call("GetModeName")) == "OFF", "completed G5 LIVE schedule transitioned OFF")
+	var after_off := _capture_live_schedule()
+	_assert(str(after_off.get("state", "")) == "Completed", "OFF preserves completed LIVE schedule for isolation test")
+	_assert(not bool(after_off.get("schedule_active", true)), "completed LIVE schedule remains inactive before Formal")
+	_assert(int(after_off.get("schedule_total_bands", 0)) > 0, "completed LIVE schedule retains terminal band count")
+	_assert(_same_live_schedule_position(guarded_live_schedule, after_off), "OFF does not alter completed LIVE schedule")
+	print("G5_FORMAL_ISOLATION COMPLETED_PRECONDITION context=%d pass=%d schedule=%d active=%s total=%d cursor=%d executed=%d completed=%d rotation=%d->%d band_height=%d frontier=%d gardens=%d" % [
+		int(completed["context_generation"]), int(completed["live_pass_id"]), int(completed["schedule_id"]),
+		str(completed["schedule_active"]), int(completed["schedule_total_bands"]), int(completed["schedule_cursor"]),
+		int(completed["executed_count"]), int(completed["completed_count"]), int(completed["rotation_before"]),
+		int(completed["rotation_after"]), guarded_live_band_height, int(completed["frontier_eligible_count"]),
+		int(completed["prioritized_garden_count"])])
+
+
 func _enable_presentation_pair() -> void:
 	_send_key(KEY_F)
 	_send_key(KEY_O)
@@ -140,12 +249,19 @@ func _enable_presentation_pair() -> void:
 	_assert(found_visible_field, "F overlay remains camera-visible with O")
 
 
-func _run_formal(tag: String) -> void:
+func _run_formal(tag: String, guard_live_schedule := false) -> void:
 	film_controller.call("set_mode", 1)
 	await _settle(2)
 	_assert(str(film_controller.call("GetModeName")) == "SNAPSHOT", "Formal SNAPSHOT entered")
+	if guard_live_schedule:
+		var during_start := _capture_live_schedule()
+		_assert(_same_live_schedule_position(guarded_live_schedule, during_start), "Formal start does not advance LIVE schedule")
+		_assert(int(film.get("BandHeightRowsResolved")) == int(film.get("RowsPerFrame")), "Formal uses canonical row-band height")
+		_assert(int(film.get("BandHeightRowsResolved")) != guarded_live_band_height, "Formal does not inherit LIVE schedule band height")
 	for _index in FORMAL_TIMEOUT_FRAMES:
 		await process_frame
+		if guard_live_schedule:
+			_assert(_same_live_schedule_position(guarded_live_schedule, _capture_live_schedule()), "Formal does not mutate LIVE schedule")
 		if bool(film.get("ProbeViewAvailable")):
 			break
 	_assert(bool(film.get("ProbeViewAvailable")), "Formal SNAPSHOT completed")
@@ -171,6 +287,30 @@ func _run_formal(tag: String) -> void:
 	manifest_file = null
 	_assert(typeof(manifest) == TYPE_DICTIONARY, "bundle manifest parses")
 	acquisitions.append(_extract_acquisition(tag, manifest))
+	if guard_live_schedule:
+		var after_formal := _capture_live_schedule()
+		_assert(_same_live_schedule_position(guarded_live_schedule, after_formal), "Formal completion preserves LIVE cursor and rotation")
+		print("G5_FORMAL_ISOLATION PASS schedule=%d executed=%d rotation=%d->%d formal_band_height=%d" % [
+			int(after_formal["schedule_id"]), int(after_formal["executed_count"]),
+			int(after_formal["rotation_before"]), int(after_formal["rotation_after"]),
+			int(film.get("BandHeightRowsResolved"))])
+
+
+func _assert_locked_canonical(acquisition: Dictionary) -> void:
+	_assert(str(acquisition["formal_policy_sha256"]) == LOCKED_POLICY_SHA, "locked Formal policy SHA")
+	_assert(str(acquisition["query_dataset_sha256"]) == LOCKED_QUERY_SHA, "locked Query SHA")
+	_assert(str(acquisition["contact_count_sha256"]) == LOCKED_CONTACT_SHA, "locked Contact SHA")
+	_assert(str(acquisition["outcome_sha256"]) == LOCKED_OUTCOME_SHA, "locked Outcome SHA")
+	_assert(str(acquisition["final_steps_sha256"]) == LOCKED_EFFORT_SHA, "locked Effort SHA")
+	_assert(str(acquisition["geometry_sha256"]) == LOCKED_GEOMETRY_SHA, "locked Geometry SHA")
+	_assert(str(acquisition["spatial_context_sha256"]) == LOCKED_SPATIAL_SHA, "locked Spatial context SHA")
+	_assert(str(acquisition["bvh_context_sha256"]) == LOCKED_BVH_SHA, "locked BVH context SHA")
+	_assert(int(acquisition["processed_pixels"]) == 14400, "locked classified work units")
+	_assert(int(acquisition["canonical_query_count"]) == 521819, "locked committed query count")
+	_assert(int(acquisition["work_unit_commit_count"]) == 14400, "locked Formal work-unit commits")
+	_assert(int(acquisition["work_unit_replacement_count"]) == 0, "no Formal work-unit replacements")
+	_assert(int(acquisition["bvh_mismatch_queries"]) == 0, "zero BVH query mismatches")
+	_assert(int(acquisition["bvh_mismatch_pixels"]) == 0, "zero BVH pixel mismatches")
 
 
 func _extract_acquisition(tag: String, manifest: Dictionary) -> Dictionary:

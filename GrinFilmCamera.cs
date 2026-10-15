@@ -2300,8 +2300,9 @@ public partial class GrinFilmCamera : Node
 		Unresolved = 7
 	}
 
-	// LIVE-only shadow state. These planes are observational and are never read
-	// by transport, scheduling, film presentation, or formal acquisition.
+	// LIVE-only shadow state. These planes never alter transport evidence, film
+	// presentation, or formal acquisition; the importance plane and hit identity
+	// may only influence the opt-in LIVE row-band ordering policy.
 	private byte[] _livePixelMemoryNoHitReason = Array.Empty<byte>();
 	private ushort[] _livePixelMemorySampleCount = Array.Empty<ushort>();
 	private ulong[] _livePixelMemoryContextKeyHash = Array.Empty<ulong>();
@@ -2325,6 +2326,27 @@ public partial class GrinFilmCamera : Node
 	private int _liveImportanceScheduleExplorationSelections;
 	private int _liveImportanceScheduleCursor;
 	private readonly List<int> _liveImportanceFirstScheduledRows = new();
+	private readonly List<ulong> _liveImportanceActiveGardenIds = new();
+	private readonly Dictionary<ulong, int> _liveImportanceGardenPrioritizedAllocations = new();
+	private readonly Dictionary<ulong, int> _liveImportanceBandEntitySupport = new();
+	private int _liveImportanceGardenRotationOffset;
+	private int _liveImportanceScheduleStartingRotationOffset;
+	private int _liveImportanceScheduleActiveGardenCount;
+	private int _liveImportanceScheduleFairShareCap;
+	private int _liveImportanceScheduleFrontierSlotsUsed;
+	private int _liveImportanceScheduleAssignedFrontierSlotsUsed;
+	private bool _liveImportanceScheduleFairnessFallback;
+	private bool _liveImportanceFairSchedulePrepared;
+	private readonly List<LiveImportancePreparedBandRecord> _liveImportancePreparedBandDiagnostics = new();
+	private readonly List<LiveImportanceExecutedBandRecord> _liveImportanceExecutedBandDiagnostics = new();
+	private uint _liveImportanceDiagnosticScheduleId;
+	private uint _liveImportanceDiagnosticContextGeneration;
+	private uint _liveImportanceDiagnosticPassId;
+	private LiveImportanceScheduleDiagnosticState _liveImportanceDiagnosticState;
+	private bool _liveImportanceDiagnosticSequentialFallback;
+	private string _liveImportanceDiagnosticTerminalReason = string.Empty;
+	private int _liveImportanceDiagnosticRotationBefore;
+	private int _liveImportanceDiagnosticRotationAfter;
 	private bool _liveImportanceFreshThisPass;
 	private uint _livePassId;
 	private bool _isFirstPassAfterContextReset;
@@ -7121,6 +7143,142 @@ private sealed class OverlayRollingWindow
 			_fixtureCausalSceneTransformEventsTotalThisRun > 0;
 	}
 
+	public enum LiveImportanceScheduleDiagnosticState : byte
+	{
+		NotPrepared,
+		Prepared,
+		Completed,
+		Abandoned
+	}
+
+	public enum LiveImportanceBandDiagnosticCategory : byte
+	{
+		Frontier,
+		Exploration,
+		Low,
+		SeededOnly
+	}
+
+	public enum LiveImportanceBandSelectionPath : byte
+	{
+		Exploration,
+		PrioritizedFrontier,
+		Fallback
+	}
+
+	public enum LiveImportanceBandCompletionPath : byte
+	{
+		Pending,
+		Normal,
+		DeferredPass2,
+		ForcedAdvance
+	}
+
+	public readonly struct LiveImportancePreparedBandRecord
+	{
+		public readonly int RowStart;
+		public readonly int SelectionOrdinal;
+		public readonly LiveImportanceBandDiagnosticCategory BandCategory;
+		public readonly ulong DominantEntity;
+		public readonly LiveImportanceBandSelectionPath SelectionPath;
+		public readonly bool FrontierEligible;
+
+		public LiveImportancePreparedBandRecord(
+			int rowStart,
+			int selectionOrdinal,
+			LiveImportanceBandDiagnosticCategory bandCategory,
+			ulong dominantEntity,
+			LiveImportanceBandSelectionPath selectionPath,
+			bool frontierEligible)
+		{
+			RowStart = rowStart;
+			SelectionOrdinal = selectionOrdinal;
+			BandCategory = bandCategory;
+			DominantEntity = dominantEntity;
+			SelectionPath = selectionPath;
+			FrontierEligible = frontierEligible;
+		}
+	}
+
+	public readonly struct LiveImportanceExecutedBandRecord
+	{
+		public readonly int RowStart;
+		public readonly int SelectionOrdinal;
+		public readonly int PreparedSelectionOrdinal;
+		public readonly bool Completed;
+		public readonly LiveImportanceBandCompletionPath CompletionPath;
+		public readonly bool DeferredPass2CompletedNormally;
+
+		public LiveImportanceExecutedBandRecord(
+			int rowStart,
+			int selectionOrdinal,
+			int preparedSelectionOrdinal,
+			bool completed,
+			LiveImportanceBandCompletionPath completionPath)
+		{
+			RowStart = rowStart;
+			SelectionOrdinal = selectionOrdinal;
+			PreparedSelectionOrdinal = preparedSelectionOrdinal;
+			Completed = completed;
+			CompletionPath = completionPath;
+			DeferredPass2CompletedNormally = completed
+				&& completionPath == LiveImportanceBandCompletionPath.DeferredPass2;
+		}
+	}
+
+	public sealed class LiveImportanceScheduleTestingSnapshot
+	{
+		public LiveImportanceScheduleDiagnosticState State { get; }
+		public uint ContextGeneration { get; }
+		public uint LivePassId { get; }
+		public uint ScheduleId { get; }
+		public int RotationOffsetBefore { get; }
+		public int RotationOffsetAfter { get; }
+		public bool SequentialFallbackActivated { get; }
+		public string TerminalReason { get; }
+		public IReadOnlyList<LiveImportancePreparedBandRecord> PreparedBands { get; }
+		public IReadOnlyList<LiveImportanceExecutedBandRecord> ExecutedBands { get; }
+
+		internal LiveImportanceScheduleTestingSnapshot(
+			LiveImportanceScheduleDiagnosticState state,
+			uint contextGeneration,
+			uint livePassId,
+			uint scheduleId,
+			int rotationOffsetBefore,
+			int rotationOffsetAfter,
+			bool sequentialFallbackActivated,
+			string terminalReason,
+			LiveImportancePreparedBandRecord[] preparedBands,
+			LiveImportanceExecutedBandRecord[] executedBands)
+		{
+			State = state;
+			ContextGeneration = contextGeneration;
+			LivePassId = livePassId;
+			ScheduleId = scheduleId;
+			RotationOffsetBefore = rotationOffsetBefore;
+			RotationOffsetAfter = rotationOffsetAfter;
+			SequentialFallbackActivated = sequentialFallbackActivated;
+			TerminalReason = terminalReason ?? string.Empty;
+			PreparedBands = Array.AsReadOnly(preparedBands ?? Array.Empty<LiveImportancePreparedBandRecord>());
+			ExecutedBands = Array.AsReadOnly(executedBands ?? Array.Empty<LiveImportanceExecutedBandRecord>());
+		}
+	}
+
+	public LiveImportanceScheduleTestingSnapshot GetLiveImportanceScheduleForTesting()
+	{
+		return new LiveImportanceScheduleTestingSnapshot(
+			_liveImportanceDiagnosticState,
+			_liveImportanceDiagnosticContextGeneration,
+			_liveImportanceDiagnosticPassId,
+			_liveImportanceDiagnosticScheduleId,
+			_liveImportanceDiagnosticRotationBefore,
+			_liveImportanceDiagnosticRotationAfter,
+			_liveImportanceDiagnosticSequentialFallback,
+			_liveImportanceDiagnosticTerminalReason,
+			_liveImportancePreparedBandDiagnostics.ToArray(),
+			_liveImportanceExecutedBandDiagnostics.ToArray());
+	}
+
 	public struct LiveMeanderStateSnapshot
 	{
 		public uint LivePassId;
@@ -7137,6 +7295,12 @@ private sealed class OverlayRollingWindow
 		public int ExplorationBands;
 		public int LowBands;
 		public int SeededOnlyBands;
+		public int ActiveGardenCount;
+		public int FairShareCap;
+		public int FrontierSlotsUsed;
+		public int StartingRotationOffset;
+		public bool FairnessFallback;
+		public bool FairSchedulePrepared;
 	}
 
 	public bool TryGetLiveMeanderStateForTesting(out LiveMeanderStateSnapshot snapshot)
@@ -7157,6 +7321,12 @@ private sealed class OverlayRollingWindow
 			ExplorationBands = _liveImportanceScheduleExplorationBands,
 			LowBands = _liveImportanceScheduleLowBands,
 			SeededOnlyBands = _liveImportanceScheduleSeededOnlyBands,
+			ActiveGardenCount = _liveImportanceScheduleActiveGardenCount,
+			FairShareCap = _liveImportanceScheduleFairShareCap,
+			FrontierSlotsUsed = _liveImportanceScheduleFrontierSlotsUsed,
+			StartingRotationOffset = _liveImportanceScheduleStartingRotationOffset,
+			FairnessFallback = _liveImportanceScheduleFairnessFallback,
+			FairSchedulePrepared = _liveImportanceFairSchedulePrepared,
 		};
 		return _livePixelMemoryContextInitialized;
 	}
@@ -12063,6 +12233,11 @@ private sealed class OverlayRollingWindow
 			int totalBandsBefore = _liveImportanceScheduleTotalBands;
 			int scheduleCountBefore = _liveImportanceBandSchedule.Count;
 			int rowCursorAtReset = _rowCursor;
+			bool fairSchedulePreparedBefore = _liveImportanceFairSchedulePrepared;
+			int activeGardenCountBefore = _liveImportanceScheduleActiveGardenCount;
+			int frontierSlotsUsedBefore = _liveImportanceScheduleFrontierSlotsUsed;
+			if (wasScheduleActive)
+				MarkLiveImportanceScheduleDiagnosticsAbandoned("context_reset", sequentialFallbackActivated: false);
 
 			// These priors are LIVE scheduler state, not measurement state. A
 			// transport-context change must not carry candidate-discovery history
@@ -12092,6 +12267,17 @@ private sealed class OverlayRollingWindow
 			_liveImportanceBandSchedule.Clear();
 			_liveImportanceScheduleCursor = 0;
 			_liveImportanceScheduleTotalBands = 0;
+			_liveImportanceActiveGardenIds.Clear();
+			_liveImportanceGardenPrioritizedAllocations.Clear();
+			_liveImportanceBandEntitySupport.Clear();
+			_liveImportanceGardenRotationOffset = 0;
+			_liveImportanceScheduleStartingRotationOffset = 0;
+			_liveImportanceScheduleActiveGardenCount = 0;
+			_liveImportanceScheduleFairShareCap = 0;
+			_liveImportanceScheduleFrontierSlotsUsed = 0;
+			_liveImportanceScheduleAssignedFrontierSlotsUsed = 0;
+			_liveImportanceScheduleFairnessFallback = false;
+			_liveImportanceFairSchedulePrepared = false;
 			_liveImportanceFreshThisPass = false;
 			_isFirstPassAfterContextReset = true;
 
@@ -12100,7 +12286,10 @@ private sealed class OverlayRollingWindow
 				if (wasScheduleActive)
 					GD.Print($"[PixelMemory][LIVE][ScheduleCompletion] scheduleCompletion=context_reset " +
 						$"scheduleTotalBands={totalBandsBefore} scheduleCursor={cursorBefore} " +
-						$"bandsActuallyCompleted={_liveImportanceScheduleCompletedBands}");
+						$"bandsActuallyCompleted={_liveImportanceScheduleCompletedBands} " +
+						$"fairnessAbandoned={(fairSchedulePreparedBefore ? 1 : 0)} " +
+						$"activeGardenCount={activeGardenCountBefore} frontierSlotsUsed={frontierSlotsUsedBefore} " +
+						$"rotationAdvanced=0");
 				GD.Print($"[PixelMemory][LIVE][Reset] " +
 					$"oldGeneration={oldGeneration} newGeneration={_livePixelMemoryContextGeneration} " +
 					$"oldContext={oldContext:x16} newContext={contextHash:x16} " +
@@ -12182,15 +12371,23 @@ private sealed class OverlayRollingWindow
 		public readonly int Medium;
 		public readonly int Low;
 		public readonly int Seeded;
+		public readonly ulong DominantEntity;
 		public readonly LiveImportanceBandCategory Category;
 
-		public LiveImportanceBandCandidate(int start, int frontier, int medium, int low, int seeded)
+		public LiveImportanceBandCandidate(
+			int start,
+			int frontier,
+			int medium,
+			int low,
+			int seeded,
+			ulong dominantEntity)
 		{
 			Start = start;
 			Frontier = frontier;
 			Medium = medium;
 			Low = low;
 			Seeded = seeded;
+			DominantEntity = dominantEntity;
 			Category = frontier > 0 ? LiveImportanceBandCategory.Frontier
 				: medium > 0 ? LiveImportanceBandCategory.Exploration
 				: low > 0 ? LiveImportanceBandCategory.Low
@@ -12206,6 +12403,156 @@ private sealed class OverlayRollingWindow
 		if (compare != 0) return compare;
 		compare = b.Low.CompareTo(a.Low);
 		return compare != 0 ? compare : a.Start.CompareTo(b.Start);
+	}
+
+	private void CreditLiveFrontierNeighborEntity(
+		int neighbor,
+		Dictionary<ulong, int> support,
+		ref ulong entity0,
+		ref ulong entity1,
+		ref ulong entity2,
+		ref ulong entity3,
+		ref int distinctEntityCount)
+	{
+		if (neighbor < 0 || neighbor >= _livePixelMemoryHitEntityId.Length
+			|| _livePixelMemoryContextKeyHash[neighbor] != _livePixelMemoryContextHash)
+			return;
+		ulong entity = _livePixelMemoryHitEntityId[neighbor];
+		if (entity == 0UL || entity == entity0 || entity == entity1 || entity == entity2 || entity == entity3)
+			return;
+		switch (distinctEntityCount)
+		{
+			case 0: entity0 = entity; break;
+			case 1: entity1 = entity; break;
+			case 2: entity2 = entity; break;
+			case 3: entity3 = entity; break;
+			default: return;
+		}
+		distinctEntityCount++;
+		support.TryGetValue(entity, out int count);
+		support[entity] = count + 1;
+	}
+
+	private void AccumulateLiveFrontierBandSupport(
+		int pixelIndex,
+		int x,
+		int y,
+		int filmW,
+		int filmH,
+		Dictionary<ulong, int> support)
+	{
+		ulong entity0 = 0UL, entity1 = 0UL, entity2 = 0UL, entity3 = 0UL;
+		int distinctEntityCount = 0;
+		if (x > 0)
+			CreditLiveFrontierNeighborEntity(pixelIndex - 1, support, ref entity0, ref entity1, ref entity2, ref entity3, ref distinctEntityCount);
+		if (x + 1 < filmW)
+			CreditLiveFrontierNeighborEntity(pixelIndex + 1, support, ref entity0, ref entity1, ref entity2, ref entity3, ref distinctEntityCount);
+		if (y > 0)
+			CreditLiveFrontierNeighborEntity(pixelIndex - filmW, support, ref entity0, ref entity1, ref entity2, ref entity3, ref distinctEntityCount);
+		if (y + 1 < filmH)
+			CreditLiveFrontierNeighborEntity(pixelIndex + filmW, support, ref entity0, ref entity1, ref entity2, ref entity3, ref distinctEntityCount);
+	}
+
+	private static ulong SelectDominantLiveFrontierEntity(Dictionary<ulong, int> support)
+	{
+		ulong dominantEntity = 0UL;
+		int dominantSupport = 0;
+		foreach ((ulong entity, int count) in support)
+		{
+			if (count > dominantSupport || (count == dominantSupport && (dominantEntity == 0UL || entity < dominantEntity)))
+			{
+				dominantEntity = entity;
+				dominantSupport = count;
+			}
+		}
+		return dominantEntity;
+	}
+
+	private static LiveImportanceBandDiagnosticCategory ToLiveImportanceDiagnosticCategory(
+		LiveImportanceBandCategory category)
+	{
+		return category switch
+		{
+			LiveImportanceBandCategory.Frontier => LiveImportanceBandDiagnosticCategory.Frontier,
+			LiveImportanceBandCategory.Exploration => LiveImportanceBandDiagnosticCategory.Exploration,
+			LiveImportanceBandCategory.Low => LiveImportanceBandDiagnosticCategory.Low,
+			_ => LiveImportanceBandDiagnosticCategory.SeededOnly
+		};
+	}
+
+	private void BeginLiveImportanceScheduleDiagnostics(int startingRotationOffset)
+	{
+		_liveImportancePreparedBandDiagnostics.Clear();
+		_liveImportanceExecutedBandDiagnostics.Clear();
+		_liveImportanceDiagnosticScheduleId++;
+		_liveImportanceDiagnosticContextGeneration = _livePixelMemoryContextGeneration;
+		_liveImportanceDiagnosticPassId = _livePassId;
+		_liveImportanceDiagnosticState = LiveImportanceScheduleDiagnosticState.Prepared;
+		_liveImportanceDiagnosticSequentialFallback = false;
+		_liveImportanceDiagnosticTerminalReason = string.Empty;
+		_liveImportanceDiagnosticRotationBefore = startingRotationOffset;
+		_liveImportanceDiagnosticRotationAfter = startingRotationOffset;
+	}
+
+	private void RecordLiveImportanceBandSelected(int rowStart)
+	{
+		if (_liveImportanceDiagnosticState != LiveImportanceScheduleDiagnosticState.Prepared)
+			return;
+		int preparedOrdinal = _liveImportanceScheduleCursor;
+		if (_liveImportanceExecutedBandDiagnostics.Count > preparedOrdinal)
+			return;
+		_liveImportanceExecutedBandDiagnostics.Add(new LiveImportanceExecutedBandRecord(
+			rowStart,
+			_liveImportanceExecutedBandDiagnostics.Count,
+			preparedOrdinal,
+			completed: false,
+			completionPath: LiveImportanceBandCompletionPath.Pending));
+	}
+
+	private void RecordLiveImportanceBandCompleted(
+		int rowStart,
+		LiveImportanceBandCompletionPath completionPath)
+	{
+		if (_liveImportanceDiagnosticState != LiveImportanceScheduleDiagnosticState.Prepared)
+			return;
+		int preparedOrdinal = _liveImportanceScheduleCursor;
+		int executionIndex = -1;
+		for (int index = _liveImportanceExecutedBandDiagnostics.Count - 1; index >= 0; index--)
+		{
+			LiveImportanceExecutedBandRecord record = _liveImportanceExecutedBandDiagnostics[index];
+			if (record.PreparedSelectionOrdinal == preparedOrdinal && record.RowStart == rowStart)
+			{
+				executionIndex = index;
+				break;
+			}
+		}
+		if (executionIndex < 0)
+		{
+			executionIndex = _liveImportanceExecutedBandDiagnostics.Count;
+			_liveImportanceExecutedBandDiagnostics.Add(new LiveImportanceExecutedBandRecord(
+				rowStart,
+				executionIndex,
+				preparedOrdinal,
+				completed: false,
+				completionPath: LiveImportanceBandCompletionPath.Pending));
+		}
+		LiveImportanceExecutedBandRecord selected = _liveImportanceExecutedBandDiagnostics[executionIndex];
+		_liveImportanceExecutedBandDiagnostics[executionIndex] = new LiveImportanceExecutedBandRecord(
+			selected.RowStart,
+			selected.SelectionOrdinal,
+			selected.PreparedSelectionOrdinal,
+			completed: true,
+			completionPath: completionPath);
+	}
+
+	private void MarkLiveImportanceScheduleDiagnosticsAbandoned(string reason, bool sequentialFallbackActivated)
+	{
+		if (_liveImportanceDiagnosticState != LiveImportanceScheduleDiagnosticState.Prepared)
+			return;
+		_liveImportanceDiagnosticState = LiveImportanceScheduleDiagnosticState.Abandoned;
+		_liveImportanceDiagnosticSequentialFallback = sequentialFallbackActivated;
+		_liveImportanceDiagnosticTerminalReason = reason ?? string.Empty;
+		_liveImportanceDiagnosticRotationAfter = _liveImportanceGardenRotationOffset;
 	}
 
 	private void PrepareLiveImportanceBandSchedule(int rowsPerFrame, int filmW, int filmH)
@@ -12224,30 +12571,46 @@ private sealed class OverlayRollingWindow
 		_liveImportanceScheduleFrontierSelections = 0;
 		_liveImportanceScheduleExplorationSelections = 0;
 		_liveImportanceFirstScheduledRows.Clear();
+		_liveImportanceActiveGardenIds.Clear();
+		_liveImportanceGardenPrioritizedAllocations.Clear();
+		_liveImportanceScheduleStartingRotationOffset = 0;
+		_liveImportanceScheduleActiveGardenCount = 0;
+		_liveImportanceScheduleFairShareCap = 0;
+		_liveImportanceScheduleFrontierSlotsUsed = 0;
+		_liveImportanceScheduleAssignedFrontierSlotsUsed = 0;
+		_liveImportanceScheduleFairnessFallback = false;
+		_liveImportanceFairSchedulePrepared = false;
 		_liveImportanceScheduleBandHeight = rowsPerFrame;
 		var candidates = new List<LiveImportanceBandCandidate>();
+		Dictionary<ulong, int> bandEntitySupport = _liveImportanceBandEntitySupport;
 		bool haveFreshImportance = _livePixelMemoryContextHash != 0UL
 			&& _liveImportanceFreshThisPass;
 		for (int start = 0; start < filmH; start += rowsPerFrame)
 		{
 			int end = Math.Min(filmH, start + rowsPerFrame);
 			int frontier = 0, medium = 0, low = 0, seeded = 0;
+			bandEntitySupport.Clear();
 			if (haveFreshImportance)
 			{
 				for (int y = start; y < end; y++)
 					for (int x = 0; x < filmW; x++)
 					{
-						byte importance = _livePixelMemoryImportance[y * filmW + x];
+						int pixelIndex = y * filmW + x;
+						byte importance = _livePixelMemoryImportance[pixelIndex];
 						switch (importance)
 						{
-							case 3: frontier++; break;
+							case 3:
+								frontier++;
+								AccumulateLiveFrontierBandSupport(pixelIndex, x, y, filmW, filmH, bandEntitySupport);
+								break;
 							case 2: medium++; break;
 							case 1: low++; break;
 							default: seeded++; break;
 						}
 					}
 			}
-			candidates.Add(new LiveImportanceBandCandidate(start, frontier, medium, low, seeded));
+			ulong dominantEntity = SelectDominantLiveFrontierEntity(bandEntitySupport);
+			candidates.Add(new LiveImportanceBandCandidate(start, frontier, medium, low, seeded, dominantEntity));
 		}
 
 		candidates.Sort(CompareLiveImportanceBands);
@@ -12260,15 +12623,58 @@ private sealed class OverlayRollingWindow
 			: 0;
 		int frontierLimit = (int)Math.Floor(totalBands * Math.Clamp(MaxFrontierBandFraction, 0f, 1f));
 		if (frontierDemandExists(candidates) && frontierLimit == 0) frontierLimit = 1;
+		foreach (LiveImportanceBandCandidate candidate in candidates)
+		{
+			if (candidate.Category == LiveImportanceBandCategory.Frontier && candidate.DominantEntity != 0UL
+				&& !_liveImportanceActiveGardenIds.Contains(candidate.DominantEntity))
+				_liveImportanceActiveGardenIds.Add(candidate.DominantEntity);
+		}
+		_liveImportanceActiveGardenIds.Sort();
+		_liveImportanceScheduleActiveGardenCount = _liveImportanceActiveGardenIds.Count;
+		_liveImportanceScheduleFairShareCap = _liveImportanceScheduleActiveGardenCount > 0
+			? (frontierLimit + _liveImportanceScheduleActiveGardenCount - 1) / _liveImportanceScheduleActiveGardenCount
+			: 0;
+		_liveImportanceScheduleStartingRotationOffset = _liveImportanceScheduleActiveGardenCount > 0
+			? _liveImportanceGardenRotationOffset % _liveImportanceScheduleActiveGardenCount
+			: 0;
+		int fairRoundRobinCursor = _liveImportanceScheduleStartingRotationOffset;
+		BeginLiveImportanceScheduleDiagnostics(_liveImportanceScheduleStartingRotationOffset);
 
 		var remaining = new List<LiveImportanceBandCandidate>(candidates);
 		for (int slot = 0; slot < totalBands; slot++)
 		{
 			int selected = -1;
+			bool prioritizedFrontier = false;
+			bool assignedFrontier = false;
+			LiveImportanceBandSelectionPath selectionPath = LiveImportanceBandSelectionPath.Fallback;
 			if (_liveImportanceScheduleExplorationSelections < explorationReserve)
+			{
 				selected = FindBestCategory(remaining, LiveImportanceBandCategory.Exploration);
+				if (selected >= 0)
+					selectionPath = LiveImportanceBandSelectionPath.Exploration;
+			}
 			if (selected < 0 && _liveImportanceScheduleFrontierSelections < frontierLimit)
-				selected = FindBestCategory(remaining, LiveImportanceBandCategory.Frontier);
+			{
+				selected = FindFairLiveFrontierCandidate(
+					remaining,
+					_liveImportanceActiveGardenIds,
+					_liveImportanceGardenPrioritizedAllocations,
+					_liveImportanceScheduleFairShareCap,
+					ref fairRoundRobinCursor,
+					out bool spilloverUsed);
+				assignedFrontier = selected >= 0;
+				if (spilloverUsed)
+					_liveImportanceScheduleFairnessFallback = true;
+				if (selected < 0)
+				{
+					selected = FindBestUnassignedFrontier(remaining);
+					if (selected >= 0)
+						_liveImportanceScheduleFairnessFallback = true;
+				}
+				prioritizedFrontier = selected >= 0;
+				if (prioritizedFrontier)
+					selectionPath = LiveImportanceBandSelectionPath.PrioritizedFrontier;
+			}
 			if (selected < 0)
 			{
 				selected = FindBestNonFrontier(remaining);
@@ -12277,6 +12683,19 @@ private sealed class OverlayRollingWindow
 			if (selected < 0) break;
 			LiveImportanceBandCandidate candidate = remaining[selected];
 			remaining.RemoveAt(selected);
+			_liveImportancePreparedBandDiagnostics.Add(new LiveImportancePreparedBandRecord(
+				candidate.Start,
+				_liveImportancePreparedBandDiagnostics.Count,
+				ToLiveImportanceDiagnosticCategory(candidate.Category),
+				candidate.DominantEntity,
+				selectionPath,
+				candidate.Category == LiveImportanceBandCategory.Frontier));
+			if (prioritizedFrontier)
+			{
+				_liveImportanceScheduleFrontierSlotsUsed++;
+				if (assignedFrontier)
+					_liveImportanceScheduleAssignedFrontierSlotsUsed++;
+			}
 			_liveImportanceBandSchedule.Add(candidate.Start);
 			if (_liveImportanceFirstScheduledRows.Count < 16) _liveImportanceFirstScheduledRows.Add(candidate.Start);
 			switch (candidate.Category)
@@ -12289,6 +12708,9 @@ private sealed class OverlayRollingWindow
 		}
 		_liveImportanceScheduleTotalBands = _liveImportanceBandSchedule.Count;
 		_liveImportanceScheduleActive = _liveImportanceScheduleTotalBands > 0;
+		_liveImportanceFairSchedulePrepared = _liveImportanceScheduleActive
+			&& _liveImportanceScheduleActiveGardenCount > 0
+			&& _liveImportanceScheduleAssignedFrontierSlotsUsed > 0;
 
 		static bool frontierDemandExists(List<LiveImportanceBandCandidate> items)
 		{
@@ -12303,6 +12725,86 @@ private sealed class OverlayRollingWindow
 		for (int index = 0; index < candidates.Count; index++)
 			if (candidates[index].Category == category && (best < 0 || CompareLiveImportanceBands(candidates[index], candidates[best]) < 0)) best = index;
 		return best;
+	}
+
+	private static int FindBestFrontierForGarden(
+		List<LiveImportanceBandCandidate> candidates,
+		ulong garden)
+	{
+		int best = -1;
+		for (int index = 0; index < candidates.Count; index++)
+		{
+			LiveImportanceBandCandidate candidate = candidates[index];
+			if (candidate.Category == LiveImportanceBandCategory.Frontier
+				&& candidate.DominantEntity == garden
+				&& (best < 0 || CompareLiveImportanceBands(candidate, candidates[best]) < 0))
+				best = index;
+		}
+		return best;
+	}
+
+	private static int FindBestUnassignedFrontier(List<LiveImportanceBandCandidate> candidates)
+	{
+		int best = -1;
+		for (int index = 0; index < candidates.Count; index++)
+		{
+			LiveImportanceBandCandidate candidate = candidates[index];
+			if (candidate.Category == LiveImportanceBandCategory.Frontier
+				&& candidate.DominantEntity == 0UL
+				&& (best < 0 || CompareLiveImportanceBands(candidate, candidates[best]) < 0))
+				best = index;
+		}
+		return best;
+	}
+
+	private static int FindFairLiveFrontierCandidate(
+		List<LiveImportanceBandCandidate> candidates,
+		List<ulong> activeGardens,
+		Dictionary<ulong, int> allocations,
+		int fairShareCap,
+		ref int roundRobinCursor,
+		out bool spilloverUsed)
+	{
+		spilloverUsed = false;
+		int gardenCount = activeGardens.Count;
+		if (gardenCount == 0)
+			return -1;
+
+		for (int phase = 0; phase < 2; phase++)
+		{
+			for (int offset = 0; offset < gardenCount; offset++)
+			{
+				int gardenIndex = (roundRobinCursor + offset) % gardenCount;
+				ulong garden = activeGardens[gardenIndex];
+				allocations.TryGetValue(garden, out int allocation);
+				if (phase == 0 && allocation >= fairShareCap)
+					continue;
+				int candidateIndex = FindBestFrontierForGarden(candidates, garden);
+				if (candidateIndex < 0)
+					continue;
+
+				allocations[garden] = allocation + 1;
+				roundRobinCursor = (gardenIndex + 1) % gardenCount;
+				spilloverUsed = phase == 1;
+				return candidateIndex;
+			}
+		}
+		return -1;
+	}
+
+	private string BuildLiveImportanceGardenAllocationSummary()
+	{
+		var summary = new StringBuilder();
+		for (int index = 0; index < _liveImportanceActiveGardenIds.Count; index++)
+		{
+			ulong garden = _liveImportanceActiveGardenIds[index];
+			_liveImportanceGardenPrioritizedAllocations.TryGetValue(garden, out int allocation);
+			if (index > 0)
+				summary.Append(',');
+			summary.Append(garden.ToString("x16", CultureInfo.InvariantCulture));
+			summary.Append(':').Append(allocation);
+		}
+		return summary.ToString();
 	}
 
 	private static int FindBestNonFrontier(List<LiveImportanceBandCandidate> candidates)
@@ -12324,25 +12826,58 @@ private sealed class OverlayRollingWindow
 		if (!_liveImportanceScheduleActive || _liveImportanceScheduleCursor >= _liveImportanceBandSchedule.Count)
 			return false;
 		start = _liveImportanceBandSchedule[_liveImportanceScheduleCursor];
+		RecordLiveImportanceBandSelected(start);
 		return true;
 	}
 
-	private void CompleteLiveImportanceBand(int bandStart, int bandEnd)
+	private bool CompleteLiveImportanceBand(
+		int bandStart,
+		int bandEnd,
+		LiveImportanceBandCompletionPath completionPath = LiveImportanceBandCompletionPath.Normal)
 	{
-		if (!_liveImportanceScheduleActive || _liveImportanceScheduleCursor >= _liveImportanceBandSchedule.Count
+		if (_observationAcquisition.Owner == ObservationAcquisitionOwner.Snapshot
+			|| !_liveImportanceScheduleActive || _liveImportanceScheduleCursor >= _liveImportanceBandSchedule.Count
 			|| _liveImportanceBandSchedule[_liveImportanceScheduleCursor] != bandStart)
-			return;
+			return false;
+		RecordLiveImportanceBandCompleted(bandStart, completionPath);
 		_liveImportanceScheduleCursor++;
 		_liveImportanceScheduleCompletedBands++;
 		if (_liveImportanceScheduleCursor >= _liveImportanceBandSchedule.Count)
 		{
 			_liveImportanceScheduleActive = false;
+			int rotationBefore = _liveImportanceScheduleStartingRotationOffset;
+			int rotationAfter = _liveImportanceGardenRotationOffset;
+			bool fairnessCompleted = _liveImportanceFairSchedulePrepared;
+			if (fairnessCompleted && _liveImportanceScheduleActiveGardenCount > 0
+				&& _liveImportanceScheduleAssignedFrontierSlotsUsed > 0)
+			{
+				rotationAfter = (_liveImportanceScheduleStartingRotationOffset
+					+ _liveImportanceScheduleAssignedFrontierSlotsUsed)
+					% _liveImportanceScheduleActiveGardenCount;
+				_liveImportanceGardenRotationOffset = rotationAfter;
+			}
+			_liveImportanceDiagnosticState = LiveImportanceScheduleDiagnosticState.Completed;
+			_liveImportanceDiagnosticTerminalReason = "normal";
+			_liveImportanceDiagnosticRotationAfter = rotationAfter;
 			if (ShouldLog(DiagnosticVerbosity.Summary, DiagnosticCategory.Render))
+			{
+				string gardenAllocations = BuildLiveImportanceGardenAllocationSummary();
 				GD.Print($"[PixelMemory][LIVE][ScheduleCompletion] scheduleCompletion=normal " +
 					$"scheduleTotalBands={_liveImportanceScheduleTotalBands} " +
 					$"scheduleCursor={_liveImportanceScheduleCursor} " +
-					$"bandsActuallyCompleted={_liveImportanceScheduleCompletedBands}");
+					$"bandsActuallyCompleted={_liveImportanceScheduleCompletedBands} " +
+					$"fairnessCompleted={(fairnessCompleted ? 1 : 0)} " +
+					$"activeGardenCount={_liveImportanceScheduleActiveGardenCount} " +
+					$"fairShareCap={_liveImportanceScheduleFairShareCap} " +
+					$"frontierSlotsUsed={_liveImportanceScheduleFrontierSlotsUsed} " +
+					$"gardenAllocations=[{gardenAllocations}] " +
+					$"startingRotationOffset={rotationBefore} nextRotationOffset={rotationAfter} " +
+					$"fairnessFallback={(_liveImportanceScheduleFairnessFallback ? 1 : 0)}");
+			}
+			_liveImportanceFairSchedulePrepared = false;
+			return true;
 		}
+		return false;
 	}
 
 	private void EmitLivePixelMemorySummaryIfComplete(in EffectiveConfig cfg)
@@ -12497,12 +13032,17 @@ private sealed class OverlayRollingWindow
 			double frontierFraction = scheduled > 0 ? (double)_liveImportanceScheduleFrontierBands / scheduled : 0.0;
 			double explorationFraction = scheduled > 0 ? (double)_liveImportanceScheduleExplorationBands / scheduled : 0.0;
 			string firstRows = string.Join(",", _liveImportanceFirstScheduledRows);
+			string gardenAllocations = BuildLiveImportanceGardenAllocationSummary();
 			GD.Print(
 			$"[PixelMemory][LIVE][Schedule] policy={(UseImportanceOrdering ? "importance" : "uniform")} " +
 				$"bandsScheduled={scheduled} frontierBands={_liveImportanceScheduleFrontierBands} " +
 				$"explorationBands={_liveImportanceScheduleExplorationBands} lowBands={_liveImportanceScheduleLowBands} " +
 				$"seededOnlyBands={_liveImportanceScheduleSeededOnlyBands} frontierFraction={frontierFraction:0.###} " +
 				$"explorationFraction={explorationFraction:0.###} importanceFreshPass={(_liveImportanceFreshThisPass ? 1 : 0)} " +
+				$"activeGardenCount={_liveImportanceScheduleActiveGardenCount} fairShareCap={_liveImportanceScheduleFairShareCap} " +
+				$"frontierSlotsUsed={_liveImportanceScheduleFrontierSlotsUsed} gardenAllocations=[{gardenAllocations}] " +
+				$"startingRotationOffset={_liveImportanceScheduleStartingRotationOffset} " +
+				$"fairnessFallback={(_liveImportanceScheduleFairnessFallback ? 1 : 0)} " +
 				$"contextGeneration={_livePixelMemoryContextGeneration} firstScheduledRows=[{firstRows}]");
 		}
 	}
@@ -17730,8 +18270,7 @@ private sealed class OverlayRollingWindow
 				bandCommittedThisStep = true;
 				if (!preservePendingPass2)
 				{
-					CompleteLiveImportanceBand(bandStart, bandEnd);
-					if (!_liveImportanceScheduleActive && _liveImportanceScheduleTotalBands > 0)
+					if (CompleteLiveImportanceBand(bandStart, bandEnd))
 						_rowCursor = filmHLocal;
 				}
 				if (snapshotAcquisition && bandEnd >= filmHLocal && nextRow == 0)
@@ -17758,7 +18297,6 @@ private sealed class OverlayRollingWindow
 
 			void MarkBandIncompleteThisFrame(string reason, int bandStart, int bandEnd)
 			{
-				_ = reason;
 				int frameId = (int)Engine.GetFramesDrawn();
 				_bandIncompleteFrameId = frameId;
 				_bandIncompleteRowStart = bandStart;
@@ -17768,10 +18306,29 @@ private sealed class OverlayRollingWindow
 				// with the existing sequential policy on the next pump.
 				if (UseImportanceOrdering && _liveImportanceScheduleActive)
 				{
+					MarkLiveImportanceScheduleDiagnosticsAbandoned(
+						reason,
+						sequentialFallbackActivated: true);
+					if (ShouldLog(DiagnosticVerbosity.Summary, DiagnosticCategory.Render))
+					{
+						string gardenAllocations = BuildLiveImportanceGardenAllocationSummary();
+						GD.Print($"[PixelMemory][LIVE][ScheduleCompletion] scheduleCompletion=abandoned " +
+							$"reason={reason} scheduleTotalBands={_liveImportanceScheduleTotalBands} " +
+							$"scheduleCursor={_liveImportanceScheduleCursor} " +
+							$"bandsActuallyCompleted={_liveImportanceScheduleCompletedBands} " +
+							$"fairnessAbandoned={(_liveImportanceFairSchedulePrepared ? 1 : 0)} " +
+							$"activeGardenCount={_liveImportanceScheduleActiveGardenCount} " +
+							$"fairShareCap={_liveImportanceScheduleFairShareCap} " +
+							$"frontierSlotsUsed={_liveImportanceScheduleFrontierSlotsUsed} " +
+							$"gardenAllocations=[{gardenAllocations}] " +
+							$"startingRotationOffset={_liveImportanceScheduleStartingRotationOffset} " +
+							$"rotationAdvanced=0 fairnessFallback={(_liveImportanceScheduleFairnessFallback ? 1 : 0)}");
+					}
 					_liveImportanceScheduleActive = false;
 					_liveImportanceBandSchedule.Clear();
 					_liveImportanceScheduleCursor = 0;
 					_liveImportanceScheduleTotalBands = 0;
+					_liveImportanceFairSchedulePrepared = false;
 				}
 				_suppressStuckBandRepeatOnce = true;
 				_stuckBandRepeats = 0;
@@ -17790,8 +18347,10 @@ private sealed class OverlayRollingWindow
 					advanceTarget = 0;
 				_rowCursor = advanceTarget;
 				bandCommittedThisStep = true;
-				CompleteLiveImportanceBand(yStart, yEnd);
-				if (!_liveImportanceScheduleActive && _liveImportanceScheduleTotalBands > 0)
+				if (CompleteLiveImportanceBand(
+					yStart,
+					yEnd,
+					LiveImportanceBandCompletionPath.ForcedAdvance))
 					_rowCursor = filmHLocal;
 				// DECISION: drop pending pass2 when stopping early to avoid re-entering the same band forever.
 				if (_pendingBandHasPass1)
@@ -18411,7 +18970,7 @@ private sealed class OverlayRollingWindow
 			}
 			else
 			{
-				if (UseImportanceOrdering && _liveImportanceScheduleActive)
+				if (!snapshotAcquisition && UseImportanceOrdering && _liveImportanceScheduleActive)
 					rowsPerFrame = _liveImportanceScheduleBandHeight;
 				if (TrySelectLiveImportanceBand(rowsPerFrame, filmH, out int selectedBandStart))
 				{
@@ -25109,8 +25668,18 @@ private sealed class OverlayRollingWindow
 					_pendingBandRowStart = -1;
 					_pendingBandRowCount = 0;
 					_pendingBandHasPass1 = false;
-					CompleteLiveImportanceBand(yStart, yEnd);
-					if (!_liveImportanceScheduleActive && _liveImportanceScheduleTotalBands > 0)
+					if (CompleteLiveImportanceBand(
+						yStart,
+						yEnd,
+						LiveImportanceBandCompletionPath.DeferredPass2))
+						_rowCursor = filmH;
+				}
+				else if (pass1CompletedThisStep && pass2CompletedThisStep)
+				{
+					if (CompleteLiveImportanceBand(
+						yStart,
+						yEnd,
+						LiveImportanceBandCompletionPath.Normal))
 						_rowCursor = filmH;
 				}
 				if (snapshotAcquisition && yEnd >= filmH)
@@ -25124,7 +25693,7 @@ private sealed class OverlayRollingWindow
 				// band entirely. Skip the guard when a pass2 commit actually advanced the band.
 				if (_rowCursor < filmH && !(pendingPass2 && bandAdvanced))
 					EnsureForwardProgress("end", false, _rowCursor, bandHits, false);
-				if (_rowCursor >= filmH)
+				if (_rowCursor >= filmH && !_liveImportanceScheduleActive)
 				{
 					_rbr.EmitBoundaryValidationSummary($"film={filmW}x{filmH}");
 					if (cfg.UpdateEveryFrame && !snapshotAcquisition)
