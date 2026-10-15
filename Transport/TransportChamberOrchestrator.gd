@@ -50,6 +50,7 @@ func _ready() -> void:
 	if _demo.has_method("SetExternalTraversalOwnerActive"):
 		_demo.call("SetExternalTraversalOwnerActive", true)
 	player_camera.current = true
+	_configure_player_collision_ownership()
 	if _player.has_signal("loco_mode_changed"):
 		_player.loco_mode_changed.connect(_on_locomotion_mode_changed)
 	if _field_dial != null and _field_dial.has_signal("field_strength_changed"):
@@ -132,6 +133,12 @@ func _configure_chamber_portals() -> void:
 		if portal == null:
 			continue
 		portal.set("EnablePhaseLockedRemap", false)
+
+
+func _configure_player_collision_ownership() -> void:
+	var earth_pedestal := get_node_or_null("GalleryCollision/EarthPedestalBase") as PhysicsBody3D
+	if _player is PhysicsBody3D and earth_pedestal != null:
+		(_player as PhysicsBody3D).add_collision_exception_with(earth_pedestal)
 
 
 func _set_chamber_summary() -> void:
