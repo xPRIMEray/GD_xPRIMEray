@@ -18,6 +18,8 @@ public sealed class PortableProbeCaptureInput
 	public required string SemanticSceneId { get; init; }
 	public required string GodotScenePath { get; init; }
 	public required string EngineCommit { get; init; }
+	public string SourceTreeState { get; init; } = "unknown";
+	public string AuthoredDiffSha256 { get; init; } = string.Empty;
 	public required string AcquisitionLineage { get; init; }
 	public required bool LifecycleComplete { get; init; }
 	public required bool SealedAuthorityAvailable { get; init; }
@@ -36,6 +38,7 @@ public sealed class PortableProbeCaptureInput
 	public required int[] PolicyMaxSteps { get; init; }
 	public required byte[] EffortValid { get; init; }
 	public string ContactAuthorityToken { get; init; } = "legacy";
+	public string SpatialAuthorityToken { get; init; } = "legacy";
 	public Dictionary<string, string> RuntimeProvenance { get; init; } = new();
 }
 
@@ -156,6 +159,12 @@ public static class PortableProbeCaptureBundle
 		if (!input.LifecycleComplete) { reason = "lifecycle_not_complete"; return false; }
 		if (!input.SealedAuthorityAvailable) { reason = "sealed_authority_unavailable"; return false; }
 		if (string.IsNullOrWhiteSpace(input.ContactAuthorityToken) || input.ContactAuthorityToken == "legacy") { reason = "contact_authority_token_missing"; return false; }
+		if (string.IsNullOrWhiteSpace(input.SpatialAuthorityToken) || input.SpatialAuthorityToken == "legacy") { reason = "spatial_authority_token_missing"; return false; }
+		if (!string.Equals(input.SpatialAuthorityToken, input.ContactAuthorityToken, StringComparison.Ordinal))
+		{
+			reason = "spatial_authority_token_mismatch";
+			return false;
+		}
 		if (!input.RuntimeProvenance.TryGetValue("capture_authority", out string? provenanceAuthority))
 		{
 			reason = "capture_authority_provenance_missing";
@@ -166,6 +175,19 @@ public static class PortableProbeCaptureBundle
 			reason = "contact_authority_token_mismatch";
 			return false;
 		}
+		if (!input.RuntimeProvenance.TryGetValue("bvh_authority_token", out string? bvhAuthority))
+		{
+			reason = "spatial_authority_provenance_missing";
+			return false;
+		}
+		if (!string.Equals(bvhAuthority, input.SpatialAuthorityToken, StringComparison.Ordinal))
+		{
+			reason = "spatial_authority_provenance_mismatch";
+			return false;
+		}
+		if (input.SourceTreeState is not ("clean" or "dirty" or "unknown")) { reason = "invalid_source_tree_state"; return false; }
+		if (input.SourceTreeState == "dirty" && !IsSha256(input.AuthoredDiffSha256)) { reason = "dirty_source_tree_requires_authored_diff_sha256"; return false; }
+		if (input.SourceTreeState == "clean" && input.AuthoredDiffSha256.Length != 0) { reason = "clean_source_tree_has_authored_diff_sha256"; return false; }
 		if (input.Width <= 0 || input.Height <= 0) { reason = "invalid_sealed_dimensions"; return false; }
 		int total = input.Width * input.Height;
 		if (input.UnprocessedCount != 0) { reason = "unprocessed_pixels_remaining"; return false; }
@@ -223,7 +245,10 @@ public static class PortableProbeCaptureBundle
 		};
 		Dictionary<string, string> normalizedRuntimeProvenance = new(input.RuntimeProvenance)
 		{
-			["observer_id"] = input.ContextKey.ObserverId.Label
+			["observer_id"] = input.ContextKey.ObserverId.Label,
+			["source_tree_state"] = input.SourceTreeState,
+			["authored_diff_sha256"] = input.AuthoredDiffSha256,
+			["authored_diff_algorithm"] = "sha256(sorted status+path+working-bytes; source files; generated paths excluded)"
 		};
 		Dictionary<string, object> camera = new()
 		{
@@ -241,7 +266,7 @@ public static class PortableProbeCaptureBundle
 			["authority"] = new Dictionary<string, object>
 			{
 				["contact_events"] = input.ContactAuthorityToken,
-				["spatial_authority"] = "not_xprimeray_spatial_kernel"
+				["spatial_authority"] = input.SpatialAuthorityToken
 			},
 			["runtime_provenance"] = normalizedRuntimeProvenance,
 			["acquisition"] = new Dictionary<string, object>
@@ -269,6 +294,10 @@ public static class PortableProbeCaptureBundle
 			["claim_boundary"] = ClaimBoundary()
 		};
 	}
+
+	private static bool IsSha256(string value) =>
+		value.Length == 64 && value.All(character =>
+			(character >= '0' && character <= '9') || (character >= 'a' && character <= 'f'));
 
 	private static string BuildSummary(PortableProbeCaptureInput input, int total, string contextSha, Dictionary<string, ArtifactHash> sourceHashes, Dictionary<string, ArtifactHash> mappedHashes, Dictionary<string, ArtifactHash> pngHashes, Dictionary<string, int> outcomes, Dictionary<string, int> contacts, EffortStats effort)
 	{

@@ -31,6 +31,8 @@ public static class SpatialKernelTests
         NearestPrimitive();
         EqualDistanceTieBreak();
         ExcludedPrimitive();
+        SphereIntersectionContract();
+        MixedPrimitiveContract();
         BvhRejectsInvalidBounds();
         RepeatedQueriesStable();
         BvhBuildAndQueryParity();
@@ -193,6 +195,65 @@ public static class SpatialKernelTests
         Assert(!query.IntersectsSegment(new Vector3(-2, 0, 0), new Vector3(2, 0, 0), 1, out _), "excluded primitive");
     }
 
+    private static void SphereIntersectionContract()
+    {
+        FrozenSphere sphere = Sphere("/World/Sphere", Vector3.Zero, 1f);
+        LinearScanSpatialQuery query = new(Mixed(Array.Empty<FrozenOrientedBox>(), new[] { sphere }));
+        Assert(query.IntersectsSegment(new Vector3(-2, 0, 0), new Vector3(2, 0, 0), 1, out SurfaceHit center), "sphere centerline hit");
+        Assert(center.SegmentT == 0.25f && center.Position == new Vector3(-1, 0, 0) && center.Normal == -Vector3.UnitX && center.NormalValid,
+            "sphere centerline t/position/normal");
+        Assert(!query.IntersectsSegment(new Vector3(-2, 1.1f, 0), new Vector3(2, 1.1f, 0), 1, out _), "sphere miss");
+        Assert(query.IntersectsSegment(new Vector3(-2, 1, 0), new Vector3(2, 1, 0), 1, out SurfaceHit tangent) && tangent.SegmentT == 0.5f,
+            "sphere tangent");
+        Assert(query.IntersectsSegment(Vector3.Zero, new Vector3(2, 0, 0), 1, out SurfaceHit inside) && inside.SegmentT == 0f && !inside.NormalValid,
+            "sphere start inside");
+        Assert(query.IntersectsSegment(new Vector3(-1, 0, 0), new Vector3(-2, 0, 0), 1, out SurfaceHit surface) && surface.SegmentT == 0f && !surface.NormalValid,
+            "sphere start on surface");
+        Assert(query.IntersectsSegment(new Vector3(-2, 0, 0), new Vector3(-1, 0, 0), 1, out SurfaceHit endpoint) && endpoint.SegmentT == 1f,
+            "sphere endpoint contact");
+        Assert(!query.IntersectsSegment(new Vector3(-2, 0, 0), new Vector3(-1.1f, 0, 0), 1, out _), "sphere beyond endpoint");
+        Assert(!query.IntersectsSegment(new Vector3(-2, 0, 0), new Vector3(2, 0, 0), 2, out _), "sphere collision mask");
+
+        FrozenSphere translated = Sphere("/World/Translated", new Vector3(4, -2, 3), 1.5f);
+        LinearScanSpatialQuery translatedQuery = new(Mixed(Array.Empty<FrozenOrientedBox>(), new[] { translated }));
+        Assert(translatedQuery.IntersectsSegment(new Vector3(1, -2, 3), new Vector3(7, -2, 3), 1, out SurfaceHit translatedHit) &&
+            translatedHit.Position == new Vector3(2.5f, -2, 3), "translated sphere");
+    }
+
+    private static void MixedPrimitiveContract()
+    {
+        FrozenOrientedBox box = Box("/World/ZBox", Vector3.Zero);
+        FrozenSphere sphere = Sphere("/World/ASphere", Vector3.Zero, 1f);
+        FrozenOrientedBox secondBox = Box("/World/BBox", new Vector3(8, 0, 0));
+        FrozenSphere secondSphere = Sphere("/World/YSphere", new Vector3(-8, 0, 0), 2f);
+        FrozenGeometrySnapshot mixed = Mixed(new[] { box, secondBox }, new[] { sphere, secondSphere });
+        FrozenGeometrySnapshot permuted = Mixed(new[] { secondBox, box }, new[] { secondSphere, sphere });
+        Assert(mixed.EffectiveSchemaVersion == FrozenGeometrySnapshot.MixedSchemaVersion, "mixed schema version");
+        Assert(mixed.IntersectionPolicyVersion == LinearScanSpatialQuery.MixedIntersectionPolicyVersion, "mixed policy version");
+        Assert(mixed.GeometrySnapshotSha256 == permuted.GeometrySnapshotSha256, "mixed snapshot stable");
+        Assert(new SpatialBvhQuery(mixed).BuildSha256 == new SpatialBvhQuery(permuted).BuildSha256, "mixed BVH stable");
+
+        LinearScanSpatialQuery linear = new(mixed);
+        SpatialBvhQuery bvh = new(mixed);
+        Assert(linear.IntersectsSegment(new Vector3(-2, 0, 0), new Vector3(2, 0, 0), 1, out SurfaceHit linearHit), "mixed linear hit");
+        Assert(bvh.IntersectsSegment(new Vector3(-2, 0, 0), new Vector3(2, 0, 0), 1, out SurfaceHit bvhHit), "mixed BVH hit");
+        Assert(linearHit.CanonicalPrimitiveId == "/World/ASphere" && linearHit.CanonicalPrimitiveId == bvhHit.CanonicalPrimitiveId &&
+            linearHit.SegmentT == bvhHit.SegmentT, "mixed equal-t canonical tie and parity");
+
+        bool duplicateRejected = false;
+        try { _ = Mixed(new[] { Box("/World/Duplicate", Vector3.Zero) }, new[] { Sphere("/World/Duplicate", Vector3.Zero, 1f) }); }
+        catch (ArgumentException) { duplicateRejected = true; }
+        Assert(duplicateRejected, "cross-kind duplicate canonical ID rejected");
+
+        FrozenGeometrySnapshot legacy = Snapshot(box);
+        FrozenGeometrySnapshot explicitEmptySphere = Mixed(new[] { box }, Array.Empty<FrozenSphere>());
+        Assert(legacy.EffectiveSchemaVersion == FrozenGeometrySnapshot.SchemaVersion &&
+            FrozenGeometrySnapshotCanonicalSerializer.Serialize(legacy).SequenceEqual(FrozenGeometrySnapshotCanonicalSerializer.Serialize(explicitEmptySphere)),
+            "box-only constructor and bytes remain compatible");
+        Assert(new SpatialBvhQuery(legacy).BuildSha256 == new SpatialBvhQuery(explicitEmptySphere).BuildSha256,
+            "box-only BVH remains compatible");
+    }
+
     private static void RepeatedQueriesStable()
     {
         LinearScanSpatialQuery query = new(Snapshot(Box("/World/Box", Vector3.Zero)));
@@ -327,13 +388,15 @@ public static class SpatialKernelTests
 
     private static FrozenGeometrySnapshot Snapshot(params FrozenOrientedBox[] boxes) => new(boxes);
 
+    private static FrozenGeometrySnapshot Mixed(IEnumerable<FrozenOrientedBox> boxes, IEnumerable<FrozenSphere> spheres) => new(boxes, spheres);
+
     private static BvhSpatialAuthorityContext BvhContext(FrozenGeometrySnapshot snapshot, string? buildSha = null)
     {
         SpatialBvhQuery bvh = new(snapshot);
         return new BvhSpatialAuthorityContext(
             snapshot.GeometrySnapshotSha256,
             SpatialBvhQuery.AuthorityTokenValue,
-            LinearScanSpatialQuery.IntersectionPolicyVersion,
+            snapshot.IntersectionPolicyVersion,
             SpatialBvhQuery.BuildPolicyVersion,
             buildSha ?? bvh.BuildSha256);
     }
@@ -377,6 +440,9 @@ public static class SpatialKernelTests
         }
         return new FrozenOrientedBox(id, SpatialSurfaceClass.Geometry, world, inverse, half, new Aabb3(min, max), 1, FrozenPrimitiveFlags.CollideWithBodies);
     }
+
+    private static FrozenSphere Sphere(string id, Vector3 center, float radius, uint collisionLayer = 1) =>
+        new(id, SpatialSurfaceClass.Geometry, center, radius, collisionLayer, FrozenPrimitiveFlags.CollideWithBodies);
 
     private static void Assert(bool value, string message)
     {

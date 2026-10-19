@@ -197,7 +197,7 @@ public static class SpatialAuthorityPromotionGate
         }
         if (!string.Equals(bvhAuthorityContext.GeometrySnapshotSha256, snapshot.GeometrySnapshotSha256, StringComparison.Ordinal) ||
             !string.Equals(bvhAuthorityContext.AuthorityToken, SpatialBvhQuery.AuthorityTokenValue, StringComparison.Ordinal) ||
-            !string.Equals(bvhAuthorityContext.IntersectionPolicyVersion, LinearScanSpatialQuery.IntersectionPolicyVersion, StringComparison.Ordinal) ||
+            !string.Equals(bvhAuthorityContext.IntersectionPolicyVersion, snapshot.IntersectionPolicyVersion, StringComparison.Ordinal) ||
             !string.Equals(bvhAuthorityContext.BuildPolicyVersion, SpatialBvhQuery.BuildPolicyVersion, StringComparison.Ordinal) ||
             !string.Equals(bvhAuthorityContext.CanonicalSha256, validationBvhContextSha256, StringComparison.Ordinal))
         {

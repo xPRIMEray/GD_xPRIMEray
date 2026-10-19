@@ -1,15 +1,28 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using XPrimeRay.Spatial;
 
 namespace GodotAdapter;
 
+public readonly record struct GodotReplayQueryObservation(
+    bool Hit,
+    ulong ColliderInstanceId,
+    string ColliderPath,
+    string ColliderType,
+    int ShapeIndex,
+    Godot.Vector3 Position,
+    Godot.Vector3 Normal);
+
 public sealed class SpatialKernelDualValidationResult
 {
     public required string GeometrySnapshotSha256 { get; init; }
+    public required string IntersectionPolicyVersion { get; init; }
     public required int PrimitiveCount { get; init; }
     public required int QueryCount { get; init; }
     public required string GodotContactCountSha256 { get; init; }
@@ -22,6 +35,7 @@ public sealed class SpatialKernelDualValidationResult
     public required int ContactCountMismatchPixelCount { get; init; }
     public required int SurfaceSemanticMismatchPixelCount { get; init; }
     public required int TotalAuthorityMismatchPixelCount { get; init; }
+    public required int GodotQueryComparisonCount { get; init; }
     public required int MismatchQueryCount { get; init; }
     public required string FirstMismatch { get; init; }
     public required long PrimitiveTestCount { get; init; }
@@ -45,6 +59,7 @@ public sealed class SpatialKernelDualValidationResult
     public required int BvhLeafCount { get; init; }
     public required int BvhMaxDepth { get; init; }
     public required string BvhBuildSha256 { get; init; }
+    public required string QueryDivergenceJson { get; init; }
 }
 
 public static class SpatialKernelDualValidator
@@ -57,6 +72,7 @@ public static class SpatialKernelDualValidator
         int[] godotContactCounts,
         int totalPixels,
         bool[]? godotQueryHits = null,
+        GodotReplayQueryObservation[]? godotQueryObservations = null,
         byte[]? godotHadAnyGeometryContact = null,
         byte[]? godotHadAnyBackgroundContact = null,
         string sourceGroup = "fixture_source",
@@ -68,7 +84,7 @@ public static class SpatialKernelDualValidator
         if (totalPixels < 0 || godotContactCounts.Length < totalPixels)
             throw new InvalidDataException("Godot contact channel is shorter than the film.");
         FrozenGeometrySnapshot snapshot = SpatialSnapshotBuilder.BuildFromGodotScene(sceneRoot, sourceGroup, backgroundGroup);
-        return Evaluate(snapshot, queries, godotContactCounts, totalPixels, godotQueryHits, godotHadAnyGeometryContact, godotHadAnyBackgroundContact);
+        return Evaluate(snapshot, queries, godotContactCounts, totalPixels, godotQueryHits, godotQueryObservations, godotHadAnyGeometryContact, godotHadAnyBackgroundContact);
     }
 
     public static SpatialKernelDualValidationResult Evaluate(
@@ -77,6 +93,7 @@ public static class SpatialKernelDualValidator
         int[] godotContactCounts,
         int totalPixels,
         bool[]? godotQueryHits = null,
+        GodotReplayQueryObservation[]? godotQueryObservations = null,
         byte[]? godotHadAnyGeometryContact = null,
         byte[]? godotHadAnyBackgroundContact = null)
     {
@@ -87,6 +104,8 @@ public static class SpatialKernelDualValidator
             throw new InvalidDataException("Godot contact channel is shorter than the film.");
         if (godotQueryHits != null && godotQueryHits.Length != queries.Length)
             throw new InvalidDataException("Godot query-hit channel does not match the formal query dataset.");
+        if (godotQueryObservations != null && godotQueryObservations.Length != queries.Length)
+            throw new InvalidDataException("Godot query-observation channel does not match the formal query dataset.");
         if (godotHadAnyGeometryContact != null && godotHadAnyGeometryContact.Length < totalPixels)
             throw new InvalidDataException("Godot geometry-contact channel is shorter than the film.");
         if (godotHadAnyBackgroundContact != null && godotHadAnyBackgroundContact.Length < totalPixels)
@@ -111,6 +130,9 @@ public static class SpatialKernelDualValidator
         int bvhMismatchQueries = 0;
         long linearTicks = 0;
         long bvhTicks = 0;
+        List<QueryDivergenceRecord> divergences = new();
+        Dictionary<string, IFrozenSpatialPrimitive> primitivesById = snapshot.AllPrimitives
+            .ToDictionary(primitive => primitive.CanonicalPrimitiveId, StringComparer.Ordinal);
 
         for (int queryIndex = 0; queryIndex < queries.Length; queryIndex++)
         {
@@ -126,7 +148,8 @@ public static class SpatialKernelDualValidator
                 if (surfaceHit.SurfaceClass == SpatialSurfaceClass.Geometry) linearGeometry[recorded.PixelIndex] = 1;
                 if (surfaceHit.SurfaceClass == SpatialSurfaceClass.Background) linearBackground[recorded.PixelIndex] = 1;
             }
-            if (godotQueryHits != null && linearHit != godotQueryHits[queryIndex])
+            bool godotHit = godotQueryHits != null && godotQueryHits[queryIndex];
+            if (godotQueryHits != null && linearHit != godotHit)
                 mismatchQueries++;
 
             long bvhStart = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -147,6 +170,21 @@ public static class SpatialKernelDualValidator
                 if (surfaceHit.SegmentT != bvhResult.SegmentT) { bvhSegmentTMismatches++; bvhQueryMismatch = true; }
             }
             if (bvhQueryMismatch) bvhMismatchQueries++;
+
+            if (godotQueryHits != null && godotQueryObservations != null && linearHit != godotHit)
+            {
+                GodotReplayQueryObservation godot = godotQueryObservations[queryIndex];
+                divergences.Add(BuildDivergenceRecord(
+                    queryIndex,
+                    in recorded,
+                    godotHit,
+                    in godot,
+                    linearHit,
+                    in surfaceHit,
+                    bvhHit,
+                    in bvhResult,
+                    primitivesById));
+            }
         }
         int bvhCountMismatchPixels = 0;
         int bvhSemanticMismatchPixels = 0;
@@ -171,6 +209,7 @@ public static class SpatialKernelDualValidator
         return new SpatialKernelDualValidationResult
         {
             GeometrySnapshotSha256 = snapshot.GeometrySnapshotSha256,
+            IntersectionPolicyVersion = snapshot.IntersectionPolicyVersion,
             PrimitiveCount = snapshot.PrimitiveCount,
             QueryCount = queries.Length,
             GodotContactCountSha256 = HashInt32(godotContactCounts, totalPixels),
@@ -178,11 +217,11 @@ public static class SpatialKernelDualValidator
             SpatialAuthorityContextSha256 = new SpatialAuthorityContext(
                 snapshot.GeometrySnapshotSha256,
                 LinearScanSpatialQuery.AuthorityTokenValue,
-                LinearScanSpatialQuery.IntersectionPolicyVersion).CanonicalSha256,
+                snapshot.IntersectionPolicyVersion).CanonicalSha256,
             BvhSpatialAuthorityContextSha256 = new BvhSpatialAuthorityContext(
                 snapshot.GeometrySnapshotSha256,
                 SpatialBvhQuery.AuthorityTokenValue,
-                LinearScanSpatialQuery.IntersectionPolicyVersion,
+                snapshot.IntersectionPolicyVersion,
                 SpatialBvhQuery.BuildPolicyVersion,
                 bvh.BuildSha256).CanonicalSha256,
             GodotContactHistogram = FormatHistogram(godotContactCounts, totalPixels),
@@ -191,6 +230,7 @@ public static class SpatialKernelDualValidator
             ContactCountMismatchPixelCount = countMismatchPixels,
             SurfaceSemanticMismatchPixelCount = semanticMismatchPixels,
             TotalAuthorityMismatchPixelCount = totalMismatchPixels,
+            GodotQueryComparisonCount = godotQueryHits?.Length ?? 0,
             MismatchQueryCount = godotQueryHits == null ? -1 : mismatchQueries,
             FirstMismatch = firstMismatch,
             PrimitiveTestCount = query.PrimitiveTestCount,
@@ -213,9 +253,296 @@ public static class SpatialKernelDualValidator
             BvhNodeCount = bvh.NodeCount,
             BvhLeafCount = bvh.LeafCount,
             BvhMaxDepth = bvh.MaxDepth,
-            BvhBuildSha256 = bvh.BuildSha256
+            BvhBuildSha256 = bvh.BuildSha256,
+            QueryDivergenceJson = SerializeDivergences(divergences, queries.Length)
         };
     }
+
+    private static QueryDivergenceRecord BuildDivergenceRecord(
+        int queryIndex,
+        in RayBeamRenderer.FormalProbeQuery recorded,
+        bool godotHit,
+        in GodotReplayQueryObservation godot,
+        bool linearHit,
+        in SurfaceHit linear,
+        bool bvhHit,
+        in SurfaceHit bvh,
+        IReadOnlyDictionary<string, IFrozenSpatialPrimitive> primitivesById)
+    {
+        List<string> candidates = new();
+        List<string> evidence = new();
+        float godotT = godotHit ? ProjectSegmentT(recorded.From, recorded.To, godot.Position) : float.NaN;
+        string colliderPath = godot.ColliderPath ?? string.Empty;
+
+        IFrozenSpatialPrimitive? godotPrimitive = FindPrimitiveForColliderPath(colliderPath, primitivesById);
+        if (godotHit && (godotPrimitive is FrozenSphere || colliderPath.Contains("/ReferenceSphere", StringComparison.Ordinal)))
+        {
+            candidates.Add("reference_sphere_inclusion");
+            evidence.Add("godot_hit_collider_is_reference_sphere");
+        }
+
+        FrozenOrientedBox? linearPrimitive = null;
+        if (linearHit && primitivesById.TryGetValue(linear.CanonicalPrimitiveId, out IFrozenSpatialPrimitive? matched))
+        {
+            linearPrimitive = matched as FrozenOrientedBox;
+            if (matched is FrozenSphere)
+            {
+                AddUnique(candidates, "reference_sphere_inclusion");
+                evidence.Add("linear_hit_identifies_frozen_sphere_primitive");
+            }
+        }
+        bool godotSharedBox = godotHit && godotPrimitive is FrozenOrientedBox;
+        if (linearPrimitive != null || godotSharedBox)
+        {
+            candidates.Add("shared_box_intersection");
+            evidence.Add(linearHit
+                ? "linear_hit_identifies_frozen_box_primitive"
+                : "godot_collider_path_matches_frozen_box_owner");
+        }
+
+        float selectedT = linearHit ? linear.SegmentT : godotT;
+        if (float.IsFinite(selectedT) && (selectedT <= 1e-5f || selectedT >= 1f - 1e-5f))
+        {
+            candidates.Add("endpoint_or_tangent_contact");
+            evidence.Add(selectedT <= 1e-5f ? "intersection_t_near_segment_start" : "intersection_t_near_segment_end");
+        }
+
+        if (linearPrimitive != null)
+        {
+            System.Numerics.Vector3 localFrom = System.Numerics.Vector3.Transform(ToNumerics(recorded.From), linearPrimitive.LocalFromWorld);
+            bool startInside = IsInside(localFrom, linearPrimitive.HalfExtents);
+            bool startOnSurface = startInside && IsOnSurface(localFrom, linearPrimitive.HalfExtents);
+            if (startInside)
+            {
+                candidates.Add("start_on_surface_or_start_inside");
+                evidence.Add(startOnSurface ? "linear_segment_starts_on_box_surface" : "linear_segment_starts_inside_box");
+            }
+            if (IsThinTransformedBox(linearPrimitive))
+            {
+                candidates.Add("thin_transformed_box_geometry");
+                evidence.Add("frozen_box_has_thin_axis_and_non_identity_basis");
+            }
+            if (IsTangentOrEdgeContact(linearPrimitive, linear.Position))
+            {
+                AddUnique(candidates, "endpoint_or_tangent_contact");
+                evidence.Add("linear_hit_lies_on_multiple_box_boundary_planes");
+            }
+        }
+
+        if (candidates.Count == 0)
+        {
+            candidates.Add("unclassified");
+            evidence.Add("current_observations_do_not_isolate_a_supported_candidate");
+        }
+
+        return new QueryDivergenceRecord(
+            queryIndex,
+            recorded.PixelIndex,
+            recorded.ProbeStep,
+            recorded.From,
+            recorded.To,
+            recorded.CollisionMask,
+            recorded.CollideWithBodies,
+            recorded.CollideWithAreas,
+            recorded.HitFromInside,
+            recorded.HitBackFaces,
+            godotHit,
+            godot.ColliderInstanceId,
+            colliderPath,
+            godot.ColliderType ?? string.Empty,
+            godot.ShapeIndex,
+            godot.Position,
+            godot.Normal,
+            godotT,
+            linearHit,
+            linearHit ? linear.CanonicalPrimitiveId : string.Empty,
+            linearHit ? linear.SegmentT : float.NaN,
+            linearHit ? linear.SurfaceClass.ToString() : "None",
+            bvhHit,
+            bvhHit ? bvh.CanonicalPrimitiveId : string.Empty,
+            bvhHit ? bvh.SegmentT : float.NaN,
+            bvhHit ? bvh.SurfaceClass.ToString() : "None",
+            godotHit ? "godot_only" : "kernel_only",
+            candidates.ToArray(),
+            evidence.ToArray(),
+            "inferred_until_verified");
+    }
+
+    private static IFrozenSpatialPrimitive? FindPrimitiveForColliderPath(
+        string colliderPath,
+        IReadOnlyDictionary<string, IFrozenSpatialPrimitive> primitivesById)
+    {
+        if (string.IsNullOrEmpty(colliderPath)) return null;
+        foreach ((string primitiveId, IFrozenSpatialPrimitive primitive) in primitivesById)
+            if (primitiveId.StartsWith(colliderPath + "/", StringComparison.Ordinal)) return primitive;
+        return null;
+    }
+
+    private static void AddUnique(List<string> values, string value)
+    {
+        if (!values.Contains(value, StringComparer.Ordinal)) values.Add(value);
+    }
+
+    private static bool IsInside(System.Numerics.Vector3 point, System.Numerics.Vector3 halfExtents) =>
+        point.X >= -halfExtents.X && point.X <= halfExtents.X &&
+        point.Y >= -halfExtents.Y && point.Y <= halfExtents.Y &&
+        point.Z >= -halfExtents.Z && point.Z <= halfExtents.Z;
+
+    private static bool IsOnSurface(System.Numerics.Vector3 point, System.Numerics.Vector3 halfExtents)
+    {
+        float tolerance = Math.Max(1e-6f, Math.Max(halfExtents.X, Math.Max(halfExtents.Y, halfExtents.Z)) * 1e-5f);
+        return MathF.Abs(MathF.Abs(point.X) - halfExtents.X) <= tolerance ||
+            MathF.Abs(MathF.Abs(point.Y) - halfExtents.Y) <= tolerance ||
+            MathF.Abs(MathF.Abs(point.Z) - halfExtents.Z) <= tolerance;
+    }
+
+    private static bool IsTangentOrEdgeContact(FrozenOrientedBox primitive, System.Numerics.Vector3 worldPosition)
+    {
+        System.Numerics.Vector3 local = System.Numerics.Vector3.Transform(worldPosition, primitive.LocalFromWorld);
+        float tolerance = Math.Max(1e-6f, Math.Max(primitive.HalfExtents.X, Math.Max(primitive.HalfExtents.Y, primitive.HalfExtents.Z)) * 1e-5f);
+        int boundaryPlanes = 0;
+        if (MathF.Abs(MathF.Abs(local.X) - primitive.HalfExtents.X) <= tolerance) boundaryPlanes++;
+        if (MathF.Abs(MathF.Abs(local.Y) - primitive.HalfExtents.Y) <= tolerance) boundaryPlanes++;
+        if (MathF.Abs(MathF.Abs(local.Z) - primitive.HalfExtents.Z) <= tolerance) boundaryPlanes++;
+        return boundaryPlanes >= 2;
+    }
+
+    private static bool IsThinTransformedBox(FrozenOrientedBox primitive)
+    {
+        float min = Math.Min(primitive.HalfExtents.X, Math.Min(primitive.HalfExtents.Y, primitive.HalfExtents.Z));
+        float max = Math.Max(primitive.HalfExtents.X, Math.Max(primitive.HalfExtents.Y, primitive.HalfExtents.Z));
+        bool thin = max > 0f && min / max <= 0.12f;
+        Matrix4x4 transform = primitive.WorldFromLocal;
+        bool transformed = MathF.Abs(transform.M12) > 1e-6f || MathF.Abs(transform.M13) > 1e-6f ||
+            MathF.Abs(transform.M21) > 1e-6f || MathF.Abs(transform.M23) > 1e-6f ||
+            MathF.Abs(transform.M31) > 1e-6f || MathF.Abs(transform.M32) > 1e-6f;
+        return thin && transformed;
+    }
+
+    private static float ProjectSegmentT(Godot.Vector3 from, Godot.Vector3 to, Godot.Vector3 position)
+    {
+        Godot.Vector3 direction = to - from;
+        float lengthSquared = direction.LengthSquared();
+        return lengthSquared > 0f ? (position - from).Dot(direction) / lengthSquared : 0f;
+    }
+
+    private static string SerializeDivergences(IReadOnlyList<QueryDivergenceRecord> divergences, int queryCount)
+    {
+        using MemoryStream stream = new();
+        using (Utf8JsonWriter writer = new(stream, new JsonWriterOptions { Indented = true }))
+        {
+            writer.WriteStartObject();
+            writer.WriteString("schema", "xprimeray.query-divergence-attribution.v1");
+            writer.WriteNumber("query_count", queryCount);
+            writer.WriteNumber("divergence_count", divergences.Count);
+            writer.WriteString("classification_status", "candidate classes are inferred until verified");
+            writer.WriteStartArray("records");
+            foreach (QueryDivergenceRecord record in divergences) WriteDivergence(writer, record);
+            writer.WriteEndArray();
+            writer.WriteEndObject();
+        }
+        return Encoding.UTF8.GetString(stream.ToArray());
+    }
+
+    private static void WriteDivergence(Utf8JsonWriter writer, QueryDivergenceRecord value)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("query_index", value.QueryIndex);
+        writer.WriteNumber("pixel", value.PixelIndex);
+        writer.WriteNumber("probe_step", value.ProbeStep);
+        WriteVector(writer, "from", value.From);
+        WriteVector(writer, "to", value.To);
+        writer.WriteNumber("collision_mask", value.CollisionMask);
+        writer.WriteStartObject("query_flags");
+        writer.WriteBoolean("collide_with_bodies", value.CollideWithBodies);
+        writer.WriteBoolean("collide_with_areas", value.CollideWithAreas);
+        writer.WriteBoolean("hit_from_inside", value.HitFromInside);
+        writer.WriteBoolean("hit_back_faces", value.HitBackFaces);
+        writer.WriteEndObject();
+        writer.WriteStartObject("godot");
+        writer.WriteBoolean("hit", value.GodotHit);
+        writer.WriteNumber("collider_instance_id", value.GodotColliderInstanceId);
+        writer.WriteString("collider_path", value.GodotColliderPath);
+        writer.WriteString("collider_type", value.GodotColliderType);
+        writer.WriteNumber("shape_index", value.GodotShapeIndex);
+        WriteVector(writer, "position", value.GodotPosition);
+        WriteVector(writer, "normal", value.GodotNormal);
+        WriteFiniteNumber(writer, "segment_t_projected", value.GodotSegmentT);
+        writer.WriteEndObject();
+        WriteKernelHit(writer, "linear_scan", value.LinearHit, value.LinearPrimitiveId, value.LinearSegmentT, value.LinearSurfaceClass);
+        WriteKernelHit(writer, "bvh", value.BvhHit, value.BvhPrimitiveId, value.BvhSegmentT, value.BvhSurfaceClass);
+        writer.WriteString("direction", value.Direction);
+        writer.WriteStartArray("candidate_discrepancy_classes");
+        foreach (string candidate in value.CandidateClasses) writer.WriteStringValue(candidate);
+        writer.WriteEndArray();
+        writer.WriteStartArray("classification_evidence");
+        foreach (string item in value.ClassificationEvidence) writer.WriteStringValue(item);
+        writer.WriteEndArray();
+        writer.WriteString("classification_status", value.ClassificationStatus);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteKernelHit(Utf8JsonWriter writer, string name, bool hit, string primitiveId, float segmentT, string surfaceClass)
+    {
+        writer.WriteStartObject(name);
+        writer.WriteBoolean("hit", hit);
+        writer.WriteString("primitive_id", primitiveId);
+        WriteFiniteNumber(writer, "segment_t", segmentT);
+        writer.WriteString("surface_class", surfaceClass);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteVector(Utf8JsonWriter writer, string name, Godot.Vector3 value)
+    {
+        writer.WriteStartArray(name);
+        writer.WriteNumberValue(value.X); writer.WriteNumberValue(value.Y); writer.WriteNumberValue(value.Z);
+        writer.WriteEndArray();
+    }
+
+    private static void WriteVector(Utf8JsonWriter writer, string name, System.Numerics.Vector3 value)
+    {
+        writer.WriteStartArray(name);
+        writer.WriteNumberValue(value.X); writer.WriteNumberValue(value.Y); writer.WriteNumberValue(value.Z);
+        writer.WriteEndArray();
+    }
+
+    private static void WriteFiniteNumber(Utf8JsonWriter writer, string name, float value)
+    {
+        if (float.IsFinite(value)) writer.WriteNumber(name, value);
+        else writer.WriteNull(name);
+    }
+
+    private readonly record struct QueryDivergenceRecord(
+        int QueryIndex,
+        int PixelIndex,
+        int ProbeStep,
+        Godot.Vector3 From,
+        Godot.Vector3 To,
+        uint CollisionMask,
+        bool CollideWithBodies,
+        bool CollideWithAreas,
+        bool HitFromInside,
+        bool HitBackFaces,
+        bool GodotHit,
+        ulong GodotColliderInstanceId,
+        string GodotColliderPath,
+        string GodotColliderType,
+        int GodotShapeIndex,
+        Godot.Vector3 GodotPosition,
+        Godot.Vector3 GodotNormal,
+        float GodotSegmentT,
+        bool LinearHit,
+        string LinearPrimitiveId,
+        float LinearSegmentT,
+        string LinearSurfaceClass,
+        bool BvhHit,
+        string BvhPrimitiveId,
+        float BvhSegmentT,
+        string BvhSurfaceClass,
+        string Direction,
+        string[] CandidateClasses,
+        string[] ClassificationEvidence,
+        string ClassificationStatus);
 
     private static string FormatHistogram(int[] values, int count)
     {

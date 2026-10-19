@@ -15,6 +15,8 @@ internal static class PortableProbeCaptureBundleTests
 		BundleEncodingAndHashesAreStable();
 		QualificationRejectsInvalidEffortAndIncompleteSources();
 		AuthorityTokenMismatchIsRejected();
+		SpatialAuthorityValidationIsRequired();
+		SourceTreeAttributionIsExplicit();
 	}
 
 	private static void ContextSerializationIsStable()
@@ -62,6 +64,10 @@ internal static class PortableProbeCaptureBundleTests
 			TestAssert.Equal("B", manifest.RootElement.GetProperty("acquisition").GetProperty("context").GetProperty("observer_id").GetString(), "context observer attribution");
 			TestAssert.Equal("B", manifest.RootElement.GetProperty("runtime_provenance").GetProperty("observer_id").GetString(), "normalized provenance attribution");
 			TestAssert.Equal("compute-policy-test", manifest.RootElement.GetProperty("runtime_provenance").GetProperty("compute_marker").GetString(), "compute provenance preserved");
+			TestAssert.Equal("XPrimeRaySpatialKernel/LinearScan-v0", manifest.RootElement.GetProperty("authority").GetProperty("spatial_authority").GetString(), "explicit spatial authority attribution");
+			TestAssert.Equal("dirty", manifest.RootElement.GetProperty("runtime_provenance").GetProperty("source_tree_state").GetString(), "dirty source tree attribution");
+			TestAssert.Equal(new string('a', 64), manifest.RootElement.GetProperty("runtime_provenance").GetProperty("authored_diff_sha256").GetString(), "authored diff fingerprint attribution");
+			TestAssert.True(manifest.RootElement.GetProperty("runtime_provenance").GetProperty("authored_diff_algorithm").GetString()!.StartsWith("sha256(", StringComparison.Ordinal), "authored diff algorithm documented");
 			TestAssert.True(File.ReadAllText(result.SummaryPath).Contains("- Observer: `B`", StringComparison.Ordinal), "summary observer line");
 			string description = manifest.RootElement.GetProperty("acquisition").GetProperty("context").GetProperty("canonical_serialization").GetString() ?? string.Empty;
 			TestAssert.True(description.StartsWith("v3 little-endian: schema_version (uint32), observer_id (uint32 length + UTF-8 bytes)", StringComparison.Ordinal), "v3 serialization description");
@@ -130,6 +136,34 @@ internal static class PortableProbeCaptureBundleTests
 		TestAssert.Equal("contact_authority_token_mismatch", reason, "authority mismatch reason");
 	}
 
+	private static void SpatialAuthorityValidationIsRequired()
+	{
+		PortableProbeCaptureInput missing = CopyWith(CreateInput(Path.Combine(Path.GetTempPath(), "not-written")), spatialAuthority: "");
+		TestAssert.False(PortableProbeCaptureBundle.TryWrite(missing, out _, out string missingReason), "missing spatial authority rejected");
+		TestAssert.Equal("spatial_authority_token_missing", missingReason, "missing spatial authority reason");
+
+		PortableProbeCaptureInput inconsistent = CopyWith(CreateInput(Path.Combine(Path.GetTempPath(), "not-written")), spatialAuthority: "XPrimeRaySpatialKernel/BVH-v0");
+		TestAssert.False(PortableProbeCaptureBundle.TryWrite(inconsistent, out _, out string inconsistentReason), "inconsistent spatial authority rejected");
+		TestAssert.Equal("spatial_authority_token_mismatch", inconsistentReason, "inconsistent spatial authority reason");
+
+		PortableProbeCaptureInput provenanceMismatch = CopyWith(CreateInput(Path.Combine(Path.GetTempPath(), "not-written")), bvhAuthority: "XPrimeRaySpatialKernel/BVH-v0");
+		TestAssert.False(PortableProbeCaptureBundle.TryWrite(provenanceMismatch, out _, out string provenanceReason), "spatial provenance mismatch rejected");
+		TestAssert.Equal("spatial_authority_provenance_mismatch", provenanceReason, "spatial provenance mismatch reason");
+	}
+
+	private static void SourceTreeAttributionIsExplicit()
+	{
+		PortableProbeCaptureInput missingFingerprint = CopyWith(
+			CreateInput(Path.Combine(Path.GetTempPath(), "not-written")), sourceTreeState: "dirty", authoredDiffSha256: "");
+		TestAssert.False(PortableProbeCaptureBundle.TryWrite(missingFingerprint, out _, out string dirtyReason), "dirty tree without fingerprint rejected");
+		TestAssert.Equal("dirty_source_tree_requires_authored_diff_sha256", dirtyReason, "dirty tree fingerprint reason");
+
+		PortableProbeCaptureInput invalidState = CopyWith(
+			CreateInput(Path.Combine(Path.GetTempPath(), "not-written")), sourceTreeState: "assumed-clean");
+		TestAssert.False(PortableProbeCaptureBundle.TryWrite(invalidState, out _, out string stateReason), "invalid source tree state rejected");
+		TestAssert.Equal("invalid_source_tree_state", stateReason, "source tree state reason");
+	}
+
 	private static PortableProbeCaptureInput CreateInput(string output)
 	{
 		PortableProbeCaptureInput result = new PortableProbeCaptureInput
@@ -139,6 +173,8 @@ internal static class PortableProbeCaptureBundleTests
 			SemanticSceneId = "portable_observatory.gallery.v1",
 			GodotScenePath = "res://ObservatoryWorkbench.tscn",
 			EngineCommit = "test",
+			SourceTreeState = "dirty",
+			AuthoredDiffSha256 = new string('a', 64),
 			AcquisitionLineage = "test",
 			LifecycleComplete = true,
 			SealedAuthorityAvailable = true,
@@ -157,26 +193,35 @@ internal static class PortableProbeCaptureBundleTests
 			PolicyMaxSteps = new[] { 81, 81, 81, 81 },
 			EffortValid = new byte[] { 1, 1, 1, 0 },
 			ContactAuthorityToken = "XPrimeRaySpatialKernel/LinearScan-v0",
-			RuntimeProvenance = new Dictionary<string, string> { ["capture_authority"] = "XPrimeRaySpatialKernel/LinearScan-v0", ["compute_marker"] = "compute-policy-test" }
+			SpatialAuthorityToken = "XPrimeRaySpatialKernel/LinearScan-v0",
+			RuntimeProvenance = new Dictionary<string, string>
+			{
+				["capture_authority"] = "XPrimeRaySpatialKernel/LinearScan-v0",
+				["bvh_authority_token"] = "XPrimeRaySpatialKernel/LinearScan-v0",
+				["compute_marker"] = "compute-policy-test"
+			}
 		};
 		return result;
 	}
 
-	private static PortableProbeCaptureInput CopyWith(PortableProbeCaptureInput input, bool? complete = null, int[]? contacts = null, int[]? finalSteps = null, byte[]? effortValid = null, string? authority = null, string? provenanceAuthority = null, ProbeContextKey? context = null, string? observerProvenance = null)
+	private static PortableProbeCaptureInput CopyWith(PortableProbeCaptureInput input, bool? complete = null, int[]? contacts = null, int[]? finalSteps = null, byte[]? effortValid = null, string? authority = null, string? provenanceAuthority = null, string? spatialAuthority = null, string? bvhAuthority = null, ProbeContextKey? context = null, string? observerProvenance = null, string? sourceTreeState = null, string? authoredDiffSha256 = null)
 	{
 		PortableProbeCaptureInput result = new PortableProbeCaptureInput
 		{
 			RunId = input.RunId, OutputDirectory = input.OutputDirectory, SemanticSceneId = input.SemanticSceneId, GodotScenePath = input.GodotScenePath,
-			EngineCommit = input.EngineCommit, AcquisitionLineage = input.AcquisitionLineage, LifecycleComplete = complete ?? input.LifecycleComplete,
+			EngineCommit = input.EngineCommit, SourceTreeState = sourceTreeState ?? input.SourceTreeState, AuthoredDiffSha256 = authoredDiffSha256 ?? input.AuthoredDiffSha256,
+			AcquisitionLineage = input.AcquisitionLineage, LifecycleComplete = complete ?? input.LifecycleComplete,
 			SealedAuthorityAvailable = input.SealedAuthorityAvailable, Generation = input.Generation, ContextKey = context ?? input.ContextKey,
 			CameraTransform = input.CameraTransform, Width = input.Width, Height = input.Height, UnprocessedCount = input.UnprocessedCount,
 			StepsPerRay = input.StepsPerRay, StepLength = input.StepLength, FieldStrength = input.FieldStrength,
 			Outcomes = input.Outcomes, ContactCounts = contacts ?? input.ContactCounts, FinalStepCounts = finalSteps ?? input.FinalStepCounts,
 			PolicyMaxSteps = input.PolicyMaxSteps, EffortValid = effortValid ?? input.EffortValid,
 			ContactAuthorityToken = authority ?? input.ContactAuthorityToken,
+			SpatialAuthorityToken = spatialAuthority ?? input.SpatialAuthorityToken,
 			RuntimeProvenance = new Dictionary<string, string>(input.RuntimeProvenance)
 		};
 		if (provenanceAuthority != null) result.RuntimeProvenance["capture_authority"] = provenanceAuthority;
+		if (bvhAuthority != null) result.RuntimeProvenance["bvh_authority_token"] = bvhAuthority;
 		if (observerProvenance != null) result.RuntimeProvenance["observer_id"] = observerProvenance;
 		return result;
 	}

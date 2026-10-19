@@ -33,17 +33,17 @@ public sealed class SpatialBvhQuery : IPass1SpatialQuery
     public SpatialBvhQuery(FrozenGeometrySnapshot snapshot)
     {
         _snapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
-        for (int i = 0; i < snapshot.Primitives.Count; i++)
+        for (int i = 0; i < snapshot.AllPrimitives.Count; i++)
         {
-            Aabb3 bounds = snapshot.Primitives[i].WorldBounds;
+            Aabb3 bounds = snapshot.AllPrimitives[i].WorldBounds;
             if (!IsFinite(bounds.Min) || !IsFinite(bounds.Max))
                 throw new ArgumentException($"BVH WorldBounds must be finite for primitive index {i}.", nameof(snapshot));
             if (bounds.Min.X > bounds.Max.X || bounds.Min.Y > bounds.Max.Y || bounds.Min.Z > bounds.Max.Z)
                 throw new ArgumentException($"BVH WorldBounds must be ordered for primitive index {i}.", nameof(snapshot));
         }
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        List<int> indices = Enumerable.Range(0, snapshot.Primitives.Count)
-            .Where(index => !snapshot.Primitives[index].IsExcluded)
+        List<int> indices = Enumerable.Range(0, snapshot.AllPrimitives.Count)
+            .Where(index => !snapshot.AllPrimitives[index].IsExcluded)
             .ToList();
         List<Node> nodes = new();
         List<int> leafIndices = new();
@@ -87,11 +87,11 @@ public sealed class SpatialBvhQuery : IPass1SpatialQuery
             {
                 for (int i = 0; i < node.Count; i++)
                 {
-                    FrozenOrientedBox primitive = _snapshot.Primitives[_primitiveIndices[node.Start + i]];
+                    IFrozenSpatialPrimitive primitive = _snapshot.AllPrimitives[_primitiveIndices[node.Start + i]];
                     if ((primitive.CollisionLayer & collisionMask) == 0)
                         continue;
                     PrimitiveTestCount++;
-                    if (!OrientedBoxIntersection.TryIntersectSegment(primitive, from, to, out SurfaceHit candidate))
+                    if (!FrozenPrimitiveIntersection.TryIntersectSegment(primitive, from, to, out SurfaceHit candidate))
                         continue;
                     if (!found || candidate.SegmentT < nearest.SegmentT ||
                         (candidate.SegmentT == nearest.SegmentT &&
@@ -140,12 +140,12 @@ public sealed class SpatialBvhQuery : IPass1SpatialQuery
         int axis = LongestAxis(extent);
         indices.Sort((a, b) =>
         {
-            float av = Axis(_snapshot.Primitives[a].WorldBounds.Center, axis);
-            float bv = Axis(_snapshot.Primitives[b].WorldBounds.Center, axis);
+            float av = Axis(_snapshot.AllPrimitives[a].WorldBounds.Center, axis);
+            float bv = Axis(_snapshot.AllPrimitives[b].WorldBounds.Center, axis);
             int result = av.CompareTo(bv);
             return result != 0
                 ? result
-                : string.CompareOrdinal(_snapshot.Primitives[a].CanonicalPrimitiveId, _snapshot.Primitives[b].CanonicalPrimitiveId);
+                : string.CompareOrdinal(_snapshot.AllPrimitives[a].CanonicalPrimitiveId, _snapshot.AllPrimitives[b].CanonicalPrimitiveId);
         });
         int midpoint = indices.Count / 2;
         int left = BuildNode(indices.GetRange(0, midpoint), depth + 1, nodes, leafIndices, ref leafCount, ref maxDepth);
@@ -156,9 +156,9 @@ public sealed class SpatialBvhQuery : IPass1SpatialQuery
 
     private Aabb3 Bounds(List<int> indices)
     {
-        Aabb3 bounds = _snapshot.Primitives[indices[0]].WorldBounds;
+        Aabb3 bounds = _snapshot.AllPrimitives[indices[0]].WorldBounds;
         for (int i = 1; i < indices.Count; i++)
-            bounds = Aabb3.Union(bounds, _snapshot.Primitives[indices[i]].WorldBounds);
+            bounds = Aabb3.Union(bounds, _snapshot.AllPrimitives[indices[i]].WorldBounds);
         return bounds;
     }
 
@@ -234,7 +234,7 @@ public sealed class SpatialBvhQuery : IPass1SpatialQuery
             WriteInt32(stream, node.Start); WriteInt32(stream, node.Count);
         }
         WriteInt32(stream, leafIndices.Length);
-        foreach (int index in leafIndices) WriteString(stream, snapshot.Primitives[index].CanonicalPrimitiveId);
+        foreach (int index in leafIndices) WriteString(stream, snapshot.AllPrimitives[index].CanonicalPrimitiveId);
         return Convert.ToHexString(SHA256.HashData(stream.ToArray())).ToLowerInvariant();
     }
 

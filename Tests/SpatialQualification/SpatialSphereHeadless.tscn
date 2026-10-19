@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Tests/SpatialQualification/SpatialSphereHeadless.cs" id="1_sphere"]
+
+[node name="SpatialSphereHeadless" type="Node"]
+script = ExtResource("1_sphere")

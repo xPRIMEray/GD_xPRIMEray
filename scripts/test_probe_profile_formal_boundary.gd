@@ -271,6 +271,7 @@ func _run_formal(tag: String, guard_live_schedule := false) -> void:
 	_assert(bool(film.get("CathedralSpatialAuthorityPromotionReady")), "authority promotion gate green")
 	_assert(int(film.get("CathedralSpatialKernelTotalAuthorityMismatchPixelCount")) == 0, "zero authority pixel mismatches")
 	_assert(int(film.get("CathedralSpatialKernelMismatchQueryCount")) == 0, "zero witness query mismatches")
+	_assert(int(film.get("CathedralSpatialKernelGodotQueryComparisonCount")) == int(film.get("CathedralProbeQueryCount")), "default Formal compares every Godot query")
 	_assert(int(film.get("CathedralSnapshotProcessedPixelCount")) == int(film.get("CathedralSnapshotTotalPixelCount")), "all pixels processed")
 	var film_pixel_count := int(film.get("FilmWidthPixels")) * int(film.get("FilmHeightRows"))
 	var net_committed_work_units := int(film.get("CathedralFormalWorkUnitCommitCount")) - int(film.get("CathedralFormalWorkUnitReplacementCount"))
@@ -279,7 +280,8 @@ func _run_formal(tag: String, guard_live_schedule := false) -> void:
 	var bundle_dir := output_root.path_join("p%d_%s_%s" % [profile_index, scenario.to_lower(), tag])
 	var reason := str(film.call("CapturePortableObservatoryBundle", bundle_dir,
 		"probe-profile-%d-%s-%s" % [profile_index, scenario.to_lower(), tag],
-		"hello-prt-gallery-v2", SCENE_PATH, "working-tree", "probe-profile-boundary"))
+		"hello-prt-gallery-v2", SCENE_PATH, "working-tree", "probe-profile-boundary",
+		OS.get_environment("XPRIMERAY_SOURCE_TREE_STATE"), OS.get_environment("XPRIMERAY_AUTHORED_DIFF_SHA256")))
 	_assert(reason.is_empty(), "portable bundle capture: " + reason)
 	var manifest_file := FileAccess.open(bundle_dir.path_join("manifest.json"), FileAccess.READ)
 	_assert(manifest_file != null, "bundle manifest readable")

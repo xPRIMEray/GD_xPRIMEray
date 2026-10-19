@@ -11,8 +11,8 @@ using Matrix4x4 = System.Numerics.Matrix4x4;
 namespace GodotAdapter;
 
 /// <summary>
-/// Narrow Godot-to-spatial-kernel adapter. It deliberately accepts only
-/// enabled BoxShape3D primitives for formal dual validation.
+/// Narrow Godot-to-spatial-kernel adapter for enabled BoxShape3D and
+/// uniformly-scaled SphereShape3D primitives used by formal dual validation.
 /// </summary>
 public static class SpatialSnapshotBuilder
 {
@@ -37,35 +37,54 @@ public static class SpatialSnapshotBuilder
             .OrderBy(r => r.ShapePath, StringComparer.Ordinal)
             .ToArray();
 
-        List<FrozenOrientedBox> primitives = new(ordered.Length);
+        List<FrozenOrientedBox> boxes = new(ordered.Length);
+        List<FrozenSphere> spheres = new();
         foreach (ShapeRecord record in ordered)
         {
-            if (record.Shape.Shape is not BoxShape3D box)
-                throw new NotSupportedException($"Spatial Kernel v1 supports only BoxShape3D; unsupported={record.Shape.GetPath()}");
-
             Transform3D godotTransform = record.Shape.GlobalTransform;
-            Matrix4x4 worldFromLocal = ToNumerics(godotTransform);
-            if (!Matrix4x4.Invert(worldFromLocal, out Matrix4x4 localFromWorld))
-                throw new InvalidOperationException($"Non-invertible geometry transform={record.Shape.GetPath()}");
-
-            NumericsVector3 halfExtents = ToNumerics(box.Size) * 0.5f;
-            Aabb3 worldBounds = BuildWorldBounds(worldFromLocal, halfExtents);
             string canonicalId = $"{record.ShapePath}#{record.ShapeOrdinal}";
             FrozenPrimitiveFlags flags = record.Excluded
                 ? FrozenPrimitiveFlags.Excluded
                 : FrozenPrimitiveFlags.CollideWithBodies;
-            primitives.Add(new FrozenOrientedBox(
-                canonicalId,
-                record.SurfaceClass,
-                worldFromLocal,
-                localFromWorld,
-                halfExtents,
-                worldBounds,
-                record.Owner.CollisionLayer,
-                flags));
+            switch (record.Shape.Shape)
+            {
+                case BoxShape3D box:
+                {
+                    Matrix4x4 worldFromLocal = ToNumerics(godotTransform);
+                    if (!Matrix4x4.Invert(worldFromLocal, out Matrix4x4 localFromWorld))
+                        throw new InvalidOperationException($"Non-invertible geometry transform={record.Shape.GetPath()}");
+                    NumericsVector3 halfExtents = ToNumerics(box.Size) * 0.5f;
+                    Aabb3 worldBounds = BuildWorldBounds(worldFromLocal, halfExtents);
+                    boxes.Add(new FrozenOrientedBox(
+                        canonicalId,
+                        record.SurfaceClass,
+                        worldFromLocal,
+                        localFromWorld,
+                        halfExtents,
+                        worldBounds,
+                        record.Owner.CollisionLayer,
+                        flags));
+                    break;
+                }
+                case SphereShape3D sphere:
+                {
+                    float scale = RequireOrthogonalUniformScale(godotTransform.Basis, record.Shape.GetPath().ToString());
+                    spheres.Add(new FrozenSphere(
+                        canonicalId,
+                        record.SurfaceClass,
+                        ToNumerics(godotTransform.Origin),
+                        sphere.Radius * scale,
+                        record.Owner.CollisionLayer,
+                        flags));
+                    break;
+                }
+                default:
+                    throw new NotSupportedException(
+                        $"Spatial Kernel supports BoxShape3D and SphereShape3D; unsupported={record.Shape.GetPath()} type={record.Shape.Shape.GetType().Name}");
+            }
         }
 
-        return new FrozenGeometrySnapshot(primitives);
+        return new FrozenGeometrySnapshot(boxes, spheres);
     }
 
     private static void CollectShapes(
@@ -119,13 +138,32 @@ public static class SpatialSnapshotBuilder
         GdVector3 bz = t.Basis.Z;
         GdVector3 o = t.Origin;
         return new Matrix4x4(
-            bx.X, by.X, bz.X, 0f,
-            bx.Y, by.Y, bz.Y, 0f,
-            bx.Z, by.Z, bz.Z, 0f,
+            bx.X, bx.Y, bx.Z, 0f,
+            by.X, by.Y, by.Z, 0f,
+            bz.X, bz.Y, bz.Z, 0f,
             o.X, o.Y, o.Z, 1f);
     }
 
     private static NumericsVector3 ToNumerics(GdVector3 v) => new(v.X, v.Y, v.Z);
+
+    private static float RequireOrthogonalUniformScale(Basis basis, string path)
+    {
+        float sx = basis.X.Length();
+        float sy = basis.Y.Length();
+        float sz = basis.Z.Length();
+        float largest = Math.Max(sx, Math.Max(sy, sz));
+        float tolerance = Math.Max(1e-6f, largest * 1e-5f);
+        if (!float.IsFinite(largest) || largest <= 0f ||
+            Math.Abs(sx - sy) > tolerance || Math.Abs(sx - sz) > tolerance)
+            throw new NotSupportedException($"SphereShape3D requires finite uniform scale; shape={path} scale=({sx:R},{sy:R},{sz:R})");
+
+        GdVector3 x = basis.X / sx;
+        GdVector3 y = basis.Y / sy;
+        GdVector3 z = basis.Z / sz;
+        if (Math.Abs(x.Dot(y)) > 1e-5f || Math.Abs(x.Dot(z)) > 1e-5f || Math.Abs(y.Dot(z)) > 1e-5f)
+            throw new NotSupportedException($"SphereShape3D does not support sheared transforms; shape={path}");
+        return (sx + sy + sz) / 3f;
+    }
 
     private static Aabb3 BuildWorldBounds(Matrix4x4 worldFromLocal, NumericsVector3 halfExtents)
     {

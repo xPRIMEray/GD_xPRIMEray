@@ -32,6 +32,7 @@ public sealed class LinearScanSpatialQuery : IPass1SpatialQuery
 {
     public const string AuthorityTokenValue = "XPrimeRaySpatialKernel/LinearScan-v0";
     public const string IntersectionPolicyVersion = "finite-segment-oriented-box-slab-v0";
+    public const string MixedIntersectionPolicyVersion = "finite-segment-box-slab-v0+sphere-quadratic-v0";
     private readonly FrozenGeometrySnapshot _snapshot;
 
     public string AuthorityToken => AuthorityTokenValue;
@@ -48,12 +49,12 @@ public sealed class LinearScanSpatialQuery : IPass1SpatialQuery
         QueryCount++;
         bool found = false;
         SurfaceHit nearest = default;
-        foreach (FrozenOrientedBox primitive in _snapshot.Primitives)
+        foreach (IFrozenSpatialPrimitive primitive in _snapshot.AllPrimitives)
         {
             if (primitive.IsExcluded || (primitive.CollisionLayer & collisionMask) == 0)
                 continue;
             PrimitiveTestCount++;
-            if (!OrientedBoxIntersection.TryIntersectSegment(primitive, from, to, out SurfaceHit candidate))
+            if (!FrozenPrimitiveIntersection.TryIntersectSegment(primitive, from, to, out SurfaceHit candidate))
                 continue;
             if (!found || candidate.SegmentT < nearest.SegmentT ||
                 (candidate.SegmentT == nearest.SegmentT && string.CompareOrdinal(candidate.CanonicalPrimitiveId, nearest.CanonicalPrimitiveId) < 0))
@@ -64,6 +65,69 @@ public sealed class LinearScanSpatialQuery : IPass1SpatialQuery
         }
         hit = nearest;
         return found;
+    }
+}
+
+public static class FrozenPrimitiveIntersection
+{
+    public static bool TryIntersectSegment(IFrozenSpatialPrimitive primitive, Vector3 from, Vector3 to, out SurfaceHit hit) => primitive switch
+    {
+        FrozenOrientedBox box => OrientedBoxIntersection.TryIntersectSegment(box, from, to, out hit),
+        FrozenSphere sphere => SphereIntersection.TryIntersectSegment(sphere, from, to, out hit),
+        _ => throw new NotSupportedException($"Unsupported frozen primitive kind: {primitive.GetType().FullName}")
+    };
+}
+
+public static class SphereIntersection
+{
+    /// <summary>
+    /// finite-segment-sphere-quadratic-v0: inclusive [0,1], no added
+    /// tolerance, tangent/endpoint contacts included, and start-inside or
+    /// start-on-surface returns t=0 with no outward normal.
+    /// </summary>
+    public static bool TryIntersectSegment(FrozenSphere sphere, Vector3 from, Vector3 to, out SurfaceHit hit)
+    {
+        Vector3 offset = from - sphere.Center;
+        double radiusSquared = (double)sphere.Radius * sphere.Radius;
+        if (Vector3.Dot(offset, offset) <= radiusSquared)
+        {
+            hit = new SurfaceHit(sphere.CanonicalPrimitiveId, sphere.SurfaceClass, 0f, from, Vector3.Zero, false);
+            return true;
+        }
+
+        Vector3 direction = to - from;
+        double a = Vector3.Dot(direction, direction);
+        if (a == 0.0)
+        {
+            hit = default;
+            return false;
+        }
+        double b = 2.0 * Vector3.Dot(offset, direction);
+        double c = Vector3.Dot(offset, offset) - radiusSquared;
+        double discriminant = b * b - 4.0 * a * c;
+        if (discriminant < 0.0)
+        {
+            hit = default;
+            return false;
+        }
+
+        double root = Math.Sqrt(discriminant);
+        double t0 = (-b - root) / (2.0 * a);
+        double t1 = (-b + root) / (2.0 * a);
+        double t = t0 >= 0.0 && t0 <= 1.0 ? t0 : t1;
+        if (t < 0.0 || t > 1.0)
+        {
+            hit = default;
+            return false;
+        }
+
+        float segmentT = (float)t;
+        Vector3 position = from + direction * segmentT;
+        Vector3 normal = position - sphere.Center;
+        bool normalValid = normal.LengthSquared() > 1e-20f;
+        if (normalValid) normal = Vector3.Normalize(normal);
+        hit = new SurfaceHit(sphere.CanonicalPrimitiveId, sphere.SurfaceClass, segmentT, position, normal, normalValid);
+        return true;
     }
 }
 

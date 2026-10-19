@@ -15,7 +15,24 @@ public enum FrozenPrimitiveFlags : uint
     CollideWithAreas = 4
 }
 
-public sealed class FrozenOrientedBox
+public enum FrozenPrimitiveKind : byte
+{
+    OrientedBox = 1,
+    Sphere = 2
+}
+
+public interface IFrozenSpatialPrimitive
+{
+    string CanonicalPrimitiveId { get; }
+    FrozenPrimitiveKind PrimitiveKind { get; }
+    SpatialSurfaceClass SurfaceClass { get; }
+    Aabb3 WorldBounds { get; }
+    uint CollisionLayer { get; }
+    FrozenPrimitiveFlags Flags { get; }
+    bool IsExcluded { get; }
+}
+
+public sealed class FrozenOrientedBox : IFrozenSpatialPrimitive
 {
     public string CanonicalPrimitiveId { get; }
     public SpatialSurfaceClass SurfaceClass { get; }
@@ -25,6 +42,7 @@ public sealed class FrozenOrientedBox
     public Aabb3 WorldBounds { get; }
     public uint CollisionLayer { get; }
     public FrozenPrimitiveFlags Flags { get; }
+    public FrozenPrimitiveKind PrimitiveKind => FrozenPrimitiveKind.OrientedBox;
 
     public FrozenOrientedBox(
         string canonicalPrimitiveId,
@@ -78,22 +96,85 @@ public sealed class FrozenOrientedBox
     }
 }
 
+public sealed class FrozenSphere : IFrozenSpatialPrimitive
+{
+    public string CanonicalPrimitiveId { get; }
+    public FrozenPrimitiveKind PrimitiveKind => FrozenPrimitiveKind.Sphere;
+    public SpatialSurfaceClass SurfaceClass { get; }
+    public Vector3 Center { get; }
+    public float Radius { get; }
+    public Aabb3 WorldBounds { get; }
+    public uint CollisionLayer { get; }
+    public FrozenPrimitiveFlags Flags { get; }
+    public bool IsExcluded => (Flags & FrozenPrimitiveFlags.Excluded) != 0;
+
+    public FrozenSphere(
+        string canonicalPrimitiveId,
+        SpatialSurfaceClass surfaceClass,
+        Vector3 center,
+        float radius,
+        uint collisionLayer,
+        FrozenPrimitiveFlags flags)
+    {
+        if (string.IsNullOrWhiteSpace(canonicalPrimitiveId))
+            throw new ArgumentException("Canonical primitive identity is required.", nameof(canonicalPrimitiveId));
+        if (!IsFinite(center)) throw new ArgumentException("Sphere center must be finite.", nameof(center));
+        if (!float.IsFinite(radius) || radius <= 0f) throw new ArgumentOutOfRangeException(nameof(radius));
+        CanonicalPrimitiveId = canonicalPrimitiveId;
+        SurfaceClass = surfaceClass;
+        Center = center;
+        Radius = radius;
+        Vector3 extent = new(radius);
+        WorldBounds = new Aabb3(center - extent, center + extent);
+        CollisionLayer = collisionLayer;
+        Flags = flags;
+    }
+
+    private static bool IsFinite(Vector3 value) =>
+        float.IsFinite(value.X) && float.IsFinite(value.Y) && float.IsFinite(value.Z);
+}
+
 public sealed class FrozenGeometrySnapshot
 {
+	// v2 identifies the canonical byte layout. It does not preserve the values
+	// produced by the historically transposed Godot-basis adapter. Correcting
+	// that adapter intentionally changes hashes for rotated Godot boxes while
+	// leaving the v2 layout and manually constructed box snapshots unchanged.
     public const string SchemaVersion = "FrozenGeometrySnapshot-v2-le";
+    public const string MixedSchemaVersion = "FrozenGeometrySnapshot-v3-mixed-le";
     public IReadOnlyList<FrozenOrientedBox> Primitives { get; }
+    public IReadOnlyList<FrozenSphere> Spheres { get; }
+    public IReadOnlyList<IFrozenSpatialPrimitive> AllPrimitives { get; }
+    public string EffectiveSchemaVersion => Spheres.Count == 0 ? SchemaVersion : MixedSchemaVersion;
+    public string IntersectionPolicyVersion => Spheres.Count == 0
+        ? LinearScanSpatialQuery.IntersectionPolicyVersion
+        : LinearScanSpatialQuery.MixedIntersectionPolicyVersion;
     public string GeometrySnapshotSha256 { get; }
-    public int PrimitiveCount => Primitives.Count;
+    public int PrimitiveCount => AllPrimitives.Count;
 
-    public FrozenGeometrySnapshot(IEnumerable<FrozenOrientedBox> primitives)
+    public FrozenGeometrySnapshot(IEnumerable<FrozenOrientedBox> primitives) : this(primitives, Array.Empty<FrozenSphere>())
     {
-        if (primitives == null) throw new ArgumentNullException(nameof(primitives));
-        FrozenOrientedBox[] ordered = primitives
+    }
+
+    public FrozenGeometrySnapshot(IEnumerable<FrozenOrientedBox> boxes, IEnumerable<FrozenSphere> spheres)
+    {
+        if (boxes == null) throw new ArgumentNullException(nameof(boxes));
+        if (spheres == null) throw new ArgumentNullException(nameof(spheres));
+        FrozenOrientedBox[] orderedBoxes = boxes
             .OrderBy(p => p.CanonicalPrimitiveId, StringComparer.Ordinal)
             .ToArray();
-        if (ordered.Select(p => p.CanonicalPrimitiveId).Distinct(StringComparer.Ordinal).Count() != ordered.Length)
-            throw new ArgumentException("Canonical primitive identities must be unique.", nameof(primitives));
-        Primitives = Array.AsReadOnly(ordered);
+        FrozenSphere[] orderedSpheres = spheres
+            .OrderBy(p => p.CanonicalPrimitiveId, StringComparer.Ordinal)
+            .ToArray();
+        IFrozenSpatialPrimitive[] all = orderedBoxes.Cast<IFrozenSpatialPrimitive>()
+            .Concat(orderedSpheres)
+            .OrderBy(p => p.CanonicalPrimitiveId, StringComparer.Ordinal)
+            .ToArray();
+        if (all.Select(p => p.CanonicalPrimitiveId).Distinct(StringComparer.Ordinal).Count() != all.Length)
+            throw new ArgumentException("Canonical primitive identities must be unique across all primitive kinds.");
+        Primitives = Array.AsReadOnly(orderedBoxes);
+        Spheres = Array.AsReadOnly(orderedSpheres);
+        AllPrimitives = Array.AsReadOnly(all);
         GeometrySnapshotSha256 = FrozenGeometrySnapshotCanonicalSerializer.ComputeSha256(this);
     }
 }
@@ -104,18 +185,49 @@ public static class FrozenGeometrySnapshotCanonicalSerializer
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         using MemoryStream stream = new();
-        WriteString(stream, FrozenGeometrySnapshot.SchemaVersion);
-        WriteInt32(stream, snapshot.PrimitiveCount);
-        foreach (FrozenOrientedBox primitive in snapshot.Primitives)
+        if (snapshot.Spheres.Count == 0)
         {
+            // This branch is intentionally byte-for-byte identical to v2.
+            WriteString(stream, FrozenGeometrySnapshot.SchemaVersion);
+            WriteInt32(stream, snapshot.PrimitiveCount);
+            foreach (FrozenOrientedBox primitive in snapshot.Primitives)
+            {
+                WriteString(stream, primitive.CanonicalPrimitiveId);
+                stream.WriteByte((byte)primitive.SurfaceClass);
+                WriteUInt32(stream, primitive.CollisionLayer);
+                WriteUInt32(stream, (uint)primitive.Flags);
+                WriteVector(stream, primitive.HalfExtents);
+                WriteAabb(stream, primitive.WorldBounds);
+                WriteMatrix(stream, primitive.WorldFromLocal);
+                WriteMatrix(stream, primitive.LocalFromWorld);
+            }
+            return stream.ToArray();
+        }
+
+        WriteString(stream, FrozenGeometrySnapshot.MixedSchemaVersion);
+        WriteInt32(stream, snapshot.PrimitiveCount);
+        foreach (IFrozenSpatialPrimitive primitive in snapshot.AllPrimitives)
+        {
+            stream.WriteByte((byte)primitive.PrimitiveKind);
             WriteString(stream, primitive.CanonicalPrimitiveId);
             stream.WriteByte((byte)primitive.SurfaceClass);
             WriteUInt32(stream, primitive.CollisionLayer);
             WriteUInt32(stream, (uint)primitive.Flags);
-            WriteVector(stream, primitive.HalfExtents);
             WriteAabb(stream, primitive.WorldBounds);
-            WriteMatrix(stream, primitive.WorldFromLocal);
-            WriteMatrix(stream, primitive.LocalFromWorld);
+            switch (primitive)
+            {
+                case FrozenOrientedBox box:
+                    WriteVector(stream, box.HalfExtents);
+                    WriteMatrix(stream, box.WorldFromLocal);
+                    WriteMatrix(stream, box.LocalFromWorld);
+                    break;
+                case FrozenSphere sphere:
+                    WriteVector(stream, sphere.Center);
+                    WriteSingle(stream, sphere.Radius);
+                    break;
+                default:
+                    throw new InvalidDataException($"Unsupported frozen primitive kind: {primitive.GetType().FullName}");
+            }
         }
         return stream.ToArray();
     }
