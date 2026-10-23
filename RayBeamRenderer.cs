@@ -910,6 +910,42 @@ public partial class RayBeamRenderer : Node3D
 		public bool DebugLogCrossings;
 	}
 
+	public enum BoundaryExecutionOwnership : byte
+	{
+		LiveCache = 0,
+		FrozenFormal = 1,
+	}
+
+	public readonly struct BoundaryExecutionOwnershipDiagnostics
+	{
+		public readonly long LiveCacheResolveCount;
+		public readonly long FrozenFormalResolveCount;
+		public readonly long MissingFrozenFormalRejectCount;
+		public readonly long FrozenFormalIdentityMismatchCount;
+		public readonly string FrozenFormalExecutionSha256;
+
+		public BoundaryExecutionOwnershipDiagnostics(
+			long liveCacheResolveCount,
+			long frozenFormalResolveCount,
+			long missingFrozenFormalRejectCount,
+			long frozenFormalIdentityMismatchCount,
+			string frozenFormalExecutionSha256)
+		{
+			LiveCacheResolveCount = liveCacheResolveCount;
+			FrozenFormalResolveCount = frozenFormalResolveCount;
+			MissingFrozenFormalRejectCount = missingFrozenFormalRejectCount;
+			FrozenFormalIdentityMismatchCount = frozenFormalIdentityMismatchCount;
+			FrozenFormalExecutionSha256 = frozenFormalExecutionSha256 ?? string.Empty;
+		}
+	}
+
+	private int _boundaryExecutionOwnershipDiagnosticsEnabled;
+	private long _boundaryExecutionLiveCacheResolveCount;
+	private long _boundaryExecutionFrozenFormalResolveCount;
+	private long _boundaryExecutionMissingFrozenFormalRejectCount;
+	private long _boundaryExecutionFrozenFormalIdentityMismatchCount;
+	private string _boundaryExecutionFrozenFormalSha256 = string.Empty;
+
 	public enum LedgerCrossingKind : byte
 	{
 		None = 0,
@@ -1035,6 +1071,12 @@ public partial class RayBeamRenderer : Node3D
 	public BoundaryLayerSnap[] GetBoundaryLayerSnapsForTesting()
 	{
 		return _boundaryLayerSnaps ?? Array.Empty<BoundaryLayerSnap>();
+	}
+
+	public BoundaryLayerSnap[] CopyBoundaryLayerSnapsForFormalAuthority()
+	{
+		BoundaryLayerSnap[] source = _boundaryLayerSnaps ?? Array.Empty<BoundaryLayerSnap>();
+		return (BoundaryLayerSnap[])source.Clone();
 	}
 
 	public readonly struct DebugRayBundle
@@ -3654,7 +3696,9 @@ public partial class RayBeamRenderer : Node3D
 		CurvatureBoundGrid curvatureGrid,
 		FieldGrid3D fieldGrid = null,
 		Pass1ContactClassifier contactClassifier = null,
-		int formalProbePixelIndex = -1)
+		int formalProbePixelIndex = -1,
+		GodotAdapter.FrozenBoundarySnapshot frozenBoundarySnapshot = null,
+		BoundaryExecutionOwnership boundaryExecutionOwnership = BoundaryExecutionOwnership.LiveCache)
 	{
 		// CROSS-CLASS CONTRACT: GrinFilmCamera calls this to build segments + optional pass-1 hit probes.
 		// ASSUMPTION: origin/dir/bendDir are in world space; dir normalized.
@@ -3732,8 +3776,10 @@ public partial class RayBeamRenderer : Node3D
 		float radiusMin = RadiusMin;
 		bool useCurvatureGrid = curvatureGrid != null;
 		// Cache boundary layer state for this ray (read-only; written on main thread before Parallel.For).
-		BoundaryLayerSnap[] boundaryLayers = _boundaryLayerSnaps;
-		bool hasBoundaryLayers = _hasBoundaryLayers;
+		IReadOnlyList<BoundaryLayerSnap> boundaryLayers = ResolveBoundaryExecutionView(
+			frozenBoundarySnapshot,
+			boundaryExecutionOwnership);
+		bool hasBoundaryLayers = boundaryLayers.Count > 0;
 		// CONTROL FACTOR: pass1ProbeEveryNSegments controls cadence-based probing.
 		int probeEvery = pass1ProbeEveryNSegments;
 		bool useProbeEvery = probeEvery > 0;
@@ -4194,7 +4240,9 @@ public partial class RayBeamRenderer : Node3D
 		int startExitCount,
 		int startLastCrossingLayer,
 		byte startLastCrossingKind,
-		bool startAmbiguousOrdering)
+		bool startAmbiguousOrdering,
+		GodotAdapter.FrozenBoundarySnapshot frozenBoundarySnapshot = null,
+		BoundaryExecutionOwnership boundaryExecutionOwnership = BoundaryExecutionOwnership.LiveCache)
 	{
 		const int tier1MaxSegments = 4;
 		const int tier2AdditionalSegments = 3;
@@ -4236,8 +4284,10 @@ public partial class RayBeamRenderer : Node3D
 		bool transformChanged = false;
 		int unchangedTransformSteps = 0;
 
-		BoundaryLayerSnap[] boundaryLayers = _boundaryLayerSnaps;
-		bool hasBoundaryLayers = _hasBoundaryLayers;
+		IReadOnlyList<BoundaryLayerSnap> boundaryLayers = ResolveBoundaryExecutionView(
+			frozenBoundarySnapshot,
+			boundaryExecutionOwnership);
+		bool hasBoundaryLayers = boundaryLayers.Count > 0;
 		uint blvInsideMask = (hasBoundaryLayers && UseIntegratedField)
 			? ComputeInsideMask(p, boundaryLayers)
 			: 0u;
@@ -4536,6 +4586,106 @@ public partial class RayBeamRenderer : Node3D
 		Basis.FromEuler(new Vector3(0f, Mathf.Pi, 0f)),
 		Vector3.Zero);
 
+	private IReadOnlyList<BoundaryLayerSnap> ResolveBoundaryExecutionView(
+		GodotAdapter.FrozenBoundarySnapshot frozenBoundarySnapshot,
+		BoundaryExecutionOwnership ownership)
+	{
+		if (ownership == BoundaryExecutionOwnership.LiveCache)
+		{
+			RecordBoundaryExecutionOwnershipResolution(ownership, null);
+			return _boundaryLayerSnaps ?? Array.Empty<BoundaryLayerSnap>();
+		}
+
+		if (ownership == BoundaryExecutionOwnership.FrozenFormal)
+		{
+			if (frozenBoundarySnapshot == null)
+			{
+				if (System.Threading.Volatile.Read(ref _boundaryExecutionOwnershipDiagnosticsEnabled) != 0)
+					System.Threading.Interlocked.Increment(ref _boundaryExecutionMissingFrozenFormalRejectCount);
+				throw new InvalidOperationException("Formal boundary execution requires a frozen boundary snapshot.");
+			}
+
+			RecordBoundaryExecutionOwnershipResolution(ownership, frozenBoundarySnapshot.ExecutionAuthoritySha256);
+			return frozenBoundarySnapshot.ExecutionView;
+		}
+
+		throw new InvalidOperationException($"Unsupported boundary execution ownership '{ownership}'.");
+	}
+
+	private void RecordBoundaryExecutionOwnershipResolution(BoundaryExecutionOwnership ownership, string executionSha256)
+	{
+		if (System.Threading.Volatile.Read(ref _boundaryExecutionOwnershipDiagnosticsEnabled) == 0)
+			return;
+
+		if (ownership == BoundaryExecutionOwnership.LiveCache)
+		{
+			System.Threading.Interlocked.Increment(ref _boundaryExecutionLiveCacheResolveCount);
+			return;
+		}
+
+		System.Threading.Interlocked.Increment(ref _boundaryExecutionFrozenFormalResolveCount);
+		string observed = executionSha256 ?? string.Empty;
+		string established = System.Threading.Interlocked.CompareExchange(
+			ref _boundaryExecutionFrozenFormalSha256,
+			observed,
+			string.Empty);
+		if (established.Length > 0 && !string.Equals(established, observed, StringComparison.Ordinal))
+			System.Threading.Interlocked.Increment(ref _boundaryExecutionFrozenFormalIdentityMismatchCount);
+	}
+
+	public void BeginBoundaryExecutionOwnershipDiagnosticsForTesting()
+	{
+		System.Threading.Volatile.Write(ref _boundaryExecutionOwnershipDiagnosticsEnabled, 0);
+		System.Threading.Interlocked.Exchange(ref _boundaryExecutionLiveCacheResolveCount, 0L);
+		System.Threading.Interlocked.Exchange(ref _boundaryExecutionFrozenFormalResolveCount, 0L);
+		System.Threading.Interlocked.Exchange(ref _boundaryExecutionMissingFrozenFormalRejectCount, 0L);
+		System.Threading.Interlocked.Exchange(ref _boundaryExecutionFrozenFormalIdentityMismatchCount, 0L);
+		System.Threading.Interlocked.Exchange(ref _boundaryExecutionFrozenFormalSha256, string.Empty);
+		System.Threading.Volatile.Write(ref _boundaryExecutionOwnershipDiagnosticsEnabled, 1);
+	}
+
+	public BoundaryExecutionOwnershipDiagnostics GetBoundaryExecutionOwnershipDiagnosticsForTesting()
+	{
+		return new BoundaryExecutionOwnershipDiagnostics(
+			System.Threading.Volatile.Read(ref _boundaryExecutionLiveCacheResolveCount),
+			System.Threading.Volatile.Read(ref _boundaryExecutionFrozenFormalResolveCount),
+			System.Threading.Volatile.Read(ref _boundaryExecutionMissingFrozenFormalRejectCount),
+			System.Threading.Volatile.Read(ref _boundaryExecutionFrozenFormalIdentityMismatchCount),
+			System.Threading.Volatile.Read(ref _boundaryExecutionFrozenFormalSha256));
+	}
+
+	public long GetBoundaryExecutionLiveCacheResolveCountForTesting() =>
+		System.Threading.Volatile.Read(ref _boundaryExecutionLiveCacheResolveCount);
+
+	public long GetBoundaryExecutionFrozenFormalResolveCountForTesting() =>
+		System.Threading.Volatile.Read(ref _boundaryExecutionFrozenFormalResolveCount);
+
+	public long GetBoundaryExecutionMissingFrozenFormalRejectCountForTesting() =>
+		System.Threading.Volatile.Read(ref _boundaryExecutionMissingFrozenFormalRejectCount);
+
+	public long GetBoundaryExecutionFrozenFormalIdentityMismatchCountForTesting() =>
+		System.Threading.Volatile.Read(ref _boundaryExecutionFrozenFormalIdentityMismatchCount);
+
+	public string GetBoundaryExecutionFrozenFormalSha256ForTesting() =>
+		System.Threading.Volatile.Read(ref _boundaryExecutionFrozenFormalSha256);
+
+	public void RebuildBoundaryCacheForTesting()
+	{
+		Rebuild();
+	}
+
+	public void EndBoundaryExecutionOwnershipDiagnosticsForTesting()
+	{
+		System.Threading.Volatile.Write(ref _boundaryExecutionOwnershipDiagnosticsEnabled, 0);
+	}
+
+	internal int ValidateBoundaryExecutionOwnershipForTesting(
+		GodotAdapter.FrozenBoundarySnapshot frozenBoundarySnapshot,
+		BoundaryExecutionOwnership ownership)
+	{
+		return ResolveBoundaryExecutionView(frozenBoundarySnapshot, ownership).Count;
+	}
+
 	// Returns true when world-space point p is inside the boundary layer's support region.
 	private static bool IsInsideBoundaryLayer(Vector3 p, in BoundaryLayerSnap layer)
 	{
@@ -4585,11 +4735,11 @@ public partial class RayBeamRenderer : Node3D
 	// contains p. Each qualifying layer is evaluated independently; effects accumulate.
 	// CrossingEvent-mode layers are skipped here — they are dispatched by ApplyBoundaryLayerCrossings.
 	// TODO: add additional Continuous cases here as new BoundaryBehavior values are introduced.
-	private static Vector3 ApplyBoundaryLayerBias(Vector3 p, Vector3 v, BoundaryLayerSnap[] layers)
+	private static Vector3 ApplyBoundaryLayerBias(Vector3 p, Vector3 v, IReadOnlyList<BoundaryLayerSnap> layers)
 	{
-		for (int i = 0; i < layers.Length; i++)
+		for (int i = 0; i < layers.Count; i++)
 		{
-			ref readonly BoundaryLayerSnap layer = ref layers[i];
+			BoundaryLayerSnap layer = layers[i];
 			if (!layer.Enabled) continue;
 			// Skip CrossingEvent layers — dispatched via ApplyBoundaryLayerCrossings.
 			if (layer.ExecutionMode != BoundaryLayerVolume.BoundaryExecutionMode.Continuous) continue;
@@ -4608,10 +4758,10 @@ public partial class RayBeamRenderer : Node3D
 	// Hard cap at 32: layers at index >= 32 are excluded from crossing detection.
 	// Continuous mode (ApplyBoundaryLayerBias) iterates all layers and is unaffected by this cap.
 	// SnapshotBoundaryLayers emits a warning when any CrossingEvent layer falls beyond index 31.
-	private static uint ComputeInsideMask(Vector3 p, BoundaryLayerSnap[] layers)
+	private static uint ComputeInsideMask(Vector3 p, IReadOnlyList<BoundaryLayerSnap> layers)
 	{
 		uint mask = 0u;
-		int count = Mathf.Min(layers.Length, 32);
+		int count = Mathf.Min(layers.Count, 32);
 		for (int i = 0; i < count; i++)
 		{
 			if (layers[i].Enabled && IsInsideBoundaryLayer(p, layers[i]))
@@ -4638,15 +4788,15 @@ public partial class RayBeamRenderer : Node3D
 	//     EntryAndExit will apply the bias twice. This is a degenerate scene-setup case.
 	private void ApplyBoundaryLayerCrossings(
 		ref Vector3 p, ref Vector3 v,
-		BoundaryLayerSnap[] layers,
+		IReadOnlyList<BoundaryLayerSnap> layers,
 		uint entryBits,
 		uint exitBits,
 		ref BoundaryInteractionLedgerDelta ledgerDelta)
 	{
-		for (int i = 0; i < layers.Length && i < 32; i++)
+		for (int i = 0; i < layers.Count && i < 32; i++)
 		{
 			uint bit = 1u << i;
-			ref readonly BoundaryLayerSnap layer = ref layers[i];
+			BoundaryLayerSnap layer = layers[i];
 			if (!layer.Enabled) continue;
 			if (layer.ExecutionMode != BoundaryLayerVolume.BoundaryExecutionMode.CrossingEvent) continue;
 
@@ -4766,11 +4916,11 @@ public partial class RayBeamRenderer : Node3D
 		p = layer.LinkedCenter + radial.Normalized() * (layer.LinkedRadius + layer.SceneTransformExitOffset);
 	}
 
-	private BoundaryInteractionLedgerDelta ApplyBoundaryLayerInteractions(ref Vector3 p, ref Vector3 v, BoundaryLayerSnap[] layers, ref uint insideMask)
+	private BoundaryInteractionLedgerDelta ApplyBoundaryLayerInteractions(ref Vector3 p, ref Vector3 v, IReadOnlyList<BoundaryLayerSnap> layers, ref uint insideMask)
 	{
 		BoundaryInteractionLedgerDelta ledgerDelta = default;
 		ledgerDelta.LastCrossingLayer = -1;
-		if (layers == null || layers.Length == 0)
+		if (layers == null || layers.Count == 0)
 		{
 			insideMask = 0u;
 			return ledgerDelta;

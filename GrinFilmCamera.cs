@@ -2470,6 +2470,9 @@ public partial class GrinFilmCamera : Node
 		public uint FieldSourceEpoch;
 		public uint GeometryEpoch;
 		public uint BoundaryEpoch;
+		public GodotAdapter.FrozenBoundarySnapshot BoundarySnapshot;
+		public string BoundaryContentSha256;
+		public string BoundaryExecutionSha256;
 		public int StepsPerRay;
 		public float StepLength;
 		public ProbeProfileId ProbeProfile;
@@ -10179,6 +10182,8 @@ private sealed class OverlayRollingWindow
 		int pass1ProbeEveryNSegments, float pass1ProbeMinTravelDelta,
 		string renderSpaceSource, string renderSceneName, string renderFixtureName, string renderModeToken,
 		CurvatureBoundGrid curvatureGridForPass1, FieldGrid3D fieldGridForPass1,
+		GodotAdapter.FrozenBoundarySnapshot formalBoundarySnapshot,
+		RayBeamRenderer.BoundaryExecutionOwnership boundaryExecutionOwnership,
 		float stepLength,
 		bool baselineHadHit, ulong baselineCid, float baselineDist, Vector3 baselineNormal,
 		uint collisionMask, float collisionRaySubdivideThreshold, int maxCollisionSubsteps,
@@ -10273,7 +10278,11 @@ private sealed class OverlayRollingWindow
 				out _,
 				out _,
 				curvatureGridForPass1,
-				fieldGridForPass1);
+				fieldGridForPass1,
+				contactClassifier: null,
+				formalProbePixelIndex: -1,
+				frozenBoundarySnapshot: formalBoundarySnapshot,
+				boundaryExecutionOwnership: boundaryExecutionOwnership);
 
 			for (int si = 0; si < probeSegCount; si++)
 			{
@@ -10408,6 +10417,28 @@ private sealed class OverlayRollingWindow
 		FillFloatBlock(ProbeHitDistanceDeltaBuffer, x, y, stride, filmW, filmH, hitDistanceDelta);
 		FillFloatBlock(ProbeNormalDeltaBuffer, x, y, stride, filmW, filmH, normalDelta);
 		FillFloatBlock(ProbeColliderMismatchBuffer, x, y, stride, filmW, filmH, colliderMismatch);
+	}
+
+	public string GetStepConvergenceTelemetrySha256ForTesting()
+	{
+		using var stream = new MemoryStream();
+		using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+		WriteFloatArray(StepConvergenceConfidenceBuffer);
+		WriteFloatArray(StepSensitivityBuffer);
+		WriteFloatArray(PrecisionRequiredBuffer);
+		WriteFloatArray(ProbeHitDistanceDeltaBuffer);
+		WriteFloatArray(ProbeNormalDeltaBuffer);
+		WriteFloatArray(ProbeColliderMismatchBuffer);
+		writer.Flush();
+		return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(stream.ToArray())).ToLowerInvariant();
+
+		void WriteFloatArray(float[] values)
+		{
+			int length = values?.Length ?? 0;
+			writer.Write(length);
+			for (int i = 0; i < length; i++)
+				writer.Write(BitConverter.SingleToInt32Bits(values[i]));
+		}
 	}
 
 	private static float ComputePearsonCorrelation(float[] lhs, float[] rhs)
@@ -11594,6 +11625,28 @@ private sealed class OverlayRollingWindow
 		ProbeProfileDefinition selectedProfile = ProbeProfileCatalog.Get(SelectedProbeProfile);
 		RayBeamRenderer.FieldSourceSnap[] frozenFieldSources = GetFieldSourceSnaps(
 			in cfg, _frameIndex, out bool frozenHasSources, out _).ToArray();
+		GodotAdapter.FrozenBoundarySnapshot frozenBoundaries;
+		try
+		{
+			Node sceneRoot = ResolveFormalBoundarySceneRoot();
+			Godot.Collections.Array<Node> boundaryNodes = GetTree()?.GetNodesInGroup("boundary_layer_volumes")
+				?? new Godot.Collections.Array<Node>();
+			frozenBoundaries = GodotAdapter.FrozenBoundarySnapshot.Capture(sceneRoot, boundaryNodes);
+			RayBeamRenderer.BoundaryLayerSnap[] rendererBoundaryCache =
+				_rbr?.CopyBoundaryLayerSnapsForFormalAuthority() ?? Array.Empty<RayBeamRenderer.BoundaryLayerSnap>();
+			if (!frozenBoundaries.IsExactlyEquivalentToRendererCache(rendererBoundaryCache, out string boundaryMismatch))
+			{
+				reason = "boundary_epoch_changed";
+				GD.PushError($"[CathedralProbe][BoundaryAuthority] renderer cache mismatch before Formal capture: {boundaryMismatch}");
+				return false;
+			}
+		}
+		catch (Exception ex)
+		{
+			reason = "boundary_epoch_changed";
+			GD.PushError($"[CathedralProbe][BoundaryAuthority] Formal capture rejected: {ex.Message}");
+			return false;
+		}
 		_cathedralSnapshotContext = new CathedralSnapshotAcquisitionContext
 		{
 			IsValid = true,
@@ -11608,6 +11661,9 @@ private sealed class OverlayRollingWindow
 			FieldSourceEpoch = HashNodeGroupForProbeContext("field_sources"),
 			GeometryEpoch = HashNodeGroupForProbeContext("raytrace_geometry", "fixture_geometry"),
 			BoundaryEpoch = HashNodeGroupForProbeContext("boundary_layer_volumes"),
+			BoundarySnapshot = frozenBoundaries,
+			BoundaryContentSha256 = frozenBoundaries.ContentSha256,
+			BoundaryExecutionSha256 = frozenBoundaries.ExecutionAuthoritySha256,
 			StepsPerRay = cfg.RayMarch.StepsPerRay,
 			StepLength = cfg.RayMarch.StepLength,
 			ProbeProfile = SelectedProbeProfile,
@@ -11617,6 +11673,12 @@ private sealed class OverlayRollingWindow
 			FormalPolicySha256 = _activeFormalPolicySha256,
 			FormalInitialRange = _activeFormalInitialRange
 		};
+		GD.Print(
+			$"[CathedralProbe][BoundaryAuthority] schema={GodotAdapter.FrozenBoundarySnapshot.SchemaId} " +
+			$"policy={GodotAdapter.FrozenBoundarySnapshot.ExecutionPolicyId} " +
+			$"count={frozenBoundaries.Count} content={frozenBoundaries.ContentSha256} " +
+			$"execution={frozenBoundaries.ExecutionAuthoritySha256} " +
+			$"order={string.Join(",", frozenBoundaries.RecordsInExecutionOrder.Select(record => record.CanonicalId))}");
 
 		_probeSnapshotLifecycleContextKey = contextKey;
 		_runtimeHealth?.BeginAcquisition(
@@ -11714,6 +11776,52 @@ private sealed class OverlayRollingWindow
 		}
 		contextMatched = true;
 		return true;
+	}
+
+	private bool ValidateFrozenBoundaryAuthority(out string failureReason)
+	{
+		failureReason = string.Empty;
+		GodotAdapter.FrozenBoundarySnapshot acquired = _cathedralSnapshotContext.BoundarySnapshot;
+		if (!_cathedralSnapshotContext.IsValid || acquired == null)
+		{
+			failureReason = "missing_acquisition_boundary_snapshot";
+			return false;
+		}
+
+		try
+		{
+			Node sceneRoot = ResolveFormalBoundarySceneRoot();
+			Godot.Collections.Array<Node> boundaryNodes = GetTree()?.GetNodesInGroup("boundary_layer_volumes")
+				?? new Godot.Collections.Array<Node>();
+			GodotAdapter.FrozenBoundarySnapshot current =
+				GodotAdapter.FrozenBoundarySnapshot.Capture(sceneRoot, boundaryNodes);
+			if (!string.Equals(
+				acquired.ExecutionAuthoritySha256,
+				current.ExecutionAuthoritySha256,
+				StringComparison.Ordinal))
+			{
+				failureReason = $"execution_hash_changed captured={acquired.ExecutionAuthoritySha256} current={current.ExecutionAuthoritySha256}";
+				return false;
+			}
+			return true;
+		}
+		catch (Exception ex)
+		{
+			failureReason = ex.Message;
+			return false;
+		}
+	}
+
+	private Node ResolveFormalBoundarySceneRoot()
+	{
+		SceneTree tree = GetTree();
+		if (tree?.CurrentScene != null)
+			return tree.CurrentScene;
+		Node root = tree?.Root;
+		Node candidate = this;
+		while (candidate?.GetParent() != null && candidate.GetParent() != root)
+			candidate = candidate.GetParent();
+		return candidate ?? root;
 	}
 
 	private static ProbeSnapshotLifecycleReason MapSnapshotLifecycleReason(string reason)
@@ -13620,6 +13728,19 @@ private sealed class OverlayRollingWindow
 			_probeSnapshotLifecycleReason);
 		if (_probeSnapshotComplete)
 		{
+			if (_probeSnapshotLifecycleActive && _probeSnapshotLifecycleInitialized &&
+				!ValidateFrozenBoundaryAuthority(out string boundaryAuthorityFailure))
+			{
+				_probeFrameContextKey = default;
+				_probeSnapshotComplete = false;
+				CompleteCathedralProbeSnapshotLifecycle(
+					ProbeSnapshotLifecycleState.Failed,
+					ProbeSnapshotLifecycleReason.BoundaryEpochChanged,
+					contextMatched: false,
+					dimensionsMatched: _probeSnapshotLifecycleWidth == filmW && _probeSnapshotLifecycleHeight == filmH);
+				GD.PushError($"[CathedralProbe][BoundaryAuthority] completion validation failed: {boundaryAuthorityFailure}");
+				return;
+			}
 			if (_probeSnapshotLifecycleActive && _probeSnapshotLifecycleInitialized &&
 				!TryValidateCathedralSpatialAuthorityPromotion(out string promotionFailureReason))
 			{
@@ -19315,6 +19436,26 @@ private sealed class OverlayRollingWindow
 
 			var basisLocal = basis; // capture for lambda
 			Camera3D pass1Cam = rbrCam;
+			GodotAdapter.FrozenBoundarySnapshot formalBoundarySnapshot = null;
+			RayBeamRenderer.BoundaryExecutionOwnership boundaryExecutionOwnership =
+				RayBeamRenderer.BoundaryExecutionOwnership.LiveCache;
+			if (snapshotAcquisition)
+			{
+				formalBoundarySnapshot = _cathedralSnapshotContext.BoundarySnapshot;
+				if (formalBoundarySnapshot == null)
+				{
+					_probeFrameContextKey = default;
+					_probeSnapshotComplete = false;
+					CompleteCathedralProbeSnapshotLifecycle(
+						ProbeSnapshotLifecycleState.Failed,
+						ProbeSnapshotLifecycleReason.BoundaryEpochChanged,
+						contextMatched: false,
+						dimensionsMatched: _probeSnapshotLifecycleWidth == filmW && _probeSnapshotLifecycleHeight == filmH);
+					GD.PushError("[CathedralProbe][BoundaryAuthority] Formal work rejected: missing frozen boundary execution view.");
+					return;
+				}
+				boundaryExecutionOwnership = RayBeamRenderer.BoundaryExecutionOwnership.FrozenFormal;
+			}
 			Vector3 pass1CamPos = snapshotAcquisition
 				? _cathedralSnapshotContext.CameraTransform.Origin
 				: (pass1Cam != null ? pass1Cam.GlobalPosition : Vector3.Zero);
@@ -19505,7 +19646,9 @@ private sealed class OverlayRollingWindow
 							curvatureGridForPass1,
 							fieldGridForPass1,
 							ClassifyProbeColliderForPass1,
-							y * filmW + x
+							y * filmW + x,
+							formalBoundarySnapshot,
+							boundaryExecutionOwnership
 						);
 					// Count the exact IntersectRay duration even when the guarded call
 					// reports an exception; failed calls are still physics work.
@@ -21423,7 +21566,9 @@ private sealed class OverlayRollingWindow
 														terminalSeg.ExitCount,
 														terminalSeg.LastCrossingLayer,
 														terminalSeg.LastCrossingKind,
-														terminalSeg.AmbiguousOrdering);
+															terminalSeg.AmbiguousOrdering,
+															formalBoundarySnapshot,
+															boundaryExecutionOwnership);
 													if (continuation.SegmentsIntegrated > 0)
 													{
 														terminalPathLengthThisPixel = continuation.Traveled;
@@ -24691,7 +24836,9 @@ private sealed class OverlayRollingWindow
 											terminalSeg.ExitCount,
 											terminalSeg.LastCrossingLayer,
 											terminalSeg.LastCrossingKind,
-											terminalSeg.AmbiguousOrdering);
+											terminalSeg.AmbiguousOrdering,
+											formalBoundarySnapshot,
+											boundaryExecutionOwnership);
 										if (continuation.SegmentsIntegrated > 0)
 										{
 											terminalPathLengthThisPixel = continuation.Traveled;
@@ -25110,6 +25257,8 @@ private sealed class OverlayRollingWindow
 								renderModeToken,
 								curvatureGridForPass1,
 								fieldGridForPass1,
+								formalBoundarySnapshot,
+								boundaryExecutionOwnership,
 								Mathf.Max(1e-6f, rayCfg.StepLength),
 								hadHit,
 								bestCid,
