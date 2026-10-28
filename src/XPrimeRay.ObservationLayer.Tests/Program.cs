@@ -6,7 +6,8 @@ internal static class Program
     {
         (string Name, Action Run)[] suites =
         {
-            (nameof(ObservationLayerContractTests), ObservationLayerContractTests.Run)
+            (nameof(ObservationLayerContractTests), ObservationLayerContractTests.Run),
+            (nameof(TransportLedgerV1Tests), TransportLedgerV1Tests.Run)
         };
 
         int failures = 0;

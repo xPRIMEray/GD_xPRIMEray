@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using RendererCore.Config;
 using RendererCore.Fields;
 using XPrimeRay.Diagnostics;
+using XPrimeRay.ObservationLayer;
 
 public partial class RayBeamRenderer : Node3D
 {
@@ -648,6 +649,341 @@ public partial class RayBeamRenderer : Node3D
 		public bool HadAnyGeometryContact;
 		public bool HadAnyBackgroundContact;
 		public bool NormalValid;
+		internal FormalTransportAttemptTicket FormalTransportTicket;
+	}
+
+	internal readonly struct FormalTransportAttemptTicket
+	{
+		public readonly ulong CaptureGeneration;
+		public readonly int PixelIndex;
+		public readonly uint CommitVersion;
+
+		public FormalTransportAttemptTicket(ulong captureGeneration, int pixelIndex, uint commitVersion)
+		{
+			CaptureGeneration = captureGeneration;
+			PixelIndex = pixelIndex;
+			CommitVersion = commitVersion;
+		}
+
+		public bool IsValid => CaptureGeneration != 0 && PixelIndex >= 0 && CommitVersion != 0;
+	}
+
+	public readonly struct FormalTransportEventTestingSnapshot
+	{
+		public readonly int EventOrdinal;
+		public readonly int IntegrationStepOrdinal;
+		public readonly int SourceSegmentOrdinal;
+		public readonly TransportEventKindV1 Kind;
+
+		internal FormalTransportEventTestingSnapshot(in TransportEventV1 transportEvent)
+		{
+			EventOrdinal = transportEvent.EventOrdinal;
+			IntegrationStepOrdinal = transportEvent.IntegrationStepOrdinal;
+			SourceSegmentOrdinal = transportEvent.SourceSegmentOrdinal;
+			Kind = transportEvent.Kind;
+		}
+	}
+
+	public sealed class FormalTransportPixelTestingSnapshot
+	{
+		private readonly FormalTransportEventTestingSnapshot[] _events;
+
+		internal FormalTransportPixelTestingSnapshot(FormalTransportAttemptRecord record)
+		{
+			PixelIndex = record.PixelIndex;
+			CaptureGeneration = record.CaptureGeneration;
+			CommitVersion = record.CommitVersion;
+			Finalized = record.Finalized;
+			Found = record.Finalized && record.Found;
+			SurfaceClass = record.Finalized ? record.SurfaceClass : TransportSurfaceClassV1.None;
+			Termination = record.Termination;
+			RawTerminalFlags = record.RawTerminalFlags;
+			StepsIntegrated = record.StepsIntegrated;
+			TraveledBits = record.TraveledBits;
+			QuestionCount = record.QuestionCount;
+			ProvisionalReason = record.ProvisionalReason;
+			CanSeal = false;
+			_events = new FormalTransportEventTestingSnapshot[record.Events.Length];
+			for (int i = 0; i < record.Events.Length; i++)
+				_events[i] = new FormalTransportEventTestingSnapshot(in record.Events[i]);
+		}
+
+		public int PixelIndex { get; }
+		public ulong CaptureGeneration { get; }
+		public uint CommitVersion { get; }
+		public bool Finalized { get; }
+		public bool Found { get; }
+		public TransportSurfaceClassV1 SurfaceClass { get; }
+		public Pass1TransportTerminationV1 Termination { get; }
+		public RawTerminalFlagsV1 RawTerminalFlags { get; }
+		public int StepsIntegrated { get; }
+		public uint TraveledBits { get; }
+		public int QuestionCount { get; }
+		public string ProvisionalReason { get; }
+		public TransportRecorderCompletionV1 RecorderCompletion => TransportRecorderCompletionV1.Failed;
+		public TransportAuthorityStatusV1 AuthorityStatus => TransportAuthorityStatusV1.Pending;
+		public TransportTransactionStatusV1 TransactionStatus => TransportTransactionStatusV1.Pass1Committed;
+		public TransportObservationCoverageV1 ObservationCoverage =>
+			TransportObservationCoverageV1.SparseProbeCoverage |
+			((RawTerminalFlags & RawTerminalFlagsV1.Absorbed) != 0
+				? TransportObservationCoverageV1.PointSampledAbsorption
+				: TransportObservationCoverageV1.None);
+		public int PendingQuestionCount => QuestionCount;
+		public bool CanSeal { get; }
+		public FormalTransportEventTestingSnapshot[] Events =>
+			(FormalTransportEventTestingSnapshot[])_events.Clone();
+	}
+
+	public sealed class FormalTransportLedgerTestingSnapshot
+	{
+		private readonly FormalTransportPixelTestingSnapshot[] _pixels;
+
+		internal FormalTransportLedgerTestingSnapshot(
+			ulong captureGeneration,
+			bool recorderEnabled,
+			int attemptAllocations,
+			int recordedEvents,
+			int finalizationEligibleCommits,
+			int acceptedFinalizations,
+			int staleFinalizationRejects,
+			FormalTransportPixelTestingSnapshot[] pixels)
+		{
+			CaptureGeneration = captureGeneration;
+			RecorderEnabled = recorderEnabled;
+			AttemptAllocationCount = attemptAllocations;
+			RecordedEventCount = recordedEvents;
+			FinalizationEligibleCommitCount = finalizationEligibleCommits;
+			AcceptedFinalizationCount = acceptedFinalizations;
+			StaleFinalizationRejectCount = staleFinalizationRejects;
+			_pixels = pixels;
+		}
+
+		public ulong CaptureGeneration { get; }
+		public bool RecorderEnabled { get; }
+		public int AttemptAllocationCount { get; }
+		public int RecordedEventCount { get; }
+		public int FinalizationEligibleCommitCount { get; }
+		public int AcceptedFinalizationCount { get; }
+		public int StaleFinalizationRejectCount { get; }
+		public bool CanSeal => false;
+		public FormalTransportPixelTestingSnapshot[] Pixels =>
+			(FormalTransportPixelTestingSnapshot[])_pixels.Clone();
+	}
+
+	private sealed class FormalTransportAttemptBuilder
+	{
+		private readonly List<TransportEventV1> _events;
+		private bool _probeQueryFailed;
+		private bool _zeroAdvance;
+		private bool _recorderFailed;
+
+		public FormalTransportAttemptBuilder(int maximumIntegrationSteps)
+		{
+			int capacity = (int)Math.Clamp(((long)maximumIntegrationSteps * 2L) + 3L, 4L, 1_000_003L);
+			_events = new List<TransportEventV1>(capacity);
+		}
+
+		public void RecordQuestion(int integrationStepOrdinal, int sourceSegmentOrdinal)
+		{
+			if (_recorderFailed)
+				return;
+			try
+			{
+				_events.Add(new TransportEventV1(
+				_events.Count, integrationStepOrdinal, sourceSegmentOrdinal,
+				TransportEventKindV1.ProbeQuestionIssued,
+				TransportSubjectKindV1.None,
+				CanonicalIdentityAvailabilityV1.NotApplicable,
+				null, -1,
+				TransportObservabilityV1.PointSample,
+				TransportEventPresenceV1.None,
+				TransportDecisionV1.QueryIssued,
+				TransportReasonV1.ProbeCadence,
+				TransportEventFlagsV1.None,
+				default, default, default, default, default, 0, 0));
+			}
+			catch (ArgumentException)
+			{
+				_recorderFailed = true;
+			}
+		}
+
+		public void RecordGeometryObservation(int integrationStepOrdinal, int sourceSegmentOrdinal)
+		{
+			if (_recorderFailed)
+				return;
+			try
+			{
+				_events.Add(new TransportEventV1(
+				_events.Count, integrationStepOrdinal, sourceSegmentOrdinal,
+				TransportEventKindV1.GeometryContactObserved,
+				TransportSubjectKindV1.GeometryPrimitive,
+				CanonicalIdentityAvailabilityV1.Unavailable,
+				null, -1,
+				TransportObservabilityV1.DiagnosticGodotWitness,
+				TransportEventPresenceV1.None,
+				TransportDecisionV1.NoTransportEffect,
+				TransportReasonV1.ProbeCadence,
+				TransportEventFlagsV1.None,
+				default, default, default, default, default, 0, 0));
+			}
+			catch (ArgumentException)
+			{
+				_recorderFailed = true;
+			}
+		}
+
+		public void RecordAbsorption(int integrationStepOrdinal, in Vector3 position)
+		{
+			if (_recorderFailed)
+				return;
+			try
+			{
+				_events.Add(new TransportEventV1(
+				_events.Count, integrationStepOrdinal, -1,
+				TransportEventKindV1.AbsorptionObserved,
+				TransportSubjectKindV1.FieldSource,
+				CanonicalIdentityAvailabilityV1.Unavailable,
+				null, -1,
+				TransportObservabilityV1.PointSample,
+				TransportEventPresenceV1.PrePosition,
+				TransportDecisionV1.TransportTerminated,
+				TransportReasonV1.InsideAbsorbingRadius,
+				TransportEventFlagsV1.None,
+				RawFloat3BitsV1.FromSingle(position.X, position.Y, position.Z),
+				default, default, default, default, 0, 0));
+			}
+			catch (ArgumentException)
+			{
+				_recorderFailed = true;
+			}
+		}
+
+		public void RecordTerminal(int integrationStepOrdinal, Pass1TransportTerminationV1 termination)
+		{
+			TransportReasonV1 reason = termination switch
+			{
+				Pass1TransportTerminationV1.AbsorbedAtSample => TransportReasonV1.InsideAbsorbingRadius,
+				Pass1TransportTerminationV1.MaxDistance => TransportReasonV1.MaxDistance,
+				Pass1TransportTerminationV1.MaxSteps => TransportReasonV1.MaxSteps,
+				Pass1TransportTerminationV1.SegmentCapacityTruncated => TransportReasonV1.SegmentCapacity,
+				_ => TransportReasonV1.None
+			};
+			if (reason == TransportReasonV1.None)
+				return;
+			if (_recorderFailed)
+				return;
+			try
+			{
+				_events.Add(new TransportEventV1(
+				_events.Count, Math.Max(0, integrationStepOrdinal), -1,
+				TransportEventKindV1.Terminal,
+				TransportSubjectKindV1.None,
+				CanonicalIdentityAvailabilityV1.NotApplicable,
+				null, -1,
+				TransportObservabilityV1.None,
+				TransportEventPresenceV1.None,
+				TransportDecisionV1.TransportTerminated,
+				reason,
+				TransportEventFlagsV1.None,
+				default, default, default, default, default, 0, 0));
+			}
+			catch (ArgumentException)
+			{
+				_recorderFailed = true;
+			}
+		}
+
+		public void MarkProbeQueryFailed() => _probeQueryFailed = true;
+		public void MarkZeroAdvance() => _zeroAdvance = true;
+
+		public FormalTransportAttemptRecord Freeze(
+			int pixelIndex,
+			ulong captureGeneration,
+			uint commitVersion,
+			int questionCount,
+			Pass1TransportTerminationV1 termination,
+			bool unsupportedTermination,
+			bool hadNumericalFailure,
+			int stepsIntegrated,
+			float traveled,
+			bool found)
+		{
+			RawTerminalFlagsV1 flags = termination switch
+			{
+				Pass1TransportTerminationV1.AbsorbedAtSample => RawTerminalFlagsV1.Absorbed,
+				Pass1TransportTerminationV1.MaxDistance => RawTerminalFlagsV1.MaxDistanceReached,
+				Pass1TransportTerminationV1.MaxSteps => RawTerminalFlagsV1.MaxStepsReached,
+				Pass1TransportTerminationV1.SegmentCapacityTruncated => RawTerminalFlagsV1.SegmentCapacityTruncated,
+				_ => RawTerminalFlagsV1.None
+			};
+			if (hadNumericalFailure) flags |= RawTerminalFlagsV1.NumericalFailure;
+			if (_probeQueryFailed) flags |= RawTerminalFlagsV1.ProbeQueryFailed;
+			if (_zeroAdvance) flags |= RawTerminalFlagsV1.ZeroAdvance;
+			string reason = _recorderFailed
+				? "provisional_event_coverage;recorder_failure"
+				: unsupportedTermination
+				? "provisional_event_coverage;unsupported_termination"
+				: "provisional_event_coverage";
+			return new FormalTransportAttemptRecord(
+				pixelIndex, captureGeneration, commitVersion, questionCount,
+				_events.ToArray(), termination, flags, stepsIntegrated,
+				BitConverter.SingleToUInt32Bits(traveled), found, reason);
+		}
+	}
+
+	internal sealed class FormalTransportAttemptRecord
+	{
+		public FormalTransportAttemptRecord(
+			int pixelIndex, ulong captureGeneration, uint commitVersion, int questionCount,
+			TransportEventV1[] events, Pass1TransportTerminationV1 termination,
+			RawTerminalFlagsV1 rawTerminalFlags, int stepsIntegrated, uint traveledBits,
+			bool found, string provisionalReason)
+		{
+			PixelIndex = pixelIndex;
+			CaptureGeneration = captureGeneration;
+			CommitVersion = commitVersion;
+			QuestionCount = questionCount;
+			Events = events;
+			Termination = termination;
+			RawTerminalFlags = rawTerminalFlags;
+			StepsIntegrated = stepsIntegrated;
+			TraveledBits = traveledBits;
+			Found = found;
+			ProvisionalReason = provisionalReason;
+		}
+
+		public int PixelIndex { get; }
+		public ulong CaptureGeneration { get; }
+		public uint CommitVersion { get; }
+		public int QuestionCount { get; }
+		public TransportEventV1[] Events { get; }
+		public Pass1TransportTerminationV1 Termination { get; }
+		public RawTerminalFlagsV1 RawTerminalFlags { get; }
+		public int StepsIntegrated { get; }
+		public uint TraveledBits { get; }
+		public bool Found { get; }
+		public string ProvisionalReason { get; private set; }
+		public bool Finalized { get; private set; }
+		public TransportSurfaceClassV1 SurfaceClass { get; private set; }
+
+		public bool TryFinalize(bool found, TransportSurfaceClassV1 surfaceClass)
+		{
+			if (Finalized || found != Found)
+				return false;
+			try
+			{
+				_ = new RawTerminalInputsV1(RawTerminalFlags, StepsIntegrated, TraveledBits, found, surfaceClass);
+			}
+			catch (ArgumentException)
+			{
+				ProvisionalReason = "provisional_event_coverage;finalization_validation_failed";
+				return false;
+			}
+			SurfaceClass = surfaceClass;
+			Finalized = true;
+			return true;
+		}
 	}
 
 	public readonly struct FormalProbeQuery
@@ -680,25 +1016,47 @@ public partial class RayBeamRenderer : Node3D
 
 	private readonly Dictionary<int, FormalProbeQuery[]> _formalProbeQueriesByPixel = new();
 	private readonly HashSet<int> _formalProbeCommittedPixels = new();
+	private readonly Dictionary<int, FormalTransportAttemptRecord> _formalTransportAttemptsByPixel = new();
+	private readonly Dictionary<int, uint> _formalTransportCommitVersionsByPixel = new();
 	private readonly object _formalProbeQueryLock = new();
 	private bool _formalProbeQueryCaptureEnabled;
+	private bool _formalTransportRecorderEnabled;
+	private bool _formalTransportRecorderWasEnabledForCapture;
+	private ulong _formalProbeCaptureGeneration;
 	private int _formalProbeRawQueryAttemptCount;
 	private int _formalProbeWorkUnitCommitCount;
 	private int _formalProbeWorkUnitReplacementCount;
+	private int _formalTransportAttemptAllocationCount;
+	private int _formalTransportRecordedEventCount;
+	private int _formalTransportFinalizationEligibleCommitCount;
+	private int _formalTransportAcceptedFinalizationCount;
+	private int _formalTransportStaleFinalizationRejectCount;
 	public bool FormalProbeQueryCaptureEnabled => _formalProbeQueryCaptureEnabled;
 	public int RawFormalProbeQueryCount => System.Threading.Volatile.Read(ref _formalProbeRawQueryAttemptCount);
 	public int FormalProbeWorkUnitCommitCount => System.Threading.Volatile.Read(ref _formalProbeWorkUnitCommitCount);
 	public int FormalProbeWorkUnitReplacementCount => System.Threading.Volatile.Read(ref _formalProbeWorkUnitReplacementCount);
 
-	public void BeginFormalProbeQueryCapture()
+	public void BeginFormalProbeQueryCapture(bool recordFormalTransportLedger = false)
 	{
 		lock (_formalProbeQueryLock)
 		{
 			_formalProbeQueriesByPixel.Clear();
 			_formalProbeCommittedPixels.Clear();
+			_formalTransportAttemptsByPixel.Clear();
+			_formalTransportCommitVersionsByPixel.Clear();
 			_formalProbeRawQueryAttemptCount = 0;
 			_formalProbeWorkUnitCommitCount = 0;
 			_formalProbeWorkUnitReplacementCount = 0;
+			_formalTransportAttemptAllocationCount = 0;
+			_formalTransportRecordedEventCount = 0;
+			_formalTransportFinalizationEligibleCommitCount = 0;
+			_formalTransportAcceptedFinalizationCount = 0;
+			_formalTransportStaleFinalizationRejectCount = 0;
+			_formalProbeCaptureGeneration++;
+			if (_formalProbeCaptureGeneration == 0)
+				_formalProbeCaptureGeneration = 1;
+			_formalTransportRecorderEnabled = recordFormalTransportLedger;
+			_formalTransportRecorderWasEnabledForCapture = recordFormalTransportLedger;
 			_formalProbeQueryCaptureEnabled = true;
 		}
 	}
@@ -706,6 +1064,28 @@ public partial class RayBeamRenderer : Node3D
 	public void EndFormalProbeQueryCapture()
 	{
 		_formalProbeQueryCaptureEnabled = false;
+		_formalTransportRecorderEnabled = false;
+	}
+
+	public FormalTransportLedgerTestingSnapshot GetFormalTransportLedgerForTesting()
+	{
+		lock (_formalProbeQueryLock)
+		{
+			var records = new List<FormalTransportAttemptRecord>(_formalTransportAttemptsByPixel.Values);
+			records.Sort((a, b) => a.PixelIndex.CompareTo(b.PixelIndex));
+			var pixels = new FormalTransportPixelTestingSnapshot[records.Count];
+			for (int i = 0; i < records.Count; i++)
+				pixels[i] = new FormalTransportPixelTestingSnapshot(records[i]);
+			return new FormalTransportLedgerTestingSnapshot(
+				_formalProbeCaptureGeneration,
+				_formalTransportRecorderWasEnabledForCapture,
+				_formalTransportAttemptAllocationCount,
+				_formalTransportRecordedEventCount,
+				_formalTransportFinalizationEligibleCommitCount,
+				_formalTransportAcceptedFinalizationCount,
+				_formalTransportStaleFinalizationRejectCount,
+				pixels);
+		}
 	}
 
 	public FormalProbeQuery[] GetFormalProbeQueriesCanonical()
@@ -734,10 +1114,19 @@ public partial class RayBeamRenderer : Node3D
 		return queries;
 	}
 
-	private void CommitFormalProbeWorkUnit(int pixelIndex, List<FormalProbeQuery> queries)
+	private FormalTransportAttemptTicket CommitFormalProbeWorkUnit(
+		int pixelIndex,
+		List<FormalProbeQuery> queries,
+		FormalTransportAttemptBuilder transportRecorder,
+		Pass1TransportTerminationV1 termination,
+		bool unsupportedTermination,
+		bool hadNumericalFailure,
+		int stepsIntegrated,
+		float traveled,
+		bool found)
 	{
 		if (pixelIndex < 0 || queries == null)
-			return;
+			return default;
 		lock (_formalProbeQueryLock)
 		{
 			if (!_formalProbeCommittedPixels.Add(pixelIndex))
@@ -747,6 +1136,64 @@ public partial class RayBeamRenderer : Node3D
 				_formalProbeQueriesByPixel.Remove(pixelIndex);
 			else
 				_formalProbeQueriesByPixel[pixelIndex] = queries.ToArray();
+
+			if (transportRecorder == null || !_formalTransportRecorderEnabled)
+				return default;
+
+			uint commitVersion = _formalTransportCommitVersionsByPixel.TryGetValue(pixelIndex, out uint previousVersion)
+				? previousVersion == uint.MaxValue ? 0 : previousVersion + 1
+				: 1;
+			if (commitVersion == 0)
+				return default;
+			if (_formalTransportAttemptsByPixel.TryGetValue(pixelIndex, out FormalTransportAttemptRecord replacedRecord) &&
+				!replacedRecord.Finalized)
+			{
+				_formalTransportFinalizationEligibleCommitCount--;
+			}
+			_formalTransportCommitVersionsByPixel[pixelIndex] = commitVersion;
+			FormalTransportAttemptRecord record = transportRecorder.Freeze(
+				pixelIndex,
+				_formalProbeCaptureGeneration,
+				commitVersion,
+				queries.Count,
+				termination,
+				unsupportedTermination,
+				hadNumericalFailure,
+				stepsIntegrated,
+				traveled,
+				found);
+			_formalTransportAttemptsByPixel[pixelIndex] = record;
+			_formalTransportFinalizationEligibleCommitCount++;
+			_formalTransportRecordedEventCount += record.Events.Length;
+			return new FormalTransportAttemptTicket(_formalProbeCaptureGeneration, pixelIndex, commitVersion);
+		}
+	}
+
+	internal bool TryFinalizeFormalTransportAttempt(
+		in FormalTransportAttemptTicket ticket,
+		bool found,
+		TransportSurfaceClassV1 surfaceClass)
+	{
+		if (!ticket.IsValid)
+			return false;
+		lock (_formalProbeQueryLock)
+		{
+			if (ticket.CaptureGeneration != _formalProbeCaptureGeneration ||
+				!_formalTransportAttemptsByPixel.TryGetValue(ticket.PixelIndex, out FormalTransportAttemptRecord record) ||
+				record.CaptureGeneration != ticket.CaptureGeneration ||
+				record.CommitVersion != ticket.CommitVersion)
+			{
+				_formalTransportStaleFinalizationRejectCount++;
+				return false;
+			}
+
+			if (!record.TryFinalize(found, surfaceClass))
+			{
+				_formalTransportStaleFinalizationRejectCount++;
+				return false;
+			}
+			_formalTransportAcceptedFinalizationCount++;
+			return true;
 		}
 	}
 
@@ -3746,6 +4193,14 @@ public partial class RayBeamRenderer : Node3D
 			_formalProbeQueryCaptureEnabled && formalProbePixelIndex >= 0
 				? new List<FormalProbeQuery>()
 				: null;
+		FormalTransportAttemptBuilder formalTransportRecorder =
+			formalQueriesForWorkUnit != null && _formalTransportRecorderEnabled
+				? new FormalTransportAttemptBuilder(Math.Max(1, StepsPerRay) + 1)
+				: null;
+		if (formalTransportRecorder != null)
+			System.Threading.Interlocked.Increment(ref _formalTransportAttemptAllocationCount);
+		Pass1TransportTerminationV1 formalTransportTermination = Pass1TransportTerminationV1.None;
+		bool formalTransportUnsupportedTermination = false;
 
 		hitInfo = new Pass1HitInfo
 		{
@@ -3823,6 +4278,8 @@ public partial class RayBeamRenderer : Node3D
 
 			if (UseIntegratedField && hasSources && TryGetAbsorbingSourceAtPoint(p, fieldSnaps, out _))
 			{
+				formalTransportTermination = Pass1TransportTerminationV1.AbsorbedAtSample;
+				formalTransportRecorder?.RecordAbsorption(stepsIntegrated, in p);
 				stoppedEarly = true;
 				break;
 			}
@@ -3853,7 +4310,11 @@ public partial class RayBeamRenderer : Node3D
 				// Early-out if we are already at/over max distance
 				float remaining = maxDistance - traveled;
 				// DECISION: stop when max distance reached.
-				if (remaining <= 0f) break;
+				if (remaining <= 0f)
+				{
+					formalTransportTermination = Pass1TransportTerminationV1.MaxDistance;
+					break;
+				}
 
 				Vector3 a;
 				a = Vector3.Zero;
@@ -4015,7 +4476,11 @@ public partial class RayBeamRenderer : Node3D
 				// EFFECT: analytic bend path (no integration), step by StepLength.
 				float t = s * stepLength;
 				// DECISION: stop when max distance exceeded.
-				if (t > maxDistance) break;
+				if (t > maxDistance)
+				{
+					formalTransportTermination = Pass1TransportTerminationV1.MaxDistance;
+					break;
+				}
 
 				float bend = beta * FastPow(t, gamma) * bendScale;
 				next = origin + dir * t + bendDir * bend;
@@ -4023,6 +4488,8 @@ public partial class RayBeamRenderer : Node3D
 			}
 
 			float traveledDelta = traveled - prevTraveled;
+			if (formalTransportRecorder != null && next == p)
+				formalTransportRecorder.MarkZeroAdvance();
 			// DECISION: track only positive travel deltas for probe distance.
 			if (traveledDelta > 0f)
 				traveledSinceProbe += traveledDelta;
@@ -4059,7 +4526,11 @@ public partial class RayBeamRenderer : Node3D
 				}
 
 				// DECISION: guard output capacity.
-				if (written >= outCapacity) break;
+				if (written >= outCapacity)
+				{
+					formalTransportTermination = Pass1TransportTerminationV1.SegmentCapacityTruncated;
+					break;
+				}
 
 				int segIndex = written;
 				float radiusBound = radiusMin;
@@ -4137,6 +4608,7 @@ public partial class RayBeamRenderer : Node3D
 						System.Threading.Interlocked.Increment(ref _formalProbeRawQueryAttemptCount);
 						formalQueriesForWorkUnit.Add(new FormalProbeQuery(formalProbePixelIndex, stepsIntegrated, in seg, quickRayParams));
 					}
+					formalTransportRecorder?.RecordQuestion(stepsIntegrated, segIndex);
 					if (!TryIntersectRayWithGuard(
 						space,
 						quickRayParams,
@@ -4151,12 +4623,14 @@ public partial class RayBeamRenderer : Node3D
 						out long queryUsec))
 					{
 						physicsUsec += queryUsec;
+						formalTransportRecorder?.MarkProbeQueryFailed();
 						continue;
 					}
 					physicsUsec += queryUsec;
 					// DECISION: process hit results only when raycast hits something.
 						if (hit0.Count > 0)
 						{
+							formalTransportRecorder?.RecordGeometryObservation(stepsIntegrated, segIndex);
 							pass1ProbeHits++;
 							Vector3 hp = (Vector3)hit0["position"];
 							Vector3 hn = (Vector3)hit0["normal"];
@@ -4195,6 +4669,7 @@ public partial class RayBeamRenderer : Node3D
 							// DECISION: optionally stop building segments on first hit.
 							if (stopOnHit)
 							{
+								formalTransportUnsupportedTermination = true;
 								stoppedEarly = true;
 								break;
 							}
@@ -4206,6 +4681,16 @@ public partial class RayBeamRenderer : Node3D
 		}
 
 			maxStepsReached = !stoppedEarly && stepsIntegrated >= maxIntegrationSteps + 1 && traveled < maxDistance - 1e-4f;
+			if (formalTransportTermination == Pass1TransportTerminationV1.None && !formalTransportUnsupportedTermination)
+			{
+				formalTransportTermination = maxStepsReached
+					? Pass1TransportTerminationV1.MaxSteps
+					: traveled >= maxDistance - 1e-4f
+						? Pass1TransportTerminationV1.MaxDistance
+						: Pass1TransportTerminationV1.None;
+				formalTransportUnsupportedTermination = formalTransportTermination == Pass1TransportTerminationV1.None;
+			}
+			formalTransportRecorder?.RecordTerminal(stepsIntegrated, formalTransportTermination);
 			FinalizeDerivativeAwareStepState(ref derivativeStepState);
 			curvatureMax = telemetryDerivativeState.CurvatureMax;
 			curvatureMean = telemetryDerivativeState.SampleCount > 0
@@ -4216,7 +4701,16 @@ public partial class RayBeamRenderer : Node3D
 			turnSum = telemetryDerivativeState.TurnSum;
 			turnMax = telemetryDerivativeState.TurnMax;
 			hitInfo.HadNumericalFailure = hadNumericalFailure;
-			CommitFormalProbeWorkUnit(formalProbePixelIndex, formalQueriesForWorkUnit);
+			hitInfo.FormalTransportTicket = CommitFormalProbeWorkUnit(
+				formalProbePixelIndex,
+				formalQueriesForWorkUnit,
+				formalTransportRecorder,
+				formalTransportTermination,
+				formalTransportUnsupportedTermination,
+				hadNumericalFailure,
+				stepsIntegrated,
+				traveled,
+				hitInfo.Found);
 			return written;
 		}
 

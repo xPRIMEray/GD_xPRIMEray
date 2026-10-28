@@ -1295,6 +1295,8 @@ public partial class GrinFilmCamera : Node
 	[ExportGroup("Probe Profile")]
 	/// <summary>Persistent human-selected acquisition strategy. Working acquisition history is never stored here.</summary>
 	[Export] public ProbeProfileId SelectedProbeProfile = ProbeProfileId.Cathedral;
+	/// <summary>Opt-in provisional Formal pass-1 transport recording. Does not participate in Formal evidence or Q.</summary>
+	[Export] public bool RecordFormalTransportLedger = false;
 
 	[ExportGroup("Profiling")]
 	[ExportSubgroup("Runtime Stats")]
@@ -8118,6 +8120,98 @@ private sealed class OverlayRollingWindow
 		return TryCopyFilmImageForTesting(out Image image) ? image : null;
 	}
 
+	public Godot.Collections.Dictionary GetFormalTransportLedgerSummaryForTesting()
+	{
+		RayBeamRenderer.FormalTransportLedgerTestingSnapshot snapshot =
+			_rbr?.GetFormalTransportLedgerForTesting();
+		var result = new Godot.Collections.Dictionary
+		{
+			["available"] = snapshot != null
+		};
+		if (snapshot == null)
+			return result;
+
+		var eventCounts = new Godot.Collections.Dictionary();
+		var terminationCounts = new Godot.Collections.Dictionary();
+		var surfaceCounts = new Godot.Collections.Dictionary();
+		RayBeamRenderer.FormalTransportPixelTestingSnapshot[] pixels = snapshot.Pixels;
+		int finalized = 0;
+		int foundCount = 0;
+		int invalidOrdinals = 0;
+		int invalidProvisionalStatus = 0;
+		int pendingQuestions = 0;
+		foreach (RayBeamRenderer.FormalTransportPixelTestingSnapshot pixel in pixels)
+		{
+			if (pixel.Finalized)
+				finalized++;
+			if (pixel.Found)
+				foundCount++;
+			if (pixel.CanSeal ||
+				pixel.RecorderCompletion != TransportRecorderCompletionV1.Failed ||
+				pixel.AuthorityStatus != TransportAuthorityStatusV1.Pending ||
+				pixel.TransactionStatus != TransportTransactionStatusV1.Pass1Committed ||
+				(pixel.ObservationCoverage & TransportObservationCoverageV1.RecordedDecisionsComplete) != 0 ||
+				!pixel.ProvisionalReason.StartsWith("provisional_event_coverage", StringComparison.Ordinal))
+			{
+				invalidProvisionalStatus++;
+			}
+			pendingQuestions += pixel.PendingQuestionCount;
+			string surface = pixel.SurfaceClass.ToString();
+			surfaceCounts[surface] = (int)surfaceCounts.GetValueOrDefault(surface, 0) + 1;
+			string termination = pixel.Termination.ToString();
+			terminationCounts[termination] = (int)terminationCounts.GetValueOrDefault(termination, 0) + 1;
+			RayBeamRenderer.FormalTransportEventTestingSnapshot[] events = pixel.Events;
+			for (int i = 0; i < events.Length; i++)
+			{
+				if (events[i].EventOrdinal != i)
+					invalidOrdinals++;
+				string kind = events[i].Kind.ToString();
+				eventCounts[kind] = (int)eventCounts.GetValueOrDefault(kind, 0) + 1;
+			}
+		}
+
+		result["capture_generation"] = (long)snapshot.CaptureGeneration;
+		result["recorder_enabled_for_capture"] = snapshot.RecorderEnabled;
+		result["attempt_allocations"] = snapshot.AttemptAllocationCount;
+		result["recorded_events"] = snapshot.RecordedEventCount;
+		result["finalization_eligible_commits"] = snapshot.FinalizationEligibleCommitCount;
+		result["accepted_finalizations"] = snapshot.AcceptedFinalizationCount;
+		result["stale_finalization_rejects"] = snapshot.StaleFinalizationRejectCount;
+		result["work_unit_commits"] = _rbr.FormalProbeWorkUnitCommitCount;
+		result["work_unit_replacements"] = _rbr.FormalProbeWorkUnitReplacementCount;
+		result["pixel_count"] = pixels.Length;
+		result["finalized_count"] = finalized;
+		result["found_count"] = foundCount;
+		result["no_hit_count"] = pixels.Length - foundCount;
+		result["pending_question_count"] = pendingQuestions;
+		result["invalid_event_ordinals"] = invalidOrdinals;
+		result["invalid_provisional_status"] = invalidProvisionalStatus;
+		result["can_seal"] = snapshot.CanSeal;
+		result["event_counts"] = eventCounts;
+		result["termination_counts"] = terminationCounts;
+		result["surface_counts"] = surfaceCounts;
+		return result;
+	}
+
+	public bool TryFinalizeFormalTransportAttemptForTesting(
+		long captureGeneration,
+		int pixelIndex,
+		long commitVersion,
+		bool found,
+		int surfaceClass)
+	{
+		if (_rbr == null || captureGeneration <= 0 || commitVersion <= 0 || commitVersion > uint.MaxValue ||
+			surfaceClass < byte.MinValue || surfaceClass > byte.MaxValue ||
+			!Enum.IsDefined(typeof(TransportSurfaceClassV1), (byte)surfaceClass))
+		{
+			return false;
+		}
+		var ticket = new RayBeamRenderer.FormalTransportAttemptTicket(
+			(ulong)captureGeneration, pixelIndex, (uint)commitVersion);
+		return _rbr.TryFinalizeFormalTransportAttempt(
+			in ticket, found, (TransportSurfaceClassV1)surfaceClass);
+	}
+
 	public ulong FilmTextureInstanceIdForTesting =>
 		_tex != null && GodotObject.IsInstanceValid(_tex) ? _tex.GetInstanceId() : 0;
 
@@ -11729,7 +11823,7 @@ private sealed class OverlayRollingWindow
 			_spatialKernelDiagnosticFailure = $"{exception.GetType().Name}:{exception.Message}";
 			GD.PushWarning($"[SpatialKernel][Snapshot] unavailable reason={_spatialKernelDiagnosticFailure}");
 		}
-		_rbr?.BeginFormalProbeQueryCapture();
+		_rbr?.BeginFormalProbeQueryCapture(RecordFormalTransportLedger);
 		UpdateEveryFrame = false;
 		if (ShouldLog(DiagnosticVerbosity.Summary, DiagnosticCategory.Lifecycle))
 		{
@@ -19713,6 +19807,13 @@ private sealed class OverlayRollingWindow
 						maxStepsReached,
 						stoppedEarly);
 					FillProbeOutcomeBlock(_probeOutcomes, x, y, stride, filmW, filmH, probeOutcome);
+					if (hitInfo.FormalTransportTicket.IsValid)
+					{
+						_rbr.TryFinalizeFormalTransportAttempt(
+							in hitInfo.FormalTransportTicket,
+							hitInfo.Found,
+							ToTransportSurfaceClass(hitInfo.SurfaceClass));
+					}
 
 					// Cathedral Probe memristor update: lightweight curvature experience fingerprint for this pixel.
 					// Captures recent effort (steps vs budget, max-step events) + hit success to drive ultra-turbo decisions.
@@ -26642,6 +26743,17 @@ private sealed class OverlayRollingWindow
 		}
 
 		return ProbeSurfaceClass.Background;
+	}
+
+	private static TransportSurfaceClassV1 ToTransportSurfaceClass(ProbeSurfaceClass surfaceClass)
+	{
+		return surfaceClass switch
+		{
+			ProbeSurfaceClass.None => TransportSurfaceClassV1.None,
+			ProbeSurfaceClass.Geometry => TransportSurfaceClassV1.Geometry,
+			ProbeSurfaceClass.Background => TransportSurfaceClassV1.Background,
+			_ => TransportSurfaceClassV1.Unknown
+		};
 	}
 
 	private ProbeSurfaceClass ClassifyProbeColliderForPass1(ulong colliderId)

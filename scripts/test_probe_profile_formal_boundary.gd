@@ -6,7 +6,7 @@ extends SceneTree
 
 const SCENE_PATH := "res://ObservatoryWorkbench.tscn"
 const LIVE_FRAMES := 240
-const FORMAL_TIMEOUT_FRAMES := 1200
+const DEFAULT_FORMAL_TIMEOUT_FRAMES := 1200
 const G5_ACTIVE_SCHEDULE_TIMEOUT_FRAMES := 1200
 const SCHEDULE_PROBE_SCRIPT := preload("res://Tests/MeanderQualification/LiveImportanceScheduleProbe.cs")
 const LOCKED_POLICY_SHA := "317abb82b4d3df9b42476e54f2f9cfab839eb1d161b80a2db795b7e7ce4596da"
@@ -21,6 +21,10 @@ const LOCKED_BVH_SHA := "e41f33da677db9ff03546aff5f85b8b6d5e43ee390eaf94cea665b7
 var scenario := "A"
 var profile_index := 0
 var output_root := ""
+var formal_timeout_frames := DEFAULT_FORMAL_TIMEOUT_FRAMES
+var record_formal_transport_ledger := false
+var formal_transport_ledger_summary: Dictionary = {}
+var formal_transport_ledger_acquisitions: Array[Dictionary] = []
 var scene_root: Node
 var chamber: Node
 var film: Node
@@ -35,6 +39,7 @@ var guarded_live_band_height := 0
 
 func _initialize() -> void:
 	_parse_args()
+	_verify_completed_recorder_negative_fixtures()
 	scene_root = load(SCENE_PATH).instantiate()
 	get_root().add_child(scene_root)
 	await _settle(30)
@@ -46,6 +51,7 @@ func _initialize() -> void:
 	schedule_probe = SCHEDULE_PROBE_SCRIPT.new()
 	_assert(schedule_probe != null, "LIVE importance schedule probe available")
 	player.set_physics_process(false)
+	film.set("RecordFormalTransportLedger", record_formal_transport_ledger)
 	await _settle(5)
 
 	await _verify_profile_control_is_inert_and_synchronized()
@@ -89,6 +95,7 @@ func _initialize() -> void:
 	if acquisitions.size() > 1:
 		_assert(_scientific_identity(acquisitions[0]) == _scientific_identity(acquisitions[-1]),
 			"repeated Formal acquisition identity")
+	_verify_formal_transport_recorder()
 
 	await _verify_q_mapping_only()
 	await _verify_profile_change_preserves_seal()
@@ -105,10 +112,14 @@ func _parse_args() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--scenario="):
 			scenario = arg.trim_prefix("--scenario=").to_upper()
+		elif arg.begins_with("--formal-timeout-frames="):
+			formal_timeout_frames = maxi(1, int(arg.trim_prefix("--formal-timeout-frames=")))
 		elif arg.begins_with("--profile="):
 			profile_index = int(arg.trim_prefix("--profile="))
 		elif arg.begins_with("--output="):
 			output_root = arg.trim_prefix("--output=")
+		elif arg == "--record-formal-transport-ledger":
+			record_formal_transport_ledger = true
 	if output_root.is_empty():
 		output_root = ProjectSettings.globalize_path("res://output/probe_profile_qualification")
 	DirAccess.make_dir_recursive_absolute(output_root)
@@ -258,7 +269,7 @@ func _run_formal(tag: String, guard_live_schedule := false) -> void:
 		_assert(_same_live_schedule_position(guarded_live_schedule, during_start), "Formal start does not advance LIVE schedule")
 		_assert(int(film.get("BandHeightRowsResolved")) == int(film.get("RowsPerFrame")), "Formal uses canonical row-band height")
 		_assert(int(film.get("BandHeightRowsResolved")) != guarded_live_band_height, "Formal does not inherit LIVE schedule band height")
-	for _index in FORMAL_TIMEOUT_FRAMES:
+	for _index in formal_timeout_frames:
 		await process_frame
 		if guard_live_schedule:
 			_assert(_same_live_schedule_position(guarded_live_schedule, _capture_live_schedule()), "Formal does not mutate LIVE schedule")
@@ -288,7 +299,9 @@ func _run_formal(tag: String, guard_live_schedule := false) -> void:
 	var manifest = JSON.parse_string(manifest_file.get_as_text())
 	manifest_file = null
 	_assert(typeof(manifest) == TYPE_DICTIONARY, "bundle manifest parses")
-	acquisitions.append(_extract_acquisition(tag, manifest))
+	var acquisition := _extract_acquisition(tag, manifest)
+	acquisitions.append(acquisition)
+	_capture_formal_transport_recorder_acquisition(tag, acquisition, bundle_dir)
 	if guard_live_schedule:
 		var after_formal := _capture_live_schedule()
 		_assert(_same_live_schedule_position(guarded_live_schedule, after_formal), "Formal completion preserves LIVE cursor and rotation")
@@ -313,6 +326,142 @@ func _assert_locked_canonical(acquisition: Dictionary) -> void:
 	_assert(int(acquisition["work_unit_replacement_count"]) == 0, "no Formal work-unit replacements")
 	_assert(int(acquisition["bvh_mismatch_queries"]) == 0, "zero BVH query mismatches")
 	_assert(int(acquisition["bvh_mismatch_pixels"]) == 0, "zero BVH pixel mismatches")
+
+
+func _capture_formal_transport_recorder_acquisition(tag: String, acquisition: Dictionary, bundle_dir: String) -> void:
+	var summary := (film.call("GetFormalTransportLedgerSummaryForTesting") as Dictionary).duplicate(true)
+	var pixel_count := int(summary.get("pixel_count", 0))
+	var finalized_count := int(summary.get("finalized_count", 0))
+	var unfinalized_current := maxi(0, pixel_count - finalized_count)
+	var recorder_enabled := bool(summary.get("recorder_enabled_for_capture", false))
+	var recorder_status := "disabled"
+	if recorder_enabled:
+		recorder_status = "provisional_complete" if unfinalized_current == 0 else "provisional_incomplete"
+	summary["acquisition_tag"] = tag
+	summary["acquisition_generation"] = int(acquisition["generation"])
+	summary["unfinalized_current_pixel_records"] = unfinalized_current
+	summary["recorder_status"] = recorder_status
+	summary["bundle_path"] = bundle_dir
+	summary["result_identity"] = {
+		"formal_policy_sha256": acquisition["formal_policy_sha256"],
+		"query_dataset_sha256": acquisition["query_dataset_sha256"],
+		"contact_count_sha256": acquisition["contact_count_sha256"],
+		"outcome_sha256": acquisition["outcome_sha256"],
+		"final_steps_sha256": acquisition["final_steps_sha256"],
+		"geometry_sha256": acquisition["geometry_sha256"],
+		"spatial_context_sha256": acquisition["spatial_context_sha256"],
+		"bvh_context_sha256": acquisition["bvh_context_sha256"],
+	}
+
+	_assert(bool(summary.get("available", false)), "%s recorder summary available" % tag)
+	_assert(int(summary.get("capture_generation", -1)) == int(acquisition["generation"]),
+		"%s recorder generation matches acquisition" % tag)
+	_assert(int(summary.get("work_unit_commits", -1)) == int(acquisition["work_unit_commit_count"]),
+		"%s recorder work-unit commits match acquisition" % tag)
+	_assert(int(summary.get("work_unit_replacements", -1)) == int(acquisition["work_unit_replacement_count"]),
+		"%s recorder replacements match acquisition" % tag)
+	if recorder_enabled:
+		var completion_conditions := _recorder_completion_conditions(summary)
+		_assert(bool(completion_conditions["unfinalized_zero"]),
+			"%s has no unfinalized current pixel records" % tag)
+		_assert(bool(completion_conditions["status_complete"]),
+			"%s recorder status is provisional_complete" % tag)
+		_assert(bool(completion_conditions["non_sealable"]),
+			"%s provisional recorder remains non-sealable" % tag)
+		_assert(bool(completion_conditions["finalizations_match"]),
+			"%s every eligible committed attempt finalized" % tag)
+
+	formal_transport_ledger_acquisitions.append(summary.duplicate(true))
+	var artifact_path := output_root.path_join("formal_transport_ledger_p%d_%s_%s.json" % [
+		profile_index, scenario.to_lower(), tag])
+	var artifact := FileAccess.open(artifact_path, FileAccess.WRITE)
+	_assert(artifact != null, "%s recorder evidence artifact writable" % tag)
+	artifact.store_string(JSON.stringify(summary, "  "))
+	artifact = null
+	print("FORMAL_TRANSPORT_LEDGER_ACQUISITION tag=%s %s" % [tag, JSON.stringify(summary)])
+
+
+func _recorder_completion_conditions(summary: Dictionary) -> Dictionary:
+	return {
+		"unfinalized_zero": int(summary.get("unfinalized_current_pixel_records", -1)) == 0,
+		"status_complete": str(summary.get("recorder_status", "")) == "provisional_complete",
+		"non_sealable": not bool(summary.get("can_seal", true)),
+		"finalizations_match": int(summary.get("accepted_finalizations", -1)) == int(summary.get("finalization_eligible_commits", -2)),
+	}
+
+
+func _recorder_completion_conditions_pass(summary: Dictionary) -> bool:
+	var conditions := _recorder_completion_conditions(summary)
+	return bool(conditions["unfinalized_zero"]) \
+		and bool(conditions["status_complete"]) \
+		and bool(conditions["non_sealable"]) \
+		and bool(conditions["finalizations_match"])
+
+
+func _verify_completed_recorder_negative_fixtures() -> void:
+	var valid_later := {
+		"unfinalized_current_pixel_records": 0,
+		"recorder_status": "provisional_complete",
+		"can_seal": false,
+		"accepted_finalizations": 14400,
+		"finalization_eligible_commits": 14400,
+	}
+	_assert(_recorder_completion_conditions_pass(valid_later), "recorder completion validation accepts valid later acquisition")
+	var invalid_earlier_cases: Array[Dictionary] = []
+	var unfinalized := valid_later.duplicate(true)
+	unfinalized["unfinalized_current_pixel_records"] = 1
+	invalid_earlier_cases.append(unfinalized)
+	var incomplete_status := valid_later.duplicate(true)
+	incomplete_status["recorder_status"] = "provisional_incomplete"
+	invalid_earlier_cases.append(incomplete_status)
+	var mismatched_finalizations := valid_later.duplicate(true)
+	mismatched_finalizations["accepted_finalizations"] = 14399
+	invalid_earlier_cases.append(mismatched_finalizations)
+	var sealable := valid_later.duplicate(true)
+	sealable["can_seal"] = true
+	invalid_earlier_cases.append(sealable)
+	for invalid_earlier in invalid_earlier_cases:
+		_assert(not _recorder_completion_conditions_pass(invalid_earlier),
+			"invalid earlier recorder acquisition rejected")
+		_assert(not (_recorder_completion_conditions_pass(invalid_earlier) \
+			and _recorder_completion_conditions_pass(valid_later)),
+			"valid later acquisition cannot hide invalid earlier recorder evidence")
+	print("FORMAL_TRANSPORT_RECORDER_NEGATIVE_FIXTURES PASS cases=%d" % invalid_earlier_cases.size())
+
+
+func _verify_formal_transport_recorder() -> void:
+	formal_transport_ledger_summary = film.call("GetFormalTransportLedgerSummaryForTesting") as Dictionary
+	print("FORMAL_TRANSPORT_LEDGER %s" % JSON.stringify(formal_transport_ledger_summary))
+	_assert(bool(formal_transport_ledger_summary.get("available", false)), "Formal transport recorder summary available")
+	_assert(not bool(formal_transport_ledger_summary.get("can_seal", true)), "provisional recorder cannot seal")
+	if not record_formal_transport_ledger:
+		_assert(not bool(formal_transport_ledger_summary.get("recorder_enabled_for_capture", true)), "recorder OFF remains disabled")
+		_assert(int(formal_transport_ledger_summary.get("attempt_allocations", -1)) == 0, "recorder OFF performs no attempt allocation")
+		_assert(int(formal_transport_ledger_summary.get("recorded_events", -1)) == 0, "recorder OFF creates no events")
+		_assert(int(formal_transport_ledger_summary.get("pixel_count", -1)) == 0, "recorder OFF creates no pixel slots")
+		return
+
+	var film_pixel_count := int(film.get("FilmWidthPixels")) * int(film.get("FilmHeightRows"))
+	_assert(bool(formal_transport_ledger_summary.get("recorder_enabled_for_capture", false)), "recorder ON retained for completed capture")
+	_assert(int(formal_transport_ledger_summary.get("pixel_count", -1)) == film_pixel_count, "one authoritative provisional pixel record")
+	_assert(int(formal_transport_ledger_summary.get("finalized_count", -1)) == film_pixel_count, "same-attempt classifications finalized")
+	_assert(int(formal_transport_ledger_summary.get("accepted_finalizations", -1)) == int(formal_transport_ledger_summary.get("finalization_eligible_commits", -2)),
+		"every eligible committed attempt finalized")
+	_assert(int(formal_transport_ledger_summary.get("invalid_event_ordinals", -1)) == 0, "captured event ordinals contiguous")
+	_assert(int(formal_transport_ledger_summary.get("invalid_provisional_status", -1)) == 0, "all records remain explicitly provisional")
+	_assert(int(formal_transport_ledger_summary.get("pending_question_count", -1)) == int(film.get("CathedralProbeQueryCount")), "every committed question remains pending")
+	var event_counts: Dictionary = formal_transport_ledger_summary.get("event_counts", {}) as Dictionary
+	_assert(int(event_counts.get("ProbeQuestionIssued", -1)) == int(film.get("CathedralProbeQueryCount")), "question events match canonical dataset")
+	_assert(int(event_counts.get("Terminal", -1)) == film_pixel_count, "one supported terminal event per canonical pixel")
+	_assert(int(formal_transport_ledger_summary.get("found_count", 0)) > 0, "geometry/background hits represented")
+	_assert(int(formal_transport_ledger_summary.get("no_hit_count", 0)) > 0, "no-hit paths represented without fabricated contacts")
+
+	var generation := int(formal_transport_ledger_summary.get("capture_generation", 0))
+	_assert(not bool(film.call("TryFinalizeFormalTransportAttemptForTesting", generation, 0, 2147483647, false, 0)), "stale commit-version ticket rejected")
+	var other_capture_generation := generation - 1 if generation > 1 else generation + 1
+	_assert(not bool(film.call("TryFinalizeFormalTransportAttemptForTesting", other_capture_generation, 0, 1, false, 0)), "cross-capture ticket rejected")
+	formal_transport_ledger_summary = film.call("GetFormalTransportLedgerSummaryForTesting") as Dictionary
+	_assert(int(formal_transport_ledger_summary.get("stale_finalization_rejects", -1)) == 2, "stale ticket rejection diagnostics")
 
 
 func _extract_acquisition(tag: String, manifest: Dictionary) -> Dictionary:
@@ -422,6 +571,8 @@ func _write_result() -> void:
 		"q_mapping_only": true,
 		"profile_control_inert": true,
 		"post_g_off_heartbeat_quiescent": true,
+		"formal_transport_ledger": formal_transport_ledger_summary,
+		"formal_transport_ledgers_by_acquisition": formal_transport_ledger_acquisitions,
 	}
 	var path := output_root.path_join("result_p%d_%s.json" % [profile_index, scenario.to_lower()])
 	var file := FileAccess.open(path, FileAccess.WRITE)
