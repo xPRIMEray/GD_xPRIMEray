@@ -11,6 +11,7 @@ using XPrimeRay.ObservationLayer;
 
 public partial class RayBeamRenderer : Node3D
 {
+	private int _forceNextRecordedPass1ProbeFailureForTesting;
 	// PR: Academic canonical radial model: u-clamped shell with profile f(u).
 	// ===== Interaction Map =====
 	// Provides to GrinFilmCamera:
@@ -674,6 +675,20 @@ public partial class RayBeamRenderer : Node3D
 		public readonly int IntegrationStepOrdinal;
 		public readonly int SourceSegmentOrdinal;
 		public readonly TransportEventKindV1 Kind;
+		public readonly TransportSubjectKindV1 SubjectKind;
+		public readonly CanonicalIdentityAvailabilityV1 IdentityAvailability;
+		public readonly string CanonicalSubjectId;
+		public readonly int SubjectExecutionOrdinal;
+		public readonly TransportObservabilityV1 Observability;
+		public readonly TransportEventPresenceV1 Presence;
+		public readonly TransportDecisionV1 Decision;
+		public readonly TransportReasonV1 Reason;
+		public readonly TransportEventFlagsV1 Flags;
+		public readonly RawFloat3BitsV1 PrePosition;
+		public readonly RawFloat3BitsV1 PostPosition;
+		public readonly RawFloat3BitsV1 PreDirection;
+		public readonly RawFloat3BitsV1 PostDirection;
+		public readonly RawFloat3BitsV1 ContactNormal;
 
 		internal FormalTransportEventTestingSnapshot(in TransportEventV1 transportEvent)
 		{
@@ -681,6 +696,20 @@ public partial class RayBeamRenderer : Node3D
 			IntegrationStepOrdinal = transportEvent.IntegrationStepOrdinal;
 			SourceSegmentOrdinal = transportEvent.SourceSegmentOrdinal;
 			Kind = transportEvent.Kind;
+			SubjectKind = transportEvent.SubjectKind;
+			IdentityAvailability = transportEvent.IdentityAvailability;
+			CanonicalSubjectId = transportEvent.CanonicalSubjectId;
+			SubjectExecutionOrdinal = transportEvent.SubjectExecutionOrdinal;
+			Observability = transportEvent.Observability;
+			Presence = transportEvent.Presence;
+			Decision = transportEvent.Decision;
+			Reason = transportEvent.Reason;
+			Flags = transportEvent.Flags;
+			PrePosition = transportEvent.PrePosition;
+			PostPosition = transportEvent.PostPosition;
+			PreDirection = transportEvent.PreDirection;
+			PostDirection = transportEvent.PostDirection;
+			ContactNormal = transportEvent.ContactNormal;
 		}
 	}
 
@@ -702,6 +731,8 @@ public partial class RayBeamRenderer : Node3D
 			TraveledBits = record.TraveledBits;
 			QuestionCount = record.QuestionCount;
 			ProvisionalReason = record.ProvisionalReason;
+			EventCapacity = record.EventCapacity;
+			Overflowed = record.Overflowed;
 			CanSeal = false;
 			_events = new FormalTransportEventTestingSnapshot[record.Events.Length];
 			for (int i = 0; i < record.Events.Length; i++)
@@ -720,6 +751,8 @@ public partial class RayBeamRenderer : Node3D
 		public uint TraveledBits { get; }
 		public int QuestionCount { get; }
 		public string ProvisionalReason { get; }
+		public int EventCapacity { get; }
+		public bool Overflowed { get; }
 		public TransportRecorderCompletionV1 RecorderCompletion => TransportRecorderCompletionV1.Failed;
 		public TransportAuthorityStatusV1 AuthorityStatus => TransportAuthorityStatusV1.Pending;
 		public TransportTransactionStatusV1 TransactionStatus => TransportTransactionStatusV1.Pass1Committed;
@@ -772,24 +805,79 @@ public partial class RayBeamRenderer : Node3D
 
 	private sealed class FormalTransportAttemptBuilder
 	{
+		private const int InitialEventCapacity = 8;
+		private const int MinimumEventCapacity = 32;
+		private const int MaximumEventCapacity = 256;
 		private readonly List<TransportEventV1> _events;
+		private readonly int _eventCapacity;
+		private readonly GodotAdapter.FrozenBoundarySnapshot _boundarySnapshot;
 		private bool _probeQueryFailed;
 		private bool _zeroAdvance;
 		private bool _recorderFailed;
+		private bool _overflowed;
 
-		public FormalTransportAttemptBuilder(int maximumIntegrationSteps)
+		public FormalTransportAttemptBuilder(
+			int maximumIntegrationSteps,
+			GodotAdapter.FrozenBoundarySnapshot boundarySnapshot)
 		{
-			int capacity = (int)Math.Clamp(((long)maximumIntegrationSteps * 2L) + 3L, 4L, 1_000_003L);
-			_events = new List<TransportEventV1>(capacity);
+			_eventCapacity = ComputeEventCapacity(maximumIntegrationSteps);
+			_events = new List<TransportEventV1>(Math.Min(InitialEventCapacity, _eventCapacity));
+			_boundarySnapshot = boundarySnapshot;
+		}
+
+		internal static int ComputeEventCapacity(int maximumIntegrationSteps) =>
+			(int)Math.Clamp(((long)Math.Max(1, maximumIntegrationSteps) * 2L) + 8L,
+				MinimumEventCapacity, MaximumEventCapacity);
+
+		private bool TryReserveEvent()
+		{
+			if (_recorderFailed || _overflowed)
+				return false;
+			if (_events.Count >= _eventCapacity)
+			{
+				_overflowed = true;
+				return false;
+			}
+			if (_events.Count == _events.Capacity)
+			{
+				int next = Math.Min(_eventCapacity, Math.Max(InitialEventCapacity, _events.Capacity * 2));
+				_events.Capacity = next;
+			}
+			return true;
+		}
+
+		private bool TryGetBoundaryIdentity(int executionOrdinal, out string canonicalId)
+		{
+			canonicalId = null;
+			if (_boundarySnapshot == null || executionOrdinal < 0 ||
+				executionOrdinal >= _boundarySnapshot.RecordsInExecutionOrder.Count)
+			{
+				_recorderFailed = true;
+				return false;
+			}
+			GodotAdapter.FrozenBoundarySnapshot.BoundaryRecord record =
+				_boundarySnapshot.RecordsInExecutionOrder[executionOrdinal];
+			if (record.LegacyExecutionOrdinal != executionOrdinal || string.IsNullOrEmpty(record.CanonicalId))
+			{
+				_recorderFailed = true;
+				return false;
+			}
+			canonicalId = record.CanonicalId;
+			return true;
+		}
+
+		private void Append(in TransportEventV1 transportEvent)
+		{
+			_events.Add(transportEvent);
 		}
 
 		public void RecordQuestion(int integrationStepOrdinal, int sourceSegmentOrdinal)
 		{
-			if (_recorderFailed)
+			if (!TryReserveEvent())
 				return;
 			try
 			{
-				_events.Add(new TransportEventV1(
+				TransportEventV1 transportEvent = new TransportEventV1(
 				_events.Count, integrationStepOrdinal, sourceSegmentOrdinal,
 				TransportEventKindV1.ProbeQuestionIssued,
 				TransportSubjectKindV1.None,
@@ -800,7 +888,8 @@ public partial class RayBeamRenderer : Node3D
 				TransportDecisionV1.QueryIssued,
 				TransportReasonV1.ProbeCadence,
 				TransportEventFlagsV1.None,
-				default, default, default, default, default, 0, 0));
+					default, default, default, default, default, 0, 0);
+				Append(in transportEvent);
 			}
 			catch (ArgumentException)
 			{
@@ -810,11 +899,11 @@ public partial class RayBeamRenderer : Node3D
 
 		public void RecordGeometryObservation(int integrationStepOrdinal, int sourceSegmentOrdinal)
 		{
-			if (_recorderFailed)
+			if (!TryReserveEvent())
 				return;
 			try
 			{
-				_events.Add(new TransportEventV1(
+				TransportEventV1 transportEvent = new TransportEventV1(
 				_events.Count, integrationStepOrdinal, sourceSegmentOrdinal,
 				TransportEventKindV1.GeometryContactObserved,
 				TransportSubjectKindV1.GeometryPrimitive,
@@ -825,7 +914,8 @@ public partial class RayBeamRenderer : Node3D
 				TransportDecisionV1.NoTransportEffect,
 				TransportReasonV1.ProbeCadence,
 				TransportEventFlagsV1.None,
-				default, default, default, default, default, 0, 0));
+					default, default, default, default, default, 0, 0);
+				Append(in transportEvent);
 			}
 			catch (ArgumentException)
 			{
@@ -835,11 +925,11 @@ public partial class RayBeamRenderer : Node3D
 
 		public void RecordAbsorption(int integrationStepOrdinal, in Vector3 position)
 		{
-			if (_recorderFailed)
+			if (!TryReserveEvent())
 				return;
 			try
 			{
-				_events.Add(new TransportEventV1(
+				TransportEventV1 transportEvent = new TransportEventV1(
 				_events.Count, integrationStepOrdinal, -1,
 				TransportEventKindV1.AbsorptionObserved,
 				TransportSubjectKindV1.FieldSource,
@@ -851,7 +941,8 @@ public partial class RayBeamRenderer : Node3D
 				TransportReasonV1.InsideAbsorbingRadius,
 				TransportEventFlagsV1.None,
 				RawFloat3BitsV1.FromSingle(position.X, position.Y, position.Z),
-				default, default, default, default, 0, 0));
+					default, default, default, default, 0, 0);
+				Append(in transportEvent);
 			}
 			catch (ArgumentException)
 			{
@@ -871,11 +962,11 @@ public partial class RayBeamRenderer : Node3D
 			};
 			if (reason == TransportReasonV1.None)
 				return;
-			if (_recorderFailed)
+			if (!TryReserveEvent())
 				return;
 			try
 			{
-				_events.Add(new TransportEventV1(
+				TransportEventV1 transportEvent = new TransportEventV1(
 				_events.Count, Math.Max(0, integrationStepOrdinal), -1,
 				TransportEventKindV1.Terminal,
 				TransportSubjectKindV1.None,
@@ -886,7 +977,8 @@ public partial class RayBeamRenderer : Node3D
 				TransportDecisionV1.TransportTerminated,
 				reason,
 				TransportEventFlagsV1.None,
-				default, default, default, default, default, 0, 0));
+					default, default, default, default, default, 0, 0);
+				Append(in transportEvent);
 			}
 			catch (ArgumentException)
 			{
@@ -894,7 +986,201 @@ public partial class RayBeamRenderer : Node3D
 			}
 		}
 
-		public void MarkProbeQueryFailed() => _probeQueryFailed = true;
+		public void RecordProbeQueryFailed(int integrationStepOrdinal, int sourceSegmentOrdinal)
+		{
+			_probeQueryFailed = true;
+			if (!TryReserveEvent())
+				return;
+			try
+			{
+				TransportEventV1 transportEvent = new TransportEventV1(
+					_events.Count, integrationStepOrdinal, sourceSegmentOrdinal,
+					TransportEventKindV1.ProbeQueryFailed,
+					TransportSubjectKindV1.None,
+					CanonicalIdentityAvailabilityV1.NotApplicable,
+					null, -1,
+					TransportObservabilityV1.PointSample,
+					TransportEventPresenceV1.None,
+					TransportDecisionV1.QueryFailed,
+					TransportReasonV1.PhysicsQueryFailure,
+					TransportEventFlagsV1.None,
+					default, default, default, default, default, 0, 0);
+				Append(in transportEvent);
+			}
+			catch (ArgumentException)
+			{
+				_recorderFailed = true;
+			}
+		}
+
+		public void RecordContinuousBias(
+			int integrationStepOrdinal,
+			int boundaryOrdinal,
+			in Vector3 position,
+			in Vector3 preDirection,
+			in Vector3 postDirection)
+		{
+			if (!TryGetBoundaryIdentity(boundaryOrdinal, out string id) || !TryReserveEvent()) return;
+			try
+			{
+				TransportEventV1 transportEvent = new TransportEventV1(
+					_events.Count, integrationStepOrdinal, -1,
+					TransportEventKindV1.ContinuousBiasApplied,
+					TransportSubjectKindV1.Boundary,
+					CanonicalIdentityAvailabilityV1.Available, id, boundaryOrdinal,
+					TransportObservabilityV1.ExactMutation | TransportObservabilityV1.PointSample,
+					TransportEventPresenceV1.PrePosition | TransportEventPresenceV1.PostPosition |
+					TransportEventPresenceV1.PreDirection | TransportEventPresenceV1.PostDirection,
+					TransportDecisionV1.StateMutated,
+					TransportReasonV1.ContinuousDirectionBias,
+					TransportEventFlagsV1.None,
+					RawFloat3BitsV1.FromSingle(position.X, position.Y, position.Z),
+					RawFloat3BitsV1.FromSingle(position.X, position.Y, position.Z),
+					RawFloat3BitsV1.FromSingle(preDirection.X, preDirection.Y, preDirection.Z),
+					RawFloat3BitsV1.FromSingle(postDirection.X, postDirection.Y, postDirection.Z),
+					default, 0, 0);
+				Append(in transportEvent);
+			}
+			catch (ArgumentException) { _recorderFailed = true; }
+		}
+
+		private TransportObservabilityV1 CrossingObservability(bool simultaneous) =>
+			TransportObservabilityV1.ExactMutation | TransportObservabilityV1.SampledIntervalTransition |
+			(simultaneous ? TransportObservabilityV1.ExecutionOrderedSimultaneous : TransportObservabilityV1.None);
+
+		public void RecordBoundaryCrossing(
+			int integrationStepOrdinal, int boundaryOrdinal, bool isEntry, bool simultaneous,
+			in Vector3 position, in Vector3 preDirection, in Vector3 postDirection)
+		{
+			if (!TryGetBoundaryIdentity(boundaryOrdinal, out string id) || !TryReserveEvent()) return;
+			try
+			{
+				TransportEventV1 transportEvent = new TransportEventV1(
+					_events.Count, integrationStepOrdinal, -1,
+					TransportEventKindV1.BoundaryCrossingApplied,
+					TransportSubjectKindV1.Boundary,
+					CanonicalIdentityAvailabilityV1.Available, id, boundaryOrdinal,
+					CrossingObservability(simultaneous),
+					TransportEventPresenceV1.PrePosition | TransportEventPresenceV1.PostPosition |
+					TransportEventPresenceV1.PreDirection | TransportEventPresenceV1.PostDirection,
+					TransportDecisionV1.StateMutated,
+					isEntry ? TransportReasonV1.BoundaryEntry : TransportReasonV1.BoundaryExit,
+					TransportEventFlagsV1.None,
+					RawFloat3BitsV1.FromSingle(position.X, position.Y, position.Z),
+					RawFloat3BitsV1.FromSingle(position.X, position.Y, position.Z),
+					RawFloat3BitsV1.FromSingle(preDirection.X, preDirection.Y, preDirection.Z),
+					RawFloat3BitsV1.FromSingle(postDirection.X, postDirection.Y, postDirection.Z),
+					default, 0, 0);
+				Append(in transportEvent);
+			}
+			catch (ArgumentException) { _recorderFailed = true; }
+		}
+
+		public void RecordDielectric(
+			int integrationStepOrdinal, int boundaryOrdinal, bool simultaneous,
+			TransportReasonV1 reason, bool degenerate,
+			in Vector3 position, in Vector3 preDirection, in Vector3 postDirection, in Vector3 normal)
+		{
+			if (!TryGetBoundaryIdentity(boundaryOrdinal, out string id) || !TryReserveEvent()) return;
+			try
+			{
+				TransportEventV1 transportEvent = new TransportEventV1(
+					_events.Count, integrationStepOrdinal, -1,
+					TransportEventKindV1.DielectricApplied,
+					TransportSubjectKindV1.Boundary,
+					CanonicalIdentityAvailabilityV1.Available, id, boundaryOrdinal,
+					CrossingObservability(simultaneous),
+					TransportEventPresenceV1.PrePosition | TransportEventPresenceV1.PostPosition |
+					TransportEventPresenceV1.PreDirection | TransportEventPresenceV1.PostDirection |
+					TransportEventPresenceV1.ContactNormal,
+					degenerate ? TransportDecisionV1.DegenerateDirection : TransportDecisionV1.StateMutated,
+					reason,
+					degenerate ? TransportEventFlagsV1.DegenerateDirection | TransportEventFlagsV1.TirCandidate : TransportEventFlagsV1.None,
+					RawFloat3BitsV1.FromSingle(position.X, position.Y, position.Z),
+					RawFloat3BitsV1.FromSingle(position.X, position.Y, position.Z),
+					RawFloat3BitsV1.FromSingle(preDirection.X, preDirection.Y, preDirection.Z),
+					RawFloat3BitsV1.FromSingle(postDirection.X, postDirection.Y, postDirection.Z),
+					RawFloat3BitsV1.FromSingle(normal.X, normal.Y, normal.Z), 0, 0);
+				Append(in transportEvent);
+			}
+			catch (ArgumentException) { _recorderFailed = true; }
+		}
+
+		public void RecordBoundaryRemap(
+			int integrationStepOrdinal, int boundaryOrdinal, bool simultaneous,
+			in Vector3 prePosition, in Vector3 postPosition,
+			in Vector3 preDirection, in Vector3 postDirection)
+		{
+			if (!TryGetBoundaryIdentity(boundaryOrdinal, out string id) || !TryReserveEvent()) return;
+			try
+			{
+				TransportEventV1 transportEvent = new TransportEventV1(
+					_events.Count, integrationStepOrdinal, -1,
+					TransportEventKindV1.BoundaryRemapApplied,
+					TransportSubjectKindV1.Boundary,
+					CanonicalIdentityAvailabilityV1.Available, id, boundaryOrdinal,
+					CrossingObservability(simultaneous),
+					TransportEventPresenceV1.PrePosition | TransportEventPresenceV1.PostPosition |
+					TransportEventPresenceV1.PreDirection | TransportEventPresenceV1.PostDirection,
+					TransportDecisionV1.StateMutated, TransportReasonV1.SceneTransform,
+					TransportEventFlagsV1.None,
+					RawFloat3BitsV1.FromSingle(prePosition.X, prePosition.Y, prePosition.Z),
+					RawFloat3BitsV1.FromSingle(postPosition.X, postPosition.Y, postPosition.Z),
+					RawFloat3BitsV1.FromSingle(preDirection.X, preDirection.Y, preDirection.Z),
+					RawFloat3BitsV1.FromSingle(postDirection.X, postDirection.Y, postDirection.Z),
+					default, 0, 0);
+				Append(in transportEvent);
+			}
+			catch (ArgumentException) { _recorderFailed = true; }
+		}
+
+		public void RecordSyntheticEgress(int integrationStepOrdinal, int boundaryOrdinal, bool simultaneous)
+		{
+			if (!TryGetBoundaryIdentity(boundaryOrdinal, out string id) || !TryReserveEvent()) return;
+			try
+			{
+				TransportObservabilityV1 observability = TransportObservabilityV1.SampledIntervalTransition |
+					TransportObservabilityV1.SyntheticPairedEgress |
+					(simultaneous ? TransportObservabilityV1.ExecutionOrderedSimultaneous : TransportObservabilityV1.None);
+				TransportEventV1 transportEvent = new TransportEventV1(
+					_events.Count, integrationStepOrdinal, -1,
+					TransportEventKindV1.BoundarySyntheticEgress,
+					TransportSubjectKindV1.Boundary,
+					CanonicalIdentityAvailabilityV1.Available, id, boundaryOrdinal,
+					observability, TransportEventPresenceV1.None,
+					TransportDecisionV1.NoTransportEffect, TransportReasonV1.BoundaryExit,
+					TransportEventFlagsV1.None,
+					default, default, default, default, default, 0, 0);
+				Append(in transportEvent);
+			}
+			catch (ArgumentException) { _recorderFailed = true; }
+		}
+
+		public void RecordSuppressedTransition(
+			int integrationStepOrdinal, int boundaryOrdinal, bool isEntry, bool simultaneous,
+			bool postRemapMembershipObservation = false)
+		{
+			if (!TryGetBoundaryIdentity(boundaryOrdinal, out string id) || !TryReserveEvent()) return;
+			try
+			{
+				TransportObservabilityV1 observability = TransportObservabilityV1.SampledIntervalTransition |
+					TransportObservabilityV1.SuppressedMaskTransition |
+					(postRemapMembershipObservation ? TransportObservabilityV1.PointSample : TransportObservabilityV1.None) |
+					(simultaneous ? TransportObservabilityV1.ExecutionOrderedSimultaneous : TransportObservabilityV1.None);
+				TransportEventV1 transportEvent = new TransportEventV1(
+					_events.Count, integrationStepOrdinal, -1,
+					TransportEventKindV1.SuppressedMaskTransition,
+					TransportSubjectKindV1.Boundary,
+					CanonicalIdentityAvailabilityV1.Available, id, boundaryOrdinal,
+					observability, TransportEventPresenceV1.None,
+					TransportDecisionV1.NoTransportEffect,
+					isEntry ? TransportReasonV1.BoundaryEntry : TransportReasonV1.BoundaryExit,
+					TransportEventFlagsV1.None,
+					default, default, default, default, default, 0, 0);
+				Append(in transportEvent);
+			}
+			catch (ArgumentException) { _recorderFailed = true; }
+		}
 		public void MarkZeroAdvance() => _zeroAdvance = true;
 
 		public FormalTransportAttemptRecord Freeze(
@@ -920,7 +1206,9 @@ public partial class RayBeamRenderer : Node3D
 			if (hadNumericalFailure) flags |= RawTerminalFlagsV1.NumericalFailure;
 			if (_probeQueryFailed) flags |= RawTerminalFlagsV1.ProbeQueryFailed;
 			if (_zeroAdvance) flags |= RawTerminalFlagsV1.ZeroAdvance;
-			string reason = _recorderFailed
+			string reason = _overflowed
+				? "provisional_event_coverage;recorder_event_capacity_overflow"
+				: _recorderFailed
 				? "provisional_event_coverage;recorder_failure"
 				: unsupportedTermination
 				? "provisional_event_coverage;unsupported_termination"
@@ -928,7 +1216,8 @@ public partial class RayBeamRenderer : Node3D
 			return new FormalTransportAttemptRecord(
 				pixelIndex, captureGeneration, commitVersion, questionCount,
 				_events.ToArray(), termination, flags, stepsIntegrated,
-				BitConverter.SingleToUInt32Bits(traveled), found, reason);
+				BitConverter.SingleToUInt32Bits(traveled), found, reason,
+				_eventCapacity, _overflowed);
 		}
 	}
 
@@ -938,7 +1227,7 @@ public partial class RayBeamRenderer : Node3D
 			int pixelIndex, ulong captureGeneration, uint commitVersion, int questionCount,
 			TransportEventV1[] events, Pass1TransportTerminationV1 termination,
 			RawTerminalFlagsV1 rawTerminalFlags, int stepsIntegrated, uint traveledBits,
-			bool found, string provisionalReason)
+			bool found, string provisionalReason, int eventCapacity, bool overflowed)
 		{
 			PixelIndex = pixelIndex;
 			CaptureGeneration = captureGeneration;
@@ -951,6 +1240,8 @@ public partial class RayBeamRenderer : Node3D
 			TraveledBits = traveledBits;
 			Found = found;
 			ProvisionalReason = provisionalReason;
+			EventCapacity = eventCapacity;
+			Overflowed = overflowed;
 		}
 
 		public int PixelIndex { get; }
@@ -964,6 +1255,8 @@ public partial class RayBeamRenderer : Node3D
 		public uint TraveledBits { get; }
 		public bool Found { get; }
 		public string ProvisionalReason { get; private set; }
+		public int EventCapacity { get; }
+		public bool Overflowed { get; }
 		public bool Finalized { get; private set; }
 		public TransportSurfaceClassV1 SurfaceClass { get; private set; }
 
@@ -1052,6 +1345,7 @@ public partial class RayBeamRenderer : Node3D
 			_formalTransportFinalizationEligibleCommitCount = 0;
 			_formalTransportAcceptedFinalizationCount = 0;
 			_formalTransportStaleFinalizationRejectCount = 0;
+			System.Threading.Interlocked.Exchange(ref _forceNextRecordedPass1ProbeFailureForTesting, 0);
 			_formalProbeCaptureGeneration++;
 			if (_formalProbeCaptureGeneration == 0)
 				_formalProbeCaptureGeneration = 1;
@@ -1065,6 +1359,11 @@ public partial class RayBeamRenderer : Node3D
 	{
 		_formalProbeQueryCaptureEnabled = false;
 		_formalTransportRecorderEnabled = false;
+	}
+
+	internal void ForceNextRecordedPass1ProbeFailureForTesting()
+	{
+		System.Threading.Interlocked.Exchange(ref _forceNextRecordedPass1ProbeFailureForTesting, 1);
 	}
 
 	public FormalTransportLedgerTestingSnapshot GetFormalTransportLedgerForTesting()
@@ -4195,7 +4494,11 @@ public partial class RayBeamRenderer : Node3D
 				: null;
 		FormalTransportAttemptBuilder formalTransportRecorder =
 			formalQueriesForWorkUnit != null && _formalTransportRecorderEnabled
-				? new FormalTransportAttemptBuilder(Math.Max(1, StepsPerRay) + 1)
+				? new FormalTransportAttemptBuilder(
+					Math.Max(1, StepsPerRay) + 1,
+					boundaryExecutionOwnership == BoundaryExecutionOwnership.FrozenFormal
+						? frozenBoundarySnapshot
+						: null)
 				: null;
 		if (formalTransportRecorder != null)
 			System.Threading.Interlocked.Increment(ref _formalTransportAttemptAllocationCount);
@@ -4287,7 +4590,9 @@ public partial class RayBeamRenderer : Node3D
 			// Boundary layer: continuous effects and crossing-event detection.
 			if (hasBoundaryLayers && UseIntegratedField)
 			{
-				BoundaryInteractionLedgerDelta boundaryDelta = ApplyBoundaryLayerInteractions(ref p, ref v, boundaryLayers, ref blvInsideMask);
+				BoundaryInteractionLedgerDelta boundaryDelta = ApplyBoundaryLayerInteractions(
+					ref p, ref v, boundaryLayers, ref blvInsideMask,
+					formalTransportRecorder, stepsIntegrated);
 				boundaryRemapCount += boundaryDelta.TransformCount;
 				ledgerEventCount += boundaryDelta.EventCount;
 				ledgerBoundaryCrossings += boundaryDelta.BoundaryCrossings;
@@ -4609,7 +4914,19 @@ public partial class RayBeamRenderer : Node3D
 						formalQueriesForWorkUnit.Add(new FormalProbeQuery(formalProbePixelIndex, stepsIntegrated, in seg, quickRayParams));
 					}
 					formalTransportRecorder?.RecordQuestion(stepsIntegrated, segIndex);
-					if (!TryIntersectRayWithGuard(
+					long queryUsec = 0;
+					bool forceRecordedFailureForTesting = formalTransportRecorder != null &&
+						System.Threading.Interlocked.Exchange(ref _forceNextRecordedPass1ProbeFailureForTesting, 0) != 0;
+					Godot.Collections.Dictionary hit0;
+					bool querySucceeded;
+					if (forceRecordedFailureForTesting)
+					{
+						hit0 = null;
+						querySucceeded = false;
+					}
+					else
+					{
+						querySucceeded = TryIntersectRayWithGuard(
 						space,
 						quickRayParams,
 						pass1DoHitTest,
@@ -4619,11 +4936,13 @@ public partial class RayBeamRenderer : Node3D
 						diagnosticFixtureName,
 						diagnosticModeToken,
 						ref _pass1ProbeQueryFailureWarned,
-						out var hit0,
-						out long queryUsec))
+						out hit0,
+						out queryUsec);
+					}
+					if (!querySucceeded)
 					{
 						physicsUsec += queryUsec;
-						formalTransportRecorder?.MarkProbeQueryFailed();
+						formalTransportRecorder?.RecordProbeQueryFailed(stepsIntegrated, segIndex);
 						continue;
 					}
 					physicsUsec += queryUsec;
@@ -5229,7 +5548,12 @@ public partial class RayBeamRenderer : Node3D
 	// contains p. Each qualifying layer is evaluated independently; effects accumulate.
 	// CrossingEvent-mode layers are skipped here — they are dispatched by ApplyBoundaryLayerCrossings.
 	// TODO: add additional Continuous cases here as new BoundaryBehavior values are introduced.
-	private static Vector3 ApplyBoundaryLayerBias(Vector3 p, Vector3 v, IReadOnlyList<BoundaryLayerSnap> layers)
+	private static Vector3 ApplyBoundaryLayerBias(
+		Vector3 p,
+		Vector3 v,
+		IReadOnlyList<BoundaryLayerSnap> layers,
+		FormalTransportAttemptBuilder formalTransportRecorder = null,
+		int integrationStepOrdinal = 0)
 	{
 		for (int i = 0; i < layers.Count; i++)
 		{
@@ -5241,7 +5565,10 @@ public partial class RayBeamRenderer : Node3D
 			switch (layer.Behavior)
 			{
 				case BoundaryLayerVolume.BoundaryBehavior.DirectionBias:
+					Vector3 preDirection = v;
 					v = SafeNormalized(v + layer.BiasDirection * layer.BiasStrength, v);
+					formalTransportRecorder?.RecordContinuousBias(
+						integrationStepOrdinal, i, in p, in preDirection, in v);
 					break;
 			}
 		}
@@ -5280,12 +5607,97 @@ public partial class RayBeamRenderer : Node3D
 	//   - DirectionBias uses identical logic for entry and exit (stateless nudge; no inverse needed).
 	//     If a step produces both entry and exit bits for the same layer (sub-step-width volume),
 	//     EntryAndExit will apply the bias twice. This is a degenerate scene-setup case.
+	private static int CountBoundaryRecorderEvents(
+		IReadOnlyList<BoundaryLayerSnap> layers,
+		uint entryBits,
+		uint exitBits)
+	{
+		int count = 0;
+		for (int i = 0; i < layers.Count && i < 32; i++)
+		{
+			BoundaryLayerSnap layer = layers[i];
+			if (!layer.Enabled || layer.ExecutionMode != BoundaryLayerVolume.BoundaryExecutionMode.CrossingEvent)
+				continue;
+			uint bit = 1u << i;
+			bool isEntry = (entryBits & bit) != 0u;
+			bool isExit = (exitBits & bit) != 0u;
+			if (isEntry)
+			{
+				bool dispatch = layer.CrossingPolicy != BoundaryLayerVolume.BoundaryCrossingPolicy.ExitOnly;
+				if (!dispatch || IsRecordableBoundaryBehavior(layer.Behavior))
+				{
+					count++;
+					if (dispatch && layer.Behavior == BoundaryLayerVolume.BoundaryBehavior.SceneTransform &&
+						layer.LinkedLayerIndex >= 0)
+						count++;
+				}
+			}
+			if (isExit)
+			{
+				bool dispatch = layer.CrossingPolicy != BoundaryLayerVolume.BoundaryCrossingPolicy.EntryOnly;
+				if (!dispatch || IsRecordableBoundaryBehavior(layer.Behavior))
+				{
+					count++;
+					if (dispatch && layer.Behavior == BoundaryLayerVolume.BoundaryBehavior.SceneTransform &&
+						layer.LinkedLayerIndex >= 0)
+						count++;
+				}
+			}
+		}
+		return count;
+	}
+
+	private static bool IsRecordableBoundaryBehavior(BoundaryLayerVolume.BoundaryBehavior behavior) =>
+		behavior is BoundaryLayerVolume.BoundaryBehavior.DirectionBias or
+			BoundaryLayerVolume.BoundaryBehavior.SceneTransform or
+			BoundaryLayerVolume.BoundaryBehavior.PerfectMirrorReflection or
+			BoundaryLayerVolume.BoundaryBehavior.DielectricRefraction;
+
+	private static int CountMaskChanges(uint before, uint after)
+	{
+		uint changed = before ^ after;
+		int count = 0;
+		while (changed != 0u)
+		{
+			count += (int)(changed & 1u);
+			changed >>= 1;
+		}
+		return count;
+	}
+
+	private static void RecordPostRemapMembershipChanges(
+		FormalTransportAttemptBuilder formalTransportRecorder,
+		int integrationStepOrdinal,
+		uint preDispatchMask,
+		uint postRemapMask,
+		int priorRecordedEventCount)
+	{
+		if (formalTransportRecorder == null)
+			return;
+		uint changed = preDispatchMask ^ postRemapMask;
+		if (changed == 0u)
+			return;
+		bool simultaneous = priorRecordedEventCount + CountMaskChanges(preDispatchMask, postRemapMask) > 1;
+		for (int i = 0; i < 32; i++)
+		{
+			uint bit = 1u << i;
+			if ((changed & bit) == 0u)
+				continue;
+			formalTransportRecorder.RecordSuppressedTransition(
+				integrationStepOrdinal, i, isEntry: (postRemapMask & bit) != 0u,
+				simultaneous, postRemapMembershipObservation: true);
+		}
+	}
+
 	private void ApplyBoundaryLayerCrossings(
 		ref Vector3 p, ref Vector3 v,
 		IReadOnlyList<BoundaryLayerSnap> layers,
 		uint entryBits,
 		uint exitBits,
-		ref BoundaryInteractionLedgerDelta ledgerDelta)
+		ref BoundaryInteractionLedgerDelta ledgerDelta,
+		FormalTransportAttemptBuilder formalTransportRecorder = null,
+		int integrationStepOrdinal = 0,
+		bool executionOrderedSimultaneous = false)
 	{
 		for (int i = 0; i < layers.Count && i < 32; i++)
 		{
@@ -5298,11 +5710,21 @@ public partial class RayBeamRenderer : Node3D
 			bool isExit  = (exitBits  & bit) != 0u;
 			bool doEntry = isEntry && layer.CrossingPolicy != BoundaryLayerVolume.BoundaryCrossingPolicy.ExitOnly;
 			bool doExit  = isExit  && layer.CrossingPolicy != BoundaryLayerVolume.BoundaryCrossingPolicy.EntryOnly;
+			if (isEntry && !doEntry)
+				formalTransportRecorder?.RecordSuppressedTransition(
+					integrationStepOrdinal, i, isEntry: true, executionOrderedSimultaneous);
+			if (isExit && !doExit)
+				formalTransportRecorder?.RecordSuppressedTransition(
+					integrationStepOrdinal, i, isEntry: false, executionOrderedSimultaneous);
 			if (!doEntry && !doExit) continue;
 
 			if (doEntry)
 			{
 				bool causedTransform = false;
+				Vector3 prePosition = p;
+				Vector3 preDirection = v;
+				Vector3 contactNormal = default;
+				bool tirCandidate = false;
 				switch (layer.Behavior)
 				{
 					case BoundaryLayerVolume.BoundaryBehavior.DirectionBias:
@@ -5315,24 +5737,31 @@ public partial class RayBeamRenderer : Node3D
 						break;
 					case BoundaryLayerVolume.BoundaryBehavior.PerfectMirrorReflection:
 						{
-							Vector3 n = ComputeBoundaryNormal(p, in layer);
-							v = SafeNormalized(v - 2f * n * v.Dot(n), v);
+							contactNormal = ComputeBoundaryNormal(p, in layer);
+							v = SafeNormalized(v - 2f * contactNormal * v.Dot(contactNormal), v);
 						}
 						break;
 					case BoundaryLayerVolume.BoundaryBehavior.DielectricRefraction:
 						{
-							Vector3 n = ComputeBoundaryNormal(p, in layer);
+							contactNormal = ComputeBoundaryNormal(p, in layer);
 							float n1 = 1.0f, n2 = layer.IOR;
-							v = Refract(v, n, n1 / n2);
-							if (v == Vector3.Zero) v = SafeNormalized(v - 2f * n * v.Dot(n), v); // TIR fallback
+							v = Refract(v, contactNormal, n1 / n2);
+							tirCandidate = v == Vector3.Zero;
+							if (tirCandidate) v = SafeNormalized(v - 2f * contactNormal * v.Dot(contactNormal), v); // TIR fallback
 						}
 						break;
 				}
+				RecordFormalBoundaryDecision(
+					formalTransportRecorder, integrationStepOrdinal, i, isEntry: true,
+					executionOrderedSimultaneous, in layer,
+					in prePosition, in p, in preDirection, in v, in contactNormal, tirCandidate);
 				RecordBoundaryValidationEvent(i, isEntry: true, isExit: false);
 				ledgerDelta.RecordEvent(i, LedgerCrossingKind.Entry, causedTransform);
 				if (causedTransform)
 				{
-					RecordBoundaryTransformPairedEgress(in layer, ref ledgerDelta);
+					RecordBoundaryTransformPairedEgress(
+						in layer, ref ledgerDelta, formalTransportRecorder,
+						integrationStepOrdinal, executionOrderedSimultaneous);
 				}
 				if (layer.DebugLogCrossings && !_boundaryDebugRunActive)
 					if (ShouldLog(DiagnosticVerbosity.TransportTrace, DiagnosticCategory.Boundary))
@@ -5341,6 +5770,10 @@ public partial class RayBeamRenderer : Node3D
 			if (doExit)
 			{
 				bool causedTransform = false;
+				Vector3 prePosition = p;
+				Vector3 preDirection = v;
+				Vector3 contactNormal = default;
+				bool tirCandidate = false;
 				switch (layer.Behavior)
 				{
 					case BoundaryLayerVolume.BoundaryBehavior.DirectionBias:
@@ -5353,19 +5786,24 @@ public partial class RayBeamRenderer : Node3D
 						break;
 					case BoundaryLayerVolume.BoundaryBehavior.PerfectMirrorReflection:
 						{
-							Vector3 n = ComputeBoundaryNormal(p, in layer);
-							v = SafeNormalized(v - 2f * n * v.Dot(n), v);
+							contactNormal = ComputeBoundaryNormal(p, in layer);
+							v = SafeNormalized(v - 2f * contactNormal * v.Dot(contactNormal), v);
 						}
 						break;
 					case BoundaryLayerVolume.BoundaryBehavior.DielectricRefraction:
 						{
-							Vector3 n = ComputeBoundaryNormal(p, in layer);
+							contactNormal = ComputeBoundaryNormal(p, in layer);
 							float n1 = layer.IOR, n2 = 1.0f;
-							v = Refract(v, n, n1 / n2);
-							if (v == Vector3.Zero) v = SafeNormalized(v - 2f * n * v.Dot(n), v); // TIR fallback
+							v = Refract(v, contactNormal, n1 / n2);
+							tirCandidate = v == Vector3.Zero;
+							if (tirCandidate) v = SafeNormalized(v - 2f * contactNormal * v.Dot(contactNormal), v); // TIR fallback
 						}
 						break;
 				}
+				RecordFormalBoundaryDecision(
+					formalTransportRecorder, integrationStepOrdinal, i, isEntry: false,
+					executionOrderedSimultaneous, in layer,
+					in prePosition, in p, in preDirection, in v, in contactNormal, tirCandidate);
 				RecordBoundaryValidationEvent(i, isEntry: false, isExit: true);
 				ledgerDelta.RecordEvent(i, LedgerCrossingKind.Exit, causedTransform);
 				if (layer.DebugLogCrossings && !_boundaryDebugRunActive)
@@ -5375,7 +5813,58 @@ public partial class RayBeamRenderer : Node3D
 		}
 	}
 
-	private void RecordBoundaryTransformPairedEgress(in BoundaryLayerSnap layer, ref BoundaryInteractionLedgerDelta ledgerDelta)
+	private static void RecordFormalBoundaryDecision(
+		FormalTransportAttemptBuilder formalTransportRecorder,
+		int integrationStepOrdinal,
+		int boundaryOrdinal,
+		bool isEntry,
+		bool executionOrderedSimultaneous,
+		in BoundaryLayerSnap layer,
+		in Vector3 prePosition,
+		in Vector3 postPosition,
+		in Vector3 preDirection,
+		in Vector3 postDirection,
+		in Vector3 contactNormal,
+		bool tirCandidate)
+	{
+		if (formalTransportRecorder == null)
+			return;
+		// contactNormal is the exact normal consumed by the legacy mutation at this
+		// sampled boundary point; it is not an analytically solved intersection normal.
+		switch (layer.Behavior)
+		{
+			case BoundaryLayerVolume.BoundaryBehavior.DirectionBias:
+				formalTransportRecorder.RecordBoundaryCrossing(
+					integrationStepOrdinal, boundaryOrdinal, isEntry, executionOrderedSimultaneous,
+					in prePosition, in preDirection, in postDirection);
+				break;
+			case BoundaryLayerVolume.BoundaryBehavior.SceneTransform:
+				formalTransportRecorder.RecordBoundaryRemap(
+					integrationStepOrdinal, boundaryOrdinal, executionOrderedSimultaneous,
+					in prePosition, in postPosition, in preDirection, in postDirection);
+				break;
+			case BoundaryLayerVolume.BoundaryBehavior.PerfectMirrorReflection:
+				formalTransportRecorder.RecordDielectric(
+					integrationStepOrdinal, boundaryOrdinal, executionOrderedSimultaneous,
+					TransportReasonV1.PerfectMirror, degenerate: false,
+					in prePosition, in preDirection, in postDirection, in contactNormal);
+				break;
+			case BoundaryLayerVolume.BoundaryBehavior.DielectricRefraction:
+				formalTransportRecorder.RecordDielectric(
+					integrationStepOrdinal, boundaryOrdinal, executionOrderedSimultaneous,
+					tirCandidate ? TransportReasonV1.TotalInternalReflectionCandidate : TransportReasonV1.DielectricRefraction,
+					tirCandidate,
+					in prePosition, in preDirection, in postDirection, in contactNormal);
+				break;
+		}
+	}
+
+	private void RecordBoundaryTransformPairedEgress(
+		in BoundaryLayerSnap layer,
+		ref BoundaryInteractionLedgerDelta ledgerDelta,
+		FormalTransportAttemptBuilder formalTransportRecorder = null,
+		int integrationStepOrdinal = 0,
+		bool executionOrderedSimultaneous = false)
 	{
 		// SceneTransform is a topological remap: the ray enters the source shell and resumes
 		// just outside the linked shell. There is no sampled geometric exit crossing at the
@@ -5384,6 +5873,8 @@ public partial class RayBeamRenderer : Node3D
 		if (linkedLayerIndex < 0)
 			return;
 
+		formalTransportRecorder?.RecordSyntheticEgress(
+			integrationStepOrdinal, linkedLayerIndex, executionOrderedSimultaneous);
 		RecordBoundaryValidationEvent(linkedLayerIndex, isEntry: false, isExit: true);
 		ledgerDelta.EventCount++;
 		ledgerDelta.BoundaryCrossings++;
@@ -5410,7 +5901,13 @@ public partial class RayBeamRenderer : Node3D
 		p = layer.LinkedCenter + radial.Normalized() * (layer.LinkedRadius + layer.SceneTransformExitOffset);
 	}
 
-	private BoundaryInteractionLedgerDelta ApplyBoundaryLayerInteractions(ref Vector3 p, ref Vector3 v, IReadOnlyList<BoundaryLayerSnap> layers, ref uint insideMask)
+	private BoundaryInteractionLedgerDelta ApplyBoundaryLayerInteractions(
+		ref Vector3 p,
+		ref Vector3 v,
+		IReadOnlyList<BoundaryLayerSnap> layers,
+		ref uint insideMask,
+		FormalTransportAttemptBuilder formalTransportRecorder = null,
+		int integrationStepOrdinal = 0)
 	{
 		BoundaryInteractionLedgerDelta ledgerDelta = default;
 		ledgerDelta.LastCrossingLayer = -1;
@@ -5422,12 +5919,29 @@ public partial class RayBeamRenderer : Node3D
 
 		uint newMask = ComputeInsideMask(p, layers);
 		uint crossings = newMask ^ insideMask;
-		int sceneTransformEvents = 0;
-		v = ApplyBoundaryLayerBias(p, v, layers);
+		v = ApplyBoundaryLayerBias(p, v, layers, formalTransportRecorder, integrationStepOrdinal);
 		if (crossings != 0u)
 		{
-			ApplyBoundaryLayerCrossings(ref p, ref v, layers, crossings & newMask, crossings & insideMask, ref ledgerDelta);
-			insideMask = ComputeInsideMask(p, layers);
+			uint entryBits = crossings & newMask;
+			uint exitBits = crossings & insideMask;
+			int recordedDispatchEventCount = formalTransportRecorder != null
+				? CountBoundaryRecorderEvents(layers, entryBits, exitBits)
+				: 0;
+			bool simultaneous = recordedDispatchEventCount > 1;
+			ApplyBoundaryLayerCrossings(
+				ref p, ref v, layers, entryBits, exitBits, ref ledgerDelta,
+				formalTransportRecorder, integrationStepOrdinal, simultaneous);
+			uint postDispatchMask = ComputeInsideMask(p, layers);
+			if (ledgerDelta.TransformCount > 0)
+			{
+				// SceneTransform can move the sample out of the source shell and into other
+				// boundary memberships. These are point-sampled bookkeeping observations,
+				// not analytically solved surface crossings or additional transport mutations.
+				RecordPostRemapMembershipChanges(
+					formalTransportRecorder, integrationStepOrdinal,
+					newMask, postDispatchMask, recordedDispatchEventCount);
+			}
+			insideMask = postDispatchMask;
 			return ledgerDelta;
 		}
 
