@@ -1387,6 +1387,47 @@ public partial class RayBeamRenderer : Node3D
 		}
 	}
 
+	/// <summary>
+	/// Captures the current whole-pixel Formal recorder slots as immutable,
+	/// host-neutral export data. The snapshot remains provisional and does not
+	/// confer scientific authority or sealability.
+	/// </summary>
+	public FormalTransportObservationSnapshotV1 CaptureFormalTransportObservationSnapshot()
+	{
+		lock (_formalProbeQueryLock)
+		{
+			var records = new List<FormalTransportAttemptRecord>(_formalTransportAttemptsByPixel.Values);
+			records.Sort((a, b) => a.PixelIndex.CompareTo(b.PixelIndex));
+			var pixels = new FormalTransportObservationPixelV1[records.Count];
+			for (int i = 0; i < records.Count; i++)
+			{
+				FormalTransportAttemptRecord record = records[i];
+				var kinds = new TransportEventKindV1[record.Events.Length];
+				for (int eventIndex = 0; eventIndex < record.Events.Length; eventIndex++)
+					kinds[eventIndex] = record.Events[eventIndex].Kind;
+				pixels[i] = new FormalTransportObservationPixelV1(
+					record.PixelIndex,
+					record.CaptureGeneration,
+					record.CommitVersion,
+					record.Finalized,
+					TransportRecorderCompletionV1.Failed,
+					record.ProvisionalReason,
+					record.EventCapacity,
+					record.Overflowed,
+					kinds);
+			}
+			return new FormalTransportObservationSnapshotV1(
+				_formalProbeCaptureGeneration,
+				_formalTransportRecorderWasEnabledForCapture,
+				_formalTransportAttemptAllocationCount,
+				_formalTransportRecordedEventCount,
+				_formalTransportFinalizationEligibleCommitCount,
+				_formalTransportAcceptedFinalizationCount,
+				_formalTransportStaleFinalizationRejectCount,
+				pixels);
+		}
+	}
+
 	public FormalProbeQuery[] GetFormalProbeQueriesCanonical()
 	{
 		FormalProbeQuery[] queries;

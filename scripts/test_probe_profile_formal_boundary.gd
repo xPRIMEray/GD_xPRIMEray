@@ -294,6 +294,25 @@ func _run_formal(tag: String, guard_live_schedule := false) -> void:
 		"hello-prt-gallery-v2", SCENE_PATH, "working-tree", "probe-profile-boundary",
 		OS.get_environment("XPRIMERAY_SOURCE_TREE_STATE"), OS.get_environment("XPRIMERAY_AUTHORED_DIFF_SHA256")))
 	_assert(reason.is_empty(), "portable bundle capture: " + reason)
+	if record_formal_transport_ledger:
+		var engine_commit := OS.get_environment("XPRIMERAY_ENGINE_COMMIT")
+		_assert(not engine_commit.is_empty(), "portal-remap bundle engine commit available")
+		var portal_bundle_dir := output_root.path_join("portal_remap_observation_p%d_%s_%s" % [
+			profile_index, scenario.to_lower(), tag])
+		var portal_reason := str(film.call("CapturePortalRemapObservationBundle", portal_bundle_dir,
+			"portal-remap-observation-%d-%s-%s" % [profile_index, scenario.to_lower(), tag],
+			"hello-prt-gallery-v2", SCENE_PATH, engine_commit,
+			OS.get_environment("XPRIMERAY_SOURCE_TREE_STATE"), OS.get_environment("XPRIMERAY_AUTHORED_DIFF_SHA256")))
+		_assert(portal_reason.is_empty(), "provisional portal-remap bundle capture: " + portal_reason)
+		print("PORTAL_REMAP_OBSERVATION_BUNDLE path=%s" % portal_bundle_dir)
+	else:
+		var off_probe_dir := output_root.path_join("portal_remap_observation_disabled_probe")
+		var off_probe_reason := str(film.call("CapturePortalRemapObservationBundle", off_probe_dir,
+			"portal-remap-observation-disabled-probe", "hello-prt-gallery-v2", SCENE_PATH,
+			OS.get_environment("XPRIMERAY_ENGINE_COMMIT"),
+			OS.get_environment("XPRIMERAY_SOURCE_TREE_STATE"), OS.get_environment("XPRIMERAY_AUTHORED_DIFF_SHA256")))
+		_assert(off_probe_reason == "formal_transport_observation_unavailable", "recorder OFF has no sealed observation snapshot")
+		_assert(not DirAccess.dir_exists_absolute(off_probe_dir), "recorder OFF writes no portal observation artifact")
 	var manifest_file := FileAccess.open(bundle_dir.path_join("manifest.json"), FileAccess.READ)
 	_assert(manifest_file != null, "bundle manifest readable")
 	var manifest = JSON.parse_string(manifest_file.get_as_text())

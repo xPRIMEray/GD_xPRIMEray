@@ -11,6 +11,7 @@ using System.Threading;
 using XPrimeRay.Perf; // adjust namespace new PerfScope.cs
 using XPrimeRay.ObserverInstrumentation.Abstractions;
 using XPrimeRay.ObserverInstrumentation.Runtime;
+using XPrimeRay.ObserverInstrumentation;
 using XPrimeRay.ObservationLayer;
 using XPrimeRay.Diagnostics;
 using RendererCore.Common;
@@ -2446,6 +2447,9 @@ public partial class GrinFilmCamera : Node
 	private int _sealedProbeViewHeight = 0;
 	private int _sealedProbeViewGeneration = 0;
 	private ProbeContextKey _sealedProbeViewContextKey;
+	private FormalTransportObservationSnapshotV1 _sealedFormalTransportObservationSnapshot;
+	private string _sealedFormalTransportQueryDatasetSha256 = string.Empty;
+	private string _sealedFormalTransportGeometrySnapshotSha256 = string.Empty;
 	private ProbeViewMode _probeViewMode = ProbeViewMode.Outcome;
 	private Label _probeViewHud;
 	private Panel _probeViewHudBackdrop;
@@ -2466,6 +2470,8 @@ public partial class GrinFilmCamera : Node
 		public float CameraFov;
 		public int FilmWidth;
 		public int FilmHeight;
+		public int FilmStride;
+		public bool TransportRecorderEnabled;
 		public float FieldStrength;
 		public RayBeamRenderer.FieldSourceSnap[] FieldSources;
 		public bool HasFieldSources;
@@ -5372,6 +5378,59 @@ private sealed class OverlayRollingWindow
 		return TryCapturePortableObservatoryBundle(
 			outputDirectory, runId, semanticSceneId, godotScenePath, engineCommit, acquisitionLineage,
 			sourceTreeState, authoredDiffSha256, out string reason)
+			? string.Empty
+			: reason;
+	}
+
+	/// <summary>
+	/// Writes a standalone provisional portal-remap observation bundle for the
+	/// acquisition-owned recorder snapshot. This does not change or extend Q.
+	/// </summary>
+	public string CapturePortalRemapObservationBundle(
+		string outputDirectory,
+		string runId,
+		string semanticSceneId,
+		string godotScenePath,
+		string engineCommit,
+		string sourceTreeState,
+		string authoredDiffSha256)
+	{
+		if (!_sealedProbeViewAvailable ||
+			_lastProbeSnapshotLifecycleResult.State != ProbeSnapshotLifecycleState.Complete ||
+			_sealedFormalTransportObservationSnapshot == null)
+			return "formal_transport_observation_unavailable";
+
+		Transform3D transform = _cathedralSnapshotContext.CameraTransform;
+		Basis basis = transform.Basis;
+		var cameraPose = new CameraPoseBitsV1(
+			BitConverter.SingleToUInt32Bits(basis.X.X), BitConverter.SingleToUInt32Bits(basis.X.Y), BitConverter.SingleToUInt32Bits(basis.X.Z),
+			BitConverter.SingleToUInt32Bits(basis.Y.X), BitConverter.SingleToUInt32Bits(basis.Y.Y), BitConverter.SingleToUInt32Bits(basis.Y.Z),
+			BitConverter.SingleToUInt32Bits(basis.Z.X), BitConverter.SingleToUInt32Bits(basis.Z.Y), BitConverter.SingleToUInt32Bits(basis.Z.Z),
+			BitConverter.SingleToUInt32Bits(transform.Origin.X), BitConverter.SingleToUInt32Bits(transform.Origin.Y), BitConverter.SingleToUInt32Bits(transform.Origin.Z),
+			BitConverter.SingleToUInt32Bits(_cathedralSnapshotContext.CameraFov));
+
+		var input = new PortalRemapObservationInputV1
+		{
+			OutputDirectory = outputDirectory,
+			RunId = runId,
+			SemanticSceneId = semanticSceneId,
+			GodotScenePath = godotScenePath,
+			FormalPolicyId = _sealedFormalPolicyId,
+			FormalPolicySha256 = _sealedFormalPolicySha256,
+			GeometrySnapshotSha256 = _sealedFormalTransportGeometrySnapshotSha256,
+			FrozenBoundaryContentSha256 = _cathedralSnapshotContext.BoundaryContentSha256,
+			BoundaryExecutionAuthoritySha256 = _cathedralSnapshotContext.BoundaryExecutionSha256,
+			CameraPose = cameraPose,
+			Width = _sealedProbeViewWidth,
+			Height = _sealedProbeViewHeight,
+			FilmStride = _cathedralSnapshotContext.FilmStride,
+			CanonicalQueryDatasetSha256 = _sealedFormalTransportQueryDatasetSha256,
+			EngineCommit = engineCommit,
+			SourceTreeState = sourceTreeState,
+			AuthoredDiffSha256 = authoredDiffSha256,
+			Snapshot = _sealedFormalTransportObservationSnapshot
+		};
+		return PortalRemapObservationMapV1.TryWrite(input, out _, out string reason)
 			? string.Empty
 			: reason;
 	}
@@ -10772,6 +10831,9 @@ private sealed class OverlayRollingWindow
 		_sealedProbeViewHeight = 0;
 		_sealedProbeViewGeneration = 0;
 		_sealedProbeViewContextKey = default;
+		_sealedFormalTransportObservationSnapshot = null;
+		_sealedFormalTransportQueryDatasetSha256 = string.Empty;
+		_sealedFormalTransportGeometrySnapshotSha256 = string.Empty;
 		_sealedProbeProfileStableId = string.Empty;
 		_sealedProbeProfileDisplayName = string.Empty;
 		_sealedFormalPolicyId = string.Empty;
@@ -11749,6 +11811,8 @@ private sealed class OverlayRollingWindow
 			CameraFov = _cam.Fov,
 			FilmWidth = _filmWidth,
 			FilmHeight = _filmHeight,
+			FilmStride = cfg.Film.PixelStride,
+			TransportRecorderEnabled = RecordFormalTransportLedger,
 			FieldStrength = cfg.RayMarch.FieldStrength,
 			FieldSources = frozenFieldSources,
 			HasFieldSources = frozenHasSources,
@@ -13946,6 +14010,18 @@ private sealed class OverlayRollingWindow
 		_sealedProbeProfileDisplayName = _cathedralSnapshotContext.ProbeProfileDisplayName ?? string.Empty;
 		_sealedFormalPolicyId = _cathedralSnapshotContext.FormalPolicyId ?? string.Empty;
 		_sealedFormalPolicySha256 = _cathedralSnapshotContext.FormalPolicySha256 ?? string.Empty;
+		if (_cathedralSnapshotContext.TransportRecorderEnabled)
+		{
+			_sealedFormalTransportObservationSnapshot = _rbr?.CaptureFormalTransportObservationSnapshot();
+			_sealedFormalTransportQueryDatasetSha256 = _rbr?.GetFormalProbeQueryDatasetSha256() ?? string.Empty;
+			_sealedFormalTransportGeometrySnapshotSha256 = _cathedralSpatialSnapshot?.GeometrySnapshotSha256 ?? string.Empty;
+		}
+		else
+		{
+			_sealedFormalTransportObservationSnapshot = null;
+			_sealedFormalTransportQueryDatasetSha256 = string.Empty;
+			_sealedFormalTransportGeometrySnapshotSha256 = string.Empty;
+		}
 		_sealedProbeViewAvailable = true;
 		UpdateProbeViewHud();
 		GD.Print($"[ProbeView] sealed generation={generation} pixels={totalPixels} context={contextKey.GetHashCode():x8}");

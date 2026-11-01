@@ -18,6 +18,7 @@
     <Compile Remove="src/XPrimeRay.Spatial.Tests/**/*.cs" />
     <Compile Remove=".godot/**/*.cs" />
     <Compile Remove=".godot/mono/temp/**/*.cs" />
+    <Compile Remove="output/**/*.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="src/XPrimeRay.ObserverInstrumentation/XPrimeRay.ObserverInstrumentation.csproj" />
