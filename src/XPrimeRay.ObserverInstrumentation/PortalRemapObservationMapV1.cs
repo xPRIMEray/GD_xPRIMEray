@@ -298,7 +298,7 @@ public static class PortalRemapObservationMapV1
         };
     }
 
-    private static uint[] CameraBits(CameraPoseBitsV1 camera) => new[]
+    internal static uint[] CameraBits(CameraPoseBitsV1 camera) => new[]
     {
         camera.BasisXX, camera.BasisXY, camera.BasisXZ,
         camera.BasisYX, camera.BasisYY, camera.BasisYZ,
@@ -306,7 +306,7 @@ public static class PortalRemapObservationMapV1
         camera.OriginX, camera.OriginY, camera.OriginZ, camera.Fov
     };
 
-    private static uint[] BuildCommitVersions(int total, FormalTransportObservationSnapshotV1 snapshot)
+    internal static uint[] BuildCommitVersions(int total, FormalTransportObservationSnapshotV1 snapshot)
     {
         uint[] versions = new uint[total];
         foreach (FormalTransportObservationPixelV1 pixel in snapshot.Pixels)
@@ -314,7 +314,7 @@ public static class PortalRemapObservationMapV1
         return versions;
     }
 
-    private static Dictionary<string, object> HashEntry(byte[] bytes) => new()
+    internal static Dictionary<string, object> HashEntry(byte[] bytes) => new()
     {
         ["bytes"] = bytes.Length,
         ["sha256"] = Sha256(bytes)
@@ -341,7 +341,7 @@ public static class PortalRemapObservationMapV1
         return bytes;
     }
 
-    private static byte[] SerializeProvisionalSnapshot(FormalTransportObservationSnapshotV1 snapshot)
+    internal static byte[] SerializeProvisionalSnapshot(FormalTransportObservationSnapshotV1 snapshot)
     {
         using MemoryStream stream = new();
         WriteBytes(stream, Encoding.UTF8.GetBytes("PortalRemapObservationRecorderSnapshot-v1\0"));
@@ -369,7 +369,7 @@ public static class PortalRemapObservationMapV1
         return stream.ToArray();
     }
 
-    private static byte[] EncodePng(int width, int height, byte[] rgba)
+    internal static byte[] EncodePng(int width, int height, byte[] rgba)
     {
         using MemoryStream raw = new();
         for (int y = 0; y < height; y++)
@@ -421,13 +421,13 @@ public static class PortalRemapObservationMapV1
         return crc;
     }
 
-    private static string SerializeJson(object value) =>
+    internal static string SerializeJson(object value) =>
         JsonSerializer.Serialize(value, new JsonSerializerOptions { WriteIndented = true }) + "\n";
 
     private static bool IsSha256(string value) =>
         value.Length == 64 && value.All(character => Uri.IsHexDigit(character));
 
-    private static string Sha256(byte[] bytes) =>
+    internal static string Sha256(byte[] bytes) =>
         Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
 
     private static void WriteByte(Stream stream, byte value) => stream.WriteByte(value);

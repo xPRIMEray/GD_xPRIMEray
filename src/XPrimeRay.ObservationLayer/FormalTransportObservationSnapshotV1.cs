@@ -75,7 +75,8 @@ public sealed class FormalTransportObservationSnapshotV1
         int finalizationEligibleCommits,
         int acceptedFinalizations,
         int staleFinalizationRejects,
-        IEnumerable<FormalTransportObservationPixelV1> pixels)
+        IEnumerable<FormalTransportObservationPixelV1> pixels,
+        FormalTransportPixelMeasurementsV1? measurements = null)
     {
         if (captureGeneration == 0) throw new ArgumentOutOfRangeException(nameof(captureGeneration));
         if (attemptAllocations < 0 || recordedEvents < 0 || finalizationEligibleCommits < 0 ||
@@ -98,6 +99,7 @@ public sealed class FormalTransportObservationSnapshotV1
         FinalizationEligibleCommitCount = finalizationEligibleCommits;
         AcceptedFinalizationCount = acceptedFinalizations;
         StaleFinalizationRejectCount = staleFinalizationRejects;
+        Measurements = measurements;
         _pixels = Array.AsReadOnly(ordered);
     }
 
@@ -108,5 +110,100 @@ public sealed class FormalTransportObservationSnapshotV1
     public int FinalizationEligibleCommitCount { get; }
     public int AcceptedFinalizationCount { get; }
     public int StaleFinalizationRejectCount { get; }
+    public FormalTransportPixelMeasurementsV1? Measurements { get; }
     public IReadOnlyList<FormalTransportObservationPixelV1> Pixels => _pixels;
+}
+
+public sealed class FormalTransportEventMeasurementV1
+{
+    public FormalTransportEventMeasurementV1(
+        int eventOrdinal,
+        int integrationStepOrdinal,
+        TransportEventKindV1 kind,
+        TransportReasonV1 reason)
+    {
+        if (eventOrdinal < 0 || integrationStepOrdinal < 0) throw new ArgumentOutOfRangeException(nameof(eventOrdinal));
+        if (!Enum.IsDefined(kind) || kind == TransportEventKindV1.Unknown) throw new ArgumentOutOfRangeException(nameof(kind));
+        if (!Enum.IsDefined(reason)) throw new ArgumentOutOfRangeException(nameof(reason));
+        EventOrdinal = eventOrdinal;
+        IntegrationStepOrdinal = integrationStepOrdinal;
+        Kind = kind;
+        Reason = reason;
+    }
+
+    public int EventOrdinal { get; }
+    public int IntegrationStepOrdinal { get; }
+    public TransportEventKindV1 Kind { get; }
+    public TransportReasonV1 Reason { get; }
+}
+
+public sealed class FormalTransportPixelMeasurementV1
+{
+    private readonly ReadOnlyCollection<FormalTransportEventMeasurementV1> _events;
+    private readonly ReadOnlyCollection<int> _querySteps;
+
+    public FormalTransportPixelMeasurementV1(
+        int pixelIndex,
+        ulong captureGeneration,
+        uint commitVersion,
+        Pass1TransportTerminationV1 termination,
+        RawTerminalFlagsV1 rawTerminalFlags,
+        int stepsIntegrated,
+        uint traveledBits,
+        int questionCount,
+        uint queriedChordBits,
+        uint maxUnqueriedGapBits,
+        IEnumerable<int> querySteps,
+        IEnumerable<FormalTransportEventMeasurementV1> events)
+    {
+        if (pixelIndex < 0 || captureGeneration == 0 || commitVersion == 0 || stepsIntegrated < 0 || questionCount < 0)
+            throw new ArgumentOutOfRangeException(nameof(pixelIndex));
+        if (!Enum.IsDefined(termination)) throw new ArgumentOutOfRangeException(nameof(termination));
+        int[] steps = (querySteps ?? throw new ArgumentNullException(nameof(querySteps))).ToArray();
+        if (steps.Any(step => step < 0)) throw new ArgumentException("Query steps must be nonnegative.", nameof(querySteps));
+        FormalTransportEventMeasurementV1[] eventArray = (events ?? throw new ArgumentNullException(nameof(events))).ToArray();
+        for (int i = 0; i < eventArray.Length; i++)
+            if (eventArray[i].EventOrdinal != i) throw new ArgumentException("Event ordinals must be contiguous.", nameof(events));
+        PixelIndex = pixelIndex;
+        CaptureGeneration = captureGeneration;
+        CommitVersion = commitVersion;
+        Termination = termination;
+        RawTerminalFlags = rawTerminalFlags;
+        StepsIntegrated = stepsIntegrated;
+        TraveledBits = traveledBits;
+        QuestionCount = questionCount;
+        QueriedChordBits = queriedChordBits;
+        MaxUnqueriedGapBits = maxUnqueriedGapBits;
+        _querySteps = Array.AsReadOnly(steps);
+        _events = Array.AsReadOnly(eventArray);
+    }
+
+    public int PixelIndex { get; }
+    public ulong CaptureGeneration { get; }
+    public uint CommitVersion { get; }
+    public Pass1TransportTerminationV1 Termination { get; }
+    public RawTerminalFlagsV1 RawTerminalFlags { get; }
+    public int StepsIntegrated { get; }
+    public uint TraveledBits { get; }
+    public int QuestionCount { get; }
+    public uint QueriedChordBits { get; }
+    public uint MaxUnqueriedGapBits { get; }
+    public IReadOnlyList<int> QuerySteps => _querySteps;
+    public IReadOnlyList<FormalTransportEventMeasurementV1> Events => _events;
+}
+
+public sealed class FormalTransportPixelMeasurementsV1
+{
+    private readonly ReadOnlyCollection<FormalTransportPixelMeasurementV1> _pixels;
+
+    public FormalTransportPixelMeasurementsV1(IEnumerable<FormalTransportPixelMeasurementV1> pixels)
+    {
+        FormalTransportPixelMeasurementV1[] ordered = (pixels ?? throw new ArgumentNullException(nameof(pixels)))
+            .OrderBy(pixel => pixel.PixelIndex).ToArray();
+        for (int i = 1; i < ordered.Length; i++)
+            if (ordered[i - 1].PixelIndex == ordered[i].PixelIndex) throw new ArgumentException("Duplicate pixel measurement.", nameof(pixels));
+        _pixels = Array.AsReadOnly(ordered);
+    }
+
+    public IReadOnlyList<FormalTransportPixelMeasurementV1> Pixels => _pixels;
 }

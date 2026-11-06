@@ -1399,6 +1399,7 @@ public partial class RayBeamRenderer : Node3D
 			var records = new List<FormalTransportAttemptRecord>(_formalTransportAttemptsByPixel.Values);
 			records.Sort((a, b) => a.PixelIndex.CompareTo(b.PixelIndex));
 			var pixels = new FormalTransportObservationPixelV1[records.Count];
+			var measurements = new FormalTransportPixelMeasurementV1[records.Count];
 			for (int i = 0; i < records.Count; i++)
 			{
 				FormalTransportAttemptRecord record = records[i];
@@ -1415,6 +1416,37 @@ public partial class RayBeamRenderer : Node3D
 					record.EventCapacity,
 					record.Overflowed,
 					kinds);
+
+				FormalProbeQuery[] queries = _formalProbeQueriesByPixel.TryGetValue(record.PixelIndex, out FormalProbeQuery[] currentQueries)
+					? currentQueries
+					: Array.Empty<FormalProbeQuery>();
+				var coverageSegments = new FormalQuerySegmentV1[queries.Length];
+				var querySteps = new int[queries.Length];
+				for (int queryIndex = 0; queryIndex < queries.Length; queryIndex++)
+				{
+					FormalProbeQuery query = queries[queryIndex];
+					querySteps[queryIndex] = query.ProbeStep;
+					coverageSegments[queryIndex] = new FormalQuerySegmentV1(
+						query.ProbeStep, query.TraveledB, (query.To - query.From).Length());
+				}
+				FormalQueryCoverageSummaryV1 coverage = FormalQueryCoverageV1.Measure(
+					BitConverter.UInt32BitsToSingle(record.TraveledBits), coverageSegments);
+				var events = new FormalTransportEventMeasurementV1[record.Events.Length];
+				for (int eventIndex = 0; eventIndex < record.Events.Length; eventIndex++)
+				{
+					TransportEventV1 transportEvent = record.Events[eventIndex];
+					events[eventIndex] = new FormalTransportEventMeasurementV1(
+						transportEvent.EventOrdinal,
+						transportEvent.IntegrationStepOrdinal,
+						transportEvent.Kind,
+						transportEvent.Reason);
+				}
+				measurements[i] = new FormalTransportPixelMeasurementV1(
+					record.PixelIndex, record.CaptureGeneration, record.CommitVersion,
+					record.Termination, record.RawTerminalFlags, record.StepsIntegrated,
+					record.TraveledBits, record.QuestionCount,
+					coverage.QueriedChordBits, coverage.MaxUnqueriedGapBits,
+					querySteps, events);
 			}
 			return new FormalTransportObservationSnapshotV1(
 				_formalProbeCaptureGeneration,
@@ -1424,7 +1456,8 @@ public partial class RayBeamRenderer : Node3D
 				_formalTransportFinalizationEligibleCommitCount,
 				_formalTransportAcceptedFinalizationCount,
 				_formalTransportStaleFinalizationRejectCount,
-				pixels);
+				pixels,
+				new FormalTransportPixelMeasurementsV1(measurements));
 		}
 	}
 

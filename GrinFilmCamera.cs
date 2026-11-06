@@ -2439,6 +2439,7 @@ public partial class GrinFilmCamera : Node
 	private byte[] _transportEffortValid = Array.Empty<byte>();
 	private ProbeOutcomeCode[] _sealedProbeViewOutcomes = Array.Empty<ProbeOutcomeCode>();
 	private int[] _sealedProbeViewContactCounts = Array.Empty<int>();
+	private int[] _sealedFormalTransportFirstContactSteps = Array.Empty<int>();
 	private int[] _sealedProbeViewFinalStepCounts = Array.Empty<int>();
 	private int[] _sealedProbeViewPolicyMaxSteps = Array.Empty<int>();
 	private byte[] _sealedProbeViewEffortValid = Array.Empty<byte>();
@@ -5431,6 +5432,63 @@ private sealed class OverlayRollingWindow
 			Snapshot = _sealedFormalTransportObservationSnapshot
 		};
 		return PortalRemapObservationMapV1.TryWrite(input, out _, out string reason)
+			? string.Empty
+			: reason;
+	}
+
+	/// <summary>
+	/// Writes the standalone provisional transport-disposition observation bundle.
+	/// This is not a sealed Q channel or a qualified terminal-hit claim.
+	/// </summary>
+	public string CaptureTransportDispositionObservationBundle(
+		string outputDirectory,
+		string runId,
+		string semanticSceneId,
+		string godotScenePath,
+		string engineCommit,
+		string sourceTreeState,
+		string authoredDiffSha256)
+	{
+		if (!_sealedProbeViewAvailable ||
+			_lastProbeSnapshotLifecycleResult.State != ProbeSnapshotLifecycleState.Complete ||
+			_sealedFormalTransportObservationSnapshot == null)
+			return "formal_transport_observation_unavailable";
+		int total = _sealedProbeViewWidth * _sealedProbeViewHeight;
+		if (_sealedProbeViewContactCounts.Length != total || _sealedFormalTransportFirstContactSteps.Length != total)
+			return "sealed_transport_channels_invalid";
+
+		Transform3D transform = _cathedralSnapshotContext.CameraTransform;
+		Basis basis = transform.Basis;
+		var cameraPose = new CameraPoseBitsV1(
+			BitConverter.SingleToUInt32Bits(basis.X.X), BitConverter.SingleToUInt32Bits(basis.X.Y), BitConverter.SingleToUInt32Bits(basis.X.Z),
+			BitConverter.SingleToUInt32Bits(basis.Y.X), BitConverter.SingleToUInt32Bits(basis.Y.Y), BitConverter.SingleToUInt32Bits(basis.Y.Z),
+			BitConverter.SingleToUInt32Bits(basis.Z.X), BitConverter.SingleToUInt32Bits(basis.Z.Y), BitConverter.SingleToUInt32Bits(basis.Z.Z),
+			BitConverter.SingleToUInt32Bits(transform.Origin.X), BitConverter.SingleToUInt32Bits(transform.Origin.Y), BitConverter.SingleToUInt32Bits(transform.Origin.Z),
+			BitConverter.SingleToUInt32Bits(_cathedralSnapshotContext.CameraFov));
+		var input = new TransportDispositionObservationInputV1
+		{
+			OutputDirectory = outputDirectory,
+			RunId = runId,
+			SemanticSceneId = semanticSceneId,
+			GodotScenePath = godotScenePath,
+			FormalPolicyId = _sealedFormalPolicyId,
+			FormalPolicySha256 = _sealedFormalPolicySha256,
+			GeometrySnapshotSha256 = _sealedFormalTransportGeometrySnapshotSha256,
+			FrozenBoundaryContentSha256 = _cathedralSnapshotContext.BoundaryContentSha256,
+			BoundaryExecutionAuthoritySha256 = _cathedralSnapshotContext.BoundaryExecutionSha256,
+			CameraPose = cameraPose,
+			Width = _sealedProbeViewWidth,
+			Height = _sealedProbeViewHeight,
+			FilmStride = _cathedralSnapshotContext.FilmStride,
+			CanonicalQueryDatasetSha256 = _sealedFormalTransportQueryDatasetSha256,
+			EngineCommit = engineCommit,
+			SourceTreeState = sourceTreeState,
+			AuthoredDiffSha256 = authoredDiffSha256,
+			Snapshot = _sealedFormalTransportObservationSnapshot,
+			ContactCounts = (int[])_sealedProbeViewContactCounts.Clone(),
+			FirstContactSteps = (int[])_sealedFormalTransportFirstContactSteps.Clone()
+		};
+		return TransportDispositionObservationMapV1.TryWrite(input, out _, out string reason)
 			? string.Empty
 			: reason;
 	}
@@ -10832,6 +10890,7 @@ private sealed class OverlayRollingWindow
 		_sealedProbeViewGeneration = 0;
 		_sealedProbeViewContextKey = default;
 		_sealedFormalTransportObservationSnapshot = null;
+		_sealedFormalTransportFirstContactSteps = Array.Empty<int>();
 		_sealedFormalTransportQueryDatasetSha256 = string.Empty;
 		_sealedFormalTransportGeometrySnapshotSha256 = string.Empty;
 		_sealedProbeProfileStableId = string.Empty;
@@ -14013,12 +14072,15 @@ private sealed class OverlayRollingWindow
 		if (_cathedralSnapshotContext.TransportRecorderEnabled)
 		{
 			_sealedFormalTransportObservationSnapshot = _rbr?.CaptureFormalTransportObservationSnapshot();
+			_sealedFormalTransportFirstContactSteps = new int[totalPixels];
+			Array.Copy(_transportFirstContactStep, _sealedFormalTransportFirstContactSteps, totalPixels);
 			_sealedFormalTransportQueryDatasetSha256 = _rbr?.GetFormalProbeQueryDatasetSha256() ?? string.Empty;
 			_sealedFormalTransportGeometrySnapshotSha256 = _cathedralSpatialSnapshot?.GeometrySnapshotSha256 ?? string.Empty;
 		}
 		else
 		{
 			_sealedFormalTransportObservationSnapshot = null;
+			_sealedFormalTransportFirstContactSteps = Array.Empty<int>();
 			_sealedFormalTransportQueryDatasetSha256 = string.Empty;
 			_sealedFormalTransportGeometrySnapshotSha256 = string.Empty;
 		}

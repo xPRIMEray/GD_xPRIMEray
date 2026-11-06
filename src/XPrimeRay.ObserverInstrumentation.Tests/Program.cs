@@ -27,6 +27,7 @@ internal static class Program
 			,(nameof(ProbeViewTests), ProbeViewTests.Run)
 			,(nameof(PortableProbeCaptureBundleTests), PortableProbeCaptureBundleTests.Run)
 			,(nameof(PortalRemapObservationMapV1Tests), PortalRemapObservationMapV1Tests.Run)
+			,(nameof(TransportDispositionObservationMapV1Tests), TransportDispositionObservationMapV1Tests.Run)
 			,(nameof(DeterministicContactReplayTests), DeterministicContactReplayTests.Run)
 			,(nameof(SpatialKernelTests), SpatialKernelTests.Run)
 			,(nameof(ProbeProfileTests), ProbeProfileTests.Run)

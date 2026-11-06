@@ -305,6 +305,14 @@ func _run_formal(tag: String, guard_live_schedule := false) -> void:
 			OS.get_environment("XPRIMERAY_SOURCE_TREE_STATE"), OS.get_environment("XPRIMERAY_AUTHORED_DIFF_SHA256")))
 		_assert(portal_reason.is_empty(), "provisional portal-remap bundle capture: " + portal_reason)
 		print("PORTAL_REMAP_OBSERVATION_BUNDLE path=%s" % portal_bundle_dir)
+		var disposition_bundle_dir := output_root.path_join("transport_disposition_observation_p%d_%s_%s" % [
+			profile_index, scenario.to_lower(), tag])
+		var disposition_reason := str(film.call("CaptureTransportDispositionObservationBundle", disposition_bundle_dir,
+			"transport-disposition-observation-%d-%s-%s" % [profile_index, scenario.to_lower(), tag],
+			"hello-prt-gallery-v2", SCENE_PATH, engine_commit,
+			OS.get_environment("XPRIMERAY_SOURCE_TREE_STATE"), OS.get_environment("XPRIMERAY_AUTHORED_DIFF_SHA256")))
+		_assert(disposition_reason.is_empty(), "provisional transport-disposition bundle capture: " + disposition_reason)
+		print("TRANSPORT_DISPOSITION_OBSERVATION_BUNDLE path=%s" % disposition_bundle_dir)
 	else:
 		var off_probe_dir := output_root.path_join("portal_remap_observation_disabled_probe")
 		var off_probe_reason := str(film.call("CapturePortalRemapObservationBundle", off_probe_dir,
@@ -313,6 +321,13 @@ func _run_formal(tag: String, guard_live_schedule := false) -> void:
 			OS.get_environment("XPRIMERAY_SOURCE_TREE_STATE"), OS.get_environment("XPRIMERAY_AUTHORED_DIFF_SHA256")))
 		_assert(off_probe_reason == "formal_transport_observation_unavailable", "recorder OFF has no sealed observation snapshot")
 		_assert(not DirAccess.dir_exists_absolute(off_probe_dir), "recorder OFF writes no portal observation artifact")
+		var off_disposition_dir := output_root.path_join("transport_disposition_observation_disabled_probe")
+		var off_disposition_reason := str(film.call("CaptureTransportDispositionObservationBundle", off_disposition_dir,
+			"transport-disposition-observation-disabled-probe", "hello-prt-gallery-v2", SCENE_PATH,
+			OS.get_environment("XPRIMERAY_ENGINE_COMMIT"),
+			OS.get_environment("XPRIMERAY_SOURCE_TREE_STATE"), OS.get_environment("XPRIMERAY_AUTHORED_DIFF_SHA256")))
+		_assert(off_disposition_reason == "formal_transport_observation_unavailable", "recorder OFF has no sealed disposition observation snapshot")
+		_assert(not DirAccess.dir_exists_absolute(off_disposition_dir), "recorder OFF writes no disposition observation artifact")
 	var manifest_file := FileAccess.open(bundle_dir.path_join("manifest.json"), FileAccess.READ)
 	_assert(manifest_file != null, "bundle manifest readable")
 	var manifest = JSON.parse_string(manifest_file.get_as_text())
