@@ -121,8 +121,8 @@ func _stage_optical_only() -> void:
 
 func _stage_live_discovery() -> void:
 	_begin_stage("live_optical_discovery")
-	_send_key(KEY_G)
-	production_transitions.append("G:OFF->SNAPSHOT")
+	_send_key(KEY_Q)
+	production_transitions.append("Q:OFF->SNAPSHOT")
 	await _wait_for_formal_complete()
 	first_formal_result = _formal_result()
 	first_formal_validation_green = _formal_validation_green()
@@ -147,8 +147,8 @@ func _stage_sealed_observation() -> void:
 	_send_key(KEY_G)
 	production_transitions.append("G:LIVE->OFF")
 	await _wait_for_mode("OFF")
-	_send_key(KEY_G)
-	production_transitions.append("G:OFF->SNAPSHOT")
+	_send_key(KEY_Q)
+	production_transitions.append("Q:OFF->SNAPSHOT")
 	await _wait_for_formal_complete()
 	sealed_formal_validation_green = _formal_validation_green()
 	_assert(sealed_formal_validation_green, "sealed formal validation")

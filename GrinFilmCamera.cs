@@ -2514,6 +2514,10 @@ public partial class GrinFilmCamera : Node
 	private string _spatialKernelDiagnosticFailure = string.Empty;
 	private int _probeSnapshotLifecycleRequestId = 0;
 	private int _probeSnapshotLifecycleGeneration = 0;
+	private ProbeProfileId _requestedSnapshotProbeProfile = ProbeProfileId.Cathedral;
+	private string _requestedSnapshotProbeProfileStableId = string.Empty;
+	private string _requestedSnapshotProbeProfileDisplayName = string.Empty;
+	private string _requestedSnapshotFormalPolicyId = string.Empty;
 	private int _probeSnapshotLifecycleBudgetFrames = CathedralProbeDefaultSnapshotLifecycleBudgetFrames;
 	private int _probeSnapshotLifecycleProcessStartFrame = 0;
 	private int _probeSnapshotLifecyclePhysicsStartFrame = 0;
@@ -5136,11 +5140,19 @@ private sealed class OverlayRollingWindow
 		if (e is not InputEventKey keyEvent || !keyEvent.Pressed || keyEvent.Echo)
 			return;
 
-		if (keyEvent.Keycode == Key.Q && !keyEvent.CtrlPressed && !keyEvent.AltPressed)
+		if (keyEvent.Keycode == Key.Q && !keyEvent.AltPressed)
 		{
-			SetProbeView(keyEvent.ShiftPressed
-				? ProbeViewCycle.Previous(_probeViewMode)
-				: ProbeViewCycle.Next(_probeViewMode));
+			Node controller = GetParent()?.GetNodeOrNull<Node>("FilmController");
+			if (controller != null && controller.HasMethod("HandleProbeViewInput"))
+			{
+				controller.Call("HandleProbeViewInput", keyEvent.ShiftPressed, keyEvent.CtrlPressed);
+			}
+			else
+			{
+				SetProbeView(keyEvent.ShiftPressed
+					? ProbeViewCycle.Previous(_probeViewMode)
+					: ProbeViewCycle.Next(_probeViewMode));
+			}
 			GetViewport()?.SetInputAsHandled();
 			return;
 		}
@@ -5236,11 +5248,19 @@ private sealed class OverlayRollingWindow
 			return;
 		}
 		ApplySelectedProbeProfileLivePolicy(resetPass: true, emitSignal: true);
+		ReapplyControllerLivePresentationOverrides();
 	}
 
 	public void ApplySelectedProbeProfileForLive()
 	{
 		ApplySelectedProbeProfileLivePolicy(resetPass: true, emitSignal: false);
+	}
+
+	private void ReapplyControllerLivePresentationOverrides()
+	{
+		Node controller = GetParent()?.GetNodeOrNull<Node>("FilmController");
+		if (controller != null && controller.HasMethod("ReapplyLivePresentationOverridesIfActive"))
+			controller.Call("ReapplyLivePresentationOverridesIfActive");
 	}
 
 	public bool TryCapturePortableObservatoryBundle(
@@ -5516,6 +5536,7 @@ private sealed class OverlayRollingWindow
 			dimensionsMatched: true).TotalPixelCount
 		: _lastProbeSnapshotLifecycleResult.TotalPixelCount;
 	public int CathedralSnapshotGeneration => _probeSnapshotLifecycleGeneration;
+	public string CathedralRequestedProbeProfileStableId => _requestedSnapshotProbeProfileStableId;
 	public bool CathedralContactReplayComplete => _cathedralContactReplayComplete &&
 		_lastProbeSnapshotLifecycleResult.State == ProbeSnapshotLifecycleState.Complete;
 	public int CathedralContactReplayInvocationCount => _cathedralContactReplayInvocationCount;
@@ -11493,6 +11514,11 @@ private sealed class OverlayRollingWindow
 				dimensionsMatched: false);
 			return false;
 		}
+		ProbeProfileDefinition requestedProfile = ProbeProfileCatalog.Get(SelectedProbeProfile);
+		_requestedSnapshotProbeProfile = requestedProfile.Id;
+		_requestedSnapshotProbeProfileStableId = requestedProfile.StableId;
+		_requestedSnapshotProbeProfileDisplayName = requestedProfile.DisplayName;
+		_requestedSnapshotFormalPolicyId = requestedProfile.FormalPolicyId;
 
 		_probeSnapshotLifecycleRequestId = _nextProbeSnapshotRequestId++;
 		_probeSnapshotLifecycleGeneration++;
@@ -11837,7 +11863,7 @@ private sealed class OverlayRollingWindow
 			return false;
 		}
 		_activeFormalPolicySha256 = contextKey.FormalPolicySha256;
-		ProbeProfileDefinition selectedProfile = ProbeProfileCatalog.Get(SelectedProbeProfile);
+		ProbeProfileDefinition selectedProfile = ProbeProfileCatalog.Get(_requestedSnapshotProbeProfile);
 		RayBeamRenderer.FieldSourceSnap[] frozenFieldSources = GetFieldSourceSnaps(
 			in cfg, _frameIndex, out bool frozenHasSources, out _).ToArray();
 		GodotAdapter.FrozenBoundarySnapshot frozenBoundaries;
@@ -11883,10 +11909,10 @@ private sealed class OverlayRollingWindow
 			BoundaryExecutionSha256 = frozenBoundaries.ExecutionAuthoritySha256,
 			StepsPerRay = cfg.RayMarch.StepsPerRay,
 			StepLength = cfg.RayMarch.StepLength,
-			ProbeProfile = SelectedProbeProfile,
-			ProbeProfileStableId = selectedProfile.StableId,
-			ProbeProfileDisplayName = selectedProfile.DisplayName,
-			FormalPolicyId = selectedProfile.FormalPolicyId,
+			ProbeProfile = _requestedSnapshotProbeProfile,
+			ProbeProfileStableId = _requestedSnapshotProbeProfileStableId,
+			ProbeProfileDisplayName = _requestedSnapshotProbeProfileDisplayName,
+			FormalPolicyId = _requestedSnapshotFormalPolicyId,
 			FormalPolicySha256 = _activeFormalPolicySha256,
 			FormalInitialRange = _activeFormalInitialRange
 		};

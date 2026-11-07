@@ -112,7 +112,7 @@ func _initialize() -> void:
 		_send_key(KEY_O)
 		await _settle(2)
 
-	_send_key(KEY_G)
+	_send_key(KEY_Q)
 	await _wait_for_complete()
 	var visible_identity := _formal_identity()
 	var visible_result := _formal_result()
@@ -145,6 +145,9 @@ func _initialize() -> void:
 	_send_key(KEY_G)
 	await _settle(4)
 	_assert(film_controller.call("GetModeName") == "LIVE", "G enters LIVE")
+	_assert(str(film_controller.call("GetLastInputDisposition")) == "live_started_sealed_evidence_released",
+		"G did not disclose sealed-evidence release")
+	_assert(not bool(film.get("ProbeViewAvailable")), "G entering LIVE retained sealed evidence")
 	_send_key(KEY_G)
 	await _settle(12)
 	_assert(film_controller.call("GetModeName") == "OFF", "G returns OFF")
@@ -156,7 +159,7 @@ func _initialize() -> void:
 	player.velocity = Vector3.ZERO
 	player_camera.global_transform = camera_transform
 	await _settle(2)
-	_send_key(KEY_G)
+	_send_key(KEY_Q)
 	await _wait_for_complete()
 	_assert(_formal_validation_green(), "optical-only formal authority validation")
 	_assert(_formal_identity() == visible_identity, "visible and optical-only formal identity match")

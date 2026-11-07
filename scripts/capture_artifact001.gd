@@ -57,7 +57,7 @@ func _initialize() -> void:
 	_assert(_all_field_sources_runtime_visible(), "Field Structure did not remain enabled after experiment selection")
 	await _capture_stage("hermetic_field_structure.png", "Hermetic", false)
 
-	_send_key(KEY_G)
+	_send_key(KEY_Q)
 	await _wait_for_complete()
 	await _settle(2)
 	_assert(str(film.get("CathedralSnapshotLifecycleStateName")) == "complete", "formal snapshot is not Complete")
@@ -164,7 +164,7 @@ func _write_artifact_manifest() -> void:
 	proof["contact_query_count"] = query_count
 	proof["contact_authority"] = str(film.get("CathedralContactAuthorityToken"))
 	manifest["artifact_001"] = {
-		"recipe": "Gallery launch → select Hermetic Experiment → F optional → G formal SNAPSHOT → Q triad",
+		"recipe": "Gallery launch → select Hermetic Experiment → F optional → Q formal SNAPSHOT → Q triad",
 		"field_structure": "ON",
 		"preset": "Hermetic",
 		"snapshot_state": str(film.get("CathedralSnapshotLifecycleStateName")),

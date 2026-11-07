@@ -14,16 +14,20 @@ var player: CharacterBody3D
 var player_camera: Camera3D
 var capture_camera: Camera3D
 var output_root := ""
+var output_override := ""
 var capture_failed := false
 
 
 func _initialize() -> void:
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--output="):
+			output_override = arg.trim_prefix("--output=")
 	gallery = SCENE.instantiate()
 	get_root().add_child(gallery)
 	await _settle(8)
 	var initial_image := get_root().get_viewport().get_texture().get_image()
 	var viewport_size := Vector2(initial_image.get_width(), initial_image.get_height())
-	output_root = OUTPUT_BASE.path_join("p13_16x8_%dx%d" % [int(viewport_size.x), int(viewport_size.y)])
+	output_root = output_override if not output_override.is_empty() else OUTPUT_BASE.path_join("p13_16x8_%dx%d" % [int(viewport_size.x), int(viewport_size.y)])
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(output_root))
 	world = gallery.get_node("SuspendedPortalGalleryWorld")
 	player = gallery.call("get_player") as CharacterBody3D
@@ -427,21 +431,25 @@ func _qualify_input_contract(film_controller: Node, film: Node) -> void:
 	_assert(String(film.get("ProbeProfileStableId")) != profile_before, "P did not cycle Probe Profile")
 	await _dispatch_input_key(KEY_P)
 	_assert(String(film.get("ProbeProfileStableId")) == profile_before, "P did not restore Probe Profile")
-	var view_before := int(film.get("CurrentProbeView"))
-	var generation_before := int(film.get("SealedProbeViewGeneration"))
+	_assert(int(film_controller.get("_mode")) == 0, "input qualification did not start OFF")
+	await _dispatch_input_key(KEY_G)
+	_assert(int(film_controller.get("_mode")) == 2, "G did not enter LIVE from OFF")
+	var live_generation := int(film.get("CathedralSnapshotGeneration"))
 	await _dispatch_input_key(KEY_Q)
-	_assert(int(film.get("CurrentProbeView")) == (view_before + 1) % 3, "Q did not select next Probe View")
-	await _dispatch_input_key(KEY_Q, true)
-	_assert(int(film.get("CurrentProbeView")) == view_before, "Shift+Q did not select previous Probe View")
-	_assert(int(film.get("SealedProbeViewGeneration")) == generation_before, "Q changed sealed generation")
-
-	_assert(int(film_controller.get("_mode")) == 0, "G qualification did not start OFF")
-	_press_node_key(film_controller, KEY_G)
-	_assert(int(film_controller.get("_mode")) == 1, "G did not enter SNAPSHOT")
-	_press_node_key(film_controller, KEY_G)
-	_assert(int(film_controller.get("_mode")) == 2, "G did not enter LIVE")
-	_press_node_key(film_controller, KEY_G)
-	_assert(int(film_controller.get("_mode")) == 0, "G did not return OFF")
+	_assert(int(film_controller.get("_mode")) == 2, "Q unexpectedly left LIVE")
+	_assert(int(film.get("CathedralSnapshotGeneration")) == live_generation, "Q from LIVE created Formal evidence")
+	await _dispatch_input_key(KEY_G)
+	_assert(int(film_controller.get("_mode")) == 0, "G did not return LIVE to OFF")
+	_queue_input_key(KEY_Q)
+	_queue_input_key(KEY_Q)
+	_queue_input_key(KEY_G)
+	await process_frame
+	_assert(int(film_controller.get("_mode")) == 1, "queued Q did not enter SNAPSHOT from OFF")
+	var request_generation := int(film.get("CathedralSnapshotGeneration"))
+	_assert(request_generation == live_generation + 1, "repeated queued Q superseded active acquisition")
+	_assert(int(film_controller.get("_mode")) == 1, "queued G abandoned active Formal acquisition")
+	film_controller.call("set_mode", 0)
+	_assert(int(film_controller.get("_mode")) == 0, "input qualification cleanup did not return OFF")
 
 	var macro_before := int(film.get("RuntimeMacroSelectedMode"))
 	for legacy_key in [KEY_F6, KEY_F7, KEY_F8, KEY_F9]:
@@ -509,6 +517,23 @@ func _dispatch_input_key(keycode: Key, shift_pressed := false) -> void:
 	event.pressed = false
 	Input.parse_input_event(event)
 	await process_frame
+
+
+func _queue_input_key(keycode: Key, shift_pressed := false) -> void:
+	var press := InputEventKey.new()
+	press.keycode = keycode
+	press.physical_keycode = keycode
+	press.pressed = true
+	press.echo = false
+	press.shift_pressed = shift_pressed
+	Input.parse_input_event(press)
+	var release := InputEventKey.new()
+	release.keycode = keycode
+	release.physical_keycode = keycode
+	release.pressed = false
+	release.echo = false
+	release.shift_pressed = shift_pressed
+	Input.parse_input_event(release)
 
 
 func _control_state(film_controller: Node, film: Node) -> Array:

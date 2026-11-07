@@ -42,13 +42,31 @@ func _initialize() -> void:
 	await _settle(8)
 	_assert(field_dial.call("GetExperimentName") == "Hermetic", "programmatic Hermetic selection remains available")
 	_assert(bool(hermetic_display.visible), "programmatic selection establishes Hermetic apparatus")
+	await _verify_live_profile_ordering()
 
-	_send_key(KEY_G)
-	await _settle(2)
-	_assert(film_controller.call("GetModeName") == "SNAPSHOT", "G enters SNAPSHOT")
+	var generation_before_request := int(film.get("CathedralSnapshotGeneration"))
+	var profile_before_request := str(film.get("ProbeProfileStableId"))
+	# Keep Q/P/Q/G ordered ahead of the very fast headless renderer so the
+	# repeated Q and G are genuinely dispatched while Formal owns acquisition.
+	_queue_key(KEY_Q)
+	_queue_key(KEY_P)
+	_queue_key(KEY_Q)
+	_queue_key(KEY_G)
+	await process_frame
+	var first_request_generation := int(film.get("CathedralSnapshotGeneration"))
+	var requested_profile := str(film.get("CathedralRequestedProbeProfileStableId"))
+	_assert(film_controller.call("GetModeName") == "SNAPSHOT", "queued Q enters SNAPSHOT and queued G cannot abandon it")
+	_assert(first_request_generation == generation_before_request + 1,
+		"repeated queued Q superseded request")
+	_assert(requested_profile == profile_before_request,
+		"P after request relabeled active acquisition")
 	await _wait_for_complete()
 	_assert(bool(film.get("ProbeViewAvailable")), "formal Snapshot seals authority")
 	_assert(int(film.get("SealedProbeViewGeneration")) == 1, "first public Snapshot generation")
+	_assert(str(film.get("CathedralSealedProbeProfileStableId")) == requested_profile,
+		"sealed profile does not match request-bound profile")
+	_send_key(KEY_P)
+	await _settle(2)
 	var generation := int(film.get("SealedProbeViewGeneration"))
 	var terminal_heartbeat_count := int(film.get("RuntimeHealthHeartbeatCount"))
 	await _settle(8)
@@ -87,6 +105,21 @@ func _initialize() -> void:
 	_assert(int(film.get("RuntimeHealthHeartbeatCount")) == terminal_heartbeat_count,
 		"Q does not restart runtime-health heartbeat work")
 
+	var replacement := InputEventKey.new()
+	replacement.keycode = KEY_Q
+	replacement.physical_keycode = KEY_Q
+	replacement.pressed = true
+	replacement.echo = false
+	replacement.ctrl_pressed = true
+	Input.parse_input_event(replacement)
+	await _settle(2)
+	_assert(not bool(film.get("ProbeViewAvailable")), "Ctrl+Q did not withdraw completed seal")
+	_assert(int(film.get("CathedralSnapshotGeneration")) == generation + 1, "Ctrl+Q did not create one replacement generation")
+	await _wait_for_complete()
+	generation = int(film.get("SealedProbeViewGeneration"))
+	measurement_identity = _measurement_identity()
+	terminal_heartbeat_count = int(film.get("RuntimeHealthHeartbeatCount"))
+
 	_send_key(KEY_E)
 	await _settle(6)
 	_assert(field_dial.call("GetExperimentName") == "Hermetic", "E remains inert after Complete")
@@ -112,15 +145,50 @@ func _initialize() -> void:
 	await _settle(8)
 	_assert(int(film.get("RuntimeHealthHeartbeatCount")) == off_heartbeat_count,
 		"OFF remains free of runtime-health heartbeat work")
-	_send_key(KEY_G)
+	_send_key(KEY_Q)
 	await _settle(2)
-	_assert(film_controller.call("GetModeName") == "SNAPSHOT", "second G enters new Snapshot")
+	_assert(film_controller.call("GetModeName") == "SNAPSHOT", "Q enters second Snapshot from OFF")
 	await _wait_for_complete()
 	_assert(bool(film.get("ProbeViewAvailable")), "second Snapshot seals authority")
 	var second_generation := int(film.get("SealedProbeViewGeneration"))
 	_assert(second_generation > generation, "second public Snapshot generation is newer")
 	print("PUBLIC CATHEDRAL SNAPSHOT PATH PASS generation=%d" % second_generation)
 	quit(0)
+
+
+func _verify_live_profile_ordering() -> void:
+	film.call("SetProbeProfileByIndex", 0)
+	_send_key(KEY_P)
+	await _settle(2)
+	_send_key(KEY_G)
+	await _settle(2)
+	var p_then_g := _live_effective_signature()
+	_send_key(KEY_G)
+	await _settle(2)
+	film.call("SetProbeProfileByIndex", 0)
+	_send_key(KEY_G)
+	await _settle(2)
+	_send_key(KEY_P)
+	await _settle(2)
+	var g_then_p := _live_effective_signature()
+	_assert(p_then_g == g_then_p, "P->G and G->P LIVE configurations differ")
+	_send_key(KEY_G)
+	await _settle(2)
+	film.call("SetProbeProfileByIndex", 0)
+
+
+func _live_effective_signature() -> String:
+	return JSON.stringify({
+		"profile": str(film.get("ProbeProfileStableId")),
+		"scale": float(film.get("FilmResolutionScale")),
+		"broadphase_mode": int(film.get("BroadphaseControlMode")),
+		"broadphase_policy": int(film.get("BroadphasePolicy")),
+		"stride": bool(film.get("UsePass2CollisionStride")),
+		"stride_near": int(film.get("Pass2CollisionStrideNear")),
+		"stride_far": int(film.get("Pass2CollisionStrideFar")),
+		"envelope_radius": float(film.get("Pass2GeomEnvelopeRadiusScale")),
+		"envelope_expand": float(film.get("Pass2GeomEnvelopeAabbExpand")),
+	})
 
 func _wait_for_complete() -> void:
 	for _i in range(600):
@@ -155,6 +223,22 @@ func _send_key(code: Key) -> void:
 	event.pressed = true
 	event.echo = false
 	Input.parse_input_event(event)
+
+
+func _queue_key(code: Key) -> void:
+	var press := InputEventKey.new()
+	press.keycode = code
+	press.physical_keycode = code
+	press.pressed = true
+	press.echo = false
+	Input.parse_input_event(press)
+	var release := InputEventKey.new()
+	release.keycode = code
+	release.physical_keycode = code
+	release.pressed = false
+	release.echo = false
+	Input.parse_input_event(release)
+
 
 func _settle(frames: int) -> void:
 	for _i in range(frames):

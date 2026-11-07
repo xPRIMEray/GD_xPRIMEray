@@ -43,6 +43,7 @@ var _render_requested := false
 var _shading_mode := SHADING_NORMAL_RGB
 var _formal_snapshot_requested := false
 var _formal_snapshot_terminal_handled := false
+var _input_disposition := "ready"
 
 @onready var _film_camera: Node = get_node_or_null(film_camera_path)
 @onready var _film_plate: Control = get_node_or_null(film_plate_path)
@@ -66,7 +67,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_G:
-				cycle_mode()
+				ToggleLiveFromInput()
 				get_viewport().set_input_as_handled()
 			KEY_BRACKETLEFT:
 				set_opacity(_opacity - OPACITY_STEP)
@@ -124,6 +125,73 @@ func cycle_mode() -> void:
 	set_mode(next_mode)
 
 
+func ToggleLiveFromInput() -> bool:
+	match _mode:
+		FilmMode.OFF:
+			_set_input_disposition("live_started")
+			set_mode(FilmMode.LIVE)
+			return true
+		FilmMode.LIVE:
+			_set_input_disposition("live_stopped")
+			set_mode(FilmMode.OFF)
+			return true
+		FilmMode.SNAPSHOT:
+			if _formal_acquisition_active():
+				_set_input_disposition("formal_active_g_refused")
+				return false
+			var released_seal := _probe_view_available()
+			set_mode(FilmMode.LIVE)
+			_set_input_disposition("live_started_sealed_evidence_released" if released_seal else "live_started")
+			return true
+	return false
+
+
+func HandleProbeViewInput(reverse: bool, replace_completed: bool) -> bool:
+	if _mode == FilmMode.LIVE:
+		_set_input_disposition("formal_from_live_refused_press_g_then_q")
+		return false
+	if _formal_acquisition_active():
+		_set_input_disposition("formal_active_q_ignored")
+		return false
+	if _probe_view_available():
+		if replace_completed:
+			return _begin_formal_snapshot_request("formal_replacement_requested")
+		var current := int(_film_camera.get("CurrentProbeView"))
+		var count := 3
+		var next := (current - 1 + count) % count if reverse else (current + 1) % count
+		_film_camera.call("SetProbeView", next)
+		_set_input_disposition("probe_view_previous" if reverse else "probe_view_next")
+		return true
+	var lifecycle_state := _formal_lifecycle_state()
+	if lifecycle_state == "complete":
+		_set_input_disposition("formal_complete_without_seal_refused")
+		return false
+	return EnterFormalSnapshotFromInput()
+
+
+func EnterFormalSnapshotFromInput() -> bool:
+	if _mode == FilmMode.LIVE:
+		_set_input_disposition("formal_from_live_refused_press_g_then_q")
+		return false
+	if _formal_acquisition_active():
+		_set_input_disposition("formal_active_q_ignored")
+		return false
+	if _mode != FilmMode.SNAPSHOT:
+		_set_input_disposition("formal_requested")
+		set_mode(FilmMode.SNAPSHOT)
+		return _formal_snapshot_requested
+	return _begin_formal_snapshot_request("formal_requested")
+
+
+func ReapplyLivePresentationOverridesIfActive() -> void:
+	if _mode == FilmMode.LIVE:
+		_apply_quality_preview()
+
+
+func GetLastInputDisposition() -> String:
+	return _input_disposition
+
+
 func cycle_shading_mode() -> void:
 	var index := SHADING_SEQUENCE.find(_shading_mode)
 	if index < 0:
@@ -170,10 +238,10 @@ func set_mode(mode: FilmMode) -> void:
 			_restart_film_pass()
 			_set_film_visible(false)
 			_set_film_compute(false)
-			_formal_snapshot_requested = entering_snapshot and _film_camera != null and _film_camera.has_method("RequestCathedralProbeSnapshot")
+			_formal_snapshot_requested = false
 			_formal_snapshot_terminal_handled = false
-			if _formal_snapshot_requested:
-				_film_camera.call("RequestCathedralProbeSnapshot", CATHEDRAL_SNAPSHOT_BUDGET_FRAMES)
+			if entering_snapshot:
+				_begin_formal_snapshot_request("formal_requested")
 		FilmMode.LIVE:
 			if _film_camera != null and _film_camera.has_method("ApplySelectedProbeProfileForLive"):
 				_film_camera.call("ApplySelectedProbeProfileForLive")
@@ -186,6 +254,46 @@ func set_mode(mode: FilmMode) -> void:
 			_set_film_visible(true)
 			_set_film_compute(true)
 	set_opacity(_opacity)
+	_update_status()
+
+
+func _begin_formal_snapshot_request(disposition: String) -> bool:
+	if _film_camera == null or not _film_camera.has_method("RequestCathedralProbeSnapshot"):
+		_set_input_disposition("formal_request_unavailable")
+		return false
+	if _formal_acquisition_active():
+		_set_input_disposition("formal_active_q_ignored")
+		return false
+	# Scene-authored base dimensions remain authoritative. This applies only the
+	# controller's canonical capture scale and scheduling before the request.
+	_apply_quality_interactive()
+	if _player != null and _player.has_method("SetPoseHeld"):
+		_player.call("SetPoseHeld", true)
+	_snapshot_origin = _player.global_position if _player != null else Vector3.ZERO
+	_snapshot_forced_stale = false
+	_restart_film_pass()
+	_set_film_visible(false)
+	_set_film_compute(false)
+	_formal_snapshot_terminal_handled = false
+	_formal_snapshot_requested = bool(_film_camera.call("RequestCathedralProbeSnapshot", CATHEDRAL_SNAPSHOT_BUDGET_FRAMES))
+	_set_input_disposition(disposition if _formal_snapshot_requested else "formal_request_rejected")
+	return _formal_snapshot_requested
+
+
+func _formal_acquisition_active() -> bool:
+	return _film_camera != null and bool(_film_camera.get("CathedralSnapshotLifecycleActive"))
+
+
+func _formal_lifecycle_state() -> String:
+	return str(_film_camera.get("CathedralSnapshotLifecycleStateName")) if _film_camera != null else "unavailable"
+
+
+func _probe_view_available() -> bool:
+	return _film_camera != null and bool(_film_camera.get("ProbeViewAvailable"))
+
+
+func _set_input_disposition(value: String) -> void:
+	_input_disposition = value
 	_update_status()
 
 
@@ -287,7 +395,7 @@ func _apply_quality_preview() -> void:
 
 
 func _apply_quality_interactive() -> void:
-	_quality_name = "Interactive 160x90"
+	_quality_name = "Formal native resolution"
 	_apply_quality(1.0, 8, 8, 80.0)
 
 
@@ -364,12 +472,13 @@ func _update_status() -> void:
 		else:
 			state = " frozen"
 	var opacity_text := "Hidden" if _mode == FilmMode.OFF else str(GetOpacityPercent()) + "%"
-	_status_label.text = "Film: %s%s | %s | Opacity: %s | Shading: %s" % [
+	_status_label.text = "Film: %s%s | %s | Opacity: %s | Shading: %s | Control: %s" % [
 		mode_name,
 		state,
 		_quality_name,
 		opacity_text,
 		GetShadingModeName(),
+		_input_disposition,
 	]
 
 
@@ -388,17 +497,17 @@ func _update_formal_snapshot_status() -> void:
 			if not _formal_snapshot_terminal_handled:
 				_formal_snapshot_terminal_handled = true
 				_film_camera.call("SetProbeView", int(_film_camera.get("CurrentProbeView")))
-			_status_label.text = "Film: SNAPSHOT · POSE HELD | Snapshot: COMPLETE · generation %d | %s | Opacity: %s | Shading: %s" % [
-				generation, _quality_name, GetOpacityPercent(), GetShadingModeName()]
+			_status_label.text = "Film: SNAPSHOT · POSE HELD | Snapshot: COMPLETE · generation %d | %s | Opacity: %s | Shading: %s | Control: %s" % [
+				generation, _quality_name, GetOpacityPercent(), GetShadingModeName(), _input_disposition]
 		else:
 			_set_film_visible(false)
-			var invalidation_hint := " · press G to recommit" if state == "invalidated" else ""
-			_status_label.text = "Film: SNAPSHOT · Snapshot: %s · %s%s | %s | Opacity: %s | Shading: %s" % [
-				state.to_upper(), reason, invalidation_hint, _quality_name, GetOpacityPercent(), GetShadingModeName()]
+			var invalidation_hint := " · press Q to recommit" if state == "invalidated" else ""
+			_status_label.text = "Film: SNAPSHOT · Snapshot: %s · %s%s | %s | Opacity: %s | Shading: %s | Control: %s" % [
+				state.to_upper(), reason, invalidation_hint, _quality_name, GetOpacityPercent(), GetShadingModeName(), _input_disposition]
 		return
 	_set_film_visible(false)
-	_status_label.text = "Film: SNAPSHOT · POSE HELD | Snapshot: %s %d / %d | %s | Opacity: %s | Shading: %s" % [
-		state.to_upper(), processed, total, _quality_name, GetOpacityPercent(), GetShadingModeName()]
+	_status_label.text = "Film: SNAPSHOT · POSE HELD | Snapshot: %s %d / %d | %s | Opacity: %s | Shading: %s | Control: %s" % [
+		state.to_upper(), processed, total, _quality_name, GetOpacityPercent(), GetShadingModeName(), _input_disposition]
 
 
 func _get_shading_mode_label(shading_mode: int) -> String:
