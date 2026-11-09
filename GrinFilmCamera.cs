@@ -11008,17 +11008,18 @@ private sealed class OverlayRollingWindow
 		}
 	}
 
-	private string ComputeFormalPolicySha256(in EffectiveConfig cfg)
+	private string ComputeFormalPolicySha256(in EffectiveConfig cfg, string formalPolicyId)
 	{
 		if (!_canonicalFormalPolicyCaptured)
 			CaptureCanonicalFormalPolicy();
-		ProbeProfileDefinition profile = ProbeProfileCatalog.Get(SelectedProbeProfile);
+		if (string.IsNullOrWhiteSpace(formalPolicyId))
+			throw new InvalidOperationException("formal_policy_id_unavailable");
 		using MemoryStream stream = new();
 		using BinaryWriter writer = new(stream, Encoding.UTF8, leaveOpen: true);
 		void WriteFloat(float value) => writer.Write(BitConverter.SingleToUInt32Bits(value));
 
 		writer.Write(2); // formal-policy canonical schema
-		writer.Write(profile.FormalPolicyId);
+		writer.Write(formalPolicyId);
 		writer.Write(ProbeProfileCatalog.FormalQueryCanonicalizationPolicy);
 		writer.Write(ProbeProfileCatalog.FormalAdaptiveWorkingStatePolicy);
 		WriteFloat(_canonicalFormalRangeSeed);
@@ -11144,7 +11145,24 @@ private sealed class OverlayRollingWindow
 		}
 
 		ResolveEffectiveConfig(out EffectiveConfig formalIdentityConfig);
-		string formalPolicySha256 = ComputeFormalPolicySha256(in formalIdentityConfig);
+		string formalPolicyId;
+		if (_observationAcquisition.Owner == ObservationAcquisitionOwner.Snapshot)
+		{
+			// Snapshot ownership is acquired before request metadata is frozen.
+			// Once owned, mutable human profile selection must never relabel the
+			// active Formal policy or its hash.
+			if (string.IsNullOrWhiteSpace(_requestedSnapshotFormalPolicyId))
+			{
+				reason = "request_formal_policy_unavailable";
+				return false;
+			}
+			formalPolicyId = _requestedSnapshotFormalPolicyId;
+		}
+		else
+		{
+			formalPolicyId = ProbeProfileCatalog.Get(SelectedProbeProfile).FormalPolicyId;
+		}
+		string formalPolicySha256 = ComputeFormalPolicySha256(in formalIdentityConfig, formalPolicyId);
 		contextKey = new ProbeContextKey(
 			ObserverId.A,
 			HashVector3Quantized(_cam.GlobalTransform.Origin),

@@ -31,6 +31,19 @@ func _initialize() -> void:
 	_assert(not bool(hermetic_display.visible), "H does not reveal Hermetic apparatus")
 
 	_assert(not bool(film.get("ProbeViewAvailable")), "Hermetic starts without sealed authority")
+	var disabled_generation := int(film.get("CathedralSnapshotGeneration"))
+	film_controller.call("SetInputEnabled", false)
+	_send_key(KEY_Q)
+	_send_key(KEY_G)
+	await _settle(2)
+	_assert(film_controller.call("GetModeName") == "OFF", "disabled interactive input accepted Q or G")
+	_assert(int(film.get("CathedralSnapshotGeneration")) == disabled_generation,
+		"disabled interactive Q created a Formal request")
+	_assert(str(film_controller.call("GetLastInputDisposition")) == "interactive_input_disabled",
+		"disabled interactive input did not report its authority boundary")
+	_assert(film.has_method("RequestCathedralProbeSnapshot"),
+		"programmatic Formal acquisition API unavailable while interactive input is disabled")
+	film_controller.call("SetInputEnabled", true)
 
 	_send_key(KEY_E)
 	await _settle(8)
@@ -181,13 +194,55 @@ func _live_effective_signature() -> String:
 	return JSON.stringify({
 		"profile": str(film.get("ProbeProfileStableId")),
 		"scale": float(film.get("FilmResolutionScale")),
+		"pixel_stride": int(film.get("PixelStride")),
+		"rows_per_frame": int(film.get("RowsPerFrame")),
+		"rows_cap": int(film.get("MaxRowsPerFrameCap")),
+		"rows_per_step": int(film.get("UpdateEveryFrameMaxRowsPerStep")),
+		"budget_ms": float(film.get("UpdateEveryFrameBudgetMs")),
+		"target_ms": int(film.get("TargetMsPerFrame")),
+		"render_max_ms": int(film.get("RenderStepMaxMs")),
+		"render_pixel_cap": int(film.get("RenderStepMaxPixelsPerFrame")),
+		"update_every_frame": bool(film.get("UpdateEveryFrame")),
+		"max_distance": float(film.get("MaxDistance")),
+		"auto_range": bool(film.get("AutoRangeDepth")),
+		"auto_range_min": float(film.get("AutoRangeMin")),
+		"auto_range_max": float(film.get("AutoRangeMax")),
+		"steps": int(film.get("SharedRbrStepsPerRay")),
+		"step_length": float(film.get("SharedRbrStepLength")),
+		"min_step": float(film.get("SharedRbrMinStepLength")),
+		"max_step": float(film.get("SharedRbrMaxStepLength")),
+		"collision_stride": int(film.get("SharedRbrCollisionEveryNSteps")),
+		"min_collision_stride": int(film.get("SharedRbrMinCollisionEveryNSteps")),
+		"pass1_probe_stride": int(film.get("Pass1ProbeEveryNSegments")),
+		"pass1_probe_delta": float(film.get("Pass1ProbeMinTravelDelta")),
+		"pass1_hit_test": bool(film.get("Pass1DoHitTest")),
+		"adaptive_substeps": bool(film.get("UseAdaptiveSubsteps")),
+		"band_hit_skip": bool(film.get("UseBandHitSkip")),
 		"broadphase_mode": int(film.get("BroadphaseControlMode")),
 		"broadphase_policy": int(film.get("BroadphasePolicy")),
+		"broadphase_quick_ray": bool(film.get("UseBroadphaseQuickRay")),
+		"broadphase_overlap": bool(film.get("UseBroadphaseOverlap")),
+		"effective_broadphase_mode": int(film.get("EffectiveBroadphaseMode")),
+		"effective_broadphase_policy": int(film.get("EffectiveBroadphasePolicy")),
+		"effective_broadphase_quick_ray": bool(film.get("EffectiveBroadphaseQuickRay")),
+		"effective_broadphase_overlap": bool(film.get("EffectiveBroadphaseOverlap")),
 		"stride": bool(film.get("UsePass2CollisionStride")),
 		"stride_near": int(film.get("Pass2CollisionStrideNear")),
 		"stride_far": int(film.get("Pass2CollisionStrideFar")),
+		"stride_far_start": float(film.get("Pass2CollisionStrideFarStartT")),
+		"stride_min_segment": float(film.get("MinSegLenForStrideSkip")),
 		"envelope_radius": float(film.get("Pass2GeomEnvelopeRadiusScale")),
 		"envelope_expand": float(film.get("Pass2GeomEnvelopeAabbExpand")),
+		"tlas_pruning": bool(film.get("UseGeometryTLASPruning")),
+		"adaptive_envelope": bool(film.get("AdaptiveTelemetryEnvelopeScalingEnabled")),
+		"adaptive_envelope_mode": str(film.get("AdaptiveEnvelopeControllerMode")),
+		"adaptive_envelope_prior": str(film.get("AdaptiveEnvelopePriorSource")),
+		"soft_gate_quick_miss": bool(film.get("Pass2SoftGateEnableQuickRayMiss")),
+		"soft_gate_scoring": bool(film.get("Pass2SoftGateScoringEnabled")),
+		"pass2_hit_back_faces": bool(film.get("Pass2HitBackFaces")),
+		"pass2_hit_from_inside": bool(film.get("Pass2HitFromInside")),
+		"render_segment_cap": int(film.get("RenderStepMaxSegmentsPerFrame")),
+		"recorder_enabled": bool(film.get("RecordFormalTransportLedger")),
 	})
 
 func _wait_for_complete() -> void:

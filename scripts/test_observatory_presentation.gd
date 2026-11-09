@@ -112,6 +112,14 @@ func _initialize() -> void:
 		_send_key(KEY_O)
 		await _settle(2)
 
+	# Establish the scene-authored OFF->LIVE effective preview before Formal
+	# temporarily applies its own row scheduling limits.
+	_send_key(KEY_G)
+	await _settle(4)
+	var off_to_live_signature := _live_effective_signature()
+	_send_key(KEY_G)
+	await _settle(4)
+
 	_send_key(KEY_Q)
 	await _wait_for_complete()
 	var visible_identity := _formal_identity()
@@ -145,6 +153,8 @@ func _initialize() -> void:
 	_send_key(KEY_G)
 	await _settle(4)
 	_assert(film_controller.call("GetModeName") == "LIVE", "G enters LIVE")
+	_assert(_live_effective_signature() == off_to_live_signature,
+		"COMPLETE->LIVE inherited Formal scheduling or differs from OFF->LIVE")
 	_assert(str(film_controller.call("GetLastInputDisposition")) == "live_started_sealed_evidence_released",
 		"G did not disclose sealed-evidence release")
 	_assert(not bool(film.get("ProbeViewAvailable")), "G entering LIVE retained sealed evidence")
@@ -198,6 +208,31 @@ func _formal_validation_green() -> bool:
 		and int(film.get("CathedralSpatialKernelTotalAuthorityMismatchPixelCount")) == 0
 		and int(film.get("CathedralSpatialKernelMismatchQueryCount")) == 0
 	)
+
+
+func _live_effective_signature() -> String:
+	return JSON.stringify({
+		"profile": str(film.get("ProbeProfileStableId")),
+		"scale": float(film.get("FilmResolutionScale")),
+		"pixel_stride": int(film.get("PixelStride")),
+		"rows_cap": int(film.get("MaxRowsPerFrameCap")),
+		"rows_per_step": int(film.get("UpdateEveryFrameMaxRowsPerStep")),
+		"budget_ms": float(film.get("UpdateEveryFrameBudgetMs")),
+		"steps": int(film.get("SharedRbrStepsPerRay")),
+		"step_length": float(film.get("SharedRbrStepLength")),
+		"min_step": float(film.get("SharedRbrMinStepLength")),
+		"max_step": float(film.get("SharedRbrMaxStepLength")),
+		"collision_stride": int(film.get("SharedRbrCollisionEveryNSteps")),
+		"pass1_probe_stride": int(film.get("Pass1ProbeEveryNSegments")),
+		"broadphase_mode": int(film.get("BroadphaseControlMode")),
+		"broadphase_policy": int(film.get("BroadphasePolicy")),
+		"pass2_stride": bool(film.get("UsePass2CollisionStride")),
+		"pass2_stride_near": int(film.get("Pass2CollisionStrideNear")),
+		"pass2_stride_far": int(film.get("Pass2CollisionStrideFar")),
+		"pass2_envelope_radius": float(film.get("Pass2GeomEnvelopeRadiusScale")),
+		"pass2_envelope_expand": float(film.get("Pass2GeomEnvelopeAabbExpand")),
+		"tlas_pruning": bool(film.get("UseGeometryTLASPruning")),
+	})
 
 
 func _active_experiment_state() -> String:

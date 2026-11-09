@@ -44,6 +44,8 @@ var _shading_mode := SHADING_NORMAL_RGB
 var _formal_snapshot_requested := false
 var _formal_snapshot_terminal_handled := false
 var _input_disposition := "ready"
+var _live_preview_rows_cap := 0
+var _live_preview_rows_per_step := 0
 
 @onready var _film_camera: Node = get_node_or_null(film_camera_path)
 @onready var _film_plate: Control = get_node_or_null(film_plate_path)
@@ -57,6 +59,10 @@ var _input_disposition := "ready"
 func _ready() -> void:
 	if _film_camera != null:
 		_shading_mode = int(_film_camera.get("ShadingMode"))
+		# Preserve the scene-authored LIVE scheduling defaults before SNAPSHOT
+		# applies its bounded Formal scheduling overrides.
+		_live_preview_rows_cap = int(_film_camera.get("MaxRowsPerFrameCap"))
+		_live_preview_rows_per_step = int(_film_camera.get("UpdateEveryFrameMaxRowsPerStep"))
 	_apply_shading_mode(_shading_mode, false)
 	set_mode(FilmMode.OFF)
 
@@ -126,6 +132,9 @@ func cycle_mode() -> void:
 
 
 func ToggleLiveFromInput() -> bool:
+	if not _input_enabled:
+		_set_input_disposition("interactive_input_disabled")
+		return false
 	match _mode:
 		FilmMode.OFF:
 			_set_input_disposition("live_started")
@@ -147,6 +156,9 @@ func ToggleLiveFromInput() -> bool:
 
 
 func HandleProbeViewInput(reverse: bool, replace_completed: bool) -> bool:
+	if not _input_enabled:
+		_set_input_disposition("interactive_input_disabled")
+		return false
 	if _mode == FilmMode.LIVE:
 		_set_input_disposition("formal_from_live_refused_press_g_then_q")
 		return false
@@ -190,6 +202,10 @@ func ReapplyLivePresentationOverridesIfActive() -> void:
 
 func GetLastInputDisposition() -> String:
 	return _input_disposition
+
+
+func IsInteractiveInputEnabled() -> bool:
+	return _input_enabled
 
 
 func cycle_shading_mode() -> void:
@@ -382,11 +398,14 @@ func _release_snapshot_pose_after_invalidation() -> void:
 
 func _apply_quality_preview() -> void:
 	_quality_name = "Preview 80x45"
-	# The scene owns the LIVE row quantum.  Preview quality changes resolution
-	# and budget, but must not overwrite the authored interaction cap.
+	# Restore the scene-authored LIVE row quantum. SNAPSHOT temporarily owns
+	# these fields, so leaving them untouched would leak the Formal rows cap
+	# into the next LIVE session.
 	if _film_camera == null:
 		return
 	_film_camera.set("FilmResolutionScale", 0.5)
+	_film_camera.set("MaxRowsPerFrameCap", max(1, _live_preview_rows_cap))
+	_film_camera.set("UpdateEveryFrameMaxRowsPerStep", max(1, _live_preview_rows_per_step))
 	_film_camera.set("UpdateEveryFrameBudgetMs", 80.0)
 	# Keep broadphase policy scoped to LIVE preview; formal SNAPSHOT retains
 	# its authored configuration and authority path.

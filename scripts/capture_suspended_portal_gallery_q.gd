@@ -41,6 +41,9 @@ func _initialize() -> void:
 	film_view = world.get_node("CanvasLayer/HUDRoot/FilmPlate/FilmView") as TextureRect
 	film.set("CaptureSpatialQueryDivergenceDiagnostics", true)
 	player.call("SetInputEnabled", false, true)
+	# Player locomotion is disabled for deterministic capture, but the
+	# instrument controller must explicitly own the real Q dispatch below.
+	film_controller.call("SetInputEnabled", true)
 	player.set_physics_process(false)
 	await _settle(3)
 
