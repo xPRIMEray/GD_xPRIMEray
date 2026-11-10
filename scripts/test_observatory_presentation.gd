@@ -117,6 +117,7 @@ func _initialize() -> void:
 	_send_key(KEY_G)
 	await _settle(4)
 	var off_to_live_signature := _live_effective_signature()
+	print("OBSERVATORY LIVE_SIGNATURE OFF_TO_LIVE %s" % off_to_live_signature)
 	_send_key(KEY_G)
 	await _settle(4)
 
@@ -153,7 +154,9 @@ func _initialize() -> void:
 	_send_key(KEY_G)
 	await _settle(4)
 	_assert(film_controller.call("GetModeName") == "LIVE", "G enters LIVE")
-	_assert(_live_effective_signature() == off_to_live_signature,
+	var post_formal_live_signature := _live_effective_signature()
+	print("OBSERVATORY LIVE_SIGNATURE POST_FORMAL %s" % post_formal_live_signature)
+	_assert(post_formal_live_signature == off_to_live_signature,
 		"COMPLETE->LIVE inherited Formal scheduling or differs from OFF->LIVE")
 	_assert(str(film_controller.call("GetLastInputDisposition")) == "live_started_sealed_evidence_released",
 		"G did not disclose sealed-evidence release")
@@ -215,23 +218,55 @@ func _live_effective_signature() -> String:
 		"profile": str(film.get("ProbeProfileStableId")),
 		"scale": float(film.get("FilmResolutionScale")),
 		"pixel_stride": int(film.get("PixelStride")),
+		"rows_per_frame": int(film.get("RowsPerFrame")),
+		"min_rows_per_frame": int(film.get("MinRowsPerFrame")),
 		"rows_cap": int(film.get("MaxRowsPerFrameCap")),
 		"rows_per_step": int(film.get("UpdateEveryFrameMaxRowsPerStep")),
 		"budget_ms": float(film.get("UpdateEveryFrameBudgetMs")),
+		"target_ms": int(film.get("TargetMsPerFrame")),
+		"render_max_ms": int(film.get("RenderStepMaxMs")),
+		"render_pixel_cap": int(film.get("RenderStepMaxPixelsPerFrame")),
+		"update_every_frame": bool(film.get("UpdateEveryFrame")),
+		"max_distance": float(film.get("MaxDistance")),
+		"auto_range": bool(film.get("AutoRangeDepth")),
+		"auto_range_min": float(film.get("AutoRangeMin")),
+		"auto_range_max": float(film.get("AutoRangeMax")),
 		"steps": int(film.get("SharedRbrStepsPerRay")),
 		"step_length": float(film.get("SharedRbrStepLength")),
 		"min_step": float(film.get("SharedRbrMinStepLength")),
 		"max_step": float(film.get("SharedRbrMaxStepLength")),
 		"collision_stride": int(film.get("SharedRbrCollisionEveryNSteps")),
+		"min_collision_stride": int(film.get("SharedRbrMinCollisionEveryNSteps")),
 		"pass1_probe_stride": int(film.get("Pass1ProbeEveryNSegments")),
+		"pass1_probe_delta": float(film.get("Pass1ProbeMinTravelDelta")),
+		"pass1_hit_test": bool(film.get("Pass1DoHitTest")),
+		"adaptive_substeps": bool(film.get("UseAdaptiveSubsteps")),
+		"band_hit_skip": bool(film.get("UseBandHitSkip")),
 		"broadphase_mode": int(film.get("BroadphaseControlMode")),
 		"broadphase_policy": int(film.get("BroadphasePolicy")),
-		"pass2_stride": bool(film.get("UsePass2CollisionStride")),
-		"pass2_stride_near": int(film.get("Pass2CollisionStrideNear")),
-		"pass2_stride_far": int(film.get("Pass2CollisionStrideFar")),
-		"pass2_envelope_radius": float(film.get("Pass2GeomEnvelopeRadiusScale")),
-		"pass2_envelope_expand": float(film.get("Pass2GeomEnvelopeAabbExpand")),
+		"broadphase_quick_ray": bool(film.get("UseBroadphaseQuickRay")),
+		"broadphase_overlap": bool(film.get("UseBroadphaseOverlap")),
+		"effective_broadphase_mode": int(film.get("EffectiveBroadphaseMode")),
+		"effective_broadphase_policy": int(film.get("EffectiveBroadphasePolicy")),
+		"effective_broadphase_quick_ray": bool(film.get("EffectiveBroadphaseQuickRay")),
+		"effective_broadphase_overlap": bool(film.get("EffectiveBroadphaseOverlap")),
+		"stride": bool(film.get("UsePass2CollisionStride")),
+		"stride_near": int(film.get("Pass2CollisionStrideNear")),
+		"stride_far": int(film.get("Pass2CollisionStrideFar")),
+		"stride_far_start": float(film.get("Pass2CollisionStrideFarStartT")),
+		"stride_min_segment": float(film.get("MinSegLenForStrideSkip")),
+		"envelope_radius": float(film.get("Pass2GeomEnvelopeRadiusScale")),
+		"envelope_expand": float(film.get("Pass2GeomEnvelopeAabbExpand")),
 		"tlas_pruning": bool(film.get("UseGeometryTLASPruning")),
+		"adaptive_envelope": bool(film.get("AdaptiveTelemetryEnvelopeScalingEnabled")),
+		"adaptive_envelope_mode": str(film.get("AdaptiveEnvelopeControllerMode")),
+		"adaptive_envelope_prior": str(film.get("AdaptiveEnvelopePriorSource")),
+		"soft_gate_quick_miss": bool(film.get("Pass2SoftGateEnableQuickRayMiss")),
+		"soft_gate_scoring": bool(film.get("Pass2SoftGateScoringEnabled")),
+		"pass2_hit_back_faces": bool(film.get("Pass2HitBackFaces")),
+		"pass2_hit_from_inside": bool(film.get("Pass2HitFromInside")),
+		"render_segment_cap": int(film.get("RenderStepMaxSegmentsPerFrame")),
+		"recorder_enabled": bool(film.get("RecordFormalTransportLedger")),
 	})
 
 

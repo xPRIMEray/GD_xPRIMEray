@@ -33,16 +33,26 @@ func _initialize() -> void:
 	_assert(not bool(film.get("ProbeViewAvailable")), "Hermetic starts without sealed authority")
 	var disabled_generation := int(film.get("CathedralSnapshotGeneration"))
 	film_controller.call("SetInputEnabled", false)
-	_send_key(KEY_Q)
-	_send_key(KEY_G)
-	await _settle(2)
-	_assert(film_controller.call("GetModeName") == "OFF", "disabled interactive input accepted Q or G")
+	await _assert_disabled_key_noop(KEY_Q, false, false, "Q")
+	await _assert_disabled_key_noop(KEY_G, false, false, "G")
+	await _assert_disabled_key_noop(KEY_Q, true, false, "Shift+Q")
+	await _assert_disabled_key_noop(KEY_Q, false, true, "Ctrl+Q")
 	_assert(int(film.get("CathedralSnapshotGeneration")) == disabled_generation,
-		"disabled interactive Q created a Formal request")
+		"disabled interactive keys created a Formal request")
 	_assert(str(film_controller.call("GetLastInputDisposition")) == "interactive_input_disabled",
 		"disabled interactive input did not report its authority boundary")
-	_assert(film.has_method("RequestCathedralProbeSnapshot"),
-		"programmatic Formal acquisition API unavailable while interactive input is disabled")
+	_assert(bool(film.call("RequestCathedralProbeSnapshot", 240)),
+		"programmatic Formal acquisition was rejected while interactive input was disabled")
+	_assert(int(film.get("CathedralSnapshotGeneration")) == disabled_generation + 1,
+		"programmatic Formal acquisition did not acquire a new generation")
+	_assert(bool(film.get("CathedralSnapshotLifecycleActive")),
+		"programmatic Formal acquisition did not own lifecycle authority")
+	film.call("InvalidateCathedralProbeSnapshotForContextChange")
+	await _settle(2)
+	_assert(not bool(film.get("CathedralSnapshotLifecycleActive")),
+		"programmatic Formal invalidation did not release lifecycle authority")
+	_assert(film_controller.call("GetModeName") == "OFF",
+		"programmatic Formal API unexpectedly changed interactive controller mode")
 	film_controller.call("SetInputEnabled", true)
 
 	_send_key(KEY_E)
@@ -118,6 +128,7 @@ func _initialize() -> void:
 	_assert(int(film.get("RuntimeHealthHeartbeatCount")) == terminal_heartbeat_count,
 		"Q does not restart runtime-health heartbeat work")
 
+	var lifecycle_generation_before_replacement := int(film.get("CathedralSnapshotGeneration"))
 	var replacement := InputEventKey.new()
 	replacement.keycode = KEY_Q
 	replacement.physical_keycode = KEY_Q
@@ -127,7 +138,8 @@ func _initialize() -> void:
 	Input.parse_input_event(replacement)
 	await _settle(2)
 	_assert(not bool(film.get("ProbeViewAvailable")), "Ctrl+Q did not withdraw completed seal")
-	_assert(int(film.get("CathedralSnapshotGeneration")) == generation + 1, "Ctrl+Q did not create one replacement generation")
+	_assert(int(film.get("CathedralSnapshotGeneration")) == lifecycle_generation_before_replacement + 1,
+		"Ctrl+Q did not create exactly one replacement generation")
 	await _wait_for_complete()
 	generation = int(film.get("SealedProbeViewGeneration"))
 	measurement_identity = _measurement_identity()
@@ -196,6 +208,7 @@ func _live_effective_signature() -> String:
 		"scale": float(film.get("FilmResolutionScale")),
 		"pixel_stride": int(film.get("PixelStride")),
 		"rows_per_frame": int(film.get("RowsPerFrame")),
+		"min_rows_per_frame": int(film.get("MinRowsPerFrame")),
 		"rows_cap": int(film.get("MaxRowsPerFrameCap")),
 		"rows_per_step": int(film.get("UpdateEveryFrameMaxRowsPerStep")),
 		"budget_ms": float(film.get("UpdateEveryFrameBudgetMs")),
@@ -244,6 +257,37 @@ func _live_effective_signature() -> String:
 		"render_segment_cap": int(film.get("RenderStepMaxSegmentsPerFrame")),
 		"recorder_enabled": bool(film.get("RecordFormalTransportLedger")),
 	})
+
+
+func _assert_disabled_key_noop(code: Key, shift: bool, ctrl: bool, label: String) -> void:
+	var before := JSON.stringify({
+		"mode": str(film_controller.call("GetModeName")),
+		"generation": int(film.get("CathedralSnapshotGeneration")),
+		"active": bool(film.get("CathedralSnapshotLifecycleActive")),
+		"sealed": bool(film.get("ProbeViewAvailable")),
+		"view": int(film.get("CurrentProbeView")),
+	})
+	_send_modified_key(code, shift, ctrl)
+	await _settle(2)
+	var after := JSON.stringify({
+		"mode": str(film_controller.call("GetModeName")),
+		"generation": int(film.get("CathedralSnapshotGeneration")),
+		"active": bool(film.get("CathedralSnapshotLifecycleActive")),
+		"sealed": bool(film.get("ProbeViewAvailable")),
+		"view": int(film.get("CurrentProbeView")),
+	})
+	_assert(after == before, "disabled interactive %s mutated acquisition or presentation state" % label)
+
+
+func _send_modified_key(code: Key, shift: bool, ctrl: bool) -> void:
+	var event := InputEventKey.new()
+	event.keycode = code
+	event.physical_keycode = code
+	event.pressed = true
+	event.echo = false
+	event.shift_pressed = shift
+	event.ctrl_pressed = ctrl
+	Input.parse_input_event(event)
 
 func _wait_for_complete() -> void:
 	for _i in range(600):
