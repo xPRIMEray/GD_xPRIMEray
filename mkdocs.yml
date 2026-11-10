@@ -134,6 +134,8 @@ nav:
 
   - Start Here: start_here.md
 
+  - Scientific Checkpoint — 2026-11-01: current_research_trajectory_2026-11-01.md
+
   - Portable Observatory:
       - Home: portable_observatory/index.md
       - Start Here: portable_observatory/start_here.md
@@ -295,6 +297,7 @@ nav:
       - Roadmap: xPRIMEray/optical_closure_roadmap.md
 
   - Research:
+      - Optical Reach Commit Roadmap: Research/optical_reach_commit_roadmap.md
       - Optical Transport Map: Research/OPTICAL_TRANSPORT_FEATURE_MAP.md
       - Cathedral Probe Architecture: Research/cathedral_probe_architecture.md
       - Dual Reality Framework: Research/DualRealityFramework.md

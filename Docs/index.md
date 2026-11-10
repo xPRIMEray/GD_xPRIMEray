@@ -16,7 +16,7 @@ description: Portable Observatory for optical transport — sealed frames, Probe
 
 <figure class="xp-obs-visual" markdown>
   ![Contact Events Probe View of a sealed Complete plate](assets/observatory/artifact_001/stills/contact_events_display.png){ .xp-plate }
-  <figcaption>One sealed plate. Contact Events mapping. Q rereads the same acquisition — it does not take another picture. Color is presentation mapping, not measurement authority.</figcaption>
+  <figcaption>One sealed plate. Contact Events mapping. With a completed seal, Q navigates the same acquisition; from OFF without a seal, Q requests a new Formal acquisition. Color is presentation mapping, not measurement authority.</figcaption>
 </figure>
 
 <div class="xp-engine-state" id="engine-state">
@@ -25,13 +25,13 @@ description: Portable Observatory for optical transport — sealed frames, Probe
     <div class="xp-engine-state__row">
       <dt>Formal authority</dt>
       <dd>BVH-v0
-        <span class="xp-quiet">Contact: XPrimeRaySpatialKernel/BVH-v0 · witness LinearScan-v0 · secondary GodotPhysics/DeterministicReplay-v1 · Formal G is a fresh single-worker SNAPSHOT · PixelMemory shadow only · no Meander</span>
+        <span class="xp-quiet">Contact: XPrimeRaySpatialKernel/BVH-v0 · witness LinearScan-v0 · secondary GodotPhysics/DeterministicReplay-v1 · Formal Q acquisition is a fresh single-worker SNAPSHOT · PixelMemory shadow only · no Meander</span>
       </dd>
     </div>
     <div class="xp-engine-state__row">
       <dt>Just landed</dt>
       <dd>LIVE OverlapOnly broadphase
-        <span class="xp-quiet">717e7230 · TLAS-backed LIVE geometry pruning · interaction row budget · Compute Envelope permission · confirmed LIVE hits · Formal G isolated</span>
+        <span class="xp-quiet">717e7230 · TLAS-backed LIVE geometry pruning · interaction row budget · Compute Envelope permission · confirmed LIVE hits · Formal acquisition isolated</span>
       </dd>
     </div>
     <div class="xp-engine-state__row">
@@ -41,13 +41,53 @@ description: Portable Observatory for optical transport — sealed frames, Probe
       </dd>
     </div>
     <div class="xp-engine-state__row">
-      <dt>Next</dt>
+      <dt>Research frontier</dt>
       <dd>Pixel Meander frontiers
-        <span class="xp-quiet">then Cathedral Probe object-seeding · Third Observer G4/G5 · Deep Field · optical-closure policy under G</span>
+        <span class="xp-quiet">then Cathedral Probe object-seeding · Third Observer scheduler G4/G5 milestone labels (not keyboard G) · Deep Field · qualified optical-reach policy</span>
       </dd>
     </div>
   </dl>
   <p class="xp-engine-state__later">Interaction owns latency. Measurement owns semantics. Compute spends remaining budget on useful unresolved evidence. Envelope is permission, not obligation. Deferred: Pass2 threading · BVH live prefilter.</p>
+</div>
+
+<div class="xp-engine-state" id="research-flight-plan">
+  <div class="xp-engine-state__kicker">Research Flight Plan · November 2026</div>
+  <dl>
+    <div class="xp-engine-state__row">
+      <dt>Qualified locally</dt>
+      <dd>PQG-R1 and PQG-R1.1A
+        <span class="xp-quiet">separated P/Q/G ownership · request-owned Formal provenance · deterministic LIVE restoration</span>
+      </dd>
+    </div>
+    <div class="xp-engine-state__row">
+      <dt>Current engineering checkpoint</dt>
+      <dd>PQG-R1.1B
+        <span class="xp-quiet">expanded authority regression tests before new acquisition behavior</span>
+      </dd>
+    </div>
+    <div class="xp-engine-state__row">
+      <dt>Authority limit</dt>
+      <dd>Recorder observations remain provisional and non-sealable
+        <span class="xp-quiet">diagnostic contact is not a qualified terminal optical hit</span>
+      </dd>
+    </div>
+    <div class="xp-engine-state__row">
+      <dt>Instrument sequence</dt>
+      <dd>Pixel Inspector → 3D Trajectory → Qualified Termination → Adaptive Coverage</dd>
+    </div>
+    <div class="xp-engine-state__row">
+      <dt>User workflow</dt>
+      <dd>Scene selection → P strategy → G exploration → Q acquisition → Pixel / Trajectory inspection</dd>
+    </div>
+  </dl>
+  <p class="xp-engine-state__later">Long-range program: independent near/far visibility benchmarks · Detail/Micro and Deep Field/Tele profiles · bounded adaptive reach · audited reflection/refraction continuation · recursive mirror/GRIN portal research.</p>
+</div>
+
+<div class="xp-action-row" markdown>
+
+[Canonical Optical Reach Roadmap](Research/optical_reach_commit_roadmap.md){ .md-button .md-button--primary }
+[November 1 Evidence Checkpoint](current_research_trajectory_2026-11-01.md){ .md-button }
+
 </div>
 
 <p class="xp-thesis">Outcome → Contact Events → Transport Effort</p>
@@ -71,7 +111,7 @@ description: Portable Observatory for optical transport — sealed frames, Probe
 
 </div>
 
-<p class="xp-controls">E chooses the experiment · F reveals the field · G measures · Q interrogates<br>V Walk/Fly · Tab telemetry · Esc Workbench<br>Render the path. Inspect the journey.<br>Q rereads one sealed acquisition. Third Observer identity names a different observer context. Those are different claims.<br>Experiment chooses the world. Measurement chooses the question. Compute chooses how aggressively the machine may answer. Compute Envelope is permission, not obligation.<br>Three clocks: interaction · live film · Formal G. Adaptive acquisition is live film only.</p>
+<p class="xp-controls">E chooses the experiment · P selects Probe Profile · G controls LIVE rendering · Q requests Formal acquisition or navigates sealed plates · F reveals the field<br>V Walk/Fly · Tab telemetry · Esc Workbench<br>Render the path. Inspect the journey.<br>Formal ownership is frozen when Q obtains the request. Later P changes cannot relabel active or sealed evidence. Third Observer identity names a different observer context. Those are different claims.<br>Experiment chooses the world. Measurement chooses the question. Compute chooses how aggressively the machine may answer. Compute Envelope is permission, not obligation.<br>Three clocks: interaction · LIVE film · Formal Q acquisition. Adaptive acquisition is LIVE film only.</p>
 
 ## How a pixel becomes evidence
 
@@ -101,11 +141,11 @@ xPRIMEray does not ask every pixel the same question forever. Confirmed LIVE hit
     <li><span class="xp-status xp-status--landed">Landed shadow</span> PixelMemory-v0 + hitEntityId object-seed identity</li>
     <li><span class="xp-status xp-status--landed">Shadow instrumentation · landed</span> PixelMemory-v1 Meander importance field with opt-in G4 band ordering</li>
     <li><span class="xp-status xp-status--planned">Planned</span> Pixel Meander frontiers · Cathedral Probe object-seeding · Deep Field</li>
-    <li><span class="xp-status xp-status--formal">Formal only</span> G SNAPSHOT — fresh, sealed, BVH-v0, no LIVE memory</li>
+    <li><span class="xp-status xp-status--formal">Formal only</span> Q acquisition — fresh SNAPSHOT, sealed, BVH-v0, no LIVE memory</li>
   </ol>
 </div>
 
-Magenta / unresolved = not enough LIVE evidence yet. Deferred = budget spent elsewhere. Hit = confirmed LIVE contact. Stronger sealed claims require Formal G.
+Magenta / unresolved = not enough LIVE evidence yet. Deferred = budget spent elsewhere. Hit = confirmed LIVE contact. Stronger sealed claims require a Formal Q acquisition.
 
 Canonical tree: [Live Acquisition Decision Tree](architecture/live-acquisition-decision-tree.md)
 
