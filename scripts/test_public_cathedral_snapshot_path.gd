@@ -47,13 +47,53 @@ func _initialize() -> void:
 		"programmatic Formal acquisition did not acquire a new generation")
 	_assert(bool(film.get("CathedralSnapshotLifecycleActive")),
 		"programmatic Formal acquisition did not own lifecycle authority")
-	film.call("InvalidateCathedralProbeSnapshotForContextChange")
-	await _settle(2)
+	await _wait_for_complete()
 	_assert(not bool(film.get("CathedralSnapshotLifecycleActive")),
-		"programmatic Formal invalidation did not release lifecycle authority")
+		"completed programmatic Formal acquisition did not release lifecycle authority")
+	_assert(bool(film.get("ProbeViewAvailable")),
+		"programmatic Formal acquisition did not create a valid seal while input was disabled")
 	_assert(film_controller.call("GetModeName") == "OFF",
 		"programmatic Formal API unexpectedly changed interactive controller mode")
+	var disabled_sealed_generation := int(film.get("SealedProbeViewGeneration"))
+	var disabled_sealed_identity := _measurement_identity()
+	var disabled_sealed_policy := str(film.get("CathedralFormalPolicyId"))
+	var disabled_sealed_policy_sha := str(film.get("CathedralFormalPolicySha256"))
+	await _assert_disabled_key_noop(KEY_Q, false, false, "sealed Q")
+	await _assert_disabled_key_noop(KEY_G, false, false, "sealed G")
+	# FilmController owns G and rejects it before the camera sees the event.  Exercise
+	# the same public controller transition to prove its explicit rejection reason.
+	_assert(not bool(film_controller.call("ToggleLiveFromInput")),
+		"disabled sealed G controller transition was accepted")
+	_assert(str(film_controller.call("GetLastInputDisposition")) == "interactive_input_disabled",
+		"disabled sealed G did not report its authority boundary")
+	await _assert_disabled_key_noop(KEY_Q, true, false, "sealed Shift+Q")
+	await _assert_disabled_key_noop(KEY_Q, false, true, "sealed Ctrl+Q")
+	_assert(int(film.get("SealedProbeViewGeneration")) == disabled_sealed_generation,
+		"disabled sealed input changed the sealed generation")
+	_assert(_measurement_identity() == disabled_sealed_identity,
+		"disabled sealed input changed measurement identity")
+	_assert(str(film.get("CathedralFormalPolicyId")) == disabled_sealed_policy,
+		"disabled sealed input changed Formal policy provenance")
+	_assert(str(film.get("CathedralFormalPolicySha256")) == disabled_sealed_policy_sha,
+		"disabled sealed input changed Formal policy hash provenance")
 	film_controller.call("SetInputEnabled", true)
+	var disabled_view := int(film.get("CurrentProbeView"))
+	_send_key(KEY_Q)
+	await _settle(2)
+	_assert(int(film.get("CurrentProbeView")) == (disabled_view + 1) % 3,
+		"re-enabled Q did not navigate the sealed view")
+	_send_modified_key(KEY_Q, true, false)
+	await _settle(2)
+	_assert(int(film.get("CurrentProbeView")) == disabled_view,
+		"re-enabled Shift+Q did not navigate the sealed view backwards")
+	# A direct programmatic acquisition intentionally does not change the
+	# interactive controller's OFF mode. Release this test-only seal through the
+	# existing authority invalidation API; the interactive SNAPSHOT->LIVE G path
+	# is exercised below after the controller itself owns the request.
+	film.call("InvalidateCathedralProbeSnapshotForContextChange")
+	await _settle(2)
+	_assert(not bool(film.get("ProbeViewAvailable")),
+		"programmatic seal invalidation did not withdraw authority")
 
 	_send_key(KEY_E)
 	await _settle(8)
@@ -85,7 +125,8 @@ func _initialize() -> void:
 		"P after request relabeled active acquisition")
 	await _wait_for_complete()
 	_assert(bool(film.get("ProbeViewAvailable")), "formal Snapshot seals authority")
-	_assert(int(film.get("SealedProbeViewGeneration")) == 1, "first public Snapshot generation")
+	_assert(int(film.get("SealedProbeViewGeneration")) == disabled_sealed_generation + 1,
+		"first interactive Snapshot generation did not follow programmatic seal")
 	_assert(str(film.get("CathedralSealedProbeProfileStableId")) == requested_profile,
 		"sealed profile does not match request-bound profile")
 	_send_key(KEY_P)
@@ -260,23 +301,28 @@ func _live_effective_signature() -> String:
 
 
 func _assert_disabled_key_noop(code: Key, shift: bool, ctrl: bool, label: String) -> void:
-	var before := JSON.stringify({
-		"mode": str(film_controller.call("GetModeName")),
-		"generation": int(film.get("CathedralSnapshotGeneration")),
-		"active": bool(film.get("CathedralSnapshotLifecycleActive")),
-		"sealed": bool(film.get("ProbeViewAvailable")),
-		"view": int(film.get("CurrentProbeView")),
-	})
+	var before := _input_authority_signature()
 	_send_modified_key(code, shift, ctrl)
 	await _settle(2)
-	var after := JSON.stringify({
+	var after := _input_authority_signature()
+	_assert(after == before, "disabled interactive %s mutated acquisition, seal, provenance, or presentation state" % label)
+	_assert(str(film_controller.call("GetLastInputDisposition")) == "interactive_input_disabled",
+		"disabled interactive %s did not retain the authority rejection disposition" % label)
+
+
+func _input_authority_signature() -> String:
+	return JSON.stringify({
 		"mode": str(film_controller.call("GetModeName")),
 		"generation": int(film.get("CathedralSnapshotGeneration")),
 		"active": bool(film.get("CathedralSnapshotLifecycleActive")),
 		"sealed": bool(film.get("ProbeViewAvailable")),
 		"view": int(film.get("CurrentProbeView")),
+		"sealed_generation": int(film.get("SealedProbeViewGeneration")),
+		"sealed_profile": str(film.get("CathedralSealedProbeProfileStableId")),
+		"formal_policy": str(film.get("CathedralFormalPolicyId")),
+		"formal_policy_sha": str(film.get("CathedralFormalPolicySha256")),
+		"measurement_identity": _measurement_identity(),
 	})
-	_assert(after == before, "disabled interactive %s mutated acquisition or presentation state" % label)
 
 
 func _send_modified_key(code: Key, shift: bool, ctrl: bool) -> void:
