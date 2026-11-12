@@ -1,0 +1,160 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://UI/ProbePolicyInspector.gd" id="1_script"]
+
+[node name="Inspector" type="PanelContainer"]
+script = ExtResource("1_script")
+
+[node name="RefreshTimer" type="Timer" parent="."]
+wait_time = 0.25
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Root" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="Margin/Root"]
+layout_mode = 2
+text = "Probe Policy Inspector"
+theme_override_font_sizes/font_size = 14
+
+[node name="Boundary" type="Label" parent="Margin/Root"]
+layout_mode = 2
+text = "Read-only P / Q / G authority and effective configuration"
+autowrap_mode = 3
+
+[node name="AuthorityGrid" type="GridContainer" parent="Margin/Root"]
+layout_mode = 2
+columns = 2
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+
+[node name="SelectedCard" type="PanelContainer" parent="Margin/Root/AuthorityGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CardMargin" type="MarginContainer" parent="Margin/Root/AuthorityGrid/SelectedCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 5
+
+[node name="Card" type="VBoxContainer" parent="Margin/Root/AuthorityGrid/SelectedCard/CardMargin"]
+layout_mode = 2
+
+[node name="Heading" type="Label" parent="Margin/Root/AuthorityGrid/SelectedCard/CardMargin/Card"]
+layout_mode = 2
+text = "SELECTED"
+
+[node name="Body" type="Label" parent="Margin/Root/AuthorityGrid/SelectedCard/CardMargin/Card"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="AppliedCard" type="PanelContainer" parent="Margin/Root/AuthorityGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CardMargin" type="MarginContainer" parent="Margin/Root/AuthorityGrid/AppliedCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 5
+
+[node name="Card" type="VBoxContainer" parent="Margin/Root/AuthorityGrid/AppliedCard/CardMargin"]
+layout_mode = 2
+
+[node name="Heading" type="Label" parent="Margin/Root/AuthorityGrid/AppliedCard/CardMargin/Card"]
+layout_mode = 2
+text = "APPLIED LIVE"
+
+[node name="Body" type="Label" parent="Margin/Root/AuthorityGrid/AppliedCard/CardMargin/Card"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="ActiveCard" type="PanelContainer" parent="Margin/Root/AuthorityGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CardMargin" type="MarginContainer" parent="Margin/Root/AuthorityGrid/ActiveCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 5
+
+[node name="Card" type="VBoxContainer" parent="Margin/Root/AuthorityGrid/ActiveCard/CardMargin"]
+layout_mode = 2
+
+[node name="Heading" type="Label" parent="Margin/Root/AuthorityGrid/ActiveCard/CardMargin/Card"]
+layout_mode = 2
+text = "ACTIVE FORMAL"
+
+[node name="Body" type="Label" parent="Margin/Root/AuthorityGrid/ActiveCard/CardMargin/Card"]
+layout_mode = 2
+mouse_filter = 0
+autowrap_mode = 3
+
+[node name="SealedCard" type="PanelContainer" parent="Margin/Root/AuthorityGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CardMargin" type="MarginContainer" parent="Margin/Root/AuthorityGrid/SealedCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 5
+
+[node name="Card" type="VBoxContainer" parent="Margin/Root/AuthorityGrid/SealedCard/CardMargin"]
+layout_mode = 2
+
+[node name="Heading" type="Label" parent="Margin/Root/AuthorityGrid/SealedCard/CardMargin/Card"]
+layout_mode = 2
+text = "SEALED EVIDENCE"
+
+[node name="Body" type="Label" parent="Margin/Root/AuthorityGrid/SealedCard/CardMargin/Card"]
+layout_mode = 2
+mouse_filter = 0
+autowrap_mode = 3
+
+[node name="AuthorityNotice" type="Label" parent="Margin/Root"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="CurrentConfigLabel" type="Label" parent="Margin/Root"]
+layout_mode = 2
+text = "Effective now · OFF (not LIVE settings)"
+theme_override_font_sizes/font_size = 13
+autowrap_mode = 3
+
+[node name="ConfigHeader" type="HBoxContainer" parent="Margin/Root"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BaselineLabel" type="Label" parent="Margin/Root/ConfigHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Observed LIVE baseline: Not observed"
+autowrap_mode = 3
+
+[node name="ShowAll" type="CheckButton" parent="Margin/Root/ConfigHeader"]
+layout_mode = 2
+text = "Show all 52"
+
+[node name="ConfigScroll" type="ScrollContainer" parent="Margin/Root"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="ConfigText" type="Label" parent="Margin/Root/ConfigScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 3

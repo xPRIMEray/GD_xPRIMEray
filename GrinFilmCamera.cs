@@ -5222,6 +5222,11 @@ private sealed class OverlayRollingWindow
 	public string CathedralSealedProbeProfileDisplayName => _sealedProbeProfileDisplayName;
 	public string CathedralFormalPolicyId => _sealedFormalPolicyId;
 	public string CathedralFormalPolicySha256 => _sealedFormalPolicySha256;
+	public string CathedralRequestedFormalPolicyId =>
+		_probeSnapshotLifecycleActive ? _requestedSnapshotFormalPolicyId : string.Empty;
+	public string CathedralActiveFormalPolicySha256 =>
+		_probeSnapshotLifecycleActive && _probeSnapshotLifecycleInitialized ? _activeFormalPolicySha256 : string.Empty;
+	public string CurrentProbeViewDisplayName => ProbeViewMapper.DisplayName(_probeViewMode);
 	public float CathedralFormalInitialRange => _cathedralSnapshotContext.IsValid
 		? _cathedralSnapshotContext.FormalInitialRange
 		: 0f;
