@@ -11,6 +11,7 @@ const BOUNDARY_SCRIPT := preload("res://BoundaryLayerVolume.cs")
 const RBR_SCRIPT := preload("res://RayBeamRenderer.cs")
 const FILM_SCRIPT := preload("res://GrinFilmCamera.cs")
 const FILM_CONTROLLER_SCRIPT := preload("res://Transport/FilmController.gd")
+const SCENE_NAVIGATOR := preload("res://UI/SceneNavigator.gd")
 const CHECKER_SHADER := preload("res://Experiences/checkerboard_3d.gdshader")
 
 const PORTAL_CENTER := Vector3(0.0, 2.5, -1.0)
@@ -98,7 +99,15 @@ func _process(delta: float) -> void:
 	_try_cross(_arrival_portal, false)
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
+		# Capture fixtures embed the gallery beneath another current scene. Only
+		# the actual research world owns Esc navigation.
+		if get_tree().current_scene == self:
+			get_viewport().set_input_as_handled()
+			var result := SCENE_NAVIGATOR.navigate(get_tree(), SCENE_NAVIGATOR.WORKBENCH_ID)
+			if not bool(result.get("ok", false)):
+				push_warning("Workbench navigation failed: %s" % str(result.get("code", "unknown")))
+	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F:
 		var next_visible := not bool(_source_field.get("DebugVizInGame"))
 		_source_field.set("DebugVizInGame", next_visible)
 		_arrival_field.set("DebugVizInGame", next_visible)
@@ -229,7 +238,7 @@ func _update_presentation_hud() -> void:
 	var film_mode: String = film_modes[film_mode_index]
 	var row_cursor := int(_film_camera.get("FilmRowCursor"))
 	if _full_hud:
-		_truth_label.text = "THE OPTICAL FUNHOUSE / FULL CONTROLS\nWASD Move | Mouse Look | Shift Sprint\nV Walk/Fly | F Field | R Rings | L Labels\nG Film | P Profile\nQ / Shift+Q Probe next / previous\n[ / ] Film opacity | N Film shading\nH Minimal HUD | F10 Capture\nShift+F10 Beauty (HUD hidden)\nUnavailable here:\nO Optical-only | Esc Workbench\nF1/F2 renderer debug disabled\nE reserved | F6-F9 legacy macros disabled\n\nGodot presentation != transport evidence\nGeometry + contacts + normals authoritative\nMaterials are raster presentation only"
+		_truth_label.text = "THE OPTICAL FUNHOUSE / FULL CONTROLS\nWASD Move | Mouse Look | Shift Sprint\nV Walk/Fly | F Field | R Rings | L Labels\nG Film | P Profile\nQ / Shift+Q Probe next / previous\n[ / ] Film opacity | N Film shading\nH Minimal HUD | F10 Capture\nShift+F10 Beauty (HUD hidden)\nEsc Workbench\nUnavailable here:\nO Optical-only\nF1/F2 renderer debug disabled\nE reserved | F6-F9 legacy macros disabled\n\nGodot presentation != transport evidence\nGeometry + contacts + normals authoritative\nMaterials are raster presentation only"
 		var field_description := "outer / inner limits · density direction" if field_visible else "hidden (field physics remains active)"
 		var probe_detail := "Probe View unavailable\nComplete SNAPSHOT required"
 		if generation > 0:

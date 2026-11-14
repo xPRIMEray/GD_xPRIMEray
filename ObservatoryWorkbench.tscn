@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="PackedScene" path="res://HelloObservatoryWorld.tscn" id="1_world"]
 [ext_resource type="PackedScene" path="res://UI/ObservatoryWorkbenchPanel.tscn" id="2_oi"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://UI/ObservatoryWorkbench.gd" id="4_workbench"]
 [ext_resource type="Theme" path="res://UI/ObservatoryHudTheme.tres" id="5_hud_theme"]
 [ext_resource type="PackedScene" path="res://UI/ProbePolicyInspector.tscn" id="6_policy_inspector"]
+[ext_resource type="PackedScene" path="res://UI/SceneSelectorPanel.tscn" id="7_scene_selector"]
 
 [node name="ObservatoryWorkbench" type="Node"]
 script = ExtResource("4_workbench")
@@ -76,4 +77,7 @@ follow_focus = true
 layout_mode = 2
 
 [node name="Inspector" parent="UILayer/UIRoot/SideDock/Tabs" instance=ExtResource("6_policy_inspector")]
+layout_mode = 2
+
+[node name="Scenes" parent="UILayer/UIRoot/SideDock/Tabs" instance=ExtResource("7_scene_selector")]
 layout_mode = 2

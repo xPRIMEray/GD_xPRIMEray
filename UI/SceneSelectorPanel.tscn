@@ -1,0 +1,48 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://UI/SceneSelectorPanel.gd" id="1_script"]
+
+[node name="Scenes" type="PanelContainer"]
+script = ExtResource("1_script")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Content" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Margin/Content"]
+layout_mode = 2
+text = "Research Scenes"
+theme_override_font_sizes/font_size = 16
+
+[node name="CurrentScene" type="Label" parent="Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Current scene: Detecting…"
+
+[node name="Warning" type="Label" parent="Margin/Content"]
+layout_mode = 2
+text = "Scene changes start a fresh instrument: G OFF, P Cathedral, no Formal acquisition or sealed evidence."
+autowrap_mode = 3
+
+[node name="WorkbenchButton" type="Button" parent="Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Observatory Workbench"
+
+[node name="GalleryButton" type="Button" parent="Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Suspended Portal Gallery"
+
+[node name="NavigationStatus" type="Label" parent="Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Select a scene to begin."
+autowrap_mode = 3
