@@ -233,17 +233,16 @@ func _update_presentation_hud() -> void:
 	]
 	var probe_index := clampi(int(_film_camera.get("CurrentProbeView")), 0, probe_modes.size() - 1)
 	var probe_status: String = probe_modes[probe_index] if generation > 0 else "unavailable"
-	var film_modes := ["OFF", "SNAPSHOT", "LIVE"]
-	var film_mode_index := clampi(int(_film_controller.get("_mode")), 0, film_modes.size() - 1)
-	var film_mode: String = film_modes[film_mode_index]
+	var film_mode := String(_film_controller.call("GetModeName"))
 	var row_cursor := int(_film_camera.get("FilmRowCursor"))
+	var live_row_status := "LIVE row %d" % row_cursor if film_mode == "LIVE" else "row inactive"
 	if _full_hud:
 		_truth_label.text = "THE OPTICAL FUNHOUSE / FULL CONTROLS\nWASD Move | Mouse Look | Shift Sprint\nV Walk/Fly | F Field | R Rings | L Labels\nG Film | P Profile\nQ / Shift+Q Probe next / previous\n[ / ] Film opacity | N Film shading\nH Minimal HUD | F10 Capture\nShift+F10 Beauty (HUD hidden)\nEsc Workbench\nUnavailable here:\nO Optical-only\nF1/F2 renderer debug disabled\nE reserved | F6-F9 legacy macros disabled\n\nGodot presentation != transport evidence\nGeometry + contacts + normals authoritative\nMaterials are raster presentation only"
 		var field_description := "outer / inner limits · density direction" if field_visible else "hidden (field physics remains active)"
 		var probe_detail := "Probe View unavailable\nComplete SNAPSHOT required"
 		if generation > 0:
 			probe_detail = "%s\nLegend: %s" % [probe_descriptions[probe_index], probe_legends[probe_index]]
-		_probe_hud_label.text = "P Probe Profile: %s\nQ Probe View: %s\nF Field Structure: %s\n%s\nR Rings: %s  ·  L Labels: %s\nG Observation: %s  ·  row %d\nSealed generation: %s\n%s" % [
+		_probe_hud_label.text = "P Probe Profile: %s\nQ Probe View: %s\nF Field Structure: %s\n%s\nR Rings: %s  ·  L Labels: %s\nG Observation: %s  ·  %s\nSealed generation: %s\n%s" % [
 			profile,
 			probe_status,
 			"ON" if field_visible else "OFF",
@@ -251,18 +250,18 @@ func _update_presentation_hud() -> void:
 			"ON" if _rings_visible else "OFF",
 			"ON" if _labels_visible else "OFF",
 			film_mode,
-			row_cursor,
+			live_row_status,
 			str(generation) if generation > 0 else "none",
 			probe_detail,
 		]
 	else:
 		_truth_label.text = "THE OPTICAL FUNHOUSE / v0\nV MOVE | F FIELD | G FILM | H FULL\nR RINGS | L LABELS | raster != transport\nGeometry | hits | normals = evidence"
-		_probe_hud_label.text = "P  %s  |  Q  %s\nF  FIELD %s  |  G  %s\nLIVE row %d  |  sealed gen %s\nH  full instrumentation" % [
+		_probe_hud_label.text = "P  %s  |  Q  %s\nF  FIELD %s  |  G  %s\n%s  |  sealed gen %s\nH  full instrumentation" % [
 			profile,
 			probe_status,
 			"ON" if field_visible else "OFF",
 			film_mode,
-			row_cursor,
+			live_row_status,
 			str(generation) if generation > 0 else "—",
 		]
 		# PanelContainer initially sees the verbose label installed during scene
@@ -571,6 +570,15 @@ func _build_hud(world: Node3D) -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	canvas.add_child(root)
 
+	# FilmController owns this hidden status sink. Its existing terminal-status
+	# path also reveals and paints a successfully sealed Q plate; the Gallery
+	# presentation HUD intentionally never reads or writes this label.
+	var film_status := Label.new()
+	film_status.name = "FilmStatusLabel"
+	film_status.visible = false
+	film_status.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(film_status)
+
 	var info_panel := PanelContainer.new()
 	info_panel.name = "TruthBoundary"
 	info_panel.position = Vector2(18.0, 18.0)
@@ -620,6 +628,7 @@ func _build_hud(world: Node3D) -> void:
 	controller.set("film_plate_path", NodePath("../CanvasLayer/HUDRoot/FilmPlate"))
 	controller.set("film_view_path", NodePath("../CanvasLayer/HUDRoot/FilmPlate/FilmView"))
 	controller.set("film_overlay_path", NodePath("../CanvasLayer/HUDRoot/FilmPlate/FilmOverlay"))
+	controller.set("status_label_path", NodePath("../CanvasLayer/HUDRoot/FilmStatusLabel"))
 	controller.set("player_path", NodePath("../TransportChamberPlayer"))
 	world.add_child(controller)
 
