@@ -17,10 +17,18 @@ signal optical_only_presentation_changed(enabled: bool)
 @onready var _gallery_field: Node = $GalleryFieldSource
 @onready var _earth_field: Node = $EarthFieldSource
 @onready var _hud_root: Control = $CanvasLayer/HUDRoot
+@onready var _status_card: Control = $CanvasLayer/HUDRoot/InstrumentStatusCard
+@onready var _film_module_backdrop: Control = $CanvasLayer/HUDRoot/FilmModuleBackdrop
+@onready var _film_module: Control = $CanvasLayer/HUDRoot/FilmModule
+@onready var _film_status_label: Control = $CanvasLayer/HUDRoot/FilmModule/FilmStatusLabel
 @onready var _telemetry_module: Control = $CanvasLayer/HUDRoot/TelemetryModule
 @onready var _telemetry_backdrop: Control = $CanvasLayer/HUDRoot/TelemetryBackdrop
 @onready var _telemetry_label: Label = $CanvasLayer/HUDRoot/TelemetryModule/TelemetryLabel
+@onready var _portal_module: Control = $CanvasLayer/HUDRoot/PortalModule
+@onready var _portal_backdrop: Control = $CanvasLayer/HUDRoot/PortalBackdrop
 @onready var _portal_label: Label = $CanvasLayer/HUDRoot/PortalModule/PortalStatusLabel
+@onready var _observer_module: Control = $CanvasLayer/HUDRoot/ObserverModule
+@onready var _observer_backdrop: Control = $CanvasLayer/HUDRoot/ObserverBackdrop
 @onready var _locomotion_label: Label = $CanvasLayer/HUDRoot/ObserverModule/ObserverStatusLabel
 
 var _cooldown_remaining := 0.0
@@ -32,8 +40,12 @@ var _normal_observer_cull_mask: int = 0
 var _demo_presentation_enabled := false
 var _demo_restore_advanced_telemetry := false
 var _demo_restore_optical_only := false
+var _presentation_level := 0
 
 const FIELD_PRESENTATION_LAYER_MASK := 1 << 19
+const PRESENTATION_EXPLORE := 0
+const PRESENTATION_INSTRUMENT := 1
+const PRESENTATION_INSPECT := 2
 
 
 func _ready() -> void:
@@ -58,6 +70,8 @@ func _ready() -> void:
 	_on_locomotion_mode_changed(_player.GetLocomotionModeName())
 	SetHudVisibleForGameplay(true)
 	_set_advanced_telemetry_visible(false)
+	get_viewport().size_changed.connect(_apply_presentation_visibility)
+	SetPresentationLevel(PRESENTATION_EXPLORE)
 	_set_chamber_summary()
 	_prime_portal_deltas()
 	_update_portal_status()
@@ -150,21 +164,69 @@ func _set_chamber_summary() -> void:
 
 func _set_advanced_telemetry_visible(visible: bool) -> void:
 	_advanced_telemetry_visible = visible
-	if _telemetry_module != null:
-		_telemetry_module.visible = visible
-	if _telemetry_backdrop != null:
-		_telemetry_backdrop.visible = visible
 	if _overspace_debug_overlay != null:
 		_overspace_debug_overlay.visible = false
 	for field in [_gallery_field, _earth_field]:
 		if field != null:
 			field.set("DebugVizInGame", false)
+	_apply_presentation_visibility()
 	_update_telemetry_label()
 
 
 func SetHudVisibleForGameplay(visible: bool) -> void:
 	if _hud_root != null:
 		_hud_root.visible = visible
+
+
+func SetPresentationLevel(level: int) -> void:
+	_presentation_level = clampi(level, PRESENTATION_EXPLORE, PRESENTATION_INSPECT)
+	if _hud_root != null:
+		_hud_root.visible = true
+	if _status_card != null and _status_card.has_method("SetPresentationLevel"):
+		_status_card.call("SetPresentationLevel", _presentation_level)
+	_apply_presentation_visibility()
+
+
+func GetPresentationLevel() -> int:
+	return _presentation_level
+
+
+func _apply_presentation_visibility() -> void:
+	if not is_node_ready():
+		return
+	var narrow := get_viewport().get_visible_rect().size.x < 800.0
+	var show_film := _presentation_level != PRESENTATION_EXPLORE
+	var show_support := _presentation_level == PRESENTATION_INSTRUMENT and not narrow
+	_status_card.visible = true
+	_status_card.position = Vector2(12.0, 12.0) if _presentation_level == PRESENTATION_INSPECT else Vector2(380.0, 12.0)
+	_status_card.custom_minimum_size = Vector2(328.0, 250.0 if _presentation_level != PRESENTATION_EXPLORE else 180.0)
+	_film_module.position = Vector2(12.0, 274.0) if _presentation_level == PRESENTATION_INSPECT else Vector2(12.0, 190.0)
+	_film_module_backdrop.position = Vector2(8.0, 266.0) if _presentation_level == PRESENTATION_INSPECT else Vector2(8.0, 182.0)
+	_film_module_backdrop.visible = show_film
+	_film_module.visible = show_film
+	_film_status_label.visible = false
+	_film_status_label.custom_minimum_size = Vector2(340.0, 0.0)
+	if _film_status_label is Label:
+		var legacy_status := _film_status_label as Label
+		legacy_status.autowrap_mode = TextServer.AUTOWRAP_OFF
+		legacy_status.clip_text = true
+	_film_module.size = Vector2(340.0, 340.0)
+	_portal_module.visible = show_support
+	_portal_backdrop.visible = show_support
+	_observer_module.visible = show_support
+	_observer_backdrop.visible = show_support
+	var show_telemetry := _advanced_telemetry_visible and _presentation_level != PRESENTATION_INSPECT and not narrow
+	_telemetry_module.visible = show_telemetry
+	_telemetry_backdrop.visible = show_telemetry
+	_set_camera_probe_hud_visible(false)
+
+
+func _set_camera_probe_hud_visible(visible: bool) -> void:
+	if _film_camera == null:
+		return
+	for child in _film_camera.get_children():
+		if child is CanvasLayer and int(child.layer) == 12:
+			child.visible = visible
 
 
 func SetOpticalOnlyPresentation(enabled: bool) -> void:
@@ -200,12 +262,9 @@ func SetDemoPresentationMode(enabled: bool) -> void:
 		_demo_restore_advanced_telemetry = _advanced_telemetry_visible
 		_demo_restore_optical_only = _optical_only_presentation
 		_advanced_telemetry_visible = false
-		_telemetry_module.visible = false
-		_telemetry_backdrop.visible = false
 	else:
 		_advanced_telemetry_visible = _demo_restore_advanced_telemetry
-		_telemetry_module.visible = _advanced_telemetry_visible
-		_telemetry_backdrop.visible = _advanced_telemetry_visible
+	_apply_presentation_visibility()
 	_update_telemetry_label()
 	if _film_overlay != null:
 		_film_overlay.set("SuppressDebugOverlayBusPresentation", enabled)
@@ -223,7 +282,7 @@ func SetInputEnabled(enabled: bool, release_mouse := true) -> void:
 func _on_locomotion_mode_changed(mode_name: String) -> void:
 	if _locomotion_label == null:
 		return
-	_locomotion_label.text = "%s | WASD + mouse | Shift sprint | V walk/fly\nF field structure | O optical-only world | P probe profile\nG observation / film | Q probe view | Esc Workbench" % mode_name
+	_locomotion_label.text = "%s | WASD + mouse | Shift sprint | V walk/fly\nF field structure | O optical-only world | P probe profile\nG observation / film | Q probe view | H presentation | Esc Inspect" % mode_name
 
 
 func _on_field_strength_changed(_value: float) -> void:

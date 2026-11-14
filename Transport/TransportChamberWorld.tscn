@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=20 format=3]
 
 [ext_resource type="Script" path="res://Transport/TransportChamberOrchestrator.gd" id="1_orchestrator"]
 [ext_resource type="PackedScene" path="res://Transport/TransportChamberPlayer.tscn" id="2_player"]
@@ -12,6 +12,7 @@
 [ext_resource type="Script" path="res://Transport/FieldDialController.gd" id="10_field_dial"]
 [ext_resource type="PackedScene" path="res://Transport/HermeticRoomDisplay.tscn" id="11_hermetic"]
 [ext_resource type="Theme" path="res://UI/ObservatoryHudTheme.tres" id="12_hud_theme"]
+[ext_resource type="PackedScene" path="res://UI/InstrumentStatusCard.tscn" id="13_status_card"]
 
 [sub_resource type="BoxShape3D" id="BoxShape_floor"]
 size = Vector3(20, 0.25, 22)
@@ -196,6 +197,8 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 theme = ExtResource("12_hud_theme")
+
+[node name="InstrumentStatusCard" parent="CanvasLayer/HUDRoot" instance=ExtResource("13_status_card")]
 
 [node name="FilmModuleBackdrop" type="Panel" parent="CanvasLayer/HUDRoot"]
 offset_left = 8.0
@@ -383,6 +386,6 @@ layout_mode = 2
 mouse_filter = 2
 text = "WASD + mouse | V walk/fly
 F field structure | O optical-only world | P probe profile
-G observation / film | Q probe view | Esc Workbench"
+G observation / film | Q probe view | H presentation | Esc Inspect"
 theme_override_font_sizes/font_size = 12
 autowrap_mode = 3

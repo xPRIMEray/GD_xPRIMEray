@@ -5227,6 +5227,21 @@ private sealed class OverlayRollingWindow
 	public string CathedralActiveFormalPolicySha256 =>
 		_probeSnapshotLifecycleActive && _probeSnapshotLifecycleInitialized ? _activeFormalPolicySha256 : string.Empty;
 	public string CurrentProbeViewDisplayName => ProbeViewMapper.DisplayName(_probeViewMode);
+	public string CurrentProbeViewDescription => ProbeViewMapper.Description(_probeViewMode);
+	public string CurrentProbeViewLegend
+	{
+		get
+		{
+			StringBuilder legend = new();
+			foreach (ProbeViewLegendEntry entry in ProbeViewMapper.Legend(_probeViewMode))
+			{
+				if (legend.Length > 0) legend.Append("  ");
+				legend.Append(entry.Label);
+			}
+			return legend.ToString();
+		}
+	}
+	public bool CurrentFieldStructureVisible => IsFieldStructureVisibleForHud();
 	public float CathedralFormalInitialRange => _cathedralSnapshotContext.IsValid
 		? _cathedralSnapshotContext.FormalInitialRange
 		: 0f;
