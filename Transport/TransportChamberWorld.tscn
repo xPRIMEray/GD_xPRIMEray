@@ -199,6 +199,9 @@ mouse_filter = 2
 theme = ExtResource("12_hud_theme")
 
 [node name="InstrumentStatusCard" parent="CanvasLayer/HUDRoot" instance=ExtResource("13_status_card")]
+scene_label = "WORKBENCH"
+film_plate_path = NodePath("../FilmModule/FilmPlate")
+player_path = NodePath("../../../TransportChamberPlayer")
 
 [node name="FilmModuleBackdrop" type="Panel" parent="CanvasLayer/HUDRoot"]
 offset_left = 8.0
