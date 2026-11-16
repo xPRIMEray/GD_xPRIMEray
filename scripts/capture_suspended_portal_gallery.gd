@@ -480,7 +480,7 @@ func _action_has_key(action: StringName, expected_key: Key) -> bool:
 
 
 func _full_hud_contract_present(text: String) -> bool:
-	for token in ["WASD", "Mouse Look", "Shift Sprint", "V Walk/Fly", "F Field", "R Rings", "L Labels", "G Film", "P Profile", "Shift+Q", "[ / ] Opacity", "N Shading", "H Explore", "F10 Capture", "Shift+F10 Beauty", "Esc Workbench"]:
+	for token in ["WASD", "Mouse Look", "Shift Sprint", "V Walk/Fly", "F Field", "R Rings", "L Labels", "G Film", "P Profile", "Q Formal/View", "Shift+Q Previous", "Ctrl+Q Reacquire", "[ / ] Opacity", "N LIVE Shading", "H Explore", "F10 Capture", "Shift+F10 Beauty", "Esc Workbench"]:
 		if not text.contains(token):
 			push_error("SUSPENDED_PORTAL_HUD_CONTRACT missing token: " + token)
 			return false

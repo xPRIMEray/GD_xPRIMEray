@@ -199,7 +199,8 @@ func _apply_presentation_visibility() -> void:
 	var show_support := _presentation_level == PRESENTATION_INSTRUMENT and not narrow
 	_status_card.visible = true
 	_status_card.position = Vector2(12.0, 12.0) if _presentation_level == PRESENTATION_INSPECT else Vector2(380.0, 12.0)
-	_status_card.custom_minimum_size = Vector2(328.0, 250.0 if _presentation_level != PRESENTATION_EXPLORE else 180.0)
+	_status_card.custom_minimum_size = Vector2(480.0, 250.0 if _presentation_level != PRESENTATION_EXPLORE else 180.0)
+	_status_card.reset_size()
 	_film_module.position = Vector2(12.0, 274.0) if _presentation_level == PRESENTATION_INSPECT else Vector2(12.0, 190.0)
 	_film_module_backdrop.position = Vector2(8.0, 266.0) if _presentation_level == PRESENTATION_INSPECT else Vector2(8.0, 182.0)
 	_film_module_backdrop.visible = show_film
@@ -282,7 +283,7 @@ func SetInputEnabled(enabled: bool, release_mouse := true) -> void:
 func _on_locomotion_mode_changed(mode_name: String) -> void:
 	if _locomotion_label == null:
 		return
-	_locomotion_label.text = "%s | WASD + mouse | Shift sprint | V walk/fly\nF field structure | O optical-only world | P probe profile\nG observation / film | Q probe view | H presentation | Esc Inspect" % mode_name
+	_locomotion_label.text = "%s | WASD + mouse | Shift sprint | V walk/fly\nP Profile | G Film | Q Formal/View | N Shading | F Field\nEsc Inspect | Tab Telemetry | O Optical-only\n, / . Field strength | 0 Straight | 1 Full | F1/F2 Renderer diagnostics" % mode_name
 
 
 func _on_field_strength_changed(_value: float) -> void:

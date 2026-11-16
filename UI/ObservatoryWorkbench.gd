@@ -129,7 +129,7 @@ func GetLayoutPlanForTesting(viewport_size: Vector2) -> Dictionary:
 	)
 	return {
 		"dock": dock,
-		"status": Rect2(12.0, 12.0, 328.0, 250.0),
+		"status": Rect2(12.0, 12.0, 480.0, 250.0),
 		"film": Rect2(12.0, 274.0, 340.0, 340.0),
 	}
 

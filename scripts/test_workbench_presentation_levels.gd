@@ -97,19 +97,28 @@ func _test_formal_attention_table() -> void:
 func _test_levels_and_input() -> void:
 	_assert(int(workbench.call("GetPresentationLevelForTesting")) == EXPLORE, "initial level is not Explore")
 	_assert(not side_dock.visible and status_card.visible and not film_module.visible, "Explore visibility contract")
+	status_card.call("ForceRefreshForTesting")
+	_assert(not bool(status_card.call("GetDisplayedStateForTesting").get("secondary_controls_visible")), "Explore exposed secondary controls")
 	_assert(not _camera_probe_hud_visible(), "Explore duplicated camera Probe HUD")
 	_send_key(KEY_H)
 	await _settle(3)
 	_assert(int(workbench.call("GetPresentationLevelForTesting")) == INSTRUMENT, "H did not enter Instrument")
 	_assert(status_card.visible and film_module.visible and not side_dock.visible, "Instrument visibility contract")
+	status_card.call("ForceRefreshForTesting")
+	_assert(bool(status_card.call("GetDisplayedStateForTesting").get("secondary_controls_visible")), "Instrument omitted secondary controls")
 	_send_key(KEY_ESCAPE)
 	await _settle(3)
 	_assert(int(workbench.call("GetPresentationLevelForTesting")) == INSPECT, "Esc did not enter Inspect")
 	_assert(side_dock.visible and film_module.visible, "Inspect must show SideDock and film")
 	_assert(not _camera_probe_hud_visible(), "Inspect camera Probe HUD overlaps presentation")
+	await _test_inspect_control_semantics()
 	_send_key(KEY_ESCAPE)
 	await _settle(3)
 	_assert(int(workbench.call("GetPresentationLevelForTesting")) == INSTRUMENT, "closing Inspect did not restore Instrument")
+	status_card.call("ForceRefreshForTesting")
+	var restored_state: Dictionary = status_card.call("GetDisplayedStateForTesting")
+	_assert(bool(restored_state.get("input_enabled")) and str(restored_state.get("q_readiness")) == "ready", "closing Inspect did not restore Q readiness")
+	_assert(str(restored_state.get("secondary_controls")).contains("[ / ] Opacity · H Level") and not str(restored_state.get("secondary_controls")).contains("Suspended"), "closing Inspect left the suspended-controls reference")
 
 	var input := LineEdit.new()
 	scene_root.add_child(input)
@@ -121,6 +130,56 @@ func _test_levels_and_input() -> void:
 	input.release_focus()
 	input.queue_free()
 	await _settle(2)
+
+
+func _test_inspect_control_semantics() -> void:
+	# UI-R2A.1: Inspect must not advertise disabled controls as available, and
+	# the controls it names as active or suspended must behave accordingly.
+	status_card.call("ForceRefreshForTesting")
+	var state: Dictionary = status_card.call("GetDisplayedStateForTesting")
+	var status_text := str(state.get("status_text"))
+	var secondary := str(state.get("secondary_controls"))
+	_assert(not bool(state.get("input_enabled")), "Inspect did not suspend film input")
+	_assert(bool(state.get("secondary_controls_visible")), "Inspect omitted the control-availability reference")
+	for token in ["P Selected", "G Film:", "Q Formal:", "N Shading:", "F Field:"]:
+		_assert(status_text.contains(token), "Inspect dropped primary indicator %s" % token)
+	_assert(str(state.get("q_readiness")) == "suspended" and status_text.contains("Q Formal: suspended"), "Inspect presented Q Formal as ready")
+	_assert(not status_text.contains("Q Formal: ready"), "Inspect retained Q Formal ready")
+	_assert(secondary.contains("still active: P Profile · F Field"), "Inspect did not identify the controls that remain active")
+	_assert(secondary.contains("Suspended until Esc:"), "Inspect did not identify suspended controls")
+	for token in ["G", "Q", "N", "[ / ]", "H", "V", "WASD", "Mouse"]:
+		_assert(secondary.get_slice("Suspended until Esc:", 1).contains(token), "Inspect suspended list missing %s" % token)
+	for stale in ["[ / ] Opacity", "H Level", "Shift+Q Previous", "Ctrl+Q Reacquire", "V Walk/Fly", "WASD Move", "Mouse Look", "Shift Sprint"]:
+		_assert(not secondary.contains(stale), "Inspect still advertises suspended control %s" % stale)
+	var mode_before := str(controller.call("GetModeName"))
+	var shading_before := int(film.get("ShadingMode"))
+	var opacity_before := int(controller.call("GetOpacityPercent"))
+	var generation_before := int(film.get("CathedralSnapshotGeneration"))
+	for code in [KEY_G, KEY_N, KEY_BRACKETLEFT, KEY_Q, KEY_H]:
+		_send_key(code)
+		await _settle(3)
+	_assert(str(controller.call("GetModeName")) == mode_before, "suspended G acted in Inspect")
+	_assert(int(film.get("ShadingMode")) == shading_before, "suspended N acted in Inspect")
+	_assert(int(controller.call("GetOpacityPercent")) == opacity_before, "suspended [ acted in Inspect")
+	_assert(int(film.get("CathedralSnapshotGeneration")) == generation_before, "suspended Q acted in Inspect")
+	_assert(int(workbench.call("GetPresentationLevelForTesting")) == INSPECT, "suspended H acted in Inspect")
+	var profile_before := str(film.get("ProbeProfileStableId"))
+	_send_key(KEY_P)
+	await _settle(3)
+	_assert(str(film.get("ProbeProfileStableId")) != profile_before, "P is advertised as active in Inspect but did not act")
+	for _restore in range(4):
+		if str(film.get("ProbeProfileStableId")) == profile_before:
+			break
+		_send_key(KEY_P)
+		await _settle(3)
+	_assert(str(film.get("ProbeProfileStableId")) == profile_before, "Inspect P profile was not restored")
+	var field_before := bool(film.get("CurrentFieldStructureVisible"))
+	_send_key(KEY_F)
+	await _settle(3)
+	_assert(bool(film.get("CurrentFieldStructureVisible")) != field_before, "F is advertised as active in Inspect but did not act")
+	_send_key(KEY_F)
+	await _settle(3)
+	_assert(bool(film.get("CurrentFieldStructureVisible")) == field_before, "Inspect F field visibility was not restored")
 
 
 func _test_authoritative_information() -> void:
@@ -140,12 +199,69 @@ func _test_authoritative_information() -> void:
 	var status_text := str(state.get("status_text"))
 	_assert(status_text.contains("Film: %d×%d" % [int(film.get("FilmWidthPixels")), int(film.get("FilmHeightRows"))]), "actual film dimensions absent")
 	_assert(status_text.contains("Opacity: —"), "OFF opacity is not shown as inactive")
-	_assert(status_text.contains("Shading: %s" % str(controller.call("GetShadingModeName"))), "authoritative shading absent")
+	_assert(status_text.contains("N Shading: %s" % _display_shading(str(controller.call("GetShadingModeName")))), "authoritative N shading absent")
+	_assert(status_text.contains("P Selected") and status_text.contains("G Film:") and status_text.contains("Q Formal:") and status_text.contains("F Field:"), "primary P/G/Q/N/F hierarchy incomplete")
 	_assert(status_text.contains("Pose held: %s" % ("YES" if bool(player.call("IsPoseHeld")) else "NO")), "authoritative pose state absent")
+	_assert(str(state.get("mode")) == "OFF" and str(state.get("q_readiness")) == "ready" and status_text.contains("Q Formal: ready"), "OFF did not present Q Formal as ready")
+	var secondary := str(state.get("secondary_controls"))
+	for token in ["[ / ] Opacity", "H Level", "Shift+Q Previous", "Ctrl+Q Reacquire", "V Walk/Fly", "WASD Move", "Mouse Look", "Shift Sprint"]:
+		_assert(secondary.contains(token), "shared secondary reference missing %s" % token)
+	var locomotion_text := str(chamber.get_node("CanvasLayer/HUDRoot/ObserverModule/ObserverStatusLabel").text)
+	for token in ["Esc Inspect", "Tab Telemetry", "O Optical-only", "Field strength", "0 Straight", "1 Full", "F1/F2 Renderer diagnostics"]:
+		_assert(locomotion_text.contains(token), "Workbench reference missing %s" % token)
 	_sample_card_layout("off_instrument")
 	var field_before := bool(state.get("field_structure_visible"))
 	_send_key(KEY_F)
 	await _settle(4)
+
+	var initial_shading := str(controller.call("GetShadingModeName"))
+	var observed_shading := {}
+	for shading_index in range(4):
+		status_card.call("ForceRefreshForTesting")
+		state = status_card.call("GetDisplayedStateForTesting")
+		var raw_shading := str(controller.call("GetShadingModeName"))
+		observed_shading[raw_shading] = true
+		_assert(str(state.get("shading")) == raw_shading, "raw shading authority mismatch")
+		_assert(str(state.get("shading_display")) == _display_shading(raw_shading), "human-readable shading mismatch")
+		_assert(str(state.get("status_text")).contains("N Shading: %s" % _display_shading(raw_shading)), "N shading value not visible")
+		_sample_card_layout("off_shading_%d" % shading_index)
+		_send_key(KEY_N)
+		await _settle(2)
+	_assert(observed_shading.size() == 4, "N did not expose all four shading values")
+	_assert(str(controller.call("GetShadingModeName")) == initial_shading, "N cycle did not return to its initial value")
+
+	_send_key(KEY_G)
+	await _settle(4)
+	_assert(str(controller.call("GetModeName")) == "LIVE", "G did not enter LIVE for opacity presentation checks")
+	status_card.call("ForceRefreshForTesting")
+	var live_state: Dictionary = status_card.call("GetDisplayedStateForTesting")
+	_assert(str(live_state.get("q_readiness")) == "G OFF first" and str(live_state.get("status_text")).contains("Q Formal: G OFF first"), "LIVE presented Q Formal as ready")
+	_assert(not str(live_state.get("status_text")).contains("Q Formal: ready"), "LIVE retained Q Formal ready")
+	_send_key(KEY_Q)
+	await _settle(3)
+	_assert(str(controller.call("GetModeName")) == "LIVE" and str(controller.call("GetLastInputDisposition")) == "formal_from_live_refused_press_g_then_q", "Q in LIVE was not refused as the card states")
+	var initial_opacity := int(controller.call("GetOpacityPercent"))
+	for _step in range(12):
+		_send_key(KEY_BRACKETLEFT)
+	await _settle(2)
+	status_card.call("ForceRefreshForTesting")
+	_assert(int(controller.call("GetOpacityPercent")) == 0, "opacity lower extreme unavailable")
+	_assert(str(status_card.call("GetDisplayedStateForTesting").get("status_text")).contains("Opacity: 0%"), "zero opacity not presented")
+	_sample_card_layout("live_opacity_0")
+	for _step in range(12):
+		_send_key(KEY_BRACKETRIGHT)
+	await _settle(2)
+	status_card.call("ForceRefreshForTesting")
+	_assert(int(controller.call("GetOpacityPercent")) == 100, "opacity upper extreme unavailable")
+	_assert(str(status_card.call("GetDisplayedStateForTesting").get("status_text")).contains("Opacity: 100%"), "full opacity not presented")
+	_sample_card_layout("live_opacity_100")
+	for _step in range(int((100 - initial_opacity) / 10)):
+		_send_key(KEY_BRACKETLEFT)
+	await _settle(2)
+	_assert(int(controller.call("GetOpacityPercent")) == initial_opacity, "opacity was not restored after extreme checks")
+	_send_key(KEY_G)
+	await _settle(4)
+	_assert(str(controller.call("GetModeName")) == "OFF", "G did not restore OFF after opacity presentation checks")
 	status_card.call("ForceRefreshForTesting")
 	state = status_card.call("GetDisplayedStateForTesting")
 	_assert(bool(state.get("field_structure_visible")) == bool(film.get("CurrentFieldStructureVisible")), "updated field visibility mismatch")
@@ -187,6 +303,7 @@ func _test_sealed_and_live_plate() -> void:
 	_assert(str(sealed_state.get("q_view")) == str(film.get("CurrentProbeViewDisplayName")), "Q display getter mismatch")
 	_assert(str(sealed_state.get("q_description")) == str(film.get("CurrentProbeViewDescription")), "Q description getter mismatch")
 	_assert(str(sealed_state.get("q_legend")) == str(film.get("CurrentProbeViewLegend")), "Q legend getter mismatch")
+	_assert(str(sealed_state.get("status_text")).contains("N LIVE shading:") and str(sealed_state.get("status_text")).contains("Q image unchanged"), "sealed SNAPSHOT does not distinguish LIVE shading from Q image")
 	_assert(film_plate.visible and film_module.visible, "sealed plate not visible in Instrument")
 	_sample_card_layout("sealed_instrument")
 	_send_key(KEY_H)
@@ -433,6 +550,10 @@ func _send_key(code: Key) -> void:
 func _settle(frames: int) -> void:
 	for _i in range(frames):
 		await process_frame
+
+
+func _display_shading(authoritative_name: String) -> String:
+	return "RGB Normals" if authoritative_name == "Geometric Normal Debug" else authoritative_name
 
 
 func _assert(condition: bool, message: String) -> void:

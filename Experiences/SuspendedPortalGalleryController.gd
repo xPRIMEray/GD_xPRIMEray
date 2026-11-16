@@ -215,7 +215,7 @@ func _update_presentation_hud() -> void:
 	var row_cursor := int(_film_camera.get("FilmRowCursor"))
 	var live_row_status := "LIVE row %d" % row_cursor if film_mode == "LIVE" else "row inactive"
 	if _full_hud:
-		_truth_label.text = "THE OPTICAL FUNHOUSE / INSTRUMENT\nWASD Move | Mouse Look | Shift Sprint\nV Walk/Fly | F Field | R Rings | L Labels\nG Film | P Profile | Q / Shift+Q Probe\n[ / ] Opacity | N Shading | H Explore\nF10 Capture | Shift+F10 Beauty\nEsc Workbench\nDisabled: O Optical-only | E reserved\nF1/F2 renderer debug | F6-F9 legacy macros\n\nField: %s\nRings: %s · Labels: %s\nG cadence: %s · Portal remaps: %d\n\nGodot presentation != transport evidence\nGeometry + contacts + normals authoritative\nMaterials are raster presentation only" % [
+		_truth_label.text = "THE OPTICAL FUNHOUSE / INSTRUMENT\nP Profile | G Film | Q Formal/View | N LIVE Shading | F Field\nWASD Move | Mouse Look | Shift Sprint | V Walk/Fly\n[ / ] Opacity | Shift+Q Previous | Ctrl+Q Reacquire\nH Explore | R Rings | L Labels | Esc Workbench\nF10 Capture | Shift+F10 Beauty\nDisabled: O Optical-only | E reserved\nF1/F2 renderer debug | F6-F9 legacy macros\n\nField: %s\nRings: %s · Labels: %s\nG cadence: %s · Portal remaps: %d\n\nGodot presentation != transport evidence\nGeometry + contacts + normals authoritative\nMaterials are raster presentation only" % [
 			"outer / inner limits · density direction" if field_visible else "hidden (field physics remains active)",
 			"ON" if _rings_visible else "OFF",
 			"ON" if _labels_visible else "OFF",

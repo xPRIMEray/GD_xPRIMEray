@@ -14,6 +14,7 @@ const FORMAL_ATTENTION_STATES := ["incomplete", "invalidated", "failed"]
 
 @onready var _title: Label = $Margin/Content/Title
 @onready var _status: Label = $Margin/Content/Status
+@onready var _secondary_controls: Label = $Margin/Content/SecondaryControls
 @onready var _timer: Timer = $RefreshTimer
 
 var _film: Node
@@ -57,6 +58,7 @@ func _refresh() -> void:
 	if _film == null or _controller == null:
 		_set_text(_title, "INSTRUMENT · UNAVAILABLE")
 		_set_text(_status, "Formal camera or controller unavailable.")
+		_secondary_controls.visible = false
 		_last_state = {"available": false}
 		return
 
@@ -81,24 +83,31 @@ func _refresh() -> void:
 	var film_height := int(_film.get("FilmHeightRows"))
 	var opacity_percent := int(_controller.call("GetOpacityPercent"))
 	var shading := str(_controller.call("GetShadingModeName"))
+	var shading_display := _shading_display_name(shading)
 	var pose_held := _player != null and _player.has_method("IsPoseHeld") and bool(_player.call("IsPoseHeld"))
+	var input_enabled := not _controller.has_method("IsInteractiveInputEnabled") or bool(_controller.call("IsInteractiveInputEnabled"))
+	var q_readiness := _q_formal_readiness(mode, active, lifecycle, input_enabled)
 
 	var formal_attention := _formal_attention(mode, active, lifecycle, sealed)
 	_set_text(_title, "%s · %s" % [scene_label, _level_name(_presentation_level)])
 	var profile_line := "P Selected %s" % selected_profile
 	if sealed:
 		profile_line += " · Sealed %s" % sealed_profile
-	var q_line := "Q %s" % q_view
+	profile_line += " · F Field: %s" % ("ON" if field_structure_visible else "OFF")
+	var q_line := "Q Sealed: %s" % q_view if sealed else "Q Formal: %s" % q_readiness
 	if sealed:
 		q_line += " · Seal %d" % sealed_generation
+	var shading_line := "N Shading: %s" % shading_display
+	if mode == "SNAPSHOT" and sealed:
+		shading_line = "N LIVE shading: %s · Q image unchanged" % shading_display
 	var lines: Array[String] = [
 		profile_line,
-		"G %s · %s · F %s" % [mode, q_line, "ON" if field_structure_visible else "OFF"],
+		"G Film: %s · %s" % [mode, q_line],
+		shading_line,
 	]
 	if _presentation_level != LEVEL_EXPLORE:
 		var opacity_text := "—" if mode == "OFF" else "%d%%" % opacity_percent
 		lines.append("Film: %d×%d · Opacity: %s · Pose held: %s" % [film_width, film_height, opacity_text, "YES" if pose_held else "NO"])
-		lines.append("Shading: %s" % shading)
 	if sealed:
 		if _presentation_level != LEVEL_EXPLORE:
 			lines.append("Q: %s" % q_description)
@@ -121,6 +130,8 @@ func _refresh() -> void:
 		lines.append("Plate hidden · H to view")
 	var status_text := "\n".join(lines)
 	_set_text(_status, status_text)
+	_secondary_controls.visible = _presentation_level != LEVEL_EXPLORE and scene_label == "WORKBENCH"
+	_set_text(_secondary_controls, _secondary_control_reference(input_enabled))
 
 	_last_state = {
 		"available": true, "level": _presentation_level, "mode": mode,
@@ -133,7 +144,11 @@ func _refresh() -> void:
 		"processed": processed, "total": total, "disposition": disposition,
 		"formal_attention": formal_attention, "terminal_relevant": formal_attention,
 		"plate_hidden": plate_hidden, "opacity_percent": opacity_percent,
-		"shading": shading, "pose_held": pose_held, "scene_label": scene_label,
+		"shading": shading, "shading_display": shading_display,
+		"input_enabled": input_enabled, "q_readiness": "" if sealed else q_readiness,
+		"secondary_controls_visible": _secondary_controls.visible,
+		"secondary_controls": _secondary_controls.text,
+		"pose_held": pose_held, "scene_label": scene_label,
 		"film_width": film_width, "film_height": film_height, "status_text": status_text,
 	}
 
@@ -151,6 +166,34 @@ func _formal_attention(mode: String, active: bool, state: String, sealed: bool) 
 	if active or mode != "SNAPSHOT":
 		return false
 	return state in FORMAL_ATTENTION_STATES or (state == "complete" and not sealed)
+
+
+func _shading_display_name(authoritative_name: String) -> String:
+	if authoritative_name == "Geometric Normal Debug":
+		return "RGB Normals"
+	return authoritative_name
+
+
+func _q_formal_readiness(mode: String, active: bool, lifecycle: String, input_enabled: bool) -> String:
+	# Mirrors FilmController.HandleProbeViewInput refusal order: disabled input,
+	# then LIVE, then the authoritative SNAPSHOT lifecycle.
+	if active:
+		return lifecycle
+	if not input_enabled:
+		return "suspended"
+	if mode == "LIVE":
+		return "G OFF first"
+	if mode == "SNAPSHOT":
+		return lifecycle
+	return "ready"
+
+
+func _secondary_control_reference(input_enabled := true) -> String:
+	if not input_enabled:
+		# Workbench Inspect disables FilmController and player input. P and F are
+		# camera-owned and remain active; the remaining film keys do not act.
+		return "Inspect · still active: P Profile · F Field\nSuspended until Esc: G · Q · N · [ / ] · H · V · WASD · Mouse"
+	return"[ / ] Opacity · H Level · Shift+Q Previous · Ctrl+Q Reacquire\nV Walk/Fly · WASD Move · Mouse Look · Shift Sprint"
 
 
 func _set_text(label: Label, value: String) -> void:

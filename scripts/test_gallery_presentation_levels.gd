@@ -78,6 +78,15 @@ func _test_levels_off_and_live() -> void:
 	await _dispatch_key(KEY_H)
 	_assert(bool(gallery.get("_full_hud")) and presentation.visible, "H did not enter Instrument")
 	_assert(int(card.call("GetDisplayedStateForTesting").get("level")) == 1, "Instrument card level")
+	card.call("ForceRefreshForTesting")
+	var card_state: Dictionary = card.call("GetDisplayedStateForTesting")
+	_assert(not bool(card_state.get("secondary_controls_visible")), "Gallery duplicated its secondary truth-panel reference in the shared card")
+	var truth_text := String((world.get_node("CanvasLayer/HUDRoot/TruthBoundary").get_child(0) as Label).text)
+	for token in ["P Profile", "G Film", "Q Formal/View", "N LIVE Shading", "F Field", "R Rings", "L Labels", "Esc Workbench", "F10 Capture", "Shift+F10 Beauty", "Disabled: O Optical-only", "F1/F2 renderer debug", "F6-F9 legacy macros"]:
+		_assert(truth_text.contains(token), "Gallery operator reference missing %s" % token)
+	await _settle(2)
+	_assert_reference_lines_unwrapped("off_instrument")
+	_assert(String(card_state.get("q_readiness")) == "ready" and String(card_state.get("status_text")).contains("Q Formal: ready"), "OFF did not present Q Formal as ready")
 	await _sample_layout("off_instrument", 1, "OFF", "inactive", false)
 	await _dispatch_key(KEY_H)
 	await _dispatch_key(KEY_G)
@@ -91,6 +100,15 @@ func _test_levels_off_and_live() -> void:
 	if not bool(gallery.get("_full_hud")):
 		await _dispatch_key(KEY_H)
 	await _sample_layout("live_instrument", 1, "LIVE", "inactive", true)
+	_assert_reference_lines_unwrapped("live_instrument")
+	card.call("ForceRefreshForTesting")
+	var live_state: Dictionary = card.call("GetDisplayedStateForTesting")
+	_assert(String(live_state.get("q_readiness")) == "G OFF first" and String(live_state.get("status_text")).contains("Q Formal: G OFF first"), "LIVE presented Q Formal as ready")
+	_assert(not String(live_state.get("status_text")).contains("Q Formal: ready"), "LIVE retained Q Formal ready")
+	var generation_before_live_q := int(film.get("CathedralSnapshotGeneration"))
+	await _dispatch_key(KEY_Q)
+	_assert(String(controller.call("GetModeName")) == "LIVE" and String(controller.call("GetLastInputDisposition")) == "formal_from_live_refused_press_g_then_q", "Q in LIVE was not refused as the card states")
+	_assert(int(film.get("CathedralSnapshotGeneration")) == generation_before_live_q, "refused LIVE Q changed Formal generation")
 	await _dispatch_key(KEY_G)
 	_assert(String(controller.call("GetModeName")) == "OFF", "G did not return LIVE to OFF")
 
@@ -132,6 +150,7 @@ func _test_formal_and_sealed_views() -> void:
 		_assert(String(state.get("q_view")) == String(film.get("CurrentProbeViewDisplayName")), "authoritative Q name mismatch")
 		_assert(String(state.get("q_description")) == String(film.get("CurrentProbeViewDescription")), "authoritative Q description mismatch")
 		_assert(String(state.get("q_legend")) == String(film.get("CurrentProbeViewLegend")), "authoritative Q legend mismatch")
+		_assert(String(state.get("status_text")).contains("N LIVE shading:") and String(state.get("status_text")).contains("Q image unchanged"), "Gallery sealed SNAPSHOT does not distinguish LIVE shading from Q image")
 		hashes[expected_view] = _film_hash()
 		_assert(hashes[expected_view] == EXPECTED_VIEW_HASHES[expected_view], "sealed Q CPU hash mismatch view=%d" % expected_view)
 		await _sample_layout("sealed_q%d_instrument" % expected_view, 1, "SNAPSHOT", "complete", true)
@@ -259,6 +278,28 @@ func _sample_layout(label: String, expected_level: int, expected_mode: String, e
 		var image := get_root().get_texture().get_image()
 		var physical := DisplayServer.window_get_size()
 		_assert(image.save_png(capture_dir.path_join("%dx%d_%s.png" % [physical.x, physical.y, label])) == OK, "layout capture failed")
+
+
+func _assert_reference_lines_unwrapped(label: String) -> void:
+	# UI-R2A.1: no Instrument reference line may wrap, so a key can never be
+	# separated from its action (formerly "... | H" / "Explore").
+	var truth_label := world.get_node("CanvasLayer/HUDRoot/TruthBoundary").get_child(0) as Label
+	var logical_lines := truth_label.text.split("\n")
+	var font := truth_label.get_theme_font("font")
+	var font_size := truth_label.get_theme_font_size("font_size")
+	var available := truth_label.size.x
+	var style := truth_label.get_theme_stylebox("normal")
+	if style != null:
+		available -= style.get_minimum_size().x
+	for line in logical_lines:
+		var width := font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+		_assert(width <= available, "%s reference line wraps (%.1f > %.1f): %s" % [label, width, available, line])
+	_assert(truth_label.get_line_count() == logical_lines.size(), "%s reference visual lines %d != logical lines %d" % [label, truth_label.get_line_count(), logical_lines.size()])
+	var h_explore_lines := 0
+	for line in logical_lines:
+		if line.contains("H Explore"):
+			h_explore_lines += 1
+	_assert(h_explore_lines == 1, "%s H Explore is not a single unbroken reference entry" % label)
 
 
 func _legacy_probe_hud_count() -> int:
