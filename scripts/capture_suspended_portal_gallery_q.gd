@@ -38,7 +38,7 @@ func _initialize() -> void:
 	camera = player.get_node("Head/PlayerCamera") as Camera3D
 	film = world.get_node("GrinFilmCamera")
 	film_controller = world.get_node("FilmController")
-	film_view = world.get_node("CanvasLayer/HUDRoot/FilmPlate/FilmView") as TextureRect
+	film_view = world.get_node("CanvasLayer/HUDRoot/FilmPresentation/FilmPlate/FilmView") as TextureRect
 	film.set("CaptureSpatialQueryDivergenceDiagnostics", true)
 	player.call("SetInputEnabled", false, true)
 	# Player locomotion is disabled for deterministic capture, but the

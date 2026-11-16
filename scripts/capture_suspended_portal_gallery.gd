@@ -62,6 +62,8 @@ func _initialize() -> void:
 	var film_plate_rect: Rect2 = inspect_controls["film_plate_rect"]
 	print("SUSPENDED_PORTAL_FULL_HUD_RECTS truth=%s instrument=%s film=%s truthLabel=%s instrumentLabel=%s" % [expanded_truth_rect, expanded_instrument_rect, film_plate_rect, inspect_controls["truth_label_rect"], inspect_controls["instrument_label_rect"]])
 	_assert(bool(inspect_controls["full_hud"]), "H did not open full instrumentation")
+	_assert(int(inspect_controls["presentation_level"]) == 1, "H did not select shared Instrument level")
+	_assert(not bool(inspect_controls["legacy_probe_hud_visible"]), "legacy camera Probe HUD became visible")
 	_assert(expanded_truth_rect.size.y > 116.0, "expanded truth HUD did not grow")
 	_assert(expanded_instrument_rect.size.y > 150.0, "expanded instrument HUD did not grow")
 	_assert(expanded_truth_rect.end.x < expanded_instrument_rect.position.x, "full HUD panels overlap")
@@ -99,6 +101,7 @@ func _initialize() -> void:
 	_assert(bool(capture_diagnostics["hud_visible"]), "beauty capture did not restore HUD visibility")
 	_assert(bool(capture_diagnostics["last_capture_hud_hidden_frame"]), "beauty capture did not wait for hidden HUD frame")
 	_assert(bool(capture_diagnostics["last_capture_state_restored"]), "beauty capture state restoration")
+	_assert(not bool(capture_diagnostics["legacy_probe_hud_visible"]), "beauty capture resurrected legacy Probe HUD")
 	_assert(player_camera.global_transform.is_equal_approx(camera_before_hotkeys), "capture changed camera transform")
 	_assert(int(gallery.transport_application_count) == portal_count_before_hotkeys, "capture changed portal transport count")
 	_assert(int(film.get("RuntimeMacroSelectedMode")) == macro_before_hotkeys, "F10 invoked legacy macro mode")
@@ -116,7 +119,7 @@ func _initialize() -> void:
 	_assert(truth_rect.end.x < instrument_rect.position.x, "compact HUD panels overlap")
 	_assert(_rect_contains(truth_rect, diagnostics["truth_label_rect"]), "minimal truth text clips panel")
 	_assert(_rect_contains(instrument_rect, diagnostics["instrument_label_rect"]), "minimal instrument text clips panel")
-	_assert(String(diagnostics["truth_text"]).contains("H FULL"), "Minimal HUD does not expose H")
+	_assert(String(diagnostics["truth_text"]).contains("H INSTRUMENT"), "Explore HUD does not expose H Instrument")
 	print("SUSPENDED_PORTAL_HUD_METRICS resolution=%dx%d truth_before=377x221 truth_after=%dx%d truth_area_ratio=%.4f instrument_before=390x248 instrument_after=%dx%d instrument_area_ratio=%.4f" % [
 		int(viewport_size.x), int(viewport_size.y),
 		int(truth_rect.size.x), int(truth_rect.size.y), truth_ratio,
@@ -477,7 +480,7 @@ func _action_has_key(action: StringName, expected_key: Key) -> bool:
 
 
 func _full_hud_contract_present(text: String) -> bool:
-	for token in ["WASD", "Mouse Look", "Shift Sprint", "V Walk/Fly", "F Field", "R Rings", "L Labels", "G Film", "P Profile", "Shift+Q", "[ / ]", "N Film shading", "H Minimal HUD", "F10 Capture", "Shift+F10 Beauty", "O Optical-only", "Esc Workbench", "F1/F2 renderer debug disabled", "E reserved", "F6-F9 legacy macros disabled"]:
+	for token in ["WASD", "Mouse Look", "Shift Sprint", "V Walk/Fly", "F Field", "R Rings", "L Labels", "G Film", "P Profile", "Shift+Q", "[ / ] Opacity", "N Shading", "H Explore", "F10 Capture", "Shift+F10 Beauty", "Esc Workbench"]:
 		if not text.contains(token):
 			push_error("SUSPENDED_PORTAL_HUD_CONTRACT missing token: " + token)
 			return false

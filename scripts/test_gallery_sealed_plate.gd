@@ -10,7 +10,8 @@ var controller: Node
 var player: Node
 var film_plate: Control
 var film_view: TextureRect
-var probe_hud_label: Label
+var instrument_card: Control
+var film_presentation: Control
 var status_label: Label
 var failures: Array[String] = []
 
@@ -23,14 +24,16 @@ func _initialize() -> void:
 	film = world.get_node("GrinFilmCamera")
 	controller = world.get_node("FilmController")
 	player = world.get_node("TransportChamberPlayer")
-	film_plate = world.get_node("CanvasLayer/HUDRoot/FilmPlate")
-	film_view = world.get_node("CanvasLayer/HUDRoot/FilmPlate/FilmView")
-	probe_hud_label = gallery.get("_probe_hud_label") as Label
+	film_plate = world.get_node("CanvasLayer/HUDRoot/FilmPresentation/FilmPlate")
+	film_view = world.get_node("CanvasLayer/HUDRoot/FilmPresentation/FilmPlate/FilmView")
+	instrument_card = world.get_node("CanvasLayer/HUDRoot/InstrumentStatusCard")
+	film_presentation = world.get_node("CanvasLayer/HUDRoot/FilmPresentation")
 	status_label = world.get_node("CanvasLayer/HUDRoot/FilmStatusLabel") as Label
 
 	_verify_status_sink_contract()
 	_verify_hud_has_no_live_row_outside_live("OFF")
 	_assert(not film_plate.visible, "A fresh Gallery plate must be hidden")
+	_assert(not film_presentation.visible, "Fresh Explore mode exposed FilmPresentation")
 	_assert(not bool(film.get("ProbeViewAvailable")), "Fresh Gallery unexpectedly has a seal")
 
 	_assert(bool(controller.call("EnterFormalSnapshotFromInput")),
@@ -52,13 +55,20 @@ func _initialize() -> void:
 		"Sealed lifecycle is not complete")
 	_assert(bool(film.get("ProbeViewAvailable")), "Successful Formal completion did not expose a seal")
 	_assert(film_plate.visible, "Successful seal did not automatically reveal the plate")
+	_assert(not film_plate.is_visible_in_tree(), "Explore did not suppress effective sealed-plate visibility")
 	_assert(bool(controller.get("_formal_snapshot_terminal_handled")),
 		"FilmController did not latch its terminal-handled transition")
 	_assert(int(film.get("CurrentProbeView")) == 0, "Production completion did not paint the first Q view")
 	_assert(film_view.texture != null, "Visible sealed plate has no texture")
 	_assert(status_label.text.find("COMPLETE") >= 0, "Hidden status sink did not receive terminal status")
 	_assert(bool(player.call("IsPoseHeld")), "Completed SNAPSHOT unexpectedly released the held pose")
+	instrument_card.call("ForceRefreshForTesting")
+	_assert(bool(instrument_card.call("GetDisplayedStateForTesting").get("plate_hidden")),
+		"Shared card did not expose hidden-plate recovery")
 	_verify_hud_has_no_live_row_outside_live("SNAPSHOT complete")
+	await _dispatch_key(KEY_H)
+	_assert(film_presentation.visible and film_plate.is_visible_in_tree(),
+		"Instrument presentation did not reveal the existing sealed plate")
 
 	var sealed_state := _observation_state()
 	var status_text_before := status_label.text
@@ -76,11 +86,13 @@ func _initialize() -> void:
 	_assert(int(film.get("CurrentProbeView")) == (first_view + 1) % 3,
 		"Q did not advance to the expected sealed view")
 	_assert(film_plate.visible, "Q cycling hid the sealed plate")
+	_assert(film_plate.is_visible_in_tree(), "Q cycling lost effective plate visibility")
 	_assert(film_view.texture != null, "Q cycling removed the sealed texture")
 
 	await _dispatch_key(KEY_G)
 	_assert(String(controller.call("GetModeName")) == "LIVE", "G did not enter LIVE after completion")
 	_assert(film_plate.visible, "LIVE preview did not preserve plate visibility")
+	_assert(film_plate.is_visible_in_tree(), "Instrument LIVE preview is not effectively visible")
 	_assert(bool(film.get("UpdateEveryFrame")), "LIVE preview did not resume frame updates")
 	_assert(not bool(player.call("IsPoseHeld")), "LIVE entry did not release the held player pose")
 	gallery.call("_update_presentation_hud")
@@ -103,6 +115,9 @@ func _verify_status_sink_contract() -> void:
 		"FilmController did not resolve the dedicated status label")
 	_assert(NodePath(controller.get("status_label_path")) == NodePath("../CanvasLayer/HUDRoot/FilmStatusLabel"),
 		"FilmController status path is not the dedicated Gallery label")
+	_assert(NodePath(controller.get("film_plate_path")) == NodePath("../CanvasLayer/HUDRoot/FilmPresentation/FilmPlate"),
+		"FilmController plate path does not resolve through FilmPresentation")
+	_assert(String(instrument_card.get("scene_label")) == "GALLERY", "Shared card scene label")
 	var source := FileAccess.get_file_as_string("res://Experiences/SuspendedPortalGalleryController.gd")
 	_assert(source.find("film_status.text") < 0,
 		"Gallery controller introduced a second FilmStatusLabel text writer")
@@ -153,7 +168,8 @@ func _verify_hud_has_no_live_row_outside_live(context: String) -> void:
 func _hud_has_numeric_live_row() -> bool:
 	var regex := RegEx.new()
 	regex.compile("LIVE row [0-9]+")
-	return regex.search(probe_hud_label.text) != null
+	var diagnostics: Dictionary = gallery.call("get_presentation_diagnostics")
+	return regex.search(String(diagnostics.get("truth_text", ""))) != null
 
 
 func _dispatch_key(keycode: Key) -> void:

@@ -12,6 +12,7 @@ const RBR_SCRIPT := preload("res://RayBeamRenderer.cs")
 const FILM_SCRIPT := preload("res://GrinFilmCamera.cs")
 const FILM_CONTROLLER_SCRIPT := preload("res://Transport/FilmController.gd")
 const SCENE_NAVIGATOR := preload("res://UI/SceneNavigator.gd")
+const INSTRUMENT_STATUS_CARD_SCENE := preload("res://UI/InstrumentStatusCard.tscn")
 const CHECKER_SHADER := preload("res://Experiences/checkerboard_3d.gdshader")
 
 const PORTAL_CENTER := Vector3(0.0, 2.5, -1.0)
@@ -37,9 +38,11 @@ var _film_controller: Node
 var _scene_hud_canvas: CanvasLayer
 var _truth_panel: PanelContainer
 var _truth_label: Label
-var _probe_hud_panel: Control
-var _probe_hud_label: Label
-var _probe_hud_canvas: CanvasLayer
+var _instrument_card: Control
+var _instrument_status_label: Label
+var _film_presentation: Control
+var _film_plate: Control
+var _legacy_probe_hud_canvas: CanvasLayer
 var _decorative_rings: Node3D
 var _diagnostic_labels: Array[Label3D] = []
 var _rings_visible := true
@@ -107,11 +110,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			var result := SCENE_NAVIGATOR.navigate(get_tree(), SCENE_NAVIGATOR.WORKBENCH_ID)
 			if not bool(result.get("ok", false)):
 				push_warning("Workbench navigation failed: %s" % str(result.get("code", "unknown")))
-	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F:
-		var next_visible := not bool(_source_field.get("DebugVizInGame"))
-		_source_field.set("DebugVizInGame", next_visible)
-		_arrival_field.set("DebugVizInGame", next_visible)
-		get_viewport().set_input_as_handled()
 	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_R:
 		_rings_visible = not _rings_visible
 		_decorative_rings.visible = _rings_visible
@@ -149,16 +147,20 @@ func get_semantic_scene_id() -> String:
 func get_presentation_diagnostics() -> Dictionary:
 	return {
 		"truth_rect": _truth_panel.get_global_rect() if _truth_panel != null else Rect2(),
-		"instrument_rect": _probe_hud_panel.get_global_rect() if _probe_hud_panel != null else Rect2(),
-		"film_plate_rect": _scene_hud_canvas.get_node("HUDRoot/FilmPlate").get_global_rect() if _scene_hud_canvas != null else Rect2(),
+		"instrument_rect": _instrument_card.get_global_rect() if _instrument_card != null else Rect2(),
+		"film_plate_rect": _film_plate.get_global_rect() if _film_plate != null else Rect2(),
 		"truth_label_rect": _truth_label.get_global_rect() if _truth_label != null else Rect2(),
-		"instrument_label_rect": _probe_hud_label.get_global_rect() if _probe_hud_label != null else Rect2(),
+		"instrument_label_rect": _instrument_status_label.get_global_rect() if _instrument_status_label != null else Rect2(),
 		"truth_label_minimum": _truth_label.get_combined_minimum_size() if _truth_label != null else Vector2.ZERO,
-		"instrument_label_minimum": _probe_hud_label.get_combined_minimum_size() if _probe_hud_label != null else Vector2.ZERO,
+		"instrument_label_minimum": _instrument_status_label.get_combined_minimum_size() if _instrument_status_label != null else Vector2.ZERO,
 		"truth_text": _truth_label.text if _truth_label != null else "",
-		"instrument_text": _probe_hud_label.text if _probe_hud_label != null else "",
+		"instrument_text": _instrument_status_label.text if _instrument_status_label != null else "",
 		"full_hud": _full_hud,
+		"presentation_level": 1 if _full_hud else 0,
 		"hud_visible": _hud_visible,
+		"film_child_visible": _film_plate.visible if _film_plate != null else false,
+		"film_effectively_visible": _film_plate.is_visible_in_tree() if _film_plate != null else false,
+		"legacy_probe_hud_visible": _legacy_probe_hud_canvas.visible if _legacy_probe_hud_canvas != null else false,
 		"rings_visible": _rings_visible,
 		"labels_visible": _labels_visible,
 		"field_visible": bool(_source_field.get("DebugVizInGame")) if _source_field != null else false,
@@ -174,14 +176,10 @@ func _configure_presentation_hud() -> void:
 	if _film_camera == null:
 		return
 	for child in _film_camera.get_children():
-		if child is not CanvasLayer:
-			continue
-		_probe_hud_canvas = child as CanvasLayer
-		for hud_child in child.get_children():
-			if hud_child is Panel:
-				_probe_hud_panel = hud_child as Control
-			elif hud_child is Label and String(hud_child.text).contains("Q probe"):
-				_probe_hud_label = hud_child as Label
+		if child is CanvasLayer and int((child as CanvasLayer).layer) == 12:
+			_legacy_probe_hud_canvas = child as CanvasLayer
+			_legacy_probe_hud_canvas.visible = false
+			break
 	_apply_hud_layout()
 	_update_presentation_hud()
 
@@ -190,79 +188,46 @@ func _apply_hud_layout() -> void:
 	if _truth_panel == null or _truth_label == null:
 		return
 	_truth_panel.custom_minimum_size = Vector2.ZERO
-	_truth_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_truth_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if _full_hud:
 		_truth_panel.size = Vector2(400.0, 285.0)
 		_truth_label.add_theme_font_size_override("font_size", 13)
 	else:
 		_truth_panel.size = Vector2(350.0, 116.0)
 		_truth_label.add_theme_font_size_override("font_size", 14)
-	if _probe_hud_panel == null or _probe_hud_label == null:
-		return
-	_probe_hud_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	_probe_hud_label.add_theme_font_size_override("font_size", 13)
-	if _full_hud:
-		_probe_hud_panel.position = Vector2(420.0, 12.0)
-		_probe_hud_panel.size = Vector2(370.0, 300.0)
-		_probe_hud_label.position = Vector2(434.0, 24.0)
-		_probe_hud_label.size = Vector2(342.0, 274.0)
-		_probe_hud_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	else:
-		_probe_hud_panel.position = Vector2(386.0, 12.0)
-		_probe_hud_panel.size = Vector2(330.0, 150.0)
-		_probe_hud_label.position = Vector2(398.0, 22.0)
-		_probe_hud_label.size = Vector2(306.0, 128.0)
+	if _instrument_card != null:
+		_instrument_card.position = Vector2(430.0, 12.0) if _full_hud else Vector2(386.0, 12.0)
+		_instrument_card.call("SetPresentationLevel", 1 if _full_hud else 0)
+		# PanelContainer retains its expanded runtime size unless it is explicitly
+		# returned to the minimum required by the newly selected card level.
+		_instrument_card.reset_size()
+	if _film_presentation != null:
+		_film_presentation.visible = _full_hud
+	if _legacy_probe_hud_canvas != null:
+		_legacy_probe_hud_canvas.visible = false
 
 
 func _update_presentation_hud() -> void:
-	if _truth_label == null or _probe_hud_label == null or _film_camera == null:
+	if _truth_label == null or _film_camera == null:
 		return
 	var field_visible := bool(_source_field.get("DebugVizInGame"))
-	var profile := String(_film_camera.get("ProbeProfileDisplayName"))
-	var generation := int(_film_camera.get("SealedProbeViewGeneration"))
-	var probe_modes := ["Outcome", "Contact Events", "Transport Effort"]
-	var probe_descriptions := [
-		"Terminal semantic outcome",
-		"Accepted per-step contacts · repeats count",
-		"Numerical step budget used · not time · not field strength",
-	]
-	var probe_legends := [
-		"Unprocessed · HitGeometry · BackgroundResolved · MaxStepsExhausted · StoppedEarlyAbsorbed · NumericalFailure · Invalid",
-		"0 · 1 · 2 · 3+",
-		"0.0 · 0.5 · 1.0 · N/A",
-	]
-	var probe_index := clampi(int(_film_camera.get("CurrentProbeView")), 0, probe_modes.size() - 1)
-	var probe_status: String = probe_modes[probe_index] if generation > 0 else "unavailable"
 	var film_mode := String(_film_controller.call("GetModeName"))
 	var row_cursor := int(_film_camera.get("FilmRowCursor"))
 	var live_row_status := "LIVE row %d" % row_cursor if film_mode == "LIVE" else "row inactive"
 	if _full_hud:
-		_truth_label.text = "THE OPTICAL FUNHOUSE / FULL CONTROLS\nWASD Move | Mouse Look | Shift Sprint\nV Walk/Fly | F Field | R Rings | L Labels\nG Film | P Profile\nQ / Shift+Q Probe next / previous\n[ / ] Film opacity | N Film shading\nH Minimal HUD | F10 Capture\nShift+F10 Beauty (HUD hidden)\nEsc Workbench\nUnavailable here:\nO Optical-only\nF1/F2 renderer debug disabled\nE reserved | F6-F9 legacy macros disabled\n\nGodot presentation != transport evidence\nGeometry + contacts + normals authoritative\nMaterials are raster presentation only"
-		var field_description := "outer / inner limits · density direction" if field_visible else "hidden (field physics remains active)"
-		var probe_detail := "Probe View unavailable\nComplete SNAPSHOT required"
-		if generation > 0:
-			probe_detail = "%s\nLegend: %s" % [probe_descriptions[probe_index], probe_legends[probe_index]]
-		_probe_hud_label.text = "P Probe Profile: %s\nQ Probe View: %s\nF Field Structure: %s\n%s\nR Rings: %s  ·  L Labels: %s\nG Observation: %s  ·  %s\nSealed generation: %s\n%s" % [
-			profile,
-			probe_status,
-			"ON" if field_visible else "OFF",
-			field_description,
+		_truth_label.text = "THE OPTICAL FUNHOUSE / INSTRUMENT\nWASD Move | Mouse Look | Shift Sprint\nV Walk/Fly | F Field | R Rings | L Labels\nG Film | P Profile | Q / Shift+Q Probe\n[ / ] Opacity | N Shading | H Explore\nF10 Capture | Shift+F10 Beauty\nEsc Workbench\nDisabled: O Optical-only | E reserved\nF1/F2 renderer debug | F6-F9 legacy macros\n\nField: %s\nRings: %s · Labels: %s\nG cadence: %s · Portal remaps: %d\n\nGodot presentation != transport evidence\nGeometry + contacts + normals authoritative\nMaterials are raster presentation only" % [
+			"outer / inner limits · density direction" if field_visible else "hidden (field physics remains active)",
 			"ON" if _rings_visible else "OFF",
 			"ON" if _labels_visible else "OFF",
-			film_mode,
 			live_row_status,
-			str(generation) if generation > 0 else "none",
-			probe_detail,
+			transport_application_count,
 		]
 	else:
-		_truth_label.text = "THE OPTICAL FUNHOUSE / v0\nV MOVE | F FIELD | G FILM | H FULL\nR RINGS | L LABELS | raster != transport\nGeometry | hits | normals = evidence"
-		_probe_hud_label.text = "P  %s  |  Q  %s\nF  FIELD %s  |  G  %s\n%s  |  sealed gen %s\nH  full instrumentation" % [
-			profile,
-			probe_status,
-			"ON" if field_visible else "OFF",
-			film_mode,
+		_truth_label.text = "EXPLORE · V MOVE · F FIELD · H INSTRUMENT\nR %s · L %s · %s · remaps %d\ngeom/hits/normals evidence · raster != transport" % [
+			"ON" if _rings_visible else "OFF",
+			"ON" if _labels_visible else "OFF",
 			live_row_status,
-			str(generation) if generation > 0 else "—",
+			transport_application_count,
 		]
 		# PanelContainer initially sees the verbose label installed during scene
 		# construction. Reassert the compact bounds after replacing that text so
@@ -274,8 +239,8 @@ func _set_hud_visible(visible_value: bool) -> void:
 	_hud_visible = visible_value
 	if _scene_hud_canvas != null:
 		_scene_hud_canvas.visible = visible_value
-	if _probe_hud_canvas != null:
-		_probe_hud_canvas.visible = visible_value
+	if _legacy_probe_hud_canvas != null:
+		_legacy_probe_hud_canvas.visible = false
 
 
 func _capture_current_viewport(clean: bool) -> void:
@@ -544,8 +509,8 @@ func _build_player_and_instrument(world: Node3D) -> void:
 	film.set("Height", 45)
 	film.set("FilmResolutionScale", 0.5)
 	film.set("RayBeamRendererPath", NodePath("../RayBeamRenderer"))
-	film.set("FilmViewPath", NodePath("../CanvasLayer/HUDRoot/FilmPlate/FilmView"))
-	film.set("FilmOverlayPath", NodePath("../CanvasLayer/HUDRoot/FilmPlate/FilmOverlay"))
+	film.set("FilmViewPath", NodePath("../CanvasLayer/HUDRoot/FilmPresentation/FilmPlate/FilmView"))
+	film.set("FilmOverlayPath", NodePath("../CanvasLayer/HUDRoot/FilmPresentation/FilmPlate/FilmOverlay"))
 	film.set("FixtureDebugSourceGroup", "fixture_geometry")
 	film.set("UpdateEveryFrame", false)
 	# F10 belongs to this gallery's screenshot capture. Disable the legacy
@@ -597,6 +562,24 @@ func _build_hud(world: Node3D) -> void:
 	info_panel.add_child(label)
 	root.add_child(info_panel)
 
+	var instrument_card := INSTRUMENT_STATUS_CARD_SCENE.instantiate()
+	instrument_card.name = "InstrumentStatusCard"
+	instrument_card.set("scene_label", "GALLERY")
+	instrument_card.set("film_camera_path", NodePath("../../../GrinFilmCamera"))
+	instrument_card.set("film_controller_path", NodePath("../../../FilmController"))
+	instrument_card.set("film_plate_path", NodePath("../FilmPresentation/FilmPlate"))
+	instrument_card.set("player_path", NodePath("../../../TransportChamberPlayer"))
+	root.add_child(instrument_card)
+	_instrument_card = instrument_card as Control
+	_instrument_status_label = _instrument_card.get_node("Margin/Content/Status") as Label
+
+	var film_presentation := Control.new()
+	film_presentation.name = "FilmPresentation"
+	film_presentation.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	film_presentation.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(film_presentation)
+	_film_presentation = film_presentation
+
 	var film_plate := PanelContainer.new()
 	film_plate.name = "FilmPlate"
 	film_plate.set_anchors_preset(Control.PRESET_TOP_RIGHT)
@@ -618,16 +601,17 @@ func _build_hud(world: Node3D) -> void:
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	film_plate.add_child(overlay)
-	root.add_child(film_plate)
+	film_presentation.add_child(film_plate)
+	_film_plate = film_plate
 	world.add_child(canvas)
 
 	var controller := Node.new()
 	controller.name = "FilmController"
 	controller.set_script(FILM_CONTROLLER_SCRIPT)
 	controller.set("film_camera_path", NodePath("../GrinFilmCamera"))
-	controller.set("film_plate_path", NodePath("../CanvasLayer/HUDRoot/FilmPlate"))
-	controller.set("film_view_path", NodePath("../CanvasLayer/HUDRoot/FilmPlate/FilmView"))
-	controller.set("film_overlay_path", NodePath("../CanvasLayer/HUDRoot/FilmPlate/FilmOverlay"))
+	controller.set("film_plate_path", NodePath("../CanvasLayer/HUDRoot/FilmPresentation/FilmPlate"))
+	controller.set("film_view_path", NodePath("../CanvasLayer/HUDRoot/FilmPresentation/FilmPlate/FilmView"))
+	controller.set("film_overlay_path", NodePath("../CanvasLayer/HUDRoot/FilmPresentation/FilmPlate/FilmOverlay"))
 	controller.set("status_label_path", NodePath("../CanvasLayer/HUDRoot/FilmStatusLabel"))
 	controller.set("player_path", NodePath("../TransportChamberPlayer"))
 	world.add_child(controller)
