@@ -1,6 +1,9 @@
 extends Node3D
 
 signal optical_only_presentation_changed(enabled: bool)
+# Relay of FilmController.operator_observation_accepted for the presentation owner
+# (ObservatoryWorkbench). The orchestrator never changes the level on its own.
+signal operator_observation_accepted(action: StringName)
 
 @onready var _demo = $OverspaceTrophyRoom
 @onready var _player = $TransportChamberPlayer
@@ -67,6 +70,8 @@ func _ready() -> void:
 		_player.loco_mode_changed.connect(_on_locomotion_mode_changed)
 	if _field_dial != null and _field_dial.has_signal("field_strength_changed"):
 		_field_dial.connect("field_strength_changed", Callable(self, "_on_field_strength_changed"))
+	if _film_controller != null and _film_controller.has_signal("operator_observation_accepted"):
+		_film_controller.connect("operator_observation_accepted", Callable(self, "_on_film_operator_observation_accepted"))
 	_on_locomotion_mode_changed(_player.GetLocomotionModeName())
 	SetHudVisibleForGameplay(true)
 	_set_advanced_telemetry_visible(false)
@@ -86,6 +91,10 @@ func _exit_tree() -> void:
 	if _ray_renderer != null:
 		_ray_renderer.set("UpdateEveryFrame", false)
 		_ray_renderer.set_process(false)
+
+
+func _on_film_operator_observation_accepted(action: StringName) -> void:
+	operator_observation_accepted.emit(action)
 
 
 func _unhandled_input(event: InputEvent) -> void:

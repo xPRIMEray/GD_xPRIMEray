@@ -3,6 +3,12 @@ extends Node
 
 enum FilmMode { OFF, SNAPSHOT, LIVE }
 
+# Emitted only for accepted operator keyboard actions that produce film evidence:
+# G starting LIVE, and Q / Shift+Q / Ctrl+Q accepted via HandleProbeViewKeyInput.
+# Refusals, stopping LIVE and direct programmatic calls never emit. Presentation
+# owners may use it to reveal a hidden film; it carries no acquisition authority.
+signal operator_observation_accepted(action: StringName)
+
 const OPACITY_STEP := 0.10
 const OPACITY_MIN := 0.0
 const OPACITY_MAX := 1.0
@@ -46,6 +52,7 @@ var _formal_snapshot_terminal_handled := false
 var _input_disposition := "ready"
 var _live_preview_rows_cap := 0
 var _live_preview_rows_per_step := 0
+var _operator_observation_accepted_count := 0
 
 @onready var _film_camera: Node = get_node_or_null(film_camera_path)
 @onready var _film_plate: Control = get_node_or_null(film_plate_path)
@@ -73,7 +80,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_G:
-				ToggleLiveFromInput()
+				# Stopping LIVE is accepted but produces no evidence, so only a
+				# start (including releasing a seal into LIVE) reports acceptance.
+				if ToggleLiveFromInput() and _mode == FilmMode.LIVE:
+					_emit_operator_observation_accepted()
 				get_viewport().set_input_as_handled()
 			KEY_BRACKETLEFT:
 				set_opacity(_opacity - OPACITY_STEP)
@@ -153,6 +163,25 @@ func ToggleLiveFromInput() -> bool:
 			_set_input_disposition("live_started_sealed_evidence_released" if released_seal else "live_started")
 			return true
 	return false
+
+
+# Keyboard entry point used by GrinFilmCamera for Q / Shift+Q / Ctrl+Q. The
+# decision logic is HandleProbeViewInput, unchanged; this only reports acceptance.
+# Direct HandleProbeViewInput calls (tests, navigation) never emit.
+func HandleProbeViewKeyInput(reverse: bool, replace_completed: bool) -> bool:
+	var accepted := HandleProbeViewInput(reverse, replace_completed)
+	if accepted:
+		_emit_operator_observation_accepted()
+	return accepted
+
+
+func GetOperatorObservationAcceptedCountForTesting() -> int:
+	return _operator_observation_accepted_count
+
+
+func _emit_operator_observation_accepted() -> void:
+	_operator_observation_accepted_count += 1
+	operator_observation_accepted.emit(StringName(_input_disposition))
 
 
 func HandleProbeViewInput(reverse: bool, replace_completed: bool) -> bool:

@@ -89,8 +89,15 @@ func _test_levels_off_and_live() -> void:
 	_assert(String(card_state.get("q_readiness")) == "ready" and String(card_state.get("status_text")).contains("Q Formal: ready"), "OFF did not present Q Formal as ready")
 	await _sample_layout("off_instrument", 1, "OFF", "inactive", false)
 	await _dispatch_key(KEY_H)
+	# UI-R2B: an accepted G start reveals the hidden film once (Explore -> Instrument).
+	_assert(not bool(gallery.get("_full_hud")) and not presentation.visible, "H did not return to Explore before G")
+	var accepted_before_g := int(controller.call("GetOperatorObservationAcceptedCountForTesting"))
+	var reveals_before_g := int(gallery.get("auto_reveal_count"))
 	await _dispatch_key(KEY_G)
 	_assert(String(controller.call("GetModeName")) == "LIVE", "G did not enter LIVE")
+	_assert(bool(gallery.get("_full_hud")) and presentation.visible, "accepted G did not reveal the hidden film")
+	_assert(int(controller.call("GetOperatorObservationAcceptedCountForTesting")) == accepted_before_g + 1, "accepted G did not report exactly once")
+	_assert(int(gallery.get("auto_reveal_count")) == reveals_before_g + 1, "accepted G did not promote exactly once")
 	var live_config := _direct_configuration()
 	for _index in range(20):
 		await _dispatch_key(KEY_H)
@@ -106,11 +113,18 @@ func _test_levels_off_and_live() -> void:
 	_assert(String(live_state.get("q_readiness")) == "G OFF first" and String(live_state.get("status_text")).contains("Q Formal: G OFF first"), "LIVE presented Q Formal as ready")
 	_assert(not String(live_state.get("status_text")).contains("Q Formal: ready"), "LIVE retained Q Formal ready")
 	var generation_before_live_q := int(film.get("CathedralSnapshotGeneration"))
+	# Manual H back to Explore stays authoritative through the refused Q and the LIVE stop.
+	await _dispatch_key(KEY_H)
+	_assert(not bool(gallery.get("_full_hud")), "manual H did not return a revealed film to Explore")
+	var accepted_before_refusal := int(controller.call("GetOperatorObservationAcceptedCountForTesting"))
 	await _dispatch_key(KEY_Q)
 	_assert(String(controller.call("GetModeName")) == "LIVE" and String(controller.call("GetLastInputDisposition")) == "formal_from_live_refused_press_g_then_q", "Q in LIVE was not refused as the card states")
 	_assert(int(film.get("CathedralSnapshotGeneration")) == generation_before_live_q, "refused LIVE Q changed Formal generation")
+	_assert(not bool(gallery.get("_full_hud")), "refused LIVE Q revealed the film")
 	await _dispatch_key(KEY_G)
 	_assert(String(controller.call("GetModeName")) == "OFF", "G did not return LIVE to OFF")
+	_assert(not bool(gallery.get("_full_hud")), "stopping LIVE changed the presentation level")
+	_assert(int(controller.call("GetOperatorObservationAcceptedCountForTesting")) == accepted_before_refusal, "refused Q or LIVE stop reported acceptance")
 
 
 func _test_formal_and_sealed_views() -> void:

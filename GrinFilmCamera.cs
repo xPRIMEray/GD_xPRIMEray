@@ -5143,7 +5143,12 @@ private sealed class OverlayRollingWindow
 		if (keyEvent.Keycode == Key.Q && !keyEvent.AltPressed)
 		{
 			Node controller = GetParent()?.GetNodeOrNull<Node>("FilmController");
-			if (controller != null && controller.HasMethod("HandleProbeViewInput"))
+			if (controller != null && controller.HasMethod("HandleProbeViewKeyInput"))
+			{
+				// Keyboard path: identical decision logic, plus accepted-action reporting.
+				controller.Call("HandleProbeViewKeyInput", keyEvent.ShiftPressed, keyEvent.CtrlPressed);
+			}
+			else if (controller != null && controller.HasMethod("HandleProbeViewInput"))
 			{
 				controller.Call("HandleProbeViewInput", keyEvent.ShiftPressed, keyEvent.CtrlPressed);
 			}

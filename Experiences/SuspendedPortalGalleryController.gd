@@ -55,6 +55,8 @@ var last_capture_path := ""
 var last_capture_clean := false
 var last_capture_state_restored := false
 var last_capture_hud_hidden_frame := false
+var _pending_reveal := false
+var auto_reveal_count := 0
 
 
 func _ready() -> void:
@@ -120,6 +122,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			label.visible = _labels_visible
 		get_viewport().set_input_as_handled()
 	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_H:
+		# Manual H is authoritative: it supersedes any reveal still deferred by a capture.
+		_pending_reveal = false
 		_full_hud = not _full_hud
 		_apply_hud_layout()
 		get_viewport().set_input_as_handled()
@@ -169,7 +173,30 @@ func get_presentation_diagnostics() -> Dictionary:
 		"last_capture_clean": last_capture_clean,
 		"last_capture_state_restored": last_capture_state_restored,
 		"last_capture_hud_hidden_frame": last_capture_hud_hidden_frame,
+		"pending_reveal": _pending_reveal,
+		"auto_reveal_count": auto_reveal_count,
 	}
+
+
+# Accepted operator G/Q actions reveal a hidden film by promoting the minimal HUD
+# to full instrumentation once. A capture in progress saves and restores the HUD,
+# so the reveal is deferred until that capture has finished and reported.
+func _on_operator_observation_accepted(_action: StringName) -> void:
+	if _full_hud:
+		return
+	if _capture_in_progress:
+		_pending_reveal = true
+		return
+	_apply_reveal()
+
+
+func _apply_reveal() -> void:
+	_pending_reveal = false
+	if _full_hud:
+		return
+	_full_hud = true
+	auto_reveal_count += 1
+	_apply_hud_layout()
 
 
 func _configure_presentation_hud() -> void:
@@ -300,6 +327,8 @@ func _capture_current_viewport(clean: bool) -> void:
 		push_error("[SuspendedPortalCapture] save failed error=%d path=%s" % [save_error, output_path])
 	_capture_in_progress = false
 	screenshot_captured.emit(last_capture_path, clean, last_capture_state_restored)
+	if _pending_reveal:
+		_apply_reveal()
 
 
 func _save_screenshot_worker(image: Image, output_path: String) -> int:
@@ -614,6 +643,7 @@ func _build_hud(world: Node3D) -> void:
 	controller.set("film_overlay_path", NodePath("../CanvasLayer/HUDRoot/FilmPresentation/FilmPlate/FilmOverlay"))
 	controller.set("status_label_path", NodePath("../CanvasLayer/HUDRoot/FilmStatusLabel"))
 	controller.set("player_path", NodePath("../TransportChamberPlayer"))
+	controller.connect("operator_observation_accepted", Callable(self, "_on_operator_observation_accepted"))
 	world.add_child(controller)
 
 

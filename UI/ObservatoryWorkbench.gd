@@ -12,6 +12,7 @@ const PRESENTATION_INSPECT := 2
 var _workbench_open := false
 var _input_camera: Node
 var _closed_presentation_level := PRESENTATION_EXPLORE
+var _auto_reveal_count := 0
 
 
 func _ready() -> void:
@@ -19,6 +20,8 @@ func _ready() -> void:
 	_tabs.set_tab_title(0, "Observatory")
 	_tabs.set_tab_title(1, "TestBench")
 	_input_camera = _find_input_camera(self)
+	if _input_camera != null and _input_camera.has_signal("operator_observation_accepted"):
+		_input_camera.connect("operator_observation_accepted", Callable(self, "_on_operator_observation_accepted"))
 	get_viewport().size_changed.connect(_apply_workbench_layout)
 	_apply_workbench_layout()
 	_set_workbench_open(false)
@@ -57,6 +60,22 @@ func _set_workbench_open(open: bool) -> void:
 	_launch_hint.visible = not open
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if open else Input.MOUSE_MODE_CAPTURED
 	_update_hint()
+
+
+# Accepted operator G/Q actions reveal a hidden film by promoting Explore to
+# Instrument once. Inspect is never changed, Instrument is left alone, and a later
+# manual H back to Explore stays authoritative until the next accepted action.
+func _on_operator_observation_accepted(_action: StringName) -> void:
+	if _workbench_open or _closed_presentation_level != PRESENTATION_EXPLORE:
+		return
+	_closed_presentation_level = PRESENTATION_INSTRUMENT
+	_auto_reveal_count += 1
+	_apply_presentation_level(_closed_presentation_level)
+	_update_hint()
+
+
+func GetAutoRevealCountForTesting() -> int:
+	return _auto_reveal_count
 
 
 func _apply_presentation_level(level: int) -> void:
