@@ -434,7 +434,7 @@ func _qualify_input_contract(film_controller: Node, film: Node) -> void:
 	_press_node_key(film_controller, KEY_BRACKETRIGHT)
 	_assert(int(film_controller.call("GetOpacityPercent")) == opacity_before, "] did not restore film opacity")
 	var shading_before := String(film_controller.call("GetShadingModeName"))
-	for _index in 4:
+	for _index in 5:
 		_press_node_key(film_controller, KEY_N)
 	_assert(String(film_controller.call("GetShadingModeName")) == shading_before, "N shading cycle did not return to origin")
 

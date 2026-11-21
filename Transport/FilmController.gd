@@ -21,11 +21,14 @@ const SHADING_DEPTH := 0
 const SHADING_NORMAL_RGB := 1
 const SHADING_NDOTV := 2
 const SHADING_TWO_SIDED_NDOTV := 3
+# TEXTURE-R0A.2: observational base colour at the resolved LIVE hit (GrinFilmCamera.FilmShadingMode.MaterialCpu).
+const SHADING_MATERIAL_CPU := 4
 const SHADING_SEQUENCE := [
 	SHADING_NORMAL_RGB,
 	SHADING_NDOTV,
 	SHADING_TWO_SIDED_NDOTV,
 	SHADING_DEPTH,
+	SHADING_MATERIAL_CPU,
 ]
 
 @export var film_camera_path: NodePath
@@ -568,4 +571,6 @@ func _get_shading_mode_label(shading_mode: int) -> String:
 			return "Two-sided NdotV"
 		SHADING_DEPTH:
 			return "Depth"
+		SHADING_MATERIAL_CPU:
+			return "Material (CPU)"
 	return "Unknown"

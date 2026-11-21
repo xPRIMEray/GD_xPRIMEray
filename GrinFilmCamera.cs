@@ -1123,6 +1123,7 @@ public partial class GrinFilmCamera : Node
 		NormalRGB = 1,      // (N*0.5 + 0.5)
 		NdotV = 2,          // grayscale: saturate(dot(N, V))
 		TwoSidedNdotV = 3,  // grayscale: saturate(abs(dot(N, V)))
+		MaterialCpu = 4,    // TEXTURE-R0A.2: authored base colour at the resolved hit (LIVE only)
 	}
 
 	/// <summary>Film shading mode (depth, normal RGB, NdotV).</summary>
@@ -4048,8 +4049,232 @@ private sealed class OverlayRollingWindow
 		}
 	}
 
+	// ---------------------------------------------------------------------------------------------
+	// TEXTURE-R0A.2 MaterialCpu: observational base colour at an already resolved LIVE hit.
+	// Godot objects are read only by GodotAdapter.MaterialBindingSnapshotBuilder on the main thread,
+	// at the start of a LIVE MaterialCpu RenderStep. Shading sites see one immutable table per step.
+	// ---------------------------------------------------------------------------------------------
+	private GodotAdapter.MaterialBindingSnapshot _materialCpuSnapshot;
+	private long _materialCpuGeneration;
+	private bool _materialCpuRebuildRequested;
+	private long _materialCpuRebuilds;
+	private long _materialCpuRevalidations;
+	private long _materialCpuReleases;
+	private string _materialCpuLastRebuildReason = "";
+	private string _materialCpuLastReleaseReason = "";
+	private double _materialCpuLastScanMs;
+	private double _materialCpuMaxScanMs;
+	private long _materialCpuSerialSamples;
+	private long _materialCpuThreadedSamples;
+	private XPrimeRay.ObserverInstrumentation.Materials.MaterialLookupCache _materialCpuSerialCache;
+	private XPrimeRay.ObserverInstrumentation.Materials.MaterialSampleStats _materialCpuStepStats;
+	private XPrimeRay.ObserverInstrumentation.Materials.MaterialSampleStats _materialCpuLastStepStats;
+	private XPrimeRay.ObserverInstrumentation.Materials.MaterialSampleStats _materialCpuPassStats;
+
+	/// <summary>
+	/// Returns this step's immutable table, or null when MaterialCpu is not selected or LIVE does not own
+	/// acquisition (Formal/Q, region refinement and idle never scan or sample). Revalidates the scene binding
+	/// state every active step and rebuilds only on entry, after a LIVE reset, or when the state key changes.
+	/// </summary>
+	private XPrimeRay.ObserverInstrumentation.Materials.MaterialBindingTable PrepareMaterialCpuTableForStep(FilmShadingMode mode)
+	{
+		_materialCpuStepStats.Clear();
+		if (mode != FilmShadingMode.MaterialCpu)
+		{
+			if (_materialCpuSnapshot != null) ReleaseMaterialCpuSnapshot("mode_left");
+			return null;
+		}
+
+		if (_observationAcquisition.Owner != ObservationAcquisitionOwner.Live) return null;
+
+		Node root = GetTree()?.CurrentScene ?? GetTree()?.Root;
+		long scanStart = Stopwatch.GetTimestamp();
+		var records = GodotAdapter.MaterialBindingSnapshotBuilder.Scan(root);
+		string stateKey = GodotAdapter.MaterialBindingSnapshotBuilder.ComputeStateKey(records, out string manifest);
+		_materialCpuRevalidations++;
+		string reason = _materialCpuSnapshot == null ? "enter"
+			: _materialCpuRebuildRequested ? "live_reset"
+			: !string.Equals(stateKey, _materialCpuSnapshot.StateKey, StringComparison.Ordinal) ? "state_changed"
+			: null;
+		if (reason != null)
+		{
+			_materialCpuGeneration++;
+			_materialCpuSnapshot = GodotAdapter.MaterialBindingSnapshotBuilder.Build(_materialCpuGeneration, records, manifest, stateKey);
+			_materialCpuRebuilds++;
+			_materialCpuLastRebuildReason = reason;
+			_materialCpuSerialCache.Reset();
+		}
+
+		_materialCpuRebuildRequested = false;
+		_materialCpuLastScanMs = (Stopwatch.GetTimestamp() - scanStart) * 1000.0 / Stopwatch.Frequency;
+		_materialCpuMaxScanMs = Math.Max(_materialCpuMaxScanMs, _materialCpuLastScanMs);
+		return _materialCpuSnapshot.Table;
+	}
+
+	private void ReleaseMaterialCpuSnapshot(string reason)
+	{
+		if (_materialCpuSnapshot == null) return;
+		_materialCpuSnapshot = null;
+		_materialCpuSerialCache.Reset();
+		_materialCpuReleases++;
+		_materialCpuLastReleaseReason = reason;
+	}
+
+	/// <summary>Shared by the serial and threaded shading sites. Pure: reads only the immutable table.</summary>
+	private static Color ShadeMaterialCpuHit(
+		XPrimeRay.ObserverInstrumentation.Materials.MaterialBindingTable table,
+		ulong colliderId,
+		int shapeIndex,
+		Vector3 hitPosition,
+		Vector3 hitNormal,
+		ref XPrimeRay.ObserverInstrumentation.Materials.MaterialLookupCache cache,
+		ref XPrimeRay.ObserverInstrumentation.Materials.MaterialSampleStats stats)
+	{
+		XPrimeRay.ObserverInstrumentation.Materials.MaterialSampleResult result =
+			XPrimeRay.ObserverInstrumentation.Materials.MaterialSampler.Sample(
+				table, true, colliderId, shapeIndex,
+				new System.Numerics.Vector3(hitPosition.X, hitPosition.Y, hitPosition.Z),
+				new System.Numerics.Vector3(hitNormal.X, hitNormal.Y, hitNormal.Z),
+				ref cache, ref stats);
+		// Matched: authored colour. Every other status: the library's diagnostic sentinel, never a fallback.
+		return new Color(result.Color.R, result.Color.G, result.Color.B, 1f);
+	}
+
+	/// <summary>Attributes a no-hit sample in the statistics. The pixel keeps the existing sky colour.</summary>
+	private static void CountMaterialCpuMiss(
+		XPrimeRay.ObserverInstrumentation.Materials.MaterialBindingTable table,
+		ref XPrimeRay.ObserverInstrumentation.Materials.MaterialLookupCache cache,
+		ref XPrimeRay.ObserverInstrumentation.Materials.MaterialSampleStats stats)
+	{
+		XPrimeRay.ObserverInstrumentation.Materials.MaterialSampler.Sample(
+			table, false, 0UL, -1, default, default, ref cache, ref stats);
+	}
+
+	private static Godot.Collections.Dictionary MaterialCpuStatsToDictionary(
+		in XPrimeRay.ObserverInstrumentation.Materials.MaterialSampleStats stats)
+	{
+		var byReason = new Godot.Collections.Dictionary();
+		for (int index = 1; index <= XPrimeRay.ObserverInstrumentation.Materials.MaterialUnsupportedReasons.MaxDefinedValue; index++)
+		{
+			var reason = (XPrimeRay.ObserverInstrumentation.Materials.MaterialUnsupportedReason)index;
+			long count = stats.GetUnsupported(reason);
+			if (count != 0) byReason[reason.ToString()] = count;
+		}
+
+		return new Godot.Collections.Dictionary
+		{
+			["total"] = stats.Total,
+			["matched"] = stats.Matched,
+			["matched_proxy"] = stats.MatchedProxy,
+			["unbound"] = stats.Unbound,
+			["unsupported"] = stats.UnsupportedTotal,
+			["nonfinite_hit"] = stats.NonFiniteHit,
+			["invalid_hit_normal"] = stats.InvalidHitNormal,
+			["nonfinite_evaluation"] = stats.NonFiniteEvaluation,
+			["no_hit"] = stats.NoHit,
+			["near_boundary"] = stats.NearBoundary,
+			["bias_changed_parity"] = stats.BiasChangedParity,
+			["consistent"] = stats.IsConsistent,
+			["by_reason"] = byReason,
+		};
+	}
+
+	public Godot.Collections.Dictionary GetMaterialCpuStateForTesting()
+	{
+		var snapshot = _materialCpuSnapshot;
+		var table = snapshot?.Table;
+		return new Godot.Collections.Dictionary
+		{
+			["snapshot_held"] = snapshot != null,
+			["generation"] = table?.Generation ?? -1L,
+			["camera_generation"] = _materialCpuGeneration,
+			["rebuilds"] = _materialCpuRebuilds,
+			["revalidations"] = _materialCpuRevalidations,
+			["releases"] = _materialCpuReleases,
+			["last_rebuild_reason"] = _materialCpuLastRebuildReason,
+			["last_release_reason"] = _materialCpuLastReleaseReason,
+			["rebuild_requested"] = _materialCpuRebuildRequested,
+			["table_provenance_sha256"] = table?.ProvenanceSha256 ?? "",
+			["manifest_sha256"] = snapshot?.ManifestSha256 ?? "",
+			["entries"] = table?.EntryCount ?? 0,
+			["bound"] = table?.BoundCount ?? 0,
+			["unsupported_entries"] = table?.UnsupportedCount ?? 0,
+			["descriptors"] = table?.DescriptorCount ?? 0,
+			["last_scan_ms"] = _materialCpuLastScanMs,
+			["max_scan_ms"] = _materialCpuMaxScanMs,
+			["serial_samples"] = _materialCpuSerialSamples,
+			["threaded_samples"] = _materialCpuThreadedSamples,
+			["pass_stats"] = MaterialCpuStatsToDictionary(in _materialCpuPassStats),
+			["last_step_stats"] = MaterialCpuStatsToDictionary(in _materialCpuLastStepStats),
+		};
+	}
+
+	public string GetMaterialCpuManifestForTesting() => _materialCpuSnapshot?.ManifestText ?? "";
+
+	public Godot.Collections.Array GetMaterialCpuBindingsForTesting()
+	{
+		var rows = new Godot.Collections.Array();
+		if (_materialCpuSnapshot == null) return rows;
+		foreach (GodotAdapter.MaterialBindingRecord record in _materialCpuSnapshot.Records)
+		{
+			var d = record.Descriptor;
+			var row = new Godot.Collections.Dictionary
+			{
+				["body_path"] = record.BodyPath,
+				["body_type"] = record.BodyType,
+				["shape"] = record.ShapeIndex,
+				["collider_id"] = record.ColliderInstanceId,
+				["shape_type"] = record.ShapeType,
+				["mesh"] = record.MeshRef,
+				["source"] = record.MaterialSource,
+				["bound"] = record.IsBound,
+				["reason"] = record.Reason.ToString(),
+				["detail"] = record.Detail,
+				["kind"] = record.IsBound ? d.Kind.ToString() : "",
+				["correspondence"] = record.IsBound ? d.Correspondence.ToString() : "",
+			};
+			if (record.IsBound && d.Kind == XPrimeRay.ObserverInstrumentation.Materials.MaterialKind.Flat)
+			{
+				row["flat"] = new Vector3(d.Flat.R, d.Flat.G, d.Flat.B);
+			}
+			else if (record.IsBound)
+			{
+				row["color_a"] = new Vector3(d.Checker.ColorA.R, d.Checker.ColorA.G, d.Checker.ColorA.B);
+				row["color_b"] = new Vector3(d.Checker.ColorB.R, d.Checker.ColorB.G, d.Checker.ColorB.B);
+				row["scale"] = d.Checker.Scale;
+			}
+
+			rows.Add(row);
+		}
+
+		return rows;
+	}
+
+	/// <summary>The resolved terminal hit recorded for one film pixel (existing per-pixel diagnostics).</summary>
+	public Godot.Collections.Dictionary GetFilmHitRecordForTesting(int x, int y)
+	{
+		int width = _filmWidth;
+		int index = y * width + x;
+		bool valid = x >= 0 && y >= 0 && x < width && y < _filmHeight
+			&& _fixtureDebugNormalHadHit != null && index < _fixtureDebugNormalHadHit.Length
+			&& _fixtureDiagnosticColliderId != null && index < _fixtureDiagnosticColliderId.Length
+			&& _fixtureDiagnosticHitPosition != null && index < _fixtureDiagnosticHitPosition.Length
+			&& _fixtureDebugNormalHitNormal != null && index < _fixtureDebugNormalHitNormal.Length;
+		if (!valid) return new Godot.Collections.Dictionary { ["valid"] = false };
+		return new Godot.Collections.Dictionary
+		{
+			["valid"] = true,
+			["had_hit"] = _fixtureDebugNormalHadHit[index] != 0,
+			["collider_id"] = _fixtureDiagnosticColliderId[index],
+			["shape"] = _fixtureDiagnosticPrimitiveOrShapeId[index],
+			["position"] = _fixtureDiagnosticHitPosition[index],
+			["normal"] = _fixtureDebugNormalHitNormal[index],
+		};
+	}
+
 	public override void _ExitTree()
 	{
+		ReleaseMaterialCpuSnapshot("exit_tree");
 		_runtimeHealth?.CompleteRun("process_exit");
 		_runtimeHealth?.Dispose();
 		_quickRayParams?.Dispose();
@@ -4188,6 +4413,9 @@ private sealed class OverlayRollingWindow
 
 	private sealed class Pass2ChunkAccumulator
 	{
+		// TEXTURE-R0A.2: per-chunk, never shared between workers; merged on the main thread.
+		public XPrimeRay.ObserverInstrumentation.Materials.MaterialLookupCache MaterialCache;
+		public XPrimeRay.ObserverInstrumentation.Materials.MaterialSampleStats MaterialStats;
 		public int Hits;
 		public int SourceHits;
 		public int BackgroundHits;
@@ -4976,6 +5204,10 @@ private sealed class OverlayRollingWindow
 	{
 		ReconcileFieldStructureEligibility();
 		DebugLogConfig.EnableSnapshotLog = DebugSnapshotLog;
+		if (_materialCpuSnapshot != null && ShadingMode != FilmShadingMode.MaterialCpu)
+		{
+			ReleaseMaterialCpuSnapshot("mode_left");
+		}
 		DebugLogConfig.SnapshotLogIntervalSec = Mathf.Max(0.05f, DebugSnapshotIntervalSec);
 		DebugLogConfig.EnableProbeLog = DebugProbeLog;
 		DebugLogConfig.ProbeLogIntervalSec = Mathf.Max(0.05f, DebugProbeIntervalSec);
@@ -18536,6 +18768,9 @@ private sealed class OverlayRollingWindow
 			cfg.RayMarch.StepsPerRay = _cathedralSnapshotContext.StepsPerRay;
 			cfg.RayMarch.StepLength = _cathedralSnapshotContext.StepLength;
 		}
+		// TEXTURE-R0A.2: one immutable table per step, or null (no sampling) outside LIVE MaterialCpu.
+		XPrimeRay.ObserverInstrumentation.Materials.MaterialBindingTable materialStepTable =
+			PrepareMaterialCpuTableForStep(cfg.ShadingMode);
 		_diagnostics = ResolveDiagnosticsForMode(cfg.UpdateEveryFrame);
 		long renderStepStartTimestamp = Stopwatch.GetTimestamp();
 		bool researchAppliedRayMarchClamp = false;
@@ -22396,8 +22631,19 @@ private sealed class OverlayRollingWindow
 										col = ShadeNdotVAbs(ndv);
 										break;
 									}
+									case FilmShadingMode.MaterialCpu:
+									{
+										if (materialStepTable == null)
+											goto case FilmShadingMode.DepthHeatmap;
+										col = ShadeMaterialCpuHit(
+											materialStepTable, sample.BestCid, sample.BestPrimitiveOrShapeId, sample.BestHp, sample.BestHn,
+											ref accum.MaterialCache, ref accum.MaterialStats);
+										break;
+									}
 								}
 							}
+							if (!sample.HadHit && materialStepTable != null)
+								CountMaterialCpuMiss(materialStepTable, ref accum.MaterialCache, ref accum.MaterialStats);
 
 							fixtureHitKind = ClassifyFixtureHitKind(sample.HadHit, sample.AbsorbedByInnerRadius, sample.BestCid);
 							if (cfg.FixtureDebugHitColoringEnabled)
@@ -22502,6 +22748,11 @@ private sealed class OverlayRollingWindow
 						Pass2ChunkAccumulator accum = chunkAccums[chunkIndex] ?? new Pass2ChunkAccumulator();
 						if (statsEnabled)
 							_perfFrame.ShadingSkippedPixels += accum.ShadingSkippedPixels;
+						if (materialStepTable != null)
+						{
+							_materialCpuStepStats.Add(in accum.MaterialStats);
+							_materialCpuThreadedSamples += accum.MaterialStats.Total;
+						}
 
 						int startIndex = pass2ChunkSampleStarts[chunkIndex];
 						int endIndex = pass2ChunkSampleStarts[chunkIndex + 1];
@@ -25567,10 +25818,26 @@ private sealed class OverlayRollingWindow
 									break;
 								}
 
+								case FilmShadingMode.MaterialCpu:
+								{
+									if (materialStepTable == null)
+										goto case FilmShadingMode.DepthHeatmap;
+									col = ShadeMaterialCpuHit(
+										materialStepTable, bestCid, bestPrimitiveOrShapeId, bestHp, bestHn,
+										ref _materialCpuSerialCache, ref _materialCpuStepStats);
+									_materialCpuSerialSamples++;
+									break;
+								}
+
 							}
 
 							if (logCenterSample)
 								GD.Print($"Film hit: dist={hitDistance:0.000} name={hitName} mode={cfg.ShadingMode}");
+						}
+						if (!hadHit && materialStepTable != null)
+						{
+							CountMaterialCpuMiss(materialStepTable, ref _materialCpuSerialCache, ref _materialCpuStepStats);
+							_materialCpuSerialSamples++;
 						}
 						fixtureHitKind = ClassifyFixtureHitKind(hadHit, absorbedByInnerRadius, bestCid);
 						if (bestHitWasPostRemap && bestPostRemapSectorValid)
@@ -26621,6 +26888,11 @@ private sealed class OverlayRollingWindow
 		}
 		finally
 		{
+			if (materialStepTable != null)
+			{
+				_materialCpuPassStats.Add(in _materialCpuStepStats);
+				_materialCpuLastStepStats = _materialCpuStepStats;
+			}
 			if (framePerfEnabled) frameScope.Dispose();
 			if (bandAttemptedThisStep && bandH > 0)
 			{
@@ -29003,6 +29275,9 @@ private sealed class OverlayRollingWindow
 	public void ResetFilmPassManual()
 	{
 		ResetRowCursor("manual");
+		// TEXTURE-R0A.2: a LIVE acquisition reset rebuilds the material snapshot at its next MaterialCpu step.
+		_materialCpuRebuildRequested = true;
+		_materialCpuPassStats.Clear();
 	}
 
 	public void ApplyPreset(PresetMode mode)

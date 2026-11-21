@@ -243,7 +243,7 @@ func _update_presentation_hud() -> void:
 	var row_cursor := int(_film_camera.get("FilmRowCursor"))
 	var live_row_status := "LIVE row %d" % row_cursor if film_mode == "LIVE" else "row inactive"
 	if _full_hud:
-		_truth_label.text = "THE OPTICAL FUNHOUSE / INSTRUMENT\nP Profile | G Film | Q Formal/View | N LIVE Shading | F Field\nWASD Move | Mouse Look | Shift Sprint | V Walk/Fly\n[ / ] Opacity | Shift+Q Previous | Ctrl+Q Reacquire\nH Explore | R Rings | L Labels | Esc Workbench\nF10 Capture | Shift+F10 Beauty\nDisabled: O Optical-only | E reserved\nF1/F2 renderer debug | F6-F9 legacy macros\n\nField: %s\nRings: %s · Labels: %s\nG cadence: %s · Portal remaps: %d\n\nGodot presentation != transport evidence\nGeometry + contacts + normals authoritative\nMaterials are raster presentation only" % [
+		_truth_label.text = "THE OPTICAL FUNHOUSE / INSTRUMENT\nP Profile | G Film | Q Formal/View | N LIVE Shading | F Field\nWASD Move | Mouse Look | Shift Sprint | V Walk/Fly\n[ / ] Opacity | Shift+Q Previous | Ctrl+Q Reacquire\nH Explore | R Rings | L Labels | Esc Workbench\nF10 Capture | Shift+F10 Beauty\nDisabled: O Optical-only | E reserved\nF1/F2 renderer debug | F6-F9 legacy macros\n\nField: %s\nRings: %s · Labels: %s\nG cadence: %s · Portal remaps: %d\n\nGodot presentation != transport evidence\nGeometry + contacts + normals authoritative\nRaster materials: presentation only\nN Material (CPU): authored colour at LIVE hit" % [
 			_field_structure_truth_text(field_mode),
 			"ON" if _rings_visible else "OFF",
 			"ON" if _labels_visible else "OFF",
@@ -613,7 +613,7 @@ func _build_hud(world: Node3D) -> void:
 	panel_style.set_content_margin_all(12.0)
 	info_panel.add_theme_stylebox_override("panel", panel_style)
 	var label := Label.new()
-	label.text = "THE OPTICAL FUNHOUSE\nSUSPENDED PORTAL GALLERY v0\n\nV  WALK / FLY    F  FIELD    G  OBSERVATION\n\nGodot presentation ≠ transport evidence\nGeometry + contacts + normals are authoritative\nMaterials are raster presentation only"
+	label.text = "THE OPTICAL FUNHOUSE\nSUSPENDED PORTAL GALLERY v0\n\nV  WALK / FLY    F  FIELD    G  OBSERVATION\n\nGodot presentation ≠ transport evidence\nGeometry + contacts + normals are authoritative\nRaster materials are presentation only\nN Material (CPU) observes authored colour at LIVE hits"
 	label.add_theme_color_override("font_color", Color("e7f8ff"))
 	label.add_theme_font_size_override("font_size", 15)
 	info_panel.add_child(label)

@@ -225,7 +225,7 @@ func _test_authoritative_information() -> void:
 
 	var initial_shading := str(controller.call("GetShadingModeName"))
 	var observed_shading := {}
-	for shading_index in range(4):
+	for shading_index in range(5):
 		status_card.call("ForceRefreshForTesting")
 		state = status_card.call("GetDisplayedStateForTesting")
 		var raw_shading := str(controller.call("GetShadingModeName"))
@@ -236,7 +236,7 @@ func _test_authoritative_information() -> void:
 		_sample_card_layout("off_shading_%d" % shading_index)
 		_send_key(KEY_N)
 		await _settle(2)
-	_assert(observed_shading.size() == 4, "N did not expose all four shading values")
+	_assert(observed_shading.size() == 5, "N did not expose all five shading values")
 	_assert(str(controller.call("GetShadingModeName")) == initial_shading, "N cycle did not return to its initial value")
 
 	_send_key(KEY_G)
