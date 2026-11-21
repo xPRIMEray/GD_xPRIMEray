@@ -218,32 +218,43 @@ public sealed class RuntimeHealthWatchdog : IDisposable
     private static string Csv(object? value) =>
         '"' + (Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty).Replace("\"", "\"\"") + '"';
 
+    // "Previous run" is the most recent RUN_START recorded before this instance starts. Older incomplete runs stay
+    // in the log as evidence, but must not mark every later start abnormal (the log is append-only and shared by
+    // every run of the project). Unparseable (torn) lines are skipped; a torn line written after the most recent
+    // RUN_START without a matching RUN_COMPLETE still leaves that run incomplete.
     private static bool HasIncompletePriorRun(string path)
     {
         if (!File.Exists(path)) return false;
-        var starts = new HashSet<string>(StringComparer.Ordinal);
-        var completes = new HashSet<string>(StringComparer.Ordinal);
+        string lastStart = "";
+        bool lastCompleted = false;
         try
         {
             foreach (string line in File.ReadLines(path))
             {
+                if (line.Length == 0) continue;
                 try
                 {
                     using JsonDocument json = JsonDocument.Parse(line);
                     string runId = json.RootElement.TryGetProperty("run_id", out var id) ? id.GetString() ?? "" : "";
                     string eventName = json.RootElement.TryGetProperty("event", out var evt) ? evt.GetString() ?? "" : "";
-                    if (eventName == "RUN_START") starts.Add(runId);
-                    if (eventName == "RUN_COMPLETE") completes.Add(runId);
+                    if (eventName == "RUN_START" && runId.Length > 0)
+                    {
+                        lastStart = runId;
+                        lastCompleted = false;
+                    }
+                    else if (eventName == "RUN_COMPLETE" && runId.Length > 0 && runId == lastStart)
+                    {
+                        lastCompleted = true;
+                    }
                 }
-                catch
+                catch (JsonException)
                 {
-                    // A torn final line must not erase evidence from earlier records.
-                    return starts.Any(id => !string.IsNullOrEmpty(id) && !completes.Contains(id));
+                    // A torn line (interrupted writer) is not a record; keep scanning later lines.
                 }
             }
         }
         catch { return false; }
-        return starts.Any(id => !string.IsNullOrEmpty(id) && !completes.Contains(id));
+        return lastStart.Length > 0 && !lastCompleted;
     }
 
     private readonly record struct ProcessMetrics(long WorkingSetBytes, long PrivateMemoryBytes, long GcHeapBytes, long GcAllocatedBytes, int ThreadCount);
