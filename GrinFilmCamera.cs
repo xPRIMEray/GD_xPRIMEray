@@ -6057,7 +6057,10 @@ private sealed class OverlayRollingWindow
 	private List<FieldSource3D> GetRuntimeFieldSources()
 	{
 		List<FieldSource3D> sources = new();
-		Godot.Collections.Array<Node> nodes = GetTree()?.GetNodesInGroup("field_sources");
+		// Reached during scene teardown (FilmController leaving SNAPSHOT from _exit_tree refreshes the Probe View
+		// HUD) after this node has left the tree; GetTree() would report "data.tree is null". Outside the tree
+		// there are no runtime field sources, which is the existing null path.
+		Godot.Collections.Array<Node> nodes = IsInsideTree() ? GetTree().GetNodesInGroup("field_sources") : null;
 		if (nodes == null)
 			return sources;
 
