@@ -107,7 +107,9 @@ func _initialize() -> void:
 		SCENE_ID,
 		SCENE_PATH,
 		OS.get_environment("ARTIFACT001_ENGINE_COMMIT"),
-		LINEAGE)
+		LINEAGE,
+		_source_tree_state(),
+		_authored_diff_sha256())
 	_assert(failure.is_empty(), "portable bundle failed: " + failure)
 	_write_artifact_manifest()
 	_write_artifact_summary()
@@ -290,6 +292,22 @@ func _send_key(code: Key) -> void:
 	event.pressed = true
 	event.echo = false
 	Input.parse_input_event(event)
+
+# CQ0.3-N4R layer H. GrinFilmCamera.CapturePortableObservatoryBundle has 8 parameters; the last two
+# (sourceTreeState, authoredDiffSha256) are optional in C#, but a dynamic call() through the Godot C# bridge
+# must supply every parameter, so the former 6-argument call resolved to no method. The provenance values follow
+# the existing caller contract (capture_suspended_portal_gallery_q.gd, test_probe_profile_formal_boundary.gd):
+# explicit XPRIMERAY_SOURCE_TREE_STATE ("clean" or "dirty") and, when dirty, the 64-hex XPRIMERAY_AUTHORED_DIFF_SHA256.
+func _source_tree_state() -> String:
+	var value := OS.get_environment("XPRIMERAY_SOURCE_TREE_STATE")
+	_assert(value == "clean" or value == "dirty", "explicit XPRIMERAY_SOURCE_TREE_STATE is required")
+	return value
+
+func _authored_diff_sha256() -> String:
+	var value := OS.get_environment("XPRIMERAY_AUTHORED_DIFF_SHA256")
+	if _source_tree_state() == "dirty":
+		_assert(value.length() == 64, "dirty source tree requires XPRIMERAY_AUTHORED_DIFF_SHA256")
+	return value
 
 func _settle(frames: int) -> void:
 	for _i in range(frames):
