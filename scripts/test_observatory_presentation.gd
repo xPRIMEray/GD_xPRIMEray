@@ -35,9 +35,15 @@ func _initialize() -> void:
 	_send_key(KEY_F)
 	await _settle(12)
 	_assert(_field_visuals_camera_visible(), "F ON + O OFF")
+	_assert(str(film.get("CurrentFieldStructureModeName")) == "Vectors", "first F selects Vectors")
+	# FIELDVIZ-R0: F cycles Hidden -> Vectors -> Rays -> Hidden.
+	_send_key(KEY_F)
+	await _settle(12)
+	_assert(_field_visuals_camera_visible() and str(film.get("CurrentFieldStructureModeName")) == "Rays", "second F selects Rays + O OFF")
 	_send_key(KEY_F)
 	await _settle(4)
 	_assert(not _field_visuals_camera_visible(), "repeated F OFF + O OFF")
+	_assert(str(film.get("CurrentFieldStructureModeName")) == "Hidden", "third F returns to Hidden")
 
 	_send_key(KEY_O)
 	await _settle(2)

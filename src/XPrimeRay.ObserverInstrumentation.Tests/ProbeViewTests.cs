@@ -10,6 +10,28 @@ internal static class ProbeViewTests
 		TestAssert.False(FieldStructureVisibilityPolicy.ResolveToggleTarget(new[] { true, true }), "normalized visible toggles hidden");
 		TestAssert.False(FieldStructureVisibilityPolicy.ResolveToggleTarget(Array.Empty<bool>()), "no eligible sources remain hidden");
 
+		// FIELDVIZ-R0: three-state F cycle, mixed normalization, attribution-safe source flags.
+		TestAssert.Equal(FieldStructureMode.Vectors, FieldStructureVisibilityPolicy.Next(FieldStructureMode.Hidden), "F Hidden -> Vectors");
+		TestAssert.Equal(FieldStructureMode.Rays, FieldStructureVisibilityPolicy.Next(FieldStructureMode.Vectors), "F Vectors -> Rays");
+		TestAssert.Equal(FieldStructureMode.Hidden, FieldStructureVisibilityPolicy.Next(FieldStructureMode.Rays), "F Rays -> Hidden");
+		TestAssert.Equal(FieldStructureMode.Hidden, FieldStructureVisibilityPolicy.Next((FieldStructureMode)99), "undefined mode resolves Hidden");
+		TestAssert.Equal(FieldStructureMode.Hidden, FieldStructureVisibilityPolicy.ResolveNext(FieldStructureMode.Vectors, false), "mixed Vectors normalizes Hidden");
+		TestAssert.Equal(FieldStructureMode.Hidden, FieldStructureVisibilityPolicy.ResolveNext(FieldStructureMode.Rays, false), "mixed Rays normalizes Hidden");
+		TestAssert.Equal(FieldStructureMode.Vectors, FieldStructureVisibilityPolicy.ResolveNext(FieldStructureMode.Hidden, false), "mixed Hidden still advances");
+		TestAssert.Equal(FieldStructureMode.Rays, FieldStructureVisibilityPolicy.ResolveNext(FieldStructureMode.Vectors, true), "consistent Vectors advances");
+		TestAssert.Equal("Hidden", FieldStructureVisibilityPolicy.DisplayName(FieldStructureMode.Hidden), "Hidden label");
+		TestAssert.Equal("Vectors", FieldStructureVisibilityPolicy.DisplayName(FieldStructureMode.Vectors), "Vectors label");
+		TestAssert.Equal("Rays", FieldStructureVisibilityPolicy.DisplayName(FieldStructureMode.Rays), "Rays label");
+		TestAssert.Equal("Mixed", FieldStructureVisibilityPolicy.DisplayName(FieldStructureMode.Rays, false), "Mixed label");
+		FieldStructureVisibilityPolicy.ResolveSourceFlags(FieldStructureMode.Vectors, true, out bool vDraw, out bool vVec, out bool vRay);
+		TestAssert.True(vDraw && vVec && !vRay, "Vectors draws vectors only");
+		FieldStructureVisibilityPolicy.ResolveSourceFlags(FieldStructureMode.Rays, true, out bool rDraw, out bool rVec, out bool rRay);
+		TestAssert.True(rDraw && !rVec && rRay, "Rays draws rays only");
+		FieldStructureVisibilityPolicy.ResolveSourceFlags(FieldStructureMode.Rays, false, out bool dDraw, out _, out _);
+		TestAssert.False(dDraw, "disabled physical field is never drawn");
+		FieldStructureVisibilityPolicy.ResolveSourceFlags(FieldStructureMode.Vectors, false, out bool dvDraw, out _, out _);
+		TestAssert.False(dvDraw, "disabled physical field draws no vectors");
+
 		TestAssert.Equal(ProbeViewMode.ContactEvents, ProbeViewCycle.Next(ProbeViewMode.Outcome), "Q next outcome");
 		TestAssert.Equal(ProbeViewMode.TransportEffort, ProbeViewCycle.Next(ProbeViewMode.ContactEvents), "Q next contacts");
 		TestAssert.Equal(ProbeViewMode.Outcome, ProbeViewCycle.Next(ProbeViewMode.TransportEffort), "Q wraps outcome");

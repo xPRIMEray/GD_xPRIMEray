@@ -40,14 +40,16 @@ func _initialize() -> void:
 	await _settle(2)
 
 	await _capture_stage("establish.png", "Gallery", false)
-	_send_key(KEY_F)
-	await _settle(8)
-	if not _all_field_sources_runtime_visible():
-		# The normal routed event can arrive before the C# node's first input pump
-		# on a cold Mono startup. A second routed F is still deterministic because
-		# the aggregate toggle target is "all visible" whenever any source is off.
+	# FIELDVIZ: F cycles Hidden -> Vectors -> Rays -> Hidden. The routed event can arrive before
+	# the C# node's first input pump on a cold Mono startup, so F is retried only while the camera
+	# still reports Hidden; a retry can therefore never advance past Vectors.
+	_assert(_field_mode() == "Hidden", "field structure did not start Hidden")
+	for _attempt in range(2):
+		if _field_mode() != "Hidden":
+			break
 		_send_key(KEY_F)
 		await _settle(8)
+	_assert(_field_mode() == "Vectors", "F did not select field Vectors (got %s)" % _field_mode())
 	_assert(_all_field_sources_runtime_visible(), "F did not enable all field structures")
 	field_dial.call("SetDisplayPresetForTesting", "Hermetic")
 	await _settle(10)
@@ -76,11 +78,14 @@ func _initialize() -> void:
 	sealed_pose = player.global_transform
 	_assert(bool(player.call("IsPoseHeld")), "formal SNAPSHOT did not hold observer pose")
 	await _capture_stage("snapshot_complete.png", "Hermetic", true)
-	_send_key(KEY_F)
-	await _settle(4)
-	_assert(int(film.get("SealedProbeViewGeneration")) == start_generation, "F invalidated sealed generation")
-	_send_key(KEY_F)
-	await _settle(4)
+	# FIELDVIZ: cycle F through every mode while sealed and return to Vectors, so outcome.png keeps
+	# the same field presentation as before. Each press is verified; none can be silently skipped.
+	for expected in ["Rays", "Hidden", "Vectors"]:
+		_send_key(KEY_F)
+		await _settle(4)
+		_assert(_field_mode() == expected, "sealed F did not select %s (got %s)" % [expected, _field_mode()])
+		_assert(int(film.get("SealedProbeViewGeneration")) == start_generation, "F invalidated sealed generation")
+	_assert(_all_field_sources_runtime_visible(), "field structure not restored to Vectors before outcome capture")
 
 	await _capture_stage("outcome.png", "Hermetic", true)
 	_send_key(KEY_Q)
@@ -236,14 +241,25 @@ func _write_artifact_summary() -> void:
 	file.store_string("\n".join(lines) + "\n")
 
 func _all_field_sources_runtime_visible() -> bool:
+	# FIELDVIZ: every enabled source with diagnostics is drawn, and a disabled physical field is
+	# never drawn (it must not be depicted as active transport). At least one source must be drawn.
 	var nodes := root_scene.get_tree().get_nodes_in_group("field_sources")
-	var eligible := 0
+	var drawn_enabled := 0
 	for source in nodes:
-		if bool(source.get("DebugVizEnabled")):
-			eligible += 1
-			if not bool(source.get("DebugVizInGame")):
+		if not bool(source.get("DebugVizEnabled")):
+			continue
+		var drawn := bool(source.get("DebugVizInGame"))
+		if bool(source.get("Enabled")):
+			if not drawn:
 				return false
-	return eligible > 0
+			drawn_enabled += 1
+		elif drawn:
+			return false
+	return drawn_enabled > 0
+
+
+func _field_mode() -> String:
+	return str(film.get("CurrentFieldStructureModeName"))
 
 func _context_token() -> String:
 	return "%s:%s:%s:%s" % [film.get("SealedProbeViewGeneration"), film.get("CathedralSnapshotGeneration"), film.get("CathedralSnapshotTotalPixelCount"), field_dial.call("GetExperimentName")]

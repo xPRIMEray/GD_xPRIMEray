@@ -73,6 +73,8 @@ func _refresh() -> void:
 	var q_description := str(_film.get("CurrentProbeViewDescription")) if sealed else ""
 	var q_legend := str(_film.get("CurrentProbeViewLegend")) if sealed else ""
 	var field_structure_visible := bool(_film.get("CurrentFieldStructureVisible"))
+	var field_presentation: Dictionary = _film.call("GetFieldStructurePresentation") if _film.has_method("GetFieldStructurePresentation") else {}
+	var field_mode := str(field_presentation.get("display_name", "Vectors" if field_structure_visible else "Hidden"))
 	var active := bool(_film.get("CathedralSnapshotLifecycleActive"))
 	var lifecycle := str(_film.get("CathedralSnapshotLifecycleStateName"))
 	var lifecycle_reason := str(_film.get("CathedralSnapshotLifecycleReasonName"))
@@ -93,7 +95,9 @@ func _refresh() -> void:
 	var profile_line := "P Selected %s" % selected_profile
 	if sealed:
 		profile_line += " · Sealed %s" % sealed_profile
-	profile_line += " · F Field: %s" % ("ON" if field_structure_visible else "OFF")
+	profile_line += " · F Field: %s" % field_mode
+	var field_details := _fit_field_details(profile_line, field_mode, field_presentation)
+	profile_line += field_details
 	var q_line := "Q Sealed: %s" % q_view if sealed else "Q Formal: %s" % q_readiness
 	if sealed:
 		q_line += " · Seal %d" % sealed_generation
@@ -140,6 +144,8 @@ func _refresh() -> void:
 		"sealed_generation": sealed_generation, "q_view": q_view,
 		"q_description": q_description, "q_legend": q_legend,
 		"field_structure_visible": field_structure_visible, "active": active,
+		"field_structure_mode": field_mode, "field_structure_details": field_details,
+		"field_structure_presentation": field_presentation,
 		"lifecycle": lifecycle, "lifecycle_reason": lifecycle_reason,
 		"processed": processed, "total": total, "disposition": disposition,
 		"formal_attention": formal_attention, "terminal_relevant": formal_attention,
@@ -151,6 +157,40 @@ func _refresh() -> void:
 		"pose_held": pose_held, "scene_label": scene_label,
 		"film_width": film_width, "film_height": film_height, "status_text": status_text,
 	}
+
+
+# FIELDVIZ-R0: Rays are illustrative local single-source density rays, never transport;
+# disabled physical fields and unsupported shapes are attributed. Details are appended to
+# the existing F line only when they fit its measured width, so the card never grows.
+func _fit_field_details(line: String, field_mode: String, presentation: Dictionary) -> String:
+	if field_mode == "Hidden":
+		return ""
+	# Priority order; each part is kept only while the whole line still fits.
+	var candidates: Array[String] = []
+	if field_mode == "Rays":
+		candidates.append("illustrative")
+	var disabled := int(presentation.get("disabled_not_drawn", 0))
+	if disabled > 0:
+		candidates.append("%d disabled not drawn" % disabled)
+	var unsupported := int(presentation.get("rays_unsupported", 0)) + int(presentation.get("vectors_unsupported", 0))
+	if unsupported > 0:
+		candidates.append("%d unsupported shape" % unsupported)
+	var kept: Array[String] = []
+	for part in candidates:
+		var trial := kept.duplicate()
+		trial.append(part)
+		if _fits_status_line(line + " (%s)" % " · ".join(trial)):
+			kept = trial
+	return "" if kept.is_empty() else " (%s)" % " · ".join(kept)
+
+
+func _fits_status_line(line: String) -> bool:
+	var width := _status.size.x
+	if width <= 0.0:
+		return false
+	var font := _status.get_theme_font("font")
+	var size := _status.get_theme_font_size("font_size")
+	return font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x <= width
 
 
 func _level_name(level: int) -> String:

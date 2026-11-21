@@ -413,11 +413,20 @@ func _qualify_input_contract(film_controller: Node, film: Node) -> void:
 	_press_node_key(player, KEY_V)
 	_assert(int(player.get("_loco_mode")) == locomotion_before, "V did not restore Walk/Fly")
 
-	var field_before := bool(gallery.get("_source_field").get("DebugVizInGame"))
+	# FIELDVIZ-R0: F cycles Hidden -> Vectors -> Rays -> Hidden; Hidden restores authored flags.
+	var field_source: Node = gallery.get("_source_field")
+	var field_before := bool(field_source.get("DebugVizInGame"))
+	var authored_vectors := bool(field_source.get("DebugVizShowDensityVectors"))
+	var authored_rays := bool(field_source.get("DebugVizShowDensityRays"))
 	await _dispatch_input_key(KEY_F)
-	_assert(bool(gallery.get("_source_field").get("DebugVizInGame")) != field_before, "F did not toggle field structure")
+	_assert(bool(field_source.get("DebugVizInGame")) != field_before, "F did not toggle field structure")
+	_assert(String(gallery.call("get_presentation_diagnostics")["field_mode"]) == "Vectors", "first F did not select Vectors")
 	await _dispatch_input_key(KEY_F)
-	_assert(bool(gallery.get("_source_field").get("DebugVizInGame")) == field_before, "F did not restore field structure")
+	_assert(bool(field_source.get("DebugVizInGame")) and bool(field_source.get("DebugVizShowDensityRays")) and not bool(field_source.get("DebugVizShowDensityVectors")), "second F did not select Rays")
+	_assert(String(gallery.call("get_presentation_diagnostics")["field_mode"]) == "Rays", "second F did not report Rays")
+	await _dispatch_input_key(KEY_F)
+	_assert(bool(field_source.get("DebugVizInGame")) == field_before, "F did not restore field structure")
+	_assert(bool(field_source.get("DebugVizShowDensityVectors")) == authored_vectors and bool(field_source.get("DebugVizShowDensityRays")) == authored_rays, "Hidden did not restore authored field flags")
 
 	var opacity_before := int(film_controller.call("GetOpacityPercent"))
 	_press_node_key(film_controller, KEY_BRACKETLEFT)

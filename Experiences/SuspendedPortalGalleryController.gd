@@ -168,6 +168,7 @@ func get_presentation_diagnostics() -> Dictionary:
 		"rings_visible": _rings_visible,
 		"labels_visible": _labels_visible,
 		"field_visible": bool(_source_field.get("DebugVizInGame")) if _source_field != null else false,
+		"field_mode": _field_structure_mode_name(),
 		"capture_in_progress": _capture_in_progress,
 		"last_capture_path": last_capture_path,
 		"last_capture_clean": last_capture_clean,
@@ -237,13 +238,13 @@ func _apply_hud_layout() -> void:
 func _update_presentation_hud() -> void:
 	if _truth_label == null or _film_camera == null:
 		return
-	var field_visible := bool(_source_field.get("DebugVizInGame"))
+	var field_mode := _field_structure_mode_name()
 	var film_mode := String(_film_controller.call("GetModeName"))
 	var row_cursor := int(_film_camera.get("FilmRowCursor"))
 	var live_row_status := "LIVE row %d" % row_cursor if film_mode == "LIVE" else "row inactive"
 	if _full_hud:
 		_truth_label.text = "THE OPTICAL FUNHOUSE / INSTRUMENT\nP Profile | G Film | Q Formal/View | N LIVE Shading | F Field\nWASD Move | Mouse Look | Shift Sprint | V Walk/Fly\n[ / ] Opacity | Shift+Q Previous | Ctrl+Q Reacquire\nH Explore | R Rings | L Labels | Esc Workbench\nF10 Capture | Shift+F10 Beauty\nDisabled: O Optical-only | E reserved\nF1/F2 renderer debug | F6-F9 legacy macros\n\nField: %s\nRings: %s · Labels: %s\nG cadence: %s · Portal remaps: %d\n\nGodot presentation != transport evidence\nGeometry + contacts + normals authoritative\nMaterials are raster presentation only" % [
-			"outer / inner limits · density direction" if field_visible else "hidden (field physics remains active)",
+			_field_structure_truth_text(field_mode),
 			"ON" if _rings_visible else "OFF",
 			"ON" if _labels_visible else "OFF",
 			live_row_status,
@@ -260,6 +261,33 @@ func _update_presentation_hud() -> void:
 		# construction. Reassert the compact bounds after replacing that text so
 		# the obsolete child minimum cannot keep the old footprint alive.
 		_truth_panel.size = Vector2(350.0, 116.0)
+
+
+# FIELDVIZ-R0: the camera owns the three-state F mode; this text mirrors it truthfully.
+func _field_structure_mode_name() -> String:
+	if _film_camera == null:
+		return "Hidden"
+	return str(_film_camera.get("CurrentFieldStructureModeName"))
+
+
+func _field_structure_truth_text(mode_name: String) -> String:
+	var text := "hidden (field physics remains active)"
+	match mode_name:
+		"Vectors":
+			text = "outer / inner limits · density direction"
+		"Rays":
+			text = "outer / inner limits · illustrative density rays"
+		"Mixed":
+			text = "mixed presentation (F returns to hidden)"
+	if mode_name != "Hidden" and _film_camera != null and _film_camera.has_method("GetFieldStructurePresentation"):
+		var presentation: Dictionary = _film_camera.call("GetFieldStructurePresentation")
+		var disabled := int(presentation.get("disabled_not_drawn", 0))
+		var unsupported := int(presentation.get("rays_unsupported", 0)) + int(presentation.get("vectors_unsupported", 0))
+		if disabled > 0:
+			text += " · %d disabled not drawn" % disabled
+		if unsupported > 0:
+			text += " · %d unsupported shape" % unsupported
+	return text
 
 
 func _set_hud_visible(visible_value: bool) -> void:

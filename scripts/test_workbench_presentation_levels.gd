@@ -182,6 +182,10 @@ func _test_inspect_control_semantics() -> void:
 	_send_key(KEY_F)
 	await _settle(3)
 	_assert(bool(film.get("CurrentFieldStructureVisible")) != field_before, "F is advertised as active in Inspect but did not act")
+	# FIELDVIZ-R0: F cycles Hidden -> Vectors -> Rays -> Hidden; two more presses restore Hidden.
+	_send_key(KEY_F)
+	await _settle(3)
+	_assert(str(film.get("CurrentFieldStructureModeName")) == "Rays", "Inspect second F did not select Rays")
 	_send_key(KEY_F)
 	await _settle(3)
 	_assert(bool(film.get("CurrentFieldStructureVisible")) == field_before, "Inspect F field visibility was not restored")
@@ -273,6 +277,9 @@ func _test_authoritative_information() -> void:
 	_assert(bool(state.get("field_structure_visible")) != field_before, "F did not update field visibility")
 	_send_key(KEY_F)
 	await _settle(4)
+	_send_key(KEY_F)
+	await _settle(4)
+	_assert(str(film.get("CurrentFieldStructureModeName")) == "Hidden", "F cycle did not return to Hidden")
 
 
 func _test_accepted_action_reveal() -> void:

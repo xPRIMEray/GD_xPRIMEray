@@ -98,8 +98,8 @@ func _stage_world() -> void:
 
 func _stage_field() -> void:
 	_begin_stage("reveal_field")
-	_send_key(KEY_F)
-	production_transitions.append("F:OFF->ON")
+	# FIELDVIZ: F cycles Hidden -> Vectors -> Rays -> Hidden; Hidden -> Vectors is the former OFF -> ON.
+	await _step_field_structure("Hidden", "Vectors", "F:OFF->ON")
 	await _wait_until(Callable(self, "_field_visuals_camera_visible"), "Field Structure camera-visible")
 	await _hold_frames(FIELD_HOLD_FRAMES)
 	await _capture_representative("02_field.png", "field_structure_on")
@@ -200,8 +200,9 @@ func _stage_return() -> void:
 	_send_key(KEY_O)
 	production_transitions.append("O:OPTICAL_ONLY->NORMAL")
 	await _wait_until(Callable(self, "_normal_presentation_ready"), "normal presentation restored")
-	_send_key(KEY_F)
-	production_transitions.append("F:ON->OFF")
+	# FIELDVIZ: reach Hidden from the verified current mode (Vectors) with checked presses only.
+	await _step_field_structure("Vectors", "Rays", "F:VECTORS->RAYS")
+	await _step_field_structure("Rays", "Hidden", "F:RAYS->OFF")
 	await _wait_until(Callable(self, "_field_structure_disabled"), "Field Structure OFF")
 	var heartbeat := int(film.get("RuntimeHealthHeartbeatCount"))
 	await _hold_frames(RETURN_HOLD_FRAMES)
@@ -409,6 +410,18 @@ func _write_manifest() -> void:
 	_assert(file != null, "cannot write demonstration manifest")
 	file.store_string(JSON.stringify(manifest, "  "))
 	file = null
+
+
+# One verified F step: the current mode must be `from`, and the press must reach `to`.
+func _step_field_structure(from: String, to: String, transition: String) -> void:
+	_assert(_field_mode() == from, "field structure was %s, expected %s before %s" % [_field_mode(), from, transition])
+	_send_key(KEY_F)
+	production_transitions.append(transition)
+	await _wait_until(func(): return _field_mode() == to, "Field Structure %s" % to)
+
+
+func _field_mode() -> String:
+	return str(film.get("CurrentFieldStructureModeName"))
 
 
 func _send_key(code: Key) -> void:

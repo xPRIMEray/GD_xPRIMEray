@@ -175,9 +175,10 @@ func _set_advanced_telemetry_visible(visible: bool) -> void:
 	_advanced_telemetry_visible = visible
 	if _overspace_debug_overlay != null:
 		_overspace_debug_overlay.visible = false
-	for field in [_gallery_field, _earth_field]:
-		if field != null:
-			field.set("DebugVizInGame", false)
+	# FIELDVIZ-R0: Tab hides field structure through the camera, which restores every
+	# source's authored flags and keeps the reported F mode truthful (no direct writes).
+	if _film_camera != null and _film_camera.has_method("ResetFieldStructureToHidden"):
+		_film_camera.call("ResetFieldStructureToHidden")
 	_apply_presentation_visibility()
 	_update_telemetry_label()
 

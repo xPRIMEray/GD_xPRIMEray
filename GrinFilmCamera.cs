@@ -2454,8 +2454,12 @@ public partial class GrinFilmCamera : Node
 	private ProbeViewMode _probeViewMode = ProbeViewMode.Outcome;
 	private Label _probeViewHud;
 	private Panel _probeViewHudBackdrop;
-	private bool _fieldStructureStatusKnown;
-	private bool _fieldStructureVisible;
+	private FieldStructureMode _fieldStructureMode = FieldStructureMode.Hidden;
+	private readonly Dictionary<ulong, AuthoredFieldVizFlags> _authoredFieldVizFlags = new();
+	private int _fieldStructureModeChangeCount;
+	private readonly List<FieldSource3D> _fieldStructureTrackedSources = new();
+	private readonly List<bool> _fieldStructureTrackedEnabled = new();
+	private int _fieldStructureEligibilityReconcileCount;
 	private ProbeOutcomeCode[] _probeOutcomes = Array.Empty<ProbeOutcomeCode>();
 	private byte[] _probeRefinLevel = Array.Empty<byte>();
 	private ushort[] _regionLabels = Array.Empty<ushort>();
@@ -4970,6 +4974,7 @@ private sealed class OverlayRollingWindow
 
 		public override void _Process(double delta)
 	{
+		ReconcileFieldStructureEligibility();
 		DebugLogConfig.EnableSnapshotLog = DebugSnapshotLog;
 		DebugLogConfig.SnapshotLogIntervalSec = Mathf.Max(0.05f, DebugSnapshotIntervalSec);
 		DebugLogConfig.EnableProbeLog = DebugProbeLog;
@@ -5246,7 +5251,12 @@ private sealed class OverlayRollingWindow
 			return legend.ToString();
 		}
 	}
+	/// <summary>Compatibility: true when any eligible field source is currently drawn.</summary>
 	public bool CurrentFieldStructureVisible => IsFieldStructureVisibleForHud();
+	/// <summary>Hidden, Vectors, Rays, or Mixed when the sources no longer match the selected mode.</summary>
+	public string CurrentFieldStructureModeName =>
+		FieldStructureVisibilityPolicy.DisplayName(_fieldStructureMode, AreFieldSourcesConsistentWithMode());
+	public int CurrentFieldStructureMode => (int)_fieldStructureMode;
 	public float CathedralFormalInitialRange => _cathedralSnapshotContext.IsValid
 		? _cathedralSnapshotContext.FormalInitialRange
 		: 0f;
@@ -5766,10 +5776,13 @@ private sealed class OverlayRollingWindow
 		if (_probeViewHud == null || !GodotObject.IsInstanceValid(_probeViewHud))
 			return;
 
-		string fieldStructureStatus = $"F field structure\nField Structure: {(IsFieldStructureVisibleForHud() ? "ON" : "OFF")}";
-		string fieldStructureDescription = IsFieldStructureVisibleForHud()
-			? "\nouter / inner limits · density direction"
-			: string.Empty;
+		string fieldStructureStatus = $"F field structure\nField Structure: {CurrentFieldStructureModeName}";
+		string fieldStructureDescription = _fieldStructureMode switch
+		{
+			FieldStructureMode.Vectors => "\nouter / inner limits · density direction",
+			FieldStructureMode.Rays => "\nouter / inner limits · illustrative density rays (local field, single source)",
+			_ => string.Empty,
+		};
 		string sealedProfileStatus = _sealedProbeViewAvailable
 			? $"\nSealed Profile: {_sealedProbeProfileDisplayName}"
 			: string.Empty;
@@ -5808,45 +5821,227 @@ private sealed class OverlayRollingWindow
 		return sources;
 	}
 
+	private readonly struct AuthoredFieldVizFlags
+	{
+		public AuthoredFieldVizFlags(bool inGame, bool vectors, bool rays)
+		{
+			InGame = inGame;
+			Vectors = vectors;
+			Rays = rays;
+		}
+
+		public readonly bool InGame;
+		public readonly bool Vectors;
+		public readonly bool Rays;
+	}
+
+	// Truthful observed state, computed from the sources rather than cached, so a writer
+	// outside F (for example the Workbench Tab path before this change) cannot desynchronize it.
 	private bool IsFieldStructureVisibleForHud()
 	{
-		if (_fieldStructureStatusKnown)
-			return _fieldStructureVisible;
+		foreach (FieldSource3D source in GetRuntimeFieldSources())
+		{
+			if (source.DebugVizEnabled && source.DebugVizInGame)
+				return true;
+		}
+		return false;
+	}
 
-		List<FieldSource3D> sources = GetRuntimeFieldSources();
-		bool foundEligible = false;
-		foreach (FieldSource3D source in sources)
+	private bool AreFieldSourcesConsistentWithMode()
+	{
+		foreach (FieldSource3D source in GetRuntimeFieldSources())
 		{
 			if (!source.DebugVizEnabled)
 				continue;
-			foundEligible = true;
-			if (!source.DebugVizInGame)
+			if (_fieldStructureMode == FieldStructureMode.Hidden)
+			{
+				// Hidden restores authored flags; anything drawn while Hidden is reported as Mixed.
+				if (source.DebugVizInGame)
+					return false;
+				continue;
+			}
+
+			FieldStructureVisibilityPolicy.ResolveSourceFlags(
+				_fieldStructureMode, source.Enabled, out bool drawInGame, out bool showVectors, out bool showRays);
+			if (source.DebugVizInGame != drawInGame
+				|| source.DebugVizShowDensityVectors != showVectors
+				|| source.DebugVizShowDensityRays != showRays)
 				return false;
 		}
-		return foundEligible;
+		return true;
 	}
 
 	private void ToggleFieldStructureVisibility()
 	{
+		ApplyFieldStructureMode(FieldStructureVisibilityPolicy.ResolveNext(
+			_fieldStructureMode, AreFieldSourcesConsistentWithMode()));
+	}
+
+	/// <summary>
+	/// Returns every field source to its authored presentation flags (mode Hidden).
+	/// Used by presentation owners that must hide field structure, such as Workbench Tab.
+	/// Presentation only: never touches Visible, Enabled or any physical field parameter.
+	/// </summary>
+	public void ResetFieldStructureToHidden()
+	{
+		ApplyFieldStructureMode(FieldStructureMode.Hidden);
+	}
+
+	private void ApplyFieldStructureMode(FieldStructureMode mode)
+	{
 		List<FieldSource3D> sources = GetRuntimeFieldSources();
-		List<bool> eligibleStates = new();
-		foreach (FieldSource3D source in sources)
+		if (mode == FieldStructureMode.Hidden)
 		{
-			if (source.DebugVizEnabled)
-				eligibleStates.Add(source.DebugVizInGame);
+			foreach (FieldSource3D source in sources)
+			{
+				if (!_authoredFieldVizFlags.TryGetValue(source.GetInstanceId(), out AuthoredFieldVizFlags authored))
+					continue;
+				source.DebugVizShowDensityVectors = authored.Vectors;
+				source.DebugVizShowDensityRays = authored.Rays;
+				source.DebugVizInGame = authored.InGame;
+			}
+			_authoredFieldVizFlags.Clear();
+			_fieldStructureTrackedSources.Clear();
+			_fieldStructureTrackedEnabled.Clear();
+		}
+		else
+		{
+			_fieldStructureTrackedSources.Clear();
+			_fieldStructureTrackedEnabled.Clear();
+			foreach (FieldSource3D source in sources)
+			{
+				// DebugVizEnabled stays authored; sources without it never draw and are left untouched.
+				if (!source.DebugVizEnabled)
+					continue;
+				ulong id = source.GetInstanceId();
+				if (!_authoredFieldVizFlags.ContainsKey(id))
+				{
+					_authoredFieldVizFlags[id] = new AuthoredFieldVizFlags(
+						source.DebugVizInGame, source.DebugVizShowDensityVectors, source.DebugVizShowDensityRays);
+				}
+				FieldStructureVisibilityPolicy.ResolveSourceFlags(
+					mode, source.Enabled, out bool drawInGame, out bool showVectors, out bool showRays);
+				source.DebugVizShowDensityVectors = showVectors;
+				source.DebugVizShowDensityRays = showRays;
+				source.DebugVizInGame = drawInGame;
+				_fieldStructureTrackedSources.Add(source);
+				_fieldStructureTrackedEnabled.Add(source.Enabled);
+			}
 		}
 
-		bool targetVisible = FieldStructureVisibilityPolicy.ResolveToggleTarget(
-			System.Runtime.InteropServices.CollectionsMarshal.AsSpan(eligibleStates));
-		foreach (FieldSource3D source in sources)
-		{
-			// DebugVizEnabled remains authored/configured; only the in-game gate is toggled.
-			source.DebugVizInGame = targetVisible;
-		}
-
-		_fieldStructureVisible = targetVisible;
-		_fieldStructureStatusKnown = true;
+		_fieldStructureMode = mode;
+		_fieldStructureModeChangeCount++;
 		UpdateProbeViewHud();
+	}
+
+	/// <summary>
+	/// FIELDVIZ-R0.2: FieldSource3D.Enabled is a plain exported field with no change notification,
+	/// so eligibility is reconciled by change detection. Bounded: while F is Vectors or Rays this
+	/// compares one cached bool per tracked source each frame, and writes the three presentation
+	/// flags only for a source whose physical Enabled actually changed (so its mesh rebuilds only on
+	/// a real transition). A disabled source is therefore never left drawn. Physics, authored flags
+	/// held for Hidden, and flag writes by other owners (reported as Mixed) are untouched.
+	/// </summary>
+	private void ReconcileFieldStructureEligibility()
+	{
+		if (_fieldStructureMode == FieldStructureMode.Hidden)
+			return;
+		for (int i = 0; i < _fieldStructureTrackedSources.Count; i++)
+		{
+			FieldSource3D source = _fieldStructureTrackedSources[i];
+			if (!GodotObject.IsInstanceValid(source))
+				continue;
+			bool enabled = source.Enabled;
+			if (enabled == _fieldStructureTrackedEnabled[i])
+				continue;
+			_fieldStructureTrackedEnabled[i] = enabled;
+			FieldStructureVisibilityPolicy.ResolveSourceFlags(
+				_fieldStructureMode, enabled, out bool drawInGame, out bool showVectors, out bool showRays);
+			source.DebugVizShowDensityVectors = showVectors;
+			source.DebugVizShowDensityRays = showRays;
+			source.DebugVizInGame = drawInGame;
+			_fieldStructureEligibilityReconcileCount++;
+		}
+	}
+
+	/// <summary>
+	/// Truthful three-state presentation report, computed from the sources. Disabled physical
+	/// fields and shapes without diagnostic support are attributed explicitly; rays are
+	/// illustrative local single-source density rays, never per-pixel transport.
+	/// </summary>
+	public Godot.Collections.Dictionary GetFieldStructurePresentation()
+	{
+		bool consistent = AreFieldSourcesConsistentWithMode();
+		int eligible = 0, ineligible = 0, drawn = 0, disabledNotDrawn = 0, disabledDrawn = 0;
+		int vectorsDrawn = 0, raysDrawn = 0, vectorsUnsupported = 0, raysUnsupported = 0;
+		Godot.Collections.Array sourceReports = new();
+		foreach (FieldSource3D source in GetRuntimeFieldSources())
+		{
+			if (!source.DebugVizEnabled)
+			{
+				ineligible++;
+				continue;
+			}
+
+			eligible++;
+			bool extents = source.ResolveAcademicRadii(out _, out _, out _);
+			bool raysSupported = extents && source.ResolveEffectiveParams(out _).shapeType == FieldShapeType.SphereRadial;
+			bool isDrawn = source.DebugVizInGame;
+			if (isDrawn)
+			{
+				drawn++;
+				if (!source.Enabled)
+					disabledDrawn++;
+				if (source.DebugVizShowDensityVectors)
+				{
+					if (extents) vectorsDrawn++;
+					else vectorsUnsupported++;
+				}
+				if (source.DebugVizShowDensityRays)
+				{
+					if (raysSupported) raysDrawn++;
+					else raysUnsupported++;
+				}
+			}
+			else if (!source.Enabled && _fieldStructureMode != FieldStructureMode.Hidden)
+			{
+				disabledNotDrawn++;
+			}
+
+			sourceReports.Add(new Godot.Collections.Dictionary
+			{
+				{ "name", source.Name },
+				{ "enabled", source.Enabled },
+				{ "drawn", isDrawn },
+				{ "vectors", source.DebugVizShowDensityVectors },
+				{ "rays", source.DebugVizShowDensityRays },
+				{ "extents_supported", extents },
+				{ "rays_supported", raysSupported },
+			});
+		}
+
+		return new Godot.Collections.Dictionary
+		{
+			{ "mode", FieldStructureVisibilityPolicy.DisplayName(_fieldStructureMode) },
+			{ "mode_index", (int)_fieldStructureMode },
+			{ "display_name", FieldStructureVisibilityPolicy.DisplayName(_fieldStructureMode, consistent) },
+			{ "consistent", consistent },
+			{ "eligible", eligible },
+			{ "ineligible", ineligible },
+			{ "drawn", drawn },
+			{ "disabled_not_drawn", disabledNotDrawn },
+			{ "disabled_drawn", disabledDrawn },
+			{ "vectors_drawn", vectorsDrawn },
+			{ "rays_drawn", raysDrawn },
+			{ "vectors_unsupported", vectorsUnsupported },
+			{ "rays_unsupported", raysUnsupported },
+			{ "rays_illustrative", _fieldStructureMode == FieldStructureMode.Rays },
+			{ "authored_snapshot_count", _authoredFieldVizFlags.Count },
+			{ "change_count", _fieldStructureModeChangeCount },
+			{ "tracked_sources", _fieldStructureTrackedSources.Count },
+			{ "eligibility_reconciliations", _fieldStructureEligibilityReconcileCount },
+			{ "sources", sourceReports },
+		};
 	}
 
 	private void ApplyProbeViewToPlate()
