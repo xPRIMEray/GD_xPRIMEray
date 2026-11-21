@@ -31,6 +31,7 @@ internal static class Program
 			,(nameof(DeterministicContactReplayTests), DeterministicContactReplayTests.Run)
 			,(nameof(SpatialKernelTests), SpatialKernelTests.Run)
 			,(nameof(ProbeProfileTests), ProbeProfileTests.Run)
+			,(nameof(MaterialCpuTests), MaterialCpuTests.Run)
         };
 
         int failures = 0;
