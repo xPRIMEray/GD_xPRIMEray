@@ -5,6 +5,12 @@ const LEVEL_EXPLORE := 0
 const LEVEL_INSTRUMENT := 1
 const LEVEL_INSPECT := 2
 const FORMAL_ATTENTION_STATES := ["incomplete", "invalidated", "failed"]
+# Presentation-only attribution for the MaterialCpu shading mode. The authoritative mode name
+# ("Material (CPU)") and shading_display are unchanged; the label is appended to the N line.
+const MATERIAL_CPU_MODE := "Material (CPU)"
+const MATERIAL_CPU_ATTRIBUTION := "Experimental · Display approximation"
+const MATERIAL_CPU_ATTRIBUTION_MINIMAL := "Experimental"
+const MATERIAL_CPU_EXPLANATION := "CPU material sampling validated. Raster color parity pending."
 
 @export var scene_label := "WORKBENCH"
 @export var film_camera_path: NodePath
@@ -104,11 +110,15 @@ func _refresh() -> void:
 	var shading_line := "N Shading: %s" % shading_display
 	if mode == "SNAPSHOT" and sealed:
 		shading_line = "N LIVE shading: %s · Q image unchanged" % shading_display
+	var material_attribution := _fit_material_attribution(shading_line, shading)
+	shading_line += material_attribution
 	var lines: Array[String] = [
 		profile_line,
 		"G Film: %s · %s" % [mode, q_line],
 		shading_line,
 	]
+	if shading == MATERIAL_CPU_MODE and _presentation_level != LEVEL_EXPLORE:
+		lines.append(MATERIAL_CPU_EXPLANATION)
 	if _presentation_level != LEVEL_EXPLORE:
 		var opacity_text := "—" if mode == "OFF" else "%d%%" % opacity_percent
 		lines.append("Film: %d×%d · Opacity: %s · Pose held: %s" % [film_width, film_height, opacity_text, "YES" if pose_held else "NO"])
@@ -150,7 +160,7 @@ func _refresh() -> void:
 		"processed": processed, "total": total, "disposition": disposition,
 		"formal_attention": formal_attention, "terminal_relevant": formal_attention,
 		"plate_hidden": plate_hidden, "opacity_percent": opacity_percent,
-		"shading": shading, "shading_display": shading_display,
+		"shading": shading, "shading_display": shading_display, "material_attribution": material_attribution,
 		"input_enabled": input_enabled, "q_readiness": "" if sealed else q_readiness,
 		"secondary_controls_visible": _secondary_controls.visible,
 		"secondary_controls": _secondary_controls.text,
@@ -207,6 +217,17 @@ func _fit_field_details(line: String, field_mode: String, presentation: Dictiona
 		if not placed and index == 0:
 			compact.append(groups[0][-1])
 	return " (%s)" % " · ".join(compact)
+
+
+# The experimental label is never dropped: the full attribution when it fits on the N line, otherwise
+# the minimal "Experimental" (which may wrap on very narrow cards rather than disappear).
+func _fit_material_attribution(line: String, shading: String) -> String:
+	if shading != MATERIAL_CPU_MODE:
+		return ""
+	var full := " · %s" % MATERIAL_CPU_ATTRIBUTION
+	if _fits_status_line(line + full):
+		return full
+	return " · %s" % MATERIAL_CPU_ATTRIBUTION_MINIMAL
 
 
 func _fits_status_line(line: String) -> bool:
