@@ -4209,6 +4209,22 @@ private sealed class OverlayRollingWindow
 		};
 	}
 
+	/// <summary>
+	/// Test-process shutdown support (not called by production code): completes every pending managed finalizer
+	/// while the engine is still alive. GodotSharp does not wait for the finalizer queue before native teardown,
+	/// and finalizers of engine-bound wrappers (collections, RefCounted bindings whose only remaining reference
+	/// is managed) that run during teardown crash the process after a passing verdict. Call immediately before
+	/// SceneTree.quit() in headless fixtures. Returns timing and collection counts for the log.
+	/// </summary>
+	public string DrainManagedFinalizersForTesting()
+	{
+		long t0 = Stopwatch.GetTimestamp();
+		int g0 = GC.CollectionCount(0), g2 = GC.CollectionCount(2);
+		GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect(); GC.WaitForPendingFinalizers();
+		double ms = (Stopwatch.GetTimestamp() - t0) * 1000.0 / Stopwatch.Frequency;
+		return $"ms={ms:F2} gen0={GC.CollectionCount(0) - g0} gen2={GC.CollectionCount(2) - g2} heap={GC.GetTotalMemory(false)}";
+	}
+
 	public string GetMaterialCpuManifestForTesting() => _materialCpuSnapshot?.ManifestText ?? "";
 
 	public Godot.Collections.Array GetMaterialCpuBindingsForTesting()

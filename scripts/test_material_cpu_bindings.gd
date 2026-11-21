@@ -42,11 +42,13 @@ func _run() -> void:
 	await _scene_transitions()
 	if failures.is_empty():
 		print("MATERIAL_CPU_BINDINGS PASS cases=%d server=%s" % [cases, DisplayServer.get_name()])
+		_drain_managed_finalizers()
 		quit(0)
 	else:
 		for failure in failures:
 			push_error("MATERIAL_CPU_BINDINGS FAIL: " + failure)
 		print("MATERIAL_CPU_BINDINGS FAIL count=%d cases=%d first=%s" % [failures.size(), cases, failures[0]])
+		_drain_managed_finalizers()
 		quit(1)
 
 
@@ -523,6 +525,16 @@ func _open(scene_kind: String) -> void:
 	film = root_scene.find_children("GrinFilmCamera", "", true, false)[0]
 	chamber = film.get_parent()
 	ctrl = chamber.get_node("FilmController")
+
+
+# Process shutdown: GodotSharp does not wait for pending .NET finalizers before native teardown, and an
+# engine-bound wrapper finalized during teardown crashes the process after the verdict (0xC0000005 in
+# godotsharp_array_destroy, or a FATAL in refcounted_disposed). Complete them while the engine is alive.
+func _drain_managed_finalizers() -> void:
+	if film != null and is_instance_valid(film) and film.has_method("DrainManagedFinalizersForTesting"):
+		print("MATERIAL_CPU_BINDINGS shutdown_drain %s" % film.call("DrainManagedFinalizersForTesting"))
+	else:
+		push_error("MATERIAL_CPU_BINDINGS shutdown_drain unavailable (film %s)" % [film])
 
 
 func _frames(count: int) -> void:
