@@ -3247,7 +3247,7 @@ public partial class RayBeamRenderer : Node3D
 			CollideWithAreas = true
 		};
 
-		float[] res = space.CastMotion(q);
+		float[] res = RendererCore.Common.PhysicsQueryGate.CastMotion(space, q);
 		// DECISION: require valid CastMotion result.
 		if (res == null || res.Length < 2) return false;
 
@@ -3314,7 +3314,7 @@ public partial class RayBeamRenderer : Node3D
 		long intersectStartTicks = System.Diagnostics.Stopwatch.GetTimestamp();
 		try
 		{
-			hit = space.IntersectRay(query);
+			hit = RendererCore.Common.PhysicsQueryGate.IntersectRay(space, query);
 			return true;
 		}
 		catch (NullReferenceException ex)
@@ -3390,7 +3390,7 @@ public partial class RayBeamRenderer : Node3D
 			rq.CollideWithAreas = true;
 			rq.HitFromInside = false;	// formerly true
 
-			var hit = space.IntersectRay(rq);
+			var hit = RendererCore.Common.PhysicsQueryGate.IntersectRay(space, rq);
 			// DECISION: first hit wins.
 			if (hit.Count > 0)
 			{

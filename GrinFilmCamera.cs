@@ -5050,7 +5050,7 @@ private sealed class OverlayRollingWindow
 
 		try
 		{
-			hit = space.IntersectRay(query);
+			hit = PhysicsQueryGate.IntersectRay(space, query);
 			return true;
 		}
 		catch (NullReferenceException ex)
@@ -12191,7 +12191,7 @@ private sealed class OverlayRollingWindow
 				query.HitFromInside = recorded.HitFromInside;
 				query.HitBackFaces = recorded.HitBackFaces;
 
-				Godot.Collections.Dictionary hit = space.IntersectRay(query);
+				Godot.Collections.Dictionary hit = PhysicsQueryGate.IntersectRay(space, query);
 				if (hit.Count == 0)
 				{
 					if (godotQueryObservations != null)
@@ -21979,7 +21979,7 @@ private sealed class OverlayRollingWindow
 											Vector3 mid = (segA + segB) * 0.5f;
 											localOverlapQuery.Transform = new Transform3D(Basis.Identity, mid);
 											ulong overlapStartUsec = statsEnabled ? Time.GetTicksUsec() : 0;
-											var overlaps = space.IntersectShape(localOverlapQuery, broadphaseCfg.MaxResults);
+											var overlaps = PhysicsQueryGate.IntersectShape(space, localOverlapQuery, broadphaseCfg.MaxResults);
 											if (statsEnabled && overlapStartUsec > 0)
 												chunk.QueryUsec += (long)(Time.GetTicksUsec() - overlapStartUsec);
 											telemetryQueryCountThisPixel += 1f;
@@ -24059,7 +24059,7 @@ private sealed class OverlayRollingWindow
 										ulong queryStartUsec = 0;
 										if (statsEnabled) queryStartUsec = Time.GetTicksUsec();
 										MarkGeomPixelProcessedForWork();
-										var overlaps = localSpace.IntersectShape(_overlapQuery, broadphaseCfg.MaxResults);
+										var overlaps = PhysicsQueryGate.IntersectShape(localSpace, _overlapQuery, broadphaseCfg.MaxResults);
 										if (statsEnabled && queryStartUsec > 0)
 											pass2QueryUsecAccum += (long)(Time.GetTicksUsec() - queryStartUsec);
 										if (telemetryHeatmapsEnabled)

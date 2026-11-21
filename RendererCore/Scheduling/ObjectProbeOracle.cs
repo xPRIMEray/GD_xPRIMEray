@@ -209,7 +209,7 @@ namespace RendererCore.Scheduling
                         var query = PhysicsRayQueryParameters3D.Create(camPos, camPos + dir * (len + 2.0f));
                         query.CollideWithAreas = false;
                         query.CollideWithBodies = true;
-                        var result = space.IntersectRay(query);
+                        var result = RendererCore.Common.PhysicsQueryGate.IntersectRay(space, query);
                         if (result.Count > 0)
                         {
                             Vector3 hitPos = (Vector3)result["position"];
