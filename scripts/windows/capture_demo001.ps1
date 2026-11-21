@@ -48,12 +48,10 @@ try {
     Remove-Item Env:DEMO001_GIT_COMMIT -ErrorAction SilentlyContinue
 }
 
-if (-not (Test-Path -LiteralPath $moviePath -PathType Leaf)) {
-    throw "Movie was not produced: $moviePath"
-}
-if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
-    throw "Manifest was not produced: $manifestPath"
-}
+# Mandatory post-process verification: the AVI is finalized only at engine exit (CQ0.5-STAB B3).
+$verification = & (Join-Path $PSScriptRoot 'verify_demo001_movie.ps1') `
+    -MoviePath $moviePath -ManifestPath $manifestPath -FramesPerSecond $FramesPerSecond -Width $Width -Height $Height
+Write-Host $verification
 
 $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 $movie = Get-Item -LiteralPath $moviePath

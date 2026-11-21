@@ -3,6 +3,8 @@ extends SceneTree
 const SCENE_ID := "portable_observatory.gallery.v1"
 const SCENE_PATH := "res://ObservatoryWorkbench.tscn"
 const LINEAGE := "13a2d965,af71c50e,94dff98b,f08122b9,5fdc5e1f"
+const FixtureStallGuard := preload("res://scripts/fixture_stall_guard.gd")
+const STALL_FRAMES := 600
 
 var root_scene: Node
 var chamber: Node
@@ -18,8 +20,13 @@ var replay_invocations := 0
 var query_dataset_sha := ""
 var query_count := 0
 var sealed_pose: Transform3D
+# Fail-closed state: quit() only takes effect at the end of the frame and the last exit code wins, so after the
+# first failure no step may write artifacts, print PASS or call quit(0).
+var _failed := false
+var _guard
 
 func _initialize() -> void:
+	_guard = FixtureStallGuard.new(self, "ARTIFACT001", STALL_FRAMES)
 	output_dir = OS.get_environment("ARTIFACT001_OUTPUT")
 	if output_dir.is_empty():
 		output_dir = "/tmp/artifact001"
@@ -99,6 +106,8 @@ func _initialize() -> void:
 	_assert_same_acquisition("Transport Effort")
 	await _capture_stage("transport_effort.png", "Hermetic", true)
 
+	if _failed:
+		return
 	var bundle_dir := output_dir.path_join("portable_bundle")
 	var failure: String = film.call(
 		"CapturePortableObservatoryBundle",
@@ -111,8 +120,15 @@ func _initialize() -> void:
 		_source_tree_state(),
 		_authored_diff_sha256())
 	_assert(failure.is_empty(), "portable bundle failed: " + failure)
+	if _failed:
+		return
 	_write_artifact_manifest()
+	if _failed:
+		return
 	_write_artifact_summary()
+	if _failed:
+		return
+	_guard.stop()
 	print("ARTIFACT001 PASS output=%s generation=%d dimensions=%dx%d" % [output_dir, start_generation, _width(), _height()])
 	quit(0)
 
@@ -122,8 +138,12 @@ func _capture_stage(file_name: String, context_name: String, sealed_expected: bo
 		_assert(int(film.get("SealedProbeViewGeneration")) == start_generation if start_generation > 0 else true, file_name + " generation changed")
 	var image := root_scene.get_viewport().get_texture().get_image()
 	_assert(image != null and image.get_width() > 0 and image.get_height() > 0, file_name + " has no viewport image")
+	if _failed:
+		return
 	var path := output_dir.path_join(file_name)
 	_assert(image.save_png(path) == OK, "failed to save " + file_name)
+	if _failed:
+		return
 	sequence.append({
 		"file": file_name,
 		"context": context_name,
@@ -137,6 +157,7 @@ func _capture_stage(file_name: String, context_name: String, sealed_expected: bo
 func _wait_for_complete() -> void:
 	for _i in range(1200):
 		await process_frame
+		_guard.progress("formal_snapshot")
 		if str(film.get("CathedralSnapshotLifecycleStateName")) in ["requested", "waiting_for_physics", "capturing"]:
 			_assert(bool(player.call("IsPoseHeld")), "observer pose released during formal acquisition")
 		if bool(film.get("ProbeViewAvailable")) and str(film.get("CathedralSnapshotLifecycleStateName")) == "complete":
@@ -157,6 +178,8 @@ func _write_artifact_manifest() -> void:
 	var manifest_path := output_dir.path_join("portable_bundle").path_join("manifest.json")
 	var manifest = JSON.parse_string(FileAccess.get_file_as_string(manifest_path))
 	_assert(manifest is Dictionary, "bundle manifest is not a JSON object")
+	if _failed:
+		return
 	var proof: Dictionary = manifest["same_generation_proof"]
 	proof["human_sequence_generation_start"] = start_generation
 	proof["human_sequence_generation_end"] = int(film.get("SealedProbeViewGeneration"))
@@ -187,10 +210,15 @@ func _write_artifact_manifest() -> void:
 	}
 	var file := FileAccess.open(output_dir.path_join("manifest.json"), FileAccess.WRITE)
 	_assert(file != null, "cannot rewrite artifact manifest")
+	if _failed:
+		return
 	file.store_string(JSON.stringify(manifest, "\t") + "\n")
 
 func _write_artifact_summary() -> void:
 	var manifest = JSON.parse_string(FileAccess.get_file_as_string(output_dir.path_join("manifest.json")))
+	_assert(manifest is Dictionary, "artifact manifest is not a JSON object")
+	if _failed:
+		return
 	var histograms: Dictionary = manifest["histograms"]
 	var acquisition: Dictionary = manifest["acquisition"]
 	var effort: Dictionary = histograms["effort"]
@@ -240,6 +268,8 @@ func _write_artifact_summary() -> void:
 	])
 	var file := FileAccess.open(output_dir.path_join("run_summary.md"), FileAccess.WRITE)
 	_assert(file != null, "cannot write artifact summary")
+	if _failed:
+		return
 	file.store_string("\n".join(lines) + "\n")
 
 func _all_field_sources_runtime_visible() -> bool:
@@ -282,6 +312,8 @@ func _sha256_file(path: String) -> String:
 	context.start(HashingContext.HASH_SHA256)
 	var file := FileAccess.open(path, FileAccess.READ)
 	_assert(file != null, "cannot hash " + path)
+	if _failed:
+		return ""
 	context.update(file.get_buffer(file.get_length()))
 	return context.finish().hex_encode()
 
@@ -312,6 +344,7 @@ func _authored_diff_sha256() -> String:
 func _settle(frames: int) -> void:
 	for _i in range(frames):
 		await process_frame
+		_guard.progress()
 
 func _assert(condition: bool, message: String) -> void:
 	if not condition:
@@ -319,4 +352,8 @@ func _assert(condition: bool, message: String) -> void:
 
 func _fail(message: String) -> void:
 	push_error("ARTIFACT001 FAIL: " + message)
+	if _failed:
+		return
+	_failed = true
+	_guard.stop()
 	quit(1)

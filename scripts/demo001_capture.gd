@@ -14,6 +14,9 @@ const LIVE_HOLD_FRAMES := 360
 const EVIDENCE_HOLD_FRAMES := 120
 const RETURN_HOLD_FRAMES := 120
 const CONDITION_TIMEOUT_FRAMES := 1200
+const FixtureStallGuard := preload("res://scripts/fixture_stall_guard.gd")
+# Choreography frames advance every process frame; a dead coroutine stops them while MovieWriter keeps recording.
+const STALL_FRAMES := 300
 
 var scene_root: Node
 var chamber: Node
@@ -41,9 +44,21 @@ var first_formal_validation_green := false
 var sealed_formal_validation_green := false
 var q_mapping_verified := false
 var post_g_heartbeat_stable := false
+# Fail-closed state: quit() only takes effect at the end of the frame and the last exit code wins, so after the
+# first failure no step may write the manifest, print PASS or call quit(0).
+var _failed := false
+var _guard
+var movie_path := ""
 
 
 func _initialize() -> void:
+	_guard = FixtureStallGuard.new(self, "DEMO001", STALL_FRAMES)
+	# MovieWriter opens its file during engine startup, before this script runs. A missing or unwritable output
+	# directory leaves no open movie (ERR_CANT_OPEN) while frames are still "recorded"; fail before choreography.
+	movie_path = Engine.get_write_movie_path()
+	if not movie_path.is_empty() and not FileAccess.file_exists(movie_path):
+		_fail("MovieWriter output is not open: %s (output directory missing or not writable)" % movie_path)
+		return
 	output_dir = OS.get_environment("DEMO001_OUTPUT_DIR")
 	if output_dir.is_empty():
 		output_dir = ProjectSettings.globalize_path("res://output/demo001")
@@ -82,9 +97,16 @@ func _initialize() -> void:
 	await _stage_sealed_observation()
 	await _stage_probe_views()
 	await _stage_return()
+	if _failed:
+		return
 	_write_manifest()
-	print("DEMO001 PASS frames=%d duration=%.3f output=%s" % [
-		choreography_frame, float(choreography_frame) / float(fixed_fps), output_dir])
+	if _failed:
+		return
+	_guard.stop()
+	# The AVI is finalized only at engine exit; the movie itself must be verified externally
+	# (scripts/windows/capture_demo001.ps1 checks it against demo001_manifest.json).
+	print("DEMO001 PASS frames=%d duration=%.3f output=%s movie=%s movie_finalization=external_verification_required" % [
+		choreography_frame, float(choreography_frame) / float(fixed_fps), output_dir, movie_path if not movie_path.is_empty() else "none"])
 	quit(0)
 
 
@@ -269,6 +291,7 @@ func _hold_frames(count: int) -> void:
 func _next_frame() -> void:
 	await process_frame
 	choreography_frame += 1
+	_guard.progress()
 
 
 func _begin_stage(stage_id: String) -> void:
@@ -287,10 +310,14 @@ func _capture_representative(file_name: String, stage_id: String) -> void:
 		return
 	var image := scene_root.get_viewport().get_texture().get_image()
 	_assert(image != null and image.get_width() > 0 and image.get_height() > 0, file_name + " has no viewport image")
+	if _failed:
+		return
 	_assert(image.get_width() == capture_width and image.get_height() == capture_height,
 		file_name + " does not match requested capture resolution")
 	var path := frames_dir.path_join(file_name)
 	_assert(image.save_png(path) == OK, "failed to save " + file_name)
+	if _failed:
+		return
 	representative_frames.append({
 		"file": "frames/" + file_name,
 		"stage": stage_id,
@@ -409,6 +436,8 @@ func _write_manifest() -> void:
 	var manifest_path := output_dir.path_join("demo001_manifest.json")
 	var file := FileAccess.open(manifest_path, FileAccess.WRITE)
 	_assert(file != null, "cannot write demonstration manifest")
+	if _failed:
+		return
 	file.store_string(JSON.stringify(manifest, "  "))
 	file = null
 
@@ -441,4 +470,8 @@ func _assert(condition: bool, message: String) -> void:
 
 func _fail(message: String) -> void:
 	push_error("DEMO001 FAIL: " + message)
+	if _failed:
+		return
+	_failed = true
+	_guard.stop()
 	quit(1)
