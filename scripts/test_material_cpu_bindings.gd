@@ -9,6 +9,8 @@ const WB := "res://ObservatoryWorkbench.tscn"
 const GAL := "res://Experiences/SuspendedPortalGallery.tscn"
 const CHECKER_PATH := "res://Experiences/checkerboard_3d.gdshader"
 const MATERIAL_CPU := "Material (CPU)"
+const SCAN_WAIT_FRAME_LIMIT := 600
+const SCAN_WAIT_MS_LIMIT := 30000
 
 var failures: Array[String] = []
 var kind := ""
@@ -268,7 +270,7 @@ func _diagnostic_fixtures() -> void:
 	meta_body.set_meta("xpr_presentation_mesh", NodePath("Visual/Deep"))
 	var bad_meta := _fixture(holder, "BadMetaFallsBack", [_box_mesh(flat)], null)
 	bad_meta.set_meta("xpr_presentation_mesh", NodePath("Missing"))
-	await _frames(4)
+	await _await_scans(2, "diagnostic fixtures added")
 	var expected := {
 		"NoMesh": ["NoPresentationMesh", "no_mesh_child"],
 		"TwoMeshes": ["AmbiguousPresentationMesh", "mesh_children=2"],
@@ -312,18 +314,18 @@ func _diagnostic_fixtures() -> void:
 	var shader: Shader = checker
 	var original_code := shader.code
 	shader.code = original_code + "\n// edited\n"
-	await _frames(4)
+	await _await_scans(2, "checker shader edited")
 	var edited := 0
 	for row in _rows():
 		if str(row["reason"]) == "ShaderSourceHashMismatch":
 			edited += 1
 	_check(edited >= 6, "an edited checker shader is reported as ShaderSourceHashMismatch on every checker body (%d)" % edited)
 	shader.code = original_code
-	await _frames(4)
+	await _await_scans(2, "checker shader restored")
 	_check(str(_state()["manifest_sha256"]) == manifest_before and str(_state()["table_provenance_sha256"]) == provenance_before, "restoring the shader restores the manifest and table provenance")
 	cases += 2
 	holder.queue_free()
-	await _frames(4)
+	await _await_scans(2, "diagnostic fixtures freed")
 
 
 func _fixture(parent: Node3D, name: String, meshes: Array, shape: Shape3D) -> StaticBody3D:
@@ -361,16 +363,16 @@ func _invalidation_material_swap() -> void:
 	var red := StandardMaterial3D.new()
 	red.albedo_color = Color(0.9, 0.1, 0.1)
 	sphere_mesh.material_override = red
-	await _frames(4)
+	await _await_scans(2, "material_override swapped")
 	var swapped := _state()
 	var rows := _rows_for("ReferenceSphere")
 	cases += 1
 	_check(int(swapped["generation"]) == int(before["generation"]) + 1 and str(swapped["last_rebuild_reason"]) == "state_changed", "material_override swap rebuilds once (%s -> %s)" % [before["generation"], swapped["generation"]])
 	_check(rows.size() == 1 and str(rows[0]["kind"]) == "Flat" and str(rows[0]["source"]) == "material_override", "swapped sphere binds the override (%s)" % [rows])
-	await _frames(6)
+	await _await_scans(3, "steady state")
 	_check(int(_state()["generation"]) == int(swapped["generation"]), "steady state does not rebuild")
 	sphere_mesh.material_override = original_override
-	await _frames(4)
+	await _await_scans(2, "material_override restored")
 	var restored := _state()
 	_check(int(restored["generation"]) == int(swapped["generation"]) + 1, "restoring the override rebuilds once")
 	_check(str(restored["manifest_sha256"]) == str(before["manifest_sha256"]) and str(restored["table_provenance_sha256"]) == str(before["table_provenance_sha256"]), "restored binding state restores manifest and provenance")
@@ -380,13 +382,13 @@ func _invalidation_material_swap() -> void:
 func _invalidation_live_reset_and_mode_leave() -> void:
 	var before := _state()
 	film.call("ResetFilmPassManual")
-	await _frames(4)
+	await _await_scans(2, "LIVE reset")
 	var reset := _state()
 	cases += 1
 	_check(int(reset["generation"]) == int(before["generation"]) + 1 and str(reset["last_rebuild_reason"]) == "live_reset", "LIVE reset rebuilds (%s)" % reset["last_rebuild_reason"])
 	_check(str(reset["manifest_sha256"]) == str(before["manifest_sha256"]), "LIVE reset keeps an unchanged manifest")
 	var revalidations := int(reset["revalidations"])
-	await _frames(10)
+	await _await_scans(3, "LIVE steady revalidation")
 	_check(int(_state()["revalidations"]) > revalidations and int(_state()["generation"]) == int(reset["generation"]), "revalidation continues each step without rebuilding")
 	ctrl.call("cycle_shading_mode")
 	await _frames(3)
@@ -394,14 +396,14 @@ func _invalidation_live_reset_and_mode_leave() -> void:
 	cases += 1
 	_check(not bool(left["snapshot_held"]) and str(left["last_release_reason"]) == "mode_left", "leaving MaterialCpu releases the snapshot (%s)" % [left])
 	var revalidations_after_leave := int(left["revalidations"])
-	await _frames(10)
+	await _frames_and_physics_ticks(10, 4)
 	_check(int(_state()["revalidations"]) == revalidations_after_leave, "no scanning outside MaterialCpu")
 	await _select_material_cpu_live()
 	_check(bool(_state()["snapshot_held"]) and str(_state()["last_rebuild_reason"]) == "enter", "re-entering MaterialCpu rebuilds")
 	# OFF stops RenderStep; the snapshot is retained but never sampled until LIVE resumes.
 	ctrl.call("set_mode", 0)
 	var stats_before: Dictionary = _state()["pass_stats"]
-	await _frames(10)
+	await _frames_and_physics_ticks(10, 4)
 	_check(_state()["pass_stats"] == stats_before, "film OFF performs no sampling")
 	cases += 1
 	await _select_material_cpu_live()
@@ -463,7 +465,7 @@ func _select_material_cpu_live() -> void:
 	_check(str(ctrl.call("GetShadingModeName")) == MATERIAL_CPU, "N reaches Material (CPU)")
 	if str(ctrl.call("GetModeName")) != "LIVE":
 		ctrl.call("set_mode", 2)
-	await _frames(6)
+	await _await_scans(2, "enter LIVE MaterialCpu")
 	_check(bool(_state()["snapshot_held"]), "LIVE MaterialCpu holds a snapshot")
 
 
@@ -526,6 +528,39 @@ func _open(scene_kind: String) -> void:
 func _frames(count: int) -> void:
 	for _i in range(count):
 		await process_frame
+
+
+# Synchronization contract: the film revalidates (and, on a change, rebuilds) the MaterialCpu binding snapshot at the
+# start of each LIVE RenderStep. With separate-thread physics, _Process only queues that step and the physics pump
+# executes it, so a fixed number of process frames can contain zero revalidations. Wait instead for `count`
+# revalidations that started after the caller's scene change (all on the main thread, so each one observes it).
+# Bounded: a timeout is recorded as a fixture failure with the film state, never skipped.
+func _await_scans(count: int, label: String) -> void:
+	var start := int(_state()["revalidations"])
+	var ticks_start := Engine.get_physics_frames()
+	var started_ms := Time.get_ticks_msec()
+	var waited := 0
+	while int(_state()["revalidations"]) < start + count:
+		if waited >= SCAN_WAIT_FRAME_LIMIT or Time.get_ticks_msec() - started_ms > SCAN_WAIT_MS_LIMIT:
+			var state := _state()
+			_check(false, "%s: timed out waiting for %d MaterialCpu revalidation(s) (revalidations %d -> %d, frames %d, physics ticks %d, %d ms, generation %s, snapshot_held %s, rebuild_requested %s, film %s, shading %s)" % [
+				label, count, start, int(state["revalidations"]), waited, Engine.get_physics_frames() - ticks_start,
+				Time.get_ticks_msec() - started_ms, state["generation"], state["snapshot_held"], state["rebuild_requested"],
+				ctrl.call("GetModeName"), ctrl.call("GetShadingModeName")])
+			return
+		await process_frame
+		waited += 1
+
+
+# For assertions that something does NOT happen: guarantee the physics pump had the opportunity to run a step.
+func _frames_and_physics_ticks(frame_count: int, tick_count: int) -> void:
+	var ticks_start := Engine.get_physics_frames()
+	await _frames(frame_count)
+	var waited := 0
+	while Engine.get_physics_frames() - ticks_start < tick_count and waited < SCAN_WAIT_FRAME_LIMIT:
+		await process_frame
+		waited += 1
+	_check(Engine.get_physics_frames() - ticks_start >= tick_count, "physics pump advanced %d of %d ticks while waiting" % [Engine.get_physics_frames() - ticks_start, tick_count])
 
 
 func _check(condition: bool, message: String) -> void:
