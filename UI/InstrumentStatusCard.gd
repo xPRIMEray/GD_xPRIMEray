@@ -175,13 +175,38 @@ func _fit_field_details(line: String, field_mode: String, presentation: Dictiona
 	var unsupported := int(presentation.get("rays_unsupported", 0)) + int(presentation.get("vectors_unsupported", 0))
 	if unsupported > 0:
 		candidates.append("%d unsupported shape" % unsupported)
-	var kept: Array[String] = []
-	for part in candidates:
-		var trial := kept.duplicate()
-		trial.append(part)
-		if _fits_status_line(line + " (%s)" % " · ".join(trial)):
-			kept = trial
-	return "" if kept.is_empty() else " (%s)" % " · ".join(kept)
+	if candidates.is_empty():
+		return ""
+	var full := " (%s)" % " · ".join(candidates)
+	if unsupported == 0 or _fits_status_line(line + full):
+		var kept: Array[String] = []
+		for part in candidates:
+			var trial := kept.duplicate()
+			trial.append(part)
+			if _fits_status_line(line + " (%s)" % " · ".join(trial)):
+				kept = trial
+		return "" if kept.is_empty() else " (%s)" % " · ".join(kept)
+	# FIELDVIZ-R0.2.1: a nonzero unsupported count is never silently omitted. Under constrained width it
+	# is placed first, in the longest explicit form that fits; the remaining parts follow only while the
+	# line still fits. If even the shortest explicit form cannot fit, it is still shown.
+	var groups: Array = [["%d unsupported shape" % unsupported, "%d unsupported" % unsupported]]
+	if field_mode == "Rays":
+		groups.append(["illustrative"])
+	if disabled > 0:
+		groups.append(["%d disabled not drawn" % disabled, "%d disabled" % disabled])
+	var compact: Array[String] = []
+	for index in range(groups.size()):
+		var placed := false
+		for variant in groups[index]:
+			var trial := compact.duplicate()
+			trial.append(variant)
+			if _fits_status_line(line + " (%s)" % " · ".join(trial)):
+				compact = trial
+				placed = true
+				break
+		if not placed and index == 0:
+			compact.append(groups[0][-1])
+	return " (%s)" % " · ".join(compact)
 
 
 func _fits_status_line(line: String) -> bool:

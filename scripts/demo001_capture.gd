@@ -2,7 +2,8 @@ extends SceneTree
 
 const DEMO_NAME := "xPRIMEray Demo 001"
 const DEMO_VERSION := "1.0"
-const CHOREOGRAPHY_VERSION := "demo001.instrument-film.v1"
+# v2 (FIELDVIZ-R0.2.1): three-state F choreography, F:OFF->ON then F:VECTORS->RAYS and F:RAYS->OFF.
+const CHOREOGRAPHY_VERSION := "demo001.instrument-film.v2"
 const SCENE_PATH := "res://ObservatoryWorkbench.tscn"
 const FIELD_PRESENTATION_LAYER_MASK := 1 << 19
 

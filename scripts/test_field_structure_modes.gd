@@ -323,11 +323,12 @@ func _check_scene_text(name: String) -> void:
 		card.call("ForceRefreshForTesting")
 		var state: Dictionary = card.call("GetDisplayedStateForTesting")
 		var details := str(state.get("field_structure_details"))
-		var first_line := str(state.get("status_text")).split("
-")[0]
+		var first_line := str(state.get("status_text")).split("\n")[0]
 		var status := card.get_node("Margin/Content/Status") as Label
-		_check(status.get_line_count() == str(state.get("status_text")).split("
-").size(), "Workbench card lines do not wrap in %s" % name)
+		var text_lines := str(state.get("status_text")).split("\n").size()
+		print("FIELD_STRUCTURE_MODES wb card mode=%s label_lines=%d text_lines=%d status_width=%.1f card_width=%.1f details=%s first_line=%s" % [
+			name, status.get_line_count(), text_lines, status.size.x, card.size.x, details, first_line])
+		_check(status.get_line_count() == text_lines, "Workbench card lines do not wrap in %s (label %d, text %d, width %.1f)" % [name, status.get_line_count(), text_lines, status.size.x])
 		if name == "Hidden":
 			_check(details.is_empty(), "Workbench card has no field details while Hidden")
 		else:
@@ -549,8 +550,12 @@ func _disabled_and_unsupported() -> void:
 	if kind == "wb":
 		card.call("ForceRefreshForTesting")
 		var details := str(card.call("GetDisplayedStateForTesting").get("field_structure_details"))
-		# Greedy fit: the card keeps the highest-priority parts that fit; the API always attributes all.
-		_check(details.contains("illustrative") and details.contains("disabled not drawn"), "Workbench card keeps illustrative + disabled attribution (%s)" % details)
+		# R0.2.1: a nonzero unsupported count is always on the card; other parts follow while they fit.
+		# The camera presentation API always attributes everything.
+		if box != null:
+			_check(details.contains("unsupported"), "Workbench card always attributes the unsupported shape (%s)" % details)
+		else:
+			_check(details.contains("illustrative") and details.contains("disabled not drawn"), "Workbench card keeps illustrative + disabled attribution (%s)" % details)
 		print("FIELD_STRUCTURE_MODES wb synthetic_card_details=%s" % details)
 		if box != null:
 			_check(int(rays.get("rays_unsupported")) == 1, "camera presentation attributes the unsupported shape")
@@ -573,9 +578,13 @@ func _scene_transitions() -> void:
 		await _open(scene_kind)
 		cases += 1
 		_check(_mode() == "Hidden" and _drawn() == 0 and int(_presentation().get("authored_snapshot_count")) == 0, "%s transition begins Hidden" % scene_kind)
+		# R0.2.1 evidence for deferring dynamic membership: shipping scenes never add or remove field
+		# sources while F is active; the set is fixed from scene load.
+		var members_at_load := _source_paths()
 		await _key(KEY_F)
 		await _key(KEY_F)
 		_check(_mode() == "Rays", "%s reaches Rays before leaving" % scene_kind)
+		_check(_source_paths() == members_at_load and int(_presentation().get("tracked_sources", -1)) == _eligible_sources().size(), "%s field-source membership static while F is active (%s)" % [scene_kind, members_at_load])
 
 
 # ------------------------------------------------------------------ measurement
@@ -617,6 +626,14 @@ func _open(scene_kind: String) -> void:
 
 func _sources() -> Array:
 	return get_nodes_in_group("field_sources")
+
+
+func _source_paths() -> Array:
+	var paths := []
+	for source in _sources():
+		paths.append(str(root_scene.get_path_to(source)))
+	paths.sort()
+	return paths
 
 
 func _eligible_sources() -> Array:
@@ -742,12 +759,31 @@ func _line_fits(label: Label, prefix: String) -> bool:
 
 
 func _wait_sealed() -> void:
+	# R0.2.1: record every lifecycle transition so a seal failure carries its acquisition state.
+	var trace := PackedStringArray()
+	var last := ""
+	var frames := 0
 	for _i in range(SEAL_TIMEOUT_FRAMES):
+		var state := _lifecycle_state()
+		if state != last:
+			trace.append("f%d %s" % [frames, state])
+			last = state
 		if bool(film.get("ProbeViewAvailable")) and not bool(film.get("CathedralSnapshotLifecycleActive")):
 			break
 		await process_frame
-	_check(bool(film.get("ProbeViewAvailable")), "acquisition sealed")
+		frames += 1
+	var sealed := bool(film.get("ProbeViewAvailable"))
+	print("FIELD_STRUCTURE_MODES %s seal sealed=%s frames=%d rows=%d processed=%d/%d film=%s trace=%s" % [
+		kind, sealed, frames, int(film.get("FilmRowCursor")), int(film.get("CathedralSnapshotProcessedPixelCount")),
+		int(film.get("CathedralSnapshotTotalPixelCount")), str(ctrl.call("GetModeName")), " | ".join(trace)])
+	_check(sealed, "acquisition sealed (%s)" % last)
 	await _frames(3)
+
+
+func _lifecycle_state() -> String:
+	return "%s/%s active=%s mode=%s" % [
+		film.get("CathedralSnapshotLifecycleStateName"), film.get("CathedralSnapshotLifecycleReasonName"),
+		film.get("CathedralSnapshotLifecycleActive"), ctrl.call("GetModeName")]
 
 
 func _film_hash() -> String:
