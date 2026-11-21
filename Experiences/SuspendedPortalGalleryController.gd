@@ -324,9 +324,10 @@ func _capture_current_viewport(clean: bool) -> void:
 		_apply_hud_layout()
 	var timestamp := Time.get_datetime_string_from_system(false, true).replace(":", "-")
 	var mode_name := "beauty" if clean else ("full" if _full_hud else "minimal")
-	var file_name := "%s_%s_%dx%d.png" % [timestamp, mode_name, image.get_width(), image.get_height()]
-	var output_path := ProjectSettings.globalize_path(SCREENSHOT_OUTPUT_ROOT.path_join(file_name))
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SCREENSHOT_OUTPUT_ROOT))
+	var base_name := "%s_%s_%dx%d" % [timestamp, mode_name, image.get_width(), image.get_height()]
+	var output_dir := ProjectSettings.globalize_path(SCREENSHOT_OUTPUT_ROOT)
+	DirAccess.make_dir_recursive_absolute(output_dir)
+	var output_path := unique_capture_path(output_dir, base_name)
 	_capture_thread = Thread.new()
 	var start_error := _capture_thread.start(_save_screenshot_worker.bind(image, output_path))
 	var save_error := start_error
@@ -357,6 +358,18 @@ func _capture_current_viewport(clean: bool) -> void:
 	screenshot_captured.emit(last_capture_path, clean, last_capture_state_restored)
 	if _pending_reveal:
 		_apply_reveal()
+
+
+## Capture names have one-second resolution. A second capture of the same mode within that second keeps the
+## established name with a numeric suffix (_2, _3, ...) instead of overwriting the first file. Captures are
+## serialized by _capture_in_progress, so the chosen path is not raced by another capture.
+func unique_capture_path(output_dir: String, base_name: String) -> String:
+	var path := output_dir.path_join(base_name + ".png")
+	var suffix := 2
+	while FileAccess.file_exists(path):
+		path = output_dir.path_join("%s_%d.png" % [base_name, suffix])
+		suffix += 1
+	return path
 
 
 func _save_screenshot_worker(image: Image, output_path: String) -> int:
