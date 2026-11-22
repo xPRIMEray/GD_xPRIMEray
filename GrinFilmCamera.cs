@@ -5796,6 +5796,75 @@ private sealed class OverlayRollingWindow
 			: reason;
 	}
 
+	/// <summary>
+	/// INSPECT-R0.1: writes the provisional ordered per-pixel event export for the selected pixels of
+	/// the completed, sealed Formal acquisition. Observational only: it reads the sealed snapshot and the
+	/// recorder slots, validates every pixel against the seal, and refuses (writing nothing) on any mismatch.
+	/// Returns an empty string on success or the refusal reason.
+	/// </summary>
+	public string CapturePixelPathObservationBundle(
+		string outputDirectory,
+		string runId,
+		string semanticSceneId,
+		string godotScenePath,
+		string engineCommit,
+		string sourceTreeState,
+		string authoredDiffSha256,
+		int[] pixelIndices)
+	{
+		if (!_sealedProbeViewAvailable ||
+			_lastProbeSnapshotLifecycleResult.State != ProbeSnapshotLifecycleState.Complete ||
+			_sealedFormalTransportObservationSnapshot == null)
+			return "formal_transport_observation_unavailable";
+		if (_probeSnapshotLifecycleActive)
+			return "formal_acquisition_active";
+		if (_rbr == null || !GodotObject.IsInstanceValid(_rbr))
+			return "recorder_unavailable";
+		int total = _sealedProbeViewWidth * _sealedProbeViewHeight;
+		if (_sealedProbeViewContactCounts.Length != total || _sealedFormalTransportFirstContactSteps.Length != total)
+			return "sealed_transport_channels_invalid";
+
+		XPrimeRay.ObserverInstrumentation.PixelPathSourceV1[] sources = _rbr.CaptureFormalPixelPathSources(out ulong liveGeneration);
+		Transform3D transform = _cathedralSnapshotContext.CameraTransform;
+		Basis basis = transform.Basis;
+		var cameraPose = new CameraPoseBitsV1(
+			BitConverter.SingleToUInt32Bits(basis.X.X), BitConverter.SingleToUInt32Bits(basis.X.Y), BitConverter.SingleToUInt32Bits(basis.X.Z),
+			BitConverter.SingleToUInt32Bits(basis.Y.X), BitConverter.SingleToUInt32Bits(basis.Y.Y), BitConverter.SingleToUInt32Bits(basis.Y.Z),
+			BitConverter.SingleToUInt32Bits(basis.Z.X), BitConverter.SingleToUInt32Bits(basis.Z.Y), BitConverter.SingleToUInt32Bits(basis.Z.Z),
+			BitConverter.SingleToUInt32Bits(transform.Origin.X), BitConverter.SingleToUInt32Bits(transform.Origin.Y), BitConverter.SingleToUInt32Bits(transform.Origin.Z),
+			BitConverter.SingleToUInt32Bits(_cathedralSnapshotContext.CameraFov));
+		var input = new XPrimeRay.ObserverInstrumentation.PixelPathObservationInputV1
+		{
+			OutputDirectory = outputDirectory,
+			RunId = runId,
+			SemanticSceneId = semanticSceneId,
+			GodotScenePath = godotScenePath,
+			FormalPolicyId = _sealedFormalPolicyId,
+			FormalPolicySha256 = _sealedFormalPolicySha256,
+			GeometrySnapshotSha256 = _sealedFormalTransportGeometrySnapshotSha256,
+			FrozenBoundaryContentSha256 = _cathedralSnapshotContext.BoundaryContentSha256,
+			BoundaryExecutionAuthoritySha256 = _cathedralSnapshotContext.BoundaryExecutionSha256,
+			CameraPose = cameraPose,
+			Width = _sealedProbeViewWidth,
+			Height = _sealedProbeViewHeight,
+			FilmStride = _cathedralSnapshotContext.FilmStride,
+			CanonicalQueryDatasetSha256 = _sealedFormalTransportQueryDatasetSha256,
+			LiveQueryDatasetSha256 = _rbr.GetFormalProbeQueryDatasetSha256() ?? string.Empty,
+			LiveCaptureGeneration = liveGeneration,
+			EngineCommit = engineCommit,
+			SourceTreeState = sourceTreeState,
+			AuthoredDiffSha256 = authoredDiffSha256,
+			Snapshot = _sealedFormalTransportObservationSnapshot,
+			ContactCounts = (int[])_sealedProbeViewContactCounts.Clone(),
+			FirstContactSteps = (int[])_sealedFormalTransportFirstContactSteps.Clone(),
+			Sources = sources,
+			SelectedPixels = pixelIndices ?? Array.Empty<int>()
+		};
+		return XPrimeRay.ObserverInstrumentation.PixelPathObservationMapV1.TryWrite(input, out _, out string reason)
+			? string.Empty
+			: reason;
+	}
+
 	public bool RequestCathedralProbeSnapshot(int budget) => TryRequestCathedralProbeSnapshot(budget, out _);
 	public bool CathedralProbeSnapshotIsTerminal => !_probeSnapshotLifecycleActive && _lastProbeSnapshotLifecycleResult.IsTerminal;
 	public int RuntimeHealthHeartbeatCount => _runtimeHealthHeartbeatCount;

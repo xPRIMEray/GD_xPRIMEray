@@ -1461,6 +1461,65 @@ public partial class RayBeamRenderer : Node3D
 		}
 	}
 
+	/// <summary>
+	/// INSPECT-R0.1 (observational only): copies the recorder-owned per-pixel event arrays and
+	/// probe chords for export. Reads under the recorder lock; mutates nothing. Event arrays are
+	/// exposed read-only; chord length uses the same expression as CaptureFormalTransportObservationSnapshot.
+	/// </summary>
+	public XPrimeRay.ObserverInstrumentation.PixelPathSourceV1[] CaptureFormalPixelPathSources(out ulong captureGeneration)
+	{
+		lock (_formalProbeQueryLock)
+		{
+			captureGeneration = _formalProbeCaptureGeneration;
+			var records = new List<FormalTransportAttemptRecord>(_formalTransportAttemptsByPixel.Values);
+			records.Sort((a, b) => a.PixelIndex.CompareTo(b.PixelIndex));
+			var sources = new XPrimeRay.ObserverInstrumentation.PixelPathSourceV1[records.Count];
+			for (int i = 0; i < records.Count; i++)
+			{
+				FormalTransportAttemptRecord record = records[i];
+				FormalProbeQuery[] queries = _formalProbeQueriesByPixel.TryGetValue(record.PixelIndex, out FormalProbeQuery[] currentQueries)
+					? currentQueries
+					: Array.Empty<FormalProbeQuery>();
+				var exported = new XPrimeRay.ObserverInstrumentation.PixelPathQueryV1[queries.Length];
+				for (int queryIndex = 0; queryIndex < queries.Length; queryIndex++)
+				{
+					FormalProbeQuery query = queries[queryIndex];
+					float chordLength = (query.To - query.From).Length();
+					exported[queryIndex] = new XPrimeRay.ObserverInstrumentation.PixelPathQueryV1(
+						query.ProbeStep,
+						RawFloat3BitsV1.FromSingle(query.From.X, query.From.Y, query.From.Z),
+						RawFloat3BitsV1.FromSingle(query.To.X, query.To.Y, query.To.Z),
+						BitConverter.SingleToUInt32Bits(query.TraveledB),
+						BitConverter.SingleToUInt32Bits(chordLength),
+						query.CollisionMask,
+						query.CollideWithBodies,
+						query.CollideWithAreas,
+						query.HitFromInside,
+						query.HitBackFaces);
+				}
+				sources[i] = new XPrimeRay.ObserverInstrumentation.PixelPathSourceV1
+				{
+					PixelIndex = record.PixelIndex,
+					CaptureGeneration = record.CaptureGeneration,
+					CommitVersion = record.CommitVersion,
+					Finalized = record.Finalized,
+					Overflowed = record.Overflowed,
+					EventCapacity = record.EventCapacity,
+					ProvisionalReason = record.ProvisionalReason,
+					Termination = record.Termination,
+					RawTerminalFlags = record.RawTerminalFlags,
+					StepsIntegrated = record.StepsIntegrated,
+					TraveledBits = record.TraveledBits,
+					Found = record.Found,
+					QuestionCount = record.QuestionCount,
+					Events = Array.AsReadOnly(record.Events),
+					Queries = Array.AsReadOnly(exported)
+				};
+			}
+			return sources;
+		}
+	}
+
 	public FormalProbeQuery[] GetFormalProbeQueriesCanonical()
 	{
 		FormalProbeQuery[] queries;

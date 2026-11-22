@@ -32,6 +32,7 @@ internal static class Program
 			,(nameof(SpatialKernelTests), SpatialKernelTests.Run)
 			,(nameof(ProbeProfileTests), ProbeProfileTests.Run)
 			,(nameof(MaterialCpuTests), MaterialCpuTests.Run)
+			,(nameof(PixelPathObservationMapV1Tests), PixelPathObservationMapV1Tests.Run)
         };
 
         int failures = 0;
