@@ -1464,7 +1464,8 @@ public partial class RayBeamRenderer : Node3D
 	/// <summary>
 	/// INSPECT-R0.1 (observational only): copies the recorder-owned per-pixel event arrays and
 	/// probe chords for export. Reads under the recorder lock; mutates nothing. Event arrays are
-	/// exposed read-only; chord length uses the same expression as CaptureFormalTransportObservationSnapshot.
+	/// cloned under the lock and exposed read-only. ChordLengthBits is DERIVED from the recorded chord
+	/// endpoints with the same expression as CaptureFormalTransportObservationSnapshot.
 	/// </summary>
 	public XPrimeRay.ObserverInstrumentation.PixelPathSourceV1[] CaptureFormalPixelPathSources(out ulong captureGeneration)
 	{
@@ -1512,7 +1513,8 @@ public partial class RayBeamRenderer : Node3D
 					TraveledBits = record.TraveledBits,
 					Found = record.Found,
 					QuestionCount = record.QuestionCount,
-					Events = Array.AsReadOnly(record.Events),
+					// Independent copy taken under the recorder lock (no aliasing of recorder-owned arrays).
+					Events = Array.AsReadOnly((TransportEventV1[])record.Events.Clone()),
 					Queries = Array.AsReadOnly(exported)
 				};
 			}

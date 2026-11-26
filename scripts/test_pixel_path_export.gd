@@ -75,13 +75,31 @@ func _initialize() -> void:
 			if f.ends_with(".bin") or f.ends_with(".png"):
 				_expect(_same_file(before_dir.path_join(f), after_dir.path_join(f)), "passive: %s/%s identical before/after export" % [sub, f])
 
+	# Provenance: the exported manifest must name exactly the source state supplied by the harness.
+	var mf := FileAccess.open(output_root.path_join("export_A/pixel_path_manifest.json"), FileAccess.READ)
+	_expect(mf != null, "export manifest readable")
+	if mf != null:
+		var manifest: Dictionary = JSON.parse_string(mf.get_as_text())
+		var source: Dictionary = manifest.get("source", {})
+		_expect(str(source.get("engine_commit", "")) == OS.get_environment("XPRIMERAY_ENGINE_COMMIT"), "manifest engine_commit == supplied source commit")
+		_expect(str(source.get("tree_state", "")) == OS.get_environment("XPRIMERAY_SOURCE_TREE_STATE"), "manifest tree_state == supplied source state")
+	# An existing destination must be refused and left untouched.
+	var manifest_before := FileAccess.get_file_as_bytes(output_root.path_join("export_A/pixel_path_manifest.json"))
+	var again := _export("export_A", pixels, "inspect-r0.1-export")
+	_expect(again == "destination_exists", "existing destination refused (got '%s')" % again)
+	_expect(FileAccess.get_file_as_bytes(output_root.path_join("export_A/pixel_path_manifest.json")) == manifest_before, "existing destination untouched")
+	var big := PackedInt32Array()
+	for i in 257:
+		big.append(i)
 	var cases := {
+		"refusal_too_large": big,
 		"refusal_empty": PackedInt32Array(),
 		"refusal_duplicate": PackedInt32Array([4681, 4681]),
 		"refusal_negative": PackedInt32Array([-1]),
 		"refusal_out_of_range": PackedInt32Array([14400]),
 	}
 	var expected := {
+		"refusal_too_large": "pixel_selection_too_large",
 		"refusal_empty": "pixel_selection_empty",
 		"refusal_duplicate": "pixel_selection_duplicate",
 		"refusal_negative": "pixel_selection_out_of_range",

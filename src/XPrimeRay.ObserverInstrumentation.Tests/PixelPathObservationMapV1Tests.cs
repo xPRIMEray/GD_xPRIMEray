@@ -9,12 +9,15 @@ internal static class PixelPathObservationMapV1Tests
     private const string Sha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     private const string QuerySha = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
     private const ulong Generation = 7;
+    private const string EngineCommit = "e1879170d628826bb323b1f78a4004ac98ff6f9a";
 
     public static void Run()
     {
         HappyPathContentAndUnavailableDetails();
         Determinism();
         EveryRefusalWritesNothing();
+        ExistingDestinationIsRefusedAndUntouched();
+        InjectedFilesystemFailuresLeaveNothing();
     }
 
     private static void HappyPathContentAndUnavailableDetails()
@@ -46,6 +49,11 @@ internal static class PixelPathObservationMapV1Tests
         TestAssert.Equal(3, totals.GetProperty("question_events").GetInt32(), "full-film question total");
         TestAssert.Equal(1, totals.GetProperty("sealed_bvh_contacts").GetInt32(), "full-film sealed contact total");
         TestAssert.False(manifest.RootElement.GetProperty("scientific_ledger_sealed").GetBoolean(), "export is not a sealed ledger");
+        foreach (JsonElement q in recorded.GetProperty("queries").EnumerateArray())
+            TestAssert.False(q.TryGetProperty("chord_length_bits", out _), "chord length is not labelled recorded");
+        TestAssert.Equal(2, pixel.GetProperty("derived").GetProperty("query_chord_length_bits").GetArrayLength(), "chord length is exported as derived, one per query");
+        TestAssert.Equal(EngineCommit, manifest.RootElement.GetProperty("source").GetProperty("engine_commit").GetString(), "source commit exported");
+        TestAssert.Equal(0, Directory.GetDirectories(root.Path, ".out.staging-*").Length, "no staging directory left after success");
     }
 
     private static void Determinism()
@@ -71,6 +79,13 @@ internal static class PixelPathObservationMapV1Tests
             ("pixel_selection_duplicate", o => Build(o, selection: new[] { 0, 0 })),
             ("pixel_selection_out_of_range", o => Build(o, selection: new[] { 2 })),
             ("dirty_source_requires_fingerprint", o => Build(o, authoredDiff: "")),
+            ("dirty_source_placeholder_fingerprint", o => Build(o, authoredDiff: new string('0', 64))),
+            ("clean_source_must_not_carry_fingerprint", o => Build(o, treeState: "clean")),
+            ("source_state_unverified", o => Build(o, treeState: "unknown")),
+            ("engine_commit_invalid", o => Build(o, engineCommit: "81dbb1ad")),
+            ("engine_commit_invalid", o => Build(o, engineCommit: "working-tree")),
+            ("pixel_selection_too_large", o => Build(o, selection: Enumerable.Range(0, PixelPathObservationMapV1.MaxSelectedPixels + 1).ToArray())),
+            ("contact_question_association_failed:0", o => Build(o, contactStep: 2, contactSealedSegment: 0, contactSegment: 0, sealedFirst0: 2)),
             ("pixel_coverage_incomplete", o => Build(o, dropLivePixel1: true)),
             ("pixel_commit_mismatch:0", o => Build(o, liveCommit: 2)),
             ("pixel_unfinalized:0", o => Build(o, liveFinalized: false)),
@@ -99,13 +114,39 @@ internal static class PixelPathObservationMapV1Tests
     // Synthetic sealed acquisition, 2x1 film:
     // pixel 0: Q(step2,seg0) Q(step4,seg1) Contact(step4,seg1) Terminal(MaxSteps, step5); sealed contacts 1, first step 4.
     // pixel 1: Q(step2,seg0) Terminal(MaxSteps, step5); no contact.
+    private static void ExistingDestinationIsRefusedAndUntouched()
+    {
+        using TempDir root = new();
+        Directory.CreateDirectory(root.Out);
+        File.WriteAllText(System.IO.Path.Combine(root.Out, "pixel_path_manifest.json"), "old");
+        TestAssert.False(PixelPathObservationMapV1.TryWrite(Build(root.Out), out _, out string reason), "existing destination refused");
+        TestAssert.Equal("destination_exists", reason, "existing destination reason");
+        TestAssert.Equal("old", File.ReadAllText(System.IO.Path.Combine(root.Out, "pixel_path_manifest.json")), "existing destination untouched");
+        TestAssert.Equal(1, Directory.GetFiles(root.Out).Length, "nothing added to existing destination");
+    }
+
+    private static void InjectedFilesystemFailuresLeaveNothing()
+    {
+        foreach (string stage in new[] { "staged_paths", "staged_manifest", "verified", "before_publish" })
+        {
+            using TempDir root = new();
+            PixelPathObservationInputV1 input = Build(root.Out, fault: s => { if (s == stage) throw new IOException("injected failure at " + s); });
+            TestAssert.False(PixelPathObservationMapV1.TryWrite(input, out _, out string reason), "injected failure refused: " + stage);
+            TestAssert.Equal("publication_failed:IOException", reason, "injected failure reason: " + stage);
+            TestAssert.False(Directory.Exists(root.Out), "no destination after failure: " + stage);
+            TestAssert.Equal(0, Directory.GetDirectories(root.Path).Length, "no staging directory left after failure: " + stage);
+            TestAssert.Equal(0, Directory.GetFiles(root.Path).Length, "no stray file after failure: " + stage);
+        }
+    }
+
     private static PixelPathObservationInputV1 Build(
         string output,
         bool recorderEnabled = true, bool omitMeasurements = false, ulong liveGeneration = Generation, string liveQuerySha = QuerySha,
         int[]? selection = null, string authoredDiff = Sha, bool dropLivePixel1 = false, uint liveCommit = 1, bool liveFinalized = true,
         bool liveOverflowed = false, string sealedReason = "provisional_event_coverage", float liveTraveled = 8f, bool swapLiveEvents = false,
         int liveQueryStepOffset = 0, int sealedContact0 = 1, int sealedFirst0 = 4, int contactSegment = 1, bool corruptCoverage = false,
-        bool dropTerminalPixel1 = false, bool nullSources = false)
+        bool dropTerminalPixel1 = false, bool nullSources = false, string treeState = "dirty", string engineCommit = EngineCommit,
+        int contactStep = 4, int contactSealedSegment = 1, Action<string>? fault = null)
     {
         TransportEventV1 Q(int ordinal, int step, int segment) => new(ordinal, step, segment, TransportEventKindV1.ProbeQuestionIssued,
             TransportSubjectKindV1.None, CanonicalIdentityAvailabilityV1.NotApplicable, null, -1, TransportObservabilityV1.PointSample,
@@ -122,8 +163,8 @@ internal static class PixelPathObservationMapV1Tests
         PixelPathQueryV1 Query(int step, float traveledB, float chord) => new(step, RawFloat3BitsV1.FromSingle(0f, 0f, traveledB - chord),
             RawFloat3BitsV1.FromSingle(0f, 0f, traveledB), BitConverter.SingleToUInt32Bits(traveledB), BitConverter.SingleToUInt32Bits(chord), 1, true, true, true, false);
 
-        var events0 = new[] { Q(0, 2, 0), Q(1, 4, 1), C(2, 4, 1), T(3, 5) };
-        var liveEvents0 = new[] { Q(0, 2, 0), Q(1, 4, 1), C(2, 4, contactSegment), T(3, 5) };
+        var events0 = new[] { Q(0, 2, 0), Q(1, 4, 1), C(2, contactStep, contactSealedSegment), T(3, 5) };
+        var liveEvents0 = new[] { Q(0, 2, 0), Q(1, 4, 1), C(2, contactStep, contactSegment), T(3, 5) };
         if (swapLiveEvents) liveEvents0 = new[] { Q(0, 2, 0), C(1, 4, 1), Q(2, 4, 1), T(3, 5) };
         TransportEventV1[] events1 = dropTerminalPixel1 ? new[] { Q(0, 2, 0) } : new[] { Q(0, 2, 0), T(1, 5) };
         var queries0 = new[] { Query(2, 2f, 1f), Query(4, 4f, 1f) };
@@ -167,9 +208,10 @@ internal static class PixelPathObservationMapV1Tests
             FormalPolicyId = "policy", FormalPolicySha256 = Sha, GeometrySnapshotSha256 = Sha, FrozenBoundaryContentSha256 = Sha,
             BoundaryExecutionAuthoritySha256 = Sha, CameraPose = new CameraPoseBitsV1(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 55),
             Width = 2, Height = 1, FilmStride = 1, CanonicalQueryDatasetSha256 = QuerySha, LiveQueryDatasetSha256 = liveQuerySha,
-            LiveCaptureGeneration = liveGeneration, EngineCommit = "engine", SourceTreeState = "dirty", AuthoredDiffSha256 = authoredDiff,
+            LiveCaptureGeneration = liveGeneration, EngineCommit = engineCommit, SourceTreeState = treeState, AuthoredDiffSha256 = authoredDiff,
             Snapshot = snapshot, ContactCounts = new[] { sealedContact0, 0 }, FirstContactSteps = new[] { sealedContact0 == 0 ? sealedFirst0 : sealedFirst0, -1 },
-            Sources = nullSources ? null! : sources, SelectedPixels = selection ?? new[] { 0 }
+            Sources = nullSources ? null! : sources, SelectedPixels = selection ?? new[] { 0 },
+            PublicationFaultInjectionForTesting = fault
         };
     }
 

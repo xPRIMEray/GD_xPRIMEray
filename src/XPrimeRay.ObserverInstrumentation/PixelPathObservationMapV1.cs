@@ -22,9 +22,9 @@ public readonly record struct PixelPathQueryV1(
     bool HitBackFaces);
 
 /// <summary>
-/// Recorder-owned per-pixel data copied (by reference to immutable arrays) after the seal.
-/// Nothing here is computed by the exporter; ChordLengthBits uses the same expression as the
-/// existing sealed coverage measurement.
+/// Recorder-owned per-pixel data copied after the seal (event arrays cloned under the recorder lock).
+/// All fields are recorded values except PixelPathQueryV1.ChordLengthBits, which is derived from the
+/// recorded chord endpoints with the same expression as the existing sealed coverage measurement.
 /// </summary>
 public sealed class PixelPathSourceV1
 {
@@ -71,6 +71,12 @@ public sealed class PixelPathObservationInputV1
     public required int[] FirstContactSteps { get; init; }
     public required IReadOnlyList<PixelPathSourceV1> Sources { get; init; }
     public required int[] SelectedPixels { get; init; }
+
+    /// <summary>
+    /// Test-only fault injection: invoked with a publication stage name ("staged_paths", "staged_manifest",
+    /// "verified", "before_publish"); throwing simulates a filesystem failure. Production callers leave it null.
+    /// </summary>
+    public Action<string>? PublicationFaultInjectionForTesting { get; init; }
 }
 
 public sealed class PixelPathObservationResultV1
@@ -171,11 +177,10 @@ public static class PixelPathObservationMapV1
         var manifest = BuildManifest(input, digest, selectedSha, kindTotals, questionTotal, queryTotal, contactEventTotal, sealedContactTotal, pathsBytes);
         string manifestJson = JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true }) + "\n";
 
-        Directory.CreateDirectory(input.OutputDirectory);
-        string pathsPath = Path.Combine(input.OutputDirectory, "pixel_paths.json");
-        string manifestPath = Path.Combine(input.OutputDirectory, "pixel_path_manifest.json");
-        File.WriteAllBytes(pathsPath, pathsBytes);
-        File.WriteAllText(manifestPath, manifestJson, new UTF8Encoding(false));
+        byte[] manifestBytes = new UTF8Encoding(false).GetBytes(manifestJson);
+        if (!TryPublishAtomically(input, pathsBytes, manifestBytes, out reason)) return false;
+        string pathsPath = Path.Combine(input.OutputDirectory, PathsFileName);
+        string manifestPath = Path.Combine(input.OutputDirectory, ManifestFileName);
         result = new PixelPathObservationResultV1
         {
             ManifestPath = manifestPath,
@@ -185,6 +190,54 @@ public static class PixelPathObservationMapV1
         };
         reason = string.Empty;
         return true;
+    }
+
+    public const string PathsFileName = "pixel_paths.json";
+    public const string ManifestFileName = "pixel_path_manifest.json";
+
+    /// <summary>
+    /// Conservative cap on selected pixels per export (about 92 KB of JSON per canonical pixel, so at most
+    /// roughly 24 MB). Whole-film validation and the full-film digest always cover every pixel regardless.
+    /// </summary>
+    public const int MaxSelectedPixels = 256;
+
+    /// <summary>
+    /// Publishes only a complete, verified package: the destination must not exist; both files are written
+    /// to a fresh sibling staging directory, re-read and hash-verified, then the staging directory is renamed
+    /// to the destination in one step. Any failure removes the staging directory and returns a refusal;
+    /// the destination is never created partially.
+    /// </summary>
+    private static bool TryPublishAtomically(PixelPathObservationInputV1 input, byte[] pathsBytes, byte[] manifestBytes, out string reason)
+    {
+        string destination = Path.GetFullPath(input.OutputDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        if (Directory.Exists(destination) || File.Exists(destination)) { reason = "destination_exists"; return false; }
+        string? parent = Path.GetDirectoryName(destination);
+        if (string.IsNullOrEmpty(parent)) { reason = "destination_invalid"; return false; }
+        string staging = Path.Combine(parent, "." + Path.GetFileName(destination) + ".staging-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(parent);
+            Directory.CreateDirectory(staging);
+            File.WriteAllBytes(Path.Combine(staging, PathsFileName), pathsBytes);
+            input.PublicationFaultInjectionForTesting?.Invoke("staged_paths");
+            File.WriteAllBytes(Path.Combine(staging, ManifestFileName), manifestBytes);
+            input.PublicationFaultInjectionForTesting?.Invoke("staged_manifest");
+            if (!File.ReadAllBytes(Path.Combine(staging, PathsFileName)).AsSpan().SequenceEqual(pathsBytes) ||
+                !File.ReadAllBytes(Path.Combine(staging, ManifestFileName)).AsSpan().SequenceEqual(manifestBytes))
+                throw new IOException("staged artifact verification failed");
+            input.PublicationFaultInjectionForTesting?.Invoke("verified");
+            if (Directory.Exists(destination) || File.Exists(destination)) throw new IOException("destination appeared during staging");
+            input.PublicationFaultInjectionForTesting?.Invoke("before_publish");
+            Directory.Move(staging, destination);
+            reason = string.Empty;
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException or NotSupportedException or ArgumentException)
+        {
+            try { if (Directory.Exists(staging)) Directory.Delete(staging, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+            reason = "publication_failed:" + exception.GetType().Name;
+            return false;
+        }
     }
 
     private sealed class PixelDerived
@@ -214,11 +267,18 @@ public static class PixelPathObservationMapV1
         if (string.IsNullOrWhiteSpace(input.OutputDirectory) || string.IsNullOrWhiteSpace(input.RunId) || string.IsNullOrWhiteSpace(input.EngineCommit)) { reason = "identity_missing"; return false; }
         string[] hashes = { input.FormalPolicySha256, input.GeometrySnapshotSha256, input.FrozenBoundaryContentSha256, input.BoundaryExecutionAuthoritySha256, input.CanonicalQueryDatasetSha256 };
         if (hashes.Any(h => !IsSha256(h))) { reason = "acquisition_sha256_invalid"; return false; }
+        // Source provenance must identify a real source state: a full 40-hex commit, and either "clean" with no
+        // fingerprint or "dirty" with a real (non-placeholder) authored-diff SHA-256. "unknown" is refused.
+        if (!IsHex(input.EngineCommit, 40)) { reason = "engine_commit_invalid"; return false; }
         if (input.SourceTreeState is not ("clean" or "dirty" or "unknown")) { reason = "source_tree_state_invalid"; return false; }
+        if (input.SourceTreeState == "unknown") { reason = "source_state_unverified"; return false; }
+        if (input.SourceTreeState == "clean" && !string.IsNullOrEmpty(input.AuthoredDiffSha256)) { reason = "clean_source_must_not_carry_fingerprint"; return false; }
         if (input.SourceTreeState == "dirty" && !IsSha256(input.AuthoredDiffSha256)) { reason = "dirty_source_requires_fingerprint"; return false; }
+        if (input.SourceTreeState == "dirty" && input.AuthoredDiffSha256.All(c => c == '0')) { reason = "dirty_source_placeholder_fingerprint"; return false; }
         if (input.LiveCaptureGeneration != input.Snapshot.CaptureGeneration) { reason = "live_capture_generation_mismatch"; return false; }
         if (!string.Equals(input.LiveQueryDatasetSha256, input.CanonicalQueryDatasetSha256, StringComparison.Ordinal)) { reason = "live_query_dataset_mismatch"; return false; }
         if (input.SelectedPixels.Length == 0) { reason = "pixel_selection_empty"; return false; }
+        if (input.SelectedPixels.Length > MaxSelectedPixels) { reason = "pixel_selection_too_large"; return false; }
         if (input.SelectedPixels.Distinct().Count() != input.SelectedPixels.Length) { reason = "pixel_selection_duplicate"; return false; }
         if (input.SelectedPixels.Any(p => (uint)p >= (uint)total)) { reason = "pixel_selection_out_of_range"; return false; }
         return true;
@@ -249,7 +309,10 @@ public static class PixelPathObservationMapV1
             live.StepsIntegrated != measured.StepsIntegrated || live.TraveledBits != measured.TraveledBits || live.QuestionCount != measured.QuestionCount)
         { reason = "pixel_terminal_inputs_mismatch"; return false; }
 
-        // Ordered events must be exactly the sealed event sequence.
+        // Selected-field reconciliation of the ordered event sequence against the sealed snapshot: ordinal, kind,
+        // integration step and reason (the fields the sealed measurement retains). Other exported attributes
+        // (segment ordinal, subject identity, observability, presence, decision, flags, payload bits) are copied
+        // from the frozen recorder slot and are not individually authenticated against the seal.
         if (live.Events.Count != measured.Events.Count || live.Events.Count != sealedPixel.EventKinds.Count)
         { reason = "pixel_event_sequence_mismatch"; return false; }
         for (int i = 0; i < live.Events.Count; i++)
@@ -283,19 +346,22 @@ public static class PixelPathObservationMapV1
         if (sealedContactCount < 0 || contacts.Count != sealedContactCount) { reason = "contact_join_mismatch"; return false; }
         if (contacts.Count == 0 ? sealedFirstContactStep != -1 : live.Events[contacts[0]].IntegrationStepOrdinal != sealedFirstContactStep)
         { reason = "contact_join_mismatch"; return false; }
+        // Recorder contract (RayBeamRenderer Pass-1 probe): RecordQuestion precedes the query and its
+        // RecordGeometryObservation, so a contact belongs to the IMMEDIATELY PRECEDING question, which must have
+        // the same integration step and source segment. Anything else is refused; no wider search is attempted.
         foreach (int c in contacts)
         {
             TransportEventV1 contact = live.Events[c];
-            int match = -1;
+            int latest = -1;
             for (int q = questionOrdinals.Count - 1; q >= 0; q--)
             {
-                if (questionOrdinals[q] > c) continue;
-                TransportEventV1 question = live.Events[questionOrdinals[q]];
-                if (question.IntegrationStepOrdinal == contact.IntegrationStepOrdinal && question.SourceSegmentOrdinal == contact.SourceSegmentOrdinal) match = q;
-                break;
+                if (questionOrdinals[q] < c) { latest = q; break; }
             }
-            if (match < 0) { reason = "contact_question_association_failed"; return false; }
-            derived.ContactQuestionOrdinal[c] = match;
+            if (latest < 0) { reason = "contact_question_association_failed"; return false; }
+            TransportEventV1 question = live.Events[questionOrdinals[latest]];
+            if (question.IntegrationStepOrdinal != contact.IntegrationStepOrdinal || question.SourceSegmentOrdinal != contact.SourceSegmentOrdinal)
+            { reason = "contact_question_association_failed"; return false; }
+            derived.ContactQuestionOrdinal[c] = latest;
         }
         derived.ContactEventCount = contacts.Count;
         if (contacts.Count > 0)
@@ -399,7 +465,6 @@ public static class PixelPathObservationMapV1
                 ["chord_from_bits"] = Bits3(query.From),
                 ["chord_to_bits"] = Bits3(query.To),
                 ["traveled_b_bits"] = BitsHex(query.TraveledBBits),
-                ["chord_length_bits"] = BitsHex(query.ChordLengthBits),
                 ["collision_mask"] = query.CollisionMask,
                 ["collide_with_bodies"] = query.CollideWithBodies,
                 ["collide_with_areas"] = query.CollideWithAreas,
@@ -437,6 +502,8 @@ public static class PixelPathObservationMapV1
             ["derived"] = new Dictionary<string, object?>
             {
                 ["rule"] = "computed only from recorded fields above; path intervals use the chord-length proxy of FormalQueryCoverageV1",
+                ["query_chord_length_bits"] = live.Queries.Select(q => BitsHex(q.ChordLengthBits)).ToArray(),
+                ["query_chord_length_rule"] = "derived from recorded chord endpoints: float32 |chord_to - chord_from| (same expression as the sealed coverage measurement); question order",
                 ["queried_chord_bits"] = BitsHex(d.QueriedChordBits),
                 ["max_unqueried_gap_bits"] = BitsHex(d.MaxUnqueriedGapBits),
                 ["queried_path_intervals"] = d.Queried.Select(i => new[] { Display(i.Start), Display(i.End) }).ToArray(),
@@ -469,7 +536,8 @@ public static class PixelPathObservationMapV1
         },
         ["field_classes"] = new Dictionary<string, object>
         {
-            ["recorded"] = "byte-exact copies of recorder-owned values (floats as IEEE-754 bit patterns, hex)",
+            ["recorded"] = "byte-exact copies of recorder-owned values (floats as IEEE-754 bit patterns, hex); keys prefixed derived_ or display_ inside recorded objects are not recorded values",
+            ["derived_*"] = "keys inside recorded events computed by the exporter (question/contact joins)",
             ["derived"] = "computed only from recorded values in the same pixel (joins, path intervals, counts)",
             ["display_*"] = "decimal renderings of recorded bits for reading; not authoritative",
             ["unavailable"] = "not retained by the recorder at this commit"
@@ -497,6 +565,10 @@ public static class PixelPathObservationMapV1
         ["validation"] = new Dictionary<string, object>
         {
             ["scope"] = "every pixel of the sealed acquisition is validated before writing; any failure refuses the whole export",
+            ["event_sequence_reconciliation"] = "selected fields only: event ordinal, kind, integration step and reason are compared with the sealed snapshot; segment ordinal, subject identity, observability, presence, decision, flags and payload bits are copied from the frozen recorder slot and are not individually authenticated; this is not cryptographic sealing",
+            ["contact_association_rule"] = "a contact belongs to the immediately preceding question, which must share its integration step and source segment (recorder contract); otherwise refused",
+            ["selection_limit"] = MaxSelectedPixels,
+            ["publication"] = "staged in a sibling directory, re-read and hash-verified, then renamed into a destination that must not already exist",
             ["validated_pixels"] = input.Width * input.Height,
             ["full_film_digest_sha256"] = digest,
             ["full_film_digest_scope"] = "SHA-256 over schema id + compact canonical JSON of every pixel in index order",
@@ -534,6 +606,7 @@ public static class PixelPathObservationMapV1
     private static string[] Bits3(RawFloat3BitsV1 v) => new[] { BitsHex(v.X), BitsHex(v.Y), BitsHex(v.Z) };
     private static string Display(float value) => value.ToString("R", CultureInfo.InvariantCulture);
     private static string[] Display3(RawFloat3BitsV1 v) => new[] { Display(BitConverter.UInt32BitsToSingle(v.X)), Display(BitConverter.UInt32BitsToSingle(v.Y)), Display(BitConverter.UInt32BitsToSingle(v.Z)) };
-    private static bool IsSha256(string? value) => value is { Length: 64 } && value.All(Uri.IsHexDigit);
+    private static bool IsSha256(string? value) => IsHex(value, 64);
+    private static bool IsHex(string? value, int length) => value is not null && value.Length == length && value.All(Uri.IsHexDigit);
     private static string Hex(byte[] bytes) => Convert.ToHexString(bytes).ToLowerInvariant();
 }
