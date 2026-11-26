@@ -2482,6 +2482,8 @@ public partial class GrinFilmCamera : Node
 		public RayBeamRenderer.FieldSourceSnap[] FieldSources;
 		public bool HasFieldSources;
 		public uint FieldSourceEpoch;
+		// FIX-P1a: content digest of FieldSources (the frozen transport input); in-memory validation only.
+		public string FieldSourceContentSha256;
 		public uint GeometryEpoch;
 		public uint BoundaryEpoch;
 		public GodotAdapter.FrozenBoundarySnapshot BoundarySnapshot;
@@ -2499,6 +2501,8 @@ public partial class GrinFilmCamera : Node
 	private int _probeFrameGeneration = 0;
 	private bool _probeSnapshotComplete = false;
 	private ProbeContextKey _probeFrameContextKey;
+	// FIX-P1a: field-source content the sealed frame (_probeFrameContextKey) was acquired with.
+	private string _probeFrameFieldSourceContentSha256 = string.Empty;
 	private int _nextProbeRefinementRequestId = 1;
 	private ProbeRefinementSummary _lastProbeRefinementSummary;
 	private RegionProbeRefinementRequest _activeRegionProbeRefinementRequest;
@@ -11645,6 +11649,8 @@ private sealed class OverlayRollingWindow
 		public int RefinedStepsPerRay;
 		public float RefinedStepLength;
 		public ProbeContextKey ContextKey;
+		// FIX-P1a: field content the transport must run against (the sealed frame's when ContextKey is sealed).
+		public string ExpectedFieldSourceContentSha256 = string.Empty;
 	}
 
 	private sealed class RegionProbeRefinementRequest
@@ -11768,6 +11774,15 @@ private sealed class OverlayRollingWindow
 			reason = "context_key_mismatch";
 			return false;
 		}
+		string currentFieldContent = ComputeCurrentFieldSourceContentSha256();
+		string expectedFieldContent = contextKey == _probeFrameContextKey
+			? _probeFrameFieldSourceContentSha256
+			: currentFieldContent;
+		if (!string.Equals(currentFieldContent, expectedFieldContent, StringComparison.Ordinal))
+		{
+			reason = "field_source_content_mismatch";
+			return false;
+		}
 
 		int filmW = contextKey.FilmWidth;
 		int filmH = contextKey.FilmHeight;
@@ -11796,7 +11811,8 @@ private sealed class OverlayRollingWindow
 			Results = resultStorage,
 			RefinedStepsPerRay = refinedStepsPerRay,
 			RefinedStepLength = refinedStepLength,
-			ContextKey = contextKey
+			ContextKey = contextKey,
+			ExpectedFieldSourceContentSha256 = expectedFieldContent
 		};
 		_selectedProbeTransportCompleted = false;
 		_selectedProbeTransportSuccess = false;
@@ -11885,6 +11901,19 @@ private sealed class OverlayRollingWindow
 				0,
 				false,
 				"context_key_mismatch");
+			_lastProbeRefinementSummary = summary;
+			return false;
+		}
+		// FIX-P1a: refinement re-traces with the current field; refuse if its content is not the sealed content.
+		if (!string.Equals(ComputeCurrentFieldSourceContentSha256(), _probeFrameFieldSourceContentSha256, StringComparison.Ordinal))
+		{
+			summary = ProbeRefinementSummary.Failure(
+				_nextProbeRefinementRequestId,
+				regionId,
+				requestedRefinementLevel,
+				0,
+				false,
+				"field_source_content_mismatch");
 			_lastProbeRefinementSummary = summary;
 			return false;
 		}
@@ -12460,6 +12489,7 @@ private sealed class OverlayRollingWindow
 			FieldSources = frozenFieldSources,
 			HasFieldSources = frozenHasSources,
 			FieldSourceEpoch = HashNodeGroupForProbeContext("field_sources"),
+			FieldSourceContentSha256 = RayBeamRenderer.ComputeFieldSourceContentSha256(frozenFieldSources),
 			GeometryEpoch = HashNodeGroupForProbeContext("raytrace_geometry", "fixture_geometry"),
 			BoundaryEpoch = HashNodeGroupForProbeContext("boundary_layer_volumes"),
 			BoundarySnapshot = frozenBoundaries,
@@ -12575,9 +12605,42 @@ private sealed class OverlayRollingWindow
 			_probeSnapshotContextInvalidationReason = ProbeSnapshotLifecycleReason.BoundaryEpochChanged;
 			return false;
 		}
+		// FIX-P1a: the epoch hashes only a few named properties; compare the transport-consumed content.
+		if (!string.Equals(ComputeCurrentFieldSourceContentSha256(), _cathedralSnapshotContext.FieldSourceContentSha256, StringComparison.Ordinal))
+		{
+			_probeSnapshotContextInvalidationReason = ProbeSnapshotLifecycleReason.FieldSourceContentChanged;
+			return false;
+		}
 		contextMatched = true;
 		return true;
 	}
+
+	// FIX-P1a: content digest of the field sources as they are in the scene now (bypasses the
+	// optional field-source cache, which can lag in-place parameter changes).
+	private string ComputeCurrentFieldSourceContentSha256()
+	{
+		Godot.Collections.Array<Node> nodes = GetTree()?.GetNodesInGroup("field_sources") ?? new Godot.Collections.Array<Node>();
+		return RayBeamRenderer.ComputeFieldSourceContentSha256(RayBeamRenderer.BuildFieldSourceSnapsForContentCheck(nodes));
+	}
+
+	/// <summary>FIX-P1a diagnostic (read-only): content digest of the field sources currently in the scene.</summary>
+	public string CurrentFieldSourceContentSha256 => ComputeCurrentFieldSourceContentSha256();
+
+	/// <summary>FIX-P1a diagnostic (read-only): content digest frozen by the active or last Formal acquisition.</summary>
+	public string CathedralFrozenFieldSourceContentSha256 =>
+		_cathedralSnapshotContext.IsValid ? _cathedralSnapshotContext.FieldSourceContentSha256 ?? string.Empty : string.Empty;
+
+	/// <summary>FIX-P1a diagnostic (read-only): content digest the current sealed frame was acquired with.</summary>
+	public string SealedFrameFieldSourceContentSha256 => _probeFrameFieldSourceContentSha256 ?? string.Empty;
+
+	/// <summary>FIX-P1a diagnostic (read-only): the process-local field_source_epoch as it is now.</summary>
+	public long CurrentFieldSourceEpoch => HashNodeGroupForProbeContext("field_sources");
+
+	/// <summary>FIX-P1a diagnostic (read-only): status of the last selected-probe transport request.</summary>
+	public string LastSelectedProbeTransportStatus => _selectedProbeTransportStatus ?? string.Empty;
+
+	/// <summary>FIX-P1a diagnostic (read-only): failure reason of the last region refinement ("" when none).</summary>
+	public string LastProbeRefinementFailureReason => _lastProbeRefinementSummary.FailureReason ?? string.Empty;
 
 	private bool ValidateFrozenBoundaryAuthority(out string failureReason)
 	{
@@ -12635,6 +12698,7 @@ private sealed class OverlayRollingWindow
 			"transport_rejected" => ProbeSnapshotLifecycleReason.TransportRejected,
 			"geometry_epoch_changed" => ProbeSnapshotLifecycleReason.GeometryEpochChanged,
 			"field_source_epoch_changed" => ProbeSnapshotLifecycleReason.FieldSourceEpochChanged,
+			"field_source_content_changed" => ProbeSnapshotLifecycleReason.FieldSourceContentChanged,
 			"boundary_epoch_changed" => ProbeSnapshotLifecycleReason.BoundaryEpochChanged,
 			_ => ProbeSnapshotLifecycleReason.InternalValidationFailed,
 		};
@@ -12849,6 +12913,7 @@ private sealed class OverlayRollingWindow
 			ProbeSnapshotLifecycleReason.SpatialAuthorityPromotionFailed => "spatial_authority_promotion_failed",
 			ProbeSnapshotLifecycleReason.ResourceLimitExceeded => "resource_limit_exceeded",
 			ProbeSnapshotLifecycleReason.ComputePolicyInvalid => "compute_policy_invalid",
+			ProbeSnapshotLifecycleReason.FieldSourceContentChanged => "field_source_content_changed",
 			_ => "unknown",
 		};
 	}
@@ -12933,7 +12998,7 @@ private sealed class OverlayRollingWindow
 				request.SourceRegionId,
 				request.RequestedRefinementLevel,
 				request.PixelIndices.Length,
-				status != "context_key_mismatch",
+				status != "context_key_mismatch" && status != "field_source_content_mismatch",
 				status);
 			_lastProbeRefinementSummary.PolicyMaxSteps = request.Policy.RefinedStepsPerRay + 1;
 			_lastProbeRefinementSummary.PolicyStepSize = request.Policy.RefinedStepLength;
@@ -14201,6 +14266,12 @@ private sealed class OverlayRollingWindow
 				_selectedProbeTransportStatus = "context_key_mismatch";
 				return;
 			}
+			// FIX-P1a: the transport below reads the current field; it must equal the requested content.
+			if (!string.Equals(ComputeCurrentFieldSourceContentSha256(), request.ExpectedFieldSourceContentSha256, StringComparison.Ordinal))
+			{
+				_selectedProbeTransportStatus = "field_source_content_mismatch";
+				return;
+			}
 			if (!TryResolveRenderSpaceState(out PhysicsDirectSpaceState3D space, out string renderSpaceSource))
 			{
 				_selectedProbeTransportStatus = $"physics_space_unavailable:{renderSpaceSource}";
@@ -14559,6 +14630,10 @@ private sealed class OverlayRollingWindow
 			// LinearScan remains the mandatory golden witness in the dual result.
 			_cathedralFormalSpatialQuery = new XPrimeRay.Spatial.SpatialBvhQuery(_cathedralSpatialSnapshot);
 			_probeFrameContextKey = summaryContext;
+			_probeFrameFieldSourceContentSha256 =
+				_observationAcquisition.Owner == ObservationAcquisitionOwner.Snapshot && _cathedralSnapshotContext.IsValid
+					? _cathedralSnapshotContext.FieldSourceContentSha256 ?? string.Empty
+					: ComputeCurrentFieldSourceContentSha256();
 			_probeFrameGeneration++;
 			if (_probeSnapshotLifecycleActive &&
 				_probeSnapshotLifecycleInitialized &&

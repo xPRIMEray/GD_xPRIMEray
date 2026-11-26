@@ -5429,6 +5429,94 @@ public partial class RayBeamRenderer : Node3D
 		};
 	}
 
+	// FIX-P1a: field-source CONTENT digest (in-memory validation only; never recorded).
+	// Covers exactly what transport consumes from a field source: every FieldSourceSnap member, in
+	// SnapshotFieldSources order, with floats as raw IEEE-754 bits and the CustomCurve by content
+	// (domain, value range, bake resolution, points, tangents, tangent modes), never by reference.
+	// No node instance id or path enters the digest, so it is a content identity, unlike the
+	// process-local field_source_epoch (INSPECT-R0 P4). It is not part of the Formal policy hash
+	// or the ProbeContextKey, and it changes no transport input.
+	public const string FieldSourceContentDigestSchema = "xprimeray.field_source_content.v1";
+
+	/// <summary>Builds snapshots exactly as SnapshotFieldSources does, without its diagnostic logging.</summary>
+	public static FieldSourceSnap[] BuildFieldSourceSnapsForContentCheck(Godot.Collections.Array<Node> nodes)
+	{
+		if (nodes == null || nodes.Count == 0) return Array.Empty<FieldSourceSnap>();
+		var list = new List<FieldSourceSnap>(nodes.Count);
+		foreach (var n in nodes)
+		{
+			if (n is not FieldSource3D fs) continue;
+			list.Add(BuildFieldSourceSnap(fs));
+		}
+		return list.ToArray();
+	}
+
+	public static string ComputeFieldSourceContentSha256(ReadOnlySpan<FieldSourceSnap> snaps)
+	{
+		using var stream = new MemoryStream();
+		using (var w = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+		{
+			w.Write(FieldSourceContentDigestSchema);
+			w.Write(snaps.Length);
+			for (int i = 0; i < snaps.Length; i++)
+			{
+				ref readonly FieldSourceSnap s = ref snaps[i];
+				w.Write(s.Enabled);
+				WriteVectorBits(w, s.Center);
+				w.Write((int)s.TransportModel);
+				w.Write(s.ModeFlags);
+				w.Write((int)s.ShapeType);
+				w.Write((int)s.CurveType);
+				WriteFloatBits(w, s.RInner);
+				WriteFloatBits(w, s.ROuter);
+				WriteFloatBits(w, s.Amp);
+				WriteFloatBits(w, s.CurveA);
+				WriteFloatBits(w, s.CurveB);
+				WriteFloatBits(w, s.CurveC);
+				WriteFloatBits(w, s.Sigma);
+				w.Write(s.OverrideBetaScale);
+				WriteFloatBits(w, s.BetaScale);
+				WriteFloatBits(w, s.EdgeSoftness);
+				WriteVectorBits(w, s.HalfExtents);
+				WriteVectorBits(w, s.BoxInvBasis.X);
+				WriteVectorBits(w, s.BoxInvBasis.Y);
+				WriteVectorBits(w, s.BoxInvBasis.Z);
+				Curve curve = s.CustomCurve;
+				bool hasCurve = curve != null && GodotObject.IsInstanceValid(curve);
+				w.Write(hasCurve);
+				if (hasCurve)
+				{
+					WriteFloatBits(w, curve.MinDomain);
+					WriteFloatBits(w, curve.MaxDomain);
+					WriteFloatBits(w, curve.MinValue);
+					WriteFloatBits(w, curve.MaxValue);
+					w.Write(curve.BakeResolution);
+					int points = curve.PointCount;
+					w.Write(points);
+					for (int p = 0; p < points; p++)
+					{
+						Vector2 position = curve.GetPointPosition(p);
+						WriteFloatBits(w, position.X);
+						WriteFloatBits(w, position.Y);
+						WriteFloatBits(w, curve.GetPointLeftTangent(p));
+						WriteFloatBits(w, curve.GetPointRightTangent(p));
+						w.Write((int)curve.GetPointLeftMode(p));
+						w.Write((int)curve.GetPointRightMode(p));
+					}
+				}
+			}
+		}
+		return Convert.ToHexString(SHA256.HashData(stream.ToArray())).ToLowerInvariant();
+
+		static void WriteFloatBits(BinaryWriter writer, float value) => writer.Write(BitConverter.SingleToInt32Bits(value));
+		static void WriteVectorBits(BinaryWriter writer, Vector3 value)
+		{
+			WriteFloatBits(writer, value.X);
+			WriteFloatBits(writer, value.Y);
+			WriteFloatBits(writer, value.Z);
+		}
+	}
+
 	// ===== Boundary Layer Volume Snapshot + Evaluation =====
 
 	private BoundaryLayerSnap[] SnapshotBoundaryLayers(Godot.Collections.Array<Node> nodes)

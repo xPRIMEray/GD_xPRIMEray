@@ -21,4 +21,6 @@ public enum ProbeSnapshotLifecycleReason : byte
 	SpatialAuthorityPromotionFailed = 15,
 	ResourceLimitExceeded = 16,
 	ComputePolicyInvalid = 17,
+	// FIX-P1a: transport-consumed field-source content changed while the field-source epoch did not.
+	FieldSourceContentChanged = 18,
 }
