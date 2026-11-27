@@ -12623,6 +12623,22 @@ private sealed class OverlayRollingWindow
 		return RayBeamRenderer.ComputeFieldSourceContentSha256(RayBeamRenderer.BuildFieldSourceSnapsForContentCheck(nodes));
 	}
 
+	// FIX-P1a.1: uncached snapshot of the scene's field sources, built exactly as the cache-off branch
+	// of GetFieldSourceSnaps builds it. Never reads or refreshes the optional field-source cache.
+	private RayBeamRenderer.FieldSourceSnap[] SnapshotFieldSourcesUncached()
+	{
+		Godot.Collections.Array<Node> nodes = GetTree()?.GetNodesInGroup("field_sources") ?? new Godot.Collections.Array<Node>();
+		return _rbr != null
+			? _rbr.SnapshotFieldSources(nodes)
+			: RayBeamRenderer.BuildFieldSourceSnapsForContentCheck(nodes);
+	}
+
+	private string _lastSelectedProbeTransportFieldSourceContentSha256 = string.Empty;
+
+	/// <summary>FIX-P1a.1 diagnostic (read-only): content digest of the exact field snapshot array the
+	/// last executed selected-probe transport consumed (empty until one passes its content check).</summary>
+	public string LastSelectedProbeTransportFieldSourceContentSha256 => _lastSelectedProbeTransportFieldSourceContentSha256;
+
 	/// <summary>FIX-P1a diagnostic (read-only): content digest of the field sources currently in the scene.</summary>
 	public string CurrentFieldSourceContentSha256 => ComputeCurrentFieldSourceContentSha256();
 
@@ -14266,12 +14282,18 @@ private sealed class OverlayRollingWindow
 				_selectedProbeTransportStatus = "context_key_mismatch";
 				return;
 			}
-			// FIX-P1a: the transport below reads the current field; it must equal the requested content.
-			if (!string.Equals(ComputeCurrentFieldSourceContentSha256(), request.ExpectedFieldSourceContentSha256, StringComparison.Ordinal))
+			// FIX-P1a/P1a.1: take ONE uncached snapshot of the scene's field sources, verify that exact
+			// array against the requested content, and transport with that same array. The optional
+			// field-source cache is never consulted here: it refreshes only on interval, node identity
+			// or transform, so it can hold content other than what this check approved.
+			RayBeamRenderer.FieldSourceSnap[] verifiedFieldSnaps = SnapshotFieldSourcesUncached();
+			string verifiedFieldContent = RayBeamRenderer.ComputeFieldSourceContentSha256(verifiedFieldSnaps);
+			if (!string.Equals(verifiedFieldContent, request.ExpectedFieldSourceContentSha256, StringComparison.Ordinal))
 			{
 				_selectedProbeTransportStatus = "field_source_content_mismatch";
 				return;
 			}
+			_lastSelectedProbeTransportFieldSourceContentSha256 = verifiedFieldContent;
 			if (!TryResolveRenderSpaceState(out PhysicsDirectSpaceState3D space, out string renderSpaceSource))
 			{
 				_selectedProbeTransportStatus = $"physics_space_unavailable:{renderSpaceSource}";
@@ -14280,7 +14302,7 @@ private sealed class OverlayRollingWindow
 
 			ResolveEffectiveConfig(out EffectiveConfig cfg);
 			RefreshFixtureDebugSourceIds(cfg.FixtureDebugSourceGroup);
-			int completed = ExecuteSelectedProbeTransportNow(request, space, renderSpaceSource, in cfg);
+			int completed = ExecuteSelectedProbeTransportNow(request, space, renderSpaceSource, in cfg, verifiedFieldSnaps);
 			_selectedProbeTransportCompletedCount = completed;
 			_selectedProbeTransportSuccess = completed == request.PixelIndices.Length;
 			_selectedProbeTransportStatus = _selectedProbeTransportSuccess ? "completed" : "partial";
@@ -14302,7 +14324,8 @@ private sealed class OverlayRollingWindow
 		SelectedProbeTransportRequest request,
 		PhysicsDirectSpaceState3D space,
 		string renderSpaceSource,
-		in EffectiveConfig cfg)
+		in EffectiveConfig cfg,
+		RayBeamRenderer.FieldSourceSnap[] verifiedFieldSnaps)
 	{
 		if (_cam == null || _rbr == null || request == null || request.Results == null)
 		{
@@ -14327,7 +14350,9 @@ private sealed class OverlayRollingWindow
 			_rbr.MinStepLength = Math.Min(savedMinStepLength, _rbr.StepLength);
 			_rbr.MaxStepLength = Math.Max(savedMaxStepLength, _rbr.StepLength);
 
-			RayBeamRenderer.FieldSourceSnap[] fieldSnaps = GetFieldSourceSnaps(in cfg, _frameIndex, out bool hasSources, out _);
+			// FIX-P1a.1: the snapshot verified by PumpSelectedProbeTransport; no second acquisition, no cache.
+			RayBeamRenderer.FieldSourceSnap[] fieldSnaps = verifiedFieldSnaps ?? Array.Empty<RayBeamRenderer.FieldSourceSnap>();
+			bool hasSources = fieldSnaps.Length > 0;
 			float beta = 0f;
 			float gamma = 2f;
 			if (cfg.UseCameraPropsBetaGamma)
