@@ -87,6 +87,17 @@ public sealed class PixelPathObservationResultV1
     public required int ValidatedPixelCount { get; init; }
 }
 
+/// <summary>INSPECT-R0.2: an in-memory, read-only inspection of selected pixels (nothing is written).</summary>
+public sealed class PixelPathInspectionV1
+{
+    /// <summary>Compact JSON document (schema PixelLifeInspection-v1) for a read-only viewer.</summary>
+    public required string Json { get; init; }
+    public required int ValidatedPixelCount { get; init; }
+    public required ulong CaptureGeneration { get; init; }
+    /// <summary>SHA-256 of each selected pixel's compact canonical JSON (identical to the TryWrite manifest values).</summary>
+    public required IReadOnlyDictionary<int, string> PixelCompactJsonSha256 { get; init; }
+}
+
 /// <summary>
 /// INSPECT-R0.1: passive, ordered per-pixel event export from a completed, sealed Formal acquisition.
 /// Observational only. Every pixel of the sealed acquisition is validated against the sealed snapshot
@@ -119,7 +130,107 @@ public static class PixelPathObservationMapV1
     public static bool TryWrite(PixelPathObservationInputV1 input, out PixelPathObservationResultV1? result, out string reason)
     {
         result = null;
-        if (!ValidateInput(input, out reason)) return false;
+        if (!ValidateInput(input, requireAttestedPublication: true, out reason)) return false;
+        if (!TryValidateFilm(input, digestEveryPixel: true, out FilmBuild? build, out reason)) return false;
+        int total = input.Width * input.Height;
+        var pathsDoc = new Dictionary<string, object?>
+        {
+            ["schema"] = SchemaId,
+            ["run_id"] = input.RunId,
+            ["pixels"] = build!.SelectedJson.Values.ToArray()
+        };
+        string pathsJson = JsonSerializer.Serialize(pathsDoc, new JsonSerializerOptions { WriteIndented = true }) + "\n";
+        byte[] pathsBytes = new UTF8Encoding(false).GetBytes(pathsJson);
+        var manifest = BuildManifest(input, build.Digest, build.SelectedSha, build.KindTotals, build.Questions, build.Queries, build.ContactEvents, build.SealedContacts, pathsBytes);
+        string manifestJson = JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true }) + "\n";
+
+        byte[] manifestBytes = new UTF8Encoding(false).GetBytes(manifestJson);
+        if (!TryPublishAtomically(input, pathsBytes, manifestBytes, out reason)) return false;
+        string pathsPath = Path.Combine(input.OutputDirectory, PathsFileName);
+        string manifestPath = Path.Combine(input.OutputDirectory, ManifestFileName);
+        result = new PixelPathObservationResultV1
+        {
+            ManifestPath = manifestPath,
+            PixelPathsPath = pathsPath,
+            FullFilmDigestSha256 = build.Digest,
+            ValidatedPixelCount = total
+        };
+        reason = string.Empty;
+        return true;
+    }
+
+    public const string InspectionSchemaId = "PixelLifeInspection-v1";
+    public const string InspectionSourceAttestation =
+        "not attested: interactive in-memory inspection; source commit and tree state are attested only by a published export";
+
+    /// <summary>
+    /// INSPECT-R0.2: the same whole-film validation and per-pixel model as <see cref="TryWrite"/>, returned in
+    /// memory for a read-only viewer. Nothing is written. Publication identity (output directory, run id) and
+    /// source attestation are not required and are reported as not attested. Any validation failure refuses.
+    /// The per-pixel objects are exactly those TryWrite would publish for the same input and selection.
+    /// </summary>
+    public static bool TryInspect(PixelPathObservationInputV1 input, out PixelPathInspectionV1? inspection, out string reason)
+    {
+        inspection = null;
+        if (!ValidateInput(input, requireAttestedPublication: false, out reason)) return false;
+        if (!TryValidateFilm(input, digestEveryPixel: false, out FilmBuild? build, out reason)) return false;
+        int total = input.Width * input.Height;
+        var doc = new Dictionary<string, object?>
+        {
+            ["schema"] = InspectionSchemaId,
+            ["status"] = "ok",
+            ["pixel_model_schema"] = SchemaId,
+            ["artifact_class"] = ArtifactClass,
+            ["scientific_ledger_sealed"] = false,
+            ["claim_boundary"] = ClaimBoundary(),
+            ["field_classes"] = FieldClasses(),
+            ["provenance_warnings"] = ProvenanceWarnings,
+            ["source_attestation"] = InspectionSourceAttestation,
+            ["acquisition"] = Acquisition(input),
+            ["validation"] = new Dictionary<string, object>
+            {
+                ["scope"] = "every pixel of the sealed acquisition validated against the sealed snapshot before display; any failure refuses",
+                ["validated_pixels"] = total,
+                ["full_film_digest_sha256"] = null,
+                ["full_film_digest_scope"] = "not computed by the in-memory inspection (computed by the published export); every pixel is still validated",
+                ["totals"] = new Dictionary<string, object>
+                {
+                    ["events_by_kind"] = build!.KindTotals,
+                    ["question_events"] = build.Questions,
+                    ["recorded_queries"] = build.Queries,
+                    ["geometry_contact_events"] = build.ContactEvents,
+                    ["sealed_bvh_contacts"] = build.SealedContacts
+                }
+            },
+            ["unavailable"] = Unavailable,
+            ["pixels"] = build!.SelectedJson.Values.ToArray()
+        };
+        inspection = new PixelPathInspectionV1
+        {
+            Json = JsonSerializer.Serialize(doc),
+            ValidatedPixelCount = total,
+            CaptureGeneration = input.Snapshot.CaptureGeneration,
+            PixelCompactJsonSha256 = new SortedDictionary<int, string>(build.SelectedSha)
+        };
+        reason = string.Empty;
+        return true;
+    }
+
+    private sealed class FilmBuild
+    {
+        public required string Digest;
+        public required SortedDictionary<int, Dictionary<string, object?>> SelectedJson;
+        public required SortedDictionary<int, string> SelectedSha;
+        public required SortedDictionary<string, int> KindTotals;
+        public long Questions, Queries, ContactEvents, SealedContacts;
+    }
+
+    // Whole-film validation shared by TryWrite and TryInspect. Every pixel is validated against the seal in both cases;
+    // digestEveryPixel (TryWrite) also builds and hashes every pixel's model for the full-film digest, while TryInspect
+    // builds models only for the selected pixels (identical objects) and computes no digest.
+    private static bool TryValidateFilm(PixelPathObservationInputV1 input, bool digestEveryPixel, out FilmBuild? build, out string reason)
+    {
+        build = null;
         int total = input.Width * input.Height;
 
         var sealedPixels = input.Snapshot.Pixels.ToDictionary(p => p.PixelIndex);
@@ -149,13 +260,17 @@ public static class PixelPathObservationMapV1
             if (!ValidatePixel(input, sealedPixel, measured, live, input.ContactCounts[index], input.FirstContactSteps[index], out string pixelReason, out PixelDerived derived))
             { reason = $"{pixelReason}:{index}"; return false; }
 
-            Dictionary<string, object?> pixelJson = BuildPixel(input, live, derived, input.ContactCounts[index], input.FirstContactSteps[index]);
-            byte[] canonical = JsonSerializer.SerializeToUtf8Bytes(pixelJson);
-            film.AppendData(canonical);
-            if (selected.Contains(index))
+            bool isSelected = selected.Contains(index);
+            if (digestEveryPixel || isSelected)
             {
-                selectedJson[index] = pixelJson;
-                selectedSha[index] = Hex(SHA256.HashData(canonical));
+                Dictionary<string, object?> pixelJson = BuildPixel(input, live, derived, input.ContactCounts[index], input.FirstContactSteps[index]);
+                byte[] canonical = JsonSerializer.SerializeToUtf8Bytes(pixelJson);
+                if (digestEveryPixel) film.AppendData(canonical);
+                if (isSelected)
+                {
+                    selectedJson[index] = pixelJson;
+                    selectedSha[index] = Hex(SHA256.HashData(canonical));
+                }
             }
             foreach (TransportEventV1 e in live.Events)
                 kindTotals[e.Kind.ToString()] = kindTotals.TryGetValue(e.Kind.ToString(), out int n) ? n + 1 : 1;
@@ -165,28 +280,16 @@ public static class PixelPathObservationMapV1
             sealedContactTotal += input.ContactCounts[index];
         }
 
-        string digest = Hex(film.GetHashAndReset());
-        var pathsDoc = new Dictionary<string, object?>
+        build = new FilmBuild
         {
-            ["schema"] = SchemaId,
-            ["run_id"] = input.RunId,
-            ["pixels"] = selectedJson.Values.ToArray()
-        };
-        string pathsJson = JsonSerializer.Serialize(pathsDoc, new JsonSerializerOptions { WriteIndented = true }) + "\n";
-        byte[] pathsBytes = new UTF8Encoding(false).GetBytes(pathsJson);
-        var manifest = BuildManifest(input, digest, selectedSha, kindTotals, questionTotal, queryTotal, contactEventTotal, sealedContactTotal, pathsBytes);
-        string manifestJson = JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true }) + "\n";
-
-        byte[] manifestBytes = new UTF8Encoding(false).GetBytes(manifestJson);
-        if (!TryPublishAtomically(input, pathsBytes, manifestBytes, out reason)) return false;
-        string pathsPath = Path.Combine(input.OutputDirectory, PathsFileName);
-        string manifestPath = Path.Combine(input.OutputDirectory, ManifestFileName);
-        result = new PixelPathObservationResultV1
-        {
-            ManifestPath = manifestPath,
-            PixelPathsPath = pathsPath,
-            FullFilmDigestSha256 = digest,
-            ValidatedPixelCount = total
+            Digest = digestEveryPixel ? Hex(film.GetHashAndReset()) : string.Empty,
+            SelectedJson = selectedJson,
+            SelectedSha = selectedSha,
+            KindTotals = kindTotals,
+            Questions = questionTotal,
+            Queries = queryTotal,
+            ContactEvents = contactEventTotal,
+            SealedContacts = sealedContactTotal
         };
         reason = string.Empty;
         return true;
@@ -253,7 +356,9 @@ public static class PixelPathObservationMapV1
         public Dictionary<int, int> ContactQuestionOrdinal = new();
     }
 
-    private static bool ValidateInput(PixelPathObservationInputV1? input, out string reason)
+    // requireAttestedPublication: TryWrite (publication identity + source attestation required, unchanged order);
+    // TryInspect skips exactly those checks and validates everything else identically.
+    private static bool ValidateInput(PixelPathObservationInputV1? input, bool requireAttestedPublication, out string reason)
     {
         reason = string.Empty;
         if (input is null || input.Snapshot is null || input.Sources is null || input.SelectedPixels is null) { reason = "input_missing"; return false; }
@@ -264,17 +369,21 @@ public static class PixelPathObservationMapV1
         int total;
         try { total = checked(input.Width * input.Height); } catch (OverflowException) { reason = "dimensions_overflow"; return false; }
         if (input.ContactCounts?.Length != total || input.FirstContactSteps?.Length != total) { reason = "sealed_channels_invalid"; return false; }
-        if (string.IsNullOrWhiteSpace(input.OutputDirectory) || string.IsNullOrWhiteSpace(input.RunId) || string.IsNullOrWhiteSpace(input.EngineCommit)) { reason = "identity_missing"; return false; }
+        if (requireAttestedPublication &&
+            (string.IsNullOrWhiteSpace(input.OutputDirectory) || string.IsNullOrWhiteSpace(input.RunId) || string.IsNullOrWhiteSpace(input.EngineCommit))) { reason = "identity_missing"; return false; }
         string[] hashes = { input.FormalPolicySha256, input.GeometrySnapshotSha256, input.FrozenBoundaryContentSha256, input.BoundaryExecutionAuthoritySha256, input.CanonicalQueryDatasetSha256 };
         if (hashes.Any(h => !IsSha256(h))) { reason = "acquisition_sha256_invalid"; return false; }
-        // Source provenance must identify a real source state: a full 40-hex commit, and either "clean" with no
-        // fingerprint or "dirty" with a real (non-placeholder) authored-diff SHA-256. "unknown" is refused.
-        if (!IsHex(input.EngineCommit, 40)) { reason = "engine_commit_invalid"; return false; }
-        if (input.SourceTreeState is not ("clean" or "dirty" or "unknown")) { reason = "source_tree_state_invalid"; return false; }
-        if (input.SourceTreeState == "unknown") { reason = "source_state_unverified"; return false; }
-        if (input.SourceTreeState == "clean" && !string.IsNullOrEmpty(input.AuthoredDiffSha256)) { reason = "clean_source_must_not_carry_fingerprint"; return false; }
-        if (input.SourceTreeState == "dirty" && !IsSha256(input.AuthoredDiffSha256)) { reason = "dirty_source_requires_fingerprint"; return false; }
-        if (input.SourceTreeState == "dirty" && input.AuthoredDiffSha256.All(c => c == '0')) { reason = "dirty_source_placeholder_fingerprint"; return false; }
+        if (requireAttestedPublication)
+        {
+            // Source provenance must identify a real source state: a full 40-hex commit, and either "clean" with no
+            // fingerprint or "dirty" with a real (non-placeholder) authored-diff SHA-256. "unknown" is refused.
+            if (!IsHex(input.EngineCommit, 40)) { reason = "engine_commit_invalid"; return false; }
+            if (input.SourceTreeState is not ("clean" or "dirty" or "unknown")) { reason = "source_tree_state_invalid"; return false; }
+            if (input.SourceTreeState == "unknown") { reason = "source_state_unverified"; return false; }
+            if (input.SourceTreeState == "clean" && !string.IsNullOrEmpty(input.AuthoredDiffSha256)) { reason = "clean_source_must_not_carry_fingerprint"; return false; }
+            if (input.SourceTreeState == "dirty" && !IsSha256(input.AuthoredDiffSha256)) { reason = "dirty_source_requires_fingerprint"; return false; }
+            if (input.SourceTreeState == "dirty" && input.AuthoredDiffSha256.All(c => c == '0')) { reason = "dirty_source_placeholder_fingerprint"; return false; }
+        }
         if (input.LiveCaptureGeneration != input.Snapshot.CaptureGeneration) { reason = "live_capture_generation_mismatch"; return false; }
         if (!string.Equals(input.LiveQueryDatasetSha256, input.CanonicalQueryDatasetSha256, StringComparison.Ordinal)) { reason = "live_query_dataset_mismatch"; return false; }
         if (input.SelectedPixels.Length == 0) { reason = "pixel_selection_empty"; return false; }
@@ -526,41 +635,12 @@ public static class PixelPathObservationMapV1
         ["artifact_class"] = ArtifactClass,
         ["title"] = "Ordered per-pixel recorded transport events — provisional, observational export.",
         ["scientific_ledger_sealed"] = false,
-        ["claim_boundary"] = new[]
-        {
-            "This artifact copies provisional recorder evidence from one sealed Formal acquisition; it adds no measurement.",
-            "GeometryContactObserved events are diagnostic Godot witnesses; per-pixel contact authority is the sealed BVH contact_counts channel.",
-            "Diagnostic contact does not establish a qualified terminal-surface hit.",
-            "Unavailable details are listed explicitly and are never inferred or fabricated.",
-            "The sealed Q deck and all existing artifacts are unchanged."
-        },
-        ["field_classes"] = new Dictionary<string, object>
-        {
-            ["recorded"] = "byte-exact copies of recorder-owned values (floats as IEEE-754 bit patterns, hex); keys prefixed derived_ or display_ inside recorded objects are not recorded values",
-            ["derived_*"] = "keys inside recorded events computed by the exporter (question/contact joins)",
-            ["derived"] = "computed only from recorded values in the same pixel (joins, path intervals, counts)",
-            ["display_*"] = "decimal renderings of recorded bits for reading; not authoritative",
-            ["unavailable"] = "not retained by the recorder at this commit"
-        },
+        ["claim_boundary"] = ClaimBoundary(),
+        ["field_classes"] = FieldClasses(),
         ["provenance_warnings"] = ProvenanceWarnings,
         ["run_id"] = input.RunId,
         ["scene"] = new Dictionary<string, object> { ["semantic_id"] = input.SemanticSceneId, ["godot_path"] = input.GodotScenePath },
-        ["acquisition"] = new Dictionary<string, object>
-        {
-            ["formal_policy_id"] = input.FormalPolicyId,
-            ["formal_policy_sha256"] = input.FormalPolicySha256,
-            ["geometry_snapshot_sha256"] = input.GeometrySnapshotSha256,
-            ["frozen_boundary_content_sha256"] = input.FrozenBoundaryContentSha256,
-            ["boundary_execution_authority_sha256"] = input.BoundaryExecutionAuthoritySha256,
-            ["canonical_query_dataset_sha256"] = input.CanonicalQueryDatasetSha256,
-            ["live_query_dataset_sha256_at_export"] = input.LiveQueryDatasetSha256,
-            ["capture_generation"] = input.Snapshot.CaptureGeneration,
-            ["width"] = input.Width,
-            ["height"] = input.Height,
-            ["film_stride"] = input.FilmStride,
-            ["pixel_order"] = "row-major: pixel = y * width + x",
-            ["camera_pose_raw_u32"] = PortalRemapObservationMapV1.CameraBits(input.CameraPose)
-        },
+        ["acquisition"] = Acquisition(input),
         ["source"] = new Dictionary<string, object> { ["engine_commit"] = input.EngineCommit, ["tree_state"] = input.SourceTreeState, ["authored_diff_sha256"] = input.AuthoredDiffSha256 },
         ["validation"] = new Dictionary<string, object>
         {
@@ -587,6 +667,41 @@ public static class PixelPathObservationMapV1
             ["pixel_compact_json_sha256"] = selectedSha.ToDictionary(kv => kv.Key.ToString(CultureInfo.InvariantCulture), kv => (object)kv.Value)
         },
         ["artifacts"] = new Dictionary<string, object> { ["pixel_paths.json"] = PortalRemapObservationMapV1.HashEntry(pathsBytes) }
+    };
+
+    private static string[] ClaimBoundary() => new[]
+    {
+        "This artifact copies provisional recorder evidence from one sealed Formal acquisition; it adds no measurement.",
+        "GeometryContactObserved events are diagnostic Godot witnesses; per-pixel contact authority is the sealed BVH contact_counts channel.",
+        "Diagnostic contact does not establish a qualified terminal-surface hit.",
+        "Unavailable details are listed explicitly and are never inferred or fabricated.",
+        "The sealed Q deck and all existing artifacts are unchanged."
+    };
+
+    private static Dictionary<string, object> FieldClasses() => new()
+    {
+        ["recorded"] = "byte-exact copies of recorder-owned values (floats as IEEE-754 bit patterns, hex); keys prefixed derived_ or display_ inside recorded objects are not recorded values",
+        ["derived_*"] = "keys inside recorded events computed by the exporter (question/contact joins)",
+        ["derived"] = "computed only from recorded values in the same pixel (joins, path intervals, counts)",
+        ["display_*"] = "decimal renderings of recorded bits for reading; not authoritative",
+        ["unavailable"] = "not retained by the recorder at this commit"
+    };
+
+    private static Dictionary<string, object> Acquisition(PixelPathObservationInputV1 input) => new()
+    {
+        ["formal_policy_id"] = input.FormalPolicyId,
+        ["formal_policy_sha256"] = input.FormalPolicySha256,
+        ["geometry_snapshot_sha256"] = input.GeometrySnapshotSha256,
+        ["frozen_boundary_content_sha256"] = input.FrozenBoundaryContentSha256,
+        ["boundary_execution_authority_sha256"] = input.BoundaryExecutionAuthoritySha256,
+        ["canonical_query_dataset_sha256"] = input.CanonicalQueryDatasetSha256,
+        ["live_query_dataset_sha256_at_export"] = input.LiveQueryDatasetSha256,
+        ["capture_generation"] = input.Snapshot.CaptureGeneration,
+        ["width"] = input.Width,
+        ["height"] = input.Height,
+        ["film_stride"] = input.FilmStride,
+        ["pixel_order"] = "row-major: pixel = y * width + x",
+        ["camera_pose_raw_u32"] = PortalRemapObservationMapV1.CameraBits(input.CameraPose)
     };
 
     private static string[] FlagNames<T>(T value) where T : struct, Enum

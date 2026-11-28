@@ -5816,6 +5816,61 @@ private sealed class OverlayRollingWindow
 		string authoredDiffSha256,
 		int[] pixelIndices)
 	{
+		string refusal = TryBuildPixelPathObservationInput(outputDirectory, runId, semanticSceneId, godotScenePath,
+			engineCommit, sourceTreeState, authoredDiffSha256, pixelIndices,
+			out XPrimeRay.ObserverInstrumentation.PixelPathObservationInputV1 input);
+		if (refusal.Length > 0)
+			return refusal;
+		return XPrimeRay.ObserverInstrumentation.PixelPathObservationMapV1.TryWrite(input, out _, out string reason)
+			? string.Empty
+			: reason;
+	}
+
+	/// <summary>
+	/// INSPECT-R0.2 Pixel Life Inspector: read-only, in-memory view of the selected pixels of the completed,
+	/// sealed Formal acquisition. Same preconditions and whole-film validation as
+	/// <see cref="CapturePixelPathObservationBundle"/>; nothing is written, no query, transport or recorder
+	/// state is touched (recorder slots are cloned under the existing lock). Always returns a JSON document:
+	/// schema PixelLifeInspection-v1 with status "ok", or {"status":"unavailable","reason":...}.
+	/// </summary>
+	public string GetPixelLifeInspectionJson(int[] pixelIndices)
+	{
+		string refusal = TryBuildPixelPathObservationInput("(in-memory inspection)", "pixel-life-inspector", "", "",
+			"", "unknown", "", pixelIndices, out XPrimeRay.ObserverInstrumentation.PixelPathObservationInputV1 input);
+		// A completed seal without an observation snapshot means the recorder was off for that acquisition
+		// (the seal stores the snapshot only when TransportRecorderEnabled; every reset clears the seal too).
+		if (refusal == "formal_transport_observation_unavailable" && _sealedProbeViewAvailable && !_probeSnapshotLifecycleActive &&
+			_lastProbeSnapshotLifecycleResult.State == ProbeSnapshotLifecycleState.Complete && _sealedFormalTransportObservationSnapshot == null)
+			refusal = "recorder_disabled_for_acquisition";
+		if (refusal.Length == 0)
+		{
+			if (XPrimeRay.ObserverInstrumentation.PixelPathObservationMapV1.TryInspect(input, out var inspection, out string reason))
+				return inspection!.Json;
+			refusal = reason;
+		}
+		return System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object>
+		{
+			["schema"] = XPrimeRay.ObserverInstrumentation.PixelPathObservationMapV1.InspectionSchemaId,
+			["status"] = "unavailable",
+			["reason"] = refusal,
+			["sealed_generation"] = _sealedProbeViewGeneration,
+			["unavailable"] = XPrimeRay.ObserverInstrumentation.PixelPathObservationMapV1.Unavailable,
+			["provenance_warnings"] = XPrimeRay.ObserverInstrumentation.PixelPathObservationMapV1.ProvenanceWarnings
+		});
+	}
+
+	private string TryBuildPixelPathObservationInput(
+		string outputDirectory,
+		string runId,
+		string semanticSceneId,
+		string godotScenePath,
+		string engineCommit,
+		string sourceTreeState,
+		string authoredDiffSha256,
+		int[] pixelIndices,
+		out XPrimeRay.ObserverInstrumentation.PixelPathObservationInputV1 input)
+	{
+		input = null;
 		if (!_sealedProbeViewAvailable ||
 			_lastProbeSnapshotLifecycleResult.State != ProbeSnapshotLifecycleState.Complete ||
 			_sealedFormalTransportObservationSnapshot == null)
@@ -5837,7 +5892,7 @@ private sealed class OverlayRollingWindow
 			BitConverter.SingleToUInt32Bits(basis.Z.X), BitConverter.SingleToUInt32Bits(basis.Z.Y), BitConverter.SingleToUInt32Bits(basis.Z.Z),
 			BitConverter.SingleToUInt32Bits(transform.Origin.X), BitConverter.SingleToUInt32Bits(transform.Origin.Y), BitConverter.SingleToUInt32Bits(transform.Origin.Z),
 			BitConverter.SingleToUInt32Bits(_cathedralSnapshotContext.CameraFov));
-		var input = new XPrimeRay.ObserverInstrumentation.PixelPathObservationInputV1
+		input = new XPrimeRay.ObserverInstrumentation.PixelPathObservationInputV1
 		{
 			OutputDirectory = outputDirectory,
 			RunId = runId,
@@ -5864,9 +5919,7 @@ private sealed class OverlayRollingWindow
 			Sources = sources,
 			SelectedPixels = pixelIndices ?? Array.Empty<int>()
 		};
-		return XPrimeRay.ObserverInstrumentation.PixelPathObservationMapV1.TryWrite(input, out _, out string reason)
-			? string.Empty
-			: reason;
+		return string.Empty;
 	}
 
 	public bool RequestCathedralProbeSnapshot(int budget) => TryRequestCathedralProbeSnapshot(budget, out _);

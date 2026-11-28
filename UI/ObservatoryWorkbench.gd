@@ -8,8 +8,10 @@ const PRESENTATION_INSPECT := 2
 @onready var _side_dock: Control = $UILayer/UIRoot/SideDock
 @onready var _launch_hint: Control = $UILayer/UIRoot/LaunchHintPanel
 @onready var _hint_text: Label = $UILayer/UIRoot/LaunchHintPanel/HintMargin/HintText
+@onready var _pixel_life: Control = $UILayer/UIRoot/PixelLifeInspector
 
 var _workbench_open := false
+var _pixel_life_open := false
 var _input_camera: Node
 var _closed_presentation_level := PRESENTATION_EXPLORE
 var _auto_reveal_count := 0
@@ -31,10 +33,16 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if _keyboard_focus_blocks_shortcuts():
 			return
-		if event.keycode == KEY_ESCAPE:
+		if event.keycode == KEY_I:
+			_set_pixel_life_open(not _pixel_life_open)
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_ESCAPE and _pixel_life_open:
+			_set_pixel_life_open(false)
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_ESCAPE:
 			_set_workbench_open(not _workbench_open)
 			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_H and not _workbench_open:
+		elif event.keycode == KEY_H and not _workbench_open and not _pixel_life_open:
 			_closed_presentation_level = PRESENTATION_INSTRUMENT if _closed_presentation_level == PRESENTATION_EXPLORE else PRESENTATION_EXPLORE
 			_apply_presentation_level(_closed_presentation_level)
 			_update_hint()
@@ -43,6 +51,8 @@ func _input(event: InputEvent) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if _pixel_life_open:
+			return
 		if _workbench_open:
 			_set_workbench_open(false)
 			get_viewport().set_input_as_handled()
@@ -52,6 +62,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _set_workbench_open(open: bool) -> void:
+	if open and _pixel_life_open:
+		_pixel_life_open = false
+		_pixel_life.call("SetOpen", false)
 	_workbench_open = open
 	_side_dock.visible = open
 	if _input_camera != null and _input_camera.has_method("SetInputEnabled"):
@@ -62,11 +75,31 @@ func _set_workbench_open(open: bool) -> void:
 	_update_hint()
 
 
+# INSPECT-R0.2: I toggles the read-only Pixel Life Inspector. Like Inspect (Esc) it frees the mouse and
+# suspends camera/player input; it closes the side dock. It reads the sealed acquisition only.
+func _set_pixel_life_open(open: bool) -> void:
+	if open and _workbench_open:
+		_workbench_open = false
+		_side_dock.visible = false
+	_pixel_life_open = open
+	_pixel_life.call("SetOpen", open)
+	if _input_camera != null and _input_camera.has_method("SetInputEnabled"):
+		_input_camera.call("SetInputEnabled", not open, true)
+	_apply_presentation_level(PRESENTATION_INSPECT if open else _closed_presentation_level)
+	_launch_hint.visible = not open
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if open else Input.MOUSE_MODE_CAPTURED
+	_update_hint()
+
+
+func IsPixelLifeOpenForTesting() -> bool:
+	return _pixel_life_open
+
+
 # Accepted operator G/Q actions reveal a hidden film by promoting Explore to
 # Instrument once. Inspect is never changed, Instrument is left alone, and a later
 # manual H back to Explore stays authoritative until the next accepted action.
 func _on_operator_observation_accepted(_action: StringName) -> void:
-	if _workbench_open or _closed_presentation_level != PRESENTATION_EXPLORE:
+	if _workbench_open or _pixel_life_open or _closed_presentation_level != PRESENTATION_EXPLORE:
 		return
 	_closed_presentation_level = PRESENTATION_INSTRUMENT
 	_auto_reveal_count += 1
@@ -124,13 +157,13 @@ func _update_hint() -> void:
 	if _workbench_open:
 		_hint_text.text = "Inspect open - Esc or click world to resume"
 	elif Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		_hint_text.text = "WASD move - Mouse look - H Explore/Instrument - Esc Inspect"
+		_hint_text.text = "WASD move - Mouse look - H Explore/Instrument - Esc Inspect - I Pixel Life"
 	else:
-		_hint_text.text = "Click to explore - H Explore/Instrument - Esc Inspect"
+		_hint_text.text = "Click to explore - H Explore/Instrument - Esc Inspect - I Pixel Life"
 
 
 func GetPresentationLevelForTesting() -> int:
-	return PRESENTATION_INSPECT if _workbench_open else _closed_presentation_level
+	return PRESENTATION_INSPECT if _workbench_open or _pixel_life_open else _closed_presentation_level
 
 
 func IsWorkbenchOpenForTesting() -> bool:

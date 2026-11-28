@@ -18,6 +18,8 @@ internal static class PixelPathObservationMapV1Tests
         EveryRefusalWritesNothing();
         ExistingDestinationIsRefusedAndUntouched();
         InjectedFilesystemFailuresLeaveNothing();
+        InspectionEqualsPublishedPixelsAndWritesNothing();
+        InspectionRefusalsMatchExport();
     }
 
     private static void HappyPathContentAndUnavailableDetails()
@@ -67,9 +69,9 @@ internal static class PixelPathObservationMapV1Tests
         TestAssert.Equal(ra.FullFilmDigestSha256, rb.FullFilmDigestSha256, "full-film digest identical");
     }
 
-    private static void EveryRefusalWritesNothing()
-    {
-        var cases = new (string Expected, Func<string, PixelPathObservationInputV1> Make)[]
+    // Refusal cases shared by the export and inspection tests. SourceOrPublication marks checks that only an attested
+    // publication performs (TryInspect skips exactly these and reports source provenance as not attested).
+    private static (string Expected, Func<string, PixelPathObservationInputV1> Make)[] RefusalCases() => new (string Expected, Func<string, PixelPathObservationInputV1> Make)[]
         {
             ("recorder_disabled_for_acquisition", o => Build(o, recorderEnabled: false)),
             ("sealed_measurements_missing", o => Build(o, omitMeasurements: true)),
@@ -101,13 +103,79 @@ internal static class PixelPathObservationMapV1Tests
             ("terminal_mismatch:1", o => Build(o, dropTerminalPixel1: true)),
             ("input_missing", o => Build(o, nullSources: true)),
         };
-        foreach ((string expected, Func<string, PixelPathObservationInputV1> make) in cases)
+
+    private static readonly HashSet<string> SourceOrPublication = new()
+    {
+        "dirty_source_requires_fingerprint", "dirty_source_placeholder_fingerprint", "clean_source_must_not_carry_fingerprint",
+        "source_state_unverified", "engine_commit_invalid"
+    };
+
+    private static void EveryRefusalWritesNothing()
+    {
+        foreach ((string expected, Func<string, PixelPathObservationInputV1> make) in RefusalCases())
         {
             using TempDir root = new();
             bool ok = PixelPathObservationMapV1.TryWrite(make(root.Out), out _, out string reason);
             TestAssert.False(ok, "refused: " + expected);
             TestAssert.Equal(expected, reason, "refusal reason");
             TestAssert.False(Directory.Exists(root.Out), "refusal wrote nothing: " + expected);
+        }
+    }
+
+    // INSPECT-R0.2: the in-memory inspection returns exactly the pixel objects TryWrite publishes and writes nothing.
+    private static void InspectionEqualsPublishedPixelsAndWritesNothing()
+    {
+        using TempDir published = new();
+        using TempDir inspected = new();
+        int[] both = { 0, 1 };
+        TestAssert.True(PixelPathObservationMapV1.TryWrite(Build(published.Out, selection: both), out PixelPathObservationResultV1? written, out string r1), "export for comparison: " + r1);
+        TestAssert.True(PixelPathObservationMapV1.TryInspect(Build(inspected.Out, selection: both), out PixelPathInspectionV1? inspection, out string r2), "inspection: " + r2);
+        TestAssert.False(Directory.Exists(inspected.Out), "inspection wrote nothing");
+        TestAssert.Equal(0, Directory.GetFileSystemEntries(inspected.Path).Length, "inspection left no staging or stray file");
+        TestAssert.Equal(2, inspection!.ValidatedPixelCount, "inspection validated every sealed pixel");
+        TestAssert.True(written!.FullFilmDigestSha256.Length == 64, "export computed its full-film digest");
+        using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(written.ManifestPath));
+        JsonElement shas = manifest.RootElement.GetProperty("selection").GetProperty("pixel_compact_json_sha256");
+        using JsonDocument doc = JsonDocument.Parse(inspection.Json);
+        JsonElement root = doc.RootElement;
+        TestAssert.Equal("PixelLifeInspection-v1", root.GetProperty("schema").GetString(), "inspection schema");
+        TestAssert.Equal("ok", root.GetProperty("status").GetString(), "inspection status");
+        TestAssert.False(root.GetProperty("scientific_ledger_sealed").GetBoolean(), "inspection is not a sealed ledger");
+        TestAssert.True(root.GetProperty("source_attestation").GetString()!.StartsWith("not attested"), "source provenance reported as not attested");
+        TestAssert.Equal(3, root.GetProperty("provenance_warnings").GetArrayLength(), "provenance warnings carried");
+        TestAssert.True(root.GetProperty("unavailable").GetArrayLength() >= 6, "unavailable channels carried");
+        TestAssert.Equal(PixelPathObservationMapV1.ArtifactClass, root.GetProperty("artifact_class").GetString(), "artifact class carried");
+        TestAssert.True(root.GetProperty("validation").GetProperty("full_film_digest_sha256").ValueKind == JsonValueKind.Null, "inspection claims no full-film digest");
+        JsonElement pixels = root.GetProperty("pixels");
+        TestAssert.Equal(2, pixels.GetArrayLength(), "selected pixels returned");
+        foreach (JsonElement pixel in pixels.EnumerateArray())
+        {
+            int index = pixel.GetProperty("pixel_index").GetInt32();
+            string raw = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(pixel.GetRawText()))).ToLowerInvariant();
+            TestAssert.Equal(shas.GetProperty(index.ToString()).GetString(), raw, "inspected pixel bytes == published pixel compact JSON: " + index);
+            TestAssert.Equal(shas.GetProperty(index.ToString()).GetString(), inspection.PixelCompactJsonSha256[index], "inspection pixel sha == manifest: " + index);
+        }
+        TestAssert.True(PixelPathObservationMapV1.TryInspect(Build(inspected.Out, selection: both), out PixelPathInspectionV1? again, out _), "repeat inspection");
+        TestAssert.Equal(inspection.Json, again!.Json, "inspection deterministic");
+        TestAssert.True(PixelPathObservationMapV1.TryInspect(Build("", selection: both, treeState: "unknown", engineCommit: "", authoredDiff: ""), out _, out string r3),
+            "inspection needs no publication identity or source attestation: " + r3);
+    }
+
+    private static void InspectionRefusalsMatchExport()
+    {
+        foreach ((string expected, Func<string, PixelPathObservationInputV1> make) in RefusalCases())
+        {
+            using TempDir root = new();
+            bool ok = PixelPathObservationMapV1.TryInspect(make(root.Out), out PixelPathInspectionV1? inspection, out string reason);
+            TestAssert.False(Directory.Exists(root.Out), "inspection wrote nothing: " + expected);
+            if (SourceOrPublication.Contains(expected))
+            {
+                TestAssert.True(ok, "source attestation is not an inspection precondition: " + expected);
+                continue;
+            }
+            TestAssert.False(ok, "inspection refused: " + expected);
+            TestAssert.Equal(expected, reason, "inspection refusal reason equals export: " + expected);
+            TestAssert.True(inspection is null, "refused inspection returns nothing: " + expected);
         }
     }
 
