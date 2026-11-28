@@ -8,7 +8,10 @@ const PRESENTATION_INSPECT := 2
 @onready var _side_dock: Control = $UILayer/UIRoot/SideDock
 @onready var _launch_hint: Control = $UILayer/UIRoot/LaunchHintPanel
 @onready var _hint_text: Label = $UILayer/UIRoot/LaunchHintPanel/HintMargin/HintText
-@onready var _pixel_life: Control = $UILayer/UIRoot/PixelLifeInspector
+# Created on the first I press (not at scene load), so sessions that never open it allocate no extra
+# resources or nodes and the process-local instance-ID epochs of established fixtures stay identical.
+const PIXEL_LIFE_SCENE_PATH := "res://UI/PixelLifeInspector.tscn"
+var _pixel_life: Control = null
 
 var _workbench_open := false
 var _pixel_life_open := false
@@ -64,7 +67,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _set_workbench_open(open: bool) -> void:
 	if open and _pixel_life_open:
 		_pixel_life_open = false
-		_pixel_life.call("SetOpen", false)
+		if _pixel_life != null:
+			_pixel_life.call("SetOpen", false)
 	_workbench_open = open
 	_side_dock.visible = open
 	if _input_camera != null and _input_camera.has_method("SetInputEnabled"):
@@ -82,7 +86,10 @@ func _set_pixel_life_open(open: bool) -> void:
 		_workbench_open = false
 		_side_dock.visible = false
 	_pixel_life_open = open
-	_pixel_life.call("SetOpen", open)
+	if open:
+		_ensure_pixel_life()
+	if _pixel_life != null:
+		_pixel_life.call("SetOpen", open)
 	if _input_camera != null and _input_camera.has_method("SetInputEnabled"):
 		_input_camera.call("SetInputEnabled", not open, true)
 	_apply_presentation_level(PRESENTATION_INSPECT if open else _closed_presentation_level)
@@ -91,8 +98,28 @@ func _set_pixel_life_open(open: bool) -> void:
 	_update_hint()
 
 
+func _ensure_pixel_life() -> void:
+	if _pixel_life != null:
+		return
+	var scene := load(PIXEL_LIFE_SCENE_PATH) as PackedScene
+	if scene == null:
+		return
+	_pixel_life = scene.instantiate() as Control
+	_pixel_life.name = "PixelLifeInspector"
+	# Paths are relative to UILayer/UIRoot/PixelLifeInspector.
+	_pixel_life.set("film_camera_path", NodePath("../../../PlayableWorld/TransportChamberWorld/GrinFilmCamera"))
+	_pixel_life.set("film_view_path", NodePath("../../../PlayableWorld/TransportChamberWorld/CanvasLayer/HUDRoot/FilmModule/FilmPlate/FilmView"))
+	var ui_root := _side_dock.get_parent()
+	ui_root.add_child(_pixel_life)
+	ui_root.move_child(_pixel_life, _side_dock.get_index())
+
+
 func IsPixelLifeOpenForTesting() -> bool:
 	return _pixel_life_open
+
+
+func IsPixelLifeInstantiatedForTesting() -> bool:
+	return _pixel_life != null
 
 
 # Accepted operator G/Q actions reveal a hidden film by promoting Explore to

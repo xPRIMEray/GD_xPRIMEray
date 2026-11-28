@@ -53,14 +53,17 @@ func _initialize() -> void:
 	var chamber := root_node.get_node("PlayableWorld/TransportChamberWorld")
 	film = chamber.get_node("GrinFilmCamera")
 	film_controller = chamber.get_node("FilmController")
-	inspector = root_node.get_node("UILayer/UIRoot/PixelLifeInspector")
 	chamber.get_node("TransportChamberPlayer").set_physics_process(false)
 	film.set("RecordFormalTransportLedger", mode == "main")
 	await _settle(5)
 
 	# Before any seal: explicit unavailability, nothing fabricated.
 	_expect(not bool(workbench.call("IsPixelLifeOpenForTesting")), "inspector starts closed")
+	_expect(not bool(workbench.call("IsPixelLifeInstantiatedForTesting")) and root_node.get_node_or_null("UILayer/UIRoot/PixelLifeInspector") == null,
+		"inspector is not instantiated until first opened (no scene-load allocation)")
 	await _press(KEY_I)
+	inspector = root_node.get_node_or_null("UILayer/UIRoot/PixelLifeInspector")
+	_expect(inspector != null, "first I instantiates the inspector under the Workbench UI root")
 	var st: Dictionary = inspector.call("GetDisplayedStateForTesting")
 	_expect(bool(workbench.call("IsPixelLifeOpenForTesting")) and bool(st.get("visible")), "I key opens the inspector")
 	_expect(str(st.get("status")) == "unavailable" and str(st.get("reason")) == "formal_transport_observation_unavailable",

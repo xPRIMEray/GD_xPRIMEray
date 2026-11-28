@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="PackedScene" path="res://HelloObservatoryWorld.tscn" id="1_world"]
 [ext_resource type="PackedScene" path="res://UI/ObservatoryWorkbenchPanel.tscn" id="2_oi"]
@@ -7,7 +7,6 @@
 [ext_resource type="Theme" path="res://UI/ObservatoryHudTheme.tres" id="5_hud_theme"]
 [ext_resource type="PackedScene" path="res://UI/ProbePolicyInspector.tscn" id="6_policy_inspector"]
 [ext_resource type="PackedScene" path="res://UI/SceneSelectorPanel.tscn" id="7_scene_selector"]
-[ext_resource type="PackedScene" path="res://UI/PixelLifeInspector.tscn" id="8_pixel_life"]
 
 [node name="ObservatoryWorkbench" type="Node"]
 script = ExtResource("4_workbench")
@@ -44,11 +43,6 @@ theme_override_constants/margin_bottom = 8
 layout_mode = 2
 text = "Click to explore · Esc for Observatory"
 autowrap_mode = 3
-
-[node name="PixelLifeInspector" parent="UILayer/UIRoot" instance=ExtResource("8_pixel_life")]
-layout_mode = 1
-film_camera_path = NodePath("../../../PlayableWorld/TransportChamberWorld/GrinFilmCamera")
-film_view_path = NodePath("../../../PlayableWorld/TransportChamberWorld/CanvasLayer/HUDRoot/FilmModule/FilmPlate/FilmView")
 
 [node name="SideDock" type="PanelContainer" parent="UILayer/UIRoot"]
 clip_contents = true
